@@ -84,7 +84,7 @@ public class DisposeTests
     {
         public int DisposeCount;
         public void Dispose() => DisposeCount++;
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class AsyncDisposableLeaf : Component, IAsyncDisposable
@@ -97,7 +97,7 @@ public class DisposeTests
             return ValueTask.CompletedTask;
         }
 
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DisposableMiddle : Component, IDisposable
@@ -127,7 +127,7 @@ public class DisposeTests
         {
             if (!IncludeChild)
             {
-                return Span();
+                return Span;
             }
 
             var ctx = LiveRenderContext.Current!;

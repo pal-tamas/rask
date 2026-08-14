@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 //
 // No PageSize here on purpose: scrolling is the alternative to paging for a set this size. Sorting still works
 // — click a header and the rows reorder under it.
-public sealed class BsDataGridStickyDemo : Component
+public sealed partial class BsDataGridStickyDemo : Component
 {
     private sealed record Reading(string Sensor, string Zone, double Celsius);
 
@@ -27,15 +27,10 @@ public sealed class BsDataGridStickyDemo : Component
     }
 
     protected override Component? Render() =>
-        Div(Id: "grid-sticky-demo")[
-            BsDataGrid(
-                Id: "bs-grid-sticky",
-                Data: Readings,
-                RowKey: r => r.Sensor,
-                MaxHeight: "280px",
-                StickyHeader: true,
-                Columns:
-                [
+        Div.Id("grid-sticky-demo")[
+            BsDataGrid
+                .Data(Readings)
+                .Columns([
                     new BsColumn<Reading> { Title = "Sensor", Value = r => r.Sensor, Sortable = true },
                     new BsColumn<Reading> { Title = "Zone", Value = r => r.Zone, Sortable = true },
                     new BsColumn<Reading>
@@ -43,5 +38,9 @@ public sealed class BsDataGridStickyDemo : Component
                         Title = "Temp", Class = Txt.End(), Sortable = true, SortKey = r => r.Celsius,
                         Value = r => $"{r.Celsius:F1} °C",
                     },
-                ])];
+                ])
+                .Id("bs-grid-sticky")
+                .RowKey(r => r.Sensor)
+                .MaxHeight("280px")
+                .StickyHeader(true)];
 }

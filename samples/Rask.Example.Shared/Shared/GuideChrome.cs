@@ -12,7 +12,7 @@ namespace Rask.Example.Shared;
 // a sticky "On this page" rail that scroll-spies the current section, and prev/next book-navigation
 // following the GuideCatalog order. The scroll-spy runs entirely on the client (GuideChrome.js) — no
 // server round-trips — so it costs nothing on either transport.
-public sealed class GuideChrome : Component
+public sealed partial class GuideChrome : Component
 {
     private readonly IJSRuntime _js;
 
@@ -68,19 +68,21 @@ public sealed class GuideChrome : Component
             return
             [
                 BackLink(),
-                BsAlert(Color: BsColor.Warning)[$"No guide found for “{Slug}”."]
+                BsAlert.Color(BsColor.Warning)[$"No guide found for “{Slug}”."]
             ];
         }
 
-        var headings = Markdown.Headings(source);
+        // Qualified: `Markdown` the entry is in scope here and wins the simple name, so the static
+        // helper on the component type has to be named through its namespace.
+        var headings = global::Rask.Example.Shared.Markdown.Headings(source);
         var (prev, next) = Adjacent(Slug);
 
-        return Div(Ref: _root, Class: "guide")[
+        return Div.Ref(_root).Class("guide")[
             Banner(),
             BackLink(),
             Chapters(headings),
-            Div(Class: "guide-layout")[
-                Div(Class: "guide-content")[Markdown(source)],
+            Div.Class("guide-layout")[
+                Div.Class("guide-content")[Markdown.Source(source)],
                 OnThisPage(headings)
             ],
             PrevNext(prev, next)
@@ -88,19 +90,24 @@ public sealed class GuideChrome : Component
     }
 
     private static Component BackLink() =>
-        NavLink(Href: Features.Routes.GuidesIndexPage(), ActiveClass: "",
-            Class: Bs.Join(Display.InlineFlex(), Flex.Align(BsAlign.Center), Margin.Bottom(3),
+        NavLink
+            .Href(Features.Routes.GuidesIndexPage())
+            .ActiveClass("")
+            .Class(Bs.Join(Display.InlineFlex(), Flex.Align(BsAlign.Center), Margin.Bottom(3),
                 Txt.DecorationNone, "small", "guide-backlink"))[
-            BsIcon(Name: BsIconName.ArrowLeft, Class: "me-1"), "All guides"
+            BsIcon.Name(BsIconName.ArrowLeft).Class("me-1"), "All guides"
         ];
 
     private Component Banner() =>
-        Div(Class: "guide-banner")[
-            BsIcon(Name: BsIconName.InfoCircle, Class: "me-2"),
-            Span()[$"You're reading the Rask v{RaskVersion.Current} guides."],
-            A(Href: $"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}", Target: "_blank",
-                Rel: "noopener", Class: "guide-banner-src")[
-                BsIcon(Name: BsIconName.Github, Class: "me-1"), "View source"
+        Div.Class("guide-banner")[
+            BsIcon.Name(BsIconName.InfoCircle).Class("me-2"),
+            Span[$"You're reading the Rask v{RaskVersion.Current} guides."],
+            A
+                .Href($"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}")
+                .Target("_blank")
+                .Rel("noopener")
+                .Class("guide-banner-src")[
+                BsIcon.Name(BsIconName.Github).Class("me-1"), "View source"
             ]
         ];
 
@@ -124,22 +131,22 @@ public sealed class GuideChrome : Component
             var subs = new List<Component>();
             for (var j = i + 1; j < headings.Count && headings[j].Level == 3; j++)
             {
-                subs.Add(Li(Key: headings[j].Id)[Anchor(headings[j], "guide-chapter-sublink")]);
+                subs.Add(Li.Key(headings[j].Id)[Anchor(headings[j], "guide-chapter-sublink")]);
             }
 
-            chapters.Add(Li(Key: headings[i].Id)[
+            chapters.Add(Li.Key(headings[i].Id)[
                 subs.Count == 0
                     ? Anchor(headings[i], "guide-chapter-link")
                     : [
                         Anchor(headings[i], "guide-chapter-link"),
-                        Ol(Class: "guide-chapters-sub")[subs]
+                        Ol.Class("guide-chapters-sub")[subs]
                     ]
             ]);
         }
 
-        return Nav(Class: "guide-chapters", Aria: new Dictionary<string, string?> { ["label"] = "Chapters" })[
-            Div(Class: "guide-chapters-title")["Chapters"],
-            Ol(Class: "guide-chapters-list")[chapters]
+        return Nav.Class("guide-chapters").Aria(new Dictionary<string, string?> { ["label"] = "Chapters" })[
+            Div.Class("guide-chapters-title")["Chapters"],
+            Ol.Class("guide-chapters-list")[chapters]
         ];
     }
 
@@ -152,14 +159,15 @@ public sealed class GuideChrome : Component
             return null;
         }
 
-        return Aside(Class: "guide-onthispage")[
-            Nav(Class: "guide-onthispage-inner",
-                Aria: new Dictionary<string, string?> { ["label"] = "On this page" })[
-                Div(Class: "guide-onthispage-title")["On this page"],
-                Ul(Class: "guide-onthispage-list")[
-                    headings.Select(h => (Component)Li(
-                        Key: h.Id,
-                        Class: h.Level == 3 ? "guide-onthispage-sub" : null)[
+        return Aside.Class("guide-onthispage")[
+            Nav
+                .Class("guide-onthispage-inner")
+                .Aria(new Dictionary<string, string?> { ["label"] = "On this page" })[
+                Div.Class("guide-onthispage-title")["On this page"],
+                Ul.Class("guide-onthispage-list")[
+                    headings.Select(h => (Component)Li
+                        .Key(h.Id)
+                        .Class(h.Level == 3 ? "guide-onthispage-sub" : null)[
                         Anchor(h, "guide-onthispage-link")
                     ])
                 ]
@@ -169,7 +177,7 @@ public sealed class GuideChrome : Component
 
     // A fragment anchor into the guide body; the scroll-spy matches rail links by their "#id" href.
     private static Component Anchor(Markdown.Heading h, string cssClass) =>
-        A(Href: $"#{h.Id}", Class: cssClass)[h.Text];
+        A.Href($"#{h.Id}").Class(cssClass)[h.Text];
 
     private static Component? PrevNext(GuideEntry? prev, GuideEntry? next)
     {
@@ -178,27 +186,32 @@ public sealed class GuideChrome : Component
             return null;
         }
 
-        return Nav(Class: "guide-prevnext",
-            Aria: new Dictionary<string, string?> { ["label"] = "Guide navigation" })[
+        return Nav
+            .Class("guide-prevnext")
+            .Aria(new Dictionary<string, string?> { ["label"] = "Guide navigation" })[
             prev is null
-                ? Span(Class: "guide-prevnext-spacer")
-                : NavLink(Href: Features.Routes.GuidePage(prev.Slug), ActiveClass: "",
-                    Class: "guide-prevnext-link guide-prevnext-prev")[
-                    BsIcon(Name: BsIconName.ArrowLeft, Class: "me-2"),
-                    Span(Class: "guide-prevnext-body")[
-                        Span(Class: "guide-prevnext-label")["Previous"],
-                        Span(Class: "guide-prevnext-title")[prev.Title]
+                ? Span.Class("guide-prevnext-spacer")
+                : NavLink
+                    .Href(Features.Routes.GuidePage(prev.Slug))
+                    .ActiveClass("")
+                    .Class("guide-prevnext-link guide-prevnext-prev")[
+                    BsIcon.Name(BsIconName.ArrowLeft).Class("me-2"),
+                    Span.Class("guide-prevnext-body")[
+                        Span.Class("guide-prevnext-label")["Previous"],
+                        Span.Class("guide-prevnext-title")[prev.Title]
                     ]
                 ],
             next is null
-                ? Span(Class: "guide-prevnext-spacer")
-                : NavLink(Href: Features.Routes.GuidePage(next.Slug), ActiveClass: "",
-                    Class: "guide-prevnext-link guide-prevnext-next")[
-                    Span(Class: "guide-prevnext-body")[
-                        Span(Class: "guide-prevnext-label")["Next"],
-                        Span(Class: "guide-prevnext-title")[next.Title]
+                ? Span.Class("guide-prevnext-spacer")
+                : NavLink
+                    .Href(Features.Routes.GuidePage(next.Slug))
+                    .ActiveClass("")
+                    .Class("guide-prevnext-link guide-prevnext-next")[
+                    Span.Class("guide-prevnext-body")[
+                        Span.Class("guide-prevnext-label")["Next"],
+                        Span.Class("guide-prevnext-title")[next.Title]
                     ],
-                    BsIcon(Name: BsIconName.ArrowRight, Class: "ms-2")
+                    BsIcon.Name(BsIconName.ArrowRight).Class("ms-2")
                 ]
         ];
     }

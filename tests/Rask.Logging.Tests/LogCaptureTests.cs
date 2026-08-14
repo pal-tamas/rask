@@ -32,7 +32,7 @@ public sealed class LogCaptureTests
     {
         await using var harness = new LoggingHarness();
 
-        harness.Logger().LogError(new InvalidOperationException("boom"), "Handler failed");
+        harness.Logger().LogError(new InvalidOperationException("boom"), "Action failed");
         await harness.RunUntilStoredAsync(1);
 
         var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);

@@ -4,13 +4,13 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Components;
 
-public class ErrorBoundaryTests
+public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NoError_RendersChildren()
     {
-        var boundary = ErrorBoundary();
-        boundary.SetProps(new Component[] { Span()[Text("ok")] }, null);
+        var boundary = ErrorBoundary.Value;
+        boundary.SetProps(new Component[] { Span[Text.Value("ok")] }, null);
 
         Assert.Equal("<span>ok</span>", boundary.ToHtml());
     }
@@ -18,10 +18,10 @@ public class ErrorBoundaryTests
     [Fact]
     public void Render_DescendantRenderThrows_RendersFallback()
     {
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(
             new Component[] { new ThrowingRender("kaboom") },
-            (ex, _) => Span()[Text(ex.Message)]);
+            (ex, _) => Span[Text.Value(ex.Message)]);
 
         Assert.Equal("<span>kaboom</span>", boundary.ToHtml());
     }
@@ -32,10 +32,10 @@ public class ErrorBoundaryTests
         // The throwing child emits its opening <div> before the inner throw fires. The
         // boundary's rewind must remove that partial output so nothing leaks into the
         // serialized HTML around the fallback.
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(
             new Component[] { new ThrowMidwayComponent() },
-            (ex, _) => Span()[Text("fb")]);
+            (ex, _) => Span[Text.Value("fb")]);
 
         var html = boundary.ToHtml();
         Assert.Equal("<span>fb</span>", html);
@@ -45,7 +45,7 @@ public class ErrorBoundaryTests
     [Fact]
     public void Render_FallbackOmitted_UsesDefaultErrorPage()
     {
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(
             new Component[] { new ThrowingRender("dflt") },
             null);
@@ -60,18 +60,18 @@ public class ErrorBoundaryTests
     public void Render_NestedBoundaries_InnerCatchesFirst()
     {
         var outerCaught = false;
-        var inner = ErrorBoundary();
+        var inner = ErrorBoundary.Value;
         inner.SetProps(
             new Component[] { new ThrowingRender("inner") },
-            (ex, _) => Span()[Text("INNER:" + ex.Message)]);
+            (ex, _) => Span[Text.Value("INNER:" + ex.Message)]);
 
-        var outer = ErrorBoundary();
+        var outer = ErrorBoundary.Value;
         outer.SetProps(
             new Component[] { inner },
             (_, _) =>
             {
                 outerCaught = true;
-                return Span()[Text("OUTER")];
+                return Span[Text.Value("OUTER")];
             });
 
         var html = outer.ToHtml();
@@ -82,15 +82,15 @@ public class ErrorBoundaryTests
     [Fact]
     public void Render_NestedBoundaries_OuterCatchesWhenInnerFallbackThrows()
     {
-        var inner = ErrorBoundary();
+        var inner = ErrorBoundary.Value;
         inner.SetProps(
             new Component[] { new ThrowingRender("first") },
             (_, _) => throw new InvalidOperationException("fallback-broke"));
 
-        var outer = ErrorBoundary();
+        var outer = ErrorBoundary.Value;
         outer.SetProps(
             new Component[] { inner },
-            (ex, _) => Span()[Text("OUTER:" + ex.Message)]);
+            (ex, _) => Span[Text.Value("OUTER:" + ex.Message)]);
 
         Assert.Equal("<span>OUTER:fallback-broke</span>", outer.ToHtml());
     }
@@ -98,10 +98,10 @@ public class ErrorBoundaryTests
     [Fact]
     public void Recover_ClearsErrorAndNextRenderShowsChildren()
     {
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(
             new Component[] { new ConditionalThrow(true) },
-            (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)]);
+            (ex, recover) => Button.OnClick(recover)[Text.Value("retry:" + ex.Message)]);
 
         // First render: boundary trips on the throw, emits fallback.
         var trippedHtml = boundary.ToHtml();
@@ -110,7 +110,7 @@ public class ErrorBoundaryTests
         // Now simulate "fix the cause" then call Recover.
         boundary.SetProps(
             new Component[] { new ConditionalThrow(false) },
-            (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)]);
+            (ex, recover) => Button.OnClick(recover)[Text.Value("retry:" + ex.Message)]);
         boundary.Recover();
 
         Assert.Equal("<span>ok</span>", boundary.ToHtml());
@@ -124,7 +124,7 @@ public class ErrorBoundaryTests
         // This test asserts the stamp happens.
         var sp = RenderHarness.EmptyServices();
         var probe = new BoundaryProbe();
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(new Component[] { probe }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
@@ -142,7 +142,7 @@ public class ErrorBoundaryTests
         // walk — that would lose the link when nested boundaries swap fallbacks.
         var sp = RenderHarness.EmptyServices();
         var probe = new BoundaryProbe();
-        var first = ErrorBoundary();
+        var first = ErrorBoundary.Value;
         first.SetProps(new Component[] { probe }, null);
         using (LiveRenderContext.Begin(first, sp))
         {
@@ -152,7 +152,7 @@ public class ErrorBoundaryTests
         Assert.Same(first, probe.CapturedBoundary);
 
         // Now reparent the probe under a different boundary. The stamp should NOT change.
-        var second = ErrorBoundary();
+        var second = ErrorBoundary.Value;
         second.SetProps(new Component[] { probe }, null);
         using (LiveRenderContext.Begin(second, sp))
         {
@@ -172,7 +172,7 @@ public class ErrorBoundaryTests
     private sealed class ThrowMidwayComponent : Component
     {
         protected override Component? Render() =>
-            Div()[Text("partial"),
+            Div[Text.Value("partial"),
                 new ThrowingRender("late")];
     }
 
@@ -182,12 +182,12 @@ public class ErrorBoundaryTests
         public ConditionalThrow(bool shouldThrow) => _throw = shouldThrow;
 
         protected override Component? Render() =>
-            _throw ? throw new InvalidOperationException("bang") : Span()[Text("ok")];
+            _throw ? throw new InvalidOperationException("bang") : Span[Text.Value("ok")];
     }
 
     private sealed class BoundaryProbe : Component
     {
         public ErrorBoundary? CapturedBoundary => Boundary;
-        protected override Component? Render() => Span()[Text("probe")];
+        protected override Component? Render() => Span[Text.Value("probe")];
     }
 }

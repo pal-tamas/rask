@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // implement IFormControl<T>, so two-way binding, the .is-invalid styling and the .invalid-feedback
 // message all come for free — no StateHasChanged on this surface. BsSelect renders a custom .dropdown-menu
 // listbox by default (like BsMultiSelect / the pickers); Native: true drops to the plain OS <select>.
-public sealed class BsFormsDemo : Component
+public sealed partial class BsFormsDemo : Component
 {
     private static readonly string[] Plans = ["free", "pro", "team"];
     private static readonly int?[] Seats = [1, 2, 5, 10];
@@ -27,31 +27,48 @@ public sealed class BsFormsDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<Signup>(_model, m => _result = $"Welcome, {m.Name}!", Class: "vstack gap-3")[
-            DataAnnotationsValidator(),
-            BsInput(() => _model.Name, Label: "Name", Placeholder: "Jane Doe"),
-            BsInput(() => _model.Email, Label: "Email", Type: InputType.Email, HelpText: "We never share it."),
+        Form.Model(_model).OnValidSubmit(m => _result = $"Welcome, {m.Name}!").Class("vstack gap-3")[
+            DataAnnotationsValidator,
+            BsInput.Bind(() => _model.Name).Label("Name").Placeholder("Jane Doe"),
+            BsInput.Bind(() => _model.Email).Label("Email").Type(InputType.Email).HelpText("We never share it."),
             // Searchable: a Filter predicate adds a search field in the dropdown that narrows the options.
-            BsSelect(() => _model.Plan, Plans, OptionLabel: p => Text(PlanLabel(p)),
-                Filter: (p, t) => PlanLabel(p).Contains(t, StringComparison.OrdinalIgnoreCase),
-                Placeholder: "— choose —", Label: "Plan", Floating: true, Id: "bs-plan"),
+            BsSelect.Bind(() => _model.Plan)
+                .Options(Plans)
+                .OptionLabel(p => Text.Value(PlanLabel(p)))
+                .Filter((p, t) => PlanLabel(p).Contains(t, StringComparison.OrdinalIgnoreCase))
+                .Placeholder("— choose —")
+                .Label("Plan")
+                .Floating(true)
+                .Id("bs-plan"),
             // Nullable (int?) → an × clears it back to null; the null state shows the Placeholder.
-            BsSelect(() => _model.Seats, Seats, OptionLabel: n => Text(SeatLabel(n)),
-                Placeholder: "Any", Label: "Seats (optional)", Id: "bs-seats"),
+            BsSelect.Bind(() => _model.Seats)
+                .Options(Seats)
+                .OptionLabel(n => Text.Value(SeatLabel(n)))
+                .Placeholder("Any")
+                .Label("Seats (optional)")
+                .Id("bs-seats"),
             // Value selector: Options are objects, but the bound value is a projected field (OptionValue).
             // Binds _model.TeamId (int?) while rendering/searching the whole Team.
-            BsSelect(() => _model.TeamId, Options: Teams, OptionValue: t => t.Id, OptionLabel: t => Text(t.Name),
-                Filter: (t, q) => t.Name.Contains(q, StringComparison.OrdinalIgnoreCase),
-                Placeholder: "No team", Label: "Team (binds to id)", Id: "bs-team"),
-            BsSelect(() => _model.Tier, Plans, OptionLabel: p => PlanLabel(p), Native: true,
-                Label: "Tier (native <select>)", Id: "bs-tier"),
-            BsCheck(() => _model.Agree, Switch: true, Label: "I accept the terms"),
-            BsButton(Color: BsColor.Primary, Type: "submit")["Create account"]
+            BsSelect.Bind(() => _model.TeamId).Options(Teams)
+                .OptionValue(t => t.Id)
+                .OptionLabel(t => Text.Value(t.Name))
+                .Filter((t, q) => t.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
+                .Placeholder("No team")
+                .Label("Team (binds to id)")
+                .Id("bs-team"),
+            BsSelect.Bind(() => _model.Tier)
+                .Options(Plans)
+                .OptionLabel(p => PlanLabel(p))
+                .Native(true)
+                .Label("Tier (native <select>)")
+                .Id("bs-tier"),
+            BsCheck.Bind(() => _model.Agree).Switch(true).Label("I accept the terms"),
+            BsButton.Color(BsColor.Primary).Type("submit")["Create account"]
         ],
         // A live echo OUTSIDE the Form — every bound write (custom or native <select>) re-renders the
         // expression's owner (this demo), so it tracks each field with no StateHasChanged.
-        BsAlert(Color: BsColor.Secondary, Class: "mt-3 mb-0")[
-            Span(Id: "bs-readout")[
+        BsAlert.Color(BsColor.Secondary).Class("mt-3 mb-0")[
+            Span.Id("bs-readout")[
                 $"Plan: {(_model.Plan is "" ? "—" : PlanLabel(_model.Plan))} · " +
                 $"Seats: {(_model.Seats is { } n ? SeatLabel(n) : "—")} · " +
                 $"Team: {(_model.TeamId is { } id ? Teams.First(t => t.Id == id).Name : "—")} · " +
@@ -60,8 +77,8 @@ public sealed class BsFormsDemo : Component
         ],
         _result is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "mt-3 mb-0")[
-                BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _result]
+            : BsAlert.Color(BsColor.Success).Class("mt-3 mb-0")[
+                BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _result]
     ];
 
     private sealed class Signup

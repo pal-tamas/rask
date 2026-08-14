@@ -86,9 +86,9 @@ public sealed class Counter : Component
 
     protected override Component? Render() =>
     [
-        H1()["Counter"],
-        P()[$"Current count: {_count}"],
-        Button(OnClick: () => _count++)["Click me"]
+        H1["Counter"],
+        P[$"Current count: {_count}"],
+        Button.OnClick(() => _count++)["Click me"]
     ];
 }
 ```

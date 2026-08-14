@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="IOriginPrivateFileSystem" /> — write a byte range into an app-owned file, read it back,
 ///     and ask for the origin's storage to survive eviction.
 /// </summary>
-public sealed class OriginPrivateFileSystemDemo(
+public sealed partial class OriginPrivateFileSystemDemo(
     IOriginPrivateFileSystem fs,
     IStorageEstimator storage) : Component
 {

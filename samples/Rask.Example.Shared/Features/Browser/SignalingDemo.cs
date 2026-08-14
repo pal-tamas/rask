@@ -14,7 +14,7 @@ namespace Rask.Example.Shared.Features;
 ///         <c>RtcDescription</c> or <c>RtcIceCandidate</c>. Neither the relay nor the wrapper looks inside.
 ///     </para>
 /// </summary>
-public sealed class SignalingDemo(ISignaling signaling) : Component, IAsyncDisposable
+public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAsyncDisposable
 {
     private const string Room = "rask-signaling-demo";
 

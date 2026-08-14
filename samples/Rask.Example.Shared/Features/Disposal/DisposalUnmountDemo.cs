@@ -2,22 +2,33 @@ namespace Rask.Example.Shared.Features;
 
 // "OnUnmount vs IDisposable" demo promoted out of the former DisposalPage. The probe owns a timer started
 // in a render hook, so its cleanup belongs in OnUnmount (symmetric with OnMount) rather than IDisposable.
-public sealed class DisposalUnmountDemo : Component
+public sealed partial class DisposalUnmountDemo : Component
 {
     private readonly List<string> _hookLog = new();
     private bool _hookMounted;
     private int _nextHookId;
 
     protected override Component? Render() =>
-        Div()[
-            BsStack(Gap: 2, Class: Margin.Bottom(3))[
-                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "unmount-hook-mount", Disabled: _hookMounted, OnClick: MountHook)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Start ticker"],
-                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "unmount-hook-unmount", Disabled: !_hookMounted, OnClick: UnmountHook)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Stop ticker"]
+        Div[
+            BsStack.Gap(2).Class(Margin.Bottom(3))[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Size(BsSize.Sm)
+                    .Id("unmount-hook-mount")
+                    .Disabled(_hookMounted)
+                    .OnClick(MountHook)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Start ticker"],
+                BsButton
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("unmount-hook-unmount")
+                    .Disabled(!_hookMounted)
+                    .OnClick(UnmountHook)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Stop ticker"]
             ],
             _hookMounted
-                ? UnmountTimerProbe(AppendHookLog, _nextHookId)
-                : P(Class: "text-secondary fst-italic mb-0")["Ticker not running."],
-            DisposalDemoLog.Render(_hookLog, "unmount-hook-log")
+                ? UnmountTimerProbe.Log(AppendHookLog).InstanceId(_nextHookId)
+                : P.Class("text-secondary fst-italic mb-0")["Ticker not running."],
+            DisposalDemoLog.Entries(_hookLog).ListId("unmount-hook-log")
         ];
 
     private void MountHook()

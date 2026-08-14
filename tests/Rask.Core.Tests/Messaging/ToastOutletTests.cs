@@ -9,17 +9,19 @@ namespace Rask.Core.Tests.Messaging;
 // on Changed) and hands the messages to a caller-owned Template with a dismiss callback. These pin the
 // drain-on-mount path, the drain-on-Changed path, the consumed-once contract, dismissal, and the opt-in
 // AutoDismissAfter timer.
-public class ToastOutletTests
+public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
 {
     // The Template renders each message's text and captures the dismiss callback so a test can drive it.
-    private static Func<Component> Outlet(out Func<Action<int>?> dismiss)
+    // `new`: hides the ToastOutlet entry named Outlet that the markup host brings in (CS0108).
+    private static new Func<Component> Outlet(out Func<Action<int>?> dismiss)
     {
         Action<int>? captured = null;
         dismiss = () => captured;
-        return () => ToastOutlet(Template: (msgs, d) =>
+        return () => ToastOutlet
+            .Template((msgs, d) =>
         {
             captured = d;
-            return Div()[msgs.Select(m => (Component)Span(Key: m.Id.ToString())[m.Message])];
+            return Div[msgs.Select(m => (Component)Span.Key(m.Id.ToString())[m.Message])];
         });
     }
 
@@ -102,10 +104,10 @@ public class ToastOutletTests
     {
         IToaster toast = new Toaster();
         toast.Info("gone soon");
-        var host = new StubComponent(() => ToastOutlet(
-            AutoDismissAfter: TimeSpan.FromMilliseconds(80),
-            Template: (msgs, _) =>
-                Div()[msgs.Select(m => (Component)Span(Key: m.Id.ToString())[m.Message])]));
+        var host = new StubComponent(() => ToastOutlet
+            .Template((msgs, _) =>
+                Div[msgs.Select(m => (Component)Span.Key(m.Id.ToString())[m.Message])])
+            .AutoDismissAfter(TimeSpan.FromMilliseconds(80)));
         var sp = new ServiceCollection().AddSingleton<IToaster>(toast).BuildServiceProvider();
 
         // Shows on first render and schedules the one-shot 80 ms timer.

@@ -5,7 +5,7 @@ namespace Rask.Bootstrap;
 // above which a .navbar-nav lays out horizontally (.navbar-expand-{bp}); Color tints the bar (bg-*);
 // Theme emits data-bs-theme so a dark bar gets light text the 5.3 way (no deprecated .navbar-dark);
 // Sticky pins it to the top of the viewport (.sticky-top).
-public sealed class BsNavbar : BsBlock
+public sealed partial class BsNavbar : BsBlock
 {
     public Bp? Expand { get; set; }
     public BsColor? Color { get; set; }
@@ -27,7 +27,7 @@ public sealed class BsNavbar : BsBlock
             : null;
 
         return Container is false
-            ? Nav(Id: Id, Class: cls, Data: theme)[Items]
-            : Nav(Id: Id, Class: cls, Data: theme)[Div(Class: "container-fluid")[Items]];
+            ? Nav.Id(Id).Class(cls).Data(theme)[Items]
+            : Nav.Id(Id).Class(cls).Data(theme)[Div.Class("container-fluid")[Items]];
     }
 }

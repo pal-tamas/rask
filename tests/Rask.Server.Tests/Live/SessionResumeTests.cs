@@ -33,19 +33,15 @@ public sealed class SessionResumeTests
     /// <summary>A page that declares one value and renders it, so a rebuild is visible in the markup.</summary>
     private sealed class CounterApp(IPersistentState state, RouteState route) : Component
     {
+        protected override string? HtmlLang => null;
+
         protected override Component? Render()
         {
             state.TryGet<int>(StateKey, out var count);
             return
             [
-                Doctype(),
-                new Html()[
-                    new Head(),
-                    new Body()[
-                        new Div()[count.ToString()],
-                        new Div()[route.Path]
-                    ]
-                ]
+                new Div()[count.ToString()],
+                new Div()[route.Path]
             ];
         }
     }

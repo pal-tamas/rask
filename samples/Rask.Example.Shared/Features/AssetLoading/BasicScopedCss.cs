@@ -7,18 +7,18 @@ namespace Rask.Example.Shared.Features;
 ///     into <c>&lt;head&gt;</c>. The browser fetches the bytes from the endpoint with
 ///     <c>Cache-Control: immutable</c>.
 /// </summary>
-public sealed class BasicScopedCss : Component
+public sealed partial class BasicScopedCss : Component
 {
     protected override Component? Render() =>
-        Div(Class: "basic-card")[
-            P()["This card's pink background and rounded corners come from a sibling ",
-                Code()["BasicScopedCss.css"],
+        Div.Class("basic-card")[
+            P["This card's pink background and rounded corners come from a sibling ",
+                Code["BasicScopedCss.css"],
                 " file. The framework hashes the rewritten CSS and emits a ",
-                Code()["<link>"],
+                Code["<link>"],
                 " into the page head — open DevTools and you should see a request to ",
-                Code()["/_rask/a/{12-hex}.css"],
+                Code["/_rask/a/{12-hex}.css"],
                 " with ",
-                Code()["cache-control: public, max-age=31536000, immutable"],
+                Code["cache-control: public, max-age=31536000, immutable"],
                 "."
             ]
         ];

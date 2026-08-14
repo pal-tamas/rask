@@ -10,7 +10,7 @@ public class RaskTestTests
         private int _count;
 
         protected override Component? Render() =>
-            Button(Type: "button", OnClick: () => _count++)[$"Count: {_count}"];
+            Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
     }
 
     [Fact]
@@ -62,9 +62,9 @@ public class RaskTestTests
         private string _name = "";
 
         protected override Component? Render() =>
-            Div()[
-                Input<string>(Value: _name, OnInput: v => _name = v),
-                Span()[$"Hi {_name}"]
+            Div[
+                Input.Value(_name).OnInput(v => _name = v),
+                Span[$"Hi {_name}"]
             ];
     }
 
@@ -101,7 +101,7 @@ public class RaskTestTests
     private sealed class Labelled : Component
     {
         protected override Component? Render() =>
-            Button(Type: "button", Aria: new Dictionary<string, string?> { ["label"] = "Close" })["x"];
+            Button.Type("button").Aria(new Dictionary<string, string?> { ["label"] = "Close" })["x"];
     }
 
     [Fact]

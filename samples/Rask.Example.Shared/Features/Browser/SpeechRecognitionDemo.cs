@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     and in the native shell it resolves to a real OS backend. The handler updates state and calls
 ///     <c>StateHasChanged()</c> — the sanctioned pattern for an externally-pushed update.
 /// </summary>
-public sealed class SpeechRecognitionDemo(ISpeechRecognition recognition) : Component, IAsyncDisposable
+public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition) : Component, IAsyncDisposable
 {
     private IAsyncDisposable? _session;
     private string _transcript = "";
@@ -19,20 +19,29 @@ public sealed class SpeechRecognitionDemo(ISpeechRecognition recognition) : Comp
     private bool Listening => _session is not null;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
-                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "speech-recognize-start",
-                        Disabled: Listening, OnClickAsync: Start)["Start listening"],
-                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "speech-recognize-stop",
-                        Disabled: !Listening, OnClickAsync: Stop)["Stop"]
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                    BsButton
+                        .Color(BsColor.Primary)
+                        .Size(BsSize.Sm)
+                        .Id("speech-recognize-start")
+                        .Disabled(Listening)
+                        .OnClickAsync(Start)["Start listening"],
+                    BsButton
+                        .Color(BsColor.Danger)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("speech-recognize-stop")
+                        .Disabled(!Listening)
+                        .OnClickAsync(Stop)["Stop"]
                 ],
-                Div(Class: "small text-secondary mb-1")[
+                Div.Class("small text-secondary mb-1")[
                     "Transcript: ",
-                    Code(Id: "speech-recognize-transcript")[_transcript.Length == 0 ? "(none)" : _transcript],
-                    _interim.Length == 0 ? (Component?)null : Span(Class: "text-secondary fst-italic")[" ", _interim]
+                    Code.Id("speech-recognize-transcript")[_transcript.Length == 0 ? "(none)" : _transcript],
+                    _interim.Length == 0 ? (Component?)null : Span.Class("text-secondary fst-italic")[" ", _interim]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "speech-recognize-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("speech-recognize-status")[_status]]
             ]
         ];
 
@@ -73,7 +82,7 @@ public sealed class SpeechRecognitionDemo(ISpeechRecognition recognition) : Comp
         }
     }
 
-    private async Task Stop()
+    private new async Task Stop()
     {
         if (_session is not null)
         {

@@ -7,7 +7,7 @@ namespace Rask.Bootstrap.Tests;
 // The column chooser (show/hide) and reordering. Like the group panel, the point is keyboard parity: every
 // drag gesture has a real <button> or checkbox doing the same thing, and the whole feature funnels through the
 // one VisibleColumns list so hide/reorder compose with grouping, sort and footers for free.
-public class BsDataGridColumnsTests
+public partial class BsDataGridColumnsTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, string Region, int Amount);
 
@@ -34,7 +34,10 @@ public class BsDataGridColumnsTests
         },
     ];
 
-    private static string Thead(string html) =>
+    // `new`: the <thead> tag entry arrives with the markup host and this helper hides it (CS0108). The
+    // attribute form does not avoid that — an attributed type with a free base slot is given `: RaskMarkup`
+    // in its generated partial, so the entry is inherited either way.
+    private static new string Thead(string html) =>
         Regex.Match(html, "<thead>.*?</thead>", RegexOptions.Singleline).Value;
 
     private static string FirstBodyRow(string html)
@@ -54,7 +57,7 @@ public class BsDataGridColumnsTests
     private static string[] Labels(string html) =>
         Regex.Matches(html, "aria-label=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToArray();
 
-    private static string Handler(string html, string kind, int index = 0) =>
+    private static string Action(string html, string kind, int index = 0) =>
         Regex.Matches(html, $"data-rask-on-{kind}=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ElementAt(index);
 
     // The handler id of the button carrying this aria-label. Read from the current markup rather than
@@ -84,7 +87,7 @@ public class BsDataGridColumnsTests
     [Fact]
     public void WithoutTheChooser_NoMenuNoDraggable()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).ToHtml();
 
         Assert.DoesNotContain("bs-grid-columnchooser", html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-label=\"Columns\"", html, StringComparison.Ordinal);
@@ -98,8 +101,8 @@ public class BsDataGridColumnsTests
         // a plain grid — the VisibleColumns fast path returns the same column reference and no toolbar renders.
         // (Controlled ColumnOrder is deliberately excluded here: wiring order in enables header-drag reorder,
         // which is a real difference — see EveryHeader_IsADragSourceAndDropTarget.)
-        var plain = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name).ToHtml();
-        var opted = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, HiddenColumns: []).ToHtml();
+        var plain = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).ToHtml();
+        var opted = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).HiddenColumns([]).ToHtml();
 
         Assert.Equal(plain, opted);
     }
@@ -109,7 +112,7 @@ public class BsDataGridColumnsTests
     [Fact]
     public void TheChooser_RendersAToggleButtonAndAClosedMenu()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, ColumnChooser: true).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).ColumnChooser(true).ToHtml();
 
         Assert.Contains("bs-grid-columnchooser", html, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"Columns\"", html, StringComparison.Ordinal);
@@ -120,8 +123,10 @@ public class BsDataGridColumnsTests
     [Fact]
     public async Task OpeningTheMenu_ListsACheckboxPerNamedColumn()
     {
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ColumnChooser: true));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true));
 
         var html = await grid.InvokeAsync(ClickFor(grid.Html, "Columns"));
 
@@ -136,8 +141,11 @@ public class BsDataGridColumnsTests
     [Fact]
     public void HidingAColumn_FoldsHeaderCellsAndFooter()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, ColumnChooser: true,
-            HiddenColumns: ["region"]).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .HiddenColumns(["region"]).ToHtml();
 
         var thead = Thead(html);
         Assert.Equal(2, HeaderCount(thead));     // Account + Amount, Region folded out
@@ -151,12 +159,19 @@ public class BsDataGridColumnsTests
     {
         // Grouped by region (folded away) — the band header spans the visible data columns. Hiding Amount too
         // takes the colspan from 2 (Account + Amount) down to 1 (Account alone).
-        var kept = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Grouped: ["region"],
-            ColumnChooser: true).ToHtml();
+        var kept = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["region"])
+            .ColumnChooser(true).ToHtml();
         Assert.Contains("colspan=\"2\"", kept, StringComparison.Ordinal);
 
-        var hidden = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Grouped: ["region"],
-            ColumnChooser: true, HiddenColumns: ["amount"]).ToHtml();
+        var hidden = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["region"])
+            .ColumnChooser(true)
+            .HiddenColumns(["amount"]).ToHtml();
         Assert.Contains("colspan=\"1\"", hidden, StringComparison.Ordinal);
         Assert.DoesNotContain("colspan=\"2\"", hidden, StringComparison.Ordinal);
     }
@@ -164,8 +179,11 @@ public class BsDataGridColumnsTests
     [Fact]
     public void AnUnknownHideToken_IsIgnored()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, ColumnChooser: true,
-            HiddenColumns: ["deleteMe"]).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .HiddenColumns(["deleteMe"]).ToHtml();
 
         Assert.Equal(3, HeaderCount(Thead(html))); // nothing hidden
     }
@@ -175,8 +193,11 @@ public class BsDataGridColumnsTests
     {
         // A stale set that resolves to "hide everything" is dropped entirely rather than rendering a bodyless
         // table, the same tolerance a stale ?group=deleteMe gets.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, ColumnChooser: true,
-            HiddenColumns: ["name", "region", "amount"]).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .HiddenColumns(["name", "region", "amount"]).ToHtml();
 
         Assert.Equal(3, HeaderCount(Thead(html)));
     }
@@ -185,8 +206,12 @@ public class BsDataGridColumnsTests
     public async Task TheLastVisibleColumnsCheckbox_IsDisabled()
     {
         // With two of three already hidden, unchecking the last would empty the table — so its box is locked on.
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ColumnChooser: true, HiddenColumns: ["region", "amount"], OnHiddenColumnsChange: _ => { }));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .HiddenColumns(["region", "amount"])
+            .OnHiddenColumnsChange(_ => { }));
 
         var html = await grid.InvokeAsync(ClickFor(grid.Html, "Columns"));
 
@@ -197,8 +222,10 @@ public class BsDataGridColumnsTests
     [Fact]
     public async Task TheCheckbox_TogglesVisibility_Uncontrolled()
     {
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ColumnChooser: true));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true));
 
         var open = await grid.InvokeAsync(ClickFor(grid.Html, "Columns"));
         Assert.Equal(3, HeaderCount(Thead(open)));
@@ -214,8 +241,11 @@ public class BsDataGridColumnsTests
     [Fact]
     public void Reordering_PermutesHeaderBodyAndFooter()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, ColumnChooser: true,
-            ColumnOrder: ["amount", "name", "region"]).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .ColumnOrder(["amount", "name", "region"]).ToHtml();
 
         var thead = Thead(html);
         Assert.True(thead.IndexOf("Amount", StringComparison.Ordinal)
@@ -238,8 +268,12 @@ public class BsDataGridColumnsTests
         // The load-bearing test: the header renders in the reordered sequence, but sort tracks a column's
         // identity, not its slot. Amount is reordered to the front; clicking it must sort by Amount, not by
         // whatever column now sits at that position.
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ColumnChooser: true, ColumnOrder: ["amount", "name", "region"], OnColumnOrderChange: _ => { }));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .ColumnOrder(["amount", "name", "region"])
+            .OnColumnOrderChange(_ => { }));
 
         // Clicks: [0] the Columns toggle, then the header sort buttons in render order — [1] Amount (first now).
         var sorted = await grid.InvokeAsync(Clicks(grid.Html)[1]);
@@ -253,8 +287,12 @@ public class BsDataGridColumnsTests
     public async Task TheMoveButtons_ReorderAndAreDisabledAtTheEnds()
     {
         var reported = new List<IReadOnlyList<string>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ColumnChooser: true, ColumnOrder: ["name", "region", "amount"], OnColumnOrderChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .ColumnOrder(["name", "region", "amount"])
+            .OnColumnOrderChange(reported.Add));
 
         var html = await grid.InvokeAsync(ClickFor(grid.Html, "Columns"));
 
@@ -275,8 +313,10 @@ public class BsDataGridColumnsTests
     public void EveryHeader_IsADragSourceAndDropTarget_WhenReorderEnabled()
     {
         // Live render, not ToHtml: handler ids (data-rask-on-*) are only registered in a live context.
-        var html = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ColumnChooser: true)).Html;
+        var html = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)).Html;
 
         // All three headers reorder by drag (accelerator over the menu buttons).
         Assert.Equal(3, Regex.Matches(html, "<th[^>]*draggable=\"true\"").Count);
@@ -290,12 +330,16 @@ public class BsDataGridColumnsTests
         // Drag LOGIC is unit-tested (Playwright can't synthesise native HTML5 drag). Drag Amount onto Account:
         // dropping ON a header inserts before it, so amount leads.
         var reported = new List<IReadOnlyList<string>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ColumnChooser: true, ColumnOrder: ["name", "region", "amount"], OnColumnOrderChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .ColumnOrder(["name", "region", "amount"])
+            .OnColumnOrderChange(reported.Add));
 
         // dragstart handlers are the headers in render order: [0] Account, [1] Region, [2] Amount.
-        await grid.InvokeAsync(Handler(grid.Html, "dragstart", 2)); // Amount
-        await grid.InvokeAsync(Handler(grid.Html, "drop", 0));      // onto Account
+        await grid.InvokeAsync(Action(grid.Html, "dragstart", 2)); // Amount
+        await grid.InvokeAsync(Action(grid.Html, "drop", 0));      // onto Account
 
         Assert.Equal(["amount", "name", "region"], reported[^1]);
     }
@@ -304,10 +348,14 @@ public class BsDataGridColumnsTests
     public async Task ADropWithNoDragStart_DoesNothing()
     {
         var reported = new List<IReadOnlyList<string>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ColumnChooser: true, ColumnOrder: ["name", "region", "amount"], OnColumnOrderChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .ColumnOrder(["name", "region", "amount"])
+            .OnColumnOrderChange(reported.Add));
 
-        await grid.InvokeAsync(Handler(grid.Html, "drop", 0));
+        await grid.InvokeAsync(Action(grid.Html, "drop", 0));
 
         Assert.Empty(reported);
     }
@@ -326,8 +374,11 @@ public class BsDataGridColumnsTests
 
         // The order asks for region first, but Account is a fixture — it holds slot 0 and the movable columns
         // flow around it.
-        var html = BsDataGrid(Data: Rows, Columns: cols, RowKey: r => r.Name, ColumnChooser: true,
-            ColumnOrder: ["region", "name", "amount"]).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(cols)
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .ColumnOrder(["region", "name", "amount"]).ToHtml();
 
         var thead = Thead(html);
         Assert.True(thead.IndexOf("Account", StringComparison.Ordinal)
@@ -344,8 +395,11 @@ public class BsDataGridColumnsTests
         ];
 
         // A hide token can't drop a pinned column.
-        var html = BsDataGrid(Data: Rows, Columns: cols, RowKey: r => r.Name, ColumnChooser: true,
-            HiddenColumns: ["amount"]).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(cols)
+            .RowKey(r => r.Name)
+            .ColumnChooser(true)
+            .HiddenColumns(["amount"]).ToHtml();
         Assert.Contains("Amount", Thead(html), StringComparison.Ordinal);
     }
 }

@@ -6,13 +6,13 @@ using Rask.Core.ScopedAssets;
 namespace Rask.Core.HeadAssets;
 
 /// <summary>
-///     Per-render collector for <see cref="Component.Head" /> declarations. Components
+///     Per-render collector for <see cref="Component.HeadAssets" /> declarations. Components
 ///     contribute <c>&lt;link&gt;</c> / <c>&lt;script&gt;</c> / <c>&lt;meta&gt;</c> / etc.
 ///     declarations while the tree is serialized; <c>RaskHeadAssets</c> emits a
 ///     sentinel placeholder, and <see cref="Component.RenderAsLiveRoot()" /> post-processes
 ///     the final HTML to replace the sentinel with the deduplicated asset markup.
 ///     <para>
-///         Dedup unit is the top-level child of each <see cref="Component.Head" /> override:
+///         Dedup unit is the top-level child of each <see cref="Component.HeadAssets" /> override:
 ///         two components contributing identical <c>&lt;link href="x"&gt;</c> entries share
 ///         a single emission in <c>&lt;head&gt;</c>. Insertion order is preserved.
 ///     </para>
@@ -154,7 +154,7 @@ internal sealed class HeadAssetRegistry
 
     /// <summary>
     ///     Replaces the framework-managed <c>&lt;head&gt;</c> sentinel with: user-declared
-    ///     <c>Component.Head</c> contributions (deduped, singleton tags resolved), followed
+    ///     <c>Component.HeadAssets</c> contributions (deduped, singleton tags resolved), followed
     ///     by per-component scoped-asset tags (one <c>&lt;link&gt;</c> per mounted
     ///     component with registered CSS, one <c>&lt;script defer&gt;</c> per mounted
     ///     component with registered JS, both served from <c>/_rask/a/{hash}.{ext}</c>).
@@ -246,7 +246,7 @@ internal sealed class HeadAssetRegistry
         RaskStringBuilderPool.Shared.Return(block);
     }
 
-    // Appends the deduplicated head-asset block — user-declared Component.Head contributions
+    // Appends the deduplicated head-asset block — user-declared Component.HeadAssets contributions
     // (each keyed for the client morph) followed by the scoped-CSS/JS bundle tags — to the
     // target builder. Shared by ApplyTo (copy-splice) and ApplyInPlace (in-place splice).
     private void AppendHeadBlock(StringBuilder sb)

@@ -7,18 +7,18 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class CodeSampleTests
+public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_EmitsTitleSourceResultNotes()
     {
         var js = new FakeJsRuntime();
         var host = new LiveHost(
-            () => CodeSample(
-                ["ElementRefDemo.cs"],
-                "Sample title",
-                Notes: "A note",
-                Result: Div()["the result"]),
+            () => CodeSample
+                .Files(["ElementRefDemo.cs"])
+                .Title("Sample title")
+                .Notes("A note")
+                .Result(Div["the result"]),
             TestServices.Default(js: js));
 
         var html = host.RenderAsLiveRoot();
@@ -37,7 +37,7 @@ public sealed class CodeSampleTests
     {
         var js = new FakeJsRuntime();
         var host = new LiveHost(
-            () => CodeSample(["ElementRefDemo.js"]),
+            () => CodeSample.Files(["ElementRefDemo.js"]),
             TestServices.Default(js: js));
 
         var html = host.RenderAsLiveRoot();
@@ -52,7 +52,7 @@ public sealed class CodeSampleTests
     public void Render_SingleFile_ShowsFilenameLabel_NoTabStrip_HasCopyButton()
     {
         var host = new LiveHost(
-            () => CodeSample(["ElementRefDemo.cs"]),
+            () => CodeSample.Files(["ElementRefDemo.cs"]),
             TestServices.Default(js: new FakeJsRuntime()));
 
         var html = host.RenderAsLiveRoot();
@@ -70,7 +70,7 @@ public sealed class CodeSampleTests
     public void Render_MultiFile_ShowsFilenameTabs_FirstActive_OnlyActivePane()
     {
         var host = new LiveHost(
-            () => CodeSample(["ElementRefDemo.cs", "ElementRefDemo.js"]),
+            () => CodeSample.Files(["ElementRefDemo.cs", "ElementRefDemo.js"]),
             TestServices.Default(js: new FakeJsRuntime()));
 
         var html = host.RenderAsLiveRoot();

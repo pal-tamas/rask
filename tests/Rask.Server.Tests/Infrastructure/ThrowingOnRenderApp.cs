@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Infrastructure;
 ///     That difference is the point: a render fault happens during the initial GET, so it is the case
 ///     where the HTTP status of the response is decided (#607).
 /// </summary>
-public sealed class ThrowingOnRenderApp : Component
+public sealed partial class ThrowingOnRenderApp : Component
 {
     protected override Component? Render() =>
         throw new InvalidOperationException("render-boom");

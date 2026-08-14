@@ -8,7 +8,7 @@ namespace Rask.Validation.DataAnnotations.Tests;
 // The reference-based FieldIdentifier scheme means messages for a sub-object property land on
 // (subInstance, "Property") — these tests pin that routing across every reachable shape:
 // sub-objects, lists, deep chains, cycles, dictionaries, replaced records, per-field re-runs.
-public class NestedValidationTests
+public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Validate_SubObjectProperty_FiresAtSubInstanceField()
@@ -244,7 +244,7 @@ public class NestedValidationTests
 
         var page = RaskTest.Render(() => Form(p)[
             DataAnnotationsValidator(),
-            Input(() => p.Address!.Street),
+            Input.Bind(() => p.Address!.Street),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
 
@@ -269,7 +269,7 @@ public class NestedValidationTests
 
         var page = RaskTest.Render(() => Form(p)[
             DataAnnotationsValidator(),
-            Input(() => p.Address!.Street),
+            Input.Bind(() => p.Address!.Street),
             ValidationMessage(() => p.Address!.Street,
                 msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
         ]);
@@ -295,7 +295,7 @@ public class NestedValidationTests
         public Person? Manager { get; set; }
     }
 
-    private sealed class Address
+    private new sealed class Address
     {
         [Required(ErrorMessage = "Street required")]
         public string Street { get; set; } = "";

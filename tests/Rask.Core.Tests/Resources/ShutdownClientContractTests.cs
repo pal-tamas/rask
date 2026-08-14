@@ -178,7 +178,7 @@ public class ShutdownClientContractTests
     [Fact]
     public void The_field_snapshot_persists_no_handler_ids()
     {
-        // The scariest failure mode this feature could have had. Handler ids are positional per render,
+        // The scariest failure mode this feature could have had. Action ids are positional per render,
         // and the server dispatches on the id alone without cross-checking the frame type — so an id
         // carried over from the old page would not be rejected on the new one, it would invoke whatever
         // handler now sits in that slot. The ids must therefore be read from the freshly rendered

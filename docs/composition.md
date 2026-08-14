@@ -18,10 +18,10 @@ sending events up, nesting children, and rendering windowed or reorderable lists
 Children attach through the **indexer**, not a `Children:` parameter:
 
 ```csharp
-Div(Class: "card")[
-    Span(Class: "title")["Hello"],
+Div.Class("card")[
+    Span.Class("title")["Hello"],
     "plain text becomes a Text node",   // string → Text (HTML-encoded)
-    items.Select(i => (Component)Li(Key: i.Id)[i.Name])
+    items.Select(i => (Component)Li.Key(i.Id)[i.Name])
 ]
 ```
 
@@ -43,12 +43,15 @@ show ? Panel() : null    // null renders nothing
 > The `..` spread fails inside `[…]` (the compiler parses it as a `Range`). Pass the
 > enumerable directly — `Div()[items]` — instead of `Div()[..items]`.
 
-The page root is itself a fragment that renders the full shell:
+A layout is often a fragment for the same reason — several siblings that share no wrapper:
 
 ```csharp
 protected override Component? Render() =>
-    [Doctype(), Html()[Head()[Title()["My app"]], Body()[ /* … */ ]]];
+    [Header[H1["My app"]], Main[Outlet], Footer["Contact"]];
 ```
+
+The page root is an ordinary component too: it renders into `<body>`, and Rask composes the document
+around it — see [the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override).
 
 ---
 
@@ -71,7 +74,7 @@ forever, and nothing is reported.
 Wrap it in **`Mount`** and it behaves like any other child:
 
 ```csharp
-Div(Class: "host")[Mount(Child: page)]
+Div.Class("host")[Mount.Child(page)]
 ```
 
 `Mount` renders the child in place and adds no markup of its own. Passing a component that *did* come
@@ -96,7 +99,7 @@ capability. Reach for the cheapest one that does the job.
 ```csharp
 internal static class Ui
 {
-    public static Component Badge(string label) => Span(Class: "badge")[label];
+    public static Component Badge(string label) => Span.Class("badge")[label];
 }
 // call it like any method — Ui.Badge("new")
 ```
@@ -112,12 +115,12 @@ caller happens to re-render. The moment you need either, promote to Tier 1.
 its props, with **no mutable fields**:
 
 ```csharp
-public sealed class Greeting : Component
+public sealed partial class Greeting : Component
 {
     public required string Name { get; set; }   // non-nullable, no initializer → required factory param
-    protected override Component? Render() => P()["Hello, ", Strong()[Name], "!"];
+    protected override Component? Render() => P["Hello, ", Strong[Name], "!"];
 }
-// call the generated factory by its bare name — Greeting(Name: "Ada")
+// call the generated factory by its bare name — Greeting.Name("Ada")
 ```
 
 Public settable props become a generated bare-name factory (see the factory rules in
@@ -129,11 +132,11 @@ contribution, and safe context reads — it simply carries no local state.
 fields** and mutates them in handlers:
 
 ```csharp
-public sealed class Counter : Component
+public sealed partial class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>
-        Button(OnClick: () => _count++)[$"Clicked {_count} times"];
+        Button.OnClick(() => _count++)[$"Clicked {_count} times"];
 }
 ```
 

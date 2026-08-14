@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // Caller-owned state: a controlled Page/Sort (the grid reports what the user clicked instead of moving itself)
 // and TotalCount (Data is one already-paged slice from a query). Together these are server-side paging and
 // sorting, so the tests assert what the grid REPORTS as much as what it renders.
-public class BsDataGridControlledTests
+public partial class BsDataGridControlledTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -50,8 +50,11 @@ public class BsDataGridControlledTests
     public void ControlledPage_RendersTheCallersPage_AndReportsClicksInsteadOfMoving()
     {
         var asked = new List<int>();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(), PageSize: 2,
-            Page: 1, OnPageChange: p => asked.Add(p))));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .PageSize(2)
+            .Page(1)
+            .OnPageChange(p => asked.Add(p))));
 
         // The caller said page 2, so that is what renders.
         Assert.Equal(["Cherry", "Date"], BodyCells(grid.Html, 0));
@@ -62,8 +65,11 @@ public class BsDataGridControlledTests
     public async Task ControlledPage_ReportsTheRequestedPage_AndDoesNotMoveItself()
     {
         var asked = new List<int>();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(), PageSize: 2,
-            Page: 0, OnPageChange: p => asked.Add(p))));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .PageSize(2)
+            .Page(0)
+            .OnPageChange(p => asked.Add(p))));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[4]); // page 2
 
@@ -75,8 +81,11 @@ public class BsDataGridControlledTests
     [Fact]
     public void ControlledSort_RendersTheCallersSort()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(),
-            Sort: "name", SortDescending: true, OnSortChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .Sort("name")
+            .SortDescending(true)
+            .OnSortChange(_ => { })));
 
         Assert.Equal(["Elderberry", "Date", "Cherry", "Banana", "Apple"], BodyCells(grid.Html, 0));
         Assert.Contains("aria-sort=\"descending\"", grid.Html);
@@ -87,8 +96,11 @@ public class BsDataGridControlledTests
     public async Task ControlledSort_ReportsTheFieldAndDirection_AndFlipsTheActiveColumn()
     {
         var asked = new List<DataGridSort>();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(),
-            Sort: "name", SortDescending: false, OnSortChange: s => asked.Add(s))));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .Sort("name")
+            .SortDescending(false)
+            .OnSortChange(s => asked.Add(s))));
 
         // Clicking the already-sorted column asks for the opposite direction...
         await grid.InvokeAsync(grid.HandlerIds("click")[0]);
@@ -102,8 +114,10 @@ public class BsDataGridControlledTests
     [Fact]
     public async Task ControlledSort_DoesNotSortItself()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(),
-            Sort: null, OnSortChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .Sort(null)
+            .OnSortChange(_ => { })));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]);
 
@@ -117,7 +131,7 @@ public class BsDataGridControlledTests
     {
         // TotalCount is purely opt-in: leave it off and the grid owns the whole list exactly as it always has —
         // it sorts Data itself, slices it itself, and sizes the pager from Data.Count.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All).Columns(Columns()).PageSize(2)));
 
         Assert.Equal(["Banana", "Apple"], BodyCells(grid.Html, 0));
         Assert.Contains("1-2 / 5", grid.Html); // the whole list, not the page
@@ -137,8 +151,10 @@ public class BsDataGridControlledTests
     {
         // Sort = null means "unsorted", so it cannot signal intent the way a non-null Page does. Passing Sort
         // alone therefore has to count as opting in — otherwise the grid would silently ignore it.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(),
-            Sort: "name", SortDescending: true)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .Sort("name")
+            .SortDescending(true)));
 
         Assert.Equal(["Elderberry", "Date", "Cherry", "Banana", "Apple"], BodyCells(grid.Html, 0));
         Assert.Contains("aria-sort=\"descending\"", grid.Html);
@@ -150,9 +166,11 @@ public class BsDataGridControlledTests
         // This is how the grid supports async data with no async machinery of its own: the click awaits the
         // handler, which is where CountAsync/ToListAsync would run before updating Data + TotalCount.
         var asked = new List<DataGridSort>();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(),
-            Sort: "name", SortDescending: false,
-            OnSortChangeAsync: async s =>
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .Sort("name")
+            .SortDescending(false)
+            .OnSortChangeAsync(async s =>
             {
                 await Task.Yield();
                 asked.Add(s);
@@ -167,9 +185,11 @@ public class BsDataGridControlledTests
     public async Task OnPageChangeAsync_IsAwaited()
     {
         var asked = new List<int>();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(), PageSize: 2,
-            Page: 0,
-            OnPageChangeAsync: async p =>
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .PageSize(2)
+            .Page(0)
+            .OnPageChangeAsync(async p =>
             {
                 await Task.Yield();
                 asked.Add(p);
@@ -185,8 +205,9 @@ public class BsDataGridControlledTests
     {
         // The async half alone must opt into controlled mode, exactly as the sync half does.
         var asked = new List<DataGridSort>();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(),
-            OnSortChangeAsync: s =>
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .OnSortChangeAsync(s =>
             {
                 asked.Add(s);
                 return Task.CompletedTask;
@@ -206,8 +227,13 @@ public class BsDataGridControlledTests
         // Without TotalCount the grid would size the pager from the slice and render a single page.
         var slice = new List<Row> { All[2], All[3] };
 
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: slice, TotalCount: 5, Columns: Columns(), PageSize: 2, Page: 1, OnPageChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(slice)
+            .Columns(Columns())
+            .TotalCount(5)
+            .PageSize(2)
+            .Page(1)
+            .OnPageChange(_ => { })));
 
         Assert.Equal(["Cherry", "Date"], BodyCells(grid.Html, 0));
         Assert.Contains("3-4 / 5", grid.Html);
@@ -221,9 +247,14 @@ public class BsDataGridControlledTests
         // The query already ordered the rows; re-sorting them in memory would fight it.
         var slice = new List<Row> { All[3], All[1] }; // Date, Apple — a deliberate non-alphabetical order
 
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: slice, TotalCount: 5, Columns: Columns(), PageSize: 2,
-            Sort: "name", SortDescending: false, OnSortChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(slice)
+            .Columns(Columns())
+            .TotalCount(5)
+            .PageSize(2)
+            .Sort("name")
+            .SortDescending(false)
+            .OnSortChange(_ => { })));
 
         Assert.Equal(["Date", "Apple"], BodyCells(grid.Html, 0));
         // It still reports the sort it was given.
@@ -233,8 +264,11 @@ public class BsDataGridControlledTests
     [Fact]
     public void TotalCount_OfZero_RendersTheEmptyState()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: [], TotalCount: 0, Columns: Columns(), PageSize: 2, Empty: Div()["nothing"])));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(global::System.Array.Empty<Row>())
+            .TotalCount(0)
+            .Columns(Columns())
+            .PageSize(2)
+            .Empty(Div["nothing"])));
 
         Assert.Contains("<div>nothing</div>", grid.Html);
         Assert.DoesNotContain("<table", grid.Html);
@@ -249,10 +283,16 @@ public class BsDataGridControlledTests
         var pages = new List<int>();
         var slice = new List<Row> { All[2], All[3] };
 
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: slice, TotalCount: 5, Columns: Columns(), PageSize: 2,
-            Page: 1, OnPageChange: p => pages.Add(p),
-            Sort: "qty", SortDescending: true, OnSortChange: s => asked.Add(s))));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(slice)
+            .Columns(Columns())
+            .TotalCount(5)
+            .PageSize(2)
+            .Page(1)
+            .OnPageChange(p => pages.Add(p))
+            .Sort("qty")
+            .SortDescending(true)
+            .OnSortChange(s => asked.Add(s))));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[0]); // click Name
         Assert.Equal(new DataGridSort("name", false), asked[^1]);
@@ -272,8 +312,11 @@ public class BsDataGridControlledTests
             new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Sortable = true, SortField = "qty" },
         ];
 
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: columns, PageSize: 2, Sort: null, OnSortChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(columns)
+            .PageSize(2)
+            .Sort(null)
+            .OnSortChange(_ => { })));
 
         Assert.Contains("<th scope=\"col\">Name</th>", grid.Html);
         Assert.Single(Regex.Matches(grid.Html, "aria-sort"));

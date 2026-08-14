@@ -9,23 +9,20 @@ namespace Rask.Native.Tests.Infrastructure;
 // A minimal full-shell app for the native session tests: a counter button + the current route path, so
 // tests can exercise handler dispatch (bump the counter) and navigation (assert the path). Mirrors the
 // WASM host's StubApp.
-internal sealed class NativeStubApp : Component
+internal sealed partial class NativeStubApp : Component
 {
     private readonly RouteState _routeState;
     public int Counter;
 
     public NativeStubApp(RouteState routeState) => _routeState = routeState;
 
+    protected override Component? HeadAssets => Title["stub"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        Html()[
-            Head()[Title()["stub"]],
-            Body()[
-                H1()[$"path={_routeState.Path}"],
-                P()[$"count={Counter}"],
-                Button(OnClick: () => Counter++)["bump"]
-            ]
-        ]
+        H1[$"path={_routeState.Path}"],
+        P[$"count={Counter}"],
+        Button.OnClick(() => Counter++)["bump"]
     ];
 }

@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // view-model), Sortable turns a header into a sort toggle, PageSize adds a pager, Footer totals a column
 // over every row (not just the visible page), and Template renders a custom cell. Sorting and paging are
 // component state, so they work with no JavaScript.
-public sealed class BsDataGridDemo : Component
+public sealed partial class BsDataGridDemo : Component
 {
     private sealed record Product(string Name, string Category, int Stock, decimal Price);
 
@@ -27,14 +27,10 @@ public sealed class BsDataGridDemo : Component
     // The wrapper exists so the whole component — table AND pager — has one addressable root: BsDataGrid's Id
     // lands on the <table>, and the pager renders as its sibling.
     protected override Component? Render() =>
-        Div(Id: "grid-demo")[
-        BsDataGrid(
-            Id: "bs-grid",
-            Data: Products,
-            PageSize: 5,
-            RowKey: p => p.Name,
-            Columns:
-            [
+        Div.Id("grid-demo")[
+        BsDataGrid
+            .Data(Products)
+            .Columns([
                 new BsColumn<Product> { Title = "Product", Value = p => p.Name, Sortable = true },
                 new BsColumn<Product> { Title = "Category", Value = p => p.Category, Sortable = true },
                 // Template renders a component instead of text; SortKey keeps the numeric order while the
@@ -51,10 +47,13 @@ public sealed class BsDataGridDemo : Component
                     Value = p => p.Price.ToString("C"),
                     Footer = rows => rows.Sum(p => p.Price).ToString("C"),
                 },
-            ])];
+            ])
+            .Id("bs-grid")
+            .PageSize(5)
+            .RowKey(p => p.Name)];
 
     private static Component StockBadge(Product product) =>
         product.Stock == 0
-            ? BsBadge(Color: BsColor.Danger)["Out of stock"]
-            : BsBadge(Color: product.Stock < 10 ? BsColor.Warning : BsColor.Success)[product.Stock.ToString()];
+            ? BsBadge.Color(BsColor.Danger)["Out of stock"]
+            : BsBadge.Color(product.Stock < 10 ? BsColor.Warning : BsColor.Success)[product.Stock.ToString()];
 }

@@ -5,15 +5,15 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-public class LiveViewTests
+public partial class LiveViewTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void RenderAsLiveRoot_RegistersHandlersAndEmitsIds()
     {
         var counter = 0;
-        var view = new StubComponent(() => Div()[
-            Button(OnClick: () => counter++)["up"],
-            Button(OnClick: () => counter--)["down"]
+        var view = new StubComponent(() => Div[
+            Button.OnClick(() => counter++)["up"],
+            Button.OnClick(() => counter--)["down"]
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -26,7 +26,7 @@ public class LiveViewTests
     [Fact]
     public void RenderAsLiveRoot_ResetsHandlerIdsBetweenRenders()
     {
-        var view = new StubComponent(() => Button(OnClick: () => { })["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => { })["x"]);
 
         var first = view.RenderAsLiveRoot();
         var second = view.RenderAsLiveRoot();
@@ -39,7 +39,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_RunsParameterlessAction_AndIgnoresPayload()
     {
         var fired = 0;
-        var view = new StubComponent(() => Button(OnClick: () => fired++)["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", JsonDocument.Parse("{}").RootElement);
@@ -52,7 +52,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_StringActionHandler_ReceivesValueProperty()
     {
         var captured = string.Empty;
-        var view = new StubComponent(() => Input<string>(OnInput: v => captured = v));
+        var view = new StubComponent(() => Input.Value<string>(null).OnInput(v => captured = v));
         view.RenderAsLiveRoot();
 
         using var doc = JsonDocument.Parse("{\"id\":\"h0\",\"type\":\"input\",\"value\":\"hello\"}");
@@ -66,7 +66,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_FormDataActionHandler_ReceivesFormFields()
     {
         FormData? captured = null;
-        var view = new StubComponent(() => Form(OnSubmit: f => captured = f));
+        var view = new StubComponent(() => Form.Model(new object()).OnSubmit(f => captured = f));
         view.RenderAsLiveRoot();
 
         using var doc =
@@ -83,7 +83,8 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_FuncTaskHandler_IsAwaited()
     {
         var fired = false;
-        var view = new StubComponent(() => Button(OnClickAsync: async () =>
+        var view = new StubComponent(() => Button
+            .OnClickAsync(async () =>
         {
             await Task.Yield();
             fired = true;
@@ -100,7 +101,8 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_FuncStringTaskHandler_ReceivesValue()
     {
         var captured = string.Empty;
-        var view = new StubComponent(() => Input<string>(OnInputAsync: async v =>
+        var view = new StubComponent(() => Input.Value<string>(null)
+            .OnInputAsync(async v =>
         {
             await Task.Yield();
             captured = v;
@@ -118,7 +120,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_FuncFormDataTaskHandler_ReceivesForm()
     {
         FormData? captured = null;
-        var view = new StubComponent(() => Form(OnSubmitAsync: async f =>
+        var view = new StubComponent(() => Form.Model(new object()).OnSubmitAsync(async f =>
         {
             await Task.Yield();
             captured = f;
@@ -140,9 +142,9 @@ public class LiveViewTests
         // Deliberately wires BOTH siblings to verify the runtime tiebreak (sync wins). RASK027 flags
         // this at the call site for real code; here it's the behaviour under test, so suppress it.
 #pragma warning disable RASK027
-        var view = new StubComponent(() => Button(
-            OnClick: () => syncFired++,
-            OnClickAsync: async () =>
+        var view = new StubComponent(() => Button
+            .OnClick(() => syncFired++)
+            .OnClickAsync(async () =>
             {
                 await Task.Yield();
                 asyncFired++;
@@ -163,7 +165,7 @@ public class LiveViewTests
     [Fact]
     public async Task TryInvokeHandlerAsync_UnknownId_ReturnsFalse()
     {
-        var view = new StubComponent(() => Button(OnClick: () => { })["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => { })["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("hX", JsonDocument.Parse("{}").RootElement);
@@ -174,7 +176,7 @@ public class LiveViewTests
     [Fact]
     public async Task TryInvokeHandlerAsync_StaleIdAfterRerender_ReturnsFalse()
     {
-        var view = new StubComponent(() => Button(OnClick: () => { })["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => { })["x"]);
         view.RenderAsLiveRoot();
         view.RenderAsLiveRoot();
 

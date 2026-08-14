@@ -1,10 +1,10 @@
 namespace Rask.Core.Tests.Components;
 
-public class AudioTests
+public partial class AudioTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<audio></audio>", Audio().ToHtml());
+        Assert.Equal("<audio></audio>", Audio.ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
@@ -14,12 +14,21 @@ public class AudioTests
         // would no longer line up. The emitted attribute order is unchanged.
         Assert.Equal(
             "<audio id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" src=\"/a.mp3\" controls autoplay loop muted preload=\"auto\" crossorigin=\"anonymous\"></audio>",
-            Audio(Src: "/a.mp3", Controls: true, Autoplay: true, Loop: true, Muted: true, Preload: "auto",
-                CrossOrigin: "anonymous", Id: "i", Class: "c", Style: "s",
-                Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Audio
+                .Src("/a.mp3")
+                .Controls(true)
+                .Autoplay(true)
+                .Loop(true)
+                .Muted(true)
+                .Preload("auto")
+                .CrossOrigin("anonymous")
+                .Id("i")
+                .Class("c")
+                .Style("s")
+                .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<audio>&lt;x&gt;</audio>", Audio()["<x>"].ToHtml());
+        Assert.Equal("<audio>&lt;x&gt;</audio>", Audio["<x>"].ToHtml());
 }

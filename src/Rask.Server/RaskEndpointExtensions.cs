@@ -249,8 +249,9 @@ public static class RaskEndpointExtensions
     /// <summary>
     ///     Maps the Rask live endpoints (root document, WebSocket dispatcher, scoped-asset, auth,
     ///     and upload/download routes) with <typeparamref name="TApp" /> as the root component, and
-    ///     enables WebSockets. The root must render a complete shell
-    ///     (<c>Doctype</c>/<c>Html</c>/<c>Head</c>/<c>Body</c>) — see RASK021.
+    ///     enables WebSockets. The root renders into <c>&lt;body&gt;</c> — Rask composes the document
+    ///     around it (see <c>Component.Shell</c> / <c>HtmlLang</c> / <c>BodyClass</c>); a root that renders
+    ///     the shell itself is RASK021.
     /// </summary>
     /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
     /// <param name="app">The web application to map endpoints on.</param>
@@ -1178,7 +1179,7 @@ public static class RaskEndpointExtensions
         metrics?.HandlerDispatched();
         var dispatchStart = Stopwatch.GetTimestamp();
 
-        // Handler timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
+        // Action timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
         // the socket so a close cancels it too). A handler that threads CancellationToken into its
         // async work unwinds cooperatively; one that ignores it can't be force-aborted (the timeout is
         // still logged + metered). Null when the timeout is disabled, so the default path allocates nothing.

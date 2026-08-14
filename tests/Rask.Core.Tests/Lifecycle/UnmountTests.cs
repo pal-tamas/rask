@@ -305,7 +305,7 @@ public class UnmountTests
         public CountingDisposable(Action onDispose) => _onDispose = onDispose;
         public void Dispose() => _onDispose();
         protected override void OnUnmount() => UnmountCount++;
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     // Re-disposes its already-disposed child from its own OnUnmount, mimicking a teardown that
@@ -322,7 +322,7 @@ public class UnmountTests
         {
             if (!IncludeChild)
             {
-                return Span();
+                return Span;
             }
 
             var ctx = LiveRenderContext.Current!;
@@ -345,7 +345,7 @@ public class UnmountTests
             WasCancelledAtUnmount = CancellationToken.IsCancellationRequested;
         }
 
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class UnmountThenDisposable : Component, IDisposable
@@ -354,7 +354,7 @@ public class UnmountTests
         public UnmountThenDisposable(List<string> order) => _order = order;
         public void Dispose() => _order.Add("dispose");
         protected override void OnUnmount() => _order.Add("unmount");
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class OrderingUnmount : Component
@@ -369,7 +369,7 @@ public class UnmountTests
         }
 
         protected override void OnUnmount() => _order.Add(_name);
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class OrderingMiddle : Component
@@ -406,7 +406,7 @@ public class UnmountTests
         {
             if (!IncludeChild)
             {
-                return Span();
+                return Span;
             }
 
             var ctx = LiveRenderContext.Current!;
@@ -432,7 +432,7 @@ public class UnmountTests
         {
             if (!IncludeChildren)
             {
-                return Span();
+                return Span;
             }
 
             var ctx = LiveRenderContext.Current!;
@@ -440,7 +440,7 @@ public class UnmountTests
             ctx.NotifyParameters(ca, true);
             var cb = ctx.GetOrCreate(_ => _b);
             ctx.NotifyParameters(cb, true);
-            return Div()[ca, cb];
+            return Div[ca, cb];
         }
     }
 
@@ -454,6 +454,6 @@ public class UnmountTests
 
         protected override void OnUnmount() => _order.Add("unmount");
 
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 }

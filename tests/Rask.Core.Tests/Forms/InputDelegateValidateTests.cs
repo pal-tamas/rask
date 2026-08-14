@@ -5,7 +5,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Forms;
 
-public class InputDelegateValidateTests
+public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task Input_InlineValidate_AppendsMessage_OnPerKeystroke()
@@ -13,9 +13,9 @@ public class InputDelegateValidateTests
         var p = new Person { Name = "" };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
-            Input(() => p.Name,
-                v =>
+        var page = RaskTest.Render(() => Form.Model(p)[
+            Input.Bind(() => p.Name)
+                .Validate(v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
@@ -40,12 +40,9 @@ public class InputDelegateValidateTests
         var invalidCalled = 0;
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form<Person>(
-            p,
-            _ => validCalled++,
-            _ => invalidCalled++)[
-            Input(() => p.Name,
-                _ => new[] { "always-fail" }),
+        var page = RaskTest.Render(() => Form.Model(p).OnValidSubmit(_ => validCalled++).OnInvalidSubmit(_ => invalidCalled++)[
+            Input.Bind(() => p.Name)
+                .Validate(_ => new[] { "always-fail" }),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
 
@@ -65,12 +62,12 @@ public class InputDelegateValidateTests
         var includeValidator = true;
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
+        var page = RaskTest.Render(() => Form.Model(p)[
             includeValidator
-                ? Input(() => p.Name,
-                    v =>
+                ? Input.Bind(() => p.Name)
+                    .Validate(v =>
                         v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())
-                : Input(() => p.Name),
+                : Input.Bind(() => p.Name),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
 
@@ -98,7 +95,7 @@ public class InputDelegateValidateTests
         var p = new Person { Name = "" };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
+        var page = RaskTest.Render(() => Form.Model(p)[
             Input(() => p.Name,
                 async (v, ct) =>
                 {
@@ -126,7 +123,7 @@ public class InputDelegateValidateTests
         var p = new Person { Name = "abc" };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
+        var page = RaskTest.Render(() => Form.Model(p)[
             Input(() => p.Name,
                 async (v, ct) =>
                 {

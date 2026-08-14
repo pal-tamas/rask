@@ -62,6 +62,1107 @@ them until tagged releases begin.
     the remote peer opened loses nothing between arriving at `OnDataChannel` and being listened to.
   - **ICE server URLs are checked** — `stun:`, `turn:` or `turns:` only — and `IceTransportPolicy = "relay"`
     is documented as the way to stop a peer learning your local network addresses.
+- **An attribute bag names its pair: `Div.Data("test-id", "primary")`.** The dictionary form still
+  works, and is still the right thing for a genuinely large bag:
+
+  ```csharp
+  Div.Data("rask-no-restore")                    // bare: data-rask-no-restore
+  Div.Data("test-id", "primary")
+  Div.Data(("test-id", "primary"), ("state", "idle"))
+  Span.Aria("label", "Close")
+  ```
+
+  The name-only form is the BARE attribute, which is how the framework's own opt-out flags are
+  written — `.Data("flag")` renders `data-flag`, `.Data("flag", "")` renders `data-flag=""`, and those
+  are different attributes.
+
+  It is not only shorter. A `Dictionary` for one attribute is **three** allocations — the dictionary,
+  its bucket array and its entry array — and a chain step re-assigns its property on every render, so
+  that was a per-render cost on every element carrying a single `data-*`. The pair form allocates one
+  object with two fields (`Rask.Core.AttrBag`), which `Element` writes straight from those fields:
+  without that branch it would have traded three allocations for a boxed enumerator, since only
+  `Dictionary<,>` has a struct enumerator to borrow.
+
+  Measured over 100 elements each carrying one `data-*` (`AttrBagBenchmarks`): **80.7 KB → 63.52 KB,
+  Alloc Ratio 0.79**, mean 11.32 μs → 10.09 μs. With three attributes each it is still ahead —
+  87.15 KB → 75.43 KB. So the ergonomic spelling is also the cheap one, at both sizes.
+
+  The steps are emitted for any property typed `IReadOnlyDictionary<string, string?>` rather than for
+  a list of names, so `Data`, `Aria` and `FieldAria` all get them and so does anything added later.
+  Lookup on the bag is a linear scan, which is the right structure at this size — it is written once
+  and read once per render.
+
+- **BREAKING — callbacks are plain delegates. `Handler`, `HandlerAsync`, `Handler<T>`,
+  `HandlerAsync<T>`, `Carrier<TDelegate>` and the four `Callback*` delegate types are deleted.** A
+  component property says the delegate it means:
+
+  ```csharp
+  public Action? OnPick { get; set; }
+  public Func<Task>? OnSaveAsync { get; set; }
+  public Action<int>? OnRate { get; set; }
+  public Func<Product, Component>? Template { get; set; }
+  ```
+
+  Every one of those was a wrapper a moment ago — `Handler?`, `HandlerAsync?`, `Handler<int>?`,
+  `Carrier<Func<Product, Component>>?` — and the wrappers existed for exactly one reason: a delegate-typed
+  property on the chain's receiver swallowed its own setter. The `Build<TComponent>` receiver removes that
+  collision at its source, so ~180 properties across `Rask.Core`, `Rask.Bootstrap` and `Rask.Native` drop
+  back to `Action` / `Func<…>`, and reading one back is `OnPick?.Invoke()` rather than `.Fn` / `.Invoke`
+  / `.InvokeAsync`.
+
+  Everything that rode on the wrappers goes with them: `AutoCallback.Wrap`'s duplicate named-delegate
+  overloads, `Component.TryInvokeHandlerAsync`'s duplicate typed dispatch arms, `ElementEvents`'
+  carrier views and their null-preservation dance, and the generator's `CarrierDelegate` / `AssignExpr` /
+  `ParamType` mapping layer. `Validate<T>` and `ValidateAsync<T>` stay — they are domain delegates, not
+  wrappers, and spelled out they would put `Func<T, CancellationToken, ValueTask<IEnumerable<string>>>`
+  on the form surface.
+
+  **A callback setter now keeps the property's name in every case.** The old rule dropped a leading `On`
+  where it could (`OnRate` → `.Rate(…)`), so a handful of call sites move: `.Rate(…)` → `.OnRate(…)`,
+  `.TaskClick(…)` → `.OnTaskClick(…)`, `.Save(…)` → `.OnSave(…)`.
+
+- **RASK042 is retired**, not renamed. It reported a delegate-typed property whose setter could never be
+  reached; there is no such property any more. The ID is not reused.
+
+- **RASK026 recognises a callback by NAME rather than by type.** It used to key on the `Callback` /
+  `CallbackAsync` delegate types, which said "framework event callback" on sight; a BCL delegate says
+  nothing, so the signal is now the property — `On…`, plus `AfterBind`/`AfterBindAsync`. Narrower than
+  what it replaces, not wider (a `Func<T, Component>` template is not an event and never was reported) —
+  and it immediately found two live instances in `GestureBridgeDemo` that the type test had missed.
+
+- **BREAKING — a chain's receiver is `Build<TComponent>`, so a callback property can be an ordinary
+  delegate.** The entry hands back a chain rather than the component, and every step takes and returns
+  one:
+
+  ```csharp
+  Div.Class("card")[Span["hi"]]                       // reads exactly as before
+  BsButton.Color(BsColor.Primary).OnClick(Save)["Save"]
+  ```
+
+  The reason is a C# rule rather than a preference. Resolving `x.OnClick(handler)` looks `OnClick` up on
+  the receiver's type; if that lookup finds a property of DELEGATE type it stops there and reads the call
+  as an invocation (CS1593), and extension methods are never considered. While the receiver was the
+  component itself, every callback property therefore needed a non-invocable wrapper around its delegate
+  to stay out of the lookup's way. One step off the component, the lookup finds nothing and the setter
+  binds — whatever the property's type.
+
+  `Build<T>` converts implicitly to `T`, and a user-defined conversion may be followed by a standard one,
+  so a chain reaches `Component` through it as well: markup, `Render()` returns, `Component` parameters,
+  strongly-typed children collections and properties typed as a particular component all take a chain with
+  no cast.
+
+  It is a `readonly struct` over one reference, and on ALLOCATION that costs exactly nothing: a 50-row
+  re-render (one entry plus three setter calls per row, 150 setter calls a frame) allocates **19.7 KB
+  on both surfaces — Alloc Ratio 1.00**.
+
+  **On wall-clock it currently costs 18%**, and that is a regression inside this branch rather than a
+  property of the surface — the same benchmark had the chain slightly AHEAD earlier (Entry/Factory
+  0.95–0.97):
+
+  ```
+  Factory   21.89 us   19.7 KB   1.00
+  Entry     25.88 us   19.7 KB   1.00   (time ratio 1.18 ± 0.02)
+  ```
+
+  **The cause is not yet known.** `BuilderSurfaceBenchmarks`' own comment predicts one — the deferred
+  reset grew a form where a property whose setter has a BODY is assigned unconditionally rather than
+  skipped when it already reads as its default, and five props on the shared `Element`/`Component`
+  surface take that form (`Draggable`, `Role`, `TabIndex`, `Aria`, `Ref`), so every element pays. That
+  prediction was **measured and disproved**: narrowing the unconditional path to `Router.Routes` alone
+  (the one property that genuinely derives state, resolving `RouteRegistry.BuildTree()` on assignment)
+  moves the ratio from 1.18 to 1.17. It is not where the time goes.
+
+  What has not been ruled out is the per-step bookkeeping each setter does (`Track` + `Written`, 150
+  calls a frame here) and the reset's own shape — every prop on the shared surface is a separate mask
+  test per component per render, whether or not the form of the write changes. Tracked in the issue;
+  the number is recorded here rather than left to be rediscovered.
+
+  The ratio is recorded because dropping the generated factory removes the arm that produces it, so
+  this comparison cannot be reproduced afterwards.
+
+  Two consequences worth stating, because neither is reachable by reading the happy path:
+  - **A component's static members are no longer reachable by simple name inside a markup host.** C#'s
+    "Color Color" rule merges a type and a same-named property only when the property's type IS that type,
+    which a chain's is not — so `MyComponent.Helper()` resolves to the entry and needs qualifying.
+  - **`cond ? SomeChain : null` needs a target type**, because a struct and `null` share none. Assigning
+    to a `Component?` local (rather than `var`) is the fix, and target-typed conditionals do the rest.
+
+- **`Of<T>()` — the way into a generic component that has nothing to infer from.** Every other opening
+  pins a type argument from an argument (`Input.Bind(() => m.Name)`), but a generic component is not
+  obliged to be used generically: Rask.Bootstrap drives a bare `<input type=checkbox>` through
+  `Input<string>` with no bind and no value. The generic factory had a no-argument overload for exactly
+  that; a seed of pins alone dropped it, which is what left those sites on the factory. Required
+  properties are not waived — only the type is settled.
+
+- **BREAKING — `Form` is genuinely generic: `Form<TModel>`.** Its typing used to be a factory-only
+  fiction — the component held `object? Model` and three `Delegate?` properties, and a `[FactoryGeneric]`
+  overload narrowed them per call. That works only while a factory exists; a chain has no overloads to
+  narrow through, so the generics moved onto the component.
+
+  ```csharp
+  Form.Model(_m)
+      .Validate(CheckoutRules.Check)
+      .OnValidSubmit(Save)
+      .Class("vstack gap-3")[ … ]
+  ```
+
+  The submit handlers now receive the model itself instead of a `Delegate` the component had to
+  `DynamicInvoke`, and the cross-field validator is a `Validate<TModel>` rather than something checked at
+  runtime. The three-way validator fan-out is gone with them: it existed so a sync and an async validator
+  could each be a required, correctly-typed PARAMETER, and as two setters (`Validate`/`ValidateAsync`)
+  they simply coexist.
+
+  **`Model` is required**, so a form with nothing to bind to no longer compiles — the guard that used to
+  throw at first render is unreachable from the surface, and the ~14 plain-`<form>` call sites each bind
+  the fields they were already posting.
+
+- **`[AutoCallback]` — opt-in wrapping for a callback an element-derived component invokes itself.** An
+  `Element`'s delegate props go straight to the DOM, where handler-owner resolution already repaints, so
+  wrapping them would add a closure on the render hot path for nothing. `Form`'s submit handlers are not
+  dispatched that way — its own bridge invokes them after validation — so without a wrap the component
+  that supplied the handler never re-rendered. `[FactoryGeneric]`'s `TypedDelegateProperties` used to say
+  this by hand for the one component that needed it; the attribute says it where the property is declared.
+  Caught by `FormSubmitWrapTests`, which exists precisely to ask this question.
+
+- **A property's summary now rides onto the step and the setter that write it.** A chain shows the
+  SETTER in a tooltip, not the property — so hovering `.Placeholder(…)` said nothing at all while the
+  property behind it was fully documented. The generator copies each property's `<summary>` onto every
+  member it emits for it, taken from the compiler's own XML rather than the trivia, so an inherited
+  `<inheritdoc/>` arrives already resolved. A property with no summary gets no doc comment: an empty one
+  is worse than none, because it suppresses the fallback the IDE would otherwise show.
+  `BsSelect`'s own properties are documented as the first pass, which is what the surface's most-used
+  chain shows. The rest of the framework's properties carry `//` line comments rather than `///`, and
+  converting them is per-property work that this only makes worth doing.
+
+- **RASK044 — a builder chain that sets the same property twice.** The second call wins and the first is
+  dead: it compiles, renders, and uses the last value, so the mistake survives review and shows up later
+  as markup nobody can account for. Two writes to one property are always a merge artefact or a copied
+  line that was not adjusted; if the value is conditional, compute it once and pass it. Reported once per
+  chain, naming the property. Two *separate* chains that each name it once are ordinary markup and are
+  not reported.
+  An analyzer rather than a property of the type, and the boundary is worth stating: the chain already
+  makes a required property impossible to omit and `Bind`/`Value` impossible to mix, because each step
+  returns a type offering only what is still legal. Extending that to every setter would need one state
+  per subset of the surface — 2^n over ~90 properties, where the required-property machinery pays 2^k
+  over the few that are required.
+- **RASK014 speaks about the chain now**, not the factory: `new` skips the first step's `GetOrCreate`, so
+  the runtime cannot match the instance across renders and it re-mounts every frame. It also skips what
+  the chain enforces — a component whose required properties are steps cannot be incomplete, and `new`
+  can make one that is.
+
+- **BREAKING — a builder chain is a state machine, and the type at each point says what is legal next.**
+  A component with anything to settle first no longer hands back the component: it hands back a *seed*,
+  and each step returns a state offering only what is still outstanding. The component — with its
+  optional setters and its `[…]` children indexer — appears once nothing is.
+
+  ```csharp
+  BsSelect.Bind(() => _m.TeamId).Options(Teams).OptionValue(t => t.Id)
+  BsSelect.Bind(() => _m.Plan).Options(Plans)     // the option IS the value
+  BsRadioGroup.Options(AllPlans).Value(_plan)
+  BsToast.Id(7).Message("Saved")                   // or .Message("Saved").Id(7)
+  Div.Class("card")[…]                             // nothing required — unchanged
+  ```
+
+  Three things stop being possible to write, rather than being reported after the fact:
+  - **A required property cannot be omitted.** It is a step, so the component does not exist until it is
+    supplied. RASK038 has not gone, but within one compilation the type now says it; the analyzer's
+    remaining job is a *referenced* library's component, whose RASK001-requiredness metadata destroys and
+    the owning assembly republishes.
+  - **Bound and controlled cannot be mixed.** `Bind` and `Value` are the two openings, so taking either
+    leaves the other unreachable. A control bound to an expression *and* handed a value had two sources
+    of truth and nothing decided which won; it used to compile.
+  - **A type argument is never written by hand.** The step that opens the chain infers it — no
+    `Input<string>()`, no empty `()`.
+
+  Order is free where it can be: any outstanding required property may come next, which costs one state
+  struct per reachable subset (at most two per component here). Type pins are the exception, and that is
+  the language rather than the design — `OptionValue` is a `Func<TItem, TValue>`, so it cannot precede
+  the `Options` that fixes `TItem`.
+
+  The steps are **instance** methods on the seed, and that is load-bearing rather than stylistic: a state
+  fixes its own type arguments, so a step on it introduces none, which lets `Options(IEnumerable<TValue>)`
+  beat `Options<TItem>(IEnumerable<TItem>)` when the option *is* the value and fill in the identity
+  projection itself. As extension methods both would have had to declare the state's type parameters,
+  leaving them equally generic and the call ambiguous (CS0111) — which is what made this design look
+  impossible when it was first tried.
+
+  Seeds and states are `[EditorBrowsable(Never)]`, so they stay out of completion lists; they are named
+  `RaskSeed_`/`RaskStage_`/`RaskPending_` and are never written by hand.
+
+  **Costs nothing measurable.** `BuilderSurfaceBenchmarks` over a 50-row steady-state re-render:
+  **19.7 KB/op on both surfaces, allocation ratio 1.00**, the chain 5% faster in time. A state is a
+  struct holding the component it is building, so a chain allocates exactly what the factory did.
+
+- **BREAKING — `BsSelect<TItem>` is retired; `BsSelect<TValue, TItem>` is the only arity.** Two arities
+  cannot both hang off one seed: the step that fixes `TValue` would have to yield the finished component
+  for one and a stage for the other from the same receiver and the same argument, and the two
+  continuations are ambiguous precisely when the option type equals the value type — which is the whole
+  of what the second arity was for. The common case costs nothing at the call site, because
+  `.Options(items)` recognises it and supplies `x => x` itself.
+
+- **BREAKING — eighteen raw-delegate properties are carriers now**, so their setters keep the property's
+  own name: twelve `Template` props (the `GestureTrigger` family, `Shareable`, `ToastOutlet`,
+  `ValidatingIndicator`, `ValidationMessage` ×3, `ValidationSummary`), `BsSelect.OptionValue`, and five
+  sample `Log` probes. A raw delegate property is invocable, so a same-named setter can never be reached
+  (RASK042) — and those seven components had no builder entry at all as a result. Renaming the setter
+  instead was tried and reverted: it reached the property at the price of spelling the surface's most-used
+  chains `.SetTemplate(…)` and `.SetOptionValue(…)`. Read one back through `.Fn` (or `.Invoke(…)` for a
+  `Handler`).
+
+### Fixed
+- **`rask new` scaffolded projects that could not compile, and every in-repo gate said they were fine.**
+  `RaskBuilderSurface` — the switch that emits the chain entries — defaulted to **false**, and the repo
+  turned it on only in its own `Directory.Build.props`. So the solution build, the 5,956-test unit gate,
+  the warnings-as-errors analyzer build and the 64/64 browser E2E all passed, while the code the CLI
+  writes did not build at all: with no entries emitted, `BsCard[…]` binds to the `Generated.BsCard(…)`
+  factory **method** and a reader gets `CS0119` / `CS0021` / `CS0428` out of markup the framework itself
+  generated.
+
+  The default now lives in the shipped `src/Rask.Core/build/Rask.Core.targets` and is **true** — the
+  chain is the surface the docs, the guides and the scaffolder are written in, so it cannot be opt-in.
+  Set `<RaskBuilderSurface>false</RaskBuilderSurface>` to get the factories alone.
+
+  Worth stating as a rule rather than an anecdote: **the only gate that crosses the package boundary is
+  the CLI build gate** (`scripts/run-cli-build-e2e.sh`, run by the pre-push hook). The in-repo build
+  *references* the projects instead of restoring them, so it never imports the packaged targets and
+  anything about packaging is invisible to it. All 26 `rask new` cases were red while everything else
+  was green.
+
+- **The docs taught component classes that do not compile.** 59 component declarations across 28 doc
+  pages — the whole tutorial included — were written without `partial`. On the chain surface a
+  generator has to inject each non-framework component's entry into every type that might name one, and
+  it can only inject into a `partial`; that is RASK036, and the tutorial gate builds with
+  `-warnaserror`. Every one now carries the modifier, except the deliberate counter-example in
+  RASK036's own section.
+
+- **A whole page became "Something went wrong" whenever `Router` was served from the render cache.**
+  Twelve browser journeys died on `Outlet() and Router rendering require an active route context`, and
+  the symptom pointed at the wrong thing entirely — every one of them timed out waiting for a sidebar
+  locator, which reads as "the sidebar did not render" when in fact *nothing* had: the whole document
+  was an error boundary.
+
+  `Router.Render()` assigns `ctx.Route`, and that is per-FRAME state — it exists only for the walk that
+  set it, and nothing else in the framework produces it. `Router` had no cache opt-out, so a frame in
+  which its props and state were both clean skipped `Render()` and left the frame with no route context
+  at all. Any `Outlet` that *did* render in that frame — a freshly created one, say — then reached
+  `RouteChainRenderer` with a null route and threw.
+
+  `Outlet` had the same defect for a different reason and is fixed alongside: its `Render()` advances
+  `RouteRenderState.Cursor`, a frame-global positional counter, so a cached `Outlet` fails to advance it
+  and the next one to render pulls the wrong link of the chain — its own parent, nested inside itself.
+  The invariant both now satisfy: **every participant in the route walk must run on every frame**, which
+  is what `BypassRenderCache` is for. The page components the chain resolves to are still cached
+  normally, so the expensive half is untouched.
+
+  Not new to the chain surface, but only *reachable* there. The generated factory re-applied every
+  property on every render, so `PropsDirty` was set unconditionally and nothing was ever really
+  render-cached; `Router` re-executed every frame by accident. Writing only what the call site names is
+  what makes the cache real, and this is what it exposed first.
+
+  **It is not free, and the number is here rather than left to be rediscovered.** A new
+  `RoutedRenderBenchmarks` renders the shape every routed app renders — a two-level chain, 20 rows,
+  steady-state re-render as a live root — and prices the opt-out:
+
+  ```
+  | RoutedFrame          Mean       Allocated
+  | Router/Outlet cached  3.410 us   3.86 KB   (and throwing — see above)
+  | Router/Outlet bypass  3.649 us   4.18 KB
+  |                      +7.0%      +8.3%
+  ```
+
+  Read that comparison carefully: the cheaper arm is not doing the same work faster, it is doing
+  *less* work — a cached `Router` skips the route match altogether, which is exactly why it left the
+  frame without a route context. The cost is one `RouteMatcher.TryMatch` (which allocates the chain
+  list and the values dictionary) plus one chain entry per `Outlet`, per frame. The page components
+  the chain resolves to are still cached normally.
+
+  The obvious way to claw most of it back — memoise the match on `RouteState.Path`, since it is a pure
+  function of the flattened leaves and the path — is deliberately NOT in this PR: it changes routing
+  cache semantics, and doing that after the gate has gone green is how a late unverified change becomes
+  a regression. Filed as #688.
+
+- **The disposal demos' log stayed on "Empty — mount and unmount the probe." forever.** `DisposalDemoLog`
+  renders a `List<string>` that the demo above it APPENDS to in place. The reference never changes, so the
+  props fold (`EqualityComparer<T>.Default` — reference equality for a `List`) reported no change and the
+  render cache replayed the stale subtree; the `<ol>` the E2E looks for was never emitted at all.
+
+  This is the invariant `ExternalStateInvalidationTests` already pins, met from the other side: a
+  component deriving its UI from state it does not own must either subscribe to a change source or opt
+  out of the cache, and a bare `List` has no event to subscribe to. Same root cause as the `Router` entry
+  above — the cache only started being real when the chain stopped re-assigning every property.
+
+- **A type that declares a nested component can be a markup host now.** Opting one in produced **CS0102 in
+  generated source** — `DependencyInjectionTests.GreetingComponent` the injected entry against
+  `DependencyInjectionTests.GreetingComponent` the nested class — out of a one-line opt-in, with no
+  modifier that fixes it. It cost 190 test classes their builder surface.
+  Two mistakes, one on top of the other. The list of names an injected entry must leave alone was gathered
+  **only for the injected delivery**, on the reasoning that an inherited entry a member shadows is merely
+  hidden and `new` says so. That is true of the *framework* entries, which are the only half that arrives
+  by inheritance — a consuming assembly's own components and a referenced library's are injected as
+  **members into every host whatever its delivery**, so they need the list too. And the list was built from
+  `INamedTypeSymbol.MemberNames`, which does not carry **nested type** names — which is precisely the
+  collision, since an entry is named after its component. Both halves are fixed: the names are collected
+  for every delivery, and from `GetTypeMembers()` as well as `MemberNames`.
+  A nested component named after a tag still hides the *inherited* tag entry (CS0108) and still owes a
+  `new` — `OutletTests.Section` is the example, and that one no modifier can avoid.
+- **An auth gate built by a builder entry rendered as if nobody were signed in.** `Authorize[content]` and
+  `Authorize.Authorized(user => …)` produced an empty page on a server-rendered first paint — the shape at
+  the top of every gated route, failing silently and open-ended: no exception, no diagnostic, just missing
+  content.
+  The chain is the trigger and the commit is the cause. A chain writes only what it names, and only a
+  *folding* prop goes through `BuilderRuntime.Track` — a chain that names nothing, or names only `Children`
+  or a carrier-typed callback, never marks the child prop-changed. Marking is what allocated the child's
+  `LiveState`, and `CommitEntry` read a missing `LiveState` as *"this child never reached `GetOrCreate`, so
+  there is nothing to notify"*. So the deferred `NotifyParameters` that stands in for the factory's inline
+  one never fired, `OnMount` never ran, and `Authorize` — which resolves its `IUserProvider` in `OnMount` —
+  saw an anonymous principal.
+  That guard's premise only holds when the render carries a **handle**: a live session gives every
+  `GetOrCreate`'d child one, and setting a handle allocates the state. A handle-less render does not, and
+  the two that matter are `ToHtml()` and the server-rendered first paint. The factory has no such hole
+  because it calls `NotifyParameters` unconditionally.
+  The fix is a cheaper signal rather than the obvious repair. Letting a null `LiveState` through would make
+  **every element in an entry-built tree** allocate one at commit, which is the per-node memory the builder
+  surface exists to save. Instead the generator now computes, per component, whether it overrides any of
+  `Component`'s own `On*` hooks — read off the `Component` symbol itself, not a hard-coded list, so adding a
+  hook to the framework cannot silently leave a component uncommitted — and hands the answer to
+  `Entry<T>` / `EntryDi<T>` / `EntryRequired<T>`. A component that has a lifecycle claims its `LiveState`
+  when the entry builds it; one that does not is left exactly as it was. **160 of Rask.Core's 166 entries
+  opt out**, and `Element`-derived types are not exempt as a class — `NavLink` is an `Element` and overrides
+  `OnMount`.
+  The parameter defaults to `true`, so generated code from an older version is *correct* rather than fast.
+  Measured: `BuilderSurfaceBenchmarks` is unchanged at **19.7 KB/op on both surfaces** (alloc ratio 1.00,
+  the entry 14% faster in time), the absolute and relative allocation pins pass untouched, and a new pin
+  covers the shape the fix actually acts on — ten lifecycle-bearing children, entry versus factory — so
+  "it costs what the factory costs" is asserted rather than argued.
+
+### Added
+- **The migration does not have to hoist anything — and here is the test that says so.** A factory
+  evaluates its arguments *before* it builds the component; a setter chain builds the receiver first and
+  evaluates the argument after. `GetOrCreateChild` hands out identity positionally — one counter per
+  parent, keyed `(Type, position)` — so `SlotHost(Payload: Leaf(...))` and `SlotHost.Payload(Leaf...)`
+  give the same two children **different positions**. The open question was whether the rewriter had to
+  hoist every component-valued argument into a local to preserve the old numbering, which would have
+  meant converting expression-bodied `Render()` members to block bodies across the repo.
+  It does not. `BuilderHoistTests` pins why: positional identity only has to be **stable render to
+  render**, never equal to the numbering some other spelling of the same tree would have produced. A
+  chain keeps every child instance across renders; the two orders are equivalent in HTML *and* in
+  lifecycle; and a half-rewritten tree — a factory whose argument is already a chain, or a chain whose
+  argument is still a factory — is stable in both nesting directions, which is what lets the rewrite land
+  one project at a time.
+  What it also pins is the one shape that *does* break, because that is the rewriter's rule: a `Render()`
+  that emits the same subtree through the factory on one render and through a chain on the next
+  renumbers its children, so the leaf is not found in the previous frame and mounts a second time — with
+  **identical markup**, so nothing downstream would notice. No fixed source can do that; a `Render()`
+  whose branches were converted unevenly can. The rewriter therefore converts a whole call site, and
+  reverts a whole one, never half of a conditional.
+- **Stage E, first pass: every call site that is already inside a markup host is on the builder surface.**
+  Twenty-two projects, one commit each — the samples, `Rask.Bootstrap`, `Rask.Dashboard`, `Rask.Core`'s own
+  markup, the component probes in the test projects, and the benchmark trees. `dotnet format` is clean,
+  the solution builds warnings-as-errors clean, and the 5,969 unit tests pass.
+  The evidence that matters is not the compile. `Rask.Example.Shop` was left **untouched** — it is the
+  committed output of `rask new` and `ShopProvenanceTests` pins it to the CLI's templates, so it cannot
+  move until the CLI and the `RaskBuilderSurface` default move with it — which makes its golden
+  transcript an *independent* instrument: the whole document, byte for byte, across sixteen render paths,
+  over a Bootstrap library that moved 252 sites and a Core that moved 23. It never changed.
+  What is left, and why, because a named gap is worth more than a silent conversion:
+  - **~2,350 sites in test classes and static helpers**, which are not markup hosts. Their own pass.
+  - **~190 `Form` sites**, excluded outright: `Form` is becoming generic and every one of them moves again.
+  - **~100 generic-component sites** whose entry is a *method* with a required argument (the
+    `ValidationMessage<T>` / `BsDataGrid<T>` forwarders). A method entry displaces its own same-named
+    factory, so those sites move with the entry rather than before it. Generic components that have a
+    parameterless entry overload did convert — `Input<string>().Id(…)`, with the fully-qualified
+    `Rask.Core.Components.Generated.Input(…)` the displacement used to force gone with them.
+  - **~20 properties with no reachable setter at all** — every one a raw delegate whose name the
+    generator's setter rule leaves unchanged (`Template` on the gesture-bridge triggers, on
+    `ValidationSummary` and `ToastOutlet`; `Log` on the lifecycle probes). RASK042's shape, and a real
+    gap in the surface rather than a limit of the rewriter.
+  - **~15 sites where the entry name binds to something else** — a component's own `Label` property over
+    the `<label>` entry, `Component.Head` over the `<head>` entry. Reverted by the tool, not by hand.
+  Nine files opt out by marker (`rask-rewrite: keep the factory`): they hold both surfaces on purpose and
+  assert the two agree, and converting the factory half would leave a test comparing a chain to itself —
+  still green, proving nothing. That was found the hard way, when the first run over
+  `tests/Rask.Core.Tests` turned the deliberately-mixed host in `BuilderHoistTests` into two identical
+  branches and the test that pins the renumbering went red.
+- **Stage E, second pass: the types that were not markup hosts are, and their call sites moved with them.**
+  Entries are inherited members, so a test class and a static markup helper reached none of them — which
+  is what put a third of the repo out of the first pass's reach. 260 types now take the surface directly
+  (`: RaskMarkup` where the base slot is free, `[RaskMarkup]` where it is not), and ~1,400 further call
+  sites moved. Format clean, solution clean, all 40 test assemblies green, Shop's golden transcript
+  unchanged throughout.
+  Four things that were not true before this pass ran:
+  - **A name collision does not argue for `[RaskMarkup]` over `: RaskMarkup`.** When an attributed type's
+    base slot is free the generator writes `: RaskMarkup` into its own generated partial, so the entry is
+    *inherited* either way and a member named after a tag still hides it. `BsDataGridColumnsTests` took
+    the attribute and hid `Thead` anyway. The base slot is the only thing that chooses between the two
+    forms, and `new` on the colliding member is owed by both — six members across the repo now carry it.
+  - **Becoming a host displaces every factory whose component has a *method* entry** — the bound controls
+    and the generic ones — so the project deliberately does not compile between opting in and rewriting.
+    The rewriter now finds a displaced factory by name and argument names instead of by binding, reads
+    its constructed type arguments from the call site's own syntax, and keeps a bound site's `Bind`
+    argument as the entry's own argument (`BsInput(() => m.Name).Label("Name")`).
+  - **A type that declares a nested component cannot become a host at all.** Consumer entries are injected
+    into the host's partial, one member per reachable component, named after the component — so
+    `DependencyInjectionTests.GreetingComponent` the entry collides with the nested class of the same
+    name. CS0102, in generated source, out of a one-line opt-in. Injection already skips a name the host
+    already *reaches*; it should also skip a name the host *declares*. 190 types in `Rask.Core.Tests` are
+    waiting on that.
+  - **An entry-built component whose chain sets no folding prop never runs `OnMount`.** `Authorize[…]` and
+    `Authorize.Authorized(user => …)` render as if nobody were signed in. A chain that sets only `Children`
+    or a carrier-typed delegate never calls `BuilderRuntime.Track`, so the child never allocates its
+    `LiveState`, and `CommitEntry` reads a null `_live` as "this child never reached `GetOrCreate`" and
+    returns — so the deferred `NotifyParameters` that stands in for the factory's inline one never fires.
+    The guard's premise only holds when the render carries a handle; a handle-less render (`ToHtml`,
+    `RenderAsLiveRoot`, a server-rendered first paint) allocates no `LiveState` on its own. The factory
+    has no such hole because it notifies unconditionally. **Not fixed here** — the obvious repair makes
+    every element in an entry-built tree allocate a `LiveState` at commit, which is the memory work this
+    design exists to protect, so it needs a cheaper "this came from an entry" signal than the one it has.
+- **The seed surface's arity-2 pin is designed and works, and it needs one public name that does not exist
+  yet.** `BsSelect<TValue, TItem>` cannot be reached by a single `.Bind(…)` — C# has no partial inference,
+  so one call cannot pin both parameters. A two-stage chain does it:
+  `BsSelect.BindOn(() => m.PersonId).Options(people)` pins `TValue` at stage 1 and `TItem` at stage 2, and
+  it is **order-independent** — shared props accumulated before the first pin, between the two pins, or
+  after both replay identically. Arity-1 keeps its single pin. Verified end to end in a scratch probe.
+  The emission is mechanical. The stage-1 seed is generic over the kind, so the second copy of the 93
+  shared setters is **+93 methods once, not per component**; only own props double, and only for arity-2
+  components. The one new capability the generator needs is generalising "the inference property" to
+  "which property pins which type parameter, and in what order".
+  What blocks it is a name, and the language picked the fight: the arity-1 pin and the arity-2 stage-1 pin
+  take the **same receiver and the same parameter** and differ only in return type —
+  `error CS0111: already defines a member called 'Bind' with the same parameter types`. Making the pins
+  kind-specific does not dissolve it. That fixes the collision between *different components* (`Input` and
+  `BsSelect` can both spell it `Bind`, confirmed), but both **arities of `BsSelect` share a type name**, so
+  they share the one entry member, so they share its seed type, so they share its kind. Same receiver.
+  Two ways out, both public-API decisions: a second name for the arity-2 stage-1 pin, or retiring
+  `BsSelect<TItem>` so one arity remains — which costs the common case an explicit `.OptionValue(x => x)`,
+  since `OptionValue` is `required`. This is load-bearing rather than a nicety: the ~6 arity-2 call sites
+  have **no builder entry at all today**, so introducing the `BsSelect` seed property displaces the factory
+  they currently use and leaves them with nothing.
+- **The rewriter will not collapse a two-surface comparison any more.** It converted the factory arm of its
+  own parity test into a second copy of the entry arm — a test that still passed and proved nothing, caught
+  by reading the diff rather than by anything failing. Ten files were relying on a marker somebody has to
+  remember to add.
+  The refusal is per **component**, not per file: a file may hold `Div` chains and a leftover `Form(…)`
+  factory without either being a comparison, and that still converts. Only a component spelled **both ways
+  in one file** is held back, and it is reported rather than skipped in silence. Across the four largest
+  projects it fires once, on a true positive nobody had noticed —
+  `LiveRenderRoundTripBenchmarks.DeepNode` builds itself through the entry at one site and through the
+  factory at another, and converting the second would have changed what that benchmark measures. The
+  `rask-rewrite: keep the factory` marker stays as the explicit, whole-file override.
+- **A committed Stage E rewriter** (`tools/RaskBuilderRewrite`), because ~6,600 call sites is past
+  hand-editing and the migration has to be re-runnable rather than remembered. It resolves each site
+  against the **real generated factory signature** — a purely syntactic pass cannot; positional arguments
+  have no names in the source — by rebuilding the project with `EmitCompilerGeneratedFiles` and reading
+  the generator's own output back as ordinary source, which also gives it the entry and setter surfaces
+  to check against. Deliberately not MSBuildWorkspace: the compilation must contain generator output, and
+  reading what the compiler read is the more honest way to get it.
+  Its safety net is a verification loop rather than a rule set. Every rewritten site carries a syntax
+  annotation, the rewritten tree goes back into the compilation, and each resulting error is walked up to
+  the site that caused it and reverted — so a shadowed entry, a non-`partial` host or a factory call
+  standing where a statement has to be all come back as a *named* gap. An error it cannot attribute to a
+  site abandons the whole file. It leaves `Form` alone entirely (`Form<TModel>` is pending, and every one
+  of those sites moves again when it lands), leaves generic components alone (their entry is a *method*,
+  which displaces its own factory inside a markup host — those sites move with the entry, not before it),
+  and leaves anything outside a markup host alone.
+- **BREAKING — the builder surface has a base a test class can derive from, and the entries moved onto
+  it.** Entries are *inherited* members, which is the design (a static-imported property loses to a
+  same-named type — CS0119 — while a member of the enclosing type wins), and its consequence was that
+  the surface was reachable only from **inside a component**. A quarter of this repo's call sites are
+  not in one: 1,399 in test classes, plus the static markup helpers. The framework entries now land on
+  **`Rask.Core.RaskMarkup`**, and `Component` derives from *it* — the same 166 members (163 distinct names), one extra link
+  in the chain, and a type that is not a component reaches them by deriving from the half of `Component`
+  that is only the markup. `RaskMarkup` has no members of its own: no `Render()`, no lifecycle, no
+  positional identity, no render cache. Emitting the surface a *second* time onto a separate base was
+  the alternative, and two emissions of one surface are two things free to drift.
+  A consuming assembly's own components still cannot ride there — a generator cannot add members to a
+  type it does not declare — so those are injected into a markup host's own `partial`, exactly as they
+  are into a component's. Measured on `Rask.Core.Tests`: a markup host costs **69 forwarders (9.9 KB)**
+  of generated source, *the same as a component host*, because the 166 framework entries arrive by
+  inheritance and not by injection. Injecting them instead costs **234 forwarders (26.9 KB)** — see the
+  attribute below, which is when that happens and how rarely.
+  A markup host is one that names `RaskMarkup` **directly**. Not transitively, and that is not a
+  detail: making a shared test base derive from it turned all fourteen of its subclasses into hosts and
+  demanded `partial` of every one — an error, under warnings-as-errors, in files that name no markup at
+  all, out of a one-line edit to something else.
+- **`[RaskMarkup]` — the markup surface for a type that cannot spend its base slot.** Deriving from
+  `RaskMarkup` is the cheap delivery and stays the default, but it costs the one base slot C# gives a
+  type, which is impossible when the base belongs to someone else (a fixture base from a test library,
+  a `TheoryData<…>`) and impossible outright for a `static class`. The attribute says the same thing
+  without one: put it on a `partial` type and it becomes a host.
+  It **composes with the base-class form rather than replacing it**, and the generator picks:
+  when the attributed type's base slot is still free, its generated `partial` declares
+  `: Rask.Core.RaskMarkup` — a partial declaration may name the base class as long as only one does —
+  so the entries arrive by the *same* inheritance and cost the same. Only when the slot is genuinely
+  spent, or the type is `static`, are the 166 framework entries injected as members, forwarding to a new
+  public `RaskEntriesRaskCore` class that Rask.Core publishes exactly as every other assembly already
+  publishes its own. The author never chooses, and the expensive form is never paid unnecessarily.
+  Measured, per host, on three real projects — the injected surface is a **fixed +165 forwarders /
+  +16.9 KB**, so the *multiplier* is `1 + 166/E` and depends entirely on how many non-framework entries
+  the project already injects:
+
+  | project | hosts | inheriting | injected | ratio |
+  |---|---|---|---|---|
+  | `Rask.Core.Tests` | 68 | 69 fwd / 9.9 KB | 234 fwd / 26.9 KB | **2.70×** |
+  | `Rask.Example.EfCore` | 8 | 68 fwd / 8.6 KB | 233 fwd / 25.5 KB | **2.96×** |
+  | `Rask.Example.Shared` | 223 | 277 fwd / 39.7 KB | 442 fwd / 56.7 KB | **1.43×** |
+
+  So it is a fallback by cost, not a default — but a bounded one, and it is per *host*, not per project.
+  **Direct, not transitive**, and here by construction rather than by policy: `GetAttributes()` reports
+  what was written on a type's own declarations and never what a base carries, so a subclass of an
+  attributed host cannot become one.
+- **`static class` can join the surface after all, and the two that had left it are static again.**
+  `DemoRegistry` (~320 markup sites in lambdas) and `FieldErrors.Template` (a render-fragment
+  *delegate*, which a component cannot be) had become sealed classes with a private constructor to reach
+  the surface at all. With `[RaskMarkup]` they are `static partial class` again, which is what they
+  always were and the whole of what they wanted; the private-constructor ceremony is gone.
+  Neither needs `new` any more — and neither *could* have used it. An **inherited** entry whose name a
+  member of yours shares is merely hidden, which `new` says out loud and the compiler accepts; an
+  **injected** one is a second member of the same type (CS0102, which no modifier fixes), or, against a
+  base you do not own, a silent hide (CS0108, an error under warnings-as-errors). So injection now
+  leaves alone every name the host already reaches — its own members and its whole base chain's — and
+  `DemoRegistry.Map` and `FieldErrors.Template` simply keep their names, with `<map>` and `<template>`
+  not injected there. A static class **nested inside** a markup host still works too, and still needs
+  nothing: C# simple-name lookup walks out through enclosing types.
+- **RASK036 speaks about a host, not a component**, and covers both kinds of markup host; its message
+  now says *what* a non-`partial` host loses, which differs — an inheriting host still has the framework
+  tags and loses only the injected half, while an attributed one loses the whole surface, because the
+  generated `partial` is where its base would have come from. **RASK043** names deriving from
+  `RaskMarkup`, or `[RaskMarkup]` when the base is taken, as the fix, ahead of the `using static` that
+  disappears when the factory does. `docs/diagnostics.md` updated for both.
+  Across the repo, **15 of 211** markup-building test files declare at least one member whose name a tag
+  entry occupies — the standing cost of putting 163 names into a type's scope, paid with `new` on the
+  inheriting form and with nothing on the injected one.
+
+- **Experimental — a builder surface that needs no `using` at all (spike).** `Div[...]` /
+  `H1.Class("t")["x"]` alongside today's `Div()` factories, as a compiling proof of the design
+  rather than a shipped feature. Entry points are `protected static` members whose name *is* their
+  component type, so the type stays usable (C#'s "Color Color" rule) — and they are *inherited*
+  rather than imported, because a static-imported property loses to a same-named type in scope
+  (CS0119) while a member of the enclosing type wins. That is what removes the global usings.
+  Setters are extension methods, which may share a property's name where a method declared in the
+  type could not (CS0102). Both surfaces render byte-identical HTML and compose in one tree, so any
+  migration can be incremental. Three constraints the spike pinned down and encoded: entries must
+  route through `GetOrCreate` or they silently defeat the render cache; a callback prop needs the
+  non-delegate `Handler?` carrier for the setter to share its name (a delegate property is invocable
+  and wins), and the carrier must be nullable or it becomes a *required* factory parameter; element
+  handlers must NOT be `AutoCallback`-wrapped, matching the generator's existing rule. The entries are
+  emitted by `ComponentFactoryGenerator` (opt-in via `RaskBuilderSurface`, and only in the assembly
+  declaring `Component`, since a generator cannot add members to a referenced type); setters are still
+  hand-written. Generic, DI-constructed and `required`-member components are skipped — none has a valid
+  no-argument entry. Emitting the full tag set surfaced the collision cost: 86 files need `new` where a
+  component member, a private helper, a nested type or a `using` alias shares a tag's name.
+  Since then the generator also emits the setters (shared `Element`/`Component` props once as constrained
+  generic extensions rather than per tag) and injects entries for a project's own components into each
+  consuming component's `partial` — a generator cannot add members to `Rask.Core.Component` from a
+  consumer's compilation, and `using static` loses to a same-named type. A component that is not
+  `partial` gets RASK036. DI-constructed components build through `ActivatorUtilities` inside
+  `GetOrCreate`, and an `internal` component's entry is `private protected` (CS0053).
+  **Bound form controls now collapse to one entry plus setters.** A property cannot be generic, so
+  `Input<T>` / `Select<T>` / `Textarea<T>` get a static generic *method* entry whose single argument —
+  the bind expression — infers `T`, plus a no-argument overload for plain/controlled use
+  (`Input<string>()`). The generated factory needed three overloads per `IFormControl<T>` control for
+  one reason only: `Validate` had to be a required, correctly-typed parameter, and a sync `Validate<T>`
+  cannot share an optional parameter with an async `ValidateAsync<T>` without losing inference. On the
+  builder surface the validator and the post-bind hooks are ordinary setters, so the fan-out disappears:
+  `Input(() => _form.Name).Validate(ProductName.Validate).Id("name")`.
+  To make that read naturally, `IFormControl<T>`'s four bound delegates now ride in the new
+  `Carrier<TDelegate>` (`Rask.Core`) — a delegate-typed property *is* invocable, so `.Validate(rule)`
+  would otherwise bind to the property instead of the setter (CS1593). The carrier's implicit conversion
+  keeps plain assignment and every generated `Validate:` / `AfterBind:` factory parameter unchanged;
+  read the delegate back through `.Fn`. Custom controls implementing `IFormControl<T>` must update their
+  four bound property declarations (see `docs/building-form-controls.md`). Validators and post-bind hooks
+  are never `AutoCallback`-wrapped; other setters now wrap on exactly the same rule as the factory.
+  Unlike a property entry, a **method** entry hides the same-named factory inside a component body
+  (C# stops at the first declaration space containing the name), so the `Input`/`Select`/`Textarea` call
+  sites in `samples`, `tests` and `src/Rask.Cli`'s scaffolding moved to the builder chain; the
+  plain/controlled calls that have no chain equivalent yet are qualified as
+  `Rask.Core.Components.Generated.Input<…>(…)`. RASK025 and RASK026 now recognise the builder chain
+  (`.Type(…)`, `.AfterBind(…)`) as well as the factory arguments.
+  **Entries now fire the lifecycle the factory fires, and dirty the render cache the way it does.**
+  A generated factory does three things — `GetOrCreate`, assign the props, `NotifyParameters` — because
+  it knows where the assignments end. An entry could only do the first: `Div.Class("a").Id("b")` might
+  take another setter or the `[…]` indexer, so a setter chain has no natural end and there was nowhere
+  to notify from. The consequence was invisible while every migrated call site was a tag (an element is
+  never reached through the render cache at all) and would have bitten the moment a *stateful* component
+  was built through an entry: no `OnMount`, no `OnPropsChanged`, and — because `Live.PropsDirty` was
+  never set — a child served from last frame's cached render after its props changed. Entries now defer
+  that half to the first point at which the chain is provably finished: the moment the parent's
+  `Render()` returns, which is also still before the child is walked, so this is the factory's ordering
+  rather than an approximation. Each folding setter accumulates its own `EqualityComparer` delta in
+  place of the factory's one-shot fold, with the same exclusions — `Key` is a reconciliation identity,
+  and auto-wrapped callbacks, raw delegates and carrier props are a fresh closure every render, so
+  folding them would report a change every frame and defeat the cache outright. Costs nothing measurable:
+  the two flags land in `LiveState`'s existing padding (retained bytes per live session unchanged to the
+  byte across the 0/5/200/1,000-row sweep), and the factory path only gains one bool test per component
+  render (`LiveRenderRoundTripBenchmarks` allocation identical on all four shapes).
+  **And a prop the chain stops naming now leaves the output, the way it does with a factory.** A
+  generated factory assigns *every* parameter each render, so `Div(Id: "x")` on one render and `Div()`
+  on the next puts `Id` back to null; a setter chain writes only what it names and the entry hands back
+  the same instance, so `Div.Id("x")` → `Div` still rendered `id="x"`. That is silently wrong HTML at
+  every conditional call site, not a missed callback, and it was reachable from any `cond ? A : B`.
+  Entries now restore the state the factory would have left — but in two halves, because the reset and
+  the `propsChanged` fold want opposite moments. Non-folding props (raw delegates, carriers, `Key`)
+  are defaulted when the entry is created; they never call `Track`, so nothing can be disturbed. Folding
+  props cannot be: blanking `Class` before `.Class("card")` runs would make the fold compare against the
+  *default* instead of last render's value, so every constant prop would report a change every frame and
+  no entry-built component would ever hit the render cache. Those are instead marked *pending*, each
+  setter clears its own bit as it writes, and whatever is still pending when the parent's `Render()`
+  returns is reset then — with the previous value still in place, so the fold stays exactly the
+  factory's. What is *not* reset matches the factory too: a prop with a non-constant initializer
+  (`= new List<>()`) is not a factory parameter at all, a constant initializer is restored to that value
+  rather than to null, and a required parameter has no default for either surface to put back. The
+  pending bits are split — the shared `Element`/`Component` surface owns the low 16, each component's
+  own props the rest — so a component compiled against one Rask.Core cannot collide with a shared prop
+  added in a later one. Free at rest: the pending slots live on a per-thread stack reused across renders
+  rather than on the component, so retained bytes per live session are unchanged across the
+  0/5/200/1,000-row sweep, `LiveRenderRoundTripBenchmarks` allocation is identical on all four shapes,
+  and a pinned test holds an entry-built render at or below the equivalent factory-built one (a bound
+  control is ~1.1 KB/render *cheaper* — one entry where the factory has a three-overload fan-out).
+  **An event setter is now called what the property is called.** `Div.OnClick(Save)`, not
+  `Div.Click(Save)` — the setter used to drop the `On` because a delegate-typed property *is* invocable,
+  so the property beat the same-named extension (CS1593). `Element`'s whole GlobalEventHandlers surface
+  (~88 sync/async pairs, plus `HtmlMediaElement`'s media events) therefore moved to the carriers, which
+  now cover the argument-taking shapes too: `Handler` / `HandlerAsync` gain `Handler<TArgs>` /
+  `HandlerAsync<TArgs>` over `Callback<TArgs>` / `CallbackAsync<TArgs>`. Those properties are computed
+  views over the shared DOM-event slot rather than storage, which is what makes the swap free: the
+  dictionary keeps holding the raw delegate, so handler registration, dispatch and emit order are
+  untouched, and the carrier is a readonly struct wrapped and unwrapped around a reference that is
+  already there. Assignment (`OnClick = Save`) and every generated `OnClick:` factory argument keep
+  working through the implicit conversion — no call site in `src`, `samples` or `tests` needed a change —
+  but code that *reads* a handler back off an element now calls it back — `el.OnClick?.Invoke()`. Element handlers are
+  still never `AutoCallback`-wrapped: they go straight to the DOM, where handler-owner resolution
+  already re-renders the owner, and a wrapper would be a closure per handler per render (pinned by an
+  entry-vs-factory allocation test on a handler-bearing tree, not just a plain one).
+  **And a control finally gets setters for what it inherits from its own base.** Only Rask.Core's
+  `Element`/`Component` chain is emitted once as constrained generic extensions; everything else a
+  component inherited — `HtmlMediaElement`'s `Src`/`Controls`/media events, `BsBlock`'s `Id`/`Class`,
+  `BsFormControl<T>`'s `Label`/`Disabled`/`Size`/… — was skipped as "part of the shared surface" and got
+  no setter anywhere, so a Bootstrap control could not be built through a chain at all. Those props are
+  now emitted per component with the CONCRETE component as the receiver (a `BsFormControl<T>`-typed
+  extension would return the base and end the chain), and they take part in the omitted-prop reset on
+  the same rules as a component's own.
+  **The same rename for every framework component, not just elements.** The remaining 81 prefix-dropped
+  setters — `BsButton.OnClick`, `BsDataGrid`'s fourteen, `BsFormControl<T>.OnChange` (and therefore every
+  Bs control that inherits it), `Input`/`Select`/`Textarea`/`Form`, `DragDrop.OnDrop`, the gesture
+  triggers' `OnResult`/`OnColor`/`OnOutcome`, `NativeBarButton.OnClick`, … — moved to the carriers too,
+  so `.OnClick(Save)` is now the shape everywhere and `.Click(Save)` is gone. `IFormControl<T>`'s
+  controlled pair changes with it (`Handler<T>?` / `HandlerAsync<T>?`), so a custom control must update
+  those two declarations alongside its four bound ones. Assignment and every generated `OnClick:`
+  argument keep working through the implicit conversion — no call site in `src`, `samples` or `tests`
+  changed — but calling a callback back off a component is now `OnClick?.Invoke(…)`.
+  Unlike an element's, these callbacks **stay `AutoCallback`-wrapped**: a component callback has no DOM
+  handler-owner resolution behind it, so dropping the wrapper would leave the handler running while
+  nothing re-rendered, with byte-identical markup. Pinned on both surfaces, against the element case, and
+  in the entry-vs-factory allocation test (a wrapped component callback costs 1464 B/render on both).
+  One trap the carrier brings is now closed at the source rather than per call site: its implicit
+  conversion accepts a *null* delegate, so an omitted `OnClose:` would have arrived as a non-null carrier
+  wrapping null and every `OnClose is not null` a component asks about its own callback (BsToast's
+  auto-hide timer, BsDataGrid's controlled-mode gates) would have answered true for a handler nobody
+  wired. Each carrier gains a null-preserving `From`, and every generated assignment goes through it.
+  **And the deferred commit now holds up where a chain leaves the happy path.** A factory finishes its
+  component before it returns; an entry is finished by the parent when the parent's `Render()` returns,
+  which turns three ordinary situations into three separate promises. *A `Render()` that throws* —
+  a supported path, since an `ErrorBoundary` catches it and renders a fallback — used to strand the
+  entries it had already built on the per-thread slot stack, which is only ever popped by the render
+  that pushed onto it. That both pinned a live subtree on a pooled thread shared across sessions and
+  silently corrupted the *next* successful render of the same component: it pushes a second slot for the
+  same instance, the stale one drains first, and its stale pending mask blanks a prop the new chain just
+  set (`Div.Id("x")` rendering as `<div></div>`). The reset half now runs as the exception unwinds; the
+  lifecycle half deliberately does not, so a hook cannot throw over the original fault. *An entry inside
+  a `Head` override* was owned by the enclosing component, because the serializer collected head
+  contributions from outside the component's own render scope — so an omitted head prop took an extra
+  frame to disappear, and on a shell that renders once the slot never drained at all. A component's
+  `Head` is now produced by its own render (`RenderForLive`) and read back by the walk, which also means
+  it is evaluated exactly once per render rather than twice, and a `Context` read inside a `Head` now
+  marks the right component as ambient-reading. *A lifecycle hook that builds something* — `OnMount`
+  calling a factory or an entry — threw `Collection was modified` outright: the commit was enumerating
+  the parent's child map, and building anything writes to it. The commit now runs over a snapshot and
+  repeats until no new entry appears, so a hook's own entries are reset and notified like any other.
+  All three ride the existing per-thread buffers, so allocation per render is unchanged (entry vs
+  factory: 1528/1576/2072/1464 B on the plain, head-bearing, handler-bearing and component-callback
+  trees; 3555 vs 4709 on a bound control).
+  **And four ways the surface could disagree with itself are now closed.** *An entry is keyed by simple
+  name* — factories are not, they live in a per-namespace `Generated` class — so
+  `Features.Products.Card` and `Features.Orders.Card` cannot both be `Card`. The loser used to be
+  dropped in silence; both are now reported (**RASK040**) and neither gets an entry, because which one
+  the name should mean is the author's call, not the generator's. Worse than the silence was the
+  disagreement it hid: the entry pass and the per-component *reset* pass applied different eligibility
+  rules to the same simple name, so an entry could be handed the reset generated for the OTHER type —
+  whose first statement is `var __c = (Features.Products.Card)__c0;`. An `InvalidCastException` at
+  render time, out of source that compiled clean. Resets are named and deduplicated by fully qualified
+  name now, and one predicate decides eligibility for both passes (which also stops a `partial`
+  component whose declarations each carry a base list from emitting its setters twice — CS0111).
+  *A prop the reset cannot restore no longer gets a setter*: a non-constant initializer (`= new()`)
+  excludes a prop from the factory's parameters entirely, so the factory can neither set it nor put it
+  back, while the builder could set it once and have it survive every later render — the same staleness
+  bug the deferred reset exists to prevent, pointed the other way. *A component with a required factory
+  parameter* (non-nullable, no initializer — RASK001) briefly kept its factory instead of getting an
+  entry, exactly as a `required` member does: an entry has no argument to carry the value and nothing
+  was resetting it, so `Widget.Title("x")` followed by a bare `Widget` silently kept the title and the
+  first render left it `null!`. That restriction is lifted again below, once RASK038 could enforce the
+  value and the reset could put it back. *And the `On`-prefix rule left a gap*: a delegate property whose name
+  does not start with `On` got a setter of its own name, which C#'s invocable-member rule can never
+  bind to — the property wins and the setter is unreachable dead code. `BsDataGrid`'s
+  `RowKey`/`RowClass`/`ExpandedContent`, the `OptionLabel`/`OptionDisabled`/`OptionGroup`/`Filter` of
+  the four option controls, `BsDatePicker`/`BsDateTimePicker.Disable`, `Authorize.Authorized`,
+  `ErrorBoundary.Fallback` and `DragDrop`/`VirtualizeModel.Body` ride `Carrier<TDelegate>` now (reading
+  them back is `.Fn`; assignment and every generated argument are unchanged), and anything left is
+  reported as **RASK042**. The bound `Validate`/`AfterBind` setters were spelling those members as bare
+  delegates, which ran the carrier's implicit conversion instead of `From` and reopened the null trap
+  one layer up; they go through the carrier now. Finally the shared pending-bit budget has a guard
+  (**RASK041**): 16 bits handed out in ordinal name order means adding one folding prop to `Element`
+  silently pushes an alphabetically-later one (`Title`, `TabIndex`) onto the always-dirty eager path,
+  with no compile error and no failing test. Allocation per render is unchanged on every pinned shape,
+  and a carrier-borne render fragment costs the same through a chain as through the factory
+  (1208 B/render either way).
+  **BREAKING — a carrier hands you the CALL, not the delegate.** `Handler`, `HandlerAsync` and their
+  argument-taking siblings stopped being positional records, so the delegate they carry is no longer a
+  public `Fn` property: the public surface is `Invoke` — `button.OnClick?.Invoke()`,
+  `await form.OnSubmitAsync?.InvokeAsync(data)`. It reads as what it does, and it is null-safe by
+  construction on both halves of the problem: an unset carrier (`?.` never reaches it) and a carrier that
+  wraps a null delegate, which the implicit conversion makes constructible and which a hand-held `.Fn()`
+  would have thrown on. That is the same trap `From` closes at the assignment end, structurally rather
+  than one call site at a time. `Carrier<TDelegate>` keeps its `Fn` public and is the deliberate
+  exception: it names its delegate only by a type parameter, so it knows neither the arity nor the return
+  type an `Invoke` would need, and a component declaring a value-returning callback prop
+  (`Carrier<Func<T, string?>>? RowClass`) has to reach the delegate to use it. Costs nothing per render —
+  an instance method on a readonly struct reached through `Nullable<T>` is a stack copy and a call
+  (1208 B/render through a chain and through the factory alike, on a component that invokes both its
+  callbacks every render).
+  **A referenced library's components are reachable through the builder surface now, and the injection
+  that carries them stopped being quadratic in bytes.** Entries were emitted only for the compilation's
+  *own* components, so Rask.Bootstrap's `Bs*` — and anything from any third-party component library —
+  reached the builder surface not at all: they were neither Rask.Core's (whose entries ride on
+  `Component` itself, inherited by everything) nor the consumer's. Every assembly now publishes one
+  canonical entry per component in a public `RaskEntries{Assembly}` class, and a referencing compilation
+  reads that class straight off the assembly. Reading the emitted *members* rather than re-deriving
+  entries from the referenced components is the point: whether a component can have an entry at all
+  depends on its constructors, its `required` members and its RASK001 props, and the compilation that
+  owns it already answered that — with the diagnostics reported. `[assembly: RaskFactoryNamespace]` is
+  deliberately not the hook; it names a namespace so the `using static` emission can surface a satellite
+  factory family, which is the mechanism the builder surface exists to remove, and Rask.Bootstrap never
+  declared it. A name Component already carries, one the consumer's own components claim, and the same
+  name from two libraries (RASK040) are the three cases that withhold a forwarder.
+  That same class is what makes the per-component injection affordable. Entries are injected into every
+  component's `partial`, so N components produce N×(N+M) members — 43,183 of them in the showcase, each
+  carrying its own reset triple and its own pair of cached delegates. Each is now a one-line forwarder
+  onto the canonical entry, which cut generated source for `Rask.Example.Shared` from 14.4 MB to 8.6 MB
+  and its IL from 7.12 MB to 5.24 MB *while adding* 57 Bootstrap entries per class (199 → 256), and
+  `Rask.Bootstrap`'s from 2.01 MB / 1.41 MB to 1.18 MB / 0.90 MB. Behaviour is unchanged by
+  construction: the forwarder's body is the canonical entry, so every entry that existed still exists,
+  with the same reset routines, the same pending mask and the same `GetOrCreate` identity.
+  Injecting Bootstrap's bound controls does what a **method** entry always does — it hides the
+  same-named factory inside a component body — so the `BsInput` / `BsDatePicker` / `BsTimePicker` /
+  `BsDateTimePicker` call sites in `samples` and in `src/Rask.Cli`'s scaffolding moved to the builder
+  chain, exactly as `Input`/`Select`/`Textarea` did. `BsCheck`, `BsSelect` and `BsMultiSelect` have a
+  required factory parameter, so they have no entry and keep their factory untouched.
+  **And each assembly now publishes which of its components' properties a chain must set**, as
+  `[assembly: RaskRequiredProperties("Rask.Bootstrap.BsIcon", "Name")]`. This is the one fact about a
+  component that an assembly boundary destroys: a member initializer compiles into the constructor and
+  leaves no symbol-level trace, and a metadata symbol has no syntax to fall back on, so from a
+  referencing compilation `string Title` and `string Title = ""` are the same symbol — RASK038 could
+  police only the properties carrying the language's `required` modifier, which is the one kind metadata
+  preserves and the one kind that was never the problem. It is not a rough edge that a better analyzer
+  closes; the information is gone. So the compilation that owns the component publishes it — the same
+  rule it already applies to decide whether the component may have a builder entry at all — and a
+  consumer reads it back instead of guessing. Publish, don't re-derive, exactly as the entry host does:
+  a second derivation could only be a divergent copy. The property carries a *name* rather than a
+  `typeof` on purpose — a `System.Type` in an attribute blob is an assembly-qualified name the trimmer
+  resolves and marks, which would root every component of a referenced component library in every
+  trimmed app.
+  **With that in place, a RASK001-required property no longer withholds the entry.** `BsIcon`,
+  `BsProgress` and `BsCheck` can be built through a chain now, and are no longer components that would
+  simply cease to exist when the factory is deleted. The restriction was covering two different
+  problems with one veto, and they now have one answer each: *nothing enforced the property at the call
+  site* — a factory makes it a required parameter and the language reports an omitted one, a chain just
+  doesn't call that setter — which is RASK038's job, cross-assembly included; and *nothing put it back*
+  — the factory re-assigns every parameter each render, the entry hands back the same instance, so
+  `BsIcon.Name(Star)` on one render and a bare `BsIcon` on the next still rendered the star. The reset
+  now covers required props, writing `default!`. That second half is the one no call-site analyzer can
+  reach — RASK038 says the value is *absent*, the reset says last render's must not survive in its
+  place — and it is why the two had to land together. The `required` **modifier** still withholds an
+  entry, and this does not change that: `BuilderRuntime.Entry<T>` is constrained
+  `where T : Component, new()` and a type with a required member does not satisfy `new()` at all
+  (CS9040), so `BsToast`, `BsStat`, `BsSelect`, `BsMultiSelect`, `BsRadioGroup` and `BsCheckboxGroup`
+  need a construction path that is not `new T()` before they can follow — a decision for those
+  components' own API. No call site changed: all three get a *property* entry, and a property is not
+  invocable, so the same-named factory still wins an invocation (only a method entry hides one).
+- **`BsCheck.Value` defaults to `false` instead of being required.** It was the one property where
+  RASK038 was wrong rather than strict: `Value` is required on the control's *controlled* factory and
+  excluded from its *bound* one, and RASK038 reads a single entry, so `BsCheck.Bind(() => model.Done)`
+  was reported as never setting `Value` even though `Render` only reads it when `Bind` is `null`. The
+  fix is on the Bootstrap side rather than in the analyzer, because the property was mis-declared:
+  every other control's `Value` is nullable and therefore optional, and `BsCheck`'s cannot be (the
+  interface's `T?` collapses to `bool` for `T = bool`), so it needs the `= false` initializer its own
+  source comment already described to reach the same place. An unchecked box is what the control
+  renders for an unset `Value` anyway, so nothing renders differently. Source-compatible on the factory
+  too — `Value` moves from a required parameter to one defaulting to `false`, and every call site names
+  its arguments. Teaching the analyzer the controlled/bound split instead was the alternative, and it
+  would have been a special case in a general rule for a single property that should not have been
+  required in the first place. `BsCheck` is the only control affected: `Value` on `BsSelect`,
+  `BsMultiSelect`, `BsRadioGroup`, `BsCheckboxGroup`, `BsFormControl<T>`, `Input<T>`, `Select<T>` and
+  `Textarea<T>` is nullable already, so their bound chains were never asked for it.
+- **The builder-surface migration was piloted on `Rask.Example.Shop` — three blockers, one of them
+  silent and now fixed.** The RASK038/039 survey had come back "fires at zero sites", but every
+  call site in the repo was still a factory call, so no chain existed for either analyzer to walk;
+  converting one app by hand is what makes the exposure real. All 211 call sites in the sample were
+  converted, the result was compared against a new whole-document transcript of every one of its render
+  paths, and then reverted. What it found:
+  - **`Router` rendered an empty page, and nothing reported it — now fixed.** `App.Render() => Router` —
+    the shape at the root of every Rask app — produced an empty `<body>`. `Router.Routes` is a property
+    whose *setter manufactures the default*: assigning `null` resolves `RouteRegistry.BuildTree()` and
+    flattens the route leaves, and the factory gets there by passing `Routes: null` on every render. A
+    chain writes only what it names, and the deferred reset that stands in for the factory's
+    re-assignment was guarded by "is this already the default" — which a never-assigned `Routes`
+    trivially is — so the setter never ran, no route matched, and the page disappeared. `Routes` is
+    nullable, so it is not a required property and RASK038 had nothing to say.
+    **The shape, not the component, was the bug**, so the fix is on the shape: for a property whose
+    `set` accessor has a *body*, the reset now assigns unconditionally, because for that prop "reads as
+    the default" and "the setter has run" are not the same statement. The fold keeps its meaning by
+    comparing across the assignment — `before` against `after` rather than `before` against the literal —
+    which is the same question for an ordinary auto-property and the right one here. Auto-properties keep
+    the cheaper guarded form, so the ~90-prop shared `Element` surface pays nothing extra per element per
+    render; the five props that do take the new form (`Draggable`, `Role`, `TabIndex`, `Aria`, `Ref`,
+    all thin forwarders onto the lazy `LiveState`) are no-ops when they write a null. `Form.Model` and
+    `Form.Context` — the same shape, both registering with the ambient `EditContext`, and `Model`'s own
+    comment says it depends on the factory re-applying it every render — are covered by the same rule
+    rather than by happening to be named.
+    Measured, since the reset is the one part of this surface that costs per *render* rather than per
+    call site: a new `BuilderSurfaceBenchmarks` renders the same 50-row tree through both surfaces as a
+    live root, steady-state. **Allocation is identical between the two surfaces and unchanged by this
+    fix — 19.7 KB either way** — and the entry stays slightly ahead on time (Entry/Factory 0.97 → 0.95,
+    both inside the noise). That is also the first half of the entry-vs-factory parity number the design
+    had never measured.
+  - **A submit handler set through a chain never repainted the component that owned it — now fixed.**
+    `Form` folds a typed submit callback into one untyped `Delegate?` property, and its *generic*
+    factory — the overload every real call site uses — wraps whatever it is handed in `AutoCallback` on
+    the way in. A builder setter is generated from the *property*, so it saw only the `Delegate?` and did
+    neither half. A method group reaches it through its C# natural type, so
+    `Form.Model(m).OnValidSubmit(SaveAsync)` compiled, read correctly, and silently skipped the wrap.
+    The reasoning that this was harmless — a submit already arrives through a DOM handler whose owner
+    resolution re-renders — is wrong, and the test that proves it is the shape where the two owners
+    differ: a `Form` rendered by a *child*, with the handler belonging to an *ancestor* whose own markup
+    is what changes. The typed factory repaints it; the chain left it stale.
+    `AutoCallback.Wrap` gained an untyped `Delegate?` overload for the folded properties (sync stays
+    sync, async stays async, and it costs the one `DynamicInvoke` the call site was already making), and
+    the setters for a `[FactoryGeneric]` component's `TypedDelegateProperties` now wrap. They also stop
+    folding into `propsChanged` — a wrapped callback is a fresh closure on every render, so folding one
+    would report a change every frame and defeat the render cache for the whole subtree, which is the
+    rule the auto-wrapped callbacks have always followed and which the bare `Delegate` shape had slipped
+    past. As a side effect the pilot's workaround collapses:
+    `.OnValidSubmit(AutoCallback.Wrap((CallbackAsync<T>)SubmitAsync))` is now just
+    `.OnValidSubmit(SubmitAsync)`, for a sync or an async handler alike.
+    What is still open in A4 is narrower than the pilot claimed: the *name* (there is no
+    `OnValidSubmitAsync` setter, because one untyped setter takes both), and the compile-time tie between
+    the model type and the handler type, which a fluent chain over a non-generic `Form` cannot carry. A
+    generic setter cannot recover it — C# will not infer a type parameter that appears in a delegate's
+    *parameter* position from a method group (CS0411), confirmed against a negative control.
+  - **The sample cannot move before the CLI does, and the CLI cannot move yet.** `Rask.Example.Shop` is
+    the committed output of `rask new`, and `ShopProvenanceTests` re-runs the real generators and
+    compares — 14 of the 16 files touched are CLI-owned, so migrating the sample alone turns the README's
+    provenance claim into a lie. Migrating `src/Rask.Cli`'s templates with it is not available either:
+    `RaskBuilderSurface` defaults to **false** outside this repo, so a scaffolded app has no entries and
+    builder-surface output would not compile for anyone. Sample, CLI and the default all have to move in
+    one step.
+
+  What the pilot cleared: the other 204 call sites converted mechanically and rendered byte-identically,
+  and neither RASK038, RASK039, RASK037 nor the `CS0108` hiding fix fired once. One structural change to
+  know before the rewriter is written — a factory evaluates its arguments *before* the component is
+  created, a chain evaluates them after, so `Authorize(NotAuthorized: P()[…])[…]` builds the `P` first and
+  `Authorize.NotAuthorized(P[…])[…]` builds it second. The markup is identical; the positional identity
+  `GetOrCreate` hands out is not.
+- **A generic component's entry can infer its type argument from any property, not only a form control's
+  `Bind`.** A property cannot be generic, so a generic component's entry is a *method*, and its single
+  argument is what pins the type argument. That was reachable only through `IFormControl<T>`:
+  `CanHaveEntry`'s generic branch demanded one, and the runtime helper behind it could assign nothing but
+  `Bind`. The consequence is not hypothetical — it is the next thing on the roadmap. Making `Form`
+  generic (`Form<TModel>`, so a chain can carry the model type to its submit handler) would have given it
+  **no entry at all**, silently removing `Form` from the builder surface. Verified rather than reasoned
+  about: with `Form` made generic, the eight elements declaring `public new string? Form` immediately
+  reported CS0109 — *"does not hide an accessible member"* — because the entry they were hiding had
+  vanished.
+  The rule is now "the property that pins the type argument", and a form control's `Bind` is one way of
+  naming it rather than the only one; anything else generic uses the first factory-parameter property
+  whose type *is* one of the component's type parameters. One emission serves both, and the runtime's
+  `EntryBound` helper is gone with them — it could only ever assign `Bind`, so a second shape would have
+  meant a second helper and a second eligibility rule, which is precisely how the bound path drifted from
+  the general one before. The entry now assigns its own inference property inline, folding the change and
+  clearing the pending bit exactly as that property's own setter does, so the entry and a later
+  `.Prop(x)` cannot disagree.
+  **Nothing moves today, deliberately.** The rule matches no component that did not already have an
+  entry: `BsDataGrid<T>`'s properties are `IEnumerable<T>` and `List<BsColumn<T>>`, neither of which *is*
+  `T`. It is also deliberately not general enough to match an `Expression<Func<T>>` property on a
+  component that is not a form control — `FloatingInput<TProp>` and its two siblings in `samples/` have
+  exactly that shape, and matching them would hand them a method entry and displace their factory call
+  sites. Widening it is a migration to schedule, not a rule to relax quietly.
+- **A `required` member no longer withholds a builder entry.** `BuilderRuntime.Entry<T>` is constrained
+  `where T : Component, new()`, and a type with a required member does not satisfy `new()` (CS9040) — so
+  `BsToast`, `BsStat` and `FluentValidationValidator` had no builder surface at all and would have ceased
+  to exist the day the factory is deleted. That is a *construction* problem with a construction answer:
+  requiredness is a compile-time check with no runtime enforcement, so `EntryRequired<T>` builds through
+  `Activator.CreateInstance<T>()` and drops the constraint. It is a separate helper rather than the
+  default precisely so every other component keeps the cheap `new T()`. What enforces the value
+  afterwards is RASK038 on the chain, the same trade the surface already makes for a RASK001-required
+  property — and the two are pinned together, since removing a setter from the probe now fails the build.
+  Construction happens once per (parent, position), not per render, so nothing on the render path
+  changes; the WASM Release publish stays at zero IL warnings, with the trimmer annotation on the type
+  parameter that flows into the reflective construction.
+  **Two things this does *not* unblock, both worth knowing before E3 counts on it.**
+  - **A required *delegate* member still blocks, and cannot be unblocked here.** A raw delegate property
+    is invocable, so `x.Template(fn)` binds to the property and a same-named setter can never be reached
+    (the RASK042 rule). An optional property of that shape moves to a carrier; a required one cannot,
+    because a carrier built from a null delegate is a non-null carrier wrapping null — exactly the state
+    `required` exists to forbid. So `ValidationMessage`, `ValidatingIndicator`, `ValidationSummary`,
+    `ToastOutlet`, `Shareable`, the `GestureTrigger` family and `BsSelect<TValue, TItem>` still have no
+    entry. An entry for them would be constructible and never completable, which is worse than none.
+  - **`BsSelect`, `BsMultiSelect`, `BsRadioGroup` and `BsCheckboxGroup` are held back deliberately**, for
+    a reason that turns out to have nothing to do with required members: they are *generic*, a generic
+    component's entry is a **method**, and a method entry hides its same-named factory inside a component
+    body. Handing them one breaks ~20 multi-argument factory call sites in `samples/` on the spot
+    (CS1501/CS1739). That is not an addition, it is a migration — and it contradicts the premise that
+    both surfaces compile side by side, which is what E1 is resting on. `Input`/`Select`/`Textarea`/
+    `BsInput` already paid that cost when the bound entries landed, which is why `BsCheck` reaches the
+    controlled `Input` factory fully qualified.
+  Also fixed on the way: `CanHaveBoundEntry` carried its own copy of the eligibility rule, which is the
+  exact divergence its own comment warns about — both halves consult one predicate now.
+- **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
+  Entries are members named after their component type, so they interact with name lookup in ways the
+  factory never did — and the two failures that produces both surface as compiler errors that name
+  neither the entry nor the fix.
+  - **A quick-fix for `CS0108`** that inserts `new` on a member hiding an entry: a component property
+    (`BsModal.Footer`), a private helper named after a tag (`Section(…)`), a nested type (`record Line`
+    vs the SVG `<line>` entry), a field. Offered **only** inside a component — hiding in your own class
+    hierarchy is your decision — and it puts `new` where `csharp_preferred_modifier_order` wants it, so
+    the edit survives the next `dotnet format`. Deliberately a code fix rather than a
+    `DiagnosticSuppressor`: a suppressor satisfies the compiler, but `dotnet format` ignores suppressors
+    and applies the underlying fix anyway, so the format gate would never settle.
+  - **RASK037** — a `using` alias hidden by an entry. `using B = …` loses to the `<b>` tag inside any
+    component body and fails as **CS1061** at the *use*, naming a `B` nobody wrote; no code fix can
+    reach it, because by then the alias has already lost the lookup. The analyzer says it at the alias,
+    where the rename goes, and only when an entry actually claims the name.
+  - **RASK038 / RASK039** — the builder half of RASK001. A required property is a required *parameter*
+    on the generated factory, so the language reports an omitted one; in a chain it is just a setter
+    that isn't there, and the component renders holding a `null`. RASK038 walks the chain and names what
+    it never set. RASK039 covers the case the walk cannot answer — a chain stored in a local or a field
+    can be continued anywhere — and reports the gap in the analysis rather than a wrong answer. RASK001
+    stays: both surfaces exist side by side during the migration.
+
+  RASK038 and RASK039 bound to nothing at first: the generator withheld an entry from exactly the
+  components that have a required property, so a chain over a *generated* entry had nothing for them to
+  find. They are what made lifting that restriction safe, and they are live now — `BsIcon`, `BsProgress`
+  and `BsCheck` have entries, and their properties are enforced at the chain.
+  All three, plus the `CS0108` fix, are now pinned against the emission itself — the real
+  `protected static` entries in `Rask.Core`, and the `private static` ones the generator injects into a
+  consumer's `partial` — rather than only against hand-written stand-ins for them.
+- **An abstract component base can reach the builder surface now.** The entries are *inherited members*,
+  which is the whole design — a static-imported property loses to a same-named type (CS0119) while a
+  member of the enclosing type wins — and the consequence is that the surface is only reachable from
+  inside a component. Injection targeted concrete components only, so every abstract base that composes
+  other components (`BsBlock`, `BsFormControl<T>`, `BsSelectBase<TValue, TItem>`, `BsPickerBase<T>`,
+  `PollingPanel`, `NativeComponent`) could name no entry at all. Nothing said so: the calls bound to the
+  factory instead, and `CS0119` with no RASK diagnostic is what an author would have seen the day the
+  factory went away. An abstract class is collected as an injection **host** now — deliberately not as a
+  candidate, since nothing can construct it, so it still publishes no entry of its own. The forwarders
+  stay `private static`, which is what makes a base and its subclasses both carrying them legal:
+  `CS0108` fires only for an inherited member the derived type can *see*, and by the same rule the base
+  cannot stand in for its subclasses — each class needs its own copy, exactly as before. A non-`partial`
+  abstract base is held to the same **RASK036** as any other component.
+- **The markup-building static helpers were audited, and the ones that were really components became
+  components.** A static class cannot reach the builder surface — entries are inherited members — so
+  every helper that builds markup is either a component that was never declared as one, or genuinely a
+  helper that keeps the factory. Converted, because each returns markup and nothing else: the showcase's
+  `PageHeader`, `RaskLogo`, `GuideCards` and `DisposalDemoLog`, and the dashboard's `Loading` / `Empty` /
+  `Error` / `Parked` panel states (now `DashboardLoading`, `DashboardEmpty`, `DashboardError`,
+  `DashboardParked`). `DashboardParts` keeps only its two string formatters, which build no markup at all
+  and so need nothing from either surface. Rendered HTML is unchanged — a component's `Render()` returns
+  the same factory calls the static method returned — but each part now has a positional `GetOrCreate`
+  identity of its own, which is what lets the render cache serve it.
+  Left on the factory deliberately: `DemoRegistry` (a `Dictionary<string, Func<Component>>` — a lookup
+  table, not markup), `FieldErrors.Template` (a render-fragment *delegate* handed to
+  `ValidationMessage(Template:)`; a component cannot be a `Func<…, Component>`), `TierStaticHelper` (it
+  *is* the sample that documents the tier-0 static helper), `Rask.Bootstrap`'s `PickerParts` (half of it
+  is culture-driven date math, and its markup half takes ten parameters including predicates and
+  callbacks — its natural home is `BsPickerBase<T>`, which after this release is an injection host, not a
+  set of new components), and `Generated.VirtualizeModel<T>` (it *is* the factory).
+  Two things this turned up. `PageHeader.Title` is a **CS0108** hiding the `<title>` tag's inherited
+  entry — the collision the surface creates, resolved with `new` exactly as its quick-fix does. And
+  inside `src/`, a *new* component is reachable **only** through the chain: framework projects opt out of
+  `RaskGlobalUsings`, so the generated factory is not in scope there, and the entry property is — which
+  makes `DashboardLoading()` a **CS1955** ("non-invocable member … cannot be used like a method"). The
+  dashboard's new parts are therefore written as `DashboardEmpty.Heading(…).Detail(…)`: the first
+  production code on the builder surface.
+- **RASK043 — the factory is not imported here.** The discovery migration's largest failure mode
+  produced roughly 3,000 compiler errors and **not one Rask diagnostic**: 1,700 × CS0119, 694 × CS0120,
+  656 × CS0021, none of which names Rask, the factory, or the one line that fixes it. The cause is the
+  design working as intended — entries are *inherited members*, so the builder surface is reachable only
+  from **inside** a component, and a quarter of the repo's call sites (test classes, static markup
+  helpers, fixtures) are not in one. Those keep the **factory**: a factory is a *method*, so C#'s
+  invocable-member rule lets it share its component's name where an entry property cannot, which is
+  exactly why it works in these positions. Leave the `using static …Generated;` out and the simple name
+  binds to the component TYPE instead — CS0119. RASK043 says so at the call, names the enclosing type
+  that has no entries, and prints the `using static` to add. It stays quiet inside a component (where
+  the entry wins the lookup outright and the answer would be the chain, not an import) and on a
+  qualified call. Pinned against the real `Rask.Core.Components.Div`, not a stand-in.
+- **RASK036 and RASK040–042 are documented.** The builder surface's own four diagnostics (a component
+  must be `partial`; two components share a simple name; the shared pending-bit budget is exhausted; a
+  delegate-typed property has no reachable setter) shipped with a `helpLinkUri` pointing at an anchor
+  that did not exist. They now have their sections in `docs/diagnostics.md`, report under the single
+  `Rask` category with the rest of the family, and carry the expanded IDE tooltip every other RASK
+  diagnostic carries.
+
+### Changed
+- **BREAKING — the app renders into `<body>`; Rask composes the document around it.** A root component
+  used to have to produce the whole page itself — `[Doctype(), Html("en")[Head(), Body()[Router()]]]` —
+  and the framework checked, at runtime, by scanning every root render's finished HTML for four tokens
+  and throwing when one was missing. That is a contract the app can only get wrong: a missing `<body>`
+  left the auto-injected runtime `<script>` nowhere to land, so the page loaded and then did nothing.
+  Now the root returns the body's content and nothing else:
+  ```csharp
+  protected override Component? Render() => Router();
+  ```
+  and the doctype, `<html>`, `<head>` and `<body>` are the framework's. The two attributes an app
+  actually sets on them get named hooks — `HtmlLang` (default `"en"`, `null` omits it) and `BodyClass`,
+  the one that carries a theme — and anything beyond that gets `Shell(head, body)`:
+  ```csharp
+  protected override Component Shell(Component head, Component body) =>
+      Html("en", Dir: "rtl")[head, Body(Class: "dark")[body]];
+  ```
+  The pieces arrive as **parameters** deliberately: an override never has to name the `Head()` tag, so
+  the `<head>` element and the `Component.Head` virtual — which every component already uses to
+  contribute *into* that element — cannot be confused for each other. `Doctype`/`Html`/`Head`/`Body`
+  remain ordinary tag components for hand-built documents (`ToHtml()`, email bodies); they have only
+  left the app-authoring path. **Migrating:** delete the shell from your root's `Render()`, keep what
+  was inside `Body()`, and move `<html lang>` to `HtmlLang`, `<body class>` to `BodyClass`. Head
+  contributions were already in the `Head` override and do not move.
+  - **The runtime shell check is gone**, along with one string scan of the whole page per root render.
+  - **RASK021 is inverted rather than retired**: it now warns when a root *does* render the shell. It
+    has to, because this is the one mistake with no symptom — the parser unwraps a second document
+    nested inside `<body>`, so the page renders on and quietly drops the nested tags' attributes.
+  - **A fault no longer replaces the document.** The root error boundary sits inside `<body>`, so the
+    error page keeps the `<html>` attributes, the body class and the head that were already there. It
+    contributes its own charset, viewport and title through `Head`, because an App whose `Render()`
+    threw contributed none. A `Shell` override that throws is held to the same promise as a `Render()`
+    that does: the error page is shown, inside the framework's default shell, instead of the exception
+    escaping to the host as a 500.
+  - **`RaskTest.RenderDocument(app, services)`** is the new way to assert on the page — the `<head>`,
+    the `<html lang>`, the `<body class>` — since `RaskTest.Render` deliberately adds no markup of its
+    own and now therefore produces no document. Every sample, the `rask new` templates and the docs
+    move with the change; the scaffolded native template overrides `Shell`, because a native `<body>`
+    needs safe-area padding and `BodyClass` cannot carry a style.
+  - **What it costs.** The composition is 624 B per root render — pinned as a delta against the same
+    body rendered bare, and pinned again as *not* scaling with page size — against one whole-page scan
+    per render removed. Per live session it is +144…+424 B unconnected on an empty and a 5-row page,
+    and 0.01–0.02% on a 200- and a 1000-row one: the shell elements moving onto the boundary, plus its
+    child map growing. The grouping wrapper is a collection expression rather than the `Fragment`
+    factory, because the factory would retain it for the session's lifetime while this is the same
+    transient every `[Doctype(), Html(...)]` used to build. End-to-end render cost is unchanged
+    (`LiveRenderRoundTrip` allocates byte-identically on all four cases).
+  - **Two things it does not change**, since the shape of the page is the same as before: `<head>` is
+    still filled by splicing into a sentinel after the body walk rather than by concatenation — the
+    diff codec's op paths resolve from `document` and its frame offsets are captured against the page
+    being serialized, so the head cannot be appended late — and a full frame still carries the whole
+    document, so the client's `document.documentElement` morph still strips `<html>` attributes it did
+    not render. An app that stamps a theme attribute pre-boot still re-applies it from
+    `window.raskAfterMorph`.
 
 ### Fixed
 - **The browser-API counts in the docs were a release behind.** Six places said "46 wrappers" and the

@@ -144,7 +144,7 @@ public class RenderedComponent : IRenderHandle
 
     /// <summary>
     ///     The value of the first <c>{name}="..."</c> attribute in the current <see cref="Html" />, or
-    ///     <c>null</c> if absent. Handler ids live in <c>data-rask-on-{event}</c> attributes.
+    ///     <c>null</c> if absent. Action ids live in <c>data-rask-on-{event}</c> attributes.
     /// </summary>
     public string? Attr(string name) => Markup.Attr(Html, name);
 

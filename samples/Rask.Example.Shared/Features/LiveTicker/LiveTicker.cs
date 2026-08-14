@@ -41,7 +41,7 @@ namespace Rask.Example.Shared.Features;
 // preserves the lifecycle/async story end-to-end (the loop still yields on
 // every Task.Delay, the CancellationToken still cancels it on unmount) but
 // is deterministic and offline-safe.
-public sealed class LiveTicker : Component
+public sealed partial class LiveTicker : Component
 {
     // ~1 min of points at the default 1 s poll. Bounded so a long-running tab
     // doesn't grow the rolling buffer indefinitely.
@@ -62,7 +62,7 @@ public sealed class LiveTicker : Component
     // by the generator, but we want callers to pass Symbol explicitly. LiveTicker
     // has no DI constructor (unlike CodeSample), so we mark it `required` for
     // language-level enforcement — no CS8618 suppression and no RASK002.
-    public required string Symbol { get; set; }
+    public new required string Symbol { get; set; }
 
     // Nullable so the generator emits Interval as an optional factory parameter
     // (default null). Callers — production pages and unit tests alike — pass an
@@ -196,45 +196,47 @@ public sealed class LiveTicker : Component
         var changeClass = change >= 0 ? "text-success" : "text-danger";
         var changeSign = change >= 0 ? "+" : string.Empty;
 
-        return BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsStack(Justify: BsJustify.Between, Align: BsAlign.Baseline, Class: Margin.Bottom(3))[
-                    H3(Class: "h4 mb-0 fw-semibold", Id: "ticker-symbol")[Symbol],
-                    Span(Class: "text-secondary small")[
+        return BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsStack.Justify(BsJustify.Between).Align(BsAlign.Baseline).Class(Margin.Bottom(3))[
+                    H3.Class("h4 mb-0 fw-semibold").Id("ticker-symbol")[Symbol],
+                    Span.Class("text-secondary small")[
                         $"poll {IntervalMs} ms · {_history.Count}/{HistoryCapacity} pts"]
                 ],
-                BsStack(Gap: 3, Align: BsAlign.Baseline, Class: Margin.Bottom(3))[
+                BsStack.Gap(3).Align(BsAlign.Baseline).Class(Margin.Bottom(3))[
                     // One element, one class list, whichever state we're in — the price *text* changes,
                     // the box doesn't. Two spellings (fs-3 text-secondary → fs-2 fw-bold) meant the first
                     // tick resized and re-weighted the headline number 50 ms after mount, shoving the chart
                     // below it; and because the difference lived in a class attribute, it also made this
                     // demo's golden markup a race against the wall clock (#618).
-                    Span(Class: "fs-2 fw-bold", Id: "ticker-price")[
+                    Span.Class("fs-2 fw-bold").Id("ticker-price")[
                         _history.Count == 0
                             ? "Waiting for first tick…"
                             : $"${current.ToString("N2", CultureInfo.InvariantCulture)}"],
                     _history.Count > 1
-                        ? Span(Class: $"fs-6 fw-semibold {changeClass}", Id: "ticker-change")[
+                        ? Span.Class($"fs-6 fw-semibold {changeClass}").Id("ticker-change")[
                             $"{changeSign}{change.ToString("F2", CultureInfo.InvariantCulture)}% since first sample"]
                         : null
                 ],
                 _error is null
                     ? null
-                    : BsAlert(Color: BsColor.Warning, Class: "py-2 px-3 small mb-3", Id: "ticker-error")[
-                        BsIcon(Name: BsIconName.ExclamationTriangle, Class: "me-2"), $"Feed error: {_error}"
+                    : BsAlert.Color(BsColor.Warning).Class("py-2 px-3 small mb-3").Id("ticker-error")[
+                        BsIcon.Name(BsIconName.ExclamationTriangle).Class("me-2"), $"Feed error: {_error}"
                     ],
                 // The chart is a server-rendered SVG drawn straight from the rolling buffer —
                 // no canvas, no Chart.js, no JS. The fixed-height container gives the stretchy
                 // <svg> a known box to fill.
-                Div(Class: "ticker-chart-container", Id: "ticker-chart",
-                    Style: "position: relative; height: 160px;")[
+                Div
+                    .Class("ticker-chart-container")
+                    .Id("ticker-chart")
+                    .Style("position: relative; height: 160px;")[
                     // Always the <svg>. Sparkline already draws an empty labelled frame for an empty
                     // series, so the <p> placeholder this replaces was a second, worse answer to the same
                     // question — and swapping <p> for <svg> on the first tick was a tag-name change, which
                     // is the one thing the demo-markup golden cannot snapshot (#618).
-                    Sparkline(
-                        _history.Select(p => (double)p.PriceUsd).ToList(),
-                        Class: "ticker-chart-svg")
+                    Sparkline
+                        .Values(_history.Select(p => (double)p.PriceUsd).ToList())
+                        .Class("ticker-chart-svg")
                 ]
             ]
         ];

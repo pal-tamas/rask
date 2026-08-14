@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // chips, bound to a model collection. Filter adds an in-dropdown search field; Floating wraps the label like
 // a form-floating; Disabled makes it read-only. A live readout OUTSIDE the Form echoes each selection with no
 // StateHasChanged (a bound write re-renders the expression's owner).
-public sealed class BsMultiSelectDemo : Component
+public sealed partial class BsMultiSelectDemo : Component
 {
     private static readonly string[] Interests = ["Web", "Mobile", "AI", "Games", "DevOps", "Data"];
 
@@ -20,29 +20,46 @@ public sealed class BsMultiSelectDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<Model>(_m, Class: "vstack gap-3")[
+        Form.Model(_m).Class("vstack gap-3")[
             // 1. Basic — chips + checkable dropdown, bound to a List<string>.
-            BsMultiSelect<string>(() => _m.Basic, Interests,
-                Label: "Interests (basic)", Placeholder: "Pick a few…", Id: "ms-basic"),
+            BsMultiSelect.Bind(() => _m.Basic)
+                .Options(Interests)
+                .Label("Interests (basic)")
+                .Placeholder("Pick a few…")
+                .Id("ms-basic"),
             // 2. Searchable — a Filter predicate adds a search field that narrows the options.
-            BsMultiSelect<string>(() => _m.Searchable, Interests,
-                Filter: (i, t) => i.Contains(t, StringComparison.OrdinalIgnoreCase),
-                Label: "Interests (searchable)", Placeholder: "Search…", Id: "ms-search"),
+            BsMultiSelect.Bind(() => _m.Searchable)
+                .Options(Interests)
+                .Filter((i, t) => i.Contains(t, StringComparison.OrdinalIgnoreCase))
+                .Label("Interests (searchable)")
+                .Placeholder("Search…")
+                .Id("ms-search"),
             // 3. Floating — the label floats up once anything is picked (or while focused).
-            BsMultiSelect<string>(() => _m.Floating, Interests,
-                Label: "Interests (floating)", Floating: true, Id: "ms-float"),
+            BsMultiSelect.Bind(() => _m.Floating)
+                .Options(Interests)
+                .Label("Interests (floating)")
+                .Floating(true)
+                .Id("ms-float"),
             // 4. Disabled — non-interactive, still shows its bound chips.
-            BsMultiSelect<string>(() => _m.Locked, Interests,
-                Label: "Interests (disabled)", Disabled: true, Id: "ms-locked"),
+            BsMultiSelect.Bind(() => _m.Locked)
+                .Options(Interests)
+                .Label("Interests (disabled)")
+                .Disabled(true)
+                .Id("ms-locked"),
             // 5. Grouped + select-all + a disabled option — OptionGroup renders .dropdown-header sections,
             //    SelectAll adds a bulk "Select all / Clear all" header, OptionDisabled greys "Games" (which the
             //    header and the keyboard both skip).
-            BsMultiSelect<string>(() => _m.Grouped, Interests,
-                OptionGroup: Category, SelectAll: true, OptionDisabled: i => i == "Games",
-                Label: "Interests (grouped + select all)", Placeholder: "Pick a few…", Id: "ms-grouped")
+            BsMultiSelect.Bind(() => _m.Grouped)
+                .Options(Interests)
+                .OptionGroup(Category)
+                .SelectAll(true)
+                .OptionDisabled(i => i == "Games")
+                .Label("Interests (grouped + select all)")
+                .Placeholder("Pick a few…")
+                .Id("ms-grouped")
         ],
-        BsAlert(Color: BsColor.Secondary, Class: "mt-3 mb-0")[
-            Span(Id: "ms-readout")[
+        BsAlert.Color(BsColor.Secondary).Class("mt-3 mb-0")[
+            Span.Id("ms-readout")[
                 $"Basic: {Join(_m.Basic)} · Search: {Join(_m.Searchable)} · " +
                 $"Floating: {Join(_m.Floating)} · Locked: {Join(_m.Locked)} · Grouped: {Join(_m.Grouped)}"
             ]

@@ -36,7 +36,7 @@ mistake, the rule notes the ID.
   property becomes a *required factory parameter* — so `public IJSRuntime Js { get; set; }` would
   force callers to pass it. Take services as ctor parameters instead:
   ```csharp
-  public sealed class Weather(IWeatherForecastService service) : Component { /* ... */ }
+  public sealed partial class Weather(IWeatherForecastService service) : Component { /* ... */ }
   ```
   Combining a `required` property with a DI constructor is contradictory — that's **RASK002**.
 - **Know what becomes a factory parameter.** The generator derives parameters from your public
@@ -57,14 +57,16 @@ mistake, the rule notes the ID.
 - **Trust `Text` for anything user-supplied; reserve `Raw` for markup you control.** A plain string
   becomes a `Text` node and is **HTML-encoded**; `Raw(...)` emits verbatim. User input through `Raw`
   is an XSS hole. See [getting started → your first component](getting-started.md#4-your-first-component).
-- **Render the full shell from the page root.** The `TApp` root must render
-  `Doctype`/`Html`/`Head`/`Body` — both `<head>` and `<body>` are framework-managed (the runtime
-  `<script>` is appended to `<body>`, `<head>` is filled from each component's `Head` override). A
-  partial shell is **RASK021**.
+- **Leave the page shell to the framework.** The `TApp` root renders into `<body>`; Rask emits the
+  doctype, `<html>`, `<head>` and `<body>` around it (the runtime `<script>` is appended to `<body>`,
+  `<head>` is filled from each component's `Head` override). Rendering the shell yourself is
+  **RASK021** — a second document nested inside the body, which the HTML parser silently unwraps. Set
+  `<html lang>` with the `HtmlLang` override and `<body class>` with `BodyClass`; for anything else,
+  override `Shell(head, body)` and place both parameters.
 - **Contribute to `<head>` via the `Head` override, not `Head()` children.** `Head()` is a managed
   slot; passing it children is **RASK019**. Override `protected override Component? Head` instead;
   `<title>`/`<base>` are singletons where the last contributor wins. See
-  [getting started §7](getting-started.md#7-the-page-shell-and-the-head-override).
+  [getting started §7](getting-started.md#7-the-document-and-the-head-override).
 - **Don't fight the attribute order.** Universal attributes always render
   `id, class, style, data-*, role, tabindex, aria-*`, then tag-specific. Tests assert it and it's
   stable across releases — match it when asserting on HTML.
@@ -76,7 +78,7 @@ mistake, the rule notes the ID.
   re-renders the parent that owns the lambda, with no `StateHasChanged` by hand. Write the lambda
   *inside* the component so it captures `this`:
   ```csharp
-  RatingStars(Value: _rating, OnRate: n => _rating = n)   // lambda captures this → parent re-renders
+  RatingStars.Value(_rating).OnRate(n => _rating = n)   // lambda captures this → parent re-renders
   ```
   A lambda over a plain local or a static method isn't wrapped and won't trigger a re-render. See
   [composition → callbacks](composition-callbacks-context.md#callbacks-child--parent).
@@ -93,7 +95,7 @@ mistake, the rule notes the ID.
   unmount and — while a handler runs — when the host cancels that dispatch (the server's
   `HandlerTimeout` or a closed socket). Without it, slow work pins the session's render pipeline:
   ```csharp
-  Button(OnClickAsync: async () => _rows = await _api.LoadAsync(CancellationToken))["Load"]
+  Button.OnClickAsync(async () => _rows = await _api.LoadAsync(CancellationToken))["Load"]
   ```
   See [composition → cancelling async work](composition-callbacks-context.md#callbacks-child--parent) and
   [lifecycle → cancellation](lifecycle.md#cancellation-tied-to-component-lifetime).
@@ -113,10 +115,23 @@ mistake, the rule notes the ID.
   protected override void OnMount()   => route.Changed += StateHasChanged;
   protected override void OnUnmount() => route.Changed -= StateHasChanged;
   ```
+- **A prop that is a mutable collection does not re-render the child when you append to it.** Props
+  are compared with `EqualityComparer<T>.Default`, which for a `List<T>` is reference equality — so a
+  parent that appends to a list it owns and calls `StateHasChanged()` re-renders *itself*, while the
+  child holding that same list is served from the render cache and never sees the new entries:
+  ```csharp
+  // the parent appends to _log and re-renders; LogView shows the OLD contents forever
+  LogView.Entries(_log)
+  ```
+  Three ways out, in order of preference: hand the child a fresh snapshot (`_log.ToArray()`) so the
+  reference genuinely changes; give the child something to subscribe to; or, when the child plainly
+  reads state it does not own and there is no event to subscribe to, opt it out with
+  `protected override bool BypassRenderCache => true;`. The same rule is what makes `Router` and
+  `Outlet` opt out — they publish per-frame route state the rest of the walk depends on.
 
 ## Forms & validation
 
-- **Bind two-way with a `Bind` expression.** `Input(Bind: () => _model.Name)` replaces `Value` +
+- **Bind two-way with a `Bind` expression.** `Input(() => _model.Name)` replaces `Value` +
   `OnInput`/`OnChange` + parsing, and infers the input type from the property's CLR type. `string`
   fields update per keystroke; other types update on blur. See [forms §1](forms.md#1-two-way-binding).
 - **Wrap inputs in `Form<TModel>` and add exactly one validator.** The form owns the `EditContext`
@@ -129,14 +144,14 @@ mistake, the rule notes the ID.
   trap:
   ```csharp
   foreach (var item in _model.Items)
-      rows.Add(Tr()[Td()[Input(Bind: () => item.Description)]]);
+      rows.Add(Tr[Td[Input.Bind(() => item.Description)]]);
   ```
   Only reach for the indexer style (`() => _model.Items[i].Name`) when you need the row number or
   replace records rather than mutate them — and then copy the loop index into a per-iteration local.
   See [forms §7](forms-advanced.md#nested--complex-models).
 - **Reuse one validation rule across the form and the domain.** A value object that exposes its rule
   as a `static IEnumerable<string> Validate(T value)` (the shape of an inline validator) can be
-  passed as a method group to `Input(Validate: Money.Validate)` *and* enforced inside the aggregate —
+  passed as a method group to `Input(() => _form.Price).Validate(Money.Validate)` *and* enforced inside the aggregate —
   one source of truth. See [data access](data-access.md#how-the-sample-is-organised).
 
 ## Routing & lifecycle
@@ -225,7 +240,7 @@ mistake, the rule notes the ID.
   for the two attributes that aren't `aria-*`. Build higher-level affordances from these primitives
   plus semantic HTML (`Nav`, `Main`, `Label(For:)`, `Th(Scope:)`):
   ```csharp
-  Div(Role: "status", Aria: new() { ["live"] = "polite" })[_statusMessage]
+  Div.Role("status").Aria(new() { ["live"] = "polite" })[_statusMessage]
   ```
 
 ## Performance & memory
@@ -260,6 +275,7 @@ mistake, the rule notes the ID.
 | `new Counter()` outside Core (**RASK014**) | Call the generated factory `Counter()` |
 | Service as a settable property → required factory param (**RASK002**) | Inject via the constructor |
 | `Head()[Title()[...]]` (**RASK019**) | Override `protected override Component? Head` |
+| Root renders `Doctype`/`Html`/`Head`/`Body` (**RASK021**) | Return the body's content; `Head`/`HtmlLang`/`BodyClass`/`Shell` |
 | User input through `Raw(...)` (XSS) | Use a plain string / `Text` (encodes by default) |
 | `StateHasChanged()` inside an awaited handler/hook | Redundant — the `await` re-renders for you |
 | `StateHasChanged()` in `OnUnmount` | No-op by design — only tear down subscriptions |

@@ -17,7 +17,8 @@ namespace Rask.Benchmarks.VsBlazor.Reports;
 ///         Invoke: <c>dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- payload-bytes</c>
 ///     </para>
 /// </summary>
-internal static class VsBlazorPayloadBytesReport
+[global::Rask.Core.RaskMarkup]
+internal static partial class VsBlazorPayloadBytesReport
 {
     private const string Header =
         "Scenario,RaskFullBytes,RaskDiffBytes,BlazorBatchBytes,RaskDiffVsRaskFull,RaskDiffVsBlazor";
@@ -257,16 +258,16 @@ internal static class VsBlazorPayloadBytesReport
 
         Component Build(int counter)
         {
-            var leaf = Generated.Span(Class: "counter")[counter.ToString()];
+            var leaf = Span.Class("counter")[counter.ToString()];
             for (var i = 0; i < depth; i++)
             {
-                leaf = Generated.Div(Class: $"d{i}")[leaf];
+                leaf = Div.Class($"d{i}")[leaf];
             }
 
             return [
-                Generated.Doctype(),
-                Generated.Html()[
-                    Generated.Body()[leaf]]];
+                Doctype,
+                Html[
+                    Body[leaf]]];
         }
 
         using var rask = new RaskHarness();

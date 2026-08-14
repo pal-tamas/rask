@@ -8,7 +8,7 @@ namespace Rask.Example.Wasm.Jobs;
 ///     Queue a job, watch it run. The click only writes a row to the queue; the greeting below is
 ///     written later, by the job processor's poll loop, from a different DI scope.
 /// </summary>
-public sealed class JobsDemo : Component
+public sealed partial class JobsDemo : Component
 {
     private readonly IJobQueue _queue;
     private readonly IDbContextFactory<AppDbContext> _factory;

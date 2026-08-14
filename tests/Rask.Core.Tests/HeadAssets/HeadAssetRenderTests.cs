@@ -2,11 +2,11 @@
 
 namespace Rask.Core.Tests.HeadAssets;
 
-// End-to-end render tests for Component.Head + framework-managed <head> — exercises
+// End-to-end render tests for Component.HeadAssets + framework-managed <head> — exercises
 // the HtmlSerializer.Add → HeadAssetRegistry → Component.RenderAsLiveRootCore splice
 // pass. Unit-level dedup behavior lives in HeadAssetRegistryTests; this file
 // asserts the rendered HTML you'd actually see in the browser.
-public class HeadAssetRenderTests
+public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void NoHeadContribution_SentinelStrippedFromOutput()
@@ -157,13 +157,13 @@ public class HeadAssetRenderTests
 
         protected override Component? Render() =>
         [
-            Doctype(),
-            Html("en")[
+            Doctype,
+            Html.Lang("en")[
                 // Head() is framework-managed: the serializer auto-inserts the
                 // head-asset sentinel inside, so contributions splice in without
                 // any explicit placeholder.
-                Head(),
-                Body()[_body]
+                Head,
+                Body[_body]
             ]
         ];
     }
@@ -179,24 +179,24 @@ public class HeadAssetRenderTests
             _body = body;
         }
 
-        protected override Component? Head => Title()[_title];
+        protected override Component? HeadAssets => Title[_title];
 
         protected override Component? Render() =>
         [
-            Doctype(),
-            Html("en")[
+            Doctype,
+            Html.Lang("en")[
                 // Head() is framework-managed: the serializer auto-inserts the
                 // head-asset sentinel inside, so contributions splice in without
                 // any explicit placeholder.
-                Head(),
-                Body()[_body]
+                Head,
+                Body[_body]
             ]
         ];
     }
 
     private sealed class NoHeadComponent : Component
     {
-        protected override Component? Render() => Div()["plain body"];
+        protected override Component? Render() => Div["plain body"];
     }
 
     // Mirrors ElementsMetadataDemo: composes a real document shell and shows its serialized HTML as text.
@@ -206,31 +206,31 @@ public class HeadAssetRenderTests
     {
         protected override Component? Render() =>
         [
-            Pre()[Code()[Html("en")[Head()[Title()["Inner"]], Body()[P()["hi"]]].ToHtml()]],
-            Span(Class: "marker")["after"]
+            Pre[Code[Html.Lang("en")[Head[Title["Inner"]], Body[P["hi"]]].ToHtml()]],
+            Span.Class("marker")["after"]
         ];
     }
 #pragma warning restore RASK019
 
     private sealed class ContributesLink : Component
     {
-        protected override Component? Head => Link(Rel: "stylesheet", Href: "/a.css");
-        protected override Component? Render() => Div()["with link"];
+        protected override Component? HeadAssets => Link.Rel("stylesheet").Href("/a.css");
+        protected override Component? Render() => Div["with link"];
     }
 
     private sealed class ContributesTitle : Component
     {
         private readonly string _title;
         public ContributesTitle(string title) => _title = title;
-        protected override Component? Head => Title()[_title];
-        protected override Component? Render() => Div()["with title"];
+        protected override Component? HeadAssets => Title[_title];
+        protected override Component? Render() => Div["with title"];
     }
 
     private sealed class ContributesTitleWithId : Component
     {
         public int Id { get; set; }
-        protected override Component? Head => Title()[$"User #{Id}"];
-        protected override Component? Render() => Div()[$"user {Id}"];
+        protected override Component? HeadAssets => Title[$"User #{Id}"];
+        protected override Component? Render() => Div[$"user {Id}"];
     }
 
     private sealed class TwoChildHost : Component
@@ -244,6 +244,6 @@ public class HeadAssetRenderTests
             _b = b;
         }
 
-        protected override Component? Render() => Div()[_a, _b];
+        protected override Component? Render() => Div[_a, _b];
     }
 }

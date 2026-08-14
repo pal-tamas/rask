@@ -3,18 +3,24 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IVisualViewport" /> — read the actually-visible viewport (size, offset, zoom).</summary>
-public sealed class VisualViewportDemo(IVisualViewport viewport) : Component
+public sealed partial class VisualViewportDemo(IVisualViewport viewport) : Component
 {
     private string? _value;
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "vv-read", OnClickAsync: Read)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Class("mb-2")
+                    .Id("vv-read")
+                    .OnClickAsync(Read)[
                     "Read visual viewport"],
-                Div(Class: "small text-secondary")["Viewport: ", Code(Id: "vv-value")[_value ?? "(not requested)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "vv-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("vv-status")[_status ?? "(idle)"]]
             ]
         ];
 

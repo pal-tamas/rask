@@ -20,8 +20,8 @@ namespace Rask.Benchmarks;
 [MemoryDiagnoser]
 public class HandlerFrameShapeBenchmarks
 {
-    private readonly Callback _parameterless = () => { };
-    private readonly Callback<ScrollEvent> _scroll = _ => { };
+    private readonly Action _parameterless = () => { };
+    private readonly Action<ScrollEvent> _scroll = _ => { };
     private JsonDocument _click = null!;
     private JsonDocument _input = null!;
     private JsonDocument _scrollFrame = null!;

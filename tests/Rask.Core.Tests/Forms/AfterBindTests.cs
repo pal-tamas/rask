@@ -11,7 +11,7 @@ namespace Rask.Core.Tests.Forms;
 //   - Receives the typed value the model now holds (read back via the accessor).
 //   - Skipped entirely when TrySetTyped rejects the input — no stale-value leakage.
 //   - Async overload is awaited before the post-handler render proceeds.
-public class AfterBindTests
+public partial class AfterBindTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task Input_String_AfterBind_FiresOnEveryKeystroke_WithNewValue()
@@ -19,8 +19,8 @@ public class AfterBindTests
         var m = new TextModel { Name = "" };
         var observed = new List<string>();
 
-        var page = RaskTest.Render(() => Form(m)[
-            Input(() => m.Name, v => observed.Add(v))
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Input.Bind(() => m.Name).AfterBind(v => observed.Add(v))
         ]);
         await page.InputAsync("{\"value\":\"A\"}");
         await page.InputAsync("{\"value\":\"Ad\"}");
@@ -35,8 +35,8 @@ public class AfterBindTests
         var m = new NumberModel();
         int? captured = null;
 
-        var page = RaskTest.Render(() => Form(m)[
-            Input(() => m.Age, v => captured = v)
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Input.Bind(() => m.Age).AfterBind(v => captured = v)
         ]);
         await page.ChangeAsync("{\"value\":\"42\"}");
 
@@ -50,8 +50,8 @@ public class AfterBindTests
         var m = new NumberModel { Age = 7 };
         var fired = false;
 
-        var page = RaskTest.Render(() => Form(m)[
-            Input(() => m.Age, _ => fired = true)
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Input.Bind(() => m.Age).AfterBind(_ => fired = true)
         ]);
         await page.ChangeAsync("{\"value\":\"not-a-number\"}");
 
@@ -68,14 +68,14 @@ public class AfterBindTests
         var gate = new TaskCompletionSource();
         var order = new List<string>();
 
-        var page = RaskTest.Render(() => Form(m)[
-            Input(() => m.Age,
-                _ =>
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Input.Bind(() => m.Age)
+                .Validate(_ =>
                 {
                     order.Add("validate");
                     return Array.Empty<string>();
-                },
-                AfterBindAsync: async _ =>
+                })
+                .AfterBindAsync(async _ =>
                 {
                     order.Add("afterBindAsync:start");
                     await gate.Task;
@@ -110,14 +110,14 @@ public class AfterBindTests
         var order = new List<string>();
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(m)[
-            Input(() => m.Age,
-                _ =>
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Input.Bind(() => m.Age)
+                .Validate(_ =>
                 {
                     order.Add("validate");
                     return Array.Empty<string>();
-                },
-                _ =>
+                })
+                .AfterBind(_ =>
                 {
                     order.Add("afterBind");
                     // The field must already be marked modified at this point.
@@ -136,10 +136,10 @@ public class AfterBindTests
         var m = new TextModel { Name = "" };
         var order = new List<string>();
 
-        var page = RaskTest.Render(() => Form(m)[
-            Input(() => m.Name,
-                _ => order.Add("sync"),
-                async _ =>
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Input.Bind(() => m.Name)
+                .AfterBind(_ => order.Add("sync"))
+                .AfterBindAsync(async _ =>
                 {
                     await Task.Yield();
                     order.Add("async");
@@ -156,10 +156,10 @@ public class AfterBindTests
         var m = new ColorModel { Favorite = Color.Red };
         Color? captured = null;
 
-        var page = RaskTest.Render(() => Form(m)[
-            Select(() => m.Favorite, v => captured = v)[
-                Option(nameof(Color.Red))["Red"],
-                Option(nameof(Color.Blue))["Blue"]
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Select.Bind(() => m.Favorite).AfterBind(v => captured = v)[
+                Option.Value(nameof(Color.Red))["Red"],
+                Option.Value(nameof(Color.Blue))["Blue"]
             ]
         ]);
         await page.ChangeAsync("{\"value\":\"Blue\"}");
@@ -175,14 +175,14 @@ public class AfterBindTests
         var m = new RegionModel();
         List<string>? cities = null;
 
-        var page = RaskTest.Render(() => Form(m)[
-            Select(() => m.Country, AfterBindAsync: async c =>
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Select.Bind(() => m.Country).AfterBindAsync(async c =>
             {
                 await Task.Yield();
                 cities = c == "US" ? new List<string> { "NYC", "LA" } : new List<string> { "Berlin" };
             })[
-                Option("US")["US"],
-                Option("DE")["DE"]
+                Option.Value("US")["US"],
+                Option.Value("DE")["DE"]
             ]
         ]);
         await page.ChangeAsync("{\"value\":\"US\"}");
@@ -198,8 +198,8 @@ public class AfterBindTests
         var m = new TextModel { Name = "" };
         string? captured = null;
 
-        var page = RaskTest.Render(() => Form(m)[
-            Textarea(() => m.Name, v => captured = v)
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Textarea.Bind(() => m.Name).AfterBind(v => captured = v)
         ]);
         await page.InputAsync("{\"value\":\"hello\"}");
 
@@ -213,8 +213,8 @@ public class AfterBindTests
         var m = new FlagModel { Enabled = false };
         bool? captured = null;
 
-        var page = RaskTest.Render(() => Form(m)[
-            Input(() => m.Enabled, v => captured = v)
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Input.Bind(() => m.Enabled).AfterBind(v => captured = v)
         ]);
         var changeId = page.HandlerId("change");
 
@@ -236,8 +236,8 @@ public class AfterBindTests
         var m = new TextModel { Name = "x" };
         var fires = 0;
 
-        var page = RaskTest.Render(() => Form(m)[
-            Input(() => m.Name, _ => fires++)
+        var page = RaskTest.Render(() => Form.Model(m)[
+            Input.Bind(() => m.Name).AfterBind(_ => fires++)
         ]);
         await page.InputAsync("{\"value\":\"x\"}");
         await page.InputAsync("{\"value\":\"x\"}");

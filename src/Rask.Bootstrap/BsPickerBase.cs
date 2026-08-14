@@ -10,7 +10,7 @@ namespace Rask.Bootstrap;
 // that round-trips a boxed value through the accessor (nullable-agnostic), the .form-control trigger
 // box + click-outside backdrop + Esc handling (mirroring BsMultiSelect, zero bootstrap.js), and the
 // Native opt-out that degrades to a native <input> by delegating to BsInput<T>.
-public abstract class BsPickerBase<T> : BsFormControl<T>
+public abstract partial class BsPickerBase<T> : BsFormControl<T>
 {
     // Opt out of the custom popover and render the native <input type=date|time|datetime-local> instead
     // (BsInput derives the type from T). Guarantees a working control where the custom UI is unwanted.
@@ -33,7 +33,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     // The text the user is currently typing into the box (null when not editing → the box shows the value's
     // canonical formatted string). Holds partial/invalid input so a live-committed model can't revert it
     // mid-keystroke; cleared on blur and on every popover pick so the display re-syncs to the value.
-    private protected string? Text;
+    private protected new string? Text;
 
     // A nullable T (DateOnly?/TimeOnly?/DateTime?) gets a clear affordance; a non-nullable one never does.
     // Computed fresh from typeof(T) on each read rather than cached in a `static readonly` field: under the
@@ -83,13 +83,16 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         var cls = BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null, Class);
         var placeholder = Floating is true ? Placeholder ?? Label ?? " " : Placeholder;
 
-        var control = Input<string>(
-            Type: type,
-            Name: Name ?? b.Accessor?.PropertyName,
-            Value: BindingHelpers.FormatValue(b.Current),
-            Placeholder: placeholder, Disabled: Disabled, Required: Required,
-            Class: cls, Id: controlId,
-            OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
+        var control = Input
+            .Value(BindingHelpers.FormatValue(b.Current))
+            .Type(type)
+            .Name(Name ?? b.Accessor?.PropertyName)
+            .Placeholder(placeholder)
+            .Disabled(Disabled)
+            .Required(Required)
+            .Class(cls)
+            .Id(controlId)
+            .OnInputAsync(Disabled == true ? null : StringChangeHandler(b));
 
         return Field(controlId, b, control);
     }
@@ -149,61 +152,61 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         string gridId,
         string formatted,
         IReadOnlyDictionary<string, string?> boxAria,
-        CallbackAsync<string> onParse,
-        CallbackAsync<KeyboardEventArgs> onKeyDown,
+        Func<string, Task> onParse,
+        Func<KeyboardEventArgs, Task> onKeyDown,
         bool hasValue,
         Component? popover,
-        CallbackAsync clearAsync)
+        Func<Task> clearAsync)
     {
         var disabled = Disabled == true;
         var showClear = CanClear && hasValue && !disabled;
         var floating = Floating is true && Label is not null;
 
-        var box = Input<string>(
-            Type: InputType.Text,
-            Class: BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null),
-            Id: controlId,
-            Value: Text ?? formatted,
-            Placeholder: floating ? null : Placeholder,
-            Disabled: Disabled,
-            Autocomplete: "off",
-            Data: BsPopover.Anchor,
-            Role: "combobox",
-            Aria: boxAria,
-            OnFocus: disabled ? null : () => Open = true,
-            OnClick: disabled ? null : () => Open = true,
-            OnBlur: disabled ? null : () => Text = null,
-            OnInputAsync: disabled ? null : raw => { Text = raw; return onParse(raw); },
-            OnKeyDownAsync: disabled ? null : onKeyDown);
+        var box = Input
+            .Value(Text ?? formatted)
+            .Type(InputType.Text)
+            .Class(BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null))
+            .Id(controlId)
+            .Placeholder(floating ? null : Placeholder)
+            .Disabled(Disabled)
+            .Autocomplete("off")
+            .Data(BsPopover.Anchor)
+            .Role("combobox")
+            .Aria(boxAria)
+            .OnFocus(disabled ? null : () => Open = true)
+            .OnClick(disabled ? null : () => Open = true)
+            .OnBlur(disabled ? null : () => Text = null)
+            .OnInputAsync(disabled ? null : raw => { Text = raw; return onParse(raw); })
+            .OnKeyDownAsync(disabled ? null : onKeyDown);
 
         var caret = showClear
             ? null
-            : Span(
-                Class: BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
-                    Position.TranslateMiddleY, Margin.End(3), "bs-picker-caret"),
-                Aria: Hidden)["▾"];
+            : Span
+                .Class(BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
+                    Position.TranslateMiddleY, Margin.End(3), "bs-picker-caret"))
+                .Aria(Hidden)["▾"];
 
-        var clear = showClear
-            ? BsCloseButton(
-                Class: BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
-                    Position.TranslateMiddleY, Margin.End(2), "bs-picker-clear", Open ? "bs-clear-open" : null),
-                AriaLabel: PickerLabels.Clear,
-                OnClickAsync: clearAsync)
+        Component? clear = showClear
+            ? BsCloseButton
+                .Class(BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
+                    Position.TranslateMiddleY, Margin.End(2), "bs-picker-clear", Open ? "bs-clear-open" : null))
+                .AriaLabel(PickerLabels.Clear)
+                .OnClickAsync(clearAsync)
             : null;
 
-        var backdrop = Open && !disabled
-            ? Div(
-                Class: BsClass.Join(Position.Fixed, Position.Top0, Position.Start0,
-                    Sizing.W(100), Sizing.H(100)),
-                Style: "z-index: 999;",
-                OnClick: () => { Open = false; Text = null; })
+        Component? backdrop = Open && !disabled
+            ? Div
+                .Class(BsClass.Join(Position.Fixed, Position.Top0, Position.Start0,
+                    Sizing.W(100), Sizing.H(100)))
+                .Style("z-index: 999;")
+                .OnClick(() => { Open = false; Text = null; })
             : null;
 
         var labelNode = Label is null
             ? null
-            : Rask.Core.Components.Generated.Label(For: controlId, Class: floating ? null : "form-label")[
+            : global::RaskEntriesRask_Core.Label.For(controlId).Class(floating ? null : "form-label")[
                 Label,
-                Required is true ? Span(Class: "text-danger ms-1")["*"] : null];
+                Required is true ? Span.Class("text-danger ms-1")["*"] : null];
 
         var children = new List<Component?>();
         if (labelNode is not null && !floating)
@@ -217,13 +220,13 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         // .dropdown would centre them over the label-above + box stack, dropping them onto the box's top edge.
         if (floating)
         {
-            children.Add(Div(
-                Class: BsClass.Join("form-floating bs-floating", hasValue ? "bs-floating-filled" : null,
+            children.Add(Div
+                .Class(BsClass.Join("form-floating bs-floating", hasValue ? "bs-floating-filled" : null,
                     Position.Relative))[box, labelNode, caret, clear]);
         }
         else
         {
-            children.Add(Div(Class: Position.Relative)[box, caret, clear]);
+            children.Add(Div.Class(Position.Relative)[box, caret, clear]);
         }
 
         // The popover is always in the DOM (like BsMultiSelect's menu); the picker toggles .show/.d-block
@@ -233,16 +236,16 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
 
         if (HelpText is not null)
         {
-            children.Add(Div(Id: HelpTextId(controlId), Class: "form-text")[HelpText]);
+            children.Add(Div.Id(HelpTextId(controlId)).Class("form-text")[HelpText]);
         }
 
         if (b.Invalid)
         {
-            children.Add(Div(Id: ErrorId(controlId, b), Class: "invalid-feedback d-block", Role: "alert")[
+            children.Add(Div.Id(ErrorId(controlId, b)).Class("invalid-feedback d-block").Role("alert")[
                 b.Messages[0]]);
         }
 
-        return Div(Class: BsClass.Join("dropdown", Position.Relative, Class), Data: BsPopover.Wrapper)[children];
+        return Div.Class(BsClass.Join("dropdown", Position.Relative, Class)).Data(BsPopover.Wrapper)[children];
     }
 
     private protected static readonly IReadOnlyDictionary<string, string?> Hidden =

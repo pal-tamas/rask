@@ -2,7 +2,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap list group: <ul class="list-group"> holding BsListGroupItem children. Set Flush to
 // remove outer borders/rounding, or Numbered for an ordered, auto-numbered list (<ol>).
-public sealed class BsListGroup : BsBlock
+public sealed partial class BsListGroup : BsBlock
 {
     public bool? Flush { get; set; }
     public bool? Numbered { get; set; }
@@ -16,15 +16,15 @@ public sealed class BsListGroup : BsBlock
             Class);
 
         return Numbered is true
-            ? Ol(Id: Id, Class: cls)[Items]
-            : Ul(Id: Id, Class: cls)[Items];
+            ? Ol.Id(Id).Class(cls)[Items]
+            : Ul.Id(Id).Class(cls)[Items];
     }
 }
 
 // A list-group item: <li class="list-group-item">. Active marks the current item; Disabled greys it;
 // Color tints it (list-group-item-{color}). For a clickable item pass Href — it renders an anchor
 // with .list-group-item-action.
-public sealed class BsListGroupItem : BsBlock
+public sealed partial class BsListGroupItem : BsBlock
 {
     public bool? Active { get; set; }
     public bool? Disabled { get; set; }
@@ -47,7 +47,7 @@ public sealed class BsListGroupItem : BsBlock
             : null;
 
         return action
-            ? A(Id: Id, Class: cls, Href: Href, Aria: aria)[Items]
-            : Li(Id: Id, Class: cls, Aria: aria)[Items];
+            ? A.Id(Id).Class(cls).Href(Href).Aria(aria)[Items]
+            : Li.Id(Id).Class(cls).Aria(aria)[Items];
     }
 }

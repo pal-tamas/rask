@@ -9,7 +9,7 @@ namespace Rask.Example.Shop.Features.Auth;
 
 [Route("login")]
 [AllowAnonymous]
-public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
+public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
 {
     private readonly LoginModel _model = new();
     private string? _error;
@@ -17,16 +17,16 @@ public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Compon
     [QueryParam] public string? ReturnUrl { get; set; }
 
     protected override Component? Render() =>
-        Div(Class: "welcome-card")[
-            H1()["Sign in"],
-            _error is null ? null : Div(Style: "color:#b00020")[_error],
+        Div.Class("welcome-card")[
+            H1["Sign in"],
+            _error is null ? null : Div.Style("color:#b00020")[_error],
             // Async submit uses the generated OnValidSubmitAsync sibling (like Button's OnClickAsync).
-            Form(_model, OnValidSubmitAsync: SubmitAsync)[
-                Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
-                Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],
-                Button("submit")["Sign in"]
+            Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+                Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
+                Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
+                Button.Type("submit")["Sign in"]
             ],
-            P()["Try alice / password (user) or root / password (admin)."]
+            P["Try alice / password (user) or root / password (admin)."]
         ];
 
     private async Task SubmitAsync(LoginModel m)

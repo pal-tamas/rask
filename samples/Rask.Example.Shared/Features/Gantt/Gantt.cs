@@ -91,7 +91,7 @@ public enum GanttViewMode
 ///         skips. Keep the host a leaf and keep that tag; drop either and the chart disappears.
 ///     </para>
 /// </remarks>
-public sealed class Gantt : Component
+public sealed partial class Gantt : Component
 {
     private readonly ElementRef _host = ElementRef.New();
     private readonly IJSRuntime _js;
@@ -104,7 +104,7 @@ public sealed class Gantt : Component
     public Gantt(IJSRuntime js) => _js = js;
 
     /// <summary>The bars to draw. Required.</summary>
-    public required IReadOnlyList<GanttTask> Data { get; set; }
+    public new required IReadOnlyList<GanttTask> Data { get; set; }
 
     /// <summary>Non-working days to highlight. Weekends are highlighted by the library regardless.</summary>
     public IReadOnlyList<GanttHoliday>? Holidays { get; set; }
@@ -123,7 +123,7 @@ public sealed class Gantt : Component
 
     // A leaf: no children here, ever. See the class remarks — this is what keeps the diff out of the
     // library's DOM. The visible height comes from Gantt.css.
-    protected override Component? Render() => Div(Ref: _host, Class: "rask-gantt");
+    protected override Component? Render() => Div.Ref(_host).Class("rask-gantt");
 
     // Mount in OnRendered, not OnMount: OnMount runs *before* the first render, so the host element
     // doesn't exist yet and the ref would resolve to null on the JS side. Interop issued during a render

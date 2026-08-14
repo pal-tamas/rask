@@ -3,14 +3,14 @@ using Rask.Core.DragAndDrop;
 namespace Rask.Example.Shared.Features;
 
 // Single-list reorder. One drop zone ("list"); drop a fruit onto another to reorder.
-public sealed class DragDropSortableDemo : Component
+public sealed partial class DragDropSortableDemo : Component
 {
     private readonly List<string> _fruits =
     [
         "Apple", "Banana", "Cherry", "Date", "Elderberry"
     ];
 
-    protected override Component? Render() => DragDrop(SortableBody, ReorderFruit);
+    protected override Component? Render() => DragDrop.Body(SortableBody).OnDrop(ReorderFruit);
 
     private Component SortableBody(DragDropContext ctx)
     {
@@ -30,21 +30,21 @@ public sealed class DragDropSortableDemo : Component
                 cls += " dd-drop-target";
             }
 
-            rows.Add(Li(
-                Key: fruit,
-                Class: cls,
-                Draggable: true,
-                OnDragStart: ctx.DragStart("list", index),
-                OnDragOver: ctx.DragOver("list", index),
-                OnDropAsync: ctx.Drop("list", index),
-                OnDragEnd: ctx.DragEnd,
-                Data: new Dictionary<string, string?> { ["testid"] = $"fruit-{index}" })[
-                BsIcon(Name: BsIconName.GripVertical, Class: "text-secondary"),
-                Span(Class: "fw-semibold")[fruit]
+            rows.Add(Li
+                .Key(fruit)
+                .Class(cls)
+                .Draggable(true)
+                .OnDragStart(ctx.DragStart("list", index))
+                .OnDragOver(ctx.DragOver("list", index))
+                .OnDropAsync(ctx.Drop("list", index))
+                .OnDragEnd(ctx.DragEnd)
+                .Data(new Dictionary<string, string?> { ["testid"] = $"fruit-{index}" })[
+                BsIcon.Name(BsIconName.GripVertical).Class("text-secondary"),
+                Span.Class("fw-semibold")[fruit]
             ]);
         }
 
-        return Ul(Class: "list-group dd-list", Id: "dd-fruit-list")[rows];
+        return Ul.Class("list-group dd-list").Id("dd-fruit-list")[rows];
     }
 
     // Direction-aware: dragging down lands after the target, dragging up lands before it.

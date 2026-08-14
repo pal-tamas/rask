@@ -19,11 +19,12 @@ public sealed class DragDrop : Component
     // The render fragment. Called with a fresh DragDropContext every render; returns the user's
     // chosen root Component for the drag region. Named "Body" (not "Render") to avoid colliding
     // with Component.Render().
-    public Func<DragDropContext, Component>? Body { get; set; }
+    public new Func<DragDropContext, Component>? Body { get; set; }
 
     // Fired once when an item is dropped onto a zone. Set exactly one of OnDrop / OnDropAsync.
-    public Callback<DragDropMove>? OnDrop { get; set; }
-    public CallbackAsync<DragDropMove>? OnDropAsync { get; set; }
+    // Calling one back is `OnDrop?.Invoke(move)`.
+    public Action<DragDropMove>? OnDrop { get; set; }
+    public Func<DragDropMove, Task>? OnDropAsync { get; set; }
 
     // DragDrop reads mutable internal drag state (source / hover target) that the framework can't
     // observe through props, so every render must re-execute — same reasoning as VirtualizeModel.
@@ -97,13 +98,13 @@ public sealed class DragDrop : Component
 
     protected override Component? Render()
     {
-        if (Body is null)
+        if (Body is not { } body)
         {
             throw new InvalidOperationException(
                 "DragDrop has no Body, so there is nothing for it to render. Body is a delegate "
                 + "receiving the drag context: DragDrop(Body: ctx => Div()[ … ]).");
         }
 
-        return Body(new DragDropContext(this));
+        return body(new DragDropContext(this));
     }
 }

@@ -62,7 +62,7 @@ it hands you the `data-rask-share` attribute to spread onto it:
 
 ```csharp
 Shareable(new ShareData { Title = "Rask", Url = "https://…" },
-    share => Button(Type: "button", Class: "btn btn-primary", Data: share)["Share"])
+    share => Button.Type("button").Class("btn btn-primary").Data(share)["Share"])
 ```
 
 The shared client fires `navigator.share` **inside the click gesture** — no round-trip, so the transient
@@ -92,19 +92,18 @@ Capabilities that return a value (the eyedropper's hex, the install outcome) pos
 `OnResult` / `OnColor` / `OnOutcome` callback; the two `<video>` triggers target an element via its `ElementRef`.
 
 ```csharp
-FullscreenTrigger(g => Button(Type: "button", Data: g)["Full screen"])
+FullscreenTrigger(g => Button.Type("button").Data(g)["Full screen"])
 ScreenOrientationTrigger(Orientation: "landscape",
-    g => Button(Type: "button", Data: g)["Lock landscape"])
+    g => Button.Type("button").Data(g)["Lock landscape"])
 EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
-    g => Button(Type: "button", Data: g)["Pick a colour"])
+    g => Button.Type("button").Data(g)["Pick a colour"])
 InstallTrigger(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
-    g => Button(Type: "button", Data: g)["Install app"])
-MediaCaptureTrigger(For: preview, Video: true,
+    g => Button.Type("button").Data(g)["Install app"])
+MediaCaptureTrigger.For(preview).Video(true)
     // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
-    OnStream: id => { camera = id; StateHasChanged(); return Task.CompletedTask; },
-    Template: g => Button(Type: "button", Data: g)["Start camera"])
-PictureInPictureTrigger(For: preview,
-    Template: g => Button(Type: "button", Data: g)["Pop out video"])
+    .OnStream(id => { camera = id; StateHasChanged(); return Task.CompletedTask; })
+    .Template(g => Button.Type("button").Data(g)["Start camera"])
+PictureInPictureTrigger.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
 ```
 
 All six ship: `FullscreenTrigger`, `ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`,
@@ -169,12 +168,12 @@ handler, **not** a generated-factory callback, so [RASK026](diagnostics.md) (whi
 `StateHasChanged` inside `OnChange`/`OnClick`/`Bind`/… callbacks) does not apply.
 
 ```csharp
-public sealed class LazyImages(IIntersectionObserver io) : Component, IAsyncDisposable
+public sealed partial class LazyImages(IIntersectionObserver io) : Component, IAsyncDisposable
 {
     private readonly ElementRef _sentinel = ElementRef.New();
     private IAsyncDisposable? _obs;
 
-    protected override Component? Render() => Div(Ref: _sentinel)[ /* … */ ];
+    protected override Component? Render() => Div.Ref(_sentinel)[ /* … */ ];
 
     protected override async Task OnRenderedAsync(bool first)
     {

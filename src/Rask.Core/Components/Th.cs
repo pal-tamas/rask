@@ -7,7 +7,7 @@ public sealed class Th : HtmlTableCellElement
     protected override string TagName => "th";
 
     public string? Scope { get; set; }
-    public string? Abbr { get; set; }
+    public new string? Abbr { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

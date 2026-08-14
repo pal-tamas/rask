@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class DisposableAsyncProbe : Component, IAsyncDisposable
+public sealed partial class DisposableAsyncProbe : Component, IAsyncDisposable
 {
     private DateTimeOffset _mountedAt;
 
@@ -9,20 +9,20 @@ public sealed class DisposableAsyncProbe : Component, IAsyncDisposable
 
     public ValueTask DisposeAsync()
     {
-        Log($"#{InstanceId} async-disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
+        Log.Invoke($"#{InstanceId} async-disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
         return ValueTask.CompletedTask;
     }
 
     protected override void OnMount()
     {
         _mountedAt = DateTimeOffset.Now;
-        Log($"#{InstanceId} async-mounted");
+        Log.Invoke($"#{InstanceId} async-mounted");
     }
 
     protected override Component? Render() =>
-        BsStack(Gap: 2, Align: BsAlign.Center)[
-            BsBadge(Color: BsColor.Info, Class: "dispose-async-pill")[$"#{InstanceId} alive"],
-            Span(Class: "text-secondary small")[
+        BsStack.Gap(2).Align(BsAlign.Center)[
+            BsBadge.Color(BsColor.Info).Class("dispose-async-pill")[$"#{InstanceId} alive"],
+            Span.Class("text-secondary small")[
                 $"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire DisposeAsync()."]
         ];
 }

@@ -13,14 +13,14 @@ namespace Rask.Bootstrap;
 //
 // Two layouts mirror the Bootstrap docs: Color set → the "Color schemes" headerless variant (body + white
 // ×); otherwise a header (icon + title + timestamp + ×) over the body.
-public sealed class BsToast : Component
+public sealed partial class BsToast : Component
 {
     // Identity passed back through OnClose so the host knows which toast to remove. Also used as the
     // element id. (BsToast extends Component, not BsBlock, because its Id is an int, not BsBlock's string.)
     public required int Id { get; set; }
 
     public string? Class { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
     public required string Message { get; set; }
 
     // A theme color renders the headerless colored layout (text-bg-{color}); null uses the header layout.
@@ -31,8 +31,8 @@ public sealed class BsToast : Component
 
     // Invoked with this toast's Id from the × or the auto-hide timer. Bind a host method group so the
     // auto-wrapped callback re-renders the host (which drops this toast and unmounts it).
-    public Callback<int>? OnClose { get; set; }
-    public CallbackAsync<int>? OnCloseAsync { get; set; }
+    public Action<int>? OnClose { get; set; }
+    public Func<int, Task>? OnCloseAsync { get; set; }
 
     // Auto-hide delay in ms; null/<= 0 keeps the toast until dismissed by hand.
     public int? AutoHideMs { get; set; }
@@ -59,25 +59,30 @@ public sealed class BsToast : Component
     private void Dismiss()
     {
         OnClose?.Invoke(Id);
-        OnCloseAsync?.Invoke(Id);
+        _ = OnCloseAsync?.Invoke(Id);
     }
 
     protected override Component? Render()
     {
-        var close = BsCloseButton(
-            White: Color is not null,
-            Class: Color is not null ? "me-2 m-auto" : null,
-            OnClick: OnClose is null ? null : () => OnClose(Id),
-            OnClickAsync: OnCloseAsync is null ? null : () => OnCloseAsync(Id));
+        var close = BsCloseButton
+            .White(Color is not null)
+            .Class(Color is not null ? "me-2 m-auto" : null)
+            .OnClick(OnClose is null ? null : () => OnClose?.Invoke(Id))
+            .OnClickAsync(OnCloseAsync is null
+                ? null
+                : () => OnCloseAsync?.Invoke(Id) ?? Task.CompletedTask);
 
         // Colored "Color schemes" layout — headerless, body + white × in a flex row.
         if (Color is { } color)
         {
-            return Div(Id: Id.ToString(), Class: BsClass.Join("toast show align-items-center", color.TextBg(), "border-0", Class),
-                Role: "alert", Aria: ToastAria)[
-                Div(Class: "d-flex")[
-                    Div(Class: "toast-body")[
-                        Icon is { } glyph ? BsIcon(Name: glyph, Class: "me-2") : null,
+            return Div
+                .Id(Id.ToString())
+                .Class(BsClass.Join("toast show align-items-center", color.TextBg(), "border-0", Class))
+                .Role("alert")
+                .Aria(ToastAria)[
+                Div.Class("d-flex")[
+                    Div.Class("toast-body")[
+                        Icon is { } glyph ? BsIcon.Name(glyph).Class("me-2") : null,
                         Message
                     ],
                     close
@@ -86,14 +91,14 @@ public sealed class BsToast : Component
         }
 
         // Default layout — header (icon + title + timestamp + ×) over the body.
-        return Div(Id: Id.ToString(), Class: BsClass.Join("toast show", Class), Role: "alert", Aria: ToastAria)[
-            Div(Class: "toast-header")[
-                Icon is { } headerGlyph ? BsIcon(Name: headerGlyph, Class: "me-2") : null,
-                Strong(Class: "me-auto")[Title ?? ""],
-                Timestamp is { } ts ? Small(Class: "text-secondary")[ts] : null,
+        return Div.Id(Id.ToString()).Class(BsClass.Join("toast show", Class)).Role("alert").Aria(ToastAria)[
+            Div.Class("toast-header")[
+                Icon is { } headerGlyph ? BsIcon.Name(headerGlyph).Class("me-2") : null,
+                Strong.Class("me-auto")[Title ?? ""],
+                Timestamp is { } ts ? Small.Class("text-secondary")[ts] : null,
                 close
             ],
-            Div(Class: "toast-body")[Message]
+            Div.Class("toast-body")[Message]
         ];
     }
 }

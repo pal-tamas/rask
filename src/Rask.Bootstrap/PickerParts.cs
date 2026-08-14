@@ -6,7 +6,8 @@ namespace Rask.Bootstrap;
 // month grid, time columns, header and week math live in exactly one place (the pickers hold the state
 // and pass it in). Everything is culture-driven: weekday order, names and the month label come from
 // CultureInfo.DateTimeFormat, while the bound value round-trips invariant ISO in the picker itself.
-internal static class PickerParts
+[global::Rask.Core.RaskMarkup]
+internal static partial class PickerParts
 {
     // Stable, collision-safe id for a day cell (targets aria-activedescendant on the trigger box).
     internal static string CellId(string prefix, DateOnly day) =>
@@ -31,32 +32,37 @@ internal static class PickerParts
         for (var i = 0; i < 7; i++)
         {
             var dow = (DayOfWeek)((firstDow + i) % 7);
-            cells.Add(Div(
-                Class: BsClass.Join("bs-cal-head", Txt.Muted),
-                Role: "columnheader",
-                Aria: new Dictionary<string, string?> { ["label"] = dtf.DayNames[(int)dow] },
-                Key: i)[dtf.AbbreviatedDayNames[(int)dow]]);
+            cells.Add(Div
+                .Class(BsClass.Join("bs-cal-head", Txt.Muted))
+                .Role("columnheader")
+                .Aria(new Dictionary<string, string?> { ["label"] = dtf.DayNames[(int)dow] })
+                .Key(i)[dtf.AbbreviatedDayNames[(int)dow]]);
         }
 
-        return Div(Role: "row", Key: 0)[cells];
+        return Div.Role("row").Key(0)[cells];
     }
 
     // The prev/next month header with the localized "MMMM yyyy" label. The nav aria-labels come from
     // `labels` (they have no CultureInfo source, unlike the month/day names).
     internal static Component MonthHeader(
-        DateOnly view, CultureInfo culture, Callback onPrev, Callback onNext,
+        DateOnly view, CultureInfo culture, Action onPrev, Action onNext,
         bool prevDisabled, bool nextDisabled, BsPickerLabels labels) =>
-        Div(Class: BsClass.Join(Display.Flex(), Flex.Align(BsAlign.Center),
+        Div
+            .Class(BsClass.Join(Display.Flex(), Flex.Align(BsAlign.Center),
             Flex.Justify(BsJustify.Between), Margin.Bottom(2)))[
-            Button(Type: "button", Class: "btn btn-sm btn-outline-secondary",
-                Disabled: prevDisabled ? true : null,
-                Aria: new Dictionary<string, string?> { ["label"] = labels.PreviousMonth },
-                OnClick: prevDisabled ? null : onPrev)["‹"],
-            Span(Class: Font.Semibold)[view.ToString("y", culture)],
-            Button(Type: "button", Class: "btn btn-sm btn-outline-secondary",
-                Disabled: nextDisabled ? true : null,
-                Aria: new Dictionary<string, string?> { ["label"] = labels.NextMonth },
-                OnClick: nextDisabled ? null : onNext)["›"]
+            Button
+                .Type("button")
+                .Class("btn btn-sm btn-outline-secondary")
+                .Disabled(prevDisabled ? true : null)
+                .Aria(new Dictionary<string, string?> { ["label"] = labels.PreviousMonth })
+                .OnClick(prevDisabled ? null : onPrev)["‹"],
+            Span.Class(Font.Semibold)[view.ToString("y", culture)],
+            Button
+                .Type("button")
+                .Class("btn btn-sm btn-outline-secondary")
+                .Disabled(nextDisabled ? true : null)
+                .Aria(new Dictionary<string, string?> { ["label"] = labels.NextMonth })
+                .OnClick(nextDisabled ? null : onNext)["›"]
         ];
 
     // The 6x7 month grid (role=grid). `view` selects the month; `cursor` is the virtually-focused day
@@ -98,28 +104,28 @@ internal static class PickerParts
                     aria["disabled"] = "true";
                 }
 
-                cells.Add(Div(
-                    Id: CellId(cellIdPrefix, cell),
-                    Class: BsClass.Join("bs-cal-cell",
+                cells.Add(Div
+                    .Id(CellId(cellIdPrefix, cell))
+                    .Class(BsClass.Join("bs-cal-cell",
                         otherMonth ? "bs-cal-muted" : null,
                         cell == today ? "bs-cal-today" : null,
                         isSelected ? "active" : null,
                         isCursor ? "bs-cal-focus" : null,
-                        cellDisabled ? "disabled" : null),
-                    Role: "gridcell",
-                    Aria: aria,
-                    OnClickAsync: cellDisabled ? null : () => onPick(cell),
-                    Key: (week * 7) + d)[cell.Day.ToString(culture)]);
+                        cellDisabled ? "disabled" : null))
+                    .Role("gridcell")
+                    .Aria(aria)
+                    .OnClickAsync(cellDisabled ? null : () => onPick(cell))
+                    .Key((week * 7) + d)[cell.Day.ToString(culture)]);
             }
 
-            rows.Add(Div(Role: "row", Key: week + 1)[cells]);
+            rows.Add(Div.Role("row").Key(week + 1)[cells]);
         }
 
-        return Div(
-            Class: "bs-cal",
-            Id: gridId,
-            Role: "grid",
-            Aria: new Dictionary<string, string?> { ["label"] = view.ToString("y", culture) })[rows];
+        return Div
+            .Class("bs-cal")
+            .Id(gridId)
+            .Role("grid")
+            .Aria(new Dictionary<string, string?> { ["label"] = view.ToString("y", culture) })[rows];
     }
 
     // Scrollable listboxes (hours 0-23, minutes 0..<60 by step, and — when `seconds` — seconds 0..<60 by
@@ -159,11 +165,15 @@ internal static class PickerParts
 
         var cols = new List<Component>
         {
-            Div(Class: "bs-time-col", Role: "listbox",
-                Aria: new Dictionary<string, string?> { ["label"] = labels.Hour })[hours],
-            Span(Class: "bs-time-sep")[":"],
-            Div(Class: "bs-time-col", Role: "listbox",
-                Aria: new Dictionary<string, string?> { ["label"] = labels.Minute })[minutes],
+            Div
+                .Class("bs-time-col")
+                .Role("listbox")
+                .Aria(new Dictionary<string, string?> { ["label"] = labels.Hour })[hours],
+            Span.Class("bs-time-sep")[":"],
+            Div
+                .Class("bs-time-col")
+                .Role("listbox")
+                .Aria(new Dictionary<string, string?> { ["label"] = labels.Minute })[minutes],
         };
 
         if (seconds && onSecond is not null)
@@ -177,19 +187,21 @@ internal static class PickerParts
                 secs.Add(TimeItem(s, current?.Second == s, off, culture, () => onSecond(ss)));
             }
 
-            cols.Add(Span(Class: "bs-time-sep")[":"]);
-            cols.Add(Div(Class: "bs-time-col", Role: "listbox",
-                Aria: new Dictionary<string, string?> { ["label"] = labels.Second })[secs]);
+            cols.Add(Span.Class("bs-time-sep")[":"]);
+            cols.Add(Div
+                .Class("bs-time-col")
+                .Role("listbox")
+                .Aria(new Dictionary<string, string?> { ["label"] = labels.Second })[secs]);
         }
 
-        return Div(Class: BsClass.Join("bs-time", Display.Flex(), Flex.Gap(1)))[cols];
+        return Div.Class(BsClass.Join("bs-time", Display.Flex(), Flex.Gap(1)))[cols];
     }
 
     // One hour/minute/second option: 00-formatted, active when it matches the value, greyed and
     // non-clickable when out of range for its column. Reuses shared aria dictionaries so a full time
     // column (24 hours + minutes + seconds) doesn't allocate a dictionary per option on every render.
     private static Component TimeItem(
-        int value, bool active, bool disabled, CultureInfo culture, CallbackAsync onPick)
+        int value, bool active, bool disabled, CultureInfo culture, Func<Task> onPick)
     {
         var aria = (active, disabled) switch
         {
@@ -199,11 +211,13 @@ internal static class PickerParts
             _ => null,
         };
 
-        return Button(Type: "button", Key: value,
-            Class: BsClass.Join("dropdown-item", "bs-time-item", active ? "active" : null,
-                disabled ? "disabled" : null),
-            Aria: aria,
-            OnClickAsync: disabled ? null : onPick)[value.ToString("00", culture)];
+        return Button
+            .Type("button")
+            .Key(value)
+            .Class(BsClass.Join("dropdown-item", "bs-time-item", active ? "active" : null,
+                disabled ? "disabled" : null))
+            .Aria(aria)
+            .OnClickAsync(disabled ? null : onPick)[value.ToString("00", culture)];
     }
 
     private static readonly IReadOnlyDictionary<string, string?> Selected =

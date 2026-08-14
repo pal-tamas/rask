@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Forms;
 // tail after async validation) is a one-shot Timer that would otherwise fire once after the form
 // is torn down — pinning the context + render handle and possibly requesting a stale render. The
 // live render now disposes EditContexts that don't survive a root re-render.
-public class EditContextDisposalTests
+public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void FormUnmount_DisposesEditContext()
@@ -18,8 +18,8 @@ public class EditContextDisposalTests
         var show = true;
 
         var page = RaskTest.Render(() => show
-            ? Form<Model>(model, Context: ctx)[Input(() => model.Name)]
-            : Div()[Text("gone")]);
+            ? Form.Model(model).Context(ctx)[Input.Bind(() => model.Name)]
+            : Div[Text.Value("gone")]);
 
         Assert.False(ctx.IsDisposed);
 
@@ -33,7 +33,7 @@ public class EditContextDisposalTests
     {
         var model = new Model { Name = "ada" };
         var ctx = new EditContext(model);
-        var page = RaskTest.Render(() => Form<Model>(model, Context: ctx)[Input(() => model.Name)]);
+        var page = RaskTest.Render(() => Form.Model(model).Context(ctx)[Input.Bind(() => model.Name)]);
 
         page.Render();
 

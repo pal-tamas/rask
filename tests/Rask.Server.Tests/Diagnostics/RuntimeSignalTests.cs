@@ -19,8 +19,9 @@ public sealed class RuntimeSignalTests
 {
     private sealed class Shell : Component
     {
-        protected override Component? Render() =>
-            [Doctype(), new Html()[new Head(), new Body()[new H1()["hi"]]]];
+        protected override string? HtmlLang => null;
+
+        protected override Component? Render() => new H1()["hi"];
     }
 
     /// <summary>
@@ -74,11 +75,9 @@ public sealed class RuntimeSignalTests
     {
         private int _count;
 
-        protected override Component? Render() =>
-        [
-            Doctype(),
-            new Html()[new Head(), new Body()[Button(OnClick: () => _count++)[$"n={_count}"]]]
-        ];
+        protected override string? HtmlLang => null;
+
+        protected override Component? Render() => Button.OnClick(() => _count++)[$"n={_count}"];
     }
 
     /// <summary>

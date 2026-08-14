@@ -7,11 +7,12 @@ using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.HeadAssets;
 using Rask.Core.Live;
+using F = Rask.Core.Components.Generated;
 
 namespace Rask.Core;
 
 // [CollectionBuilder] makes `Component` itself a collection-expression target, so a render body
-// can be written as `Render() => [Doctype(), Html(...)]` (the items are built into a Fragment by
+// can be written as `Render() => [Nav(), Main()[Router()]]` (the items are built into a Fragment by
 // __Fragment below). The builder is self-referential (typeof(Component)) and public so collection
 // expressions in *other* assemblies bind to it even though Fragment itself is internal. The
 // required iteration type comes from the *pattern* GetEnumerator below — Component deliberately
@@ -19,7 +20,7 @@ namespace Rask.Core;
 // children indexer applicable to a bare component and silently rebind `Div()[Span()[...]]` from
 // "one child" to "the span's own children", collapsing nesting.
 [CollectionBuilder(typeof(Component), "__Fragment")]
-public abstract class Component
+public abstract partial class Component : RaskMarkup
 {
     // Pre-built "h0".."h1023" so minting a handler slot's id in the common case (small forms, typical
     // pages) doesn't pay a string allocation. A slot past the table falls back to CreateLargeHandlerId
@@ -36,14 +37,6 @@ public abstract class Component
     // Static empty dict for PersistedChildren exposed via the public-internal accessor —
     // saves callers from null checks while keeping the per-instance allocation lazy.
     private static readonly Dictionary<(Type, int), Component> _emptyChildren = new();
-
-    // Page-shell tokens a root render must produce, paired with the factory that emits each.
-    // Doctype writes the literal "<!DOCTYPE html>"; the element tags are matched by their
-    // opening prefix so attributes (e.g. <html lang="en">) don't defeat the check.
-    private static readonly (string Token, string Factory)[] _requiredShell =
-    {
-        ("<!DOCTYPE html>", "Doctype()"), ("<html", "Html(...)"), ("<head", "Head()"), ("<body", "Body()")
-    };
 
     // Per-node boolean state packed into one byte so it costs a single field slot instead of one
     // (padded) slot per bool across the Component/Element pair. Bit 0 lives on the base; Element
@@ -349,15 +342,70 @@ public abstract class Component
     ///     <para>
     ///         Default is <c>null</c> — no head contribution. Typical override returns a collection
     ///         expression of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c> calls (e.g.
-    ///         <c>Head =&gt; [Title(...), Meta(...)]</c>) or a single tag. Return <c>null</c> for
+    ///         <c>HeadAssets =&gt; [Title(...), Meta(...)]</c>) or a single tag. Return <c>null</c> for
     ///         "no contribution" (including conditional bodies:
-    ///         <c>Head =&gt; cond ? [Title(...)] : null</c>).
+    ///         <c>HeadAssets =&gt; cond ? [Title(...)] : null</c>).
     ///     </para>
     /// </summary>
-    protected virtual Component? Head => null;
+    protected virtual Component? HeadAssets => null;
 
-    internal Component? HeadInternal => Head;
+    /// <summary>
+    ///     This component's <see cref="HeadAssets" /> contribution as its last render produced it, or
+    ///     <c>null</c> when it has none.
+    /// </summary>
+    /// <remarks>
+    ///     Read rather than re-evaluated, by both the serializer's collection point and the
+    ///     clean-subtree cache: <see cref="HeadAssets" /> is a user-written expression that builds components,
+    ///     so it has to run exactly once per render, inside the render that owns what it builds (see
+    ///     <see cref="RenderForLive" />).
+    /// </remarks>
+    internal Component? CachedHeadInternal => _live?.CachedHead;
     internal void MarkReadsAmbientStateInternal() => SetFlag(FlagReadsAmbientState, true);
+
+    /// <summary>
+    ///     The <c>lang</c> attribute for the document's <c>&lt;html&gt;</c> element. Read off the root
+    ///     component only — Rask builds the shell around whatever the root renders. Return <c>null</c> to
+    ///     emit no <c>lang</c> at all.
+    /// </summary>
+    protected virtual string? HtmlLang => "en";
+
+    /// <summary>
+    ///     The <c>class</c> attribute for the document's <c>&lt;body&gt;</c> element (theming hooks,
+    ///     Bootstrap ground classes). Read off the root component only. Default <c>null</c> — no class.
+    /// </summary>
+    protected virtual string? BodyClass => null;
+
+    /// <summary>
+    ///     Composes the document around the framework-built <c>&lt;head&gt;</c> and this component's
+    ///     rendered body. Override on the root component when <see cref="HtmlLang" /> and
+    ///     <see cref="BodyClass" /> are not enough — an extra attribute on <c>&lt;html&gt;</c>, an
+    ///     element wrapped around the app, a wholly hand-built document:
+    ///     <code>
+    ///     protected override Component Shell(Component head, Component body) =>
+    ///         Html("en", Dir: "rtl")[head, Body(Class: "dark")[body]];
+    ///     </code>
+    ///     <para>
+    ///         The pieces arrive as <b>parameters</b> — <paramref name="head" /> is the framework's
+    ///         <c>&lt;head&gt;</c> element, which collects every mounted component's <see cref="HeadAssets" />
+    ///         contribution plus the scoped CSS/JS assets, and <paramref name="body" /> is the app's own
+    ///         render output. Place both; dropping <paramref name="head" /> loses every head asset on the
+    ///         page, and dropping <paramref name="body" /> renders nothing. The doctype is emitted by the
+    ///         framework ahead of whatever this returns, and the runtime <c>&lt;script&gt;</c> is appended
+    ///         inside <c>&lt;body&gt;</c> automatically.
+    ///     </para>
+    ///     <para>
+    ///         Evaluated once per render, <b>before</b> the app's own <see cref="Render" /> runs, so it
+    ///         cannot observe state that render produces. Anything reactive belongs in the body or in
+    ///         <see cref="HeadAssets" />.
+    ///     </para>
+    /// </summary>
+    protected virtual Component Shell(Component head, Component body) =>
+        Html.Lang(HtmlLang)[head, Body.Class(BodyClass)[body]];
+
+    // The host's entry into the escape hatch above: RootErrorBoundary composes the document around the
+    // App, so it needs to reach the App's override. Kept internal because Shell is a user-facing
+    // extension point, not a call site — nothing outside the framework composes a document root.
+    internal Component ShellInternal(Component head, Component body) => Shell(head, body);
 
     /// <summary>
     ///     Where this component is being presented — a web page (<see cref="RenderShell.Web" />) or a native
@@ -863,12 +911,167 @@ public abstract class Component
         // the scope is live during BOTH Render() and the walk of its returned subtree —
         // factories inside Render and handlers registered on elements deep in the tree both
         // attribute back to this component.
-        Live.CachedRenderResult = Render();
+        //
+        // A Render() that THROWS is a supported path — an ancestor ErrorBoundary catches it and
+        // re-renders a fallback — so the entries it built before the throw still have to be swept off
+        // the per-thread slot stack, which is only ever popped by the render that pushed onto it. A
+        // stranded slot pins a live subtree on a pooled thread AND corrupts the next successful render
+        // of this same component: that render pushes a second slot for the same target (positional
+        // identity hands back the same instance), the stale one drains first, and its stale pending
+        // mask blanks a prop the new chain has just set. Only the reset half runs on the way out —
+        // firing lifecycle while an exception unwinds could throw again and swallow the original fault,
+        // and it would be notifying a render that never happened.
+        try
+        {
+            Live.CachedRenderResult = Render();
+        }
+        catch
+        {
+            if (Live.HasEntryChildren)
+            {
+                Live.HasEntryChildren = false;
+                BuilderRuntime.DrainSlots(this);
+            }
+
+            throw;
+        }
+
+        // The Head override is part of THIS component's render, not of the walk that serializes it.
+        // Evaluating it here rather than at the serializer's collection point — which runs in the
+        // ENCLOSING component's parent scope, after that component's own render has finished and
+        // drained — is what gives an entry inside a Head override the right owner: its identity comes
+        // from this component's positional child map (counted on from the render's own children, since
+        // the reset above already ran), its pending reset drains with the rest below rather than a
+        // frame late, and a Context read inside a Head marks THIS component as ambient-reading.
+        //
+        // Cached alongside the render result because the registry that collects it is rebuilt every
+        // frame while this component may be served from the render cache: re-running the chain on a
+        // cache hit would hand out fresh positional identities on every frame (the counter is only
+        // reset by a real render), and re-running it at all is work a clean component does not owe.
+        Live.CachedHead = HeadAssets;
+
+        // Builder-surface commit point. A generated FACTORY assigns every prop and then calls
+        // NotifyParameters itself, because it knows when the props are done. A setter chain has no
+        // natural end — `Div.Class("a").Id("b")` could take another setter or the `[...]` indexer — so
+        // the entries defer that half to here: the moment Render() returns, every chain it built is
+        // complete and nothing can touch those props again before the walk reaches them.
+        //
+        // This is the exact factory ordering, not an approximation: the factory notifies during the
+        // parent's Render(), i.e. with the same ambient state (no Context provider pushed yet, since
+        // providers are pushed by the serializer) and always before the child is walked. Which is what
+        // makes Live.PropsDirty land in time for RenderForLive's cache check and TryReplayCleanSubtree
+        // on the child, and why a child that was built but then dropped from the tree still mounts.
+        //
+        // Gated on a flag armed by the entries themselves (LiveRenderContext.GetOrCreateEntry), so a
+        // tree built entirely from factories never walks the child map here.
+        if (Live.HasEntryChildren)
+        {
+            CommitEntryChildren();
+        }
 
         Live.PropsDirty = false;
         Live.StateDirty = false;
         return Live.CachedRenderResult;
     }
+
+    // Fires the deferred NotifyParameters for every child a builder entry produced during the Render()
+    // that just finished. Kept out of RenderForLive so the hot path is a single bool test.
+    private void CommitEntryChildren()
+    {
+        // A commit can build more entries. The hooks it runs are user code, they run while this
+        // component is still the one in scope, and a factory or an entry called from one lands here —
+        // after the sweep that was supposed to complete them. So the whole pass repeats until it finds
+        // nothing new; the flag is armed by the entry itself, so the overwhelmingly common "the hooks
+        // built nothing" case costs one more bool test. It terminates on anything the factory survives:
+        // a hook that unconditionally builds a component whose hook does the same recurses on the
+        // factory too, straight into a stack overflow, because there the notification is synchronous.
+        do
+        {
+            Live.HasEntryChildren = false;
+
+            // Ordering is load-bearing: the pending resets put every prop the chain did NOT name back
+            // to the value the factory would have passed, folding each one into EntryPropsChanged as it
+            // goes, so they have to run before the commit below reads that flag.
+            BuilderRuntime.DrainSlots(this);
+
+            if (_live?.Children is { Count: > 0 } children)
+            {
+                CommitEach(children);
+            }
+        }
+        while (Live.HasEntryChildren);
+    }
+
+    // Fires the commit over a SNAPSHOT of the child map rather than over the map itself. The lifecycle
+    // hooks it runs may build components, and building one writes to this very dictionary
+    // (GetOrCreateChild) — which, mid-enumeration, is an InvalidOperationException. It was not reachable
+    // before the deferred commit existed: the factory notified from inside Render(), where the map is
+    // written but never walked.
+    //
+    // The snapshot rides a per-thread buffer, reused across renders and unwound like a stack, so it
+    // allocates nothing in the steady state and stays correct when a hook re-enters another component's
+    // render (a nested ToHtml(), which commits onto the same buffer above our range).
+    private static void CommitEach(Dictionary<(Type, int), Component> children)
+    {
+        var buffer = BuilderRuntime.CommitBuffer;
+        var start = buffer.Count;
+        try
+        {
+            foreach (var child in children.Values)
+            {
+                buffer.Add(child);
+            }
+
+            var end = buffer.Count;
+            for (var i = start; i < end; i++)
+            {
+                buffer[i].CommitEntry();
+            }
+        }
+        finally
+        {
+            buffer.RemoveRange(start, buffer.Count - start);
+        }
+    }
+
+    // The child half of the commit. `!HasInitialized` is the mount signal and needs no flag of its own:
+    // a factory-built child was already notified inside Render(), so it is initialized and this is a
+    // no-op — RaiseLifecycleBeforeRender(false) on an initialized component does nothing at all.
+    private void CommitEntry()
+    {
+        // No LiveState means the child never reached GetOrCreate (nothing to notify) — the same
+        // no-context case in which the factory skips NotifyParameters too.
+        if (_live is not { } state || (state.HasInitialized && !state.EntryPropsChanged))
+        {
+            return;
+        }
+
+        var propsChanged = state.EntryPropsChanged;
+        state.EntryPropsChanged = false;
+        RaiseLifecycleBeforeRender(propsChanged);
+    }
+
+    // Armed by LiveRenderContext.GetOrCreateEntry on the component whose Render() is building the tree.
+    internal void ArmEntryCommitInternal() => Live.HasEntryChildren = true;
+
+    // Claims the LiveState for an entry-built child that has a lifecycle to run, so the commit below can
+    // keep using "no LiveState" to mean "not mine to notify". See GetOrCreateEntry for why the two are
+    // not the same question and why a handle-less render is where they came apart.
+    internal void EnsureLiveStateInternal() => _ = Live;
+
+    /// <summary>
+    ///     Records that a builder setter wrote a value different from the one already on this component,
+    ///     so the deferred commit reports <c>propsChanged: true</c>.
+    /// </summary>
+    /// <remarks>
+    ///     The generated setters call this through <see cref="BuilderRuntime" /> (they are emitted into
+    ///     the global namespace of every consuming assembly, so the entry point has to be public). It is
+    ///     the setter-chain equivalent of the factory's <c>__propsChanged</c> fold: same
+    ///     <see cref="EqualityComparer{T}" /> semantics, same exclusions — <c>Key</c>, auto-wrapped
+    ///     callbacks and raw delegate props never fold, so the generator simply does not emit
+    ///     the call for them.
+    /// </remarks>
+    internal void MarkEntryPropsChangedInternal() => Live.EntryPropsChanged = true;
 
     // Phase B clean-subtree frame replay. A user component whose last render was cached as a frame
     // span (pure elements, no handlers, no nested user components — see TryCacheCleanSubtree) re-emits
@@ -989,7 +1192,7 @@ public abstract class Component
             || Children is not null
             || BypassRenderCache
             || _readsAmbientState
-            || HeadInternal is not null
+            || CachedHeadInternal is not null
             || collectsNativeChrome
             || count <= 0)
         {
@@ -1609,152 +1812,63 @@ public abstract class Component
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                // Named callback delegate types (Callbacks.cs) — typed fast path mirroring the
-                // Action/Func cases above so the framework's own handlers don't fall to DynamicInvoke.
-                case Callback c:
-                    c();
-                    return true;
-                case Callback<MouseModifiers> c:
-                    c(ExtractModifiers(payload));
-                    return true;
-                case Callback<string> c:
-                    c(ExtractString(payload, "value"));
-                    return true;
-                case Callback<IReadOnlyList<string>> c:
-                    c(ExtractStringList(payload));
-                    return true;
-                case Callback<FormData> c:
-                    c(FormData.FromJson(payload));
-                    return true;
-                case Callback<ScrollEvent> c:
-                    c(ScrollEvent.FromJson(payload));
-                    return true;
-                case Callback<KeyboardEventArgs> c:
-                    c(KeyboardEventArgs.FromJson(payload));
-                    return true;
-                case Callback<IReadOnlyList<RaskFile>> c:
-                {
-                    var files = FileListReader.Read(payload);
-                    try { c(files); }
-                    finally { ReleaseFiles(files); }
-
-                    return true;
-                }
-                case CallbackAsync c:
-                    await InvokeWithRenderingAsync(() => c()).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                case CallbackAsync<MouseModifiers> c:
-                {
-                    var mods = ExtractModifiers(payload);
-                    await InvokeWithRenderingAsync(() => c(mods)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<string> c:
-                {
-                    var value = ExtractString(payload, "value");
-                    await InvokeWithRenderingAsync(() => c(value)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<IReadOnlyList<string>> c:
-                {
-                    var picked = ExtractStringList(payload);
-                    await InvokeWithRenderingAsync(() => c(picked)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<FormData> c:
-                {
-                    var fd = FormData.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(fd)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<ScrollEvent> c:
-                {
-                    var sc = ScrollEvent.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(sc)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<KeyboardEventArgs> c:
-                {
-                    var ke = KeyboardEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(ke)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<IReadOnlyList<RaskFile>> c:
-                {
-                    var files = FileListReader.Read(payload);
-                    try
-                    {
-                        await InvokeWithRenderingAsync(() => c(files)).ConfigureAwait(false);
-                    }
-                    finally { ReleaseFiles(files); }
-
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
                 // Extended GlobalEventHandlers args (mouse/wheel/pointer/touch/clipboard/media). Each
                 // parses the flat client payload into its typed record; async siblings re-mark dirty
                 // after the mid-await render, mirroring the keyboard/scroll cases above.
-                case Callback<MouseEventArgs> c:
+                case Action<MouseEventArgs> c:
                     c(MouseEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<MouseEventArgs> c:
+                case Func<MouseEventArgs, Task> c:
                 {
                     var args = MouseEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<WheelEventArgs> c:
+                case Action<WheelEventArgs> c:
                     c(WheelEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<WheelEventArgs> c:
+                case Func<WheelEventArgs, Task> c:
                 {
                     var args = WheelEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<PointerEventArgs> c:
+                case Action<PointerEventArgs> c:
                     c(PointerEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<PointerEventArgs> c:
+                case Func<PointerEventArgs, Task> c:
                 {
                     var args = PointerEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<TouchEventArgs> c:
+                case Action<TouchEventArgs> c:
                     c(TouchEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<TouchEventArgs> c:
+                case Func<TouchEventArgs, Task> c:
                 {
                     var args = TouchEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<ClipboardEventArgs> c:
+                case Action<ClipboardEventArgs> c:
                     c(ClipboardEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<ClipboardEventArgs> c:
+                case Func<ClipboardEventArgs, Task> c:
                 {
                     var args = ClipboardEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<MediaEventArgs> c:
+                case Action<MediaEventArgs> c:
                     c(MediaEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<MediaEventArgs> c:
+                case Func<MediaEventArgs, Task> c:
                 {
                     var args = MediaEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
@@ -1796,7 +1910,7 @@ public abstract class Component
             // higher. For non-boundary owners (regular components), fall back to their
             // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
             // catch-and-log still fires.
-            ResolveHandlerBoundary(owner)!.Trip(ex, ErrorSource.Handler);
+            ResolveHandlerBoundary(owner)!.Trip(ex, ErrorSource.Action);
             return true;
         }
     }
@@ -1970,19 +2084,6 @@ public abstract class Component
             RaskStringBuilderPool.Shared.Return(pageBuilder);
         }
 
-        // Fail-fast backstop for a malformed root: the App must render the full page shell
-        // (Doctype/Html/Head/Body). The RASK021 analyzer catches this at compile time, but
-        // an App built from a referenced library or via a delegated helper can slip past it,
-        // so verify the finalized HTML here too. A throwing App renders the RootErrorBoundary
-        // fallback (which has its own shell); this only fires when the App renders cleanly but
-        // structurally incomplete. Gated on RootErrorBoundary because that's the wrapper both
-        // hosts install around the real app root — direct RenderAsLiveRoot calls (the test
-        // helper path, used to render partial component trees) are intentionally exempt.
-        if (this is RootErrorBoundary)
-        {
-            ValidateRootShell(sink is not null ? sink.CurrentSpan : html.AsSpan());
-        }
-
         // Post-render alive set: union of _children across the whole tree, reachable from root.
         // Components that re-rendered have fresh _children; components that skipped kept theirs.
         CollectAlive(this, Live.AliveNow);
@@ -2061,29 +2162,6 @@ public abstract class Component
                 ctx.Dispose();
             }
         }
-    }
-
-    private static void ValidateRootShell(ReadOnlySpan<char> html)
-    {
-        List<string>? missing = null;
-        foreach (var (token, factory) in _requiredShell)
-        {
-            if (html.IndexOf(token, StringComparison.OrdinalIgnoreCase) < 0)
-            {
-                (missing ??= new List<string>()).Add(factory);
-            }
-        }
-
-        if (missing is null)
-        {
-            return;
-        }
-
-        throw new InvalidOperationException(
-            "The Rask root component must render a full page shell, but the rendered output is "
-            + "missing: " + string.Join(", ", missing) + ". A root render should look like:\n"
-            + "    [Doctype(), Html(\"en\")[Head(), Body()[ /* content */ ]]]\n"
-            + "The runtime <script> is injected into <body> automatically — you do not need to add it.");
     }
 
     private static void CollectAlive(Component root, HashSet<Component> seen)
@@ -2356,6 +2434,11 @@ public abstract class Component
         public CancellationTokenSource? LifetimeCts;
         public Component? CachedRenderResult;
 
+        // The Head override's output, produced by the same render as CachedRenderResult and re-read
+        // (never re-run) by every later collection of it — see Component.CachedHeadInternal. Null on
+        // the components that have no Head, which is nearly all of them.
+        public Component? CachedHead;
+
         // Phase B clean-subtree frame cache — see CachedSubtree. ONE reference, not the handful of
         // fields the snapshot actually needs: LiveState is allocated per node on a mounted page, so
         // every field here costs ~8 B on every node of every live session (measured: ~56 KB per field
@@ -2371,7 +2454,7 @@ public abstract class Component
         public IReadOnlyDictionary<string, string?>? Aria;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
-        public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
+        public Dictionary<string, (Component Owner, Delegate Action)>? Handlers;
         public bool HasInitialized;
         public bool HasRenderedOnce;
         public bool IsDisposed;
@@ -2382,6 +2465,17 @@ public abstract class Component
         public Dictionary<(Type, int), Component>? PreviousChildren;
         public bool PropsDirty;
         public bool StateDirty;
+
+        // Builder surface. Two more bools rather than a wider record: LiveState is allocated per node
+        // on a mounted page, and these two land in the padding the six above already leave behind — so
+        // the deferred-commit machinery costs nothing per node (see the note on Cached).
+        //
+        // EntryPropsChanged: a folding setter wrote a different value since the last commit (the
+        // setter-chain equivalent of the factory's __propsChanged). HasEntryChildren: at least one
+        // child of THIS component came from a builder entry during the Render() now in flight, so the
+        // post-Render commit loop has work to do.
+        public bool EntryPropsChanged;
+        public bool HasEntryChildren;
     }
 }
 

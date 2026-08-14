@@ -2,7 +2,7 @@
 
 namespace Rask.Core.Tests.Components;
 
-public class InputTests
+public partial class InputTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_ReturnsSelfClosingTag() =>
@@ -18,7 +18,7 @@ public class InputTests
 
         Assert.Equal(
             "<input type=\"number\" name=\"Price\" value=\"0\" max=\"10\" step=\"any\" pattern=\"p\" />",
-            Input(() => model.Price, Max: "10", Pattern: "p").ToHtml());
+            Input.Bind(() => model.Price).Max("10").Pattern("p").ToHtml());
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class InputTests
         // Integral types must NOT get step="any" — there, whole numbers are the constraint you want.
         var model = new PriceModel();
 
-        Assert.DoesNotContain("step=", Input(() => model.Quantity).ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("step=", Input.Bind(() => model.Quantity).ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class InputTests
     {
         var model = new PriceModel();
 
-        Assert.Contains("step=\"0.01\"", Input(() => model.Price, Step: "0.01").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("step=\"0.01\"", Input.Bind(() => model.Price).Step("0.01").ToHtml(), StringComparison.Ordinal);
     }
 
     private sealed class PriceModel

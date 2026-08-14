@@ -19,10 +19,10 @@ verbatim (so you write `"label"`, not `"aria-label"`) and the value is HTML-enco
 emits a bare attribute.
 
 ```csharp
-Button(Aria: new() { ["label"] = "Close", ["expanded"] = "false" })["✕"]
+Button.Aria(new() { ["label"] = "Close", ["expanded"] = "false" })["✕"]
 // <button aria-label="Close" aria-expanded="false">✕</button>
 
-I(Class: "bi bi-trash", Aria: new() { ["hidden"] = "true" })
+I.Class("bi bi-trash").Aria(new() { ["hidden"] = "true" })
 // <i class="bi bi-trash" aria-hidden="true"></i>  — decorative icon, skipped by screen readers
 ```
 
@@ -33,7 +33,7 @@ reachable without a typed property per attribute — `aria-live`, `aria-labelled
 A common live-region pattern:
 
 ```csharp
-Div(Role: "status", Aria: new() { ["live"] = "polite" })[_statusMessage]
+Div.Role("status").Aria(new() { ["live"] = "polite" })[_statusMessage]
 ```
 
 ## `Role` and `TabIndex`
@@ -42,8 +42,8 @@ Div(Role: "status", Aria: new() { ["live"] = "polite" })[_statusMessage]
 element:
 
 ```csharp
-Div(Role: "dialog", TabIndex: -1, Aria: new() { ["modal"] = "true", ["labelledby"] = "title" })[
-    H2(Id: "title")["Edit product"],
+Div.Role("dialog").TabIndex(-1).Aria(new() { ["modal"] = "true", ["labelledby"] = "title" })[
+    H2.Id("title")["Edit product"],
     // ...
 ]
 ```
@@ -68,8 +68,8 @@ Tests assert this order; it is stable across releases.
 an `Img(...)` factory call omits it:
 
 ```csharp
-Img(Src: "/logo.png", Alt: "Rask logo")   // informative image
-Img(Src: "/divider.png", Alt: "")          // decorative: empty alt hides it from assistive tech
+Img.Src("/logo.png").Alt("Rask logo")   // informative image
+Img.Src("/divider.png").Alt("")          // decorative: empty alt hides it from assistive tech
 ```
 
 Pass `Alt: ""` for purely decorative images so screen readers skip them; pass a meaningful string
@@ -89,7 +89,7 @@ control renders:
   validation fails on submit/blur.
 
 ```csharp
-BsInput(() => model.Email, Label: "Email", HelpText: "We never share it.")
+BsInput.Bind(() => model.Email).Label("Email").HelpText("We never share it.")
 // valid   → <input id="Email" aria-describedby="Email-help" …>
 // invalid → <input id="Email" class="form-control is-invalid"
 //                  aria-invalid="true" aria-describedby="Email-help Email-error" …>

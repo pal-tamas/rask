@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 ///     the unified IJSRuntime surface keeps the component identical across hosts. IJSRuntime is
 ///     injected through the ctor (the framework's DI seam), mirroring <c>ElementRefDemo</c>.
 /// </summary>
-public sealed class JsRuntimeDemo(IJSRuntime js) : Component
+public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
 {
     private string _input = string.Empty;
     private string? _lastRead;
@@ -33,31 +33,41 @@ public sealed class JsRuntimeDemo(IJSRuntime js) : Component
     }
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                Div(Class: "mb-3")[
-                    Label(Class: "form-label", For: "demo-input")["sessionStorage value"],
-                    Input(
-                        Id: "demo-input",
-                        Class: "form-control",
-                        Value: _input,
-                        OnInput: v => _input = v)
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                Div.Class("mb-3")[
+                    Label.Class("form-label").For("demo-input")["sessionStorage value"],
+                    Input
+                        .Value(_input)
+                        .Id("demo-input")
+                        .Class("form-control")
+                        .OnInput(v => _input = v)
                 ],
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(3))[
-                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "demo-set", OnClickAsync: SetAsync)[
-                        BsIcon(Name: BsIconName.Save, Class: "me-1"), "Set"],
-                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "demo-read", OnClickAsync: ReadAsync)[
-                        BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Read"],
-                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "demo-remove", OnClickAsync: RemoveAsync)[
-                        BsIcon(Name: BsIconName.Trash, Class: "me-1"), "Remove"]
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(3))[
+                    BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("demo-set").OnClickAsync(SetAsync)[
+                        BsIcon.Name(BsIconName.Save).Class("me-1"), "Set"],
+                    BsButton
+                        .Color(BsColor.Primary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("demo-read")
+                        .OnClickAsync(ReadAsync)[
+                        BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Read"],
+                    BsButton
+                        .Color(BsColor.Danger)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("demo-remove")
+                        .OnClickAsync(RemoveAsync)[
+                        BsIcon.Name(BsIconName.Trash).Class("me-1"), "Remove"]
                 ],
-                Div(Class: "mb-2")[
-                    Span(Class: "text-secondary small text-uppercase")["Last read"],
-                    Div()[Code(Class: "fs-6", Id: "demo-last-read")[_lastRead ?? "(null)"]]
+                Div.Class("mb-2")[
+                    Span.Class("text-secondary small text-uppercase")["Last read"],
+                    Div[Code.Class("fs-6").Id("demo-last-read")[_lastRead ?? "(null)"]]
                 ],
-                Div()[
-                    Span(Class: "text-secondary small text-uppercase")["Status"],
-                    Div()[Code(Class: "fs-6", Id: "demo-status")[_status ?? "(idle)"]]
+                Div[
+                    Span.Class("text-secondary small text-uppercase")["Status"],
+                    Div[Code.Class("fs-6").Id("demo-status")[_status ?? "(idle)"]]
                 ]
             ]
         ];

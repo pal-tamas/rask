@@ -10,7 +10,7 @@ public sealed class Track : Element
     public string? Kind { get; set; }
     public string? Src { get; set; }
     public string? Srclang { get; set; }
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public bool? Default { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)

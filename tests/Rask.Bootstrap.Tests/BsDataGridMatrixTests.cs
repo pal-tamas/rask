@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // The feature-by-feature suites each cover one axis. This one covers where the axes CROSS — an IQueryable with
 // a controlled sort, footers over a store-side page, master-detail over a query, a page index out of range —
 // plus the degenerate inputs a real app eventually passes. Combinations are where a grid actually breaks.
-public class BsDataGridMatrixTests
+public partial class BsDataGridMatrixTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(int Id, string Name, int Qty);
 
@@ -58,9 +58,12 @@ public class BsDataGridMatrixTests
     [Fact]
     public void Queryable_WithControlledSort_OrdersInTheStoreByTheControlledField()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: Columns(), PageSize: 2,
-            Sort: "qty", SortDescending: true, OnSortChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(Columns())
+            .PageSize(2)
+            .Sort("qty")
+            .SortDescending(true)
+            .OnSortChange(_ => { })));
 
         // Sort names the column via SortField; the store then orders by that column's SortBy.
         Assert.Equal(["Date", "Elderberry"], BodyCells(grid.Html, 0)); // 9, 7
@@ -71,9 +74,11 @@ public class BsDataGridMatrixTests
     public async Task Queryable_WithControlledSort_ReportsTheClick_AndDoesNotReorderItself()
     {
         var asked = new List<DataGridSort>();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: Columns(), PageSize: 5,
-            Sort: null, OnSortChange: s => asked.Add(s))));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(Columns())
+            .PageSize(5)
+            .Sort(null)
+            .OnSortChange(s => asked.Add(s))));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]);
 
@@ -85,9 +90,11 @@ public class BsDataGridMatrixTests
     [Fact]
     public void Queryable_WithControlledPage_RendersTheCallersPageFromTheStore()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: Columns(), PageSize: 2,
-            Page: 2, OnPageChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(Columns())
+            .PageSize(2)
+            .Page(2)
+            .OnPageChange(_ => { })));
 
         Assert.Equal(["Elderberry"], BodyCells(grid.Html, 0));
         Assert.Contains("5-5 / 5", grid.Html);
@@ -107,21 +114,27 @@ public class BsDataGridMatrixTests
             new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Footer = rows => rows.Sum(r => r.Qty) },
         ];
 
-        var queryable = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: columns, PageSize: 2)));
+        var queryable = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(columns)
+            .PageSize(2)));
         Assert.Contains("<tfoot><tr><td></td><td>8</td></tr></tfoot>", queryable.Html); // 3 + 5, this page
 
-        var list = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: columns, PageSize: 2)));
+        var list = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(columns)
+            .PageSize(2)));
         Assert.Contains("<tfoot><tr><td></td><td>25</td></tr></tfoot>", list.Html); // every row
     }
 
     [Fact]
     public async Task Queryable_SupportsMasterDetail()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Id: "g", Data: All.AsQueryable(), Columns: Columns(), PageSize: 2,
-            RowKey: r => r.Id, ExpandedContent: r => Div()[$"detail-{r.Name}"])));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(All.AsQueryable())
+            .Columns(Columns())
+            .Id("g")
+            .PageSize(2)
+            .RowKey(r => r.Id)
+            .ExpandedContent(r => Div[$"detail-{r.Name}"])));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]); // first row's expander
 
@@ -133,8 +146,8 @@ public class BsDataGridMatrixTests
     public void Queryable_WithNoPaging_RendersEveryRow()
     {
         // PageSize 0: no pager, and the whole query materialises. Legitimate for a small table.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: Columns())));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(Columns())));
 
         Assert.Equal(5, BodyCells(grid.Html, 0).Length);
         Assert.DoesNotContain("pagination", grid.Html);
@@ -145,8 +158,11 @@ public class BsDataGridMatrixTests
     {
         // Both set is contradictory input. The query knows the real count, so it wins — rather than trusting a
         // number that disagrees with the rows on screen.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), TotalCount: 999, Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(All.AsQueryable())
+            .Columns(Columns())
+            .TotalCount(999)
+            .PageSize(2)));
 
         Assert.Contains("1-2 / 5", grid.Html);
         Assert.DoesNotContain("999", grid.Html);
@@ -166,16 +182,16 @@ public class BsDataGridMatrixTests
         Assert.Equal(["Date", "Elderberry"], BodyCells(html, 0)); // 9, 7
     }
 
-    private sealed class QueryFilterHost : Component
+    private sealed partial class QueryFilterHost : Component
     {
         private bool _filtered;
 
         protected override Component? Render() =>
         [
-            Button(Type: "button", OnClick: () => _filtered = !_filtered)["filter"],
-            BsDataGrid<Row>(
-                Data: (_filtered ? All.Where(r => r.Qty > 5) : All).AsQueryable(),
-                Columns: Columns(), PageSize: 5)
+            Button.Type("button").OnClick(() => _filtered = !_filtered)["filter"],
+            BsDataGrid.Data((_filtered ? All.Where(r => r.Qty > 5) : All).AsQueryable())
+                .Columns(Columns())
+                .PageSize(5)
         ];
     }
 
@@ -184,8 +200,11 @@ public class BsDataGridMatrixTests
     [Fact]
     public void TotalCount_SmallerThanThePageSize_RendersNoPager()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.Take(2).ToList(), TotalCount: 2, Columns: Columns(), PageSize: 10)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(All.Take(2).ToList())
+            .Columns(Columns())
+            .TotalCount(2)
+            .PageSize(10)));
 
         Assert.DoesNotContain("pagination", grid.Html);
         Assert.Equal(2, BodyCells(grid.Html, 0).Length);
@@ -194,8 +213,10 @@ public class BsDataGridMatrixTests
     [Fact]
     public void TotalCount_WithNoPageSize_RendersTheSliceAndNoPager()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.Take(2).ToList(), TotalCount: 5, Columns: Columns())));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(All.Take(2).ToList())
+            .Columns(Columns())
+            .TotalCount(5)));
 
         Assert.Equal(2, BodyCells(grid.Html, 0).Length);
         Assert.DoesNotContain("pagination", grid.Html);
@@ -205,8 +226,11 @@ public class BsDataGridMatrixTests
     public void ControlledPage_BeyondTheLastPage_ClampsRatherThanRenderingNothing()
     {
         // A stale ?page=99 in the URL must not produce an empty grid with no way back.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: Columns(), PageSize: 2, Page: 99, OnPageChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .PageSize(2)
+            .Page(99)
+            .OnPageChange(_ => { })));
 
         Assert.NotEmpty(BodyCells(grid.Html, 0));
         Assert.Equal(["Elderberry"], BodyCells(grid.Html, 0)); // the last page
@@ -215,8 +239,11 @@ public class BsDataGridMatrixTests
     [Fact]
     public void ControlledPage_Negative_ClampsToTheFirstPage()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: Columns(), PageSize: 2, Page: -5, OnPageChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .PageSize(2)
+            .Page(-5)
+            .OnPageChange(_ => { })));
 
         Assert.Equal(["Banana", "Apple"], BodyCells(grid.Html, 0));
     }
@@ -226,7 +253,7 @@ public class BsDataGridMatrixTests
     [Fact]
     public void NoData_AndNoEmpty_RendersHeadersAndAnEmptyBody()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Columns: Columns())));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Columns(Columns())));
 
         Assert.Contains("<thead>", grid.Html);
         Assert.Contains("<tbody></tbody>", grid.Html);
@@ -235,7 +262,7 @@ public class BsDataGridMatrixTests
     [Fact]
     public void NoColumns_RendersAnEmptyHeaderRow_AndDoesNotThrow()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)));
 
         Assert.Contains("<thead><tr></tr></thead>", grid.Html);
     }
@@ -243,8 +270,8 @@ public class BsDataGridMatrixTests
     [Fact]
     public void ColumnWithNeitherValueNorTemplate_RendersAnEmptyCell()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.Take(1).ToList(), Columns: [new BsColumn<Row> { Title = "X" }])));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.Take(1).ToList())
+            .Columns([new BsColumn<Row> { Title = "X" }])));
 
         Assert.Contains("<tbody><tr data-rask-key=\"0\"><td></td></tr></tbody>", grid.Html);
     }
@@ -252,9 +279,8 @@ public class BsDataGridMatrixTests
     [Fact]
     public void NullCellValue_RendersEmpty_RatherThanThrowing()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.Take(1).ToList(),
-            Columns: [new BsColumn<Row> { Title = "X", Value = _ => null }])));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.Take(1).ToList())
+            .Columns([new BsColumn<Row> { Title = "X", Value = _ => null }])));
 
         Assert.Contains("<td></td>", grid.Html);
     }
@@ -262,9 +288,12 @@ public class BsDataGridMatrixTests
     [Fact]
     public void ExpandedContentReturningNull_RendersNoDetailRow()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Id: "g", Data: All.Take(1).ToList(), Columns: Columns(),
-            RowKey: r => r.Id, ExpandedContent: _ => null)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(All.Take(1).ToList())
+            .Columns(Columns())
+            .Id("g")
+            .RowKey(r => r.Id)
+            .ExpandedContent(_ => null)));
 
         // The expander still renders (the grid can't know the callback will decline until it asks).
         Assert.Contains("aria-expanded=\"false\"", grid.Html);
@@ -276,8 +305,11 @@ public class BsDataGridMatrixTests
     {
         // RowKey is documented as required for master-detail. Without it rows key by index, so a sort moves
         // the open row. This pins the documented consequence rather than pretending it works.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Id: "g", Data: All, Columns: Columns(), ExpandedContent: r => Div()[$"detail-{r.Name}"])));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid
+            .Data(All)
+            .Columns(Columns())
+            .Id("g")
+            .ExpandedContent(r => Div[$"detail-{r.Name}"])));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[2]);            // open row 0 (Banana)
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]); // sort by Name -> Apple is row 0
@@ -291,11 +323,15 @@ public class BsDataGridMatrixTests
     {
         // The ids must be unique across grids, or aria-controls on one resolves into the other.
         var grid = RaskTest.Render(new Host(() =>
-            Div()[
-                BsDataGrid<Row>(Data: All.Take(1).ToList(), Columns: Columns(),
-                    RowKey: r => r.Id, ExpandedContent: _ => Div()["a"]),
-                BsDataGrid<Row>(Data: All.Take(1).ToList(), Columns: Columns(),
-                    RowKey: r => r.Id, ExpandedContent: _ => Div()["b"])
+            Div[
+                BsDataGrid.Data(All.Take(1).ToList())
+                    .Columns(Columns())
+                    .RowKey(r => r.Id)
+                    .ExpandedContent(_ => Div["a"]),
+                BsDataGrid.Data(All.Take(1).ToList())
+                    .Columns(Columns())
+                    .RowKey(r => r.Id)
+                    .ExpandedContent(_ => Div["b"])
             ]));
 
         var ids = Regex.Matches(grid.Html, "aria-controls=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToArray();
@@ -306,8 +342,8 @@ public class BsDataGridMatrixTests
     public void SortableColumnWithNoOrderingAtAll_LeavesTheOrderAlone()
     {
         // Sortable with no SortKey/Value to compare: the header still works, the order simply doesn't change.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: [new BsColumn<Row> { Title = "X", Sortable = true }])));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns([new BsColumn<Row> { Title = "X", Sortable = true }])));
 
         Assert.Contains("aria-sort=\"none\"", grid.Html);
     }
@@ -315,8 +351,9 @@ public class BsDataGridMatrixTests
     [Fact]
     public void PageSizeLargerThanTheData_RendersEveryRowAndNoPager()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: Columns(), PageSize: 99)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .PageSize(99)));
 
         Assert.Equal(5, BodyCells(grid.Html, 0).Length);
         Assert.DoesNotContain("pagination", grid.Html);
@@ -325,9 +362,12 @@ public class BsDataGridMatrixTests
     [Fact]
     public void AllDensityFlagsOff_RendersABareTable()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.Take(1).ToList(), Columns: Columns(),
-            Striped: false, Hover: false, Small: false, Responsive: false)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.Take(1).ToList())
+            .Columns(Columns())
+            .Striped(false)
+            .Hover(false)
+            .Small(false)
+            .Responsive(false)));
 
         Assert.Contains("<table class=\"table\">", grid.Html);
         Assert.DoesNotContain("table-responsive", grid.Html);
@@ -339,8 +379,10 @@ public class BsDataGridMatrixTests
         BsColumn<Row>[] columns =
             [new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Footer = rows => rows.Sum(r => r.Qty) }];
 
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: columns, RowKey: r => r.Id, ExpandedContent: _ => Div()["d"])));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(columns)
+            .RowKey(r => r.Id)
+            .ExpandedContent(_ => Div["d"])));
 
         // One spacer for the expander column, then the total.
         Assert.Contains("<tfoot><tr><td></td><td>25</td></tr></tfoot>", grid.Html);
@@ -349,8 +391,9 @@ public class BsDataGridMatrixTests
     [Fact]
     public void ActivePage_IsMarkedForAssistiveTech()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All)
+            .Columns(Columns())
+            .PageSize(2)));
 
         Assert.Contains("aria-current=\"page\"", grid.Html);
     }

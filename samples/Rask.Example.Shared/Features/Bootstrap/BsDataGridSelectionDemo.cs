@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 // The reported keys are RowKey values, not rows. The grid only ever holds the current page (under TotalCount
 // or an IQueryable it has never seen the rest), so mapping keys back to entities is the caller's job — and a
 // real app re-checks them server-side before acting, since a key can name a row that has since been deleted.
-public sealed class BsDataGridSelectionDemo : Component
+public sealed partial class BsDataGridSelectionDemo : Component
 {
     private sealed record Task_(int Id, string Title, string Assignee, string State);
 
@@ -29,32 +29,30 @@ public sealed class BsDataGridSelectionDemo : Component
     private string? _done;
 
     protected override Component? Render() =>
-        Div(Id: "grid-selection-demo")[
-            Div(Class: Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), "gap-2", Margin.Bottom(3)))[
-                BsButton(
-                    Id: "grid-bulk-archive",
-                    Color: BsColor.Danger,
-                    Disabled: _selected.Count == 0,
-                    OnClick: Archive)[$"Archive {_selected.Count} selected"],
-                _done is not null ? Span(Id: "grid-bulk-done", Class: Txt.Color(BsColor.Secondary))[_done] : null
+        Div.Id("grid-selection-demo")[
+            Div.Class(Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), "gap-2", Margin.Bottom(3)))[
+                BsButton
+                    .Id("grid-bulk-archive")
+                    .Color(BsColor.Danger)
+                    .Disabled(_selected.Count == 0)
+                    .OnClick(Archive)[$"Archive {_selected.Count} selected"],
+                _done is not null ? Span.Id("grid-bulk-done").Class(Txt.Color(BsColor.Secondary))[_done] : null
             ],
-            BsDataGrid(
-                Id: "bs-grid-selection",
-                Data: _tasks,
-                Selectable: true,
-                RowKey: t => t.Id,
-                // The full set of selected keys after every click — not a delta.
-                OnSelectionChange: keys => _selected = keys,
-                Empty: BsAlert(Id: "grid-selection-empty", Color: BsColor.Success)["Nothing left. Archived it all."],
-                Columns:
-                [
+            BsDataGrid
+                .Data(_tasks)
+                .Columns([
                     new BsColumn<Task_> { Title = "Task", Value = t => t.Title, Sortable = true },
                     new BsColumn<Task_> { Title = "Assignee", Value = t => t.Assignee, Sortable = true },
                     new BsColumn<Task_>
                     {
                         Title = "State", Sortable = true, SortKey = t => t.State, Template = StateBadge,
                     },
-                ])];
+                ])
+                .Id("bs-grid-selection")
+                .Selectable(true)
+                .RowKey(t => t.Id)
+                .OnSelectionChange(keys => _selected = keys)
+                .Empty(BsAlert.Id("grid-selection-empty").Color(BsColor.Success)["Nothing left. Archived it all."])];
 
     private void Archive()
     {
@@ -66,10 +64,11 @@ public sealed class BsDataGridSelectionDemo : Component
     }
 
     private static Component StateBadge(Task_ task) =>
-        BsBadge(Color: task.State switch
-        {
-            "Done" => BsColor.Success,
-            "Doing" => BsColor.Warning,
-            _ => BsColor.Secondary,
-        })[task.State];
+        BsBadge
+            .Color(task.State switch
+            {
+                "Done" => BsColor.Success,
+                "Doing" => BsColor.Warning,
+                _ => BsColor.Secondary,
+            })[task.State];
 }

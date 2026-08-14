@@ -9,14 +9,14 @@ namespace Rask.Example.Shared.Tests.Demos;
 // assert the derived readout updates, proving the consumer re-renders for every (control × mode). The
 // controlled cases are the regression guard for the controlled-OnChange dirty-mark fix; the bound cases
 // pin two-way parity. The full browser walk is covered in SharedSmokeTests.
-public sealed class FormControlsDemoTests
+public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
 {
     // ---- Select ----
 
     [Fact]
     public async Task Select_Controlled_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsSelectDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsSelectDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Picked: <strong>Rask</strong>", html);
 
@@ -29,7 +29,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Select_Bound_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsSelectDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsSelectDemo, TestServices.Default());
         var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-select-bound\"", "data-rask-on-change");
@@ -45,7 +45,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Input_Controlled_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsInputDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsInputDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Echo: <strong>(empty)</strong>", html);
 
@@ -58,7 +58,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Input_Bound_OnInput_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsInputDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsInputDemo, TestServices.Default());
         var html = page.Render();
 
         // A bound text Input streams via data-rask-on-input (per keystroke); the change handler only touches.
@@ -73,7 +73,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Textarea_Controlled_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsTextareaDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsTextareaDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Length: <strong>0</strong>", html);
 
@@ -86,7 +86,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Textarea_Bound_OnInput_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsTextareaDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsTextareaDemo, TestServices.Default());
         var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-textarea-bound\"", "data-rask-on-input");
@@ -102,7 +102,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Radio_Controlled_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsRadioDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsRadioDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Plan: <strong>Free</strong>", html);
 
@@ -116,7 +116,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Radio_Bound_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsRadioDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsRadioDemo, TestServices.Default());
         var html = page.Render();
 
         // Bound group renders second → second occurrence of value="Team".
@@ -133,7 +133,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Checkbox_Controlled_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsCheckboxDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsCheckboxDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Interests: <strong>none</strong>", html);
 
@@ -146,7 +146,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Checkbox_Bound_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsCheckboxDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsCheckboxDemo, TestServices.Default());
         var html = page.Render();
 
         var id = HandlerIn(html, "value=\"Mobile\"", "data-rask-on-change", skip: 1);
@@ -162,7 +162,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task MultiSelect_Controlled_Select_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsMultiSelectDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsMultiSelectDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Selected: <strong>none</strong>", html);
 
@@ -176,7 +176,7 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task MultiSelect_Bound_Select_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsMultiSelectDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FormControlsMultiSelectDemo, TestServices.Default());
         var html = page.Render();
 
         // 5 controlled option buttons, then 5 bound → bound Tech is index 7.

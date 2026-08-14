@@ -16,7 +16,7 @@ namespace Rask.Example.Shared.Features;
 ///         WebSocket frame per message.
 ///     </para>
 /// </summary>
-public sealed class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposable
+public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposable
 {
     private readonly List<string> _log = [];
     private readonly List<RtcIceCandidate> _pendingForCaller = [];

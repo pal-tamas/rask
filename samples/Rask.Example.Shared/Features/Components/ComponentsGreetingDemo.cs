@@ -5,21 +5,21 @@ namespace Rask.Example.Shared.Features;
 // parameters are derived from the public settable properties:
 //   • Name  — non-nullable, no initializer → required factory parameter.
 //   • Title — nullable                     → optional, defaults to null.
-public sealed class Greeting : Component
+public sealed partial class Greeting : Component
 {
     public required string Name { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 
     protected override Component? Render() =>
-        P(Class: "mb-0")[
+        P.Class("mb-0")[
             Title is null ? "" : $"{Title} ",
-            "Hello, ", Strong()[Name], "!"
+            "Hello, ", Strong[Name], "!"
         ];
 }
 
 // Call site: invoke the generated factory by its bare name — it is globally
 // visible through an auto-generated `global using static`, no using needed.
-public sealed class ComponentsGreetingDemo : Component
+public sealed partial class ComponentsGreetingDemo : Component
 {
-    protected override Component? Render() => Greeting("Ada", "Dr.");
+    protected override Component? Render() => Greeting.Name("Ada").Title("Dr.");
 }

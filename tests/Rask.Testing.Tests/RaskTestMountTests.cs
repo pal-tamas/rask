@@ -7,7 +7,7 @@ namespace Rask.Testing.Tests;
 // and OnMountAsync never ran, which left anything that loads asynchronously stuck on its placeholder
 // forever and pushed coverage that belongs in a unit test out to E2E. These pin the mount, the repaint
 // that follows an asynchronous mount, and the guarantees that had to survive the fix.
-public class RaskTestMountTests
+public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
 {
     private sealed class Probe : Component
     {
@@ -25,7 +25,7 @@ public class RaskTestMountTests
 
         protected override void OnUnmount() => Calls.Add(nameof(OnUnmount));
 
-        protected override Component Render() => Div()["probe"];
+        protected override Component Render() => Div["probe"];
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class RaskTestMountTests
             _loaded = "loaded";
         }
 
-        protected override Component Render() => Div()[_loaded ?? "placeholder"];
+        protected override Component Render() => Div[_loaded ?? "placeholder"];
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class RaskTestMountTests
 
     private sealed class Stuck : Component
     {
-        protected override Component Render() => Div()["stuck"];
+        protected override Component Render() => Div["stuck"];
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class RaskTestMountTests
             StateHasChanged();
         }
 
-        protected override Component Render() => Div()[_label];
+        protected override Component Render() => Div[_label];
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public class RaskTestMountTests
 
         protected override void OnMount() => Mounts++;
 
-        protected override Component Render() => Div()["counter"];
+        protected override Component Render() => Div["counter"];
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public class RaskTestMountTests
     {
         // The other half of that choice: GetOrCreateChild's reuse branch nulls Children, which would
         // delete a caller-built subtree on the second render.
-        var page = RaskTest.Render(Div()[Span()["kept"]]);
+        var page = RaskTest.Render(Div[Span["kept"]]);
         page.Render();
         page.Render();
 
