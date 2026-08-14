@@ -35,6 +35,9 @@ them until tagged releases begin.
 - **The README advertised `rask generate`, removed in #672.** Two places in the README and one in the
   roadmap still listed it in the CLI's command set, while `docs/cli.md` says plainly that it does not
   exist.
+- **`pwa.md` implied WASM had Background Sync.** It listed "no background sync" among the things a
+  Server app gives up, alongside genuinely WASM-only features — but Background Sync is wrapped on
+  neither host. Stated plainly in both places, with the gap tracked in #695.
 - **Eight shipping packages were missing from the README.** `Rask.Signaling`, `Rask.ObjectStore`,
   `Rask.Postgres`, `Rask.SqlServer`, `Rask.Sync`, `Rask.Sync.Client`, `Rask.SQLite.Crdt` and
   `Rask.SQLite.Crdt.Sync` had no badge and no row in the package → project-type → entry-point table.
