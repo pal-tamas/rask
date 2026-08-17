@@ -89,6 +89,11 @@ public sealed class IdleDetectorService : IIdleDetector
 
     // Root IdleDetectorInterop's [JSInvokable] for the WASM trimmer — it's reached only via the JS
     // DotNetDispatcher (reflection), so without this the Changed method could be trimmed away.
+    /// <summary>
+    ///     Creates the service. Registered for you — inject <see cref="IIdleDetector" /> rather than
+    ///     constructing this.
+    /// </summary>
+    /// <param name="js">The JS interop runtime the wrapper calls through.</param>
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, typeof(IdleDetectorInterop))]
     public IdleDetectorService(IJSRuntime js) => _js = js;
 

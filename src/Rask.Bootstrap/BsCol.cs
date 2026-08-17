@@ -24,14 +24,32 @@ namespace Rask.Bootstrap;
 //
 // (Not to be confused with BsColumn<T>, which is a data-grid column definition — a config object passed to
 // BsDataGrid's Columns, not a component.)
+
+/// <summary>
+///     A grid column, in a twelve-column layout. Set the breakpoint props for the widths where the layout
+///     should change, and leave the rest to inherit.
+/// </summary>
 public sealed partial class BsCol : BsBlock
 {
+    /// <summary>How many of the twelve columns to occupy at every breakpoint.</summary>
     public new int? Span { get; set; }
+
+    /// <summary>Sizes the column to its content instead of a fixed share.</summary>
     public bool? Auto { get; set; }
+
+    /// <summary>The span from the small breakpoint up.</summary>
     public int? Sm { get; set; }
+
+    /// <summary>The span from the medium breakpoint up.</summary>
     public int? Md { get; set; }
+
+    /// <summary>The span from the large breakpoint up.</summary>
     public int? Lg { get; set; }
+
+    /// <summary>The span from the extra-large breakpoint up.</summary>
     public int? Xl { get; set; }
+
+    /// <summary>The span from the largest breakpoint up.</summary>
     public int? Xxl { get; set; }
 
     protected override Component? Render()

@@ -9,18 +9,39 @@ namespace Rask.Bootstrap;
 // the panel inline and static — the canonical pattern for a sidebar that collapses to a hamburger on
 // mobile but sits in the layout on desktop. The header and backdrop are hidden at/above the breakpoint
 // so the static panel carries no drawer chrome.
+
+/// <summary>
+///     A panel that slides in from an edge — a mobile navigation drawer, a filter panel. Like a modal, it
+///     traps focus while open.
+/// </summary>
 public sealed partial class BsOffcanvas : BsBlock
 {
+    /// <summary>Whether the panel is shown.</summary>
     public bool? Open { get; set; }
+
+    /// <summary>Which edge it slides in from.</summary>
     public BsPlacement? Placement { get; set; }
+
+    /// <summary>
+    ///     Shows the content inline above this breakpoint and only becomes a drawer below it.
+    /// </summary>
     public Bp? Responsive { get; set; }
+
+    /// <summary>The panel's heading, and its accessible name.</summary>
     public new string? Title { get; set; }
+
+    /// <summary>Hides the close button. Leave the user another way out.</summary>
     public bool? HideClose { get; set; }
 
     // Renders the dimming backdrop while open (default true).
+
+    /// <summary>Whether a backdrop covers the page behind the panel.</summary>
     public bool? Backdrop { get; set; }
 
+    /// <summary>Runs when the panel is dismissed.</summary>
     public Action? OnClose { get; set; }
+
+    /// <summary>Runs when the panel is dismissed, asynchronously.</summary>
     public Func<Task>? OnCloseAsync { get; set; }
 
     protected override Component? Render()

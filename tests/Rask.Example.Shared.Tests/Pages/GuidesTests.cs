@@ -22,6 +22,29 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Markdown_RendersReferenceStyleMdnLinks_AsRealAnchors()
+    {
+        // The element catalog in docs/elements.md links all ~104 tags to MDN reference-style, with the
+        // definitions collected at the end — inline URLs that long would bury the prose. A renderer
+        // that did not resolve them would print the literal "[`a`][a]" on the docs site, so this pins
+        // that the site's pipeline does.
+        var html = Markdown.Source(
+                "[`video`][video], [`wbr`][wbr]:\n\n"
+                + "<!-- a comment between the prose and the definitions -->\n\n"
+                + "[video]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video\n"
+                + "[wbr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/wbr\n")
+            .ToHtml();
+
+        Assert.Contains(
+            "href=\"https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video\"",
+            html,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("[`video`][video]", html, StringComparison.Ordinal);
+        // The definition lines must be consumed, not printed as text below the catalog.
+        Assert.DoesNotContain("[wbr]:", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Markdown_RewritesInternalGuideLink_ToSpaRoute() =>
         Assert.Contains("href=\"/guides/routing\" data-rask-nav", Markdown.Source("[Routing](routing.md)").ToHtml());
 

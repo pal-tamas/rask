@@ -2,9 +2,18 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap breadcrumb: <nav aria-label="breadcrumb"><ol class="breadcrumb">…</ol></nav> holding
 // BsBreadcrumbItem children.
+
+/// <summary>
+///     A trail showing where the current page sits in the hierarchy.
+/// </summary>
 public sealed partial class BsBreadcrumb : BsBlock
 {
     // Accessible label for the surrounding <nav>; defaults to "breadcrumb".
+    /// <summary>
+    ///     The accessible name for this breadcrumb landmark, announced instead of the generic role. Two
+    ///     navigation landmarks on one page need distinct names, or a screen-reader user hears the same
+    ///     thing twice with no way to tell them apart.
+    /// </summary>
     public new string? Label { get; set; }
 
     protected override Component? Render()
@@ -16,9 +25,17 @@ public sealed partial class BsBreadcrumb : BsBlock
 
 // A breadcrumb item: <li class="breadcrumb-item">. Pass Href for a link; mark the current page with
 // Active (renders plain text + aria-current="page").
+
+/// <summary>
+///     One step in a breadcrumb trail. The last one is the current page and should be marked <c>Active</c>
+///     rather than linked.
+/// </summary>
 public sealed partial class BsBreadcrumbItem : BsBlock
 {
+    /// <summary>Marks this the current page, which renders it unlinked.</summary>
     public bool? Active { get; set; }
+
+    /// <summary>Where the step links to.</summary>
     public string? Href { get; set; }
 
     protected override Component? Render()

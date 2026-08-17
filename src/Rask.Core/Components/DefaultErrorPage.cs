@@ -4,6 +4,10 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
+/// <summary>
+///     The built-in error page, rendered when a request fails. It shows diagnostics in development and a
+///     bare apology in production — never leak the detailed variant to real users.
+/// </summary>
 [SkipFactory]
 public sealed class DefaultErrorPage : Component
 {

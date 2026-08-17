@@ -19,16 +19,30 @@ namespace Rask.Bootstrap;
 //
 // Horizontal emits no flex-row token, because row is already the flex default — which keeps
 // BsStack(Gap: 2) byte-identical to the "d-flex gap-2" it replaces.
+
+/// <summary>
+///     A one-dimensional flex layout with a consistent gap — the quickest way to lay out a row of buttons
+///     or a column of fields without writing flex classes.
+/// </summary>
 public sealed partial class BsStack : BsBlock
 {
+    /// <summary>Stacks the children in a column rather than a row.</summary>
     public bool? Vertical { get; set; }
+
+    /// <summary>The space between children.</summary>
     public int? Gap { get; set; }
+
+    /// <summary>How the children are distributed along the main axis.</summary>
     public BsJustify? Justify { get; set; }
+
+    /// <summary>How the children line up across the cross axis.</summary>
     public BsAlign? Align { get; set; }
 
     // Lets the items flow onto more lines (.flex-wrap). Named for whose wrapping it controls — the stack's
     // items, not the stack itself. (It also has to be: a Wrap property would hide BsBlock's Wrap(string)
     // helper, which is CS0108 and this repo builds warnings-as-errors.)
+
+    /// <summary>Lets the children wrap onto more than one line.</summary>
     public bool? WrapItems { get; set; }
 
     protected override Component? Render() => Div

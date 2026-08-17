@@ -3,6 +3,7 @@
 > Show a local notification from the page.
 
 - **Wraps:** Notifications API
+- **MDN:** [Notifications API](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅ ★

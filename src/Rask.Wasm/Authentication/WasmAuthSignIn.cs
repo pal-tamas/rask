@@ -13,13 +13,34 @@ namespace Rask.Wasm.Authentication;
 /// </summary>
 public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, Navigator navigator) : IAuthSignIn
 {
+    /// <summary>
+    ///     The server endpoint that sign-out posts to, so the server can clear the auth cookie. Defaults to
+    ///     <c>auth/logout</c>. Signing out in the browser alone would leave the session valid on the
+    ///     server, so this path has to exist and actually invalidate it.
+    /// </summary>
     public string LogoutPath { get; init; } = "auth/logout";
 
+    /// <summary>
+    ///     Not supported in the browser, and throws. A WASM app cannot mint its own principal — anything
+    ///     the client decides about who it is, it has decided about itself. Post the credentials to a
+    ///     server endpoint with <see cref="HttpClient" /> and let the server issue the identity.
+    /// </summary>
+    /// <param name="principal">Unused.</param>
+    /// <param name="returnUrl">Unused.</param>
+    /// <param name="scheme">Unused.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
     public Task SignInAsync(ClaimsPrincipal principal, string? returnUrl = null, string? scheme = null) =>
         throw new NotSupportedException(
             "WasmAuthSignIn does not support principal-based sign-in. " +
             "POST credentials to your server endpoint via HttpClient instead.");
 
+    /// <summary>
+    ///     Signs the user out: posts to <see cref="LogoutPath" /> so the server clears the auth cookie,
+    ///     refreshes the current user, then navigates to <paramref name="returnUrl" /> without a full page
+    ///     reload.
+    /// </summary>
+    /// <param name="returnUrl">Where to go afterwards.</param>
+    /// <param name="scheme">Authentication scheme, when the server distinguishes several.</param>
     public async Task SignOutAsync(string? returnUrl = null, string? scheme = null)
     {
         await http.PostAsync(LogoutPath, null).ConfigureAwait(false);

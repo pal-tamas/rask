@@ -9,10 +9,54 @@ namespace Rask.Core;
 // HTML-only concerns.
 public abstract partial class Element : Component
 {
+    /// <summary>
+    ///     The global <c>id</c> attribute — this element's unique identifier in the document. It is what a
+    ///     <c>#fragment</c> link scrolls to, what a <c>label</c>'s <c>for</c> points at, and what
+    ///     <c>aria-labelledby</c> / <c>aria-describedby</c> reference.
+    ///     <para>
+    ///         It must be unique across the whole page, so treat it as a scarce resource: reach for a class
+    ///         or a <see cref="Data" /> attribute when you only need to find or style an element, and spend
+    ///         an id where something else has to point at this one by name.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/id">MDN</see>
+    /// </summary>
     public string? Id { get; set; }
+
+    /// <summary>
+    ///     The global <c>class</c> attribute — a space-separated list of class names, the usual hook for CSS
+    ///     and for finding an element from script.
+    ///     <para>
+    ///         The whole string is the value, so composing one conditionally means composing the string:
+    ///         <c>.Class(active ? "tab active" : "tab")</c>. Scoped CSS is applied separately and does not
+    ///         go through here.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/class">MDN</see>
+    /// </summary>
     public string? Class { get; set; }
+
+    /// <summary>
+    ///     The global <c>style</c> attribute — CSS declarations applied to this element alone.
+    ///     <para>
+    ///         Inline style beats every stylesheet rule short of <c>!important</c> and cannot be overridden
+    ///         from a theme, so keep it for values only known at runtime (a computed width, a progress
+    ///         offset) and put the rest in scoped CSS, where it stays themeable and cacheable.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/style">MDN</see>
+    /// </summary>
     public new string? Style { get; set; }
 
+    /// <summary>
+    ///     Custom <c>data-*</c> attributes. Each entry emits <c>data-{key}="{value}"</c> — the key verbatim,
+    ///     the value HTML-encoded — so <c>.Data("test-id", "submit")</c> renders
+    ///     <c>data-test-id="submit"</c>. A <see langword="null" /> value renders the attribute bare, the way
+    ///     <c>disabled</c> is written; <c>""</c> renders <c>=""</c>, which is a different attribute.
+    ///     <para>
+    ///         This is the supported place to hang your own metadata on an element — test hooks, values a
+    ///         piece of interop JS reads back through <c>dataset</c>. Names must be lowercase and
+    ///         hyphenated, never camelCase.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/data-*">MDN</see>
+    /// </summary>
     public new IReadOnlyDictionary<string, string?>? Data { get; set; }
 
     // Accessibility, available on every element. `Aria` is the data-* model applied to ARIA: each
@@ -23,18 +67,53 @@ public abstract partial class Element : Component
     // keyboard focus. All three are nullable → optional factory parameters, like the other HTML attrs.
     // Like Ref, their storage is hoisted into the lazy LiveState (a11y attrs are opt-in and rare), so
     // an element that sets none keeps `_live` null and pays no per-instance footprint for the feature.
+    /// <summary>
+    ///     The ARIA <c>role</c> — what this element *is* to assistive technology, when the tag alone does
+    ///     not say it. A <c>div</c> wired up as a tab strip needs <c>.Role("tablist")</c>; a
+    ///     <see cref="Components.Button" /> already reports itself as a button and needs nothing.
+    ///     <para>
+    ///         Prefer the native element over a role every time one exists. A role changes only what is
+    ///         announced — it does not bring the keyboard behaviour, focus handling or state the real
+    ///         element has, so overriding semantics you have not also implemented makes a control less
+    ///         usable, not more.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles">MDN</see>
+    /// </summary>
     public string? Role
     {
         get => RoleInternal;
         set => RoleInternal = value;
     }
 
+    /// <summary>
+    ///     The global <c>tabindex</c> attribute — whether, and where, this element sits in the keyboard tab
+    ///     order. <c>0</c> makes it focusable in document order; <c>-1</c> makes it focusable only from
+    ///     script (<c>.Focus()</c>), which is what a roving-focus widget or a scroll target wants.
+    ///     <para>
+    ///         A positive value jumps the element ahead of everything with <c>0</c>, across the entire page,
+    ///         and is almost always a bug: it makes tab order depend on numbers scattered through unrelated
+    ///         components. Order the markup instead.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/tabindex">MDN</see>
+    /// </summary>
     public int? TabIndex
     {
         get => TabIndexInternal;
         set => TabIndexInternal = value;
     }
 
+    /// <summary>
+    ///     ARIA states and properties. Each entry emits <c>aria-{key}="{value}"</c> — the key verbatim, the
+    ///     value HTML-encoded — so <c>.Aria("label", "Close")</c> renders <c>aria-label="Close"</c>. The
+    ///     whole ARIA vocabulary is reachable this way, with no typed property per attribute.
+    ///     <para>
+    ///         State belongs here, not just labels: <c>aria-expanded</c>, <c>aria-selected</c> and
+    ///         <c>aria-checked</c> have to be re-rendered as the value changes, or a screen-reader user is
+    ///         told the opposite of what is on screen. Only reach for <c>aria-label</c> when there is no
+    ///         visible text to point at with <c>aria-labelledby</c> — a visible label serves everyone.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes">MDN</see>
+    /// </summary>
     public IReadOnlyDictionary<string, string?>? Aria
     {
         get => AriaInternal;
@@ -65,6 +144,17 @@ public abstract partial class Element : Component
     // `_live` null and adds zero footprint — direct fields on Element are what the LiveState hoist
     // exists to avoid. The generator special-cases ElementRef to an optional factory parameter
     // (Blazor @ref parity, available on every element).
+    /// <summary>
+    ///     A stable handle on the rendered DOM node, for the cases that genuinely need one — focusing an
+    ///     input, measuring a box, handing the element to a JS library. Create it once in a field with
+    ///     <c>ElementRef.New()</c>, set it here, and pass it to <c>IJSRuntime</c>; it survives re-renders,
+    ///     and the client resolves it through the <c>data-rask-ref</c> attribute this emits.
+    ///     <para>
+    ///         It is a way *out* of the render model, so it is not the tool for changing what is on screen:
+    ///         anything you write to the DOM by hand is invisible to the diff and is overwritten by the next
+    ///         render. Drive appearance from state and keep the ref for what only the real node can answer.
+    ///     </para>
+    /// </summary>
     public ElementRef? Ref
     {
         get => ElementRefInternal;
@@ -80,6 +170,17 @@ public abstract partial class Element : Component
     private const byte FlagDraggablePresent = 1 << 1;
     private const byte FlagDraggableValue = 1 << 2;
 
+    /// <summary>
+    ///     The global <c>draggable</c> attribute — marks this element as a drag source for native HTML
+    ///     drag-and-drop. Set it together with an <c>OnDragStart</c> handler that puts something on the
+    ///     data transfer, or the drag starts and carries nothing.
+    ///     <para>
+    ///         Native drag-and-drop is a pointer gesture with no keyboard or touch equivalent, so whatever
+    ///         it does must also be reachable another way — a menu item, a pair of move buttons. It is an
+    ///         accelerator, never the only route.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/draggable">MDN</see>
+    /// </summary>
     public bool? Draggable
     {
         get => GetFlag(FlagDraggablePresent) ? GetFlag(FlagDraggableValue) : null;

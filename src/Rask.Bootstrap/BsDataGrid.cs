@@ -52,12 +52,28 @@ internal static class BsGridAria
 // custom cell. Sortable makes the header a sort toggle, ordering by SortKey (falling back to Value when
 // it is IComparable). Class is applied to the header, the cells and the footer cell (e.g. Txt.End() for
 // numbers). Footer/FooterTemplate render a summary cell in the table footer (computed over all rows).
+
+/// <summary>
+///     One column of a <c>BsDataGrid</c>: what it is titled, how each cell renders, and whether it can be
+///     sorted, grouped, hidden or reordered.
+/// </summary>
 public sealed class BsColumn<T>
 {
+    /// <summary>The column's header text.</summary>
     public string Title { get; init; } = "";
+
+    /// <summary>How to render each cell's value from its row.</summary>
     public Func<T, object?>? Value { get; init; }
+
+    /// <summary>Custom markup for the cell, when <c>Value</c>'s plain text is not enough.</summary>
     public Func<T, Component>? Template { get; init; }
+
+    /// <summary>Lets the user sort by this column.</summary>
     public bool Sortable { get; init; }
+
+    /// <summary>
+    ///     The key sent to the server when sorting by this column, for server-driven sorting.
+    /// </summary>
     public Func<T, IComparable?>? SortKey { get; init; }
     public string? Class { get; init; }
 
@@ -65,17 +81,25 @@ public sealed class BsColumn<T>
     // translate into an OrderBy. Ignored when the grid sorts in memory (that uses SortKey/Value). A Sortable
     // column with no SortField cannot be sorted that way, so its header stays plain rather than offering a
     // control that would do nothing.
+
+    /// <summary>The field to sort by, when it differs from what is displayed.</summary>
     public string? SortField { get; init; }
 
     // Orders this column inside a BsDataGrid.Query. It has to be an Expression, not a Func: only an expression
     // tree can be translated to ORDER BY, and a Func would drag the whole table into memory to sort it there —
     // exactly what Query exists to avoid. SortKey is the in-memory equivalent and is ignored in Query mode.
+
+    /// <summary>A comparison used to sort this column in memory.</summary>
     public Expression<Func<T, object?>>? SortBy { get; init; }
 
     // Footer summary for this column, computed over the full row set (e.g. a column total). Footer gives
     // text; FooterTemplate overrides it with a custom cell. A grid renders a <tfoot> when any column sets
     // either.
+
+    /// <summary>A summary value shown in the column's footer.</summary>
     public Func<IReadOnlyList<T>, object?>? Footer { get; init; }
+
+    /// <summary>Custom markup for the column's footer.</summary>
     public Func<IReadOnlyList<T>, Component>? FooterTemplate { get; init; }
 
     // Whether BsDataGrid.OnRowClick fires from this column's cells. Null (the default) means AUTO: a Value
@@ -214,6 +238,12 @@ public sealed class BsColumn<T>
 //   * an IQueryable — in the store, so the set can be arbitrarily large (server hosts only; see Data).
 //   * a list + TotalCount — Data is one already-sorted, already-paged slice you fetched and TotalCount is how
 //     many rows are really behind it, so the pager is right. This is the mode with the await in your hands.
+
+/// <summary>
+///     A data grid over a typed row sequence — sorting, paging, grouping, selection, column chooser and
+///     sticky headers. Give it <c>Data</c> and <c>Columns</c>; for a set too large to hold in memory, drive
+///     <c>Page</c> and <c>TotalCount</c> from the server and handle <c>OnPageChange</c>.
+/// </summary>
 public sealed partial class BsDataGrid<T> : BsBlock
 {
     private readonly HashSet<object> _expanded = [];
@@ -287,22 +317,45 @@ public sealed partial class BsDataGrid<T> : BsBlock
     ///     </para>
     /// </remarks>
     public new IEnumerable<T>? Data { get; set; }
+
+    /// <summary>The columns to display, in order.</summary>
     public IReadOnlyList<BsColumn<T>>? Columns { get; set; }
 
     // Rows per page; 0 (default) shows everything with no pager.
+
+    /// <summary>How many rows per page. Unset shows every row.</summary>
     public int PageSize { get; set; } = 0;
 
+    /// <summary>Shades alternate rows.</summary>
     public bool Striped { get; set; } = true;
+
+    /// <summary>Highlights the row under the pointer.</summary>
     public bool Hover { get; set; } = true;
+
+    /// <summary>Tightens the cell padding.</summary>
     public new bool Small { get; set; } = false;
+
+    /// <summary>Scrolls the grid horizontally on narrow screens instead of overflowing the page.</summary>
     public bool Responsive { get; set; } = true;
 
     // Stable per-row key (defaults to the row index) and an optional empty-state placeholder.
+
+    /// <summary>
+    ///     A stable identity per row, which reconciliation and selection both depend on. Supply it whenever
+    ///     rows can be reordered or removed.
+    /// </summary>
     public Func<T, object?>? RowKey { get; set; }
+
+    /// <summary>
+    ///     What to show when there are no rows. Say why it is empty and what to do next, rather than only
+    ///     "No data".
+    /// </summary>
     public Component? Empty { get; set; }
 
     // When set, each row gets a leading expander toggle and, when expanded, a full-width detail row built by
     // this callback (master-detail). Requires RowKey for stable expansion across sort/paging.
+
+    /// <summary>Detail markup revealed when a row is expanded.</summary>
     public Func<T, Component?>? ExpandedContent { get; set; }
 
     // ---------------------------------------------------------------------------------------------------
@@ -348,6 +401,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
 
     // The `= false` is load-bearing: a non-nullable property with no initializer becomes a *required* factory
     // parameter (RASK001) and is hoisted ahead of the optional ones — which would break every existing caller.
+
     /// <summary>Direction of the controlled <see cref="Sort" />.</summary>
     public bool SortDescending { get; set; } = false;
 

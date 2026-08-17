@@ -3,6 +3,7 @@
 > Speak text aloud; cancel the queue.
 
 - **Wraps:** SpeechSynthesis API
+- **MDN:** [SpeechSynthesis](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

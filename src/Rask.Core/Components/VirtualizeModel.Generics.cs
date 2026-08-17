@@ -22,6 +22,33 @@ public static partial class Generated
     // the typed delegate the user supplied.
     private static readonly ConditionalWeakTable<Delegate, Delegate> _erasedProviderCache = new();
 
+    /// <summary>
+    ///     Renders only the rows near the viewport, so a list of any length costs the same to render.
+    ///     This is the typed call site: <c>T</c> is inferred from <paramref name="Items" /> (or from
+    ///     <paramref name="ItemsProvider" />), and <paramref name="Render" /> receives a context whose
+    ///     visible items are already that type — no cast, no reflection.
+    /// </summary>
+    /// <typeparam name="T">The row type.</typeparam>
+    /// <param name="Render">Renders the visible window, given a typed virtualization context.</param>
+    /// <param name="Items">
+    ///     The full set of rows. For a set too large — or too remote — to hold in memory, supply
+    ///     <paramref name="ItemsProvider" /> instead.
+    /// </param>
+    /// <param name="ItemsProvider">
+    ///     Fetches one window of rows on demand. Pass this <b>or</b> <paramref name="Items" />.
+    /// </param>
+    /// <param name="ItemSize">
+    ///     Each row's height in pixels. The scroll maths assumes every row is exactly this tall, so a
+    ///     wrong value shows up as drift while scrolling.
+    /// </param>
+    /// <param name="OverscanCount">
+    ///     How many extra rows to render beyond the viewport, trading a little work for fewer blank
+    ///     rows during a fast scroll.
+    /// </param>
+    /// <param name="InitialClientHeight">
+    ///     The viewport height to assume for the first render, before the browser has reported the
+    ///     real one.
+    /// </param>
     [UnconditionalSuppressMessage("Trimming", "IL2091",
         Justification = "T flows through here only via closures over user-supplied delegates. " +
                         "No reflection, no DynamicInvoke; the typed → erased projections are static casts.")]

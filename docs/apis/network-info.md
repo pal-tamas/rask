@@ -3,6 +3,7 @@
 > Effective connection class, downlink, RTT, and Data-Saver.
 
 - **Wraps:** Network Information API
+- **MDN:** [Network Information API](https://developer.mozilla.org/en-US/docs/Web/API/Network_Information_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

@@ -3,6 +3,7 @@
 > Read `OnLine`, `Language`, and `UserAgent`.
 
 - **Wraps:** `navigator` (online/language/userAgent)
+- **MDN:** [Navigator](https://developer.mozilla.org/en-US/docs/Web/API/Navigator)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

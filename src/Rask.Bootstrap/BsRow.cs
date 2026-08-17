@@ -15,8 +15,14 @@ namespace Rask.Bootstrap;
 // Nothing else earns a prop here. Vertically centring columns of unequal height — the only other thing the
 // samples ask a row for — is BsRow(Class: Flex.Align(BsAlign.Center)): already typed, already composable,
 // and not worth a second way to say it.
+
+/// <summary>
+///     A grid row, and the required parent of every <c>BsCol</c>. It supplies the negative margins that
+///     cancel the columns' gutters.
+/// </summary>
 public sealed partial class BsRow : BsBlock
 {
+    /// <summary>The spacing between columns in this row.</summary>
     public int? Gutter { get; set; }
 
     protected override Component? Render() => Div

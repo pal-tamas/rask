@@ -28,8 +28,10 @@ public sealed partial class CachePage(
     [QueryParam("q")]
     public new string? Search { get; set; }
 
+    /// <inheritdoc />
     protected override RaskDashboardOptions Options => options;
 
+    /// <inheritdoc />
     protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
     {
         if (!cache.IsAvailable)
@@ -47,6 +49,7 @@ public sealed partial class CachePage(
              .. _rows.Select(r => $"{r.Key}:{r.ExpiresAt.Ticks}")]);
     }
 
+    /// <inheritdoc />
     protected override Component? Render()
     {
         if (IsLoading)

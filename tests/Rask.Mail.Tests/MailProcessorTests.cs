@@ -110,7 +110,13 @@ public sealed class MailProcessorTests
         try
         {
             await harness.Queue.SendAsync(SampleEmail());
-            await harness.WaitUntilAsync(async () => sender.Sent.Count == 1, advanceClock: true);
+            // Wait for the ROW to be marked processed, not merely for the send to have happened. The
+            // processor writes ProcessedAt after handing the mail to the sender, so waiting on
+            // `Sent.Count == 1` can return in the window between the two and leave ProcessedAt null —
+            // a flake that fails this assertion on a loaded machine while passing in isolation.
+            await harness.WaitUntilAsync(
+                async () => (await harness.SingleMailAsync()).ProcessedAt is not null,
+                advanceClock: true);
 
             Assert.Equal(3, sender.Attempts); // two failures then success
 

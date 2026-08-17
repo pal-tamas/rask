@@ -5,10 +5,25 @@ namespace Rask.Core.Components;
 // Shared base for the table-cell elements (Td, Th), mirroring the DOM `HTMLTableCellElement`
 // interface. Holds the colspan/rowspan/headers attributes common to both; Th adds scope/abbr,
 // which emit after this shared block (base.WriteAttributes runs first).
+
+/// <summary>
+///     The attributes <c>th</c> and <c>td</c> share, so both cell types expose one spanning surface and
+///     order those factory parameters identically. Not a tag of its own. <see
+///     href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement">MDN:
+///     HTMLTableCellElement</see>
+/// </summary>
 public abstract class HtmlTableCellElement : Element
 {
+    /// <summary>How many columns this cell spans.</summary>
     public int? Colspan { get; set; }
+
+    /// <summary>How many rows this cell spans. <c>0</c> means to the end of the section.</summary>
     public int? Rowspan { get; set; }
+
+    /// <summary>
+    ///     Space-separated <c>id</c>s of the header cells describing this one — how you make an irregular
+    ///     table readable when <c>Scope</c> is not enough.
+    /// </summary>
     public string? Headers { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)

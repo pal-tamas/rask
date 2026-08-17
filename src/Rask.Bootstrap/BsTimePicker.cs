@@ -13,12 +13,25 @@ namespace Rask.Bootstrap;
 // falls back to <input type=time>.
 //   Bound:      BsTimePicker(() => model.Alarm).Label("Alarm").MinuteStep(15)
 //   Controlled: BsTimePicker<TimeOnly>().Value(t).OnChange(v => …)
+
+/// <summary>
+///     A time picker, bound to a model field.
+/// </summary>
 public sealed partial class BsTimePicker<T> : BsPickerBase<T>
 {
+    /// <summary>The granularity of the minute list.</summary>
     public int? MinuteStep { get; set; }
+
+    /// <summary>The earliest selectable time.</summary>
     public TimeOnly? Min { get; set; }
+
+    /// <summary>The latest selectable time.</summary>
     public TimeOnly? Max { get; set; }
+
+    /// <summary>Includes a seconds column.</summary>
     public bool? Seconds { get; set; }
+
+    /// <summary>The granularity of the seconds list.</summary>
     public int? SecondStep { get; set; }
 
     // The effective minute/second steps (default 5), shared by the render and the keyboard nudge.

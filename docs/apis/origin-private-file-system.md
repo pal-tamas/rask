@@ -3,6 +3,7 @@
 > A private, persistent file tree the app owns — for a local database or any large blob.
 
 - **Wraps:** `navigator.storage.getDirectory` (OPFS)
+- **MDN:** [Origin private file system](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

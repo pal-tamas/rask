@@ -9,6 +9,17 @@ using Rask.Server.JSInterop;
 
 namespace Rask.Server;
 
+/// <summary>
+///     Every live session on this host: the component tree, DI scope and pending work behind each
+///     connected browser. Registered by <c>AddRask()</c> and driven by the WebSocket endpoint, so an app
+///     rarely touches it directly — reach for it to observe how many sessions exist, or to fan work out
+///     across them.
+/// </summary>
+/// <remarks>
+///     Sessions are server-held state and therefore a capacity limit rather than an unbounded resource:
+///     admission is reserved before a tree is built, so a burst of connections cannot exceed the
+///     configured maximum. A rejected session is counted, not queued.
+/// </remarks>
 public sealed class LiveSessionStore : IAsyncDisposable
 {
     private readonly RaskMetrics? _metrics;
@@ -36,6 +47,10 @@ public sealed class LiveSessionStore : IAsyncDisposable
     private int _connectedCount;
     private int _pendingHandlerCount;
 
+    /// <summary>Creates the store. <c>AddRask()</c> registers it; construct one directly only in tests.</summary>
+    /// <param name="scopeFactory">Creates the DI scope each session owns.</param>
+    /// <param name="lifetime">The host lifetime, so sessions drain on shutdown instead of being cut off.</param>
+    /// <param name="metrics">Where session counters are published, when metrics are enabled.</param>
     public LiveSessionStore(
         IServiceScopeFactory scopeFactory,
         IHostApplicationLifetime? lifetime = null,
@@ -57,6 +72,10 @@ public sealed class LiveSessionStore : IAsyncDisposable
         _metrics?.TrackPendingHandlers(() => PendingHandlerCount);
     }
 
+    /// <summary>
+    ///     How many sessions exist right now, connected or awaiting reconnection. Compare with
+    ///     <see cref="AtCapacity" /> to tell "busy" from "full".
+    /// </summary>
     public int Count => _sessions.Count;
 
     /// <summary>
@@ -143,6 +162,10 @@ public sealed class LiveSessionStore : IAsyncDisposable
     /// </summary>
     public bool AtCapacity => MaxSessions > 0 && Volatile.Read(ref _liveCount) >= MaxSessions;
 
+    /// <summary>
+    ///     Tears down every session and its DI scope. Runs once — repeat calls are no-ops — so a host
+    ///     shutting down cannot dispose the same session twice.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         // Runs once. The store is a DI singleton, so the container disposes it — and a host or a test that

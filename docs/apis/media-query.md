@@ -3,6 +3,7 @@
 > Evaluate a media query (dark mode, reduced motion, …).
 
 - **Wraps:** `matchMedia`
+- **MDN:** [Window.matchMedia](https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

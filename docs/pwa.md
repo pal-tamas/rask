@@ -9,7 +9,7 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 > API. A **Server** app (opt in with `AddRaskPwa`) is **installable + push-capable** — manifest, Web Push
 > subscribe, local notifications, app badge, and wake lock all work — but it is **not an offline app**:
 > it renders over a live WebSocket, so offline navigations show a static offline page, and there is no
-> background sync or install-prompt replay (those stay WASM-only). See
+> install-prompt replay (that stays WASM-only). Background Sync is wrapped on **neither** host. See
 > [choosing a host template](getting-started.md#1-scaffold-a-project) and
 > [PWA on the Server host](#pwa-on-the-server-host) below.
 
@@ -281,10 +281,11 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**. The Serv
 > **What you don't get on Server.** A Server app renders over a live WebSocket, so it is **not an
 > offline app**: the service worker deliberately does **not** cache the server-rendered shell (it
 > carries a one-shot session id and is served `no-store`), so offline navigations show `offline.html`
-> rather than a dead cached page. There is **no background sync**, and the **install-prompt replay**
-> (`IInstallPrompt`) and the activation-bound imperative device APIs (`IShare`, `IFullscreen`,
-> `IMediaDevices`, …) are not registered on Server. The honest framing: *installable + push + native-feel,
-> not an offline app.* (Sharing still works on Server via the headless `Shareable` in `Rask.Core`,
+> rather than a dead cached page. The **install-prompt replay** (`IInstallPrompt`) and the
+> activation-bound imperative device APIs (`IShare`, `IFullscreen`, `IMediaDevices`, …) are not
+> registered on Server. Background Sync is **not wrapped on either host** — it is not a Server
+> limitation, so don't reach for it on WASM either ([#695](https://github.com/pal-tamas/rask/issues/695)).
+> The honest framing: *installable + push + native-feel, not an offline app.* (Sharing still works on Server via the headless `Shareable` in `Rask.Core`,
 > which fires `navigator.share` in the click gesture; the imperative `IShare` lives in `Rask.Client`, WASM +
 > Native only.)
 
