@@ -59,12 +59,12 @@ and turns WebView events back into handler/navigate dispatches — structurally 
 
 ## Pure-native screens (no WebView)
 
-> **Status — the pipeline ships, the platform backends do not yet.** The component family, the render →
-> view-tree → diff → patch pipeline, the surface/event contract and the mixed-surface switching all ship
-> and are covered by unit tests against a test-double backend. The iOS (`UIKit`) and Android (`View`)
-> implementations of `INativeSurface` are **not written yet**, so on a real device a `NativeScreen`
-> currently paints nothing — register no `INativeSurface` and your app keeps rendering through the WebView
-> exactly as before. The table below is the mapping those backends will implement.
+> **Status — iOS ships, Android does not yet.** The component family, the render → view-tree → diff → patch
+> pipeline, the surface/event contract and the mixed-surface switching all ship, covered by unit tests
+> against a test-double backend. The **iOS** `INativeSurface` backend (`RaskWkWebView`, UIKit) ships and
+> compiles against the real SDK, but has **not yet been run on a simulator or device** — treat it as
+> untested-on-device. The **Android** backend is not written yet. Register no `INativeSurface` and your app
+> keeps rendering through the WebView exactly as before.
 
 `NativeScreen` is the pure-native counterpart of `NativeWebView`, and sits in the same slot — a sibling of
 the native bars. Everything inside it is a real platform view: no WebView, no HTML, no JavaScript.
@@ -85,12 +85,12 @@ protected override Component? Render() =>
 
 ### The components
 
-| Component | iOS (planned) | Android (planned) |
+| Component | iOS | Android (planned) |
 | --- | --- | --- |
-| `NativeScreen` | root `UIView` | root `ViewGroup` |
+| `NativeScreen` | `UIStackView` | root `ViewGroup` |
 | `NativeStack` | `UIStackView` | `LinearLayout` |
-| `NativeScroll` | `UIScrollView` | `NestedScrollView` |
-| `NativeList` | `UITableView` | `RecyclerView` |
+| `NativeScroll` | `UIScrollView` + stack | `NestedScrollView` |
+| `NativeList` | `UIScrollView` + stack | `NestedScrollView` |
 | `NativeLabel` | `UILabel` | `TextView` |
 | `NativeButton` | `UIButton` | `MaterialButton` |
 | `NativeTextField` | `UITextField` | `EditText` |
@@ -166,6 +166,10 @@ Give every row in a `NativeList` a `Key`. Keyed rows reconcile by identity, so i
 reordering **moves** the existing row views — keeping scroll position, focus and in-flight animations —
 instead of rewriting each row's contents. Without keys the rows match by position and a reorder repaints
 all of them.
+
+`NativeList` does **not** recycle rows: every row is a real view that is built once and kept. That suits
+the tens-of-rows lists most screens have, not thousands of them. Cell reuse needs the platform's recycling
+collection, whose data-source model doesn't fit a patch-addressed tree; it's a tracked follow-up.
 
 ## Get started
 
