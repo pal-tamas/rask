@@ -59,12 +59,13 @@ and turns WebView events back into handler/navigate dispatches — structurally 
 
 ## Pure-native screens (no WebView)
 
-> **Status — iOS ships, Android does not yet.** The component family, the render → view-tree → diff → patch
-> pipeline, the surface/event contract and the mixed-surface switching all ship, covered by unit tests
-> against a test-double backend. The **iOS** `INativeSurface` backend (`RaskWkWebView`, UIKit) ships and
-> compiles against the real SDK, but has **not yet been run on a simulator or device** — treat it as
-> untested-on-device. The **Android** backend is not written yet. Register no `INativeSurface` and your app
-> keeps rendering through the WebView exactly as before.
+> **Status — both backends ship; neither has been run on a device.** The component family, the render →
+> view-tree → diff → patch pipeline, the surface/event contract and the mixed-surface switching all ship,
+> covered by unit tests against a test-double backend. The **iOS** (`RaskWkWebView`, UIKit) and **Android**
+> (`RaskAndroidWebView`, framework widgets) `INativeSurface` backends both ship and both compile against
+> their real platform SDKs — but neither has yet been run on a simulator, emulator or device, so treat the
+> on-screen result as unverified. Register no `INativeSurface` and your app keeps rendering through the
+> WebView exactly as before.
 
 `NativeScreen` is the pure-native counterpart of `NativeWebView`, and sits in the same slot — a sibling of
 the native bars. Everything inside it is a real platform view: no WebView, no HTML, no JavaScript.
@@ -85,20 +86,23 @@ protected override Component? Render() =>
 
 ### The components
 
-| Component | iOS | Android (planned) |
+| Component | iOS | Android |
 | --- | --- | --- |
-| `NativeScreen` | `UIStackView` | root `ViewGroup` |
+| `NativeScreen` | `UIStackView` | `LinearLayout` |
 | `NativeStack` | `UIStackView` | `LinearLayout` |
-| `NativeScroll` | `UIScrollView` + stack | `NestedScrollView` |
-| `NativeList` | `UIScrollView` + stack | `NestedScrollView` |
+| `NativeScroll` | `UIScrollView` + stack | `ScrollView` + stack |
+| `NativeList` | `UIScrollView` + stack | `ScrollView` + stack |
 | `NativeLabel` | `UILabel` | `TextView` |
-| `NativeButton` | `UIButton` | `MaterialButton` |
+| `NativeButton` | `UIButton` | `Button` |
 | `NativeTextField` | `UITextField` | `EditText` |
-| `NativeSwitch` | `UISwitch` | `SwitchMaterial` |
+| `NativeSwitch` | `UISwitch` | `Switch` |
 | `NativeImage` | `UIImageView` | `ImageView` |
 | `NativeActivityIndicator` | `UIActivityIndicatorView` | `ProgressBar` |
 | `NativeDivider` | hairline `UIView` | hairline `View` |
 | `NativeSpacer` | flexible space | flexible space |
+
+Android uses framework widgets only — no AndroidX/Material dependency — matching how the native bars are
+built, so a pure-native screen themes with the app's default theme and adds nothing to the APK.
 
 Every callback comes in both shapes — `OnClick` (`Action`) and `OnClickAsync` (`Func<Task>`), `OnInput` /
 `OnInputAsync`, `OnChanged` / `OnChangedAsync`. The async form is **awaited before the frame is built**,
