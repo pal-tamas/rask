@@ -3,6 +3,11 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Routing;
 
+/// <summary>
+///     Matches the current URL against the app's routes and renders the page that wins. Place one near the
+///     root of the app; the pages themselves are registered by their <see cref="RouteAttribute" />, so
+///     there is no table to maintain.
+/// </summary>
 public sealed class Router : Component
 {
     private readonly RouteState _state;
@@ -32,6 +37,11 @@ public sealed class Router : Component
     // shape) Just Works — the generated factory passes Routes: null and the setter fills
     // in the default. The reference cache below prevents pointless re-flattening on
     // same-tree re-renders.
+    /// <summary>
+    ///     The route table to match against. Leave it unset — the default — and the router uses every
+    ///     <c>[Route]</c>-attributed page the generator found in the entry assembly, which is what an
+    ///     ordinary app wants. Supply a list only to route over a set you build yourself.
+    /// </summary>
     public IReadOnlyList<Route>? Routes
     {
         get => _routes;

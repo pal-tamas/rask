@@ -14,16 +14,32 @@ namespace Rask.Core.Components;
 //
 // Invoked through the generated factory `Components.DragDrop(...)`; the render delegate is the
 // `Body` parameter (named so to avoid colliding with Component.Render(), same as VirtualizeModel).
+
+/// <summary>
+///     Native HTML5 drag-and-drop for a region: renders your own markup and wires the drop target, so a
+///     file dragged onto it arrives in <c>OnDrop</c> without any JS of your own. Set <c>Draggable</c> on an
+///     element to make it a drag source. <see
+///     href="https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API">MDN: Drag and Drop
+///     API</see>
+/// </summary>
 public sealed class DragDrop : Component
 {
     // The render fragment. Called with a fresh DragDropContext every render; returns the user's
     // chosen root Component for the drag region. Named "Body" (not "Render") to avoid colliding
     // with Component.Render().
+
+    /// <summary>
+    ///     Your markup for the drop region, given the current drag state so it can show a hover style.
+    /// </summary>
     public new Func<DragDropContext, Component>? Body { get; set; }
 
     // Fired once when an item is dropped onto a zone. Set exactly one of OnDrop / OnDropAsync.
     // Calling one back is `OnDrop?.Invoke(move)`.
+
+    /// <summary>Called with what was dropped once the drop completes.</summary>
     public Action<DragDropMove>? OnDrop { get; set; }
+
+    /// <summary>Called with what was dropped once the drop completes, asynchronously.</summary>
     public Func<DragDropMove, Task>? OnDropAsync { get; set; }
 
     // DragDrop reads mutable internal drag state (source / hover target) that the framework can't

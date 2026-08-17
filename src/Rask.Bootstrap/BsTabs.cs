@@ -2,6 +2,10 @@ namespace Rask.Bootstrap;
 
 // One tab in a BsTabs control. OnSelect/OnSelectAsync are forwarded to the tab's nav button (so your
 // handler, which sets the active key on your page, re-renders through the live runtime).
+
+/// <summary>
+///     One tab: its label and the content it shows.
+/// </summary>
 public sealed record BsTabItem(
     object Key,
     string Title,
@@ -12,11 +16,23 @@ public sealed record BsTabItem(
 
 // A Bootstrap tabs control driven by Rask's live runtime (no JS). Active is the key of the selected
 // tab; only the active pane is rendered. Set Pills for the .nav-pills look.
+
+/// <summary>
+///     A tabbed panel: one set of content visible at a time, with the keyboard behaviour tabs are expected
+///     to have.
+/// </summary>
 public sealed partial class BsTabs : BsBlock
 {
+    /// <summary>The tabs to show, in order.</summary>
     public IReadOnlyList<BsTabItem>? Tabs { get; set; }
+
+    /// <summary>Which tab is selected.</summary>
     public object? Active { get; set; }
+
+    /// <summary>Renders the tabs as pills.</summary>
     public bool? Pills { get; set; }
+
+    /// <summary>Spreads the tabs to fill the available width.</summary>
     public bool? Fill { get; set; }
 
     protected override Component? Render()

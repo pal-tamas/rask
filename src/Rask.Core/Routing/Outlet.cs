@@ -3,6 +3,11 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Routing;
 
+/// <summary>
+///     Where a layout renders its current child route. Put one in a layout at the spot the page content
+///     belongs, and the layout's chrome — header, nav, footer — stays mounted across navigations while
+///     only the outlet's contents change.
+/// </summary>
 public sealed class Outlet : Component
 {
     // Cached at mount because LiveRenderContext.Current is null during disposal, so

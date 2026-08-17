@@ -9,4158 +9,6235 @@ public enum BsIconName
 {
     /// <summary>bi-0-circle</summary>
     _0Circle = 0,
+
     /// <summary>bi-0-circle-fill</summary>
     _0CircleFill = 1,
+
     /// <summary>bi-0-square</summary>
     _0Square = 2,
+
     /// <summary>bi-0-square-fill</summary>
     _0SquareFill = 3,
+
     /// <summary>bi-1-circle</summary>
     _1Circle = 4,
+
     /// <summary>bi-1-circle-fill</summary>
     _1CircleFill = 5,
+
     /// <summary>bi-1-square</summary>
     _1Square = 6,
+
     /// <summary>bi-1-square-fill</summary>
     _1SquareFill = 7,
+
     /// <summary>bi-123</summary>
     _123 = 8,
+
     /// <summary>bi-2-circle</summary>
     _2Circle = 9,
+
     /// <summary>bi-2-circle-fill</summary>
     _2CircleFill = 10,
+
     /// <summary>bi-2-square</summary>
     _2Square = 11,
+
     /// <summary>bi-2-square-fill</summary>
     _2SquareFill = 12,
+
     /// <summary>bi-3-circle</summary>
     _3Circle = 13,
+
     /// <summary>bi-3-circle-fill</summary>
     _3CircleFill = 14,
+
     /// <summary>bi-3-square</summary>
     _3Square = 15,
+
     /// <summary>bi-3-square-fill</summary>
     _3SquareFill = 16,
+
     /// <summary>bi-4-circle</summary>
     _4Circle = 17,
+
     /// <summary>bi-4-circle-fill</summary>
     _4CircleFill = 18,
+
     /// <summary>bi-4-square</summary>
     _4Square = 19,
+
     /// <summary>bi-4-square-fill</summary>
     _4SquareFill = 20,
+
     /// <summary>bi-5-circle</summary>
     _5Circle = 21,
+
     /// <summary>bi-5-circle-fill</summary>
     _5CircleFill = 22,
+
     /// <summary>bi-5-square</summary>
     _5Square = 23,
+
     /// <summary>bi-5-square-fill</summary>
     _5SquareFill = 24,
+
     /// <summary>bi-6-circle</summary>
     _6Circle = 25,
+
     /// <summary>bi-6-circle-fill</summary>
     _6CircleFill = 26,
+
     /// <summary>bi-6-square</summary>
     _6Square = 27,
+
     /// <summary>bi-6-square-fill</summary>
     _6SquareFill = 28,
+
     /// <summary>bi-7-circle</summary>
     _7Circle = 29,
+
     /// <summary>bi-7-circle-fill</summary>
     _7CircleFill = 30,
+
     /// <summary>bi-7-square</summary>
     _7Square = 31,
+
     /// <summary>bi-7-square-fill</summary>
     _7SquareFill = 32,
+
     /// <summary>bi-8-circle</summary>
     _8Circle = 33,
+
     /// <summary>bi-8-circle-fill</summary>
     _8CircleFill = 34,
+
     /// <summary>bi-8-square</summary>
     _8Square = 35,
+
     /// <summary>bi-8-square-fill</summary>
     _8SquareFill = 36,
+
     /// <summary>bi-9-circle</summary>
     _9Circle = 37,
+
     /// <summary>bi-9-circle-fill</summary>
     _9CircleFill = 38,
+
     /// <summary>bi-9-square</summary>
     _9Square = 39,
+
     /// <summary>bi-9-square-fill</summary>
     _9SquareFill = 40,
+
     /// <summary>bi-activity</summary>
     Activity = 41,
+
     /// <summary>bi-airplane</summary>
     Airplane = 42,
+
     /// <summary>bi-airplane-engines</summary>
     AirplaneEngines = 43,
+
     /// <summary>bi-airplane-engines-fill</summary>
     AirplaneEnginesFill = 44,
+
     /// <summary>bi-airplane-fill</summary>
     AirplaneFill = 45,
+
     /// <summary>bi-alarm</summary>
     Alarm = 46,
+
     /// <summary>bi-alarm-fill</summary>
     AlarmFill = 47,
+
     /// <summary>bi-alexa</summary>
     Alexa = 48,
+
     /// <summary>bi-align-bottom</summary>
     AlignBottom = 49,
+
     /// <summary>bi-align-center</summary>
     AlignCenter = 50,
+
     /// <summary>bi-align-end</summary>
     AlignEnd = 51,
+
     /// <summary>bi-align-middle</summary>
     AlignMiddle = 52,
+
     /// <summary>bi-align-start</summary>
     AlignStart = 53,
+
     /// <summary>bi-align-top</summary>
     AlignTop = 54,
+
     /// <summary>bi-alipay</summary>
     Alipay = 55,
+
     /// <summary>bi-alphabet</summary>
     Alphabet = 56,
+
     /// <summary>bi-alphabet-uppercase</summary>
     AlphabetUppercase = 57,
+
     /// <summary>bi-alt</summary>
     Alt = 58,
+
     /// <summary>bi-amazon</summary>
     Amazon = 59,
+
     /// <summary>bi-amd</summary>
     Amd = 60,
+
     /// <summary>bi-android</summary>
     Android = 61,
+
     /// <summary>bi-android2</summary>
     Android2 = 62,
+
     /// <summary>bi-anthropic</summary>
     Anthropic = 63,
+
     /// <summary>bi-app</summary>
     App = 64,
+
     /// <summary>bi-app-indicator</summary>
     AppIndicator = 65,
+
     /// <summary>bi-apple</summary>
     Apple = 66,
+
     /// <summary>bi-apple-music</summary>
     AppleMusic = 67,
+
     /// <summary>bi-archive</summary>
     Archive = 68,
+
     /// <summary>bi-archive-fill</summary>
     ArchiveFill = 69,
+
     /// <summary>bi-arrow-90deg-down</summary>
     Arrow90degDown = 70,
+
     /// <summary>bi-arrow-90deg-left</summary>
     Arrow90degLeft = 71,
+
     /// <summary>bi-arrow-90deg-right</summary>
     Arrow90degRight = 72,
+
     /// <summary>bi-arrow-90deg-up</summary>
     Arrow90degUp = 73,
+
     /// <summary>bi-arrow-bar-down</summary>
     ArrowBarDown = 74,
+
     /// <summary>bi-arrow-bar-left</summary>
     ArrowBarLeft = 75,
+
     /// <summary>bi-arrow-bar-right</summary>
     ArrowBarRight = 76,
+
     /// <summary>bi-arrow-bar-up</summary>
     ArrowBarUp = 77,
+
     /// <summary>bi-arrow-clockwise</summary>
     ArrowClockwise = 78,
+
     /// <summary>bi-arrow-counterclockwise</summary>
     ArrowCounterclockwise = 79,
+
     /// <summary>bi-arrow-down</summary>
     ArrowDown = 80,
+
     /// <summary>bi-arrow-down-circle</summary>
     ArrowDownCircle = 81,
+
     /// <summary>bi-arrow-down-circle-fill</summary>
     ArrowDownCircleFill = 82,
+
     /// <summary>bi-arrow-down-left</summary>
     ArrowDownLeft = 83,
+
     /// <summary>bi-arrow-down-left-circle</summary>
     ArrowDownLeftCircle = 84,
+
     /// <summary>bi-arrow-down-left-circle-fill</summary>
     ArrowDownLeftCircleFill = 85,
+
     /// <summary>bi-arrow-down-left-square</summary>
     ArrowDownLeftSquare = 86,
+
     /// <summary>bi-arrow-down-left-square-fill</summary>
     ArrowDownLeftSquareFill = 87,
+
     /// <summary>bi-arrow-down-right</summary>
     ArrowDownRight = 88,
+
     /// <summary>bi-arrow-down-right-circle</summary>
     ArrowDownRightCircle = 89,
+
     /// <summary>bi-arrow-down-right-circle-fill</summary>
     ArrowDownRightCircleFill = 90,
+
     /// <summary>bi-arrow-down-right-square</summary>
     ArrowDownRightSquare = 91,
+
     /// <summary>bi-arrow-down-right-square-fill</summary>
     ArrowDownRightSquareFill = 92,
+
     /// <summary>bi-arrow-down-short</summary>
     ArrowDownShort = 93,
+
     /// <summary>bi-arrow-down-square</summary>
     ArrowDownSquare = 94,
+
     /// <summary>bi-arrow-down-square-fill</summary>
     ArrowDownSquareFill = 95,
+
     /// <summary>bi-arrow-down-up</summary>
     ArrowDownUp = 96,
+
     /// <summary>bi-arrow-left</summary>
     ArrowLeft = 97,
+
     /// <summary>bi-arrow-left-circle</summary>
     ArrowLeftCircle = 98,
+
     /// <summary>bi-arrow-left-circle-fill</summary>
     ArrowLeftCircleFill = 99,
+
     /// <summary>bi-arrow-left-right</summary>
     ArrowLeftRight = 100,
+
     /// <summary>bi-arrow-left-short</summary>
     ArrowLeftShort = 101,
+
     /// <summary>bi-arrow-left-square</summary>
     ArrowLeftSquare = 102,
+
     /// <summary>bi-arrow-left-square-fill</summary>
     ArrowLeftSquareFill = 103,
+
     /// <summary>bi-arrow-repeat</summary>
     ArrowRepeat = 104,
+
     /// <summary>bi-arrow-return-left</summary>
     ArrowReturnLeft = 105,
+
     /// <summary>bi-arrow-return-right</summary>
     ArrowReturnRight = 106,
+
     /// <summary>bi-arrow-right</summary>
     ArrowRight = 107,
+
     /// <summary>bi-arrow-right-circle</summary>
     ArrowRightCircle = 108,
+
     /// <summary>bi-arrow-right-circle-fill</summary>
     ArrowRightCircleFill = 109,
+
     /// <summary>bi-arrow-right-short</summary>
     ArrowRightShort = 110,
+
     /// <summary>bi-arrow-right-square</summary>
     ArrowRightSquare = 111,
+
     /// <summary>bi-arrow-right-square-fill</summary>
     ArrowRightSquareFill = 112,
+
     /// <summary>bi-arrow-through-heart</summary>
     ArrowThroughHeart = 113,
+
     /// <summary>bi-arrow-through-heart-fill</summary>
     ArrowThroughHeartFill = 114,
+
     /// <summary>bi-arrow-up</summary>
     ArrowUp = 115,
+
     /// <summary>bi-arrow-up-circle</summary>
     ArrowUpCircle = 116,
+
     /// <summary>bi-arrow-up-circle-fill</summary>
     ArrowUpCircleFill = 117,
+
     /// <summary>bi-arrow-up-left</summary>
     ArrowUpLeft = 118,
+
     /// <summary>bi-arrow-up-left-circle</summary>
     ArrowUpLeftCircle = 119,
+
     /// <summary>bi-arrow-up-left-circle-fill</summary>
     ArrowUpLeftCircleFill = 120,
+
     /// <summary>bi-arrow-up-left-square</summary>
     ArrowUpLeftSquare = 121,
+
     /// <summary>bi-arrow-up-left-square-fill</summary>
     ArrowUpLeftSquareFill = 122,
+
     /// <summary>bi-arrow-up-right</summary>
     ArrowUpRight = 123,
+
     /// <summary>bi-arrow-up-right-circle</summary>
     ArrowUpRightCircle = 124,
+
     /// <summary>bi-arrow-up-right-circle-fill</summary>
     ArrowUpRightCircleFill = 125,
+
     /// <summary>bi-arrow-up-right-square</summary>
     ArrowUpRightSquare = 126,
+
     /// <summary>bi-arrow-up-right-square-fill</summary>
     ArrowUpRightSquareFill = 127,
+
     /// <summary>bi-arrow-up-short</summary>
     ArrowUpShort = 128,
+
     /// <summary>bi-arrow-up-square</summary>
     ArrowUpSquare = 129,
+
     /// <summary>bi-arrow-up-square-fill</summary>
     ArrowUpSquareFill = 130,
+
     /// <summary>bi-arrows</summary>
     Arrows = 131,
+
     /// <summary>bi-arrows-angle-contract</summary>
     ArrowsAngleContract = 132,
+
     /// <summary>bi-arrows-angle-expand</summary>
     ArrowsAngleExpand = 133,
+
     /// <summary>bi-arrows-collapse</summary>
     ArrowsCollapse = 134,
+
     /// <summary>bi-arrows-collapse-vertical</summary>
     ArrowsCollapseVertical = 135,
+
     /// <summary>bi-arrows-expand</summary>
     ArrowsExpand = 136,
+
     /// <summary>bi-arrows-expand-vertical</summary>
     ArrowsExpandVertical = 137,
+
     /// <summary>bi-arrows-fullscreen</summary>
     ArrowsFullscreen = 138,
+
     /// <summary>bi-arrows-move</summary>
     ArrowsMove = 139,
+
     /// <summary>bi-arrows-vertical</summary>
     ArrowsVertical = 140,
+
     /// <summary>bi-aspect-ratio</summary>
     AspectRatio = 141,
+
     /// <summary>bi-aspect-ratio-fill</summary>
     AspectRatioFill = 142,
+
     /// <summary>bi-asterisk</summary>
     Asterisk = 143,
+
     /// <summary>bi-at</summary>
     At = 144,
+
     /// <summary>bi-award</summary>
     Award = 145,
+
     /// <summary>bi-award-fill</summary>
     AwardFill = 146,
+
     /// <summary>bi-back</summary>
     Back = 147,
+
     /// <summary>bi-backpack</summary>
     Backpack = 148,
+
     /// <summary>bi-backpack-fill</summary>
     BackpackFill = 149,
+
     /// <summary>bi-backpack2</summary>
     Backpack2 = 150,
+
     /// <summary>bi-backpack2-fill</summary>
     Backpack2Fill = 151,
+
     /// <summary>bi-backpack3</summary>
     Backpack3 = 152,
+
     /// <summary>bi-backpack3-fill</summary>
     Backpack3Fill = 153,
+
     /// <summary>bi-backpack4</summary>
     Backpack4 = 154,
+
     /// <summary>bi-backpack4-fill</summary>
     Backpack4Fill = 155,
+
     /// <summary>bi-backspace</summary>
     Backspace = 156,
+
     /// <summary>bi-backspace-fill</summary>
     BackspaceFill = 157,
+
     /// <summary>bi-backspace-reverse</summary>
     BackspaceReverse = 158,
+
     /// <summary>bi-backspace-reverse-fill</summary>
     BackspaceReverseFill = 159,
+
     /// <summary>bi-badge-3d</summary>
     Badge3d = 160,
+
     /// <summary>bi-badge-3d-fill</summary>
     Badge3dFill = 161,
+
     /// <summary>bi-badge-4k</summary>
     Badge4k = 162,
+
     /// <summary>bi-badge-4k-fill</summary>
     Badge4kFill = 163,
+
     /// <summary>bi-badge-8k</summary>
     Badge8k = 164,
+
     /// <summary>bi-badge-8k-fill</summary>
     Badge8kFill = 165,
+
     /// <summary>bi-badge-ad</summary>
     BadgeAd = 166,
+
     /// <summary>bi-badge-ad-fill</summary>
     BadgeAdFill = 167,
+
     /// <summary>bi-badge-ar</summary>
     BadgeAr = 168,
+
     /// <summary>bi-badge-ar-fill</summary>
     BadgeArFill = 169,
+
     /// <summary>bi-badge-cc</summary>
     BadgeCc = 170,
+
     /// <summary>bi-badge-cc-fill</summary>
     BadgeCcFill = 171,
+
     /// <summary>bi-badge-hd</summary>
     BadgeHd = 172,
+
     /// <summary>bi-badge-hd-fill</summary>
     BadgeHdFill = 173,
+
     /// <summary>bi-badge-sd</summary>
     BadgeSd = 174,
+
     /// <summary>bi-badge-sd-fill</summary>
     BadgeSdFill = 175,
+
     /// <summary>bi-badge-tm</summary>
     BadgeTm = 176,
+
     /// <summary>bi-badge-tm-fill</summary>
     BadgeTmFill = 177,
+
     /// <summary>bi-badge-vo</summary>
     BadgeVo = 178,
+
     /// <summary>bi-badge-vo-fill</summary>
     BadgeVoFill = 179,
+
     /// <summary>bi-badge-vr</summary>
     BadgeVr = 180,
+
     /// <summary>bi-badge-vr-fill</summary>
     BadgeVrFill = 181,
+
     /// <summary>bi-badge-wc</summary>
     BadgeWc = 182,
+
     /// <summary>bi-badge-wc-fill</summary>
     BadgeWcFill = 183,
+
     /// <summary>bi-bag</summary>
     Bag = 184,
+
     /// <summary>bi-bag-check</summary>
     BagCheck = 185,
+
     /// <summary>bi-bag-check-fill</summary>
     BagCheckFill = 186,
+
     /// <summary>bi-bag-dash</summary>
     BagDash = 187,
+
     /// <summary>bi-bag-dash-fill</summary>
     BagDashFill = 188,
+
     /// <summary>bi-bag-fill</summary>
     BagFill = 189,
+
     /// <summary>bi-bag-heart</summary>
     BagHeart = 190,
+
     /// <summary>bi-bag-heart-fill</summary>
     BagHeartFill = 191,
+
     /// <summary>bi-bag-plus</summary>
     BagPlus = 192,
+
     /// <summary>bi-bag-plus-fill</summary>
     BagPlusFill = 193,
+
     /// <summary>bi-bag-x</summary>
     BagX = 194,
+
     /// <summary>bi-bag-x-fill</summary>
     BagXFill = 195,
+
     /// <summary>bi-balloon</summary>
     Balloon = 196,
+
     /// <summary>bi-balloon-fill</summary>
     BalloonFill = 197,
+
     /// <summary>bi-balloon-heart</summary>
     BalloonHeart = 198,
+
     /// <summary>bi-balloon-heart-fill</summary>
     BalloonHeartFill = 199,
+
     /// <summary>bi-ban</summary>
     Ban = 200,
+
     /// <summary>bi-ban-fill</summary>
     BanFill = 201,
+
     /// <summary>bi-bandaid</summary>
     Bandaid = 202,
+
     /// <summary>bi-bandaid-fill</summary>
     BandaidFill = 203,
+
     /// <summary>bi-bank</summary>
     Bank = 204,
+
     /// <summary>bi-bank2</summary>
     Bank2 = 205,
+
     /// <summary>bi-bar-chart</summary>
     BarChart = 206,
+
     /// <summary>bi-bar-chart-fill</summary>
     BarChartFill = 207,
+
     /// <summary>bi-bar-chart-line</summary>
     BarChartLine = 208,
+
     /// <summary>bi-bar-chart-line-fill</summary>
     BarChartLineFill = 209,
+
     /// <summary>bi-bar-chart-steps</summary>
     BarChartSteps = 210,
+
     /// <summary>bi-basket</summary>
     Basket = 211,
+
     /// <summary>bi-basket-fill</summary>
     BasketFill = 212,
+
     /// <summary>bi-basket2</summary>
     Basket2 = 213,
+
     /// <summary>bi-basket2-fill</summary>
     Basket2Fill = 214,
+
     /// <summary>bi-basket3</summary>
     Basket3 = 215,
+
     /// <summary>bi-basket3-fill</summary>
     Basket3Fill = 216,
+
     /// <summary>bi-battery</summary>
     Battery = 217,
+
     /// <summary>bi-battery-charging</summary>
     BatteryCharging = 218,
+
     /// <summary>bi-battery-full</summary>
     BatteryFull = 219,
+
     /// <summary>bi-battery-half</summary>
     BatteryHalf = 220,
+
     /// <summary>bi-battery-low</summary>
     BatteryLow = 221,
+
     /// <summary>bi-beaker</summary>
     Beaker = 222,
+
     /// <summary>bi-beaker-fill</summary>
     BeakerFill = 223,
+
     /// <summary>bi-behance</summary>
     Behance = 224,
+
     /// <summary>bi-bell</summary>
     Bell = 225,
+
     /// <summary>bi-bell-fill</summary>
     BellFill = 226,
+
     /// <summary>bi-bell-slash</summary>
     BellSlash = 227,
+
     /// <summary>bi-bell-slash-fill</summary>
     BellSlashFill = 228,
+
     /// <summary>bi-bezier</summary>
     Bezier = 229,
+
     /// <summary>bi-bezier2</summary>
     Bezier2 = 230,
+
     /// <summary>bi-bicycle</summary>
     Bicycle = 231,
+
     /// <summary>bi-bing</summary>
     Bing = 232,
+
     /// <summary>bi-binoculars</summary>
     Binoculars = 233,
+
     /// <summary>bi-binoculars-fill</summary>
     BinocularsFill = 234,
+
     /// <summary>bi-blockquote-left</summary>
     BlockquoteLeft = 235,
+
     /// <summary>bi-blockquote-right</summary>
     BlockquoteRight = 236,
+
     /// <summary>bi-bluesky</summary>
     Bluesky = 237,
+
     /// <summary>bi-bluetooth</summary>
     Bluetooth = 238,
+
     /// <summary>bi-body-text</summary>
     BodyText = 239,
+
     /// <summary>bi-book</summary>
     Book = 240,
+
     /// <summary>bi-book-fill</summary>
     BookFill = 241,
+
     /// <summary>bi-book-half</summary>
     BookHalf = 242,
+
     /// <summary>bi-bookmark</summary>
     Bookmark = 243,
+
     /// <summary>bi-bookmark-check</summary>
     BookmarkCheck = 244,
+
     /// <summary>bi-bookmark-check-fill</summary>
     BookmarkCheckFill = 245,
+
     /// <summary>bi-bookmark-dash</summary>
     BookmarkDash = 246,
+
     /// <summary>bi-bookmark-dash-fill</summary>
     BookmarkDashFill = 247,
+
     /// <summary>bi-bookmark-fill</summary>
     BookmarkFill = 248,
+
     /// <summary>bi-bookmark-heart</summary>
     BookmarkHeart = 249,
+
     /// <summary>bi-bookmark-heart-fill</summary>
     BookmarkHeartFill = 250,
+
     /// <summary>bi-bookmark-plus</summary>
     BookmarkPlus = 251,
+
     /// <summary>bi-bookmark-plus-fill</summary>
     BookmarkPlusFill = 252,
+
     /// <summary>bi-bookmark-star</summary>
     BookmarkStar = 253,
+
     /// <summary>bi-bookmark-star-fill</summary>
     BookmarkStarFill = 254,
+
     /// <summary>bi-bookmark-x</summary>
     BookmarkX = 255,
+
     /// <summary>bi-bookmark-x-fill</summary>
     BookmarkXFill = 256,
+
     /// <summary>bi-bookmarks</summary>
     Bookmarks = 257,
+
     /// <summary>bi-bookmarks-fill</summary>
     BookmarksFill = 258,
+
     /// <summary>bi-bookshelf</summary>
     Bookshelf = 259,
+
     /// <summary>bi-boombox</summary>
     Boombox = 260,
+
     /// <summary>bi-boombox-fill</summary>
     BoomboxFill = 261,
+
     /// <summary>bi-bootstrap</summary>
     Bootstrap = 262,
+
     /// <summary>bi-bootstrap-fill</summary>
     BootstrapFill = 263,
+
     /// <summary>bi-bootstrap-reboot</summary>
     BootstrapReboot = 264,
+
     /// <summary>bi-border</summary>
     Border = 265,
+
     /// <summary>bi-border-all</summary>
     BorderAll = 266,
+
     /// <summary>bi-border-bottom</summary>
     BorderBottom = 267,
+
     /// <summary>bi-border-center</summary>
     BorderCenter = 268,
+
     /// <summary>bi-border-inner</summary>
     BorderInner = 269,
+
     /// <summary>bi-border-left</summary>
     BorderLeft = 270,
+
     /// <summary>bi-border-middle</summary>
     BorderMiddle = 271,
+
     /// <summary>bi-border-outer</summary>
     BorderOuter = 272,
+
     /// <summary>bi-border-right</summary>
     BorderRight = 273,
+
     /// <summary>bi-border-style</summary>
     BorderStyle = 274,
+
     /// <summary>bi-border-top</summary>
     BorderTop = 275,
+
     /// <summary>bi-border-width</summary>
     BorderWidth = 276,
+
     /// <summary>bi-bounding-box</summary>
     BoundingBox = 277,
+
     /// <summary>bi-bounding-box-circles</summary>
     BoundingBoxCircles = 278,
+
     /// <summary>bi-box</summary>
     Box = 279,
+
     /// <summary>bi-box-arrow-down</summary>
     BoxArrowDown = 280,
+
     /// <summary>bi-box-arrow-down-left</summary>
     BoxArrowDownLeft = 281,
+
     /// <summary>bi-box-arrow-down-right</summary>
     BoxArrowDownRight = 282,
+
     /// <summary>bi-box-arrow-in-down</summary>
     BoxArrowInDown = 283,
+
     /// <summary>bi-box-arrow-in-down-left</summary>
     BoxArrowInDownLeft = 284,
+
     /// <summary>bi-box-arrow-in-down-right</summary>
     BoxArrowInDownRight = 285,
+
     /// <summary>bi-box-arrow-in-left</summary>
     BoxArrowInLeft = 286,
+
     /// <summary>bi-box-arrow-in-right</summary>
     BoxArrowInRight = 287,
+
     /// <summary>bi-box-arrow-in-up</summary>
     BoxArrowInUp = 288,
+
     /// <summary>bi-box-arrow-in-up-left</summary>
     BoxArrowInUpLeft = 289,
+
     /// <summary>bi-box-arrow-in-up-right</summary>
     BoxArrowInUpRight = 290,
+
     /// <summary>bi-box-arrow-left</summary>
     BoxArrowLeft = 291,
+
     /// <summary>bi-box-arrow-right</summary>
     BoxArrowRight = 292,
+
     /// <summary>bi-box-arrow-up</summary>
     BoxArrowUp = 293,
+
     /// <summary>bi-box-arrow-up-left</summary>
     BoxArrowUpLeft = 294,
+
     /// <summary>bi-box-arrow-up-right</summary>
     BoxArrowUpRight = 295,
+
     /// <summary>bi-box-fill</summary>
     BoxFill = 296,
+
     /// <summary>bi-box-seam</summary>
     BoxSeam = 297,
+
     /// <summary>bi-box-seam-fill</summary>
     BoxSeamFill = 298,
+
     /// <summary>bi-box2</summary>
     Box2 = 299,
+
     /// <summary>bi-box2-fill</summary>
     Box2Fill = 300,
+
     /// <summary>bi-box2-heart</summary>
     Box2Heart = 301,
+
     /// <summary>bi-box2-heart-fill</summary>
     Box2HeartFill = 302,
+
     /// <summary>bi-boxes</summary>
     Boxes = 303,
+
     /// <summary>bi-braces</summary>
     Braces = 304,
+
     /// <summary>bi-braces-asterisk</summary>
     BracesAsterisk = 305,
+
     /// <summary>bi-bricks</summary>
     Bricks = 306,
+
     /// <summary>bi-briefcase</summary>
     Briefcase = 307,
+
     /// <summary>bi-briefcase-fill</summary>
     BriefcaseFill = 308,
+
     /// <summary>bi-brightness-alt-high</summary>
     BrightnessAltHigh = 309,
+
     /// <summary>bi-brightness-alt-high-fill</summary>
     BrightnessAltHighFill = 310,
+
     /// <summary>bi-brightness-alt-low</summary>
     BrightnessAltLow = 311,
+
     /// <summary>bi-brightness-alt-low-fill</summary>
     BrightnessAltLowFill = 312,
+
     /// <summary>bi-brightness-high</summary>
     BrightnessHigh = 313,
+
     /// <summary>bi-brightness-high-fill</summary>
     BrightnessHighFill = 314,
+
     /// <summary>bi-brightness-low</summary>
     BrightnessLow = 315,
+
     /// <summary>bi-brightness-low-fill</summary>
     BrightnessLowFill = 316,
+
     /// <summary>bi-brilliance</summary>
     Brilliance = 317,
+
     /// <summary>bi-broadcast</summary>
     Broadcast = 318,
+
     /// <summary>bi-broadcast-pin</summary>
     BroadcastPin = 319,
+
     /// <summary>bi-browser-chrome</summary>
     BrowserChrome = 320,
+
     /// <summary>bi-browser-edge</summary>
     BrowserEdge = 321,
+
     /// <summary>bi-browser-firefox</summary>
     BrowserFirefox = 322,
+
     /// <summary>bi-browser-safari</summary>
     BrowserSafari = 323,
+
     /// <summary>bi-brush</summary>
     Brush = 324,
+
     /// <summary>bi-brush-fill</summary>
     BrushFill = 325,
+
     /// <summary>bi-bucket</summary>
     Bucket = 326,
+
     /// <summary>bi-bucket-fill</summary>
     BucketFill = 327,
+
     /// <summary>bi-bug</summary>
     Bug = 328,
+
     /// <summary>bi-bug-fill</summary>
     BugFill = 329,
+
     /// <summary>bi-building</summary>
     Building = 330,
+
     /// <summary>bi-building-add</summary>
     BuildingAdd = 331,
+
     /// <summary>bi-building-check</summary>
     BuildingCheck = 332,
+
     /// <summary>bi-building-dash</summary>
     BuildingDash = 333,
+
     /// <summary>bi-building-down</summary>
     BuildingDown = 334,
+
     /// <summary>bi-building-exclamation</summary>
     BuildingExclamation = 335,
+
     /// <summary>bi-building-fill</summary>
     BuildingFill = 336,
+
     /// <summary>bi-building-fill-add</summary>
     BuildingFillAdd = 337,
+
     /// <summary>bi-building-fill-check</summary>
     BuildingFillCheck = 338,
+
     /// <summary>bi-building-fill-dash</summary>
     BuildingFillDash = 339,
+
     /// <summary>bi-building-fill-down</summary>
     BuildingFillDown = 340,
+
     /// <summary>bi-building-fill-exclamation</summary>
     BuildingFillExclamation = 341,
+
     /// <summary>bi-building-fill-gear</summary>
     BuildingFillGear = 342,
+
     /// <summary>bi-building-fill-lock</summary>
     BuildingFillLock = 343,
+
     /// <summary>bi-building-fill-slash</summary>
     BuildingFillSlash = 344,
+
     /// <summary>bi-building-fill-up</summary>
     BuildingFillUp = 345,
+
     /// <summary>bi-building-fill-x</summary>
     BuildingFillX = 346,
+
     /// <summary>bi-building-gear</summary>
     BuildingGear = 347,
+
     /// <summary>bi-building-lock</summary>
     BuildingLock = 348,
+
     /// <summary>bi-building-slash</summary>
     BuildingSlash = 349,
+
     /// <summary>bi-building-up</summary>
     BuildingUp = 350,
+
     /// <summary>bi-building-x</summary>
     BuildingX = 351,
+
     /// <summary>bi-buildings</summary>
     Buildings = 352,
+
     /// <summary>bi-buildings-fill</summary>
     BuildingsFill = 353,
+
     /// <summary>bi-bullseye</summary>
     Bullseye = 354,
+
     /// <summary>bi-bus-front</summary>
     BusFront = 355,
+
     /// <summary>bi-bus-front-fill</summary>
     BusFrontFill = 356,
+
     /// <summary>bi-c-circle</summary>
     CCircle = 357,
+
     /// <summary>bi-c-circle-fill</summary>
     CCircleFill = 358,
+
     /// <summary>bi-c-square</summary>
     CSquare = 359,
+
     /// <summary>bi-c-square-fill</summary>
     CSquareFill = 360,
+
     /// <summary>bi-cake</summary>
     Cake = 361,
+
     /// <summary>bi-cake-fill</summary>
     CakeFill = 362,
+
     /// <summary>bi-cake2</summary>
     Cake2 = 363,
+
     /// <summary>bi-cake2-fill</summary>
     Cake2Fill = 364,
+
     /// <summary>bi-calculator</summary>
     Calculator = 365,
+
     /// <summary>bi-calculator-fill</summary>
     CalculatorFill = 366,
+
     /// <summary>bi-calendar</summary>
     Calendar = 367,
+
     /// <summary>bi-calendar-check</summary>
     CalendarCheck = 368,
+
     /// <summary>bi-calendar-check-fill</summary>
     CalendarCheckFill = 369,
+
     /// <summary>bi-calendar-date</summary>
     CalendarDate = 370,
+
     /// <summary>bi-calendar-date-fill</summary>
     CalendarDateFill = 371,
+
     /// <summary>bi-calendar-day</summary>
     CalendarDay = 372,
+
     /// <summary>bi-calendar-day-fill</summary>
     CalendarDayFill = 373,
+
     /// <summary>bi-calendar-event</summary>
     CalendarEvent = 374,
+
     /// <summary>bi-calendar-event-fill</summary>
     CalendarEventFill = 375,
+
     /// <summary>bi-calendar-fill</summary>
     CalendarFill = 376,
+
     /// <summary>bi-calendar-heart</summary>
     CalendarHeart = 377,
+
     /// <summary>bi-calendar-heart-fill</summary>
     CalendarHeartFill = 378,
+
     /// <summary>bi-calendar-minus</summary>
     CalendarMinus = 379,
+
     /// <summary>bi-calendar-minus-fill</summary>
     CalendarMinusFill = 380,
+
     /// <summary>bi-calendar-month</summary>
     CalendarMonth = 381,
+
     /// <summary>bi-calendar-month-fill</summary>
     CalendarMonthFill = 382,
+
     /// <summary>bi-calendar-plus</summary>
     CalendarPlus = 383,
+
     /// <summary>bi-calendar-plus-fill</summary>
     CalendarPlusFill = 384,
+
     /// <summary>bi-calendar-range</summary>
     CalendarRange = 385,
+
     /// <summary>bi-calendar-range-fill</summary>
     CalendarRangeFill = 386,
+
     /// <summary>bi-calendar-week</summary>
     CalendarWeek = 387,
+
     /// <summary>bi-calendar-week-fill</summary>
     CalendarWeekFill = 388,
+
     /// <summary>bi-calendar-x</summary>
     CalendarX = 389,
+
     /// <summary>bi-calendar-x-fill</summary>
     CalendarXFill = 390,
+
     /// <summary>bi-calendar2</summary>
     Calendar2 = 391,
+
     /// <summary>bi-calendar2-check</summary>
     Calendar2Check = 392,
+
     /// <summary>bi-calendar2-check-fill</summary>
     Calendar2CheckFill = 393,
+
     /// <summary>bi-calendar2-date</summary>
     Calendar2Date = 394,
+
     /// <summary>bi-calendar2-date-fill</summary>
     Calendar2DateFill = 395,
+
     /// <summary>bi-calendar2-day</summary>
     Calendar2Day = 396,
+
     /// <summary>bi-calendar2-day-fill</summary>
     Calendar2DayFill = 397,
+
     /// <summary>bi-calendar2-event</summary>
     Calendar2Event = 398,
+
     /// <summary>bi-calendar2-event-fill</summary>
     Calendar2EventFill = 399,
+
     /// <summary>bi-calendar2-fill</summary>
     Calendar2Fill = 400,
+
     /// <summary>bi-calendar2-heart</summary>
     Calendar2Heart = 401,
+
     /// <summary>bi-calendar2-heart-fill</summary>
     Calendar2HeartFill = 402,
+
     /// <summary>bi-calendar2-minus</summary>
     Calendar2Minus = 403,
+
     /// <summary>bi-calendar2-minus-fill</summary>
     Calendar2MinusFill = 404,
+
     /// <summary>bi-calendar2-month</summary>
     Calendar2Month = 405,
+
     /// <summary>bi-calendar2-month-fill</summary>
     Calendar2MonthFill = 406,
+
     /// <summary>bi-calendar2-plus</summary>
     Calendar2Plus = 407,
+
     /// <summary>bi-calendar2-plus-fill</summary>
     Calendar2PlusFill = 408,
+
     /// <summary>bi-calendar2-range</summary>
     Calendar2Range = 409,
+
     /// <summary>bi-calendar2-range-fill</summary>
     Calendar2RangeFill = 410,
+
     /// <summary>bi-calendar2-week</summary>
     Calendar2Week = 411,
+
     /// <summary>bi-calendar2-week-fill</summary>
     Calendar2WeekFill = 412,
+
     /// <summary>bi-calendar2-x</summary>
     Calendar2X = 413,
+
     /// <summary>bi-calendar2-x-fill</summary>
     Calendar2XFill = 414,
+
     /// <summary>bi-calendar3</summary>
     Calendar3 = 415,
+
     /// <summary>bi-calendar3-event</summary>
     Calendar3Event = 416,
+
     /// <summary>bi-calendar3-event-fill</summary>
     Calendar3EventFill = 417,
+
     /// <summary>bi-calendar3-fill</summary>
     Calendar3Fill = 418,
+
     /// <summary>bi-calendar3-range</summary>
     Calendar3Range = 419,
+
     /// <summary>bi-calendar3-range-fill</summary>
     Calendar3RangeFill = 420,
+
     /// <summary>bi-calendar3-week</summary>
     Calendar3Week = 421,
+
     /// <summary>bi-calendar3-week-fill</summary>
     Calendar3WeekFill = 422,
+
     /// <summary>bi-calendar4</summary>
     Calendar4 = 423,
+
     /// <summary>bi-calendar4-event</summary>
     Calendar4Event = 424,
+
     /// <summary>bi-calendar4-range</summary>
     Calendar4Range = 425,
+
     /// <summary>bi-calendar4-week</summary>
     Calendar4Week = 426,
+
     /// <summary>bi-camera</summary>
     Camera = 427,
+
     /// <summary>bi-camera-fill</summary>
     CameraFill = 428,
+
     /// <summary>bi-camera-reels</summary>
     CameraReels = 429,
+
     /// <summary>bi-camera-reels-fill</summary>
     CameraReelsFill = 430,
+
     /// <summary>bi-camera-video</summary>
     CameraVideo = 431,
+
     /// <summary>bi-camera-video-fill</summary>
     CameraVideoFill = 432,
+
     /// <summary>bi-camera-video-off</summary>
     CameraVideoOff = 433,
+
     /// <summary>bi-camera-video-off-fill</summary>
     CameraVideoOffFill = 434,
+
     /// <summary>bi-camera2</summary>
     Camera2 = 435,
+
     /// <summary>bi-capslock</summary>
     Capslock = 436,
+
     /// <summary>bi-capslock-fill</summary>
     CapslockFill = 437,
+
     /// <summary>bi-capsule</summary>
     Capsule = 438,
+
     /// <summary>bi-capsule-pill</summary>
     CapsulePill = 439,
+
     /// <summary>bi-car-front</summary>
     CarFront = 440,
+
     /// <summary>bi-car-front-fill</summary>
     CarFrontFill = 441,
+
     /// <summary>bi-card-checklist</summary>
     CardChecklist = 442,
+
     /// <summary>bi-card-heading</summary>
     CardHeading = 443,
+
     /// <summary>bi-card-image</summary>
     CardImage = 444,
+
     /// <summary>bi-card-list</summary>
     CardList = 445,
+
     /// <summary>bi-card-text</summary>
     CardText = 446,
+
     /// <summary>bi-caret-down</summary>
     CaretDown = 447,
+
     /// <summary>bi-caret-down-fill</summary>
     CaretDownFill = 448,
+
     /// <summary>bi-caret-down-square</summary>
     CaretDownSquare = 449,
+
     /// <summary>bi-caret-down-square-fill</summary>
     CaretDownSquareFill = 450,
+
     /// <summary>bi-caret-left</summary>
     CaretLeft = 451,
+
     /// <summary>bi-caret-left-fill</summary>
     CaretLeftFill = 452,
+
     /// <summary>bi-caret-left-square</summary>
     CaretLeftSquare = 453,
+
     /// <summary>bi-caret-left-square-fill</summary>
     CaretLeftSquareFill = 454,
+
     /// <summary>bi-caret-right</summary>
     CaretRight = 455,
+
     /// <summary>bi-caret-right-fill</summary>
     CaretRightFill = 456,
+
     /// <summary>bi-caret-right-square</summary>
     CaretRightSquare = 457,
+
     /// <summary>bi-caret-right-square-fill</summary>
     CaretRightSquareFill = 458,
+
     /// <summary>bi-caret-up</summary>
     CaretUp = 459,
+
     /// <summary>bi-caret-up-fill</summary>
     CaretUpFill = 460,
+
     /// <summary>bi-caret-up-square</summary>
     CaretUpSquare = 461,
+
     /// <summary>bi-caret-up-square-fill</summary>
     CaretUpSquareFill = 462,
+
     /// <summary>bi-cart</summary>
     Cart = 463,
+
     /// <summary>bi-cart-check</summary>
     CartCheck = 464,
+
     /// <summary>bi-cart-check-fill</summary>
     CartCheckFill = 465,
+
     /// <summary>bi-cart-dash</summary>
     CartDash = 466,
+
     /// <summary>bi-cart-dash-fill</summary>
     CartDashFill = 467,
+
     /// <summary>bi-cart-fill</summary>
     CartFill = 468,
+
     /// <summary>bi-cart-plus</summary>
     CartPlus = 469,
+
     /// <summary>bi-cart-plus-fill</summary>
     CartPlusFill = 470,
+
     /// <summary>bi-cart-x</summary>
     CartX = 471,
+
     /// <summary>bi-cart-x-fill</summary>
     CartXFill = 472,
+
     /// <summary>bi-cart2</summary>
     Cart2 = 473,
+
     /// <summary>bi-cart3</summary>
     Cart3 = 474,
+
     /// <summary>bi-cart4</summary>
     Cart4 = 475,
+
     /// <summary>bi-cash</summary>
     Cash = 476,
+
     /// <summary>bi-cash-coin</summary>
     CashCoin = 477,
+
     /// <summary>bi-cash-stack</summary>
     CashStack = 478,
+
     /// <summary>bi-cassette</summary>
     Cassette = 479,
+
     /// <summary>bi-cassette-fill</summary>
     CassetteFill = 480,
+
     /// <summary>bi-cast</summary>
     Cast = 481,
+
     /// <summary>bi-cc-circle</summary>
     CcCircle = 482,
+
     /// <summary>bi-cc-circle-fill</summary>
     CcCircleFill = 483,
+
     /// <summary>bi-cc-square</summary>
     CcSquare = 484,
+
     /// <summary>bi-cc-square-fill</summary>
     CcSquareFill = 485,
+
     /// <summary>bi-chat</summary>
     Chat = 486,
+
     /// <summary>bi-chat-dots</summary>
     ChatDots = 487,
+
     /// <summary>bi-chat-dots-fill</summary>
     ChatDotsFill = 488,
+
     /// <summary>bi-chat-fill</summary>
     ChatFill = 489,
+
     /// <summary>bi-chat-heart</summary>
     ChatHeart = 490,
+
     /// <summary>bi-chat-heart-fill</summary>
     ChatHeartFill = 491,
+
     /// <summary>bi-chat-left</summary>
     ChatLeft = 492,
+
     /// <summary>bi-chat-left-dots</summary>
     ChatLeftDots = 493,
+
     /// <summary>bi-chat-left-dots-fill</summary>
     ChatLeftDotsFill = 494,
+
     /// <summary>bi-chat-left-fill</summary>
     ChatLeftFill = 495,
+
     /// <summary>bi-chat-left-heart</summary>
     ChatLeftHeart = 496,
+
     /// <summary>bi-chat-left-heart-fill</summary>
     ChatLeftHeartFill = 497,
+
     /// <summary>bi-chat-left-quote</summary>
     ChatLeftQuote = 498,
+
     /// <summary>bi-chat-left-quote-fill</summary>
     ChatLeftQuoteFill = 499,
+
     /// <summary>bi-chat-left-text</summary>
     ChatLeftText = 500,
+
     /// <summary>bi-chat-left-text-fill</summary>
     ChatLeftTextFill = 501,
+
     /// <summary>bi-chat-quote</summary>
     ChatQuote = 502,
+
     /// <summary>bi-chat-quote-fill</summary>
     ChatQuoteFill = 503,
+
     /// <summary>bi-chat-right</summary>
     ChatRight = 504,
+
     /// <summary>bi-chat-right-dots</summary>
     ChatRightDots = 505,
+
     /// <summary>bi-chat-right-dots-fill</summary>
     ChatRightDotsFill = 506,
+
     /// <summary>bi-chat-right-fill</summary>
     ChatRightFill = 507,
+
     /// <summary>bi-chat-right-heart</summary>
     ChatRightHeart = 508,
+
     /// <summary>bi-chat-right-heart-fill</summary>
     ChatRightHeartFill = 509,
+
     /// <summary>bi-chat-right-quote</summary>
     ChatRightQuote = 510,
+
     /// <summary>bi-chat-right-quote-fill</summary>
     ChatRightQuoteFill = 511,
+
     /// <summary>bi-chat-right-text</summary>
     ChatRightText = 512,
+
     /// <summary>bi-chat-right-text-fill</summary>
     ChatRightTextFill = 513,
+
     /// <summary>bi-chat-square</summary>
     ChatSquare = 514,
+
     /// <summary>bi-chat-square-dots</summary>
     ChatSquareDots = 515,
+
     /// <summary>bi-chat-square-dots-fill</summary>
     ChatSquareDotsFill = 516,
+
     /// <summary>bi-chat-square-fill</summary>
     ChatSquareFill = 517,
+
     /// <summary>bi-chat-square-heart</summary>
     ChatSquareHeart = 518,
+
     /// <summary>bi-chat-square-heart-fill</summary>
     ChatSquareHeartFill = 519,
+
     /// <summary>bi-chat-square-quote</summary>
     ChatSquareQuote = 520,
+
     /// <summary>bi-chat-square-quote-fill</summary>
     ChatSquareQuoteFill = 521,
+
     /// <summary>bi-chat-square-text</summary>
     ChatSquareText = 522,
+
     /// <summary>bi-chat-square-text-fill</summary>
     ChatSquareTextFill = 523,
+
     /// <summary>bi-chat-text</summary>
     ChatText = 524,
+
     /// <summary>bi-chat-text-fill</summary>
     ChatTextFill = 525,
+
     /// <summary>bi-check</summary>
     Check = 526,
+
     /// <summary>bi-check-all</summary>
     CheckAll = 527,
+
     /// <summary>bi-check-circle</summary>
     CheckCircle = 528,
+
     /// <summary>bi-check-circle-fill</summary>
     CheckCircleFill = 529,
+
     /// <summary>bi-check-lg</summary>
     CheckLg = 530,
+
     /// <summary>bi-check-square</summary>
     CheckSquare = 531,
+
     /// <summary>bi-check-square-fill</summary>
     CheckSquareFill = 532,
+
     /// <summary>bi-check2</summary>
     Check2 = 533,
+
     /// <summary>bi-check2-all</summary>
     Check2All = 534,
+
     /// <summary>bi-check2-circle</summary>
     Check2Circle = 535,
+
     /// <summary>bi-check2-square</summary>
     Check2Square = 536,
+
     /// <summary>bi-chevron-bar-contract</summary>
     ChevronBarContract = 537,
+
     /// <summary>bi-chevron-bar-down</summary>
     ChevronBarDown = 538,
+
     /// <summary>bi-chevron-bar-expand</summary>
     ChevronBarExpand = 539,
+
     /// <summary>bi-chevron-bar-left</summary>
     ChevronBarLeft = 540,
+
     /// <summary>bi-chevron-bar-right</summary>
     ChevronBarRight = 541,
+
     /// <summary>bi-chevron-bar-up</summary>
     ChevronBarUp = 542,
+
     /// <summary>bi-chevron-compact-down</summary>
     ChevronCompactDown = 543,
+
     /// <summary>bi-chevron-compact-left</summary>
     ChevronCompactLeft = 544,
+
     /// <summary>bi-chevron-compact-right</summary>
     ChevronCompactRight = 545,
+
     /// <summary>bi-chevron-compact-up</summary>
     ChevronCompactUp = 546,
+
     /// <summary>bi-chevron-contract</summary>
     ChevronContract = 547,
+
     /// <summary>bi-chevron-double-down</summary>
     ChevronDoubleDown = 548,
+
     /// <summary>bi-chevron-double-left</summary>
     ChevronDoubleLeft = 549,
+
     /// <summary>bi-chevron-double-right</summary>
     ChevronDoubleRight = 550,
+
     /// <summary>bi-chevron-double-up</summary>
     ChevronDoubleUp = 551,
+
     /// <summary>bi-chevron-down</summary>
     ChevronDown = 552,
+
     /// <summary>bi-chevron-expand</summary>
     ChevronExpand = 553,
+
     /// <summary>bi-chevron-left</summary>
     ChevronLeft = 554,
+
     /// <summary>bi-chevron-right</summary>
     ChevronRight = 555,
+
     /// <summary>bi-chevron-up</summary>
     ChevronUp = 556,
+
     /// <summary>bi-circle</summary>
     Circle = 557,
+
     /// <summary>bi-circle-fill</summary>
     CircleFill = 558,
+
     /// <summary>bi-circle-half</summary>
     CircleHalf = 559,
+
     /// <summary>bi-circle-square</summary>
     CircleSquare = 560,
+
     /// <summary>bi-claude</summary>
     Claude = 561,
+
     /// <summary>bi-clipboard</summary>
     Clipboard = 562,
+
     /// <summary>bi-clipboard-check</summary>
     ClipboardCheck = 563,
+
     /// <summary>bi-clipboard-check-fill</summary>
     ClipboardCheckFill = 564,
+
     /// <summary>bi-clipboard-data</summary>
     ClipboardData = 565,
+
     /// <summary>bi-clipboard-data-fill</summary>
     ClipboardDataFill = 566,
+
     /// <summary>bi-clipboard-fill</summary>
     ClipboardFill = 567,
+
     /// <summary>bi-clipboard-heart</summary>
     ClipboardHeart = 568,
+
     /// <summary>bi-clipboard-heart-fill</summary>
     ClipboardHeartFill = 569,
+
     /// <summary>bi-clipboard-minus</summary>
     ClipboardMinus = 570,
+
     /// <summary>bi-clipboard-minus-fill</summary>
     ClipboardMinusFill = 571,
+
     /// <summary>bi-clipboard-plus</summary>
     ClipboardPlus = 572,
+
     /// <summary>bi-clipboard-plus-fill</summary>
     ClipboardPlusFill = 573,
+
     /// <summary>bi-clipboard-pulse</summary>
     ClipboardPulse = 574,
+
     /// <summary>bi-clipboard-x</summary>
     ClipboardX = 575,
+
     /// <summary>bi-clipboard-x-fill</summary>
     ClipboardXFill = 576,
+
     /// <summary>bi-clipboard2</summary>
     Clipboard2 = 577,
+
     /// <summary>bi-clipboard2-check</summary>
     Clipboard2Check = 578,
+
     /// <summary>bi-clipboard2-check-fill</summary>
     Clipboard2CheckFill = 579,
+
     /// <summary>bi-clipboard2-data</summary>
     Clipboard2Data = 580,
+
     /// <summary>bi-clipboard2-data-fill</summary>
     Clipboard2DataFill = 581,
+
     /// <summary>bi-clipboard2-fill</summary>
     Clipboard2Fill = 582,
+
     /// <summary>bi-clipboard2-heart</summary>
     Clipboard2Heart = 583,
+
     /// <summary>bi-clipboard2-heart-fill</summary>
     Clipboard2HeartFill = 584,
+
     /// <summary>bi-clipboard2-minus</summary>
     Clipboard2Minus = 585,
+
     /// <summary>bi-clipboard2-minus-fill</summary>
     Clipboard2MinusFill = 586,
+
     /// <summary>bi-clipboard2-plus</summary>
     Clipboard2Plus = 587,
+
     /// <summary>bi-clipboard2-plus-fill</summary>
     Clipboard2PlusFill = 588,
+
     /// <summary>bi-clipboard2-pulse</summary>
     Clipboard2Pulse = 589,
+
     /// <summary>bi-clipboard2-pulse-fill</summary>
     Clipboard2PulseFill = 590,
+
     /// <summary>bi-clipboard2-x</summary>
     Clipboard2X = 591,
+
     /// <summary>bi-clipboard2-x-fill</summary>
     Clipboard2XFill = 592,
+
     /// <summary>bi-clock</summary>
     Clock = 593,
+
     /// <summary>bi-clock-fill</summary>
     ClockFill = 594,
+
     /// <summary>bi-clock-history</summary>
     ClockHistory = 595,
+
     /// <summary>bi-cloud</summary>
     Cloud = 596,
+
     /// <summary>bi-cloud-arrow-down</summary>
     CloudArrowDown = 597,
+
     /// <summary>bi-cloud-arrow-down-fill</summary>
     CloudArrowDownFill = 598,
+
     /// <summary>bi-cloud-arrow-up</summary>
     CloudArrowUp = 599,
+
     /// <summary>bi-cloud-arrow-up-fill</summary>
     CloudArrowUpFill = 600,
+
     /// <summary>bi-cloud-check</summary>
     CloudCheck = 601,
+
     /// <summary>bi-cloud-check-fill</summary>
     CloudCheckFill = 602,
+
     /// <summary>bi-cloud-download</summary>
     CloudDownload = 603,
+
     /// <summary>bi-cloud-download-fill</summary>
     CloudDownloadFill = 604,
+
     /// <summary>bi-cloud-drizzle</summary>
     CloudDrizzle = 605,
+
     /// <summary>bi-cloud-drizzle-fill</summary>
     CloudDrizzleFill = 606,
+
     /// <summary>bi-cloud-fill</summary>
     CloudFill = 607,
+
     /// <summary>bi-cloud-fog</summary>
     CloudFog = 608,
+
     /// <summary>bi-cloud-fog-fill</summary>
     CloudFogFill = 609,
+
     /// <summary>bi-cloud-fog2</summary>
     CloudFog2 = 610,
+
     /// <summary>bi-cloud-fog2-fill</summary>
     CloudFog2Fill = 611,
+
     /// <summary>bi-cloud-hail</summary>
     CloudHail = 612,
+
     /// <summary>bi-cloud-hail-fill</summary>
     CloudHailFill = 613,
+
     /// <summary>bi-cloud-haze</summary>
     CloudHaze = 614,
+
     /// <summary>bi-cloud-haze-fill</summary>
     CloudHazeFill = 615,
+
     /// <summary>bi-cloud-haze2</summary>
     CloudHaze2 = 616,
+
     /// <summary>bi-cloud-haze2-fill</summary>
     CloudHaze2Fill = 617,
+
     /// <summary>bi-cloud-lightning</summary>
     CloudLightning = 618,
+
     /// <summary>bi-cloud-lightning-fill</summary>
     CloudLightningFill = 619,
+
     /// <summary>bi-cloud-lightning-rain</summary>
     CloudLightningRain = 620,
+
     /// <summary>bi-cloud-lightning-rain-fill</summary>
     CloudLightningRainFill = 621,
+
     /// <summary>bi-cloud-minus</summary>
     CloudMinus = 622,
+
     /// <summary>bi-cloud-minus-fill</summary>
     CloudMinusFill = 623,
+
     /// <summary>bi-cloud-moon</summary>
     CloudMoon = 624,
+
     /// <summary>bi-cloud-moon-fill</summary>
     CloudMoonFill = 625,
+
     /// <summary>bi-cloud-plus</summary>
     CloudPlus = 626,
+
     /// <summary>bi-cloud-plus-fill</summary>
     CloudPlusFill = 627,
+
     /// <summary>bi-cloud-rain</summary>
     CloudRain = 628,
+
     /// <summary>bi-cloud-rain-fill</summary>
     CloudRainFill = 629,
+
     /// <summary>bi-cloud-rain-heavy</summary>
     CloudRainHeavy = 630,
+
     /// <summary>bi-cloud-rain-heavy-fill</summary>
     CloudRainHeavyFill = 631,
+
     /// <summary>bi-cloud-slash</summary>
     CloudSlash = 632,
+
     /// <summary>bi-cloud-slash-fill</summary>
     CloudSlashFill = 633,
+
     /// <summary>bi-cloud-sleet</summary>
     CloudSleet = 634,
+
     /// <summary>bi-cloud-sleet-fill</summary>
     CloudSleetFill = 635,
+
     /// <summary>bi-cloud-snow</summary>
     CloudSnow = 636,
+
     /// <summary>bi-cloud-snow-fill</summary>
     CloudSnowFill = 637,
+
     /// <summary>bi-cloud-sun</summary>
     CloudSun = 638,
+
     /// <summary>bi-cloud-sun-fill</summary>
     CloudSunFill = 639,
+
     /// <summary>bi-cloud-upload</summary>
     CloudUpload = 640,
+
     /// <summary>bi-cloud-upload-fill</summary>
     CloudUploadFill = 641,
+
     /// <summary>bi-clouds</summary>
     Clouds = 642,
+
     /// <summary>bi-clouds-fill</summary>
     CloudsFill = 643,
+
     /// <summary>bi-cloudy</summary>
     Cloudy = 644,
+
     /// <summary>bi-cloudy-fill</summary>
     CloudyFill = 645,
+
     /// <summary>bi-code</summary>
     Code = 646,
+
     /// <summary>bi-code-slash</summary>
     CodeSlash = 647,
+
     /// <summary>bi-code-square</summary>
     CodeSquare = 648,
+
     /// <summary>bi-coin</summary>
     Coin = 649,
+
     /// <summary>bi-collection</summary>
     Collection = 650,
+
     /// <summary>bi-collection-fill</summary>
     CollectionFill = 651,
+
     /// <summary>bi-collection-play</summary>
     CollectionPlay = 652,
+
     /// <summary>bi-collection-play-fill</summary>
     CollectionPlayFill = 653,
+
     /// <summary>bi-columns</summary>
     Columns = 654,
+
     /// <summary>bi-columns-gap</summary>
     ColumnsGap = 655,
+
     /// <summary>bi-command</summary>
     Command = 656,
+
     /// <summary>bi-compass</summary>
     Compass = 657,
+
     /// <summary>bi-compass-fill</summary>
     CompassFill = 658,
+
     /// <summary>bi-cone</summary>
     Cone = 659,
+
     /// <summary>bi-cone-striped</summary>
     ConeStriped = 660,
+
     /// <summary>bi-controller</summary>
     Controller = 661,
+
     /// <summary>bi-cookie</summary>
     Cookie = 662,
+
     /// <summary>bi-copy</summary>
     Copy = 663,
+
     /// <summary>bi-cpu</summary>
     Cpu = 664,
+
     /// <summary>bi-cpu-fill</summary>
     CpuFill = 665,
+
     /// <summary>bi-credit-card</summary>
     CreditCard = 666,
+
     /// <summary>bi-credit-card-2-back</summary>
     CreditCard2Back = 667,
+
     /// <summary>bi-credit-card-2-back-fill</summary>
     CreditCard2BackFill = 668,
+
     /// <summary>bi-credit-card-2-front</summary>
     CreditCard2Front = 669,
+
     /// <summary>bi-credit-card-2-front-fill</summary>
     CreditCard2FrontFill = 670,
+
     /// <summary>bi-credit-card-fill</summary>
     CreditCardFill = 671,
+
     /// <summary>bi-crop</summary>
     Crop = 672,
+
     /// <summary>bi-crosshair</summary>
     Crosshair = 673,
+
     /// <summary>bi-crosshair2</summary>
     Crosshair2 = 674,
+
     /// <summary>bi-css</summary>
     Css = 675,
+
     /// <summary>bi-cup</summary>
     Cup = 676,
+
     /// <summary>bi-cup-fill</summary>
     CupFill = 677,
+
     /// <summary>bi-cup-hot</summary>
     CupHot = 678,
+
     /// <summary>bi-cup-hot-fill</summary>
     CupHotFill = 679,
+
     /// <summary>bi-cup-straw</summary>
     CupStraw = 680,
+
     /// <summary>bi-currency-bitcoin</summary>
     CurrencyBitcoin = 681,
+
     /// <summary>bi-currency-dollar</summary>
     CurrencyDollar = 682,
+
     /// <summary>bi-currency-euro</summary>
     CurrencyEuro = 683,
+
     /// <summary>bi-currency-exchange</summary>
     CurrencyExchange = 684,
+
     /// <summary>bi-currency-pound</summary>
     CurrencyPound = 685,
+
     /// <summary>bi-currency-rupee</summary>
     CurrencyRupee = 686,
+
     /// <summary>bi-currency-yen</summary>
     CurrencyYen = 687,
+
     /// <summary>bi-cursor</summary>
     Cursor = 688,
+
     /// <summary>bi-cursor-fill</summary>
     CursorFill = 689,
+
     /// <summary>bi-cursor-text</summary>
     CursorText = 690,
+
     /// <summary>bi-dash</summary>
     Dash = 691,
+
     /// <summary>bi-dash-circle</summary>
     DashCircle = 692,
+
     /// <summary>bi-dash-circle-dotted</summary>
     DashCircleDotted = 693,
+
     /// <summary>bi-dash-circle-fill</summary>
     DashCircleFill = 694,
+
     /// <summary>bi-dash-lg</summary>
     DashLg = 695,
+
     /// <summary>bi-dash-square</summary>
     DashSquare = 696,
+
     /// <summary>bi-dash-square-dotted</summary>
     DashSquareDotted = 697,
+
     /// <summary>bi-dash-square-fill</summary>
     DashSquareFill = 698,
+
     /// <summary>bi-database</summary>
     Database = 699,
+
     /// <summary>bi-database-add</summary>
     DatabaseAdd = 700,
+
     /// <summary>bi-database-check</summary>
     DatabaseCheck = 701,
+
     /// <summary>bi-database-dash</summary>
     DatabaseDash = 702,
+
     /// <summary>bi-database-down</summary>
     DatabaseDown = 703,
+
     /// <summary>bi-database-exclamation</summary>
     DatabaseExclamation = 704,
+
     /// <summary>bi-database-fill</summary>
     DatabaseFill = 705,
+
     /// <summary>bi-database-fill-add</summary>
     DatabaseFillAdd = 706,
+
     /// <summary>bi-database-fill-check</summary>
     DatabaseFillCheck = 707,
+
     /// <summary>bi-database-fill-dash</summary>
     DatabaseFillDash = 708,
+
     /// <summary>bi-database-fill-down</summary>
     DatabaseFillDown = 709,
+
     /// <summary>bi-database-fill-exclamation</summary>
     DatabaseFillExclamation = 710,
+
     /// <summary>bi-database-fill-gear</summary>
     DatabaseFillGear = 711,
+
     /// <summary>bi-database-fill-lock</summary>
     DatabaseFillLock = 712,
+
     /// <summary>bi-database-fill-slash</summary>
     DatabaseFillSlash = 713,
+
     /// <summary>bi-database-fill-up</summary>
     DatabaseFillUp = 714,
+
     /// <summary>bi-database-fill-x</summary>
     DatabaseFillX = 715,
+
     /// <summary>bi-database-gear</summary>
     DatabaseGear = 716,
+
     /// <summary>bi-database-lock</summary>
     DatabaseLock = 717,
+
     /// <summary>bi-database-slash</summary>
     DatabaseSlash = 718,
+
     /// <summary>bi-database-up</summary>
     DatabaseUp = 719,
+
     /// <summary>bi-database-x</summary>
     DatabaseX = 720,
+
     /// <summary>bi-device-hdd</summary>
     DeviceHdd = 721,
+
     /// <summary>bi-device-hdd-fill</summary>
     DeviceHddFill = 722,
+
     /// <summary>bi-device-ssd</summary>
     DeviceSsd = 723,
+
     /// <summary>bi-device-ssd-fill</summary>
     DeviceSsdFill = 724,
+
     /// <summary>bi-diagram-2</summary>
     Diagram2 = 725,
+
     /// <summary>bi-diagram-2-fill</summary>
     Diagram2Fill = 726,
+
     /// <summary>bi-diagram-3</summary>
     Diagram3 = 727,
+
     /// <summary>bi-diagram-3-fill</summary>
     Diagram3Fill = 728,
+
     /// <summary>bi-diamond</summary>
     Diamond = 729,
+
     /// <summary>bi-diamond-fill</summary>
     DiamondFill = 730,
+
     /// <summary>bi-diamond-half</summary>
     DiamondHalf = 731,
+
     /// <summary>bi-dice-1</summary>
     Dice1 = 732,
+
     /// <summary>bi-dice-1-fill</summary>
     Dice1Fill = 733,
+
     /// <summary>bi-dice-2</summary>
     Dice2 = 734,
+
     /// <summary>bi-dice-2-fill</summary>
     Dice2Fill = 735,
+
     /// <summary>bi-dice-3</summary>
     Dice3 = 736,
+
     /// <summary>bi-dice-3-fill</summary>
     Dice3Fill = 737,
+
     /// <summary>bi-dice-4</summary>
     Dice4 = 738,
+
     /// <summary>bi-dice-4-fill</summary>
     Dice4Fill = 739,
+
     /// <summary>bi-dice-5</summary>
     Dice5 = 740,
+
     /// <summary>bi-dice-5-fill</summary>
     Dice5Fill = 741,
+
     /// <summary>bi-dice-6</summary>
     Dice6 = 742,
+
     /// <summary>bi-dice-6-fill</summary>
     Dice6Fill = 743,
+
     /// <summary>bi-disc</summary>
     Disc = 744,
+
     /// <summary>bi-disc-fill</summary>
     DiscFill = 745,
+
     /// <summary>bi-discord</summary>
     Discord = 746,
+
     /// <summary>bi-display</summary>
     Display = 747,
+
     /// <summary>bi-display-fill</summary>
     DisplayFill = 748,
+
     /// <summary>bi-displayport</summary>
     Displayport = 749,
+
     /// <summary>bi-displayport-fill</summary>
     DisplayportFill = 750,
+
     /// <summary>bi-distribute-horizontal</summary>
     DistributeHorizontal = 751,
+
     /// <summary>bi-distribute-vertical</summary>
     DistributeVertical = 752,
+
     /// <summary>bi-door-closed</summary>
     DoorClosed = 753,
+
     /// <summary>bi-door-closed-fill</summary>
     DoorClosedFill = 754,
+
     /// <summary>bi-door-open</summary>
     DoorOpen = 755,
+
     /// <summary>bi-door-open-fill</summary>
     DoorOpenFill = 756,
+
     /// <summary>bi-dot</summary>
     Dot = 757,
+
     /// <summary>bi-download</summary>
     Download = 758,
+
     /// <summary>bi-dpad</summary>
     Dpad = 759,
+
     /// <summary>bi-dpad-fill</summary>
     DpadFill = 760,
+
     /// <summary>bi-dribbble</summary>
     Dribbble = 761,
+
     /// <summary>bi-dropbox</summary>
     Dropbox = 762,
+
     /// <summary>bi-droplet</summary>
     Droplet = 763,
+
     /// <summary>bi-droplet-fill</summary>
     DropletFill = 764,
+
     /// <summary>bi-droplet-half</summary>
     DropletHalf = 765,
+
     /// <summary>bi-duffle</summary>
     Duffle = 766,
+
     /// <summary>bi-duffle-fill</summary>
     DuffleFill = 767,
+
     /// <summary>bi-ear</summary>
     Ear = 768,
+
     /// <summary>bi-ear-fill</summary>
     EarFill = 769,
+
     /// <summary>bi-earbuds</summary>
     Earbuds = 770,
+
     /// <summary>bi-easel</summary>
     Easel = 771,
+
     /// <summary>bi-easel-fill</summary>
     EaselFill = 772,
+
     /// <summary>bi-easel2</summary>
     Easel2 = 773,
+
     /// <summary>bi-easel2-fill</summary>
     Easel2Fill = 774,
+
     /// <summary>bi-easel3</summary>
     Easel3 = 775,
+
     /// <summary>bi-easel3-fill</summary>
     Easel3Fill = 776,
+
     /// <summary>bi-egg</summary>
     Egg = 777,
+
     /// <summary>bi-egg-fill</summary>
     EggFill = 778,
+
     /// <summary>bi-egg-fried</summary>
     EggFried = 779,
+
     /// <summary>bi-eject</summary>
     Eject = 780,
+
     /// <summary>bi-eject-fill</summary>
     EjectFill = 781,
+
     /// <summary>bi-emoji-angry</summary>
     EmojiAngry = 782,
+
     /// <summary>bi-emoji-angry-fill</summary>
     EmojiAngryFill = 783,
+
     /// <summary>bi-emoji-astonished</summary>
     EmojiAstonished = 784,
+
     /// <summary>bi-emoji-astonished-fill</summary>
     EmojiAstonishedFill = 785,
+
     /// <summary>bi-emoji-dizzy</summary>
     EmojiDizzy = 786,
+
     /// <summary>bi-emoji-dizzy-fill</summary>
     EmojiDizzyFill = 787,
+
     /// <summary>bi-emoji-expressionless</summary>
     EmojiExpressionless = 788,
+
     /// <summary>bi-emoji-expressionless-fill</summary>
     EmojiExpressionlessFill = 789,
+
     /// <summary>bi-emoji-frown</summary>
     EmojiFrown = 790,
+
     /// <summary>bi-emoji-frown-fill</summary>
     EmojiFrownFill = 791,
+
     /// <summary>bi-emoji-grimace</summary>
     EmojiGrimace = 792,
+
     /// <summary>bi-emoji-grimace-fill</summary>
     EmojiGrimaceFill = 793,
+
     /// <summary>bi-emoji-grin</summary>
     EmojiGrin = 794,
+
     /// <summary>bi-emoji-grin-fill</summary>
     EmojiGrinFill = 795,
+
     /// <summary>bi-emoji-heart-eyes</summary>
     EmojiHeartEyes = 796,
+
     /// <summary>bi-emoji-heart-eyes-fill</summary>
     EmojiHeartEyesFill = 797,
+
     /// <summary>bi-emoji-kiss</summary>
     EmojiKiss = 798,
+
     /// <summary>bi-emoji-kiss-fill</summary>
     EmojiKissFill = 799,
+
     /// <summary>bi-emoji-laughing</summary>
     EmojiLaughing = 800,
+
     /// <summary>bi-emoji-laughing-fill</summary>
     EmojiLaughingFill = 801,
+
     /// <summary>bi-emoji-neutral</summary>
     EmojiNeutral = 802,
+
     /// <summary>bi-emoji-neutral-fill</summary>
     EmojiNeutralFill = 803,
+
     /// <summary>bi-emoji-smile</summary>
     EmojiSmile = 804,
+
     /// <summary>bi-emoji-smile-fill</summary>
     EmojiSmileFill = 805,
+
     /// <summary>bi-emoji-smile-upside-down</summary>
     EmojiSmileUpsideDown = 806,
+
     /// <summary>bi-emoji-smile-upside-down-fill</summary>
     EmojiSmileUpsideDownFill = 807,
+
     /// <summary>bi-emoji-sunglasses</summary>
     EmojiSunglasses = 808,
+
     /// <summary>bi-emoji-sunglasses-fill</summary>
     EmojiSunglassesFill = 809,
+
     /// <summary>bi-emoji-surprise</summary>
     EmojiSurprise = 810,
+
     /// <summary>bi-emoji-surprise-fill</summary>
     EmojiSurpriseFill = 811,
+
     /// <summary>bi-emoji-tear</summary>
     EmojiTear = 812,
+
     /// <summary>bi-emoji-tear-fill</summary>
     EmojiTearFill = 813,
+
     /// <summary>bi-emoji-wink</summary>
     EmojiWink = 814,
+
     /// <summary>bi-emoji-wink-fill</summary>
     EmojiWinkFill = 815,
+
     /// <summary>bi-envelope</summary>
     Envelope = 816,
+
     /// <summary>bi-envelope-arrow-down</summary>
     EnvelopeArrowDown = 817,
+
     /// <summary>bi-envelope-arrow-down-fill</summary>
     EnvelopeArrowDownFill = 818,
+
     /// <summary>bi-envelope-arrow-up</summary>
     EnvelopeArrowUp = 819,
+
     /// <summary>bi-envelope-arrow-up-fill</summary>
     EnvelopeArrowUpFill = 820,
+
     /// <summary>bi-envelope-at</summary>
     EnvelopeAt = 821,
+
     /// <summary>bi-envelope-at-fill</summary>
     EnvelopeAtFill = 822,
+
     /// <summary>bi-envelope-check</summary>
     EnvelopeCheck = 823,
+
     /// <summary>bi-envelope-check-fill</summary>
     EnvelopeCheckFill = 824,
+
     /// <summary>bi-envelope-dash</summary>
     EnvelopeDash = 825,
+
     /// <summary>bi-envelope-dash-fill</summary>
     EnvelopeDashFill = 826,
+
     /// <summary>bi-envelope-exclamation</summary>
     EnvelopeExclamation = 827,
+
     /// <summary>bi-envelope-exclamation-fill</summary>
     EnvelopeExclamationFill = 828,
+
     /// <summary>bi-envelope-fill</summary>
     EnvelopeFill = 829,
+
     /// <summary>bi-envelope-heart</summary>
     EnvelopeHeart = 830,
+
     /// <summary>bi-envelope-heart-fill</summary>
     EnvelopeHeartFill = 831,
+
     /// <summary>bi-envelope-open</summary>
     EnvelopeOpen = 832,
+
     /// <summary>bi-envelope-open-fill</summary>
     EnvelopeOpenFill = 833,
+
     /// <summary>bi-envelope-open-heart</summary>
     EnvelopeOpenHeart = 834,
+
     /// <summary>bi-envelope-open-heart-fill</summary>
     EnvelopeOpenHeartFill = 835,
+
     /// <summary>bi-envelope-paper</summary>
     EnvelopePaper = 836,
+
     /// <summary>bi-envelope-paper-fill</summary>
     EnvelopePaperFill = 837,
+
     /// <summary>bi-envelope-paper-heart</summary>
     EnvelopePaperHeart = 838,
+
     /// <summary>bi-envelope-paper-heart-fill</summary>
     EnvelopePaperHeartFill = 839,
+
     /// <summary>bi-envelope-plus</summary>
     EnvelopePlus = 840,
+
     /// <summary>bi-envelope-plus-fill</summary>
     EnvelopePlusFill = 841,
+
     /// <summary>bi-envelope-slash</summary>
     EnvelopeSlash = 842,
+
     /// <summary>bi-envelope-slash-fill</summary>
     EnvelopeSlashFill = 843,
+
     /// <summary>bi-envelope-x</summary>
     EnvelopeX = 844,
+
     /// <summary>bi-envelope-x-fill</summary>
     EnvelopeXFill = 845,
+
     /// <summary>bi-eraser</summary>
     Eraser = 846,
+
     /// <summary>bi-eraser-fill</summary>
     EraserFill = 847,
+
     /// <summary>bi-escape</summary>
     Escape = 848,
+
     /// <summary>bi-ethernet</summary>
     Ethernet = 849,
+
     /// <summary>bi-ev-front</summary>
     EvFront = 850,
+
     /// <summary>bi-ev-front-fill</summary>
     EvFrontFill = 851,
+
     /// <summary>bi-ev-station</summary>
     EvStation = 852,
+
     /// <summary>bi-ev-station-fill</summary>
     EvStationFill = 853,
+
     /// <summary>bi-exclamation</summary>
     Exclamation = 854,
+
     /// <summary>bi-exclamation-circle</summary>
     ExclamationCircle = 855,
+
     /// <summary>bi-exclamation-circle-fill</summary>
     ExclamationCircleFill = 856,
+
     /// <summary>bi-exclamation-diamond</summary>
     ExclamationDiamond = 857,
+
     /// <summary>bi-exclamation-diamond-fill</summary>
     ExclamationDiamondFill = 858,
+
     /// <summary>bi-exclamation-lg</summary>
     ExclamationLg = 859,
+
     /// <summary>bi-exclamation-octagon</summary>
     ExclamationOctagon = 860,
+
     /// <summary>bi-exclamation-octagon-fill</summary>
     ExclamationOctagonFill = 861,
+
     /// <summary>bi-exclamation-square</summary>
     ExclamationSquare = 862,
+
     /// <summary>bi-exclamation-square-fill</summary>
     ExclamationSquareFill = 863,
+
     /// <summary>bi-exclamation-triangle</summary>
     ExclamationTriangle = 864,
+
     /// <summary>bi-exclamation-triangle-fill</summary>
     ExclamationTriangleFill = 865,
+
     /// <summary>bi-exclude</summary>
     Exclude = 866,
+
     /// <summary>bi-explicit</summary>
     Explicit = 867,
+
     /// <summary>bi-explicit-fill</summary>
     ExplicitFill = 868,
+
     /// <summary>bi-exposure</summary>
     Exposure = 869,
+
     /// <summary>bi-eye</summary>
     Eye = 870,
+
     /// <summary>bi-eye-fill</summary>
     EyeFill = 871,
+
     /// <summary>bi-eye-slash</summary>
     EyeSlash = 872,
+
     /// <summary>bi-eye-slash-fill</summary>
     EyeSlashFill = 873,
+
     /// <summary>bi-eyedropper</summary>
     Eyedropper = 874,
+
     /// <summary>bi-eyeglasses</summary>
     Eyeglasses = 875,
+
     /// <summary>bi-facebook</summary>
     Facebook = 876,
+
     /// <summary>bi-fan</summary>
     Fan = 877,
+
     /// <summary>bi-fast-forward</summary>
     FastForward = 878,
+
     /// <summary>bi-fast-forward-btn</summary>
     FastForwardBtn = 879,
+
     /// <summary>bi-fast-forward-btn-fill</summary>
     FastForwardBtnFill = 880,
+
     /// <summary>bi-fast-forward-circle</summary>
     FastForwardCircle = 881,
+
     /// <summary>bi-fast-forward-circle-fill</summary>
     FastForwardCircleFill = 882,
+
     /// <summary>bi-fast-forward-fill</summary>
     FastForwardFill = 883,
+
     /// <summary>bi-feather</summary>
     Feather = 884,
+
     /// <summary>bi-feather2</summary>
     Feather2 = 885,
+
     /// <summary>bi-file</summary>
     File = 886,
+
     /// <summary>bi-file-arrow-down</summary>
     FileArrowDown = 887,
+
     /// <summary>bi-file-arrow-down-fill</summary>
     FileArrowDownFill = 888,
+
     /// <summary>bi-file-arrow-up</summary>
     FileArrowUp = 889,
+
     /// <summary>bi-file-arrow-up-fill</summary>
     FileArrowUpFill = 890,
+
     /// <summary>bi-file-bar-graph</summary>
     FileBarGraph = 891,
+
     /// <summary>bi-file-bar-graph-fill</summary>
     FileBarGraphFill = 892,
+
     /// <summary>bi-file-binary</summary>
     FileBinary = 893,
+
     /// <summary>bi-file-binary-fill</summary>
     FileBinaryFill = 894,
+
     /// <summary>bi-file-break</summary>
     FileBreak = 895,
+
     /// <summary>bi-file-break-fill</summary>
     FileBreakFill = 896,
+
     /// <summary>bi-file-check</summary>
     FileCheck = 897,
+
     /// <summary>bi-file-check-fill</summary>
     FileCheckFill = 898,
+
     /// <summary>bi-file-code</summary>
     FileCode = 899,
+
     /// <summary>bi-file-code-fill</summary>
     FileCodeFill = 900,
+
     /// <summary>bi-file-diff</summary>
     FileDiff = 901,
+
     /// <summary>bi-file-diff-fill</summary>
     FileDiffFill = 902,
+
     /// <summary>bi-file-earmark</summary>
     FileEarmark = 903,
+
     /// <summary>bi-file-earmark-arrow-down</summary>
     FileEarmarkArrowDown = 904,
+
     /// <summary>bi-file-earmark-arrow-down-fill</summary>
     FileEarmarkArrowDownFill = 905,
+
     /// <summary>bi-file-earmark-arrow-up</summary>
     FileEarmarkArrowUp = 906,
+
     /// <summary>bi-file-earmark-arrow-up-fill</summary>
     FileEarmarkArrowUpFill = 907,
+
     /// <summary>bi-file-earmark-bar-graph</summary>
     FileEarmarkBarGraph = 908,
+
     /// <summary>bi-file-earmark-bar-graph-fill</summary>
     FileEarmarkBarGraphFill = 909,
+
     /// <summary>bi-file-earmark-binary</summary>
     FileEarmarkBinary = 910,
+
     /// <summary>bi-file-earmark-binary-fill</summary>
     FileEarmarkBinaryFill = 911,
+
     /// <summary>bi-file-earmark-break</summary>
     FileEarmarkBreak = 912,
+
     /// <summary>bi-file-earmark-break-fill</summary>
     FileEarmarkBreakFill = 913,
+
     /// <summary>bi-file-earmark-check</summary>
     FileEarmarkCheck = 914,
+
     /// <summary>bi-file-earmark-check-fill</summary>
     FileEarmarkCheckFill = 915,
+
     /// <summary>bi-file-earmark-code</summary>
     FileEarmarkCode = 916,
+
     /// <summary>bi-file-earmark-code-fill</summary>
     FileEarmarkCodeFill = 917,
+
     /// <summary>bi-file-earmark-diff</summary>
     FileEarmarkDiff = 918,
+
     /// <summary>bi-file-earmark-diff-fill</summary>
     FileEarmarkDiffFill = 919,
+
     /// <summary>bi-file-earmark-easel</summary>
     FileEarmarkEasel = 920,
+
     /// <summary>bi-file-earmark-easel-fill</summary>
     FileEarmarkEaselFill = 921,
+
     /// <summary>bi-file-earmark-excel</summary>
     FileEarmarkExcel = 922,
+
     /// <summary>bi-file-earmark-excel-fill</summary>
     FileEarmarkExcelFill = 923,
+
     /// <summary>bi-file-earmark-fill</summary>
     FileEarmarkFill = 924,
+
     /// <summary>bi-file-earmark-font</summary>
     FileEarmarkFont = 925,
+
     /// <summary>bi-file-earmark-font-fill</summary>
     FileEarmarkFontFill = 926,
+
     /// <summary>bi-file-earmark-image</summary>
     FileEarmarkImage = 927,
+
     /// <summary>bi-file-earmark-image-fill</summary>
     FileEarmarkImageFill = 928,
+
     /// <summary>bi-file-earmark-lock</summary>
     FileEarmarkLock = 929,
+
     /// <summary>bi-file-earmark-lock-fill</summary>
     FileEarmarkLockFill = 930,
+
     /// <summary>bi-file-earmark-lock2</summary>
     FileEarmarkLock2 = 931,
+
     /// <summary>bi-file-earmark-lock2-fill</summary>
     FileEarmarkLock2Fill = 932,
+
     /// <summary>bi-file-earmark-medical</summary>
     FileEarmarkMedical = 933,
+
     /// <summary>bi-file-earmark-medical-fill</summary>
     FileEarmarkMedicalFill = 934,
+
     /// <summary>bi-file-earmark-minus</summary>
     FileEarmarkMinus = 935,
+
     /// <summary>bi-file-earmark-minus-fill</summary>
     FileEarmarkMinusFill = 936,
+
     /// <summary>bi-file-earmark-music</summary>
     FileEarmarkMusic = 937,
+
     /// <summary>bi-file-earmark-music-fill</summary>
     FileEarmarkMusicFill = 938,
+
     /// <summary>bi-file-earmark-pdf</summary>
     FileEarmarkPdf = 939,
+
     /// <summary>bi-file-earmark-pdf-fill</summary>
     FileEarmarkPdfFill = 940,
+
     /// <summary>bi-file-earmark-person</summary>
     FileEarmarkPerson = 941,
+
     /// <summary>bi-file-earmark-person-fill</summary>
     FileEarmarkPersonFill = 942,
+
     /// <summary>bi-file-earmark-play</summary>
     FileEarmarkPlay = 943,
+
     /// <summary>bi-file-earmark-play-fill</summary>
     FileEarmarkPlayFill = 944,
+
     /// <summary>bi-file-earmark-plus</summary>
     FileEarmarkPlus = 945,
+
     /// <summary>bi-file-earmark-plus-fill</summary>
     FileEarmarkPlusFill = 946,
+
     /// <summary>bi-file-earmark-post</summary>
     FileEarmarkPost = 947,
+
     /// <summary>bi-file-earmark-post-fill</summary>
     FileEarmarkPostFill = 948,
+
     /// <summary>bi-file-earmark-ppt</summary>
     FileEarmarkPpt = 949,
+
     /// <summary>bi-file-earmark-ppt-fill</summary>
     FileEarmarkPptFill = 950,
+
     /// <summary>bi-file-earmark-richtext</summary>
     FileEarmarkRichtext = 951,
+
     /// <summary>bi-file-earmark-richtext-fill</summary>
     FileEarmarkRichtextFill = 952,
+
     /// <summary>bi-file-earmark-ruled</summary>
     FileEarmarkRuled = 953,
+
     /// <summary>bi-file-earmark-ruled-fill</summary>
     FileEarmarkRuledFill = 954,
+
     /// <summary>bi-file-earmark-slides</summary>
     FileEarmarkSlides = 955,
+
     /// <summary>bi-file-earmark-slides-fill</summary>
     FileEarmarkSlidesFill = 956,
+
     /// <summary>bi-file-earmark-spreadsheet</summary>
     FileEarmarkSpreadsheet = 957,
+
     /// <summary>bi-file-earmark-spreadsheet-fill</summary>
     FileEarmarkSpreadsheetFill = 958,
+
     /// <summary>bi-file-earmark-text</summary>
     FileEarmarkText = 959,
+
     /// <summary>bi-file-earmark-text-fill</summary>
     FileEarmarkTextFill = 960,
+
     /// <summary>bi-file-earmark-word</summary>
     FileEarmarkWord = 961,
+
     /// <summary>bi-file-earmark-word-fill</summary>
     FileEarmarkWordFill = 962,
+
     /// <summary>bi-file-earmark-x</summary>
     FileEarmarkX = 963,
+
     /// <summary>bi-file-earmark-x-fill</summary>
     FileEarmarkXFill = 964,
+
     /// <summary>bi-file-earmark-zip</summary>
     FileEarmarkZip = 965,
+
     /// <summary>bi-file-earmark-zip-fill</summary>
     FileEarmarkZipFill = 966,
+
     /// <summary>bi-file-easel</summary>
     FileEasel = 967,
+
     /// <summary>bi-file-easel-fill</summary>
     FileEaselFill = 968,
+
     /// <summary>bi-file-excel</summary>
     FileExcel = 969,
+
     /// <summary>bi-file-excel-fill</summary>
     FileExcelFill = 970,
+
     /// <summary>bi-file-fill</summary>
     FileFill = 971,
+
     /// <summary>bi-file-font</summary>
     FileFont = 972,
+
     /// <summary>bi-file-font-fill</summary>
     FileFontFill = 973,
+
     /// <summary>bi-file-image</summary>
     FileImage = 974,
+
     /// <summary>bi-file-image-fill</summary>
     FileImageFill = 975,
+
     /// <summary>bi-file-lock</summary>
     FileLock = 976,
+
     /// <summary>bi-file-lock-fill</summary>
     FileLockFill = 977,
+
     /// <summary>bi-file-lock2</summary>
     FileLock2 = 978,
+
     /// <summary>bi-file-lock2-fill</summary>
     FileLock2Fill = 979,
+
     /// <summary>bi-file-medical</summary>
     FileMedical = 980,
+
     /// <summary>bi-file-medical-fill</summary>
     FileMedicalFill = 981,
+
     /// <summary>bi-file-minus</summary>
     FileMinus = 982,
+
     /// <summary>bi-file-minus-fill</summary>
     FileMinusFill = 983,
+
     /// <summary>bi-file-music</summary>
     FileMusic = 984,
+
     /// <summary>bi-file-music-fill</summary>
     FileMusicFill = 985,
+
     /// <summary>bi-file-pdf</summary>
     FilePdf = 986,
+
     /// <summary>bi-file-pdf-fill</summary>
     FilePdfFill = 987,
+
     /// <summary>bi-file-person</summary>
     FilePerson = 988,
+
     /// <summary>bi-file-person-fill</summary>
     FilePersonFill = 989,
+
     /// <summary>bi-file-play</summary>
     FilePlay = 990,
+
     /// <summary>bi-file-play-fill</summary>
     FilePlayFill = 991,
+
     /// <summary>bi-file-plus</summary>
     FilePlus = 992,
+
     /// <summary>bi-file-plus-fill</summary>
     FilePlusFill = 993,
+
     /// <summary>bi-file-post</summary>
     FilePost = 994,
+
     /// <summary>bi-file-post-fill</summary>
     FilePostFill = 995,
+
     /// <summary>bi-file-ppt</summary>
     FilePpt = 996,
+
     /// <summary>bi-file-ppt-fill</summary>
     FilePptFill = 997,
+
     /// <summary>bi-file-richtext</summary>
     FileRichtext = 998,
+
     /// <summary>bi-file-richtext-fill</summary>
     FileRichtextFill = 999,
+
     /// <summary>bi-file-ruled</summary>
     FileRuled = 1000,
+
     /// <summary>bi-file-ruled-fill</summary>
     FileRuledFill = 1001,
+
     /// <summary>bi-file-slides</summary>
     FileSlides = 1002,
+
     /// <summary>bi-file-slides-fill</summary>
     FileSlidesFill = 1003,
+
     /// <summary>bi-file-spreadsheet</summary>
     FileSpreadsheet = 1004,
+
     /// <summary>bi-file-spreadsheet-fill</summary>
     FileSpreadsheetFill = 1005,
+
     /// <summary>bi-file-text</summary>
     FileText = 1006,
+
     /// <summary>bi-file-text-fill</summary>
     FileTextFill = 1007,
+
     /// <summary>bi-file-word</summary>
     FileWord = 1008,
+
     /// <summary>bi-file-word-fill</summary>
     FileWordFill = 1009,
+
     /// <summary>bi-file-x</summary>
     FileX = 1010,
+
     /// <summary>bi-file-x-fill</summary>
     FileXFill = 1011,
+
     /// <summary>bi-file-zip</summary>
     FileZip = 1012,
+
     /// <summary>bi-file-zip-fill</summary>
     FileZipFill = 1013,
+
     /// <summary>bi-files</summary>
     Files = 1014,
+
     /// <summary>bi-files-alt</summary>
     FilesAlt = 1015,
+
     /// <summary>bi-filetype-aac</summary>
     FiletypeAac = 1016,
+
     /// <summary>bi-filetype-ai</summary>
     FiletypeAi = 1017,
+
     /// <summary>bi-filetype-bmp</summary>
     FiletypeBmp = 1018,
+
     /// <summary>bi-filetype-cs</summary>
     FiletypeCs = 1019,
+
     /// <summary>bi-filetype-css</summary>
     FiletypeCss = 1020,
+
     /// <summary>bi-filetype-csv</summary>
     FiletypeCsv = 1021,
+
     /// <summary>bi-filetype-doc</summary>
     FiletypeDoc = 1022,
+
     /// <summary>bi-filetype-docx</summary>
     FiletypeDocx = 1023,
+
     /// <summary>bi-filetype-exe</summary>
     FiletypeExe = 1024,
+
     /// <summary>bi-filetype-gif</summary>
     FiletypeGif = 1025,
+
     /// <summary>bi-filetype-heic</summary>
     FiletypeHeic = 1026,
+
     /// <summary>bi-filetype-html</summary>
     FiletypeHtml = 1027,
+
     /// <summary>bi-filetype-java</summary>
     FiletypeJava = 1028,
+
     /// <summary>bi-filetype-jpg</summary>
     FiletypeJpg = 1029,
+
     /// <summary>bi-filetype-js</summary>
     FiletypeJs = 1030,
+
     /// <summary>bi-filetype-json</summary>
     FiletypeJson = 1031,
+
     /// <summary>bi-filetype-jsx</summary>
     FiletypeJsx = 1032,
+
     /// <summary>bi-filetype-key</summary>
     FiletypeKey = 1033,
+
     /// <summary>bi-filetype-m4p</summary>
     FiletypeM4p = 1034,
+
     /// <summary>bi-filetype-md</summary>
     FiletypeMd = 1035,
+
     /// <summary>bi-filetype-mdx</summary>
     FiletypeMdx = 1036,
+
     /// <summary>bi-filetype-mov</summary>
     FiletypeMov = 1037,
+
     /// <summary>bi-filetype-mp3</summary>
     FiletypeMp3 = 1038,
+
     /// <summary>bi-filetype-mp4</summary>
     FiletypeMp4 = 1039,
+
     /// <summary>bi-filetype-otf</summary>
     FiletypeOtf = 1040,
+
     /// <summary>bi-filetype-pdf</summary>
     FiletypePdf = 1041,
+
     /// <summary>bi-filetype-php</summary>
     FiletypePhp = 1042,
+
     /// <summary>bi-filetype-png</summary>
     FiletypePng = 1043,
+
     /// <summary>bi-filetype-ppt</summary>
     FiletypePpt = 1044,
+
     /// <summary>bi-filetype-pptx</summary>
     FiletypePptx = 1045,
+
     /// <summary>bi-filetype-psd</summary>
     FiletypePsd = 1046,
+
     /// <summary>bi-filetype-py</summary>
     FiletypePy = 1047,
+
     /// <summary>bi-filetype-raw</summary>
     FiletypeRaw = 1048,
+
     /// <summary>bi-filetype-rb</summary>
     FiletypeRb = 1049,
+
     /// <summary>bi-filetype-sass</summary>
     FiletypeSass = 1050,
+
     /// <summary>bi-filetype-scss</summary>
     FiletypeScss = 1051,
+
     /// <summary>bi-filetype-sh</summary>
     FiletypeSh = 1052,
+
     /// <summary>bi-filetype-sql</summary>
     FiletypeSql = 1053,
+
     /// <summary>bi-filetype-svg</summary>
     FiletypeSvg = 1054,
+
     /// <summary>bi-filetype-tiff</summary>
     FiletypeTiff = 1055,
+
     /// <summary>bi-filetype-tsx</summary>
     FiletypeTsx = 1056,
+
     /// <summary>bi-filetype-ttf</summary>
     FiletypeTtf = 1057,
+
     /// <summary>bi-filetype-txt</summary>
     FiletypeTxt = 1058,
+
     /// <summary>bi-filetype-wav</summary>
     FiletypeWav = 1059,
+
     /// <summary>bi-filetype-woff</summary>
     FiletypeWoff = 1060,
+
     /// <summary>bi-filetype-xls</summary>
     FiletypeXls = 1061,
+
     /// <summary>bi-filetype-xlsx</summary>
     FiletypeXlsx = 1062,
+
     /// <summary>bi-filetype-xml</summary>
     FiletypeXml = 1063,
+
     /// <summary>bi-filetype-yml</summary>
     FiletypeYml = 1064,
+
     /// <summary>bi-film</summary>
     Film = 1065,
+
     /// <summary>bi-filter</summary>
     Filter = 1066,
+
     /// <summary>bi-filter-circle</summary>
     FilterCircle = 1067,
+
     /// <summary>bi-filter-circle-fill</summary>
     FilterCircleFill = 1068,
+
     /// <summary>bi-filter-left</summary>
     FilterLeft = 1069,
+
     /// <summary>bi-filter-right</summary>
     FilterRight = 1070,
+
     /// <summary>bi-filter-square</summary>
     FilterSquare = 1071,
+
     /// <summary>bi-filter-square-fill</summary>
     FilterSquareFill = 1072,
+
     /// <summary>bi-fingerprint</summary>
     Fingerprint = 1073,
+
     /// <summary>bi-fire</summary>
     Fire = 1074,
+
     /// <summary>bi-flag</summary>
     Flag = 1075,
+
     /// <summary>bi-flag-fill</summary>
     FlagFill = 1076,
+
     /// <summary>bi-flask</summary>
     Flask = 1077,
+
     /// <summary>bi-flask-fill</summary>
     FlaskFill = 1078,
+
     /// <summary>bi-flask-florence</summary>
     FlaskFlorence = 1079,
+
     /// <summary>bi-flask-florence-fill</summary>
     FlaskFlorenceFill = 1080,
+
     /// <summary>bi-floppy</summary>
     Floppy = 1081,
+
     /// <summary>bi-floppy-fill</summary>
     FloppyFill = 1082,
+
     /// <summary>bi-floppy2</summary>
     Floppy2 = 1083,
+
     /// <summary>bi-floppy2-fill</summary>
     Floppy2Fill = 1084,
+
     /// <summary>bi-flower1</summary>
     Flower1 = 1085,
+
     /// <summary>bi-flower2</summary>
     Flower2 = 1086,
+
     /// <summary>bi-flower3</summary>
     Flower3 = 1087,
+
     /// <summary>bi-folder</summary>
     Folder = 1088,
+
     /// <summary>bi-folder-check</summary>
     FolderCheck = 1089,
+
     /// <summary>bi-folder-fill</summary>
     FolderFill = 1090,
+
     /// <summary>bi-folder-minus</summary>
     FolderMinus = 1091,
+
     /// <summary>bi-folder-plus</summary>
     FolderPlus = 1092,
+
     /// <summary>bi-folder-symlink</summary>
     FolderSymlink = 1093,
+
     /// <summary>bi-folder-symlink-fill</summary>
     FolderSymlinkFill = 1094,
+
     /// <summary>bi-folder-x</summary>
     FolderX = 1095,
+
     /// <summary>bi-folder2</summary>
     Folder2 = 1096,
+
     /// <summary>bi-folder2-open</summary>
     Folder2Open = 1097,
+
     /// <summary>bi-fonts</summary>
     Fonts = 1098,
+
     /// <summary>bi-fork-knife</summary>
     ForkKnife = 1099,
+
     /// <summary>bi-forward</summary>
     Forward = 1100,
+
     /// <summary>bi-forward-fill</summary>
     ForwardFill = 1101,
+
     /// <summary>bi-front</summary>
     Front = 1102,
+
     /// <summary>bi-fuel-pump</summary>
     FuelPump = 1103,
+
     /// <summary>bi-fuel-pump-diesel</summary>
     FuelPumpDiesel = 1104,
+
     /// <summary>bi-fuel-pump-diesel-fill</summary>
     FuelPumpDieselFill = 1105,
+
     /// <summary>bi-fuel-pump-fill</summary>
     FuelPumpFill = 1106,
+
     /// <summary>bi-fullscreen</summary>
     Fullscreen = 1107,
+
     /// <summary>bi-fullscreen-exit</summary>
     FullscreenExit = 1108,
+
     /// <summary>bi-funnel</summary>
     Funnel = 1109,
+
     /// <summary>bi-funnel-fill</summary>
     FunnelFill = 1110,
+
     /// <summary>bi-gear</summary>
     Gear = 1111,
+
     /// <summary>bi-gear-fill</summary>
     GearFill = 1112,
+
     /// <summary>bi-gear-wide</summary>
     GearWide = 1113,
+
     /// <summary>bi-gear-wide-connected</summary>
     GearWideConnected = 1114,
+
     /// <summary>bi-gem</summary>
     Gem = 1115,
+
     /// <summary>bi-gender-ambiguous</summary>
     GenderAmbiguous = 1116,
+
     /// <summary>bi-gender-female</summary>
     GenderFemale = 1117,
+
     /// <summary>bi-gender-male</summary>
     GenderMale = 1118,
+
     /// <summary>bi-gender-neuter</summary>
     GenderNeuter = 1119,
+
     /// <summary>bi-gender-trans</summary>
     GenderTrans = 1120,
+
     /// <summary>bi-geo</summary>
     Geo = 1121,
+
     /// <summary>bi-geo-alt</summary>
     GeoAlt = 1122,
+
     /// <summary>bi-geo-alt-fill</summary>
     GeoAltFill = 1123,
+
     /// <summary>bi-geo-fill</summary>
     GeoFill = 1124,
+
     /// <summary>bi-gift</summary>
     Gift = 1125,
+
     /// <summary>bi-gift-fill</summary>
     GiftFill = 1126,
+
     /// <summary>bi-git</summary>
     Git = 1127,
+
     /// <summary>bi-github</summary>
     Github = 1128,
+
     /// <summary>bi-gitlab</summary>
     Gitlab = 1129,
+
     /// <summary>bi-globe</summary>
     Globe = 1130,
+
     /// <summary>bi-globe-americas</summary>
     GlobeAmericas = 1131,
+
     /// <summary>bi-globe-americas-fill</summary>
     GlobeAmericasFill = 1132,
+
     /// <summary>bi-globe-asia-australia</summary>
     GlobeAsiaAustralia = 1133,
+
     /// <summary>bi-globe-asia-australia-fill</summary>
     GlobeAsiaAustraliaFill = 1134,
+
     /// <summary>bi-globe-central-south-asia</summary>
     GlobeCentralSouthAsia = 1135,
+
     /// <summary>bi-globe-central-south-asia-fill</summary>
     GlobeCentralSouthAsiaFill = 1136,
+
     /// <summary>bi-globe-europe-africa</summary>
     GlobeEuropeAfrica = 1137,
+
     /// <summary>bi-globe-europe-africa-fill</summary>
     GlobeEuropeAfricaFill = 1138,
+
     /// <summary>bi-globe2</summary>
     Globe2 = 1139,
+
     /// <summary>bi-google</summary>
     Google = 1140,
+
     /// <summary>bi-google-play</summary>
     GooglePlay = 1141,
+
     /// <summary>bi-gpu-card</summary>
     GpuCard = 1142,
+
     /// <summary>bi-graph-down</summary>
     GraphDown = 1143,
+
     /// <summary>bi-graph-down-arrow</summary>
     GraphDownArrow = 1144,
+
     /// <summary>bi-graph-up</summary>
     GraphUp = 1145,
+
     /// <summary>bi-graph-up-arrow</summary>
     GraphUpArrow = 1146,
+
     /// <summary>bi-grid</summary>
     Grid = 1147,
+
     /// <summary>bi-grid-1x2</summary>
     Grid1x2 = 1148,
+
     /// <summary>bi-grid-1x2-fill</summary>
     Grid1x2Fill = 1149,
+
     /// <summary>bi-grid-3x2</summary>
     Grid3x2 = 1150,
+
     /// <summary>bi-grid-3x2-gap</summary>
     Grid3x2Gap = 1151,
+
     /// <summary>bi-grid-3x2-gap-fill</summary>
     Grid3x2GapFill = 1152,
+
     /// <summary>bi-grid-3x3</summary>
     Grid3x3 = 1153,
+
     /// <summary>bi-grid-3x3-gap</summary>
     Grid3x3Gap = 1154,
+
     /// <summary>bi-grid-3x3-gap-fill</summary>
     Grid3x3GapFill = 1155,
+
     /// <summary>bi-grid-fill</summary>
     GridFill = 1156,
+
     /// <summary>bi-grip-horizontal</summary>
     GripHorizontal = 1157,
+
     /// <summary>bi-grip-vertical</summary>
     GripVertical = 1158,
+
     /// <summary>bi-h-circle</summary>
     HCircle = 1159,
+
     /// <summary>bi-h-circle-fill</summary>
     HCircleFill = 1160,
+
     /// <summary>bi-h-square</summary>
     HSquare = 1161,
+
     /// <summary>bi-h-square-fill</summary>
     HSquareFill = 1162,
+
     /// <summary>bi-hammer</summary>
     Hammer = 1163,
+
     /// <summary>bi-hand-index</summary>
     HandIndex = 1164,
+
     /// <summary>bi-hand-index-fill</summary>
     HandIndexFill = 1165,
+
     /// <summary>bi-hand-index-thumb</summary>
     HandIndexThumb = 1166,
+
     /// <summary>bi-hand-index-thumb-fill</summary>
     HandIndexThumbFill = 1167,
+
     /// <summary>bi-hand-thumbs-down</summary>
     HandThumbsDown = 1168,
+
     /// <summary>bi-hand-thumbs-down-fill</summary>
     HandThumbsDownFill = 1169,
+
     /// <summary>bi-hand-thumbs-up</summary>
     HandThumbsUp = 1170,
+
     /// <summary>bi-hand-thumbs-up-fill</summary>
     HandThumbsUpFill = 1171,
+
     /// <summary>bi-handbag</summary>
     Handbag = 1172,
+
     /// <summary>bi-handbag-fill</summary>
     HandbagFill = 1173,
+
     /// <summary>bi-hash</summary>
     Hash = 1174,
+
     /// <summary>bi-hdd</summary>
     Hdd = 1175,
+
     /// <summary>bi-hdd-fill</summary>
     HddFill = 1176,
+
     /// <summary>bi-hdd-network</summary>
     HddNetwork = 1177,
+
     /// <summary>bi-hdd-network-fill</summary>
     HddNetworkFill = 1178,
+
     /// <summary>bi-hdd-rack</summary>
     HddRack = 1179,
+
     /// <summary>bi-hdd-rack-fill</summary>
     HddRackFill = 1180,
+
     /// <summary>bi-hdd-stack</summary>
     HddStack = 1181,
+
     /// <summary>bi-hdd-stack-fill</summary>
     HddStackFill = 1182,
+
     /// <summary>bi-hdmi</summary>
     Hdmi = 1183,
+
     /// <summary>bi-hdmi-fill</summary>
     HdmiFill = 1184,
+
     /// <summary>bi-headphones</summary>
     Headphones = 1185,
+
     /// <summary>bi-headset</summary>
     Headset = 1186,
+
     /// <summary>bi-headset-vr</summary>
     HeadsetVr = 1187,
+
     /// <summary>bi-heart</summary>
     Heart = 1188,
+
     /// <summary>bi-heart-arrow</summary>
     HeartArrow = 1189,
+
     /// <summary>bi-heart-fill</summary>
     HeartFill = 1190,
+
     /// <summary>bi-heart-half</summary>
     HeartHalf = 1191,
+
     /// <summary>bi-heart-pulse</summary>
     HeartPulse = 1192,
+
     /// <summary>bi-heart-pulse-fill</summary>
     HeartPulseFill = 1193,
+
     /// <summary>bi-heartbreak</summary>
     Heartbreak = 1194,
+
     /// <summary>bi-heartbreak-fill</summary>
     HeartbreakFill = 1195,
+
     /// <summary>bi-hearts</summary>
     Hearts = 1196,
+
     /// <summary>bi-heptagon</summary>
     Heptagon = 1197,
+
     /// <summary>bi-heptagon-fill</summary>
     HeptagonFill = 1198,
+
     /// <summary>bi-heptagon-half</summary>
     HeptagonHalf = 1199,
+
     /// <summary>bi-hexagon</summary>
     Hexagon = 1200,
+
     /// <summary>bi-hexagon-fill</summary>
     HexagonFill = 1201,
+
     /// <summary>bi-hexagon-half</summary>
     HexagonHalf = 1202,
+
     /// <summary>bi-highlighter</summary>
     Highlighter = 1203,
+
     /// <summary>bi-highlights</summary>
     Highlights = 1204,
+
     /// <summary>bi-hospital</summary>
     Hospital = 1205,
+
     /// <summary>bi-hospital-fill</summary>
     HospitalFill = 1206,
+
     /// <summary>bi-hourglass</summary>
     Hourglass = 1207,
+
     /// <summary>bi-hourglass-bottom</summary>
     HourglassBottom = 1208,
+
     /// <summary>bi-hourglass-split</summary>
     HourglassSplit = 1209,
+
     /// <summary>bi-hourglass-top</summary>
     HourglassTop = 1210,
+
     /// <summary>bi-house</summary>
     House = 1211,
+
     /// <summary>bi-house-add</summary>
     HouseAdd = 1212,
+
     /// <summary>bi-house-add-fill</summary>
     HouseAddFill = 1213,
+
     /// <summary>bi-house-check</summary>
     HouseCheck = 1214,
+
     /// <summary>bi-house-check-fill</summary>
     HouseCheckFill = 1215,
+
     /// <summary>bi-house-dash</summary>
     HouseDash = 1216,
+
     /// <summary>bi-house-dash-fill</summary>
     HouseDashFill = 1217,
+
     /// <summary>bi-house-door</summary>
     HouseDoor = 1218,
+
     /// <summary>bi-house-door-fill</summary>
     HouseDoorFill = 1219,
+
     /// <summary>bi-house-down</summary>
     HouseDown = 1220,
+
     /// <summary>bi-house-down-fill</summary>
     HouseDownFill = 1221,
+
     /// <summary>bi-house-exclamation</summary>
     HouseExclamation = 1222,
+
     /// <summary>bi-house-exclamation-fill</summary>
     HouseExclamationFill = 1223,
+
     /// <summary>bi-house-fill</summary>
     HouseFill = 1224,
+
     /// <summary>bi-house-gear</summary>
     HouseGear = 1225,
+
     /// <summary>bi-house-gear-fill</summary>
     HouseGearFill = 1226,
+
     /// <summary>bi-house-heart</summary>
     HouseHeart = 1227,
+
     /// <summary>bi-house-heart-fill</summary>
     HouseHeartFill = 1228,
+
     /// <summary>bi-house-lock</summary>
     HouseLock = 1229,
+
     /// <summary>bi-house-lock-fill</summary>
     HouseLockFill = 1230,
+
     /// <summary>bi-house-slash</summary>
     HouseSlash = 1231,
+
     /// <summary>bi-house-slash-fill</summary>
     HouseSlashFill = 1232,
+
     /// <summary>bi-house-up</summary>
     HouseUp = 1233,
+
     /// <summary>bi-house-up-fill</summary>
     HouseUpFill = 1234,
+
     /// <summary>bi-house-x</summary>
     HouseX = 1235,
+
     /// <summary>bi-house-x-fill</summary>
     HouseXFill = 1236,
+
     /// <summary>bi-houses</summary>
     Houses = 1237,
+
     /// <summary>bi-houses-fill</summary>
     HousesFill = 1238,
+
     /// <summary>bi-hr</summary>
     Hr = 1239,
+
     /// <summary>bi-hurricane</summary>
     Hurricane = 1240,
+
     /// <summary>bi-hypnotize</summary>
     Hypnotize = 1241,
+
     /// <summary>bi-image</summary>
     Image = 1242,
+
     /// <summary>bi-image-alt</summary>
     ImageAlt = 1243,
+
     /// <summary>bi-image-fill</summary>
     ImageFill = 1244,
+
     /// <summary>bi-images</summary>
     Images = 1245,
+
     /// <summary>bi-inbox</summary>
     Inbox = 1246,
+
     /// <summary>bi-inbox-fill</summary>
     InboxFill = 1247,
+
     /// <summary>bi-inboxes</summary>
     Inboxes = 1248,
+
     /// <summary>bi-inboxes-fill</summary>
     InboxesFill = 1249,
+
     /// <summary>bi-incognito</summary>
     Incognito = 1250,
+
     /// <summary>bi-indent</summary>
     Indent = 1251,
+
     /// <summary>bi-infinity</summary>
     Infinity = 1252,
+
     /// <summary>bi-info</summary>
     Info = 1253,
+
     /// <summary>bi-info-circle</summary>
     InfoCircle = 1254,
+
     /// <summary>bi-info-circle-fill</summary>
     InfoCircleFill = 1255,
+
     /// <summary>bi-info-lg</summary>
     InfoLg = 1256,
+
     /// <summary>bi-info-square</summary>
     InfoSquare = 1257,
+
     /// <summary>bi-info-square-fill</summary>
     InfoSquareFill = 1258,
+
     /// <summary>bi-input-cursor</summary>
     InputCursor = 1259,
+
     /// <summary>bi-input-cursor-text</summary>
     InputCursorText = 1260,
+
     /// <summary>bi-instagram</summary>
     Instagram = 1261,
+
     /// <summary>bi-intersect</summary>
     Intersect = 1262,
+
     /// <summary>bi-javascript</summary>
     Javascript = 1263,
+
     /// <summary>bi-journal</summary>
     Journal = 1264,
+
     /// <summary>bi-journal-album</summary>
     JournalAlbum = 1265,
+
     /// <summary>bi-journal-arrow-down</summary>
     JournalArrowDown = 1266,
+
     /// <summary>bi-journal-arrow-up</summary>
     JournalArrowUp = 1267,
+
     /// <summary>bi-journal-bookmark</summary>
     JournalBookmark = 1268,
+
     /// <summary>bi-journal-bookmark-fill</summary>
     JournalBookmarkFill = 1269,
+
     /// <summary>bi-journal-check</summary>
     JournalCheck = 1270,
+
     /// <summary>bi-journal-code</summary>
     JournalCode = 1271,
+
     /// <summary>bi-journal-medical</summary>
     JournalMedical = 1272,
+
     /// <summary>bi-journal-minus</summary>
     JournalMinus = 1273,
+
     /// <summary>bi-journal-plus</summary>
     JournalPlus = 1274,
+
     /// <summary>bi-journal-richtext</summary>
     JournalRichtext = 1275,
+
     /// <summary>bi-journal-text</summary>
     JournalText = 1276,
+
     /// <summary>bi-journal-x</summary>
     JournalX = 1277,
+
     /// <summary>bi-journals</summary>
     Journals = 1278,
+
     /// <summary>bi-joystick</summary>
     Joystick = 1279,
+
     /// <summary>bi-justify</summary>
     Justify = 1280,
+
     /// <summary>bi-justify-left</summary>
     JustifyLeft = 1281,
+
     /// <summary>bi-justify-right</summary>
     JustifyRight = 1282,
+
     /// <summary>bi-kanban</summary>
     Kanban = 1283,
+
     /// <summary>bi-kanban-fill</summary>
     KanbanFill = 1284,
+
     /// <summary>bi-key</summary>
     Key = 1285,
+
     /// <summary>bi-key-fill</summary>
     KeyFill = 1286,
+
     /// <summary>bi-keyboard</summary>
     Keyboard = 1287,
+
     /// <summary>bi-keyboard-fill</summary>
     KeyboardFill = 1288,
+
     /// <summary>bi-ladder</summary>
     Ladder = 1289,
+
     /// <summary>bi-lamp</summary>
     Lamp = 1290,
+
     /// <summary>bi-lamp-fill</summary>
     LampFill = 1291,
+
     /// <summary>bi-laptop</summary>
     Laptop = 1292,
+
     /// <summary>bi-laptop-fill</summary>
     LaptopFill = 1293,
+
     /// <summary>bi-layer-backward</summary>
     LayerBackward = 1294,
+
     /// <summary>bi-layer-forward</summary>
     LayerForward = 1295,
+
     /// <summary>bi-layers</summary>
     Layers = 1296,
+
     /// <summary>bi-layers-fill</summary>
     LayersFill = 1297,
+
     /// <summary>bi-layers-half</summary>
     LayersHalf = 1298,
+
     /// <summary>bi-layout-sidebar</summary>
     LayoutSidebar = 1299,
+
     /// <summary>bi-layout-sidebar-inset</summary>
     LayoutSidebarInset = 1300,
+
     /// <summary>bi-layout-sidebar-inset-reverse</summary>
     LayoutSidebarInsetReverse = 1301,
+
     /// <summary>bi-layout-sidebar-reverse</summary>
     LayoutSidebarReverse = 1302,
+
     /// <summary>bi-layout-split</summary>
     LayoutSplit = 1303,
+
     /// <summary>bi-layout-text-sidebar</summary>
     LayoutTextSidebar = 1304,
+
     /// <summary>bi-layout-text-sidebar-reverse</summary>
     LayoutTextSidebarReverse = 1305,
+
     /// <summary>bi-layout-text-window</summary>
     LayoutTextWindow = 1306,
+
     /// <summary>bi-layout-text-window-reverse</summary>
     LayoutTextWindowReverse = 1307,
+
     /// <summary>bi-layout-three-columns</summary>
     LayoutThreeColumns = 1308,
+
     /// <summary>bi-layout-wtf</summary>
     LayoutWtf = 1309,
+
     /// <summary>bi-leaf</summary>
     Leaf = 1310,
+
     /// <summary>bi-leaf-fill</summary>
     LeafFill = 1311,
+
     /// <summary>bi-life-preserver</summary>
     LifePreserver = 1312,
+
     /// <summary>bi-lightbulb</summary>
     Lightbulb = 1313,
+
     /// <summary>bi-lightbulb-fill</summary>
     LightbulbFill = 1314,
+
     /// <summary>bi-lightbulb-off</summary>
     LightbulbOff = 1315,
+
     /// <summary>bi-lightbulb-off-fill</summary>
     LightbulbOffFill = 1316,
+
     /// <summary>bi-lightning</summary>
     Lightning = 1317,
+
     /// <summary>bi-lightning-charge</summary>
     LightningCharge = 1318,
+
     /// <summary>bi-lightning-charge-fill</summary>
     LightningChargeFill = 1319,
+
     /// <summary>bi-lightning-fill</summary>
     LightningFill = 1320,
+
     /// <summary>bi-line</summary>
     Line = 1321,
+
     /// <summary>bi-link</summary>
     Link = 1322,
+
     /// <summary>bi-link-45deg</summary>
     Link45deg = 1323,
+
     /// <summary>bi-linkedin</summary>
     Linkedin = 1324,
+
     /// <summary>bi-list</summary>
     List = 1325,
+
     /// <summary>bi-list-check</summary>
     ListCheck = 1326,
+
     /// <summary>bi-list-columns</summary>
     ListColumns = 1327,
+
     /// <summary>bi-list-columns-reverse</summary>
     ListColumnsReverse = 1328,
+
     /// <summary>bi-list-nested</summary>
     ListNested = 1329,
+
     /// <summary>bi-list-ol</summary>
     ListOl = 1330,
+
     /// <summary>bi-list-stars</summary>
     ListStars = 1331,
+
     /// <summary>bi-list-task</summary>
     ListTask = 1332,
+
     /// <summary>bi-list-ul</summary>
     ListUl = 1333,
+
     /// <summary>bi-lock</summary>
     Lock = 1334,
+
     /// <summary>bi-lock-fill</summary>
     LockFill = 1335,
+
     /// <summary>bi-luggage</summary>
     Luggage = 1336,
+
     /// <summary>bi-luggage-fill</summary>
     LuggageFill = 1337,
+
     /// <summary>bi-lungs</summary>
     Lungs = 1338,
+
     /// <summary>bi-lungs-fill</summary>
     LungsFill = 1339,
+
     /// <summary>bi-magic</summary>
     Magic = 1340,
+
     /// <summary>bi-magnet</summary>
     Magnet = 1341,
+
     /// <summary>bi-magnet-fill</summary>
     MagnetFill = 1342,
+
     /// <summary>bi-mailbox</summary>
     Mailbox = 1343,
+
     /// <summary>bi-mailbox-flag</summary>
     MailboxFlag = 1344,
+
     /// <summary>bi-mailbox2</summary>
     Mailbox2 = 1345,
+
     /// <summary>bi-mailbox2-flag</summary>
     Mailbox2Flag = 1346,
+
     /// <summary>bi-map</summary>
     Map = 1347,
+
     /// <summary>bi-map-fill</summary>
     MapFill = 1348,
+
     /// <summary>bi-markdown</summary>
     Markdown = 1349,
+
     /// <summary>bi-markdown-fill</summary>
     MarkdownFill = 1350,
+
     /// <summary>bi-marker-tip</summary>
     MarkerTip = 1351,
+
     /// <summary>bi-mask</summary>
     Mask = 1352,
+
     /// <summary>bi-mastodon</summary>
     Mastodon = 1353,
+
     /// <summary>bi-measuring-cup</summary>
     MeasuringCup = 1354,
+
     /// <summary>bi-measuring-cup-fill</summary>
     MeasuringCupFill = 1355,
+
     /// <summary>bi-medium</summary>
     Medium = 1356,
+
     /// <summary>bi-megaphone</summary>
     Megaphone = 1357,
+
     /// <summary>bi-megaphone-fill</summary>
     MegaphoneFill = 1358,
+
     /// <summary>bi-memory</summary>
     Memory = 1359,
+
     /// <summary>bi-menu-app</summary>
     MenuApp = 1360,
+
     /// <summary>bi-menu-app-fill</summary>
     MenuAppFill = 1361,
+
     /// <summary>bi-menu-button</summary>
     MenuButton = 1362,
+
     /// <summary>bi-menu-button-fill</summary>
     MenuButtonFill = 1363,
+
     /// <summary>bi-menu-button-wide</summary>
     MenuButtonWide = 1364,
+
     /// <summary>bi-menu-button-wide-fill</summary>
     MenuButtonWideFill = 1365,
+
     /// <summary>bi-menu-down</summary>
     MenuDown = 1366,
+
     /// <summary>bi-menu-up</summary>
     MenuUp = 1367,
+
     /// <summary>bi-messenger</summary>
     Messenger = 1368,
+
     /// <summary>bi-meta</summary>
     Meta = 1369,
+
     /// <summary>bi-mic</summary>
     Mic = 1370,
+
     /// <summary>bi-mic-fill</summary>
     MicFill = 1371,
+
     /// <summary>bi-mic-mute</summary>
     MicMute = 1372,
+
     /// <summary>bi-mic-mute-fill</summary>
     MicMuteFill = 1373,
+
     /// <summary>bi-microsoft</summary>
     Microsoft = 1374,
+
     /// <summary>bi-microsoft-teams</summary>
     MicrosoftTeams = 1375,
+
     /// <summary>bi-minecart</summary>
     Minecart = 1376,
+
     /// <summary>bi-minecart-loaded</summary>
     MinecartLoaded = 1377,
+
     /// <summary>bi-modem</summary>
     Modem = 1378,
+
     /// <summary>bi-modem-fill</summary>
     ModemFill = 1379,
+
     /// <summary>bi-moisture</summary>
     Moisture = 1380,
+
     /// <summary>bi-moon</summary>
     Moon = 1381,
+
     /// <summary>bi-moon-fill</summary>
     MoonFill = 1382,
+
     /// <summary>bi-moon-stars</summary>
     MoonStars = 1383,
+
     /// <summary>bi-moon-stars-fill</summary>
     MoonStarsFill = 1384,
+
     /// <summary>bi-mortarboard</summary>
     Mortarboard = 1385,
+
     /// <summary>bi-mortarboard-fill</summary>
     MortarboardFill = 1386,
+
     /// <summary>bi-motherboard</summary>
     Motherboard = 1387,
+
     /// <summary>bi-motherboard-fill</summary>
     MotherboardFill = 1388,
+
     /// <summary>bi-mouse</summary>
     Mouse = 1389,
+
     /// <summary>bi-mouse-fill</summary>
     MouseFill = 1390,
+
     /// <summary>bi-mouse2</summary>
     Mouse2 = 1391,
+
     /// <summary>bi-mouse2-fill</summary>
     Mouse2Fill = 1392,
+
     /// <summary>bi-mouse3</summary>
     Mouse3 = 1393,
+
     /// <summary>bi-mouse3-fill</summary>
     Mouse3Fill = 1394,
+
     /// <summary>bi-music-note</summary>
     MusicNote = 1395,
+
     /// <summary>bi-music-note-beamed</summary>
     MusicNoteBeamed = 1396,
+
     /// <summary>bi-music-note-list</summary>
     MusicNoteList = 1397,
+
     /// <summary>bi-music-player</summary>
     MusicPlayer = 1398,
+
     /// <summary>bi-music-player-fill</summary>
     MusicPlayerFill = 1399,
+
     /// <summary>bi-newspaper</summary>
     Newspaper = 1400,
+
     /// <summary>bi-nintendo-switch</summary>
     NintendoSwitch = 1401,
+
     /// <summary>bi-node-minus</summary>
     NodeMinus = 1402,
+
     /// <summary>bi-node-minus-fill</summary>
     NodeMinusFill = 1403,
+
     /// <summary>bi-node-plus</summary>
     NodePlus = 1404,
+
     /// <summary>bi-node-plus-fill</summary>
     NodePlusFill = 1405,
+
     /// <summary>bi-noise-reduction</summary>
     NoiseReduction = 1406,
+
     /// <summary>bi-nut</summary>
     Nut = 1407,
+
     /// <summary>bi-nut-fill</summary>
     NutFill = 1408,
+
     /// <summary>bi-nvidia</summary>
     Nvidia = 1409,
+
     /// <summary>bi-nvme</summary>
     Nvme = 1410,
+
     /// <summary>bi-nvme-fill</summary>
     NvmeFill = 1411,
+
     /// <summary>bi-octagon</summary>
     Octagon = 1412,
+
     /// <summary>bi-octagon-fill</summary>
     OctagonFill = 1413,
+
     /// <summary>bi-octagon-half</summary>
     OctagonHalf = 1414,
+
     /// <summary>bi-openai</summary>
     Openai = 1415,
+
     /// <summary>bi-opencollective</summary>
     Opencollective = 1416,
+
     /// <summary>bi-optical-audio</summary>
     OpticalAudio = 1417,
+
     /// <summary>bi-optical-audio-fill</summary>
     OpticalAudioFill = 1418,
+
     /// <summary>bi-option</summary>
     Option = 1419,
+
     /// <summary>bi-outlet</summary>
     Outlet = 1420,
+
     /// <summary>bi-p-circle</summary>
     PCircle = 1421,
+
     /// <summary>bi-p-circle-fill</summary>
     PCircleFill = 1422,
+
     /// <summary>bi-p-square</summary>
     PSquare = 1423,
+
     /// <summary>bi-p-square-fill</summary>
     PSquareFill = 1424,
+
     /// <summary>bi-paint-bucket</summary>
     PaintBucket = 1425,
+
     /// <summary>bi-palette</summary>
     Palette = 1426,
+
     /// <summary>bi-palette-fill</summary>
     PaletteFill = 1427,
+
     /// <summary>bi-palette2</summary>
     Palette2 = 1428,
+
     /// <summary>bi-paperclip</summary>
     Paperclip = 1429,
+
     /// <summary>bi-paragraph</summary>
     Paragraph = 1430,
+
     /// <summary>bi-pass</summary>
     Pass = 1431,
+
     /// <summary>bi-pass-fill</summary>
     PassFill = 1432,
+
     /// <summary>bi-passport</summary>
     Passport = 1433,
+
     /// <summary>bi-passport-fill</summary>
     PassportFill = 1434,
+
     /// <summary>bi-patch-check</summary>
     PatchCheck = 1435,
+
     /// <summary>bi-patch-check-fill</summary>
     PatchCheckFill = 1436,
+
     /// <summary>bi-patch-exclamation</summary>
     PatchExclamation = 1437,
+
     /// <summary>bi-patch-exclamation-fill</summary>
     PatchExclamationFill = 1438,
+
     /// <summary>bi-patch-minus</summary>
     PatchMinus = 1439,
+
     /// <summary>bi-patch-minus-fill</summary>
     PatchMinusFill = 1440,
+
     /// <summary>bi-patch-plus</summary>
     PatchPlus = 1441,
+
     /// <summary>bi-patch-plus-fill</summary>
     PatchPlusFill = 1442,
+
     /// <summary>bi-patch-question</summary>
     PatchQuestion = 1443,
+
     /// <summary>bi-patch-question-fill</summary>
     PatchQuestionFill = 1444,
+
     /// <summary>bi-pause</summary>
     Pause = 1445,
+
     /// <summary>bi-pause-btn</summary>
     PauseBtn = 1446,
+
     /// <summary>bi-pause-btn-fill</summary>
     PauseBtnFill = 1447,
+
     /// <summary>bi-pause-circle</summary>
     PauseCircle = 1448,
+
     /// <summary>bi-pause-circle-fill</summary>
     PauseCircleFill = 1449,
+
     /// <summary>bi-pause-fill</summary>
     PauseFill = 1450,
+
     /// <summary>bi-paypal</summary>
     Paypal = 1451,
+
     /// <summary>bi-pc</summary>
     Pc = 1452,
+
     /// <summary>bi-pc-display</summary>
     PcDisplay = 1453,
+
     /// <summary>bi-pc-display-horizontal</summary>
     PcDisplayHorizontal = 1454,
+
     /// <summary>bi-pc-horizontal</summary>
     PcHorizontal = 1455,
+
     /// <summary>bi-pci-card</summary>
     PciCard = 1456,
+
     /// <summary>bi-pci-card-network</summary>
     PciCardNetwork = 1457,
+
     /// <summary>bi-pci-card-sound</summary>
     PciCardSound = 1458,
+
     /// <summary>bi-peace</summary>
     Peace = 1459,
+
     /// <summary>bi-peace-fill</summary>
     PeaceFill = 1460,
+
     /// <summary>bi-pen</summary>
     Pen = 1461,
+
     /// <summary>bi-pen-fill</summary>
     PenFill = 1462,
+
     /// <summary>bi-pencil</summary>
     Pencil = 1463,
+
     /// <summary>bi-pencil-fill</summary>
     PencilFill = 1464,
+
     /// <summary>bi-pencil-square</summary>
     PencilSquare = 1465,
+
     /// <summary>bi-pentagon</summary>
     Pentagon = 1466,
+
     /// <summary>bi-pentagon-fill</summary>
     PentagonFill = 1467,
+
     /// <summary>bi-pentagon-half</summary>
     PentagonHalf = 1468,
+
     /// <summary>bi-people</summary>
     People = 1469,
+
     /// <summary>bi-people-fill</summary>
     PeopleFill = 1470,
+
     /// <summary>bi-percent</summary>
     Percent = 1471,
+
     /// <summary>bi-perplexity</summary>
     Perplexity = 1472,
+
     /// <summary>bi-person</summary>
     Person = 1473,
+
     /// <summary>bi-person-add</summary>
     PersonAdd = 1474,
+
     /// <summary>bi-person-arms-up</summary>
     PersonArmsUp = 1475,
+
     /// <summary>bi-person-badge</summary>
     PersonBadge = 1476,
+
     /// <summary>bi-person-badge-fill</summary>
     PersonBadgeFill = 1477,
+
     /// <summary>bi-person-bounding-box</summary>
     PersonBoundingBox = 1478,
+
     /// <summary>bi-person-check</summary>
     PersonCheck = 1479,
+
     /// <summary>bi-person-check-fill</summary>
     PersonCheckFill = 1480,
+
     /// <summary>bi-person-circle</summary>
     PersonCircle = 1481,
+
     /// <summary>bi-person-dash</summary>
     PersonDash = 1482,
+
     /// <summary>bi-person-dash-fill</summary>
     PersonDashFill = 1483,
+
     /// <summary>bi-person-down</summary>
     PersonDown = 1484,
+
     /// <summary>bi-person-exclamation</summary>
     PersonExclamation = 1485,
+
     /// <summary>bi-person-fill</summary>
     PersonFill = 1486,
+
     /// <summary>bi-person-fill-add</summary>
     PersonFillAdd = 1487,
+
     /// <summary>bi-person-fill-check</summary>
     PersonFillCheck = 1488,
+
     /// <summary>bi-person-fill-dash</summary>
     PersonFillDash = 1489,
+
     /// <summary>bi-person-fill-down</summary>
     PersonFillDown = 1490,
+
     /// <summary>bi-person-fill-exclamation</summary>
     PersonFillExclamation = 1491,
+
     /// <summary>bi-person-fill-gear</summary>
     PersonFillGear = 1492,
+
     /// <summary>bi-person-fill-lock</summary>
     PersonFillLock = 1493,
+
     /// <summary>bi-person-fill-slash</summary>
     PersonFillSlash = 1494,
+
     /// <summary>bi-person-fill-up</summary>
     PersonFillUp = 1495,
+
     /// <summary>bi-person-fill-x</summary>
     PersonFillX = 1496,
+
     /// <summary>bi-person-gear</summary>
     PersonGear = 1497,
+
     /// <summary>bi-person-heart</summary>
     PersonHeart = 1498,
+
     /// <summary>bi-person-hearts</summary>
     PersonHearts = 1499,
+
     /// <summary>bi-person-lines-fill</summary>
     PersonLinesFill = 1500,
+
     /// <summary>bi-person-lock</summary>
     PersonLock = 1501,
+
     /// <summary>bi-person-plus</summary>
     PersonPlus = 1502,
+
     /// <summary>bi-person-plus-fill</summary>
     PersonPlusFill = 1503,
+
     /// <summary>bi-person-raised-hand</summary>
     PersonRaisedHand = 1504,
+
     /// <summary>bi-person-rolodex</summary>
     PersonRolodex = 1505,
+
     /// <summary>bi-person-slash</summary>
     PersonSlash = 1506,
+
     /// <summary>bi-person-square</summary>
     PersonSquare = 1507,
+
     /// <summary>bi-person-standing</summary>
     PersonStanding = 1508,
+
     /// <summary>bi-person-standing-dress</summary>
     PersonStandingDress = 1509,
+
     /// <summary>bi-person-up</summary>
     PersonUp = 1510,
+
     /// <summary>bi-person-vcard</summary>
     PersonVcard = 1511,
+
     /// <summary>bi-person-vcard-fill</summary>
     PersonVcardFill = 1512,
+
     /// <summary>bi-person-video</summary>
     PersonVideo = 1513,
+
     /// <summary>bi-person-video2</summary>
     PersonVideo2 = 1514,
+
     /// <summary>bi-person-video3</summary>
     PersonVideo3 = 1515,
+
     /// <summary>bi-person-walking</summary>
     PersonWalking = 1516,
+
     /// <summary>bi-person-wheelchair</summary>
     PersonWheelchair = 1517,
+
     /// <summary>bi-person-workspace</summary>
     PersonWorkspace = 1518,
+
     /// <summary>bi-person-x</summary>
     PersonX = 1519,
+
     /// <summary>bi-person-x-fill</summary>
     PersonXFill = 1520,
+
     /// <summary>bi-phone</summary>
     Phone = 1521,
+
     /// <summary>bi-phone-fill</summary>
     PhoneFill = 1522,
+
     /// <summary>bi-phone-flip</summary>
     PhoneFlip = 1523,
+
     /// <summary>bi-phone-landscape</summary>
     PhoneLandscape = 1524,
+
     /// <summary>bi-phone-landscape-fill</summary>
     PhoneLandscapeFill = 1525,
+
     /// <summary>bi-phone-vibrate</summary>
     PhoneVibrate = 1526,
+
     /// <summary>bi-phone-vibrate-fill</summary>
     PhoneVibrateFill = 1527,
+
     /// <summary>bi-pie-chart</summary>
     PieChart = 1528,
+
     /// <summary>bi-pie-chart-fill</summary>
     PieChartFill = 1529,
+
     /// <summary>bi-piggy-bank</summary>
     PiggyBank = 1530,
+
     /// <summary>bi-piggy-bank-fill</summary>
     PiggyBankFill = 1531,
+
     /// <summary>bi-pin</summary>
     Pin = 1532,
+
     /// <summary>bi-pin-angle</summary>
     PinAngle = 1533,
+
     /// <summary>bi-pin-angle-fill</summary>
     PinAngleFill = 1534,
+
     /// <summary>bi-pin-fill</summary>
     PinFill = 1535,
+
     /// <summary>bi-pin-map</summary>
     PinMap = 1536,
+
     /// <summary>bi-pin-map-fill</summary>
     PinMapFill = 1537,
+
     /// <summary>bi-pinterest</summary>
     Pinterest = 1538,
+
     /// <summary>bi-pip</summary>
     Pip = 1539,
+
     /// <summary>bi-pip-fill</summary>
     PipFill = 1540,
+
     /// <summary>bi-play</summary>
     Play = 1541,
+
     /// <summary>bi-play-btn</summary>
     PlayBtn = 1542,
+
     /// <summary>bi-play-btn-fill</summary>
     PlayBtnFill = 1543,
+
     /// <summary>bi-play-circle</summary>
     PlayCircle = 1544,
+
     /// <summary>bi-play-circle-fill</summary>
     PlayCircleFill = 1545,
+
     /// <summary>bi-play-fill</summary>
     PlayFill = 1546,
+
     /// <summary>bi-playstation</summary>
     Playstation = 1547,
+
     /// <summary>bi-plug</summary>
     Plug = 1548,
+
     /// <summary>bi-plug-fill</summary>
     PlugFill = 1549,
+
     /// <summary>bi-plugin</summary>
     Plugin = 1550,
+
     /// <summary>bi-plus</summary>
     Plus = 1551,
+
     /// <summary>bi-plus-circle</summary>
     PlusCircle = 1552,
+
     /// <summary>bi-plus-circle-dotted</summary>
     PlusCircleDotted = 1553,
+
     /// <summary>bi-plus-circle-fill</summary>
     PlusCircleFill = 1554,
+
     /// <summary>bi-plus-lg</summary>
     PlusLg = 1555,
+
     /// <summary>bi-plus-slash-minus</summary>
     PlusSlashMinus = 1556,
+
     /// <summary>bi-plus-square</summary>
     PlusSquare = 1557,
+
     /// <summary>bi-plus-square-dotted</summary>
     PlusSquareDotted = 1558,
+
     /// <summary>bi-plus-square-fill</summary>
     PlusSquareFill = 1559,
+
     /// <summary>bi-postage</summary>
     Postage = 1560,
+
     /// <summary>bi-postage-fill</summary>
     PostageFill = 1561,
+
     /// <summary>bi-postage-heart</summary>
     PostageHeart = 1562,
+
     /// <summary>bi-postage-heart-fill</summary>
     PostageHeartFill = 1563,
+
     /// <summary>bi-postcard</summary>
     Postcard = 1564,
+
     /// <summary>bi-postcard-fill</summary>
     PostcardFill = 1565,
+
     /// <summary>bi-postcard-heart</summary>
     PostcardHeart = 1566,
+
     /// <summary>bi-postcard-heart-fill</summary>
     PostcardHeartFill = 1567,
+
     /// <summary>bi-power</summary>
     Power = 1568,
+
     /// <summary>bi-prescription</summary>
     Prescription = 1569,
+
     /// <summary>bi-prescription2</summary>
     Prescription2 = 1570,
+
     /// <summary>bi-printer</summary>
     Printer = 1571,
+
     /// <summary>bi-printer-fill</summary>
     PrinterFill = 1572,
+
     /// <summary>bi-projector</summary>
     Projector = 1573,
+
     /// <summary>bi-projector-fill</summary>
     ProjectorFill = 1574,
+
     /// <summary>bi-puzzle</summary>
     Puzzle = 1575,
+
     /// <summary>bi-puzzle-fill</summary>
     PuzzleFill = 1576,
+
     /// <summary>bi-qr-code</summary>
     QrCode = 1577,
+
     /// <summary>bi-qr-code-scan</summary>
     QrCodeScan = 1578,
+
     /// <summary>bi-question</summary>
     Question = 1579,
+
     /// <summary>bi-question-circle</summary>
     QuestionCircle = 1580,
+
     /// <summary>bi-question-circle-fill</summary>
     QuestionCircleFill = 1581,
+
     /// <summary>bi-question-diamond</summary>
     QuestionDiamond = 1582,
+
     /// <summary>bi-question-diamond-fill</summary>
     QuestionDiamondFill = 1583,
+
     /// <summary>bi-question-lg</summary>
     QuestionLg = 1584,
+
     /// <summary>bi-question-octagon</summary>
     QuestionOctagon = 1585,
+
     /// <summary>bi-question-octagon-fill</summary>
     QuestionOctagonFill = 1586,
+
     /// <summary>bi-question-square</summary>
     QuestionSquare = 1587,
+
     /// <summary>bi-question-square-fill</summary>
     QuestionSquareFill = 1588,
+
     /// <summary>bi-quora</summary>
     Quora = 1589,
+
     /// <summary>bi-quote</summary>
     Quote = 1590,
+
     /// <summary>bi-r-circle</summary>
     RCircle = 1591,
+
     /// <summary>bi-r-circle-fill</summary>
     RCircleFill = 1592,
+
     /// <summary>bi-r-square</summary>
     RSquare = 1593,
+
     /// <summary>bi-r-square-fill</summary>
     RSquareFill = 1594,
+
     /// <summary>bi-radar</summary>
     Radar = 1595,
+
     /// <summary>bi-radioactive</summary>
     Radioactive = 1596,
+
     /// <summary>bi-rainbow</summary>
     Rainbow = 1597,
+
     /// <summary>bi-receipt</summary>
     Receipt = 1598,
+
     /// <summary>bi-receipt-cutoff</summary>
     ReceiptCutoff = 1599,
+
     /// <summary>bi-reception-0</summary>
     Reception0 = 1600,
+
     /// <summary>bi-reception-1</summary>
     Reception1 = 1601,
+
     /// <summary>bi-reception-2</summary>
     Reception2 = 1602,
+
     /// <summary>bi-reception-3</summary>
     Reception3 = 1603,
+
     /// <summary>bi-reception-4</summary>
     Reception4 = 1604,
+
     /// <summary>bi-record</summary>
     Record = 1605,
+
     /// <summary>bi-record-btn</summary>
     RecordBtn = 1606,
+
     /// <summary>bi-record-btn-fill</summary>
     RecordBtnFill = 1607,
+
     /// <summary>bi-record-circle</summary>
     RecordCircle = 1608,
+
     /// <summary>bi-record-circle-fill</summary>
     RecordCircleFill = 1609,
+
     /// <summary>bi-record-fill</summary>
     RecordFill = 1610,
+
     /// <summary>bi-record2</summary>
     Record2 = 1611,
+
     /// <summary>bi-record2-fill</summary>
     Record2Fill = 1612,
+
     /// <summary>bi-recycle</summary>
     Recycle = 1613,
+
     /// <summary>bi-reddit</summary>
     Reddit = 1614,
+
     /// <summary>bi-regex</summary>
     Regex = 1615,
+
     /// <summary>bi-repeat</summary>
     Repeat = 1616,
+
     /// <summary>bi-repeat-1</summary>
     Repeat1 = 1617,
+
     /// <summary>bi-reply</summary>
     Reply = 1618,
+
     /// <summary>bi-reply-all</summary>
     ReplyAll = 1619,
+
     /// <summary>bi-reply-all-fill</summary>
     ReplyAllFill = 1620,
+
     /// <summary>bi-reply-fill</summary>
     ReplyFill = 1621,
+
     /// <summary>bi-rewind</summary>
     Rewind = 1622,
+
     /// <summary>bi-rewind-btn</summary>
     RewindBtn = 1623,
+
     /// <summary>bi-rewind-btn-fill</summary>
     RewindBtnFill = 1624,
+
     /// <summary>bi-rewind-circle</summary>
     RewindCircle = 1625,
+
     /// <summary>bi-rewind-circle-fill</summary>
     RewindCircleFill = 1626,
+
     /// <summary>bi-rewind-fill</summary>
     RewindFill = 1627,
+
     /// <summary>bi-robot</summary>
     Robot = 1628,
+
     /// <summary>bi-rocket</summary>
     Rocket = 1629,
+
     /// <summary>bi-rocket-fill</summary>
     RocketFill = 1630,
+
     /// <summary>bi-rocket-takeoff</summary>
     RocketTakeoff = 1631,
+
     /// <summary>bi-rocket-takeoff-fill</summary>
     RocketTakeoffFill = 1632,
+
     /// <summary>bi-router</summary>
     Router = 1633,
+
     /// <summary>bi-router-fill</summary>
     RouterFill = 1634,
+
     /// <summary>bi-rss</summary>
     Rss = 1635,
+
     /// <summary>bi-rss-fill</summary>
     RssFill = 1636,
+
     /// <summary>bi-rulers</summary>
     Rulers = 1637,
+
     /// <summary>bi-safe</summary>
     Safe = 1638,
+
     /// <summary>bi-safe-fill</summary>
     SafeFill = 1639,
+
     /// <summary>bi-safe2</summary>
     Safe2 = 1640,
+
     /// <summary>bi-safe2-fill</summary>
     Safe2Fill = 1641,
+
     /// <summary>bi-save</summary>
     Save = 1642,
+
     /// <summary>bi-save-fill</summary>
     SaveFill = 1643,
+
     /// <summary>bi-save2</summary>
     Save2 = 1644,
+
     /// <summary>bi-save2-fill</summary>
     Save2Fill = 1645,
+
     /// <summary>bi-scissors</summary>
     Scissors = 1646,
+
     /// <summary>bi-scooter</summary>
     Scooter = 1647,
+
     /// <summary>bi-screwdriver</summary>
     Screwdriver = 1648,
+
     /// <summary>bi-sd-card</summary>
     SdCard = 1649,
+
     /// <summary>bi-sd-card-fill</summary>
     SdCardFill = 1650,
+
     /// <summary>bi-search</summary>
     Search = 1651,
+
     /// <summary>bi-search-heart</summary>
     SearchHeart = 1652,
+
     /// <summary>bi-search-heart-fill</summary>
     SearchHeartFill = 1653,
+
     /// <summary>bi-segmented-nav</summary>
     SegmentedNav = 1654,
+
     /// <summary>bi-send</summary>
     Send = 1655,
+
     /// <summary>bi-send-arrow-down</summary>
     SendArrowDown = 1656,
+
     /// <summary>bi-send-arrow-down-fill</summary>
     SendArrowDownFill = 1657,
+
     /// <summary>bi-send-arrow-up</summary>
     SendArrowUp = 1658,
+
     /// <summary>bi-send-arrow-up-fill</summary>
     SendArrowUpFill = 1659,
+
     /// <summary>bi-send-check</summary>
     SendCheck = 1660,
+
     /// <summary>bi-send-check-fill</summary>
     SendCheckFill = 1661,
+
     /// <summary>bi-send-dash</summary>
     SendDash = 1662,
+
     /// <summary>bi-send-dash-fill</summary>
     SendDashFill = 1663,
+
     /// <summary>bi-send-exclamation</summary>
     SendExclamation = 1664,
+
     /// <summary>bi-send-exclamation-fill</summary>
     SendExclamationFill = 1665,
+
     /// <summary>bi-send-fill</summary>
     SendFill = 1666,
+
     /// <summary>bi-send-plus</summary>
     SendPlus = 1667,
+
     /// <summary>bi-send-plus-fill</summary>
     SendPlusFill = 1668,
+
     /// <summary>bi-send-slash</summary>
     SendSlash = 1669,
+
     /// <summary>bi-send-slash-fill</summary>
     SendSlashFill = 1670,
+
     /// <summary>bi-send-x</summary>
     SendX = 1671,
+
     /// <summary>bi-send-x-fill</summary>
     SendXFill = 1672,
+
     /// <summary>bi-server</summary>
     Server = 1673,
+
     /// <summary>bi-shadows</summary>
     Shadows = 1674,
+
     /// <summary>bi-share</summary>
     Share = 1675,
+
     /// <summary>bi-share-fill</summary>
     ShareFill = 1676,
+
     /// <summary>bi-shield</summary>
     Shield = 1677,
+
     /// <summary>bi-shield-check</summary>
     ShieldCheck = 1678,
+
     /// <summary>bi-shield-exclamation</summary>
     ShieldExclamation = 1679,
+
     /// <summary>bi-shield-fill</summary>
     ShieldFill = 1680,
+
     /// <summary>bi-shield-fill-check</summary>
     ShieldFillCheck = 1681,
+
     /// <summary>bi-shield-fill-exclamation</summary>
     ShieldFillExclamation = 1682,
+
     /// <summary>bi-shield-fill-minus</summary>
     ShieldFillMinus = 1683,
+
     /// <summary>bi-shield-fill-plus</summary>
     ShieldFillPlus = 1684,
+
     /// <summary>bi-shield-fill-x</summary>
     ShieldFillX = 1685,
+
     /// <summary>bi-shield-lock</summary>
     ShieldLock = 1686,
+
     /// <summary>bi-shield-lock-fill</summary>
     ShieldLockFill = 1687,
+
     /// <summary>bi-shield-minus</summary>
     ShieldMinus = 1688,
+
     /// <summary>bi-shield-plus</summary>
     ShieldPlus = 1689,
+
     /// <summary>bi-shield-shaded</summary>
     ShieldShaded = 1690,
+
     /// <summary>bi-shield-slash</summary>
     ShieldSlash = 1691,
+
     /// <summary>bi-shield-slash-fill</summary>
     ShieldSlashFill = 1692,
+
     /// <summary>bi-shield-x</summary>
     ShieldX = 1693,
+
     /// <summary>bi-shift</summary>
     Shift = 1694,
+
     /// <summary>bi-shift-fill</summary>
     ShiftFill = 1695,
+
     /// <summary>bi-shop</summary>
     Shop = 1696,
+
     /// <summary>bi-shop-window</summary>
     ShopWindow = 1697,
+
     /// <summary>bi-shuffle</summary>
     Shuffle = 1698,
+
     /// <summary>bi-sign-dead-end</summary>
     SignDeadEnd = 1699,
+
     /// <summary>bi-sign-dead-end-fill</summary>
     SignDeadEndFill = 1700,
+
     /// <summary>bi-sign-do-not-enter</summary>
     SignDoNotEnter = 1701,
+
     /// <summary>bi-sign-do-not-enter-fill</summary>
     SignDoNotEnterFill = 1702,
+
     /// <summary>bi-sign-intersection</summary>
     SignIntersection = 1703,
+
     /// <summary>bi-sign-intersection-fill</summary>
     SignIntersectionFill = 1704,
+
     /// <summary>bi-sign-intersection-side</summary>
     SignIntersectionSide = 1705,
+
     /// <summary>bi-sign-intersection-side-fill</summary>
     SignIntersectionSideFill = 1706,
+
     /// <summary>bi-sign-intersection-t</summary>
     SignIntersectionT = 1707,
+
     /// <summary>bi-sign-intersection-t-fill</summary>
     SignIntersectionTFill = 1708,
+
     /// <summary>bi-sign-intersection-y</summary>
     SignIntersectionY = 1709,
+
     /// <summary>bi-sign-intersection-y-fill</summary>
     SignIntersectionYFill = 1710,
+
     /// <summary>bi-sign-merge-left</summary>
     SignMergeLeft = 1711,
+
     /// <summary>bi-sign-merge-left-fill</summary>
     SignMergeLeftFill = 1712,
+
     /// <summary>bi-sign-merge-right</summary>
     SignMergeRight = 1713,
+
     /// <summary>bi-sign-merge-right-fill</summary>
     SignMergeRightFill = 1714,
+
     /// <summary>bi-sign-no-left-turn</summary>
     SignNoLeftTurn = 1715,
+
     /// <summary>bi-sign-no-left-turn-fill</summary>
     SignNoLeftTurnFill = 1716,
+
     /// <summary>bi-sign-no-parking</summary>
     SignNoParking = 1717,
+
     /// <summary>bi-sign-no-parking-fill</summary>
     SignNoParkingFill = 1718,
+
     /// <summary>bi-sign-no-right-turn</summary>
     SignNoRightTurn = 1719,
+
     /// <summary>bi-sign-no-right-turn-fill</summary>
     SignNoRightTurnFill = 1720,
+
     /// <summary>bi-sign-railroad</summary>
     SignRailroad = 1721,
+
     /// <summary>bi-sign-railroad-fill</summary>
     SignRailroadFill = 1722,
+
     /// <summary>bi-sign-stop</summary>
     SignStop = 1723,
+
     /// <summary>bi-sign-stop-fill</summary>
     SignStopFill = 1724,
+
     /// <summary>bi-sign-stop-lights</summary>
     SignStopLights = 1725,
+
     /// <summary>bi-sign-stop-lights-fill</summary>
     SignStopLightsFill = 1726,
+
     /// <summary>bi-sign-turn-left</summary>
     SignTurnLeft = 1727,
+
     /// <summary>bi-sign-turn-left-fill</summary>
     SignTurnLeftFill = 1728,
+
     /// <summary>bi-sign-turn-right</summary>
     SignTurnRight = 1729,
+
     /// <summary>bi-sign-turn-right-fill</summary>
     SignTurnRightFill = 1730,
+
     /// <summary>bi-sign-turn-slight-left</summary>
     SignTurnSlightLeft = 1731,
+
     /// <summary>bi-sign-turn-slight-left-fill</summary>
     SignTurnSlightLeftFill = 1732,
+
     /// <summary>bi-sign-turn-slight-right</summary>
     SignTurnSlightRight = 1733,
+
     /// <summary>bi-sign-turn-slight-right-fill</summary>
     SignTurnSlightRightFill = 1734,
+
     /// <summary>bi-sign-yield</summary>
     SignYield = 1735,
+
     /// <summary>bi-sign-yield-fill</summary>
     SignYieldFill = 1736,
+
     /// <summary>bi-signal</summary>
     Signal = 1737,
+
     /// <summary>bi-signpost</summary>
     Signpost = 1738,
+
     /// <summary>bi-signpost-2</summary>
     Signpost2 = 1739,
+
     /// <summary>bi-signpost-2-fill</summary>
     Signpost2Fill = 1740,
+
     /// <summary>bi-signpost-fill</summary>
     SignpostFill = 1741,
+
     /// <summary>bi-signpost-split</summary>
     SignpostSplit = 1742,
+
     /// <summary>bi-signpost-split-fill</summary>
     SignpostSplitFill = 1743,
+
     /// <summary>bi-sim</summary>
     Sim = 1744,
+
     /// <summary>bi-sim-fill</summary>
     SimFill = 1745,
+
     /// <summary>bi-sim-slash</summary>
     SimSlash = 1746,
+
     /// <summary>bi-sim-slash-fill</summary>
     SimSlashFill = 1747,
+
     /// <summary>bi-sina-weibo</summary>
     SinaWeibo = 1748,
+
     /// <summary>bi-skip-backward</summary>
     SkipBackward = 1749,
+
     /// <summary>bi-skip-backward-btn</summary>
     SkipBackwardBtn = 1750,
+
     /// <summary>bi-skip-backward-btn-fill</summary>
     SkipBackwardBtnFill = 1751,
+
     /// <summary>bi-skip-backward-circle</summary>
     SkipBackwardCircle = 1752,
+
     /// <summary>bi-skip-backward-circle-fill</summary>
     SkipBackwardCircleFill = 1753,
+
     /// <summary>bi-skip-backward-fill</summary>
     SkipBackwardFill = 1754,
+
     /// <summary>bi-skip-end</summary>
     SkipEnd = 1755,
+
     /// <summary>bi-skip-end-btn</summary>
     SkipEndBtn = 1756,
+
     /// <summary>bi-skip-end-btn-fill</summary>
     SkipEndBtnFill = 1757,
+
     /// <summary>bi-skip-end-circle</summary>
     SkipEndCircle = 1758,
+
     /// <summary>bi-skip-end-circle-fill</summary>
     SkipEndCircleFill = 1759,
+
     /// <summary>bi-skip-end-fill</summary>
     SkipEndFill = 1760,
+
     /// <summary>bi-skip-forward</summary>
     SkipForward = 1761,
+
     /// <summary>bi-skip-forward-btn</summary>
     SkipForwardBtn = 1762,
+
     /// <summary>bi-skip-forward-btn-fill</summary>
     SkipForwardBtnFill = 1763,
+
     /// <summary>bi-skip-forward-circle</summary>
     SkipForwardCircle = 1764,
+
     /// <summary>bi-skip-forward-circle-fill</summary>
     SkipForwardCircleFill = 1765,
+
     /// <summary>bi-skip-forward-fill</summary>
     SkipForwardFill = 1766,
+
     /// <summary>bi-skip-start</summary>
     SkipStart = 1767,
+
     /// <summary>bi-skip-start-btn</summary>
     SkipStartBtn = 1768,
+
     /// <summary>bi-skip-start-btn-fill</summary>
     SkipStartBtnFill = 1769,
+
     /// <summary>bi-skip-start-circle</summary>
     SkipStartCircle = 1770,
+
     /// <summary>bi-skip-start-circle-fill</summary>
     SkipStartCircleFill = 1771,
+
     /// <summary>bi-skip-start-fill</summary>
     SkipStartFill = 1772,
+
     /// <summary>bi-skype</summary>
     Skype = 1773,
+
     /// <summary>bi-slack</summary>
     Slack = 1774,
+
     /// <summary>bi-slash</summary>
     Slash = 1775,
+
     /// <summary>bi-slash-circle</summary>
     SlashCircle = 1776,
+
     /// <summary>bi-slash-circle-fill</summary>
     SlashCircleFill = 1777,
+
     /// <summary>bi-slash-lg</summary>
     SlashLg = 1778,
+
     /// <summary>bi-slash-square</summary>
     SlashSquare = 1779,
+
     /// <summary>bi-slash-square-fill</summary>
     SlashSquareFill = 1780,
+
     /// <summary>bi-sliders</summary>
     Sliders = 1781,
+
     /// <summary>bi-sliders2</summary>
     Sliders2 = 1782,
+
     /// <summary>bi-sliders2-vertical</summary>
     Sliders2Vertical = 1783,
+
     /// <summary>bi-smartwatch</summary>
     Smartwatch = 1784,
+
     /// <summary>bi-snapchat</summary>
     Snapchat = 1785,
+
     /// <summary>bi-snow</summary>
     Snow = 1786,
+
     /// <summary>bi-snow2</summary>
     Snow2 = 1787,
+
     /// <summary>bi-snow3</summary>
     Snow3 = 1788,
+
     /// <summary>bi-sort-alpha-down</summary>
     SortAlphaDown = 1789,
+
     /// <summary>bi-sort-alpha-down-alt</summary>
     SortAlphaDownAlt = 1790,
+
     /// <summary>bi-sort-alpha-up</summary>
     SortAlphaUp = 1791,
+
     /// <summary>bi-sort-alpha-up-alt</summary>
     SortAlphaUpAlt = 1792,
+
     /// <summary>bi-sort-down</summary>
     SortDown = 1793,
+
     /// <summary>bi-sort-down-alt</summary>
     SortDownAlt = 1794,
+
     /// <summary>bi-sort-numeric-down</summary>
     SortNumericDown = 1795,
+
     /// <summary>bi-sort-numeric-down-alt</summary>
     SortNumericDownAlt = 1796,
+
     /// <summary>bi-sort-numeric-up</summary>
     SortNumericUp = 1797,
+
     /// <summary>bi-sort-numeric-up-alt</summary>
     SortNumericUpAlt = 1798,
+
     /// <summary>bi-sort-up</summary>
     SortUp = 1799,
+
     /// <summary>bi-sort-up-alt</summary>
     SortUpAlt = 1800,
+
     /// <summary>bi-soundwave</summary>
     Soundwave = 1801,
+
     /// <summary>bi-sourceforge</summary>
     Sourceforge = 1802,
+
     /// <summary>bi-speaker</summary>
     Speaker = 1803,
+
     /// <summary>bi-speaker-fill</summary>
     SpeakerFill = 1804,
+
     /// <summary>bi-speedometer</summary>
     Speedometer = 1805,
+
     /// <summary>bi-speedometer2</summary>
     Speedometer2 = 1806,
+
     /// <summary>bi-spellcheck</summary>
     Spellcheck = 1807,
+
     /// <summary>bi-spotify</summary>
     Spotify = 1808,
+
     /// <summary>bi-square</summary>
     Square = 1809,
+
     /// <summary>bi-square-fill</summary>
     SquareFill = 1810,
+
     /// <summary>bi-square-half</summary>
     SquareHalf = 1811,
+
     /// <summary>bi-stack</summary>
     Stack = 1812,
+
     /// <summary>bi-stack-overflow</summary>
     StackOverflow = 1813,
+
     /// <summary>bi-star</summary>
     Star = 1814,
+
     /// <summary>bi-star-fill</summary>
     StarFill = 1815,
+
     /// <summary>bi-star-half</summary>
     StarHalf = 1816,
+
     /// <summary>bi-stars</summary>
     Stars = 1817,
+
     /// <summary>bi-steam</summary>
     Steam = 1818,
+
     /// <summary>bi-stickies</summary>
     Stickies = 1819,
+
     /// <summary>bi-stickies-fill</summary>
     StickiesFill = 1820,
+
     /// <summary>bi-sticky</summary>
     Sticky = 1821,
+
     /// <summary>bi-sticky-fill</summary>
     StickyFill = 1822,
+
     /// <summary>bi-stop</summary>
     Stop = 1823,
+
     /// <summary>bi-stop-btn</summary>
     StopBtn = 1824,
+
     /// <summary>bi-stop-btn-fill</summary>
     StopBtnFill = 1825,
+
     /// <summary>bi-stop-circle</summary>
     StopCircle = 1826,
+
     /// <summary>bi-stop-circle-fill</summary>
     StopCircleFill = 1827,
+
     /// <summary>bi-stop-fill</summary>
     StopFill = 1828,
+
     /// <summary>bi-stoplights</summary>
     Stoplights = 1829,
+
     /// <summary>bi-stoplights-fill</summary>
     StoplightsFill = 1830,
+
     /// <summary>bi-stopwatch</summary>
     Stopwatch = 1831,
+
     /// <summary>bi-stopwatch-fill</summary>
     StopwatchFill = 1832,
+
     /// <summary>bi-strava</summary>
     Strava = 1833,
+
     /// <summary>bi-stripe</summary>
     Stripe = 1834,
+
     /// <summary>bi-subscript</summary>
     Subscript = 1835,
+
     /// <summary>bi-substack</summary>
     Substack = 1836,
+
     /// <summary>bi-subtract</summary>
     Subtract = 1837,
+
     /// <summary>bi-suit-club</summary>
     SuitClub = 1838,
+
     /// <summary>bi-suit-club-fill</summary>
     SuitClubFill = 1839,
+
     /// <summary>bi-suit-diamond</summary>
     SuitDiamond = 1840,
+
     /// <summary>bi-suit-diamond-fill</summary>
     SuitDiamondFill = 1841,
+
     /// <summary>bi-suit-heart</summary>
     SuitHeart = 1842,
+
     /// <summary>bi-suit-heart-fill</summary>
     SuitHeartFill = 1843,
+
     /// <summary>bi-suit-spade</summary>
     SuitSpade = 1844,
+
     /// <summary>bi-suit-spade-fill</summary>
     SuitSpadeFill = 1845,
+
     /// <summary>bi-suitcase</summary>
     Suitcase = 1846,
+
     /// <summary>bi-suitcase-fill</summary>
     SuitcaseFill = 1847,
+
     /// <summary>bi-suitcase-lg</summary>
     SuitcaseLg = 1848,
+
     /// <summary>bi-suitcase-lg-fill</summary>
     SuitcaseLgFill = 1849,
+
     /// <summary>bi-suitcase2</summary>
     Suitcase2 = 1850,
+
     /// <summary>bi-suitcase2-fill</summary>
     Suitcase2Fill = 1851,
+
     /// <summary>bi-sun</summary>
     Sun = 1852,
+
     /// <summary>bi-sun-fill</summary>
     SunFill = 1853,
+
     /// <summary>bi-sunglasses</summary>
     Sunglasses = 1854,
+
     /// <summary>bi-sunrise</summary>
     Sunrise = 1855,
+
     /// <summary>bi-sunrise-fill</summary>
     SunriseFill = 1856,
+
     /// <summary>bi-sunset</summary>
     Sunset = 1857,
+
     /// <summary>bi-sunset-fill</summary>
     SunsetFill = 1858,
+
     /// <summary>bi-superscript</summary>
     Superscript = 1859,
+
     /// <summary>bi-symmetry-horizontal</summary>
     SymmetryHorizontal = 1860,
+
     /// <summary>bi-symmetry-vertical</summary>
     SymmetryVertical = 1861,
+
     /// <summary>bi-table</summary>
     Table = 1862,
+
     /// <summary>bi-tablet</summary>
     Tablet = 1863,
+
     /// <summary>bi-tablet-fill</summary>
     TabletFill = 1864,
+
     /// <summary>bi-tablet-landscape</summary>
     TabletLandscape = 1865,
+
     /// <summary>bi-tablet-landscape-fill</summary>
     TabletLandscapeFill = 1866,
+
     /// <summary>bi-tag</summary>
     Tag = 1867,
+
     /// <summary>bi-tag-fill</summary>
     TagFill = 1868,
+
     /// <summary>bi-tags</summary>
     Tags = 1869,
+
     /// <summary>bi-tags-fill</summary>
     TagsFill = 1870,
+
     /// <summary>bi-taxi-front</summary>
     TaxiFront = 1871,
+
     /// <summary>bi-taxi-front-fill</summary>
     TaxiFrontFill = 1872,
+
     /// <summary>bi-telegram</summary>
     Telegram = 1873,
+
     /// <summary>bi-telephone</summary>
     Telephone = 1874,
+
     /// <summary>bi-telephone-fill</summary>
     TelephoneFill = 1875,
+
     /// <summary>bi-telephone-forward</summary>
     TelephoneForward = 1876,
+
     /// <summary>bi-telephone-forward-fill</summary>
     TelephoneForwardFill = 1877,
+
     /// <summary>bi-telephone-inbound</summary>
     TelephoneInbound = 1878,
+
     /// <summary>bi-telephone-inbound-fill</summary>
     TelephoneInboundFill = 1879,
+
     /// <summary>bi-telephone-minus</summary>
     TelephoneMinus = 1880,
+
     /// <summary>bi-telephone-minus-fill</summary>
     TelephoneMinusFill = 1881,
+
     /// <summary>bi-telephone-outbound</summary>
     TelephoneOutbound = 1882,
+
     /// <summary>bi-telephone-outbound-fill</summary>
     TelephoneOutboundFill = 1883,
+
     /// <summary>bi-telephone-plus</summary>
     TelephonePlus = 1884,
+
     /// <summary>bi-telephone-plus-fill</summary>
     TelephonePlusFill = 1885,
+
     /// <summary>bi-telephone-x</summary>
     TelephoneX = 1886,
+
     /// <summary>bi-telephone-x-fill</summary>
     TelephoneXFill = 1887,
+
     /// <summary>bi-tencent-qq</summary>
     TencentQq = 1888,
+
     /// <summary>bi-terminal</summary>
     Terminal = 1889,
+
     /// <summary>bi-terminal-dash</summary>
     TerminalDash = 1890,
+
     /// <summary>bi-terminal-fill</summary>
     TerminalFill = 1891,
+
     /// <summary>bi-terminal-plus</summary>
     TerminalPlus = 1892,
+
     /// <summary>bi-terminal-split</summary>
     TerminalSplit = 1893,
+
     /// <summary>bi-terminal-x</summary>
     TerminalX = 1894,
+
     /// <summary>bi-text-center</summary>
     TextCenter = 1895,
+
     /// <summary>bi-text-indent-left</summary>
     TextIndentLeft = 1896,
+
     /// <summary>bi-text-indent-right</summary>
     TextIndentRight = 1897,
+
     /// <summary>bi-text-left</summary>
     TextLeft = 1898,
+
     /// <summary>bi-text-paragraph</summary>
     TextParagraph = 1899,
+
     /// <summary>bi-text-right</summary>
     TextRight = 1900,
+
     /// <summary>bi-text-wrap</summary>
     TextWrap = 1901,
+
     /// <summary>bi-textarea</summary>
     Textarea = 1902,
+
     /// <summary>bi-textarea-resize</summary>
     TextareaResize = 1903,
+
     /// <summary>bi-textarea-t</summary>
     TextareaT = 1904,
+
     /// <summary>bi-thermometer</summary>
     Thermometer = 1905,
+
     /// <summary>bi-thermometer-half</summary>
     ThermometerHalf = 1906,
+
     /// <summary>bi-thermometer-high</summary>
     ThermometerHigh = 1907,
+
     /// <summary>bi-thermometer-low</summary>
     ThermometerLow = 1908,
+
     /// <summary>bi-thermometer-snow</summary>
     ThermometerSnow = 1909,
+
     /// <summary>bi-thermometer-sun</summary>
     ThermometerSun = 1910,
+
     /// <summary>bi-threads</summary>
     Threads = 1911,
+
     /// <summary>bi-threads-fill</summary>
     ThreadsFill = 1912,
+
     /// <summary>bi-three-dots</summary>
     ThreeDots = 1913,
+
     /// <summary>bi-three-dots-vertical</summary>
     ThreeDotsVertical = 1914,
+
     /// <summary>bi-thunderbolt</summary>
     Thunderbolt = 1915,
+
     /// <summary>bi-thunderbolt-fill</summary>
     ThunderboltFill = 1916,
+
     /// <summary>bi-ticket</summary>
     Ticket = 1917,
+
     /// <summary>bi-ticket-detailed</summary>
     TicketDetailed = 1918,
+
     /// <summary>bi-ticket-detailed-fill</summary>
     TicketDetailedFill = 1919,
+
     /// <summary>bi-ticket-fill</summary>
     TicketFill = 1920,
+
     /// <summary>bi-ticket-perforated</summary>
     TicketPerforated = 1921,
+
     /// <summary>bi-ticket-perforated-fill</summary>
     TicketPerforatedFill = 1922,
+
     /// <summary>bi-tiktok</summary>
     Tiktok = 1923,
+
     /// <summary>bi-toggle-off</summary>
     ToggleOff = 1924,
+
     /// <summary>bi-toggle-on</summary>
     ToggleOn = 1925,
+
     /// <summary>bi-toggle2-off</summary>
     Toggle2Off = 1926,
+
     /// <summary>bi-toggle2-on</summary>
     Toggle2On = 1927,
+
     /// <summary>bi-toggles</summary>
     Toggles = 1928,
+
     /// <summary>bi-toggles2</summary>
     Toggles2 = 1929,
+
     /// <summary>bi-tools</summary>
     Tools = 1930,
+
     /// <summary>bi-tornado</summary>
     Tornado = 1931,
+
     /// <summary>bi-train-freight-front</summary>
     TrainFreightFront = 1932,
+
     /// <summary>bi-train-freight-front-fill</summary>
     TrainFreightFrontFill = 1933,
+
     /// <summary>bi-train-front</summary>
     TrainFront = 1934,
+
     /// <summary>bi-train-front-fill</summary>
     TrainFrontFill = 1935,
+
     /// <summary>bi-train-lightrail-front</summary>
     TrainLightrailFront = 1936,
+
     /// <summary>bi-train-lightrail-front-fill</summary>
     TrainLightrailFrontFill = 1937,
+
     /// <summary>bi-translate</summary>
     Translate = 1938,
+
     /// <summary>bi-transparency</summary>
     Transparency = 1939,
+
     /// <summary>bi-trash</summary>
     Trash = 1940,
+
     /// <summary>bi-trash-fill</summary>
     TrashFill = 1941,
+
     /// <summary>bi-trash2</summary>
     Trash2 = 1942,
+
     /// <summary>bi-trash2-fill</summary>
     Trash2Fill = 1943,
+
     /// <summary>bi-trash3</summary>
     Trash3 = 1944,
+
     /// <summary>bi-trash3-fill</summary>
     Trash3Fill = 1945,
+
     /// <summary>bi-tree</summary>
     Tree = 1946,
+
     /// <summary>bi-tree-fill</summary>
     TreeFill = 1947,
+
     /// <summary>bi-trello</summary>
     Trello = 1948,
+
     /// <summary>bi-triangle</summary>
     Triangle = 1949,
+
     /// <summary>bi-triangle-fill</summary>
     TriangleFill = 1950,
+
     /// <summary>bi-triangle-half</summary>
     TriangleHalf = 1951,
+
     /// <summary>bi-trophy</summary>
     Trophy = 1952,
+
     /// <summary>bi-trophy-fill</summary>
     TrophyFill = 1953,
+
     /// <summary>bi-tropical-storm</summary>
     TropicalStorm = 1954,
+
     /// <summary>bi-truck</summary>
     Truck = 1955,
+
     /// <summary>bi-truck-flatbed</summary>
     TruckFlatbed = 1956,
+
     /// <summary>bi-truck-front</summary>
     TruckFront = 1957,
+
     /// <summary>bi-truck-front-fill</summary>
     TruckFrontFill = 1958,
+
     /// <summary>bi-tsunami</summary>
     Tsunami = 1959,
+
     /// <summary>bi-tux</summary>
     Tux = 1960,
+
     /// <summary>bi-tv</summary>
     Tv = 1961,
+
     /// <summary>bi-tv-fill</summary>
     TvFill = 1962,
+
     /// <summary>bi-twitch</summary>
     Twitch = 1963,
+
     /// <summary>bi-twitter</summary>
     Twitter = 1964,
+
     /// <summary>bi-twitter-x</summary>
     TwitterX = 1965,
+
     /// <summary>bi-type</summary>
     Type = 1966,
+
     /// <summary>bi-type-bold</summary>
     TypeBold = 1967,
+
     /// <summary>bi-type-h1</summary>
     TypeH1 = 1968,
+
     /// <summary>bi-type-h2</summary>
     TypeH2 = 1969,
+
     /// <summary>bi-type-h3</summary>
     TypeH3 = 1970,
+
     /// <summary>bi-type-h4</summary>
     TypeH4 = 1971,
+
     /// <summary>bi-type-h5</summary>
     TypeH5 = 1972,
+
     /// <summary>bi-type-h6</summary>
     TypeH6 = 1973,
+
     /// <summary>bi-type-italic</summary>
     TypeItalic = 1974,
+
     /// <summary>bi-type-strikethrough</summary>
     TypeStrikethrough = 1975,
+
     /// <summary>bi-type-underline</summary>
     TypeUnderline = 1976,
+
     /// <summary>bi-typescript</summary>
     Typescript = 1977,
+
     /// <summary>bi-ubuntu</summary>
     Ubuntu = 1978,
+
     /// <summary>bi-ui-checks</summary>
     UiChecks = 1979,
+
     /// <summary>bi-ui-checks-grid</summary>
     UiChecksGrid = 1980,
+
     /// <summary>bi-ui-radios</summary>
     UiRadios = 1981,
+
     /// <summary>bi-ui-radios-grid</summary>
     UiRadiosGrid = 1982,
+
     /// <summary>bi-umbrella</summary>
     Umbrella = 1983,
+
     /// <summary>bi-umbrella-fill</summary>
     UmbrellaFill = 1984,
+
     /// <summary>bi-unindent</summary>
     Unindent = 1985,
+
     /// <summary>bi-union</summary>
     Union = 1986,
+
     /// <summary>bi-unity</summary>
     Unity = 1987,
+
     /// <summary>bi-universal-access</summary>
     UniversalAccess = 1988,
+
     /// <summary>bi-universal-access-circle</summary>
     UniversalAccessCircle = 1989,
+
     /// <summary>bi-unlock</summary>
     Unlock = 1990,
+
     /// <summary>bi-unlock-fill</summary>
     UnlockFill = 1991,
+
     /// <summary>bi-unlock2</summary>
     Unlock2 = 1992,
+
     /// <summary>bi-unlock2-fill</summary>
     Unlock2Fill = 1993,
+
     /// <summary>bi-upc</summary>
     Upc = 1994,
+
     /// <summary>bi-upc-scan</summary>
     UpcScan = 1995,
+
     /// <summary>bi-upload</summary>
     Upload = 1996,
+
     /// <summary>bi-usb</summary>
     Usb = 1997,
+
     /// <summary>bi-usb-c</summary>
     UsbC = 1998,
+
     /// <summary>bi-usb-c-fill</summary>
     UsbCFill = 1999,
+
     /// <summary>bi-usb-drive</summary>
     UsbDrive = 2000,
+
     /// <summary>bi-usb-drive-fill</summary>
     UsbDriveFill = 2001,
+
     /// <summary>bi-usb-fill</summary>
     UsbFill = 2002,
+
     /// <summary>bi-usb-micro</summary>
     UsbMicro = 2003,
+
     /// <summary>bi-usb-micro-fill</summary>
     UsbMicroFill = 2004,
+
     /// <summary>bi-usb-mini</summary>
     UsbMini = 2005,
+
     /// <summary>bi-usb-mini-fill</summary>
     UsbMiniFill = 2006,
+
     /// <summary>bi-usb-plug</summary>
     UsbPlug = 2007,
+
     /// <summary>bi-usb-plug-fill</summary>
     UsbPlugFill = 2008,
+
     /// <summary>bi-usb-symbol</summary>
     UsbSymbol = 2009,
+
     /// <summary>bi-valentine</summary>
     Valentine = 2010,
+
     /// <summary>bi-valentine2</summary>
     Valentine2 = 2011,
+
     /// <summary>bi-vector-pen</summary>
     VectorPen = 2012,
+
     /// <summary>bi-view-list</summary>
     ViewList = 2013,
+
     /// <summary>bi-view-stacked</summary>
     ViewStacked = 2014,
+
     /// <summary>bi-vignette</summary>
     Vignette = 2015,
+
     /// <summary>bi-vimeo</summary>
     Vimeo = 2016,
+
     /// <summary>bi-vinyl</summary>
     Vinyl = 2017,
+
     /// <summary>bi-vinyl-fill</summary>
     VinylFill = 2018,
+
     /// <summary>bi-virus</summary>
     Virus = 2019,
+
     /// <summary>bi-virus2</summary>
     Virus2 = 2020,
+
     /// <summary>bi-voicemail</summary>
     Voicemail = 2021,
+
     /// <summary>bi-volume-down</summary>
     VolumeDown = 2022,
+
     /// <summary>bi-volume-down-fill</summary>
     VolumeDownFill = 2023,
+
     /// <summary>bi-volume-mute</summary>
     VolumeMute = 2024,
+
     /// <summary>bi-volume-mute-fill</summary>
     VolumeMuteFill = 2025,
+
     /// <summary>bi-volume-off</summary>
     VolumeOff = 2026,
+
     /// <summary>bi-volume-off-fill</summary>
     VolumeOffFill = 2027,
+
     /// <summary>bi-volume-up</summary>
     VolumeUp = 2028,
+
     /// <summary>bi-volume-up-fill</summary>
     VolumeUpFill = 2029,
+
     /// <summary>bi-vr</summary>
     Vr = 2030,
+
     /// <summary>bi-wallet</summary>
     Wallet = 2031,
+
     /// <summary>bi-wallet-fill</summary>
     WalletFill = 2032,
+
     /// <summary>bi-wallet2</summary>
     Wallet2 = 2033,
+
     /// <summary>bi-watch</summary>
     Watch = 2034,
+
     /// <summary>bi-water</summary>
     Water = 2035,
+
     /// <summary>bi-webcam</summary>
     Webcam = 2036,
+
     /// <summary>bi-webcam-fill</summary>
     WebcamFill = 2037,
+
     /// <summary>bi-wechat</summary>
     Wechat = 2038,
+
     /// <summary>bi-whatsapp</summary>
     Whatsapp = 2039,
+
     /// <summary>bi-wifi</summary>
     Wifi = 2040,
+
     /// <summary>bi-wifi-1</summary>
     Wifi1 = 2041,
+
     /// <summary>bi-wifi-2</summary>
     Wifi2 = 2042,
+
     /// <summary>bi-wifi-off</summary>
     WifiOff = 2043,
+
     /// <summary>bi-wikipedia</summary>
     Wikipedia = 2044,
+
     /// <summary>bi-wind</summary>
     Wind = 2045,
+
     /// <summary>bi-window</summary>
     Window = 2046,
+
     /// <summary>bi-window-dash</summary>
     WindowDash = 2047,
+
     /// <summary>bi-window-desktop</summary>
     WindowDesktop = 2048,
+
     /// <summary>bi-window-dock</summary>
     WindowDock = 2049,
+
     /// <summary>bi-window-fullscreen</summary>
     WindowFullscreen = 2050,
+
     /// <summary>bi-window-plus</summary>
     WindowPlus = 2051,
+
     /// <summary>bi-window-sidebar</summary>
     WindowSidebar = 2052,
+
     /// <summary>bi-window-split</summary>
     WindowSplit = 2053,
+
     /// <summary>bi-window-stack</summary>
     WindowStack = 2054,
+
     /// <summary>bi-window-x</summary>
     WindowX = 2055,
+
     /// <summary>bi-windows</summary>
     Windows = 2056,
+
     /// <summary>bi-wordpress</summary>
     Wordpress = 2057,
+
     /// <summary>bi-wrench</summary>
     Wrench = 2058,
+
     /// <summary>bi-wrench-adjustable</summary>
     WrenchAdjustable = 2059,
+
     /// <summary>bi-wrench-adjustable-circle</summary>
     WrenchAdjustableCircle = 2060,
+
     /// <summary>bi-wrench-adjustable-circle-fill</summary>
     WrenchAdjustableCircleFill = 2061,
+
     /// <summary>bi-x</summary>
     X = 2062,
+
     /// <summary>bi-x-circle</summary>
     XCircle = 2063,
+
     /// <summary>bi-x-circle-fill</summary>
     XCircleFill = 2064,
+
     /// <summary>bi-x-diamond</summary>
     XDiamond = 2065,
+
     /// <summary>bi-x-diamond-fill</summary>
     XDiamondFill = 2066,
+
     /// <summary>bi-x-lg</summary>
     XLg = 2067,
+
     /// <summary>bi-x-octagon</summary>
     XOctagon = 2068,
+
     /// <summary>bi-x-octagon-fill</summary>
     XOctagonFill = 2069,
+
     /// <summary>bi-x-square</summary>
     XSquare = 2070,
+
     /// <summary>bi-x-square-fill</summary>
     XSquareFill = 2071,
+
     /// <summary>bi-xbox</summary>
     Xbox = 2072,
+
     /// <summary>bi-yelp</summary>
     Yelp = 2073,
+
     /// <summary>bi-yin-yang</summary>
     YinYang = 2074,
+
     /// <summary>bi-youtube</summary>
     Youtube = 2075,
+
     /// <summary>bi-zoom-in</summary>
     ZoomIn = 2076,
+
     /// <summary>bi-zoom-out</summary>
     ZoomOut = 2077,
 }

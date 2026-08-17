@@ -3,6 +3,7 @@
 > Dictation — turn spoken audio into text.
 
 - **Wraps:** SpeechRecognition API (`webkitSpeechRecognition`)
+- **MDN:** [SpeechRecognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes each result to a callback)
 - **Availability:** Web/Server ✅ (Chromium-only) · PWA/WASM ✅ (Chromium-only) · Native ✅ ★

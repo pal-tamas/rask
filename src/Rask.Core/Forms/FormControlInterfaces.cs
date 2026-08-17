@@ -30,15 +30,86 @@ public interface IFormControl<T> : IFormControl
     // Ordinary delegates. They were briefly carriers — while a chain's receiver was the control itself,
     // `control.Validate(rule)` bound to the delegate-typed property and failed (CS1593) instead of
     // reaching the same-named setter. The receiver is `Build<TControl>` now, so nothing is in the way.
+    /// <summary>
+    ///     Two-way binds this control to a model property: <c>.Bind(() =&gt; _model.Email)</c>. Pass the
+    ///     property itself, as a lambda — the expression is what lets the control read the current value,
+    ///     write the new one back, and name the field to the surrounding <c>Form</c>'s validation.
+    ///     <para>
+    ///         Binding is one of the two ways to open a control, and it excludes the other: a bound control
+    ///         cannot also be given a <see cref="Value" />, because that would be two sources of truth for
+    ///         the same field. Choose <see cref="Bind" /> when the model owns the value and
+    ///         <see cref="Value" /> when the parent does.
+    ///     </para>
+    /// </summary>
     Expression<Func<T>>? Bind { get; set; }
+
+    /// <summary>
+    ///     A validation rule for this field, run on change and on submit. Return an error message to reject
+    ///     the value, or <see langword="null" /> to accept it.
+    ///     <para>
+    ///         This is per-field validation, next to the field it guards. Rules that span several fields
+    ///         (password confirmation, a date range) belong on the model — through the <c>Form</c>'s
+    ///         validator — since no single field owns them.
+    ///     </para>
+    ///     <para>
+    ///         Client-side validation is a convenience, never a control: always validate again on the
+    ///         server.
+    ///     </para>
+    /// </summary>
     Validate<T>? Validate { get; set; }
+
+    /// <summary>
+    ///     The <see langword="async" /> form of <see cref="Validate" />, for a rule that has to await
+    ///     something — checking a username against the server, say.
+    ///     <para>
+    ///         Set one or the other, not both: the synchronous rule wins and this is ignored. Remember it
+    ///         runs per change, so debounce anything expensive, and let the value through rather than
+    ///         blocking the form if the check itself fails.
+    ///     </para>
+    /// </summary>
     ValidateAsync<T>? ValidateAsync { get; set; }
+
+    /// <summary>
+    ///     Runs just after a bound write succeeded, with the value that was written. Use it for the work
+    ///     that follows a change — recalculating a total, filtering a dependent list — rather than for
+    ///     setting the value itself, which the bind already did.
+    ///     <para>
+    ///         Bound mode only. In controlled mode the parent already knows, through
+    ///         <see cref="OnChange" />.
+    ///     </para>
+    /// </summary>
     Action<T>? AfterBind { get; set; }
+
+    /// <summary>
+    ///     The <see langword="async" /> form of <see cref="AfterBind" />. Both run when both are set — this
+    ///     one after the synchronous hook, and awaited before the re-render.
+    /// </summary>
     Func<T, Task>? AfterBindAsync { get; set; }
 
     // Controlled mode — the parent owns Value and is notified of changes.
+
+    /// <summary>
+    ///     The control's value, supplied by the parent. This is controlled mode: the value shown is exactly
+    ///     what you pass, so the control does not change on its own — handle <see cref="OnChange" />, store
+    ///     the new value, and pass it back, or the field appears frozen to the user.
+    ///     <para>
+    ///         Mutually exclusive with <see cref="Bind" />, which is the simpler choice whenever a model
+    ///         property can own the value.
+    ///     </para>
+    /// </summary>
     T? Value { get; set; }
+
+    /// <summary>
+    ///     Called with the new value when the user changes this control, in controlled mode. Store it and
+    ///     pass it back through <see cref="Value" /> — the re-render is automatic, so no
+    ///     <c>StateHasChanged</c> call is needed.
+    /// </summary>
     Action<T>? OnChange { get; set; }
+
+    /// <summary>
+    ///     The <see langword="async" /> form of <see cref="OnChange" />. Both run when both are set — this
+    ///     one after the synchronous handler.
+    /// </summary>
     Func<T, Task>? OnChangeAsync { get; set; }
 
     // The single delegate the EditContext dispatches — sync or async, whichever the consumer set.

@@ -11,8 +11,29 @@ namespace Rask.WebPush;
 //   });
 //
 // then inject IWebPushSender wherever you deliver notifications.
+/// <summary>Registers the Web Push sender.</summary>
 public static class WebPushServiceCollectionExtensions
 {
+    /// <summary>
+    ///     Registers <see cref="IWebPushSender" /> and its options. Call once at startup, then inject the
+    ///     sender wherever notifications are delivered:
+    ///     <code>
+    ///     builder.Services.AddRaskWebPush(o =>
+    ///     {
+    ///         o.VapidKeys = builder.Configuration.GetSection("WebPush").Get&lt;VapidKeys&gt;();
+    ///         o.Subject   = "mailto:admin@example.com";
+    ///     });
+    ///     </code>
+    ///     <para>
+    ///         The options are validated here, so a missing key pair or a malformed subject fails at
+    ///         startup rather than on the first notification nobody receives.
+    ///     </para>
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">Sets the VAPID keys and contact subject — both required.</param>
+    /// <returns><paramref name="services" />, for chaining.</returns>
+    /// <exception cref="InvalidOperationException">The resulting options cannot send. See
+    ///     <see cref="WebPushOptions.Validate" />.</exception>
     public static IServiceCollection AddRaskWebPush(this IServiceCollection services, Action<WebPushOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(services);

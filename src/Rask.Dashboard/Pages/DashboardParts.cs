@@ -45,6 +45,7 @@ internal static class DashboardParts
 /// <summary>The placeholder a panel shows while its first read is in flight.</summary>
 internal sealed partial class DashboardLoading : Component
 {
+    /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class("d-flex align-items-center gap-2 text-body-secondary py-4")[
             BsSpinner.Small(true),
@@ -60,6 +61,7 @@ internal sealed partial class DashboardEmpty : Component
 
     public required string Detail { get; set; }
 
+    /// <inheritdoc />
     protected override Component? Render() =>
         BsCard.Class("text-center py-5")[
             BsCardBody[
@@ -78,6 +80,7 @@ internal sealed partial class DashboardError : Component
 {
     public string? Message { get; set; }
 
+    /// <inheritdoc />
     protected override Component? Render() =>
         Message is null
             ? null
@@ -97,6 +100,7 @@ internal sealed partial class DashboardParked : Component
 
     public Func<Task>? Resume { get; set; }
 
+    /// <inheritdoc />
     protected override Component? Render() =>
         Parked
             ? Div.Class("d-flex align-items-center gap-2 text-body-secondary small mt-3")[

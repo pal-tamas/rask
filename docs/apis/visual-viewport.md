@@ -3,6 +3,7 @@
 > Visible size/offset/zoom after the soft keyboard opens.
 
 - **Wraps:** Visual Viewport API
+- **MDN:** [VisualViewport](https://developer.mozilla.org/en-US/docs/Web/API/VisualViewport)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

@@ -3,6 +3,7 @@
 > Float a `<video>` into a mini-player.
 
 - **Wraps:** Picture-in-Picture API
+- **MDN:** [Picture-in-Picture API](https://developer.mozilla.org/en-US/docs/Web/API/Picture-in-Picture_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜

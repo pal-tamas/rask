@@ -20,6 +20,26 @@ namespace Rask.Validation.FluentValidation;
 // — so re-renders rely on the validator instance being kept stable by the framework's
 // component caching, and a FRESH FluentValidationValidator component in a re-render with
 // a different IValidator instance will be deduped to the first registration.
+/// <summary>
+///     Validates a form's model with a FluentValidation <c>IValidator</c>, asynchronously. Drop it in as
+///     a child of the <c>Form</c> it should validate — it renders no markup of its own:
+///     <code>
+///     Form&lt;SignupModel&gt;(_model, OnValidSubmit: Save)[
+///         FluentValidationValidator(new SignupModelValidator()),
+///         Input.Bind(() =&gt; _model.Username),
+///         ValidationMessage(() =&gt; _model.Username)
+///     ]
+///     </code>
+///     <para>
+///         Validators are de-duplicated by type, so the FIRST instance registered wins for the life of
+///         the form: swapping in a different <c>IValidator</c> on a later render does not replace it.
+///         Keep the validator instance stable, and pick between rule sets inside the validator rather
+///         than by swapping components.
+///     </para>
+///     <para>
+///         Client-side validation is a convenience, never a control: always validate again on the server.
+///     </para>
+/// </summary>
 public sealed partial class FluentValidationValidator : Component
 {
     public required IValidator Validator { get; set; }

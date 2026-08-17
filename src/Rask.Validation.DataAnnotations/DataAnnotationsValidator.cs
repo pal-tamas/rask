@@ -17,6 +17,23 @@ namespace Rask.Validation.DataAnnotations;
 // On render it pulls EditContextScope.Current and registers an IFieldValidator that defers
 // to System.ComponentModel.DataAnnotations.Validator. EditContext.AddValidator dedups by
 // runtime type, so re-renders are idempotent. TagName is null — the component emits no DOM.
+/// <summary>
+///     Validates a form's model with its <c>System.ComponentModel.DataAnnotations</c> attributes
+///     (<c>[Required]</c>, <c>[EmailAddress]</c>, <c>[StringLength]</c>, …). Drop it in as a child of the
+///     <c>Form</c> it should validate — it renders no markup of its own:
+///     <code>
+///     Form&lt;RegistrationModel&gt;(_model, OnValidSubmit: Save)[
+///         DataAnnotationsValidator(),
+///         Input.Bind(() =&gt; _model.Email),
+///         ValidationMessage(() =&gt; _model.Email)
+///     ]
+///     </code>
+///     <para>
+///         Registering it twice is harmless — validators are de-duplicated by type, so a re-render
+///         re-registers nothing. Client-side validation is a convenience, never a control: always
+///         validate again on the server.
+///     </para>
+/// </summary>
 public sealed partial class DataAnnotationsValidator : Component
 {
     // The validator reads mutable EditContext state via AddValidator, but its OWN output

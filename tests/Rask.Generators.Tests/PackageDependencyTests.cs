@@ -185,6 +185,50 @@ public class PackageDependencyTests
                 segment.Equals("bin", StringComparison.OrdinalIgnoreCase)
                 || segment.Equals("obj", StringComparison.OrdinalIgnoreCase));
 
+    [Fact]
+    public void A_bundled_dll_ships_its_XML_docs_too()
+    {
+        // Rask.Core and Rask.Client are IsPackable=false and reach consumers by being copied into a host
+        // package's lib/ folder. Their XML doc file has to make the same trip: it is the ONLY way the
+        // documentation on Component, Element and every element component reaches anyone consuming the
+        // package. Drop the line and nothing breaks — the build is green, the API works, and every
+        // tooltip in the consumer's IDE is silently blank. The factory generator suffers twice over,
+        // because it reads those same summaries to put a <param> on each generated factory.
+        //
+        // Scoped to lib/ deliberately. A DLL packed to analyzers/dotnet/cs is loaded by the compiler, never
+        // referenced by user code, so it has no API surface a consumer's IDE could show docs for — the
+        // generator packages (Rask.Cqrs.Generators, Rask.Jobs.Generators, Rask.Outbox.Generators) ship
+        // without an .xml on purpose, and demanding one there would be noise, not a guard.
+        var offenders = new List<string>();
+
+        foreach (var (name, path) in SourceProjects().Where(p => IsPackable(p.Value)))
+        {
+            var packed = XDocument.Load(path)
+                .Descendants()
+                .Where(e => e.Name.LocalName is "None" or "TfmSpecificPackageFile")
+                .Where(e => e.Attribute("PackagePath")?.Value.Replace('\\', '/')
+                    .StartsWith("lib", StringComparison.OrdinalIgnoreCase) == true)
+                .Select(e => e.Attribute("Include")?.Value)
+                .Where(v => v is not null)
+                .Select(v => v!.Replace('\\', '/'))
+                .ToList();
+
+            foreach (var dll in packed.Where(v => v.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)))
+            {
+                var xml = dll[..^4] + ".xml";
+                if (!packed.Contains(xml, StringComparer.OrdinalIgnoreCase))
+                {
+                    offenders.Add($"{name} packs {Path.GetFileName(dll)} without {Path.GetFileName(xml)}");
+                }
+            }
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "A bundled DLL must ship its XML docs beside it, or the package's IntelliSense is blank: "
+            + string.Join("; ", offenders));
+    }
+
     // Mirrors how the repo declares it: an explicit <IsPackable>false</IsPackable>. Everything else in src/
     // ships (the SDK default is true), so absence means packable.
     private static bool IsPackable(string csprojPath) =>

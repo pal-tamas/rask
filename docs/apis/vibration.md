@@ -3,6 +3,7 @@
 > Buzz the device following a vibrate/pause pattern.
 
 - **Wraps:** Vibration API
+- **MDN:** [Vibration API](https://developer.mozilla.org/en-US/docs/Web/API/Vibration_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

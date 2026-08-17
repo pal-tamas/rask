@@ -3,6 +3,7 @@
 > Capture camera/mic/screen into a `<video>`.
 
 - **Wraps:** Media Capture (getUserMedia)
+- **MDN:** [Media Capture and Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Media_Capture_and_Streams_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
