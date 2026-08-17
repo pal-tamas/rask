@@ -76,10 +76,10 @@ protected override Component? Render() =>
     NativeHeaderBar.Title("Profile"),
     NativeScreen[
         NativeStack.Spacing(12).Padding(16)[
-            NativeLabel.Text($"Signed in as {_user.Name}").FontWeight(NativeFontWeight.Semibold),
+            NativeLabel.FontWeight(NativeFontWeight.Semibold)[$"Signed in as {_user.Name}"],
             NativeTextField.Value(_note).Placeholder("Add a note").OnInput(v => _note = v),
             NativeSwitch.On(_notify).OnChanged(v => _notify = v),
-            NativeButton.Text("Save").OnClickAsync(SaveAsync)]],
+            NativeButton.OnClickAsync(SaveAsync)["Save"]]],
     NativeTabBar.Tabs([...])
 ];
 ```
@@ -140,6 +140,15 @@ With no `INativeSurface` registered the native view family is inert and every fr
 WebView, so an existing app is unaffected.
 
 ### Keys on lists
+
+```csharp
+NativeList[todos.Select(t => NativeStack.Key(t.Id).OnClick(() => Toggle(t))[NativeLabel[t.Title]])]
+```
+
+`Key` comes **first** in the chain ([RASK046](diagnostics.md#rask046)) — it decides which instance is being
+built, so anything written before it lands on one that is about to be discarded. And because the chain ends
+at the children indexer it hands back a `Component`, so the enumerable needs no `(Component)` cast; a chain
+ending at a setter would, since that yields a `Build<T>`.
 
 Give every row in a `NativeList` a `Key`. Keyed rows reconcile by identity, so inserting, removing or
 reordering **moves** the existing row views — keeping scroll position, focus and in-flight animations —

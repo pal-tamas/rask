@@ -8,8 +8,8 @@ namespace Rask.Native.Components;
 ///     <see cref="Width" />/<see cref="Height" /> instead for a fixed gap.
 /// </summary>
 /// <example>
-///     <code>NativeStack(Orientation: NativeOrientation.Horizontal)[
-///         NativeLabel(Text: "Total"), NativeSpacer(), NativeLabel(Text: "$42.00")]</code>
+///     <code>NativeStack.Orientation(NativeOrientation.Horizontal)[
+///         NativeLabel["Total"], NativeSpacer, NativeLabel["$42.00"]]</code>
 /// </example>
 public sealed partial class NativeSpacer : NativeViewComponent
 {

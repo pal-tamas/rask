@@ -1035,8 +1035,8 @@ protected override Component? Render() => NativeScreen[Div["Hello"]];
 // ✓ native views inside a native screen
 protected override Component? Render() =>
     NativeScreen[NativeStack.Spacing(12)[
-        NativeLabel.Text("Hello"),
-        NativeButton.Text("Go").OnClick(Go)]];
+        NativeLabel["Hello"],
+        NativeButton.OnClick(Go)["Go"]]];
 
 // ✓ HTML inside a NativeWebView — both may live in one app, on different routes
 protected override Component? Render() => NativeWebView[Div["Hello"]];

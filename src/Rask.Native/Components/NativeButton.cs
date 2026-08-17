@@ -5,20 +5,17 @@ namespace Rask.Native.Components;
 /// <summary>
 ///     A tappable button, projected to a <c>UIButton</c> (iOS) or a <c>MaterialButton</c> (Android).
 /// </summary>
+/// <remarks>Its label is its <b>children</b>, the same spelling as <c>Button["Save"]</c> on the web.</remarks>
 /// <example>
-///     <code>NativeButton(Text: "Save", Style: NativeButtonStyle.Filled, OnClickAsync: SaveAsync)</code>
+///     <code>NativeButton.Style(NativeButtonStyle.Filled).OnClickAsync(SaveAsync)["Save"]</code>
 /// </example>
 public sealed partial class NativeButton : NativeViewComponent
 {
-    /// <summary>The button's label. Required.</summary>
-    /// <remarks>
-    ///     Shadows the generated <c>Text</c> markup entry, which a native component has no use for — it renders
-    ///     platform views, never HTML.
-    /// </remarks>
-    public new required string Text { get; set; }
-
     /// <summary>The visual treatment. Leave <c>null</c> for <see cref="NativeButtonStyle.Filled" />.</summary>
-    /// <remarks>Shadows the generated <c>Style</c> markup entry, for the same reason as <see cref="Text" />.</remarks>
+    /// <remarks>
+    ///     Shadows the generated <c>Style</c> markup entry, which a native component has no use for — it
+    ///     renders platform views, never HTML.
+    /// </remarks>
     public new NativeButtonStyle? Style { get; set; }
 
     /// <summary>The title color. Leave <c>null</c> to let <see cref="Style" /> decide.</summary>
@@ -49,7 +46,7 @@ public sealed partial class NativeButton : NativeViewComponent
     /// <inheritdoc />
     internal override void WriteSurfaceProps(ref NativePropWriter props)
     {
-        props.Text(NativePropId.Text, Text);
+        props.Text(NativePropId.Text, ChildText());
         props.Enum(NativePropId.Style, Style);
         props.Color(NativePropId.Color, Color);
         props.Color(NativePropId.Background, Background);
