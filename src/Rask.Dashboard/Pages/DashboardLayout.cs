@@ -19,13 +19,15 @@ namespace Rask.Dashboard.Pages;
 /// and they drop out again when the operator navigates back into the app.
 /// </para>
 /// </summary>
-[Route("_ops")]
 [Authorize(Policy = RaskDashboardPolicies.Access)]
 public sealed partial class DashboardLayout(
     IEnumerable<IQueuePanel> queues,
     RouteState route,
-    DashboardSecurityState security) : Component
+    DashboardSecurityState security) : Page
 {
+    /// <inheritdoc />
+    protected override string Route => "_ops";
+
     /// <inheritdoc />
     protected override Component? HeadAssets =>
     [

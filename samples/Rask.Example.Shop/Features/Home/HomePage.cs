@@ -2,9 +2,10 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.Shop.Features.Home;
 
-[Route("/")]
-public sealed partial class HomePage : Component
+public sealed partial class HomePage : Page
 {
+    protected override string Route => "/";
+
     // BsBlock exposes only Id/Class (not Element's full HTML surface), so the width lives on a
     // plain Div wrapper rather than a .Style() on the card.
     protected override Component? Render() =>

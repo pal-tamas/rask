@@ -8,9 +8,10 @@ namespace Rask.Example.EfCore.Features.Cache;
 // "expensive" factory only on a miss and stores the result as a CacheEntry row; a second load within the
 // sliding window is served straight from the DB — no recompute, no Redis. "Clear" removes the entry so the
 // next load recomputes, proving the cache is what's serving the repeated reads.
-[Route("cache")]
-public sealed partial class CacheReportPage(ICache cache) : Component
+public sealed partial class CacheReportPage(ICache cache) : Page
 {
+    protected override string Route => "cache";
+
     private const string CacheKey = "cache:demo:report";
 
     private Report? _report;
