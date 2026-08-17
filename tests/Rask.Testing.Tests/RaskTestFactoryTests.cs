@@ -98,4 +98,18 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void RenderFactory_NullFactory_Throws() =>
         Assert.Throws<ArgumentNullException>(() => RaskTest.Render((Func<Component?>)null!));
+
+    // A form control's chain is a Build<T, TMode>, not a Build<T>, so it needs its own Render overload —
+    // inference runs before any user-defined conversion, so the chain cannot reach the Component-typed
+    // parameter by itself (CS0315). Both modes, because they are two different constructed types and one
+    // overload covering only one of them is the failure this pins.
+    [Fact]
+    public void Render_TakesAFormControlChain_InEitherMode()
+    {
+        var model = new Model();
+
+        Assert.Contains("value=\"Ada\"", RaskTest.Render(Input.Bind(() => model.Name)).Html,
+            StringComparison.Ordinal);
+        Assert.Contains("value=\"Grace\"", RaskTest.Render(Input.Value("Grace")).Html, StringComparison.Ordinal);
+    }
 }

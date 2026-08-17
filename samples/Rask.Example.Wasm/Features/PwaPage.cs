@@ -9,10 +9,12 @@ namespace Rask.Example.Wasm.Features;
 ///     Lives in the WASM host because these APIs are WASM-only; surfaced in the shared sidebar via a
 ///     host-registered <see cref="ShowcaseNavEntry" /> (see Program.cs), nesting in <see cref="ShowcaseLayout" />.
 /// </summary>
-[Route("pwa")]
-[ParentRoute(typeof(ShowcaseLayout))]
-public sealed partial class PwaPage : Component
+public sealed partial class PwaPage : Page
 {
+    protected override string Route => "pwa";
+
+    protected override Type? Parent => typeof(ShowcaseLayout);
+
     protected override Component? HeadAssets => Title["PWA — Rask"];
 
     protected override Component? Render() =>

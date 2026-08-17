@@ -8,10 +8,12 @@ namespace Rask.Example.Wasm.Features;
 ///     WASM-only showcase page for <see cref="MediaDevicesDemo" /> (<c>IMediaDevices</c>). Surfaced in the
 ///     shared sidebar via a host-registered <see cref="ShowcaseNavEntry" /> (see Program.cs).
 /// </summary>
-[Route("media-devices")]
-[ParentRoute(typeof(ShowcaseLayout))]
-public sealed partial class MediaDevicesPage : Component
+public sealed partial class MediaDevicesPage : Page
 {
+    protected override string Route => "media-devices";
+
+    protected override Type? Parent => typeof(ShowcaseLayout);
+
     protected override Component? HeadAssets => Title["Camera & microphone — Rask"];
 
     protected override Component? Render() =>

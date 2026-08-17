@@ -310,9 +310,10 @@ public partial class App : Component
     // Static, trusted syntax-highlighted markup for the Counter.cs sample (global .t-* classes).
     private const string CounterCodeHtml =
         """
-        <span class="t-attr">[Route(<span class="t-str">"/counter"</span>)]</span>
-        <span class="t-key">public sealed partial class</span> <span class="t-type">Counter</span> : <span class="t-type">Component</span>
+        <span class="t-key">public sealed partial class</span> <span class="t-type">Counter</span> : <span class="t-type">Page</span>
         {
+            <span class="t-key">protected override string</span> Route =&gt; <span class="t-str">"/counter"</span>;
+
             <span class="t-key">private int</span> _count;
 
             <span class="t-key">protected override</span> <span class="t-type">Component</span>? <span class="t-fn">Render</span>() =&gt;

@@ -508,6 +508,19 @@ internal static class HtmlSerializer
                             liveCtx.HeadAssets.Add(head);
                         }
 
+                        // A Screen's native chrome slots. Walked inside the screen's own scope — so a bar
+                        // button's callback attributes back to the screen and re-renders it like any other
+                        // callback — and BEFORE the body, so the chrome collector's deepest-wins merge lets a
+                        // leaf screen's header beat a layout screen's. Native bars render null, so this
+                        // contributes no HTML. Gated on CollectsNativeChrome: on Server/WASM the overrides are
+                        // never even read, exactly like the sibling-composed bars above.
+                        if (component is Screen screenChrome && liveCtx is { CollectsNativeChrome: true })
+                        {
+                            Serialize(screenChrome.HeaderBarInternal, sb);
+                            Serialize(screenChrome.ToolbarInternal, sb);
+                            Serialize(screenChrome.TabBarInternal, sb);
+                        }
+
                         Serialize(rendered, sb);
                     }
                     finally

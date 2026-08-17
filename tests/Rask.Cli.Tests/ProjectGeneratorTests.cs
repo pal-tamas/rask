@@ -238,8 +238,8 @@ public sealed class ProjectGeneratorTests
 
         // The welcome page is its own Features/Home slice, Bootstrap-styled (no scoped .css to pair with).
         var home = files["Features/Home/HomePage.cs"];
-        Assert.Contains("[Route(\"/\")]", home, StringComparison.Ordinal);
-        Assert.Contains("public sealed partial class HomePage : Component", home, StringComparison.Ordinal);
+        Assert.Contains("protected override string Route => \"/\";", home, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class HomePage : Page", home, StringComparison.Ordinal);
         Assert.Contains("BsCard", home, StringComparison.Ordinal);
         // The welcome copy points at the file it actually lives in.
         Assert.Contains("Code[\"HomePage.cs\"]", home, StringComparison.Ordinal);
@@ -526,7 +526,7 @@ public sealed class ProjectGeneratorTests
             Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{docker}] missing {expected}");
         }
 
-        Assert.Contains("public sealed partial class HomePage : Component", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class HomePage : Page", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
 
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
         Assert.Equal(auth, files.ContainsKey("Features/Auth/Auth.cs"));
@@ -723,8 +723,8 @@ public sealed class ProjectGeneratorTests
 
         // The welcome page is its own Features/Home slice; the shell hosts the native chrome + Router.
         var home = local["Features/Home/HomePage.cs"];
-        Assert.Contains("[Route(\"/\")]", home, StringComparison.Ordinal);
-        Assert.Contains("public sealed partial class HomePage : Component", home, StringComparison.Ordinal);
+        Assert.Contains("protected override string Route => \"/\";", home, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class HomePage : Page", home, StringComparison.Ordinal);
 
         // The tab bar linked Counter, which is gone. It may survive as a commented-out suggestion, but
         // nothing may still render it — an unresolved Counter() reference would not compile.
@@ -814,7 +814,7 @@ public sealed class ProjectGeneratorTests
 
         // Each project owns its Client/Server/Shared namespace; the shell + welcome page are the shared ones, re-homed.
         Assert.Contains("namespace App.Client.Features.Shared;", files["App.Client/Features/Shared/App.cs"], StringComparison.Ordinal);
-        Assert.Contains("public sealed partial class HomePage : Component", files["App.Client/Features/Home/HomePage.cs"], StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class HomePage : Page", files["App.Client/Features/Home/HomePage.cs"], StringComparison.Ordinal);
         Assert.Contains("namespace App.Client.Features.Home;", files["App.Client/Features/Home/HomePage.cs"], StringComparison.Ordinal);
         Assert.Contains("namespace App.Shared;", files["App.Shared/Contracts.cs"], StringComparison.Ordinal);
 
