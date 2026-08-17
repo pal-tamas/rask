@@ -22,7 +22,7 @@ public sealed partial class BsBadge : BsBlock
     ///     first — inline style beats every stylesheet rule and cannot be overridden by a theme, so keep it
     ///     for values only known at runtime.
     /// </summary>
-    public new string? Style { get; set; }
+    public string? Style { get; set; }
 
     protected override Component? Render() => Span
         .Id(Id)

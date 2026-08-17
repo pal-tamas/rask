@@ -14,7 +14,7 @@ public sealed partial class BsBreadcrumb : BsBlock
     ///     navigation landmarks on one page need distinct names, or a screen-reader user hears the same
     ///     thing twice with no way to tell them apart.
     /// </summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     protected override Component? Render()
     {

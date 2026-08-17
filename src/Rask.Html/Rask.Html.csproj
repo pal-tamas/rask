@@ -1,0 +1,98 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Rask.Html is the HTML/SVG element family — the ~180 tag components (Div, Span, Table, <svg> …) plus
+    the DOM-shaped components built out of them. It sits directly on Rask.Core:
+
+      • Rask.Core       — the engine: Component/Element, the render walk, HtmlSerializer, routing, forms,
+                          live diffing. It keeps the handful of components it CONSTRUCTS ITSELF (Text, Raw,
+                          Fragment, Doctype, ErrorBoundary, the default shell's Html/Body, …), because a
+                          type the engine news up cannot live downstream of it.
+      • Rask.Html    — everything else that renders a tag.
+
+    Why a separate assembly rather than a folder: it makes the dependency one-way and checkable. Core can no
+    longer reach for a tag component by accident, so the engine stays honest about the small DOM surface it
+    genuinely depends on, and that surface is now the explicit STAY list in Rask.Core/Components.
+
+    The factory namespace is Rask.Html.Components, NOT Rask.Core.Components. That is forced, not cosmetic:
+    the generator emits a `public static partial class Generated` per compilation, so two assemblies sharing
+    one namespace would both declare Rask.Core.Components.Generated and every consumer would hit CS0433.
+    [assembly: RaskFactoryNamespace] (see BrowserFactoryNamespace.cs) is the same opt-in Rask.Native uses, and
+    it makes a consuming app's generator emit the `global using static` — so `Div.Class("x")` still resolves
+    with no per-file using and the split is invisible at the call site.
+
+    Like Rask.Core and Rask.Client this is IsPackable=false: the DLL is bundled into the Rask.Server /
+    Rask.Wasm / Rask.Native package lib/ folders rather than published on its own. All three hosts render
+    HTML, so all three carry it.
+  -->
+  <PropertyGroup>
+    <!-- Mirrors Rask.Core: net10.0-browser exists purely so the trim/AOT analysers run over this source
+         too (they are no-ops on plain net10.0 — NETSDK1210). IsPackable=false, so no published package
+         changes shape. -->
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.Html</RootNamespace>
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsAotCompatible>
+    <!--
+      Publish this assembly's builder entries for consumers, but do not inject them back into its own
+      ~150 tag classes. Injection is the CONSUMER shape of the surface — one forwarder per entry per host
+      — and it does not scale to a library that IS the entry set: 150 hosts × 150 entries is ~23k generated
+      members, and the names collide head-on with what those hosts inherit from Element (Style, Data, Title,
+      Cite, ClipPath), which is CS0108 that nothing can hide because the entries land above Element instead
+      of below it the way Rask.Core's do on RaskMarkup.
+
+      Nothing about the call site changes: an app referencing Rask.Html still reads RaskEntriesRaskHtml and
+      still writes `Div.Class("card")[…]`. Only this project builds its own markup through the
+      `Generated.X(...)` factories instead — and just four of its components render markup at all.
+    -->
+    <RaskBuilderEntryInjection>false</RaskBuilderEntryInjection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- While these files lived in Rask.Core.Components they reached Component/Element/ElementRef (namespace
+         Rask.Core) by namespace NESTING, so not one of them declares a using for it. Rask.Html.Components
+         does not nest under Rask.Core, so the lookup is restored here once rather than by editing ~180 files.
+         Rask.Core.Components is the second half of that: the element family still derives from the shared
+         intermediate bases and the components Core kept (Text, Fragment, …). -->
+    <Using Include="Rask.Core"/>
+    <Using Include="Rask.Core.Components"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Same set Rask.Core compiles against: the element family binds forms (DI abstractions), reads
+         IJSRuntime for the interop-backed components, and Authorize-adjacent components need the
+         authorization abstractions. -->
+    <PackageReference Include="Microsoft.Extensions.Primitives"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
+    <PackageReference Include="Microsoft.JSInterop"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Html.Tests"/>
+    <!-- The element family's own tests live in Rask.Html.Tests. Rask.Core.Tests keeps a handful that are
+         about Core behaviour but reach an element's internal seam to assert it — ActionableExceptionMessageTests
+         on Form&lt;T&gt;.ResolveContext — which Rask.Core already grants it. -->
+    <InternalsVisibleTo Include="Rask.Core.Tests"/>
+    <InternalsVisibleTo Include="Rask.Testing"/>
+    <InternalsVisibleTo Include="Rask.Testing.Tests"/>
+    <InternalsVisibleTo Include="Rask.Bootstrap"/>
+    <InternalsVisibleTo Include="Rask.Bootstrap.Tests"/>
+    <InternalsVisibleTo Include="Rask.Server"/>
+    <InternalsVisibleTo Include="Rask.Wasm"/>
+    <InternalsVisibleTo Include="Rask.Native"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

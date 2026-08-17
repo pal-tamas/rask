@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Callbacks;
 
-public class AutoCallbackTests
+public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task Wrap_SyncCallback_RerendersReceiverThroughCachedIntermediate()

@@ -98,7 +98,7 @@ public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
         public string Name { get; }
     }
 
-    public sealed class GreetingComponent : Component
+    public sealed partial class GreetingComponent : Component
     {
         private readonly IGreeter _greeter;
         public GreetingComponent(IGreeter greeter) => _greeter = greeter;
@@ -107,7 +107,7 @@ public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
             Span[Text.Value($"hello, {_greeter.Name}")];
     }
 
-    public sealed class ParameterlessComponent : Component
+    public sealed partial class ParameterlessComponent : Component
     {
         protected override Component? Render() => Span[Text.Value("plain")];
     }
@@ -118,7 +118,7 @@ public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
         public void Dispose() => Disposed = true;
     }
 
-    public sealed class TrackerComponent : Component
+    public sealed partial class TrackerComponent : Component
     {
         public TrackerComponent(ScopedTracker tracker) => Tracker = tracker;
         public ScopedTracker Tracker { get; }

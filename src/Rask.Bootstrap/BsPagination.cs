@@ -17,7 +17,7 @@ public sealed partial class BsPagination : BsBlock
     ///     for what is being paged ("Search results pages") so a page with more than one set of controls
     ///     stays navigable.
     /// </summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     protected override Component? Render()
     {

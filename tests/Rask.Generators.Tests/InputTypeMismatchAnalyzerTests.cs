@@ -14,6 +14,7 @@ public class InputTypeMismatchAnalyzerTests
                                                 using System;
                                                 using Rask.Core;
                                                 using static Rask.Core.Components.Generated;
+                                                using static Rask.Html.Components.Generated;
                                                 namespace Demo;
                                                 public sealed partial class App : Component
                                                 {
@@ -33,7 +34,8 @@ public class InputTypeMismatchAnalyzerTests
 
     // The factory's `Type:` argument. Qualified because the builder entry (Component.Input<T>) shadows the
     // unqualified name — a method entry, unlike a property entry, hides the same-named factory.
-    private const string Factory = "Rask.Core.Components.Generated.";
+    // Input<T> ships from Rask.Html now, so its factory lives in that assembly's Generated class.
+    private const string Factory = "Rask.Html.Components.Generated.";
 
     [Fact]
     public async Task StringFamilyType_OnIntInput_ReportsRask025()
@@ -52,7 +54,7 @@ public class InputTypeMismatchAnalyzerTests
     [Fact]
     public async Task BuilderSetter_StringFamilyType_OnIntInput_ReportsRask025()
     {
-        var d = Assert.Single(await Diagnostics(App("return Input.Bind(() => _m.Age).Type(InputType.Email);")));
+        var d = Assert.Single(await Diagnostics(App("return global::RaskEntriesRask_Html.Input.Bind(() => _m.Age).Type(InputType.Email);")));
         Assert.Equal("RASK025", d.Id);
         Assert.Contains("Email", d.GetMessage());
     }

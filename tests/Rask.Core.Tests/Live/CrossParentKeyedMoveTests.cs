@@ -2,7 +2,7 @@
 
 namespace Rask.Core.Tests.Live;
 
-public class CrossParentKeyedMoveTests
+public partial class CrossParentKeyedMoveTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void CrossParentKeyedMove_DoesNotCycle()

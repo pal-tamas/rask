@@ -30,6 +30,8 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 
 ## Projects
 - `src/Rask.Core` — rendering, live context, routing, scoped CSS/JS, lifecycle.
+- `src/Rask.Html` — the HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Html.Components`;
+  `IsPackable=false`, bundled into every host package. Core keeps only the tags its engine builds.
 - `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `Page.Route` registration.
 - `src/Rask.Server` — ASP.NET host (`AddRask()`/`UseRask<TApp>()`, WS dispatcher). `src/Rask.Wasm` — browser host.
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
@@ -84,5 +86,5 @@ started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
-- **New HTML tag** → `add-html-tag` skill (`src/Rask.Core/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
+- **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–048 are documented in `docs/diagnostics.md`.

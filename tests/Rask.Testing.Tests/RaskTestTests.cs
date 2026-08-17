@@ -2,7 +2,7 @@
 
 namespace Rask.Testing.Tests;
 
-public class RaskTestTests
+public partial class RaskTestTests : global::Rask.Core.RaskMarkup
 {
     // A stateful component with a click handler — the canonical thing a consumer wants to unit-test.
     private sealed class Counter : Component

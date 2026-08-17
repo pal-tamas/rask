@@ -6,7 +6,7 @@ using Rask.Server;
 
 namespace Rask.Core.Tests.Lifecycle;
 
-public class DisposeTests
+public partial class DisposeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void RemovedFromTree_TriggersDispose()

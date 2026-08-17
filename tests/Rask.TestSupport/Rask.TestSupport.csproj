@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- The shipped testing package is the base these helpers layer on: MarkupAssert wraps its public
          Markup scanner rather than keeping a second copy. This also puts Rask.Testing on the compile path
          of every project that uses TestSupport, so the public API is what our own suites build against. -->

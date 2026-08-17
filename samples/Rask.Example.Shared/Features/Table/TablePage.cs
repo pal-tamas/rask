@@ -15,7 +15,7 @@ public sealed partial class TablePage(Navigator nav) : Page
 
     private static readonly Person[] _people = BuildPeople(120);
 
-    [QueryParam] public new string? Filter { get; set; }
+    [QueryParam] public string? Filter { get; set; }
     [QueryParam("sort")] public string? SortKey { get; set; }
     [QueryParam("dir")] public string? Dir { get; set; }
     [QueryParam] public int? Page { get; set; }

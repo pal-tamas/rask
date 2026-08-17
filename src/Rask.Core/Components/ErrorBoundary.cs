@@ -46,12 +46,12 @@ public sealed class ErrorBoundary : Component
 
     /// <summary>Where <see cref="Error" /> came from. Meaningless when <see cref="Error" /> is null.</summary>
     /// <remarks>
-    ///     <c>new</c> because the builder surface gives <see cref="Component" /> an entry named after every
-    ///     tag, and one of them is <c>&lt;source&gt;</c> — exactly the CS0108 the Rask quick-fix inserts
-    ///     <c>new</c> for. Hiding it here is deliberate: nothing inside a boundary builds a
-    ///     <c>&lt;source&gt;</c>.
+    ///     This used to need <c>new</c>: the builder surface gave <see cref="Component" /> an entry named
+    ///     after every tag, and one of them is <c>&lt;source&gt;</c>. The tag family lives in
+    ///     <c>Rask.Html</c> now, so Core inherits no <c>Source</c> entry and there is nothing left to
+    ///     hide — the collision, and the CS0108 it caused, are gone with it.
     /// </remarks>
-    internal new ErrorSource Source { get; private set; }
+    internal ErrorSource Source { get; private set; }
 
     // Boundary state (Error) lives outside the framework's prop/state diff, so the cached
     // render result would never reflect a Trip(). BypassRenderCache forces Render() to run

@@ -4,6 +4,7 @@
 
 using Rask.Core.Components;
 using Rask.Core.Forms;
+using Rask.Html.Components;
 using static Rask.Core.Tests.Generated;
 
 namespace Rask.Core.Tests;
@@ -15,12 +16,13 @@ namespace Rask.Core.Tests;
 // overloads per control for exactly one reason — `Validate` had to be a required, correctly-typed
 // parameter, and sync `Validate<T>` cannot share a parameter with async `ValidateAsync<T>` without
 // losing inference. On this surface that fan-out collapses: one entry, and the validator is a setter.
-public sealed class BoundForm
+public sealed partial class BoundForm : global::Rask.Core.RaskMarkup
 {
     public string Name { get; set; } = "";
     public int Age { get; set; }
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class BoundBuilderProbe : Component
 {
     internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
@@ -37,17 +39,18 @@ internal sealed partial class BoundBuilderProbe : Component
         value.Length > 0 ? Array.Empty<string>() : new[] { "required" };
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class BoundFactoryProbe : Component
 {
     internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
 
     protected override Component? Render() =>
         Div()[
-            Rask.Core.Components.Generated.Input(() => Model.Name, Validate: global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty,
+            Rask.Html.Components.Generated.Input(() => Model.Name, Validate: global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty,
                 Id: "name", Class: "field"),
-            Rask.Core.Components.Generated.Input(() => Model.Age, Id: "age"),
-            Rask.Core.Components.Generated.Textarea(() => Model.Name, Id: "bio"),
-            Rask.Core.Components.Generated.Select(() => Model.Name, Id: "pick")[Option("Ada")["Ada"]]
+            Rask.Html.Components.Generated.Input(() => Model.Age, Id: "age"),
+            Rask.Html.Components.Generated.Textarea(() => Model.Name, Id: "bio"),
+            Rask.Html.Components.Generated.Select(() => Model.Name, Id: "pick")[Option("Ada")["Ada"]]
         ];
 }
 
@@ -108,7 +111,7 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
     public void A_bound_member_takes_a_plain_assignment()
     {
         Validate<string> rule = global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty;
-        var control = Rask.Core.Components.Generated.Input<string>();
+        var control = Rask.Html.Components.Generated.Input<string>();
         control.Validate = rule;
 
         Assert.Same(rule, control.Validate);

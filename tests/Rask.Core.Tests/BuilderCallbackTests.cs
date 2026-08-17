@@ -16,7 +16,7 @@ namespace Rask.Core.Tests;
 // its delegate, purely to stay out of that lookup. What it pins now is that nothing needs to.
 internal sealed partial class BuilderCard : Component
 {
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
     public Action? OnSelect { get; set; }
 
     protected override Component? Render() => Button.OnClick(OnSelect)[Label ?? ""];

@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- Rask.Native references Rask.Client with PrivateAssets="all" (bundled, not flowed), so name it
          directly to exercise IShare registration here. -->
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>

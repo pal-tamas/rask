@@ -12,7 +12,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     a sibling validation message (positional, untrusted — routes to full HTML when
 ///     the message div appears or disappears, but field-value-only toggles ship as diff).
 /// </summary>
-internal static class FormValidationChurn
+internal static partial class FormValidationChurn
 {
     // `Form` binds a model; this benchmark measures markup, so any object will do.
     private static readonly object Fields = new();
@@ -20,7 +20,7 @@ internal static class FormValidationChurn
     public const int FieldCount = 10;
 
 #pragma warning disable RASK014
-    public sealed class StatefulForm : Component
+    public sealed partial class StatefulForm : Component
 #pragma warning restore RASK014
     {
         private readonly bool[] _invalid = new bool[FieldCount];

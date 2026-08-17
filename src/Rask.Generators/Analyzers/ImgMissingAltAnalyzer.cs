@@ -15,7 +15,7 @@ namespace Rask.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ImgMissingAltAnalyzer : DiagnosticAnalyzer
 {
-    private const string ImgFullName = "Rask.Core.Components.Img";
+    private const string ImgFullName = "Rask.Html.Components.Img";
     private const string RaskCoreAssembly = "Rask.Core";
     private const string GeneratedClassName = "Generated";
     private const string AltParameter = "Alt";

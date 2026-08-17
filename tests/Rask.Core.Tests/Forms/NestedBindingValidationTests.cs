@@ -412,7 +412,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         public Address Address { get; set; } = new();
     }
 
-    private sealed new class Address
+    private sealed class Address
     {
         public string Street { get; set; } = "";
         public PostalInfo? Postal { get; set; }

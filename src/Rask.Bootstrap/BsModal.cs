@@ -55,7 +55,7 @@ public sealed partial class BsModal : BsBlock
     // Optional footer content (e.g. action buttons) placed in .modal-footer.
 
     /// <summary>The footer content, normally the actions.</summary>
-    public new Component? Footer { get; set; }
+    public Component? Footer { get; set; }
 
     /// <summary>Runs when the dialog is dismissed — set your <c>Open</c> state to false here.</summary>
     public Action? OnClose { get; set; }

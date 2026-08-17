@@ -63,6 +63,7 @@
          capability bridge routes to. Rask.Native/Rask.Client reference Rask.Core with PrivateAssets="all"
          (it's bundled into their packages), so it does not flow transitively — reference it directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
   </ItemGroup>
 

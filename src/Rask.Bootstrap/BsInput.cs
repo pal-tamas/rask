@@ -1,4 +1,5 @@
 using Rask.Core.Forms;
+using Rask.Html.Components;
 
 namespace Rask.Bootstrap;
 
@@ -40,7 +41,7 @@ public sealed partial class BsInput<T> : BsFormControl<T>
     public string? Step { get; set; }
 
     /// <summary>A regular expression the value must match.</summary>
-    public new string? Pattern { get; set; }
+    public string? Pattern { get; set; }
 
     /// <summary>The most characters the user may enter.</summary>
     public int? MaxLength { get; set; }

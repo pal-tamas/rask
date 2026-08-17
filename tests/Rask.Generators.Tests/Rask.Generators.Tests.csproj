@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators.CodeFixes\Rask.Generators.CodeFixes.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- Rask.Server (and, transitively, the ASP.NET Core shared framework) so AuthBeforeRaskAnalyzer
          tests can resolve the real UseRask / UseAuthentication symbols in their test compilations. -->
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>

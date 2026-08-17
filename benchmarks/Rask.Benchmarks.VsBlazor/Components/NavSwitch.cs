@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
 using C = Rask.Core.Components.Generated;
 
+using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
@@ -13,7 +14,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     fallback. The pinned benchmark therefore measures the FULL render cost as that's
 ///     what production ships for this pattern.
 /// </summary>
-internal static class NavSwitch
+internal static partial class NavSwitch
 {
     public const int TabCount = 5;
     public const int RowsPerTab = 40;
@@ -24,7 +25,7 @@ internal static class NavSwitch
         for (var t = 0; t < TabCount; t++)
         {
             var isActive = t == activeTab;
-            tabs.Add(C.Li(Class: isActive ? "tab active" : "tab")[
+            tabs.Add(CH.Li(Class: isActive ? "tab active" : "tab")[
                 C.A($"#t{t}")[$"Tab {t}"]
             ]);
         }
@@ -33,26 +34,26 @@ internal static class NavSwitch
         for (var i = 0; i < RowsPerTab; i++)
         {
             contentRows.Add(C.Div(Class: "row")[
-                C.Span(Class: "label")[$"Tab {activeTab} row {i}"],
+                CH.Span(Class: "label")[$"Tab {activeTab} row {i}"],
                 C.A($"/tab/{activeTab}/{i}")[$"open {i}"]
             ]);
         }
 
         return C.Div(Class: "nav-shell")[
-            C.Nav()[C.Ul()[tabs]],
-            C.Main($"tab-{activeTab}")[contentRows]
+            CH.Nav()[CH.Ul()[tabs]],
+            CH.Main($"tab-{activeTab}")[contentRows]
         ];
     }
 
 #pragma warning disable RASK014
-    public sealed class StatefulNavSwitch : Component
+    public sealed partial class StatefulNavSwitch : Component
 #pragma warning restore RASK014
     {
         private readonly List<Component>?[] _tabContentCache = new List<Component>?[TabCount];
 
         public int ActiveTab { get; private set; }
 
-        public new void Switch(int tab)
+        public void Switch(int tab)
         {
             ActiveTab = tab;
             StateHasChanged();

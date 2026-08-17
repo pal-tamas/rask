@@ -62,7 +62,7 @@ public sealed partial class LiveTicker : Component
     // by the generator, but we want callers to pass Symbol explicitly. LiveTicker
     // has no DI constructor (unlike CodeSample), so we mark it `required` for
     // language-level enforcement — no CS8618 suppression and no RASK002.
-    public new required string Symbol { get; set; }
+    public required string Symbol { get; set; }
 
     // Nullable so the generator emits Interval as an optional factory parameter
     // (default null). Callers — production pages and unit tests alike — pass an

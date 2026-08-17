@@ -53,7 +53,7 @@ internal sealed partial class AllocBoundFactoryProbe : Component
     internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
 
     protected override Component? Render() =>
-        Div()[Rask.Core.Components.Generated.Input(() => Model.Name, Id: "name")];
+        Div()[Rask.Html.Components.Generated.Input(() => Model.Name, Id: "name")];
 }
 
 // The event surface: every one of Element's ~88 handler pairs is a

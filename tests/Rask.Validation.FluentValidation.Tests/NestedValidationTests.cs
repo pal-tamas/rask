@@ -169,7 +169,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         public List<LineItem> Items { get; set; } = new();
     }
 
-    private new sealed class Address
+    private sealed class Address
     {
         public string Street { get; set; } = "";
         public PostalInfo? Postal { get; set; }

@@ -316,7 +316,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
     ///         <see cref="TotalCount" /> — the same feature, with the await in your hands.
     ///     </para>
     /// </remarks>
-    public new IEnumerable<T>? Data { get; set; }
+    public IEnumerable<T>? Data { get; set; }
 
     /// <summary>The columns to display, in order.</summary>
     public IReadOnlyList<BsColumn<T>>? Columns { get; set; }
@@ -333,7 +333,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
     public bool Hover { get; set; } = true;
 
     /// <summary>Tightens the cell padding.</summary>
-    public new bool Small { get; set; } = false;
+    public bool Small { get; set; } = false;
 
     /// <summary>Scrolls the grid horizontally on narrow screens instead of overflowing the page.</summary>
     public bool Responsive { get; set; } = true;

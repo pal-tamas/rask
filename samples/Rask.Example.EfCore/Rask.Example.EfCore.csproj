@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <!-- The grid slice (ProductGridPage) uses BsDataGrid. The rest of this sample stays plain Core
          components over the Bootstrap CSS the shell links from a CDN. -->

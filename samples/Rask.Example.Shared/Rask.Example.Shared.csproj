@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- Rask.Client (IShare) is a runtime dep of the WASM/Native hosts — they register it in
          WasmHostBuilder/NativeAppHost. The hosts bundle it into their package lib/ (PrivateAssets="all"),
          so downstream package consumers get it; in-repo, an app referencing the host by ProjectReference

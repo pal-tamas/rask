@@ -13,6 +13,13 @@ public sealed class ComponentConstructionAnalyzer : DiagnosticAnalyzer
     private const string ComponentFullName = "Rask.Core.Component";
     private const string RaskCoreAssembly = "Rask.Core";
 
+    // Rask.Html is the other half of the framework's own markup: the HTML/SVG element family, split out
+    // of Rask.Core.Components. The rule is "construct components through the generated surface, not
+    // 'new'", and it exempts the framework because the framework is what BUILDS that surface — a tag
+    // component assembling its own children predates its own factory. Splitting the family into a second
+    // assembly did not change which code that is, so the exemption follows it.
+    private const string RaskHtmlAssembly = "Rask.Html";
+
     private static readonly DiagnosticDescriptor Rask014 = new(
         "RASK014",
         "Components must be built through a chain",
@@ -38,7 +45,8 @@ public sealed class ComponentConstructionAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(static start =>
         {
-            if (string.Equals(start.Compilation.AssemblyName, RaskCoreAssembly, StringComparison.Ordinal))
+            if (string.Equals(start.Compilation.AssemblyName, RaskCoreAssembly, StringComparison.Ordinal)
+                || string.Equals(start.Compilation.AssemblyName, RaskHtmlAssembly, StringComparison.Ordinal))
             {
                 return;
             }

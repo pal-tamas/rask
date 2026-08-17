@@ -4,7 +4,7 @@ namespace Rask.Testing.Tests;
 
 // Markup is not always the thing under test: a component's own state is often what a test wants to assert.
 // These pin Instance's identity guarantee and the non-throwing dispatch.
-public class RenderedComponentInstanceTests
+public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMarkup
 {
     private sealed class Counter : Component
     {

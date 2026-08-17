@@ -17,7 +17,7 @@ public sealed partial class NativeImage : NativeViewComponent
     ///     Shadows the generated <c>Source</c> markup entry, which a native component has no use for — it
     ///     renders platform views, never HTML.
     /// </remarks>
-    public new required string Source { get; set; }
+    public required string Source { get; set; }
 
     /// <summary>How the image scales into its frame. Leave <c>null</c> for <see cref="NativeContentMode.Fit" />.</summary>
     public NativeContentMode? ContentMode { get; set; }

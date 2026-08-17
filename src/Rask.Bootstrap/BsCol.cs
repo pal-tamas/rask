@@ -32,7 +32,7 @@ namespace Rask.Bootstrap;
 public sealed partial class BsCol : BsBlock
 {
     /// <summary>How many of the twelve columns to occupy at every breakpoint.</summary>
-    public new int? Span { get; set; }
+    public int? Span { get; set; }
 
     /// <summary>Sizes the column to its content instead of a fixed share.</summary>
     public bool? Auto { get; set; }

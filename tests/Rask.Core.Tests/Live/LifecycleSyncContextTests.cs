@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-public class LifecycleSyncContextTests
+public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Send_ExecutesInline()

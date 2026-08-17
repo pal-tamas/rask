@@ -190,14 +190,25 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // NOT a component (a test class, a fixture, a demo factory) reach the surface, by deriving from
         // the half of Component that is only the markup. Emitting them a second time onto a separate
         // markup base was the alternative, and two emissions of one surface are two things free to drift.
+        // RaskBuilderEntryInjection is the second, finer switch, and it is opt-OUT (absent means on).
+        // It turns off only the half of the consumer path that injects a forwarder per entry into every
+        // local host partial, while still publishing this assembly's `RaskEntries{Assembly}` class so a
+        // REFERENCING compilation keeps seeing the entries. A component LIBRARY wants exactly that split:
+        // Rask.Html declares ~155 tags, and injecting every one of them into every other one is O(n²)
+        // generated members whose names collide with the props those hosts inherit from Element
+        // (`Style`, `Data`, `Title`, `Cite`, …) — CS0108 with nothing able to hide it, because the entries
+        // land ABOVE Element rather than below it the way Rask.Core's do on RaskMarkup.
         var builderEnabled = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
-            p.GlobalOptions.TryGetValue("build_property.RaskBuilderSurface", out var v)
-            && string.Equals(v, "true", StringComparison.OrdinalIgnoreCase));
+            new BuilderOptions(
+                p.GlobalOptions.TryGetValue("build_property.RaskBuilderSurface", out var v)
+                && string.Equals(v, "true", StringComparison.OrdinalIgnoreCase),
+                !p.GlobalOptions.TryGetValue("build_property.RaskBuilderEntryInjection", out var inject)
+                || !string.Equals(inject, "false", StringComparison.OrdinalIgnoreCase)));
 
         var componentHost = context.CompilationProvider.Select(static (c, _) => GetComponentHost(c));
 
         context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(componentHost),
-            static (spc, t) => EmitBuilderEntries(spc, t.Left.Left, t.Left.Right, t.Right));
+            static (spc, t) => EmitBuilderEntries(spc, t.Left.Left, t.Left.Right.Surface, t.Right));
 
         // Components in REFERENCED assemblies (Rask.Bootstrap's Bs*, any third-party component library)
         // are in neither of the two paths above: they are not Rask.Core's, so they cannot ride on
@@ -211,8 +222,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             grouped.Combine(builderEnabled).Combine(componentHost).Combine(externalEntries)
                 .Combine(extraHosts),
             static (spc, t) =>
-                EmitConsumerEntries(spc, t.Left.Left.Left.Left, t.Left.Left.Left.Right, t.Left.Left.Right,
-                    t.Left.Right, t.Right));
+                EmitConsumerEntries(spc, t.Left.Left.Left.Left, t.Left.Left.Left.Right.Surface,
+                    t.Left.Left.Left.Right.InjectEntries, t.Left.Left.Right, t.Left.Right, t.Right));
 
         // Which of each component's properties a builder chain MUST set. Published as assembly attributes
         // because it is the one thing about a component that metadata destroys: a member initializer
@@ -221,7 +232,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // required one. This compilation can — it is the same rule RASK001 applies right here — so
         // it publishes the answer rather than leaving a consumer to re-derive one it cannot reach.
         context.RegisterSourceOutput(grouped.Combine(builderEnabled),
-            static (spc, t) => EmitPublishedRequiredProperties(spc, t.Left, t.Right));
+            static (spc, t) => EmitPublishedRequiredProperties(spc, t.Left, t.Right.Surface));
 
         // Setters. Emitted into the GLOBAL namespace: an extension method is only found when its
         // containing namespace is in scope, and the global namespace encloses every namespace — so
@@ -230,7 +241,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var setterHost = context.CompilationProvider.Select(static (c, _) => GetSetterHost(c));
 
         context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(setterHost),
-            static (spc, t) => EmitBuilderSetters(spc, t.Left.Left, t.Left.Right, t.Right));
+            static (spc, t) => EmitBuilderSetters(
+                spc, t.Left.Left, t.Left.Right.Surface, t.Left.Right.InjectEntries, t.Right));
     }
 
     // The universal surface (Component.Key plus Element's attributes and its ~88 GlobalEventHandlers)
@@ -295,6 +307,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         SourceProductionContext spc,
         ImmutableArray<Candidate> candidates,
         bool enabled,
+        bool emitSharedSurface,
         SetterHost host)
     {
         if (!enabled)
@@ -309,23 +322,31 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append("public static class RaskBuilderSetters").AppendLine(host.AssemblyName);
         sb.AppendLine("{");
 
+        // The universal surface — Component.Key plus Element's attributes and its ~88 GlobalEventHandlers —
+        // as constrained generic extensions over Build<T>. Being generic they already cover every component
+        // in the graph, so an assembly that is only a component LIBRARY re-emits an identical set into the
+        // same global namespace and makes `.Key(id)` ambiguous to infer (CS0411). Rask.Html is that shape,
+        // and opts out through the same switch that stops it injecting its own entries.
         var sharedBits = SharedPendingBits(host);
-        ReportSharedBitOverflow(spc, host, sharedBits);
-        foreach (var s in host.Shared)
+        if (emitSharedSurface)
         {
-            // No reachability skip, and none needed anywhere any more: the setter's receiver is the
-            // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
-            //
-            // Twice, because there are two chain shapes and the shared surface belongs to both: an
-            // ordinary component's `Build<T>` and a form control's mode-carrying `Build<T, TMode>`. The
-            // second is written over an OPEN TMode, so `Input.Bind(…).Class("x")` keeps the mode it was
-            // in and the next step still knows it. A form control that could not say `.Class(…)` would
-            // be no trade at all.
-            foreach (var mode in new string?[] { null, OpenMode })
+            ReportSharedBitOverflow(spc, host, sharedBits);
+            foreach (var s in host.Shared)
             {
-                EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
-                    fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
-                    pendingBit: Bit(sharedBits, s.Name), summary: s.Summary, mode: mode);
+                // No reachability skip, and none needed anywhere any more: the setter's receiver is the
+                // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
+                //
+                // Twice, because there are two chain shapes and the shared surface belongs to both: an
+                // ordinary component's `Build<T>` and a form control's mode-carrying `Build<T, TMode>`. The
+                // second is written over an OPEN TMode, so `Input.Bind(…).Class("x")` keeps the mode it was
+                // in and the next step still knows it. A form control that could not say `.Class(…)` would
+                // be no trade at all.
+                foreach (var mode in new string?[] { null, OpenMode })
+                {
+                    EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
+                        fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
+                        pendingBit: Bit(sharedBits, s.Name), summary: s.Summary, mode: mode);
+                }
             }
         }
 
@@ -2756,6 +2777,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         SourceProductionContext spc,
         ImmutableArray<Candidate> candidates,
         bool enabled,
+        bool injectEntries,
         ComponentHost host,
         ExternalEntrySet external,
         ImmutableArray<EntryHostDecl> extraHosts)
@@ -2770,6 +2792,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         var entries = EntryCandidates(spc, candidates, EmptyNames);
         EmitEntryHost(spc, entries, host);
+
+        // Publishing the entry host above is unconditional; injecting them into this assembly's own hosts
+        // is not. A component LIBRARY opts the injection out (RaskBuilderEntryInjection=false) and keeps
+        // the publication, so its consumers are unaffected — they still read `RaskEntries{Assembly}` and
+        // still write `Div.Class("x")`. Inside the library itself the chain is simply not offered, and the
+        // `Generated.X(...)` factories (a separate emission, ungated) are how it builds its own markup.
+        if (!injectEntries)
+        {
+            return;
+        }
 
         var refs = OwnEntryRefs(entries, "global::" + EntryHostName(host.AssemblyName));
         refs.AddRange(UsableExternalEntries(spc, external.Libraries, refs, host));
@@ -2793,9 +2825,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         foreach (var host2 in hosts)
         {
-            if (host2.IsNested)
+            // A nested host CAN be injected into — the generated file just has to re-open every enclosing
+            // type as a partial around it. That is only possible if the author declared them partial, and
+            // it stopped being optional when the tag family moved to Rask.Html: entries used to reach a
+            // nested component by INHERITANCE from RaskMarkup, where nesting is irrelevant, and a
+            // referenced library's can only be injected. Silently skipping now means a nested component
+            // silently loses the chain, so the skip reports instead — the same RASK036 a non-partial
+            // top-level host gets, naming the enclosing type that has to change.
+            if (host2.IsNested && !host2.EnclosingAllPartial)
             {
-                // Injecting into a nested type would need every enclosing type to be partial too.
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    Rask036, MakeDeclLocation(host2), host2.TypeName, Rask036Loses(host2.Delivery)));
                 continue;
             }
 
@@ -2813,6 +2853,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             if (hasNs)
             {
                 sb.Append("namespace ").AppendLine(host2.Namespace);
+                sb.AppendLine("{");
+            }
+
+            // Re-open the enclosing types, outermost first. Each header carries the accessibility and
+            // `static` the original declared: partial declarations may omit `sealed`/`abstract`, but
+            // conflicting accessibility is CS0262 and a missing `static` is CS0261.
+            foreach (var enclosing in host2.EnclosingTypes)
+            {
+                sb.AppendLine(enclosing);
                 sb.AppendLine("{");
             }
 
@@ -2852,6 +2901,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             sb.AppendLine("}");
+            for (var i = 0; i < host2.EnclosingTypes.Count; i++)
+            {
+                sb.AppendLine("}");
+            }
+
             if (hasNs)
             {
                 sb.AppendLine("}");
@@ -3319,7 +3373,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         foreach (var c in candidates)
         {
             all.Add(new EntryHostDecl(c.FullyQualifiedName, c.Namespace, c.TypeName, c.TypeParameters,
-                c.IsPartial, c.IsNested, c.DeclFilePath, c.DeclSpanStart, c.DeclSpanLength));
+                c.IsPartial, c.IsNested, c.DeclFilePath, c.DeclSpanStart, c.DeclSpanLength,
+                MemberNames: c.MemberNames,
+                EnclosingTypes: c.EnclosingTypes,
+                EnclosingAllPartial: c.EnclosingAllPartial));
         }
 
         if (!extraHosts.IsDefaultOrEmpty)
@@ -3406,7 +3463,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             classDecl.Identifier.Span.Length,
             symbol.IsStatic,
             delivery,
-            ReachableMemberNames(symbol));
+            ReachableMemberNames(symbol),
+            EnclosingTypeHeaders(symbol),
+            AllEnclosingPartial(symbol));
     }
 
     // Every name an injected entry must leave alone: this type's own members and its whole base chain's.
@@ -3423,6 +3482,61 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // (CS0102, which no modifier fixes), and against a BASE's it silently hides something belonging to a
     // type the author does not control (CS0108, an error under warnings-as-errors). Both answers are the
     // same one — the name stays with the member that is already there, and the entry is not injected.
+    // The enclosing types of a nested host, outermost first, each already written as the partial header
+    // the generated file re-opens it with. Accessibility and `static` are replicated because a partial
+    // declaration may not conflict on either (CS0262 / CS0261); `sealed` and `abstract` may be omitted.
+    private static EquatableArray<string> EnclosingTypeHeaders(INamedTypeSymbol symbol)
+    {
+        var headers = new List<string>();
+        for (var t = symbol.ContainingType; t is not null; t = t.ContainingType)
+        {
+            var kind = t.TypeKind == TypeKind.Struct ? "struct" : "class";
+            var typeParams = t.IsGenericType
+                ? "<" + string.Join(", ", t.TypeParameters.Select(static p => p.Name)) + ">"
+                : string.Empty;
+            headers.Add(
+                $"{AccessibilityKeyword(t)}{(t.IsStatic ? "static " : string.Empty)}partial {kind} {t.Name}{typeParams}");
+        }
+
+        headers.Reverse();
+        return new EquatableArray<string>(headers.ToArray());
+    }
+
+    private static bool AllEnclosingPartial(INamedTypeSymbol symbol)
+    {
+        for (var t = symbol.ContainingType; t is not null; t = t.ContainingType)
+        {
+            var partial = false;
+            foreach (var reference in t.DeclaringSyntaxReferences)
+            {
+                if (reference.GetSyntax() is TypeDeclarationSyntax decl
+                    && decl.Modifiers.Any(SyntaxKind.PartialKeyword))
+                {
+                    partial = true;
+                    break;
+                }
+            }
+
+            if (!partial)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static string AccessibilityKeyword(INamedTypeSymbol symbol) => symbol.DeclaredAccessibility switch
+    {
+        Accessibility.Public => "public ",
+        Accessibility.Internal => "internal ",
+        Accessibility.Private => "private ",
+        Accessibility.Protected => "protected ",
+        Accessibility.ProtectedOrInternal => "protected internal ",
+        Accessibility.ProtectedAndInternal => "private protected ",
+        _ => string.Empty
+    };
+
     private static EquatableArray<string> ReachableMemberNames(INamedTypeSymbol symbol)
     {
         var names = new SortedSet<string>(StringComparer.Ordinal);
@@ -3504,12 +3618,25 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         int DeclSpanLength,
         bool IsStatic = false,
         Delivery Delivery = Delivery.Inherited,
-        EquatableArray<string> MemberNames = default);
+        EquatableArray<string> MemberNames = default,
+        // The enclosing types this host is nested in, outermost first, each already written as the partial
+        // header to re-open it with ("internal static partial class Outer<T>"). Empty for a top-level host.
+        EquatableArray<string> EnclosingTypes = default,
+        // Whether every one of them is declared `partial` — the precondition for injecting at all.
+        bool EnclosingAllPartial = false);
 
     private readonly record struct ComponentHost(
         bool DeclaresComponent,
         string AssemblyName,
         EquatableArray<string> MemberNames);
+
+    /// <param name="Surface">RaskBuilderSurface — whether the builder surface is emitted at all.</param>
+    /// <param name="InjectEntries">
+    ///     RaskBuilderEntryInjection — whether this compilation's own entries are also injected into its own
+    ///     host partials, and whether it re-emits the universal setter surface. Off for a component library,
+    ///     which publishes both for consumers but does not hand them to itself a second time.
+    /// </param>
+    private readonly record struct BuilderOptions(bool Surface, bool InjectEntries);
 
     // One canonical entry, as a forwarder needs to restate it. Covers both shapes: a property
     // (TypeParameters/Parameters/Arguments all empty) and a generic form control's method overload
@@ -3641,7 +3768,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
             classDecl.Identifier.Span.Start,
             classDecl.Identifier.Span.Length,
-            SummaryOf(symbol));
+            SummaryOf(symbol),
+            ReachableMemberNames(symbol),
+            EnclosingTypeHeaders(symbol),
+            AllEnclosingPartial(symbol));
     }
 
     // Detects IFormControl<T> among the component's implemented interfaces and returns the bound value
@@ -5507,7 +5637,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // The component's own <summary>, carried onto every factory that builds it — see
         // EmitMethodHeader. Empty when the component has none, which keeps today's `<see cref>`
         // breadcrumb as the fallback.
-        string Summary = "");
+        string Summary = "",
+        // Every name an injected entry must leave alone: this type's own members and its whole base chain's.
+        // Carried on the candidate because a candidate IS an injection host, and the host decl built from it
+        // used to leave this empty — so the collision filter had nothing to filter against. It went unnoticed
+        // while the tag entries arrived by INHERITANCE (a member merely shadows one, and `new` says so); the
+        // moment a tag family became a referenced library its entries are injected as members instead, and an
+        // injected member that collides is CS0102/CS0108, not a hint.
+        EquatableArray<string> MemberNames = default,
+        // The enclosing types, outermost first, each written as the partial header that re-opens it — what
+        // lets a NESTED component be injected into. Empty for a top-level component.
+        EquatableArray<string> EnclosingTypes = default,
+        bool EnclosingAllPartial = false);
 
     // Set when a component implements IFormControl<T> — drives the synthesized bound factory and the
     // exclusion of the bound-mode interface members from the controlled factory. ValueTypeFqn is the T

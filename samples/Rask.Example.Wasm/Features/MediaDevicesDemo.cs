@@ -64,7 +64,7 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
         }
     }
 
-    private new async Task Stop()
+    private async Task Stop()
     {
         await StopInternal();
         _status = "Stopped — hardware released";

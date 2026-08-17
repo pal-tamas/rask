@@ -22,12 +22,12 @@ public sealed partial class BsStat : BsBlock
     // What the number counts, shown above it in small caps.
 
     /// <summary>What the figure measures.</summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     // Optional supporting line under the number: a unit, a threshold, a timestamp.
 
     /// <summary>Supporting detail beneath the figure, such as a comparison with last month.</summary>
-    public new string? Caption { get; set; }
+    public string? Caption { get; set; }
 
     // Colours the value. Leave unset for the neutral default.
 

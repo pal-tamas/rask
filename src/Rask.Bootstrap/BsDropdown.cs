@@ -13,7 +13,7 @@ public sealed partial class BsDropdown : BsBlock
     public bool? Open { get; set; }
 
     /// <summary>The toggle button's text.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     /// <summary>The toggle's semantic colour.</summary>
     public BsColor? Color { get; set; }
@@ -76,7 +76,7 @@ public sealed partial class BsDropdownItem : BsBlock
     public bool? Disabled { get; set; }
 
     /// <summary>Renders the entry as a non-interactive group heading.</summary>
-    public new bool? Header { get; set; }
+    public bool? Header { get; set; }
 
     /// <summary>Renders the entry as a separator rather than an item.</summary>
     public bool? Divider { get; set; }
