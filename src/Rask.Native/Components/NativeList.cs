@@ -3,11 +3,16 @@ using Rask.Native.Surface;
 namespace Rask.Native.Components;
 
 /// <summary>
-///     A vertically scrolling list of rows, projected to a <c>UITableView</c> (iOS) or a <c>RecyclerView</c>
-///     (Android). Each child is one row — usually a <see cref="NativeStack" />, which can carry its own
-///     <c>OnClick</c> to make the row selectable.
+///     A vertically scrolling list of rows. Each child is one row — usually a <see cref="NativeStack" />, which
+///     can carry its own <c>OnClick</c> to make the row selectable.
 /// </summary>
 /// <remarks>
+///     <para>
+///         <b>Rows are not recycled.</b> The backend builds every row as a real view and keeps it, so this
+///         suits the tens-of-rows lists most screens have, not thousands. Cell reuse needs the platform's
+///         recycling collection (<c>UITableView</c> / <c>RecyclerView</c>), whose data-source model does not
+///         fit a patch-addressed tree; wiring one up is a follow-up.
+///     </para>
 ///     <b>Give every row a <c>Key</c>.</b> Keyed rows reconcile by identity, so inserting, removing or
 ///     reordering moves the existing row views instead of rewriting each one's contents in place — which is
 ///     what keeps scroll position, focus and in-flight animations intact. Without keys the rows match by

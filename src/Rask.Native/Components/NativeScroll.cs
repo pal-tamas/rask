@@ -5,7 +5,7 @@ namespace Rask.Native.Components;
 /// <summary>
 ///     A scrolling viewport around its children, projected to a <c>UIScrollView</c> (iOS) or a
 ///     <c>NestedScrollView</c> (Android). Wrap a tall <see cref="NativeStack" /> in one to make a form or an
-///     article scroll; for a long, uniform list of rows prefer <see cref="NativeList" />, which recycles them.
+///     article scroll; for a list of rows that come and go, <see cref="NativeList" /> reconciles them by key.
 /// </summary>
 public sealed partial class NativeScroll : NativeViewComponent
 {
