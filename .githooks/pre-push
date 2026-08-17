@@ -20,8 +20,10 @@ else
   echo "pre-push: running the local E2E gate (browser journeys)."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_E2E=1 (e.g. docs-only pushes)."
 
+  # As with the CLI gate below: run-e2e-local.sh classifies a build failure by error kind and has
+  # already named the culprit, so this line stays neutral about which one it was (#718).
   if ! "$root/scripts/run-e2e-local.sh"; then
-    echo "pre-push: E2E gate FAILED — push aborted. Fix the failing journey, or bypass with --no-verify." >&2
+    echo "pre-push: E2E gate FAILED — push aborted. Fix the cause named above, or bypass with --no-verify." >&2
     exit 1
   fi
 fi
@@ -43,8 +45,10 @@ else
   echo "pre-push: this push touches the generators or the packages they emit — running the CLI build gate."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_CLI_BUILD_E2E=1."
 
+  # The gate classifies its own failure by error kind and has already said which culprit it found —
+  # a NETSDK-only failure is the machine, not the branch (#718). Don't second-guess it here.
   if ! "$root/scripts/run-cli-build-e2e.sh"; then
-    echo "pre-push: CLI build gate FAILED — push aborted. The code the CLI writes doesn't compile." >&2
+    echo "pre-push: CLI build gate FAILED — push aborted." >&2
     exit 1
   fi
 fi

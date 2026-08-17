@@ -12,6 +12,22 @@ them until tagged releases begin.
   mathematical or programming context; not emphasis (`em`) and not literal code (`code`).
 
 ### Fixed
+- **A gate that failed because the machine could not build browser targets blamed your code for it**
+  (#718). A concurrent `dotnet workload install` anywhere on the machine bumps the shared workload
+  manifests for the whole SDK band, and for a moment they reference Emscripten packs that are not on disk
+  — so `wasm-tools` resolves as missing everywhere, in every worktree, while `dotnet workload list` still
+  reports it installed. Every browser-targeting build then fails at evaluation with `NETSDK1147`, and the
+  CLI build gate announced *"the code the CLI writes doesn't compile"*. Measured on the failing run: **0
+  `error CS`, 24 `error NETSDK1147`**; the same gate passed minutes later with no change. It cost two
+  sessions about an hour between them. `scripts/lib/build-failure.sh` classifies a captured build log by
+  error kind and each gate prints the matching verdict — `code` keeps the old message, `workload` says
+  plainly that this is not your branch and how to confirm the install in flight, `sdk` covers other
+  `NETSDK` failures, and `unknown` (neither error kind present) stops the gates claiming a compile failure
+  for a failing assertion or a timeout. `CS` wins when both appear. Applied to the CLI build gate, the
+  E2E gate's graph build, and both `.githooks/pre-push` messages, with a table test
+  (`scripts/tests/build-failure-kind.test.sh`) that `run-unit-local.sh` runs first — and `scripts/` and
+  `.githooks/` added to the pre-commit path filter, since a change to the gate logic was previously the
+  one change that skipped the gate.
 - **The `add-html-tag` skill sent a new tag's test to a project that no longer holds any.** After the
   HTML/SVG family moved into `Rask.Html`, the skill's component path was updated but its TEST path still
   read `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`, where the tag tests no longer live — they are in

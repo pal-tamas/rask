@@ -109,6 +109,18 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   (bypass with `git push --no-verify` or `RASK_SKIP_CLI_BUILD_E2E=1`). The gates are opted into by
   `RASK_CLI_BUILD_E2E=1`, which the script exports; without it every case reports **SKIPPED** rather than
   passing silently, so an un-run gate is always visible in the test output.
+- **A red gate names the culprit it actually found.** Both the CLI build gate and the E2E gate build
+  browser targets, so both can fail for a reason that has nothing to do with your branch — most often
+  `NETSDK1147`, the `wasm-tools` workload resolving as missing because a workload install elsewhere on
+  the machine bumped the shared manifests mid-flight (`dotnet workload list` keeps listing it as
+  installed throughout, so it will not tell you). They used to report that as *"the code the CLI writes
+  doesn't compile"*, which cost two sessions an hour chasing a scaffolder bug that did not exist.
+  `scripts/lib/build-failure.sh` now classifies a captured build log by error kind — `code` (`error CS`
+  present, your branch), `workload` (`NETSDK1147` and no `CS`), `sdk` (another `NETSDK`), `unknown`
+  (neither, so not a compile failure at all) — and each gate prints the matching explanation. `CS` wins
+  when both appear: a workload problem does not excuse real compile errors. The decision is four rows of
+  bash that had already been wrong once, so it has a table test,
+  `scripts/tests/build-failure-kind.test.sh`, run by `run-unit-local.sh` before anything else.
 - **The deploy gate runs locally, on pushes that touch the deploy path.**
   `scripts/run-deploy-e2e-local.sh` points the real `rask deploy` at a throwaway container standing in for
   a bare VPS — sshd plus its own Docker daemon (`docker:dind`, privileged) — and asserts on what happened

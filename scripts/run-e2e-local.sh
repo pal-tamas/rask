@@ -21,9 +21,17 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
+# shellcheck source=lib/build-failure.sh
+. "$root/scripts/lib/build-failure.sh"
+
 # The playground publish below needs the native relink (see the note there), which needs the wasm-tools
 # workload + emscripten. Check up front: without it the publish fails several minutes in, with an error
 # about a missing runtime pack rather than about a missing workload.
+#
+# This catches wasm-tools never having been installed. It does NOT catch the case in #718 — a concurrent
+# workload install elsewhere on the machine making it transiently unresolvable — because `dotnet workload
+# list` keeps listing it as installed throughout. That one surfaces as NETSDK1147 during the build below
+# and is classified there.
 if ! dotnet workload list 2>/dev/null | grep -q '^wasm-tools'; then
   echo "run-e2e-local: the 'wasm-tools' workload is not installed." >&2
   echo "  The playground publishes with a native relink so its tutorial can run SQLite in the browser." >&2
@@ -40,7 +48,23 @@ fi
 # (WasmExampleAppFixture boots this build with `dotnet run --no-build`). One consistent mode = no drift,
 # and it skips the slow, flaky relink. Serial (-m:1): the nested WASM publish double-builds Rask.Core.dll.
 echo "==> Build the E2E graph once (Release, serial, prebuilt WASM runtime)"
-dotnet build Rask.slnx -c Release -m:1 -p:WasmBuildNative=false
+# Teed and classified by error kind: this build is the first thing to fail when the machine cannot build
+# browser targets, and reporting that as a broken journey sends people to debug a test that is fine
+# (#718). `set -o pipefail` above is what makes the pipeline report dotnet's status rather than tee's.
+build_log="$(mktemp -t rask-e2e-build.XXXXXX)"
+trap 'rm -f "$build_log"' EXIT
+
+build_status=0
+dotnet build Rask.slnx -c Release -m:1 -p:WasmBuildNative=false 2>&1 | tee "$build_log" || build_status=$?
+
+if [ "$build_status" -ne 0 ]; then
+  echo >&2
+  rask_explain_build_failure \
+    "$(rask_build_failure_kind "$build_log")" \
+    "E2E gate" \
+    "FAILED — the E2E graph does not compile."
+  exit "$build_status"
+fi
 
 echo "==> Publish the samples the E2E fixtures boot"
 # Server shard boots the *published* host; the WASM static-host shards need their published wwwroot bundle.
