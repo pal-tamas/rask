@@ -60,6 +60,95 @@ public class DiagnosticDescriptorTests
     private static IReadOnlyList<DiagnosticDescriptor> RaskDescriptors() =>
         AllDescriptors().Where(d => d.Id.StartsWith("RASK", StringComparison.Ordinal)).ToList();
 
+    // The same enumeration WITHOUT collapsing by id, plus the type each descriptor was declared on.
+    //
+    // AllDescriptors above keys a dictionary on the id, which is what makes a collision invisible: two
+    // different diagnostics numbered the same silently become one entry and every invariant here passes.
+    // Deduplication is by the descriptor's OWN equality (DiagnosticDescriptor compares its fields), so one
+    // descriptor reachable both through SupportedDiagnostics and through the static field behind it counts
+    // once, while two genuinely different descriptors sharing an id stay two.
+    private static IReadOnlyList<(string Owner, DiagnosticDescriptor Descriptor)> RaskDescriptorsByOwner()
+    {
+        var found = new List<(string, DiagnosticDescriptor)>();
+        var seen = new HashSet<DiagnosticDescriptor>();
+
+        foreach (var assembly in new[]
+                 {
+                     typeof(RoutesGenerator).Assembly,
+                     typeof(Rask.Cqrs.Generators.CqrsDispatchGenerator).Assembly,
+                     typeof(Rask.Jobs.Generators.JobRegistryGenerator).Assembly,
+                 })
+        {
+            foreach (var type in assembly.GetTypes())
+            {
+                if (typeof(DiagnosticAnalyzer).IsAssignableFrom(type) && !type.IsAbstract
+                    && Activator.CreateInstance(type) is DiagnosticAnalyzer analyzer)
+                {
+                    Add(type, analyzer.SupportedDiagnostics);
+                }
+
+                foreach (var field in type.GetFields(BindingFlags.Static | BindingFlags.NonPublic
+                                                     | BindingFlags.Public))
+                {
+                    if (field.GetValue(null) is DiagnosticDescriptor descriptor)
+                    {
+                        Add(type, [descriptor]);
+                    }
+                }
+            }
+        }
+
+        return found;
+
+        void Add(Type owner, ImmutableArray<DiagnosticDescriptor> descriptors)
+        {
+            foreach (var d in descriptors)
+            {
+                if (d.Id.StartsWith("RASK", StringComparison.Ordinal) && seen.Add(d))
+                {
+                    found.Add((owner.Name, d));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     One id, one diagnostic. Nothing else in the build enforces this, and it went wrong three times in
+    ///     a single day.
+    /// </summary>
+    /// <remarks>
+    ///     Two branches that each need a new diagnostic both read the highest number in
+    ///     <c>docs/diagnostics.md</c> and both pick the next one. That file is documentation — the
+    ///     descriptors are the source of truth — so nothing fails: the analyzers compile, both fire, and the
+    ///     family ships two different meanings under one number, with one help link pointing at whichever
+    ///     doc section was written second. RASK044/045 were already taken when a third branch wanted a
+    ///     number, RASK046 had to be surrendered to Key-opens-the-chain, and RASK047 was claimed twice on
+    ///     the same afternoon.
+    /// </remarks>
+    [Fact]
+    public void No_two_diagnostics_share_an_id()
+    {
+        var collisions = RaskDescriptorsByOwner()
+            .GroupBy(x => x.Descriptor.Id, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1)
+            .Select(g => $"{g.Key} is declared {g.Count()} times: "
+                         + string.Join(" | ", g.Select(x => $"{x.Owner} \"{x.Descriptor.Title}\"")))
+            .ToList();
+
+        Assert.True(collisions.Count == 0,
+            "Two diagnostics cannot share an id — pick the next FREE number, and check the descriptors "
+            + "rather than docs/diagnostics.md, which lags:\n  " + string.Join("\n  ", collisions));
+    }
+
+    [Fact]
+    public void The_id_scan_sees_every_diagnostic()
+    {
+        // Same vacuity guard as The_family_is_discoverable_at_all, for the non-deduplicating enumeration:
+        // if it found nothing, the collision check above would pass without ever comparing anything.
+        Assert.True(RaskDescriptorsByOwner().Count >= 30,
+            $"expected the whole RASK family, found {RaskDescriptorsByOwner().Count}");
+    }
+
     [Fact]
     public void The_family_is_discoverable_at_all()
     {
