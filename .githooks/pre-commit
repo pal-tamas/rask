@@ -32,7 +32,11 @@ fi
 #
 # Leaving these out meant a whole feature could land ungated — the playground tutorial was largely a
 # samples/ + docs/ change, and reported "no code changes staged".
-if ! git diff --cached --name-only | grep -E '^(src/|samples/|docs/|tests/|benchmarks/|Rask\.slnx$|Directory\.)' >/dev/null; then
+#   scripts/ and .githooks/ are in here because the gates are themselves code with tests now:
+#   scripts/run-unit-local.sh runs scripts/tests/*.test.sh, which covers the failure classification
+#   that decides whether a red gate blames your branch or your machine (#718). Without these prefixes a
+#   change to the gate logic is the one change that skips the gate.
+if ! git diff --cached --name-only | grep -E '^(src/|samples/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|Directory\.)' >/dev/null; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi

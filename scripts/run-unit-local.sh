@@ -33,6 +33,15 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
+# Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
+# you your branch is broken or your machine is busy, and it is plain bash, so nothing else would catch a
+# regression in it.
+echo "==> Gate script tests"
+for t in scripts/tests/*.test.sh; do
+  [ -e "$t" ] || continue
+  bash "$t"
+done
+
 echo "==> Build once (Release, no WASM bundle: -p:RaskWasm=false -p:WasmBuildNative=false)"
 dotnet build Rask.slnx -c Release -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true
 
