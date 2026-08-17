@@ -98,7 +98,10 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
         var probe = BoundBuilderProbe();
         Action<string> hook = probe.Note;
 
-        var control = Input.Of<string>().AfterBind(hook).Value;
+        // Through Bind, not Of: AfterBind is a BOUND step, so it exists only on a chain that opened in
+        // bound mode. `Input.Of<string>()` is controlled — the parent owns the value — and asking it for
+        // a post-bind hook no longer compiles, which is the point.
+        var control = Input.Bind(() => probe.Model.Name).AfterBind(hook).Value;
 
         Assert.Same(hook, control.AfterBind);
     }

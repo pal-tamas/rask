@@ -36,6 +36,24 @@ public class SyncAsyncHandlerAnalyzerTests
         Assert.Contains("OnClickAsync", d.GetMessage());
     }
 
+    // The chain is what the framework teaches. A chain's steps are extension methods on Build<T>, not a
+    // static Generated.Button(...), so the factory branch matched none of these and one of the two
+    // handlers was silently dropped with nothing said.
+    [Fact]
+    public async Task ChainBothSyncAndAsyncClick_ReportsRask027()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            "return Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())[\"x\"];")));
+        Assert.Equal("RASK027", d.Id);
+        Assert.Contains("OnClick", d.GetMessage());
+        Assert.Contains("OnClickAsync", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task ChainOnlyAsync_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(App(
+            "return Button.OnClickAsync(async () => await Task.Yield())[\"x\"];")));
+
     [Fact]
     public async Task OnlySync_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App("return Button(OnClick: () => {})[\"x\"];")));

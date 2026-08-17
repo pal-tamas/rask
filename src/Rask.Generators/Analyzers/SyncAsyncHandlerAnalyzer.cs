@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Rask.Generators.Analyzers;
 
@@ -55,7 +56,96 @@ public sealed class SyncAsyncHandlerAnalyzer : DiagnosticAnalyzer
             }
 
             start.RegisterSyntaxNodeAction(ctx => Analyze(ctx, component), SyntaxKind.InvocationExpression);
+
+            // The chain reaches none of the above: its steps are extension methods on Build<T>, not a
+            // static Generated.Button(...), so the factory branch matched no chain and one of the two
+            // handlers was dropped in silence — the exact thing this diagnostic exists to prevent.
+            var build = start.Compilation.GetTypeByMetadataName(BuilderEntry.BuildMetadataName);
+            start.RegisterOperationAction(ctx => AnalyzeChain(ctx, component, build), OperationKind.Invocation);
         });
+    }
+
+    private static void AnalyzeChain(
+        OperationAnalysisContext context, INamedTypeSymbol component, INamedTypeSymbol? build)
+    {
+        var operation = (IInvocationOperation)context.Operation;
+
+        // Only the OUTERMOST link, so the chain is judged once and as a whole.
+        if (operation.Syntax.Parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax })
+        {
+            return;
+        }
+
+        if (operation.TargetMethod.IsStatic
+            && string.Equals(operation.TargetMethod.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal))
+        {
+            return; // The factory branch owns this one.
+        }
+
+        if (BuilderEntry.BuildOf(operation.Type, build) is not { } built || !InheritsFrom(built, component))
+        {
+            return;
+        }
+
+        // Every step written on this chain, and where. A step that was handed `null` is the deliberate
+        // "set at most one" conditional shape, exactly as a null argument is in the factory branch.
+        var steps = new Dictionary<string, IInvocationOperation>(StringComparer.Ordinal);
+        for (var step = operation; step is not null; step = NextStep(step))
+        {
+            var value = step.TargetMethod.IsExtensionMethod && step.Arguments.Length > 1
+                ? step.Arguments[1].Value
+                : step.Arguments.Length != 0 ? step.Arguments[0].Value : null;
+
+            if (value is not { ConstantValue: { HasValue: true, Value: null } })
+            {
+                steps[step.TargetMethod.Name] = step;
+            }
+        }
+
+        foreach (var entry in steps)
+        {
+            var asyncName = entry.Key;
+            if (asyncName.Length <= "OnAsync".Length
+                || !asyncName.StartsWith("On", StringComparison.Ordinal)
+                || !asyncName.EndsWith("Async", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var syncName = asyncName.Substring(0, asyncName.Length - "Async".Length);
+            if (steps.ContainsKey(syncName))
+            {
+                // Anchored on the STEP NAME, not on the whole chain. An invocation's span starts at the
+                // head of the chain, so reporting the invocation would let the quick-fix walk up out of
+                // the chain entirely and delete whatever encloses it.
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rask027, StepNameLocation(entry.Value), syncName, asyncName));
+            }
+        }
+    }
+
+    // The `.OnXAsync` name itself, so the report — and the quick-fix that reads it back — lands on the
+    // one step being removed rather than on the chain that carries it.
+    private static Location StepNameLocation(IInvocationOperation step) =>
+        step.Syntax is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax member }
+            ? member.Name.GetLocation()
+            : step.Syntax.GetLocation();
+
+    // The next link DOWN the chain: a step's receiver is whatever produced the Build<T> it extends,
+    // written either as an extension method (argument 0) or as an instance call.
+    private static IInvocationOperation? NextStep(IInvocationOperation operation)
+    {
+        var receiver = operation.Instance
+                       ?? (operation.TargetMethod.IsExtensionMethod && operation.Arguments.Length != 0
+                           ? operation.Arguments[0].Value
+                           : null);
+
+        while (receiver is IParenthesizedOperation or IConversionOperation { IsImplicit: true })
+        {
+            receiver = receiver is IParenthesizedOperation p ? p.Operand : ((IConversionOperation)receiver).Operand;
+        }
+
+        return receiver as IInvocationOperation;
     }
 
     private static void Analyze(SyntaxNodeAnalysisContext context, INamedTypeSymbol component)

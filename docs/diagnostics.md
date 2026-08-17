@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK044)
+# Rask diagnostics (RASK001–RASK047)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -12,8 +12,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | ID | What the lightbulb does |
 |----|-------------------------|
 | **RASK001** | adds the `required` modifier |
-| **RASK014** | rewrites `new Widget()` into the generated `Widget()` factory call |
-| **RASK023** | inserts `Alt: ""` |
+| **RASK014** | rewrites `new Widget()` into the bare entry `Widget` |
+| **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
 | **CS0108** | adds `new` to a member that [hides a builder entry](#cs0108-a-member-hides-a-builder-entry) |
@@ -22,10 +22,10 @@ These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyze
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
 
 A fix is offered only when the rewrite means exactly what you wrote. **RASK014's is withheld when the
-construction has arguments or an object initializer**: the factory's parameters are generated from the
-component's public properties in an order that is not the constructor's, so moving positional arguments
-across would compile and mean something else — and an object initializer is only legal after `new`. In
-those cases the error stands with its message, which already spells out the chain to write.
+construction has arguments or an object initializer**: a chain sets each property by name in its own
+step, so moving positional constructor arguments across would compile and mean something else — and an
+object initializer is only legal after `new`. In those cases the error stands with its message, which
+already spells out the chain to write.
 
 Every RASK diagnostic reports under the single category **`Rask`**, so one `.editorconfig` line covers
 the family:
@@ -82,6 +82,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
+| [RASK047](#rask047) | Error | `Page.Route` must be a compile-time constant |
 
 ---
 
@@ -1034,3 +1035,39 @@ Div.Class("row").Key(index)[cells]   // ✓ an element is never claimed
 
 **Fix:** move `.Key(…)` to the front of the chain. See [composition → keys](composition.md#children--fragments)
 and the reconciliation note in [the live-rendering codec](architecture/live-rendering-codec.md).
+
+---
+
+## RASK047
+**`Page.Route` must be a compile-time constant** · Error
+
+A routable component is a `Page`, and it declares the URL it answers by overriding `Route`:
+
+```csharp
+public sealed class ProductPage : Page
+{
+    protected override string Route => "/products/{id:int}";   // ✓
+}
+```
+
+That value is read **at compile time**. It is what builds the route table, the typed
+`ProductPage.Url(42)` formatter, and the `ProductPage.Go(42)` navigation helper — none of which can be
+generated from a string the compiler cannot see. So a computed override is an error rather than a page
+that silently never registers:
+
+```csharp
+protected override string Route => BuildRoute();          // ✗ RASK047
+protected override string Route => _settings.BasePath;    // ✗ RASK047
+```
+
+Constant *expressions* are fine — the check is constancy, not literalness, so a `const` and constant
+concatenation both work:
+
+```csharp
+private const string Root = "/products";
+protected override string Route => Root + "/{id:int}";    // ✓
+```
+
+**Fix:** return a string literal or a `const`. If the route genuinely has to vary at run time, it isn't a
+route — register it yourself with `RouteRegistry.Add(new RouteRegistration(typeof(MyPage), template, null))`,
+which is also the escape hatch for giving one page more than one URL.

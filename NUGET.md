@@ -14,9 +14,10 @@ no JavaScript to write** — and the *same* component code runs server-rendered 
 updates or fully client-side on WebAssembly.
 
 ```csharp
-[Route("/counter")]
-public sealed class Counter : Component
+public sealed class Counter : Page
 {
+    protected override string Route => "/counter";
+
     private int _count;
 
     protected override Component? Render() =>
@@ -100,13 +101,13 @@ the *same* code on Server or WASM, and treats the network as the bottleneck (a s
 the page). It's a craft project built in the open, deep on Roslyn source generators and tree diffing.
 
 - **One component model, three hosts** — the same C# component runs Server (live diff over WS), WASM, or a native iOS/Android app (`Rask.Native`, preview).
-- **Compile-time factories** — a Roslyn generator emits `Div(...)`, `Counter(...)`, type-safe routes.
+- **Markup is a chain** — a Roslyn generator emits `Div.Class("card")`, `Counter.Start(3)` and type-safe routes, so the IDE lists every step and a missing one is a compile error.
 - **Scoped CSS & JS** — sibling `Component.css`/`Component.js`, content-addressed and cached.
 - **Routing, lifecycle, forms, validation, auth** — batteries included, no JavaScript required.
 - **Toast messages** — inject `IToaster` for transient messages that survive a client-side navigation.
 - **Tiny live updates** — a minimal edit-op diff ships instead of the whole page.
 - **Slow-link aware** — WASM boot shows download progress; a slow Server round-trip surfaces a pending bar.
-- **Optional typed Bootstrap** — `Rask.Bootstrap` adds typed Bootstrap 5.3 factories (`BsButton`/`BsCard`/`BsModal`/…), layout primitives (`BsContainer`, the `BsRow`/`BsCol` responsive grid, and `BsStack`), `IFormControl<T>`-bound inputs including the zero-JS `BsSelect`/`BsMultiSelect` comboboxes (full keyboard/listbox a11y, opt-in `Filter` search, `OptionGroup` grouping, `OptionDisabled` per-option disable, and a multiselect `SelectAll` header), a typed `BsIcon`, typed utility classes, and a `BsDataGrid<T>` for list screens (typed columns, sorting, paging, footer totals, master-detail), with interactive components driven by the live runtime — no JavaScript. See [docs/bootstrap.md](https://github.com/pal-tamas/rask/blob/main/docs/bootstrap.md).
+- **Optional typed Bootstrap** — `Rask.Bootstrap` adds typed Bootstrap 5.3 components (`BsButton`/`BsCard`/`BsModal`/…), layout primitives (`BsContainer`, the `BsRow`/`BsCol` responsive grid, and `BsStack`), `IFormControl<T>`-bound inputs including the zero-JS `BsSelect`/`BsMultiSelect` comboboxes (full keyboard/listbox a11y, opt-in `Filter` search, `OptionGroup` grouping, `OptionDisabled` per-option disable, and a multiselect `SelectAll` header), a typed `BsIcon`, typed utility classes, and a `BsDataGrid<T>` for list screens (typed columns, sorting, paging, footer totals, master-detail), with interactive components driven by the live runtime — no JavaScript. See [docs/bootstrap.md](https://github.com/pal-tamas/rask/blob/main/docs/bootstrap.md).
 
 ## Links
 

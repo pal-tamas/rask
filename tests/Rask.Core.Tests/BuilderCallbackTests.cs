@@ -157,7 +157,10 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     public void The_sync_handler_still_wins_the_shared_slot()
     {
         Action sync = Noop;
+        // Setting both is the whole point of this test — RASK027 is exactly right to flag it elsewhere.
+#pragma warning disable RASK027
         var div = Div.OnClickAsync(() => Task.CompletedTask).OnClick(sync).Value;
+#pragma warning restore RASK027
 
         Assert.Same(sync, div.OnClick);
         Assert.Null(div.OnClickAsync);

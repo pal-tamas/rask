@@ -32,7 +32,7 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 - `src/Rask.Core` — rendering, live context, routing, scoped CSS/JS, lifecycle.
 - `src/Rask.Html` — the HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Html.Components`;
   `IsPackable=false`, bundled into every host package. Core keeps only the tags its engine builds.
-- `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, `[Route]` registration.
+- `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `Page.Route` registration.
 - `src/Rask.Server` — ASP.NET host (`AddRask()`/`UseRask<TApp>()`, WS dispatcher). `src/Rask.Wasm` — browser host.
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
@@ -62,6 +62,11 @@ dotnet run --project samples/Rask.Example.Server
   host (the "Color Color" rule no longer merges them), and `cond ? chain : null` needs a `Component?`
   target rather than `var`.
   Page root renders into `<body>`; Rask adds the shell (`Head`/`HtmlLang`/`BodyClass`/`Shell`) + runtime `<script>` — RASK021.
+- **A routable component is a `Page`**: `protected override string Route => "/x";` (compile-time constant —
+  RASK047) and `Parent => typeof(Layout)` for nesting. Generates `X.Url(...)`/`X.Go(...)` (C# 14 static
+  extensions, need the page's namespace imported). **Inside a markup host the bare `X` is the chain's
+  `Build<X>` entry, not the type**, so qualify or use `Routes.X()`. `Screen : Page` adds hoisted
+  `HeaderBar`/`Toolbar`/`TabBar` native-chrome slots (never read on Server/WASM).
 - **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
@@ -76,10 +81,10 @@ dotnet run --project samples/Rask.Example.Server
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/JS + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–045 (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–047 (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–045 are documented in `docs/diagnostics.md`.
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–047 are documented in `docs/diagnostics.md`.

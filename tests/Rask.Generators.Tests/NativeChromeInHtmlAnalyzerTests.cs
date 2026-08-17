@@ -30,6 +30,33 @@ public class NativeChromeInHtmlAnalyzerTests
         Assert.Contains("NativeHeaderBar", d.GetMessage());
     }
 
+    // The chain is what the framework teaches, and every link of one — the bare entry included — is typed
+    // Build<T> rather than T. The type test walked straight past that, so native chrome nested in HTML
+    // went unreported across the whole chain surface.
+    //
+    // Spelled with an explicit Build<NativeHeaderBar> rather than `NativeHeaderBar.Title("Hi")` because a
+    // native component's ENTRY is injected into the consumer by the generator, which does not run in this
+    // harness — written that way the snippet does not bind at all (CS0103), and the test would fail for a
+    // reason that has nothing to do with the analyzer. The type handed to the indexer is identical.
+    [Fact]
+    public async Task ChainNativeComponentAsElementChild_ReportsRask032()
+    {
+        var src = """
+                  using Rask.Core;
+                  using static Rask.Core.Components.Generated;
+                  using Rask.Native.Components;
+                  namespace Demo;
+                  public sealed class Page : Component
+                  {
+                      protected override Component? Render() => Div()[default(Build<NativeHeaderBar>)];
+                  }
+                  """;
+
+        var d = Assert.Single(await GetDiagnosticsAsync(src));
+        Assert.Equal("RASK032", d.Id);
+        Assert.Contains("NativeHeaderBar", d.GetMessage());
+    }
+
     [Fact]
     public async Task NativeComponentInsideNativeWebViewContent_ReportsRask032()
     {

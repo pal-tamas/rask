@@ -117,9 +117,14 @@ internal static class BuilderEntry
     ///     struct carrying it; each of them went quiet when the receiver changed, which is the failure mode
     ///     an analyzer cannot report on its own.
     /// </remarks>
+    // Both chain shapes: an ordinary component's `Build<T>`, and a form control's mode-carrying
+    // `Build<T, TMode>`. The component is the FIRST type argument either way — the second is the phantom
+    // mode (see Rask.Core.Build{T,TMode}) and says nothing about what is being built. Missing the
+    // two-arity form left every analyzer that asks "what does this chain build" answering with the chain
+    // itself for form controls, which silently stood down RASK025 on `Input.Bind(…).Type(…)`.
     public static ITypeSymbol? ChainedComponent(ITypeSymbol? type) =>
-        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
-        && string.Equals(named.ConstructedFrom.ToDisplayString(), "Rask.Core.Build<T>", StringComparison.Ordinal)
+        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 or 2 } named
+        && named.ConstructedFrom.ToDisplayString() is "Rask.Core.Build<T>" or "Rask.Core.Build<T, TMode>"
             ? named.TypeArguments[0]
             : type;
 
@@ -209,6 +214,33 @@ internal static class BuilderEntry
         built = built1.TypeArguments[0];
         return true;
     }
+
+    /// <summary>The metadata name of the chain's receiver, for a one-off <c>GetTypeByMetadataName</c>.</summary>
+    public const string BuildMetadataName = "Rask.Core.Build`1";
+
+    /// <summary>
+    ///     The component a <c>Build&lt;T&gt;</c> is building, or <c>null</c> when the type is anything else —
+    ///     including a component that is not wrapped in one.
+    /// </summary>
+    /// <remarks>
+    ///     Distinct from <see cref="ChainedComponent" />, which hands the type back UNCHANGED when it is not
+    ///     a <c>Build&lt;T&gt;</c>. That is the right answer for "unwrap if needed", and the wrong one for
+    ///     "is this actually a chain?" — a caller asking the second question with the first answer accepts
+    ///     the children indexer, which is typed <c>Component</c>, and reports every row twice.
+    ///     <para>
+    ///         Takes the resolved <c>Build&lt;T&gt;</c> symbol rather than comparing display strings. These
+    ///         callers run on <c>OperationKind.PropertyReference</c>, which fires for every property read in
+    ///         the compilation, so a <c>ToDisplayString()</c> on each arity-1 generic — every
+    ///         <c>List&lt;T&gt;</c>, <c>Task&lt;T&gt;</c>, <c>Nullable&lt;T&gt;</c> — allocated a string per
+    ///         keystroke in the IDE. Resolve it once in <c>RegisterCompilationStartAction</c> and pass it in.
+    ///     </para>
+    /// </remarks>
+    public static INamedTypeSymbol? BuildOf(ITypeSymbol? type, INamedTypeSymbol? build) =>
+        build is not null
+        && type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
+        && SymbolEqualityComparer.Default.Equals(named.ConstructedFrom, build)
+            ? named.TypeArguments[0] as INamedTypeSymbol
+            : null;
 
     public static bool DerivesFromComponent(ITypeSymbol? type, INamedTypeSymbol component)
     {

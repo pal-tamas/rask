@@ -36,9 +36,10 @@ public sealed class UpdateProductCommandHandler(IDbContextFactory<AppDbContext> 
     }
 }
 
-[Route("/products/{id:guid}/edit")]
-public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navigator) : Page
 {
+    protected override string Route => "/products/{id:guid}/edit";
+
     private readonly ProductRequest _form = new();
     private bool _loaded;
     private bool _found;

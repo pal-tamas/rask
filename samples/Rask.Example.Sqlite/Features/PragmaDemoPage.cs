@@ -11,11 +11,12 @@ namespace Rask.Example.Sqlite.Features;
 // then let the visitor fire a burst of concurrent writers and watch every one commit — the payoff of
 // WAL + busy_timeout that a stock `UseSqlite` would turn into "database is locked". The second demo fires
 // the same burst through the raw factory's BEGIN IMMEDIATE + non-blocking fair-interval retry.
-[Route("/")]
 public sealed partial class PragmaDemoPage(
     IDbContextFactory<DemoDbContext> dbContextFactory,
-    IRaskSqliteConnectionFactory connectionFactory) : Component
+    IRaskSqliteConnectionFactory connectionFactory) : Page
 {
+    protected override string Route => "/";
+
     private const int Workers = 25;
 
     // The wiring this sample is about — shown above the live result (code-above-result).

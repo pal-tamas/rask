@@ -171,7 +171,9 @@ public class BuilderEntryEmissionTests
         // The steps live with the seed in the host file — a consuming assembly's components publish one
         // canonical entry there and forward to it, rather than re-emitting it per host.
         var host = run.Source("RaskBuilderEntryHost.g.cs");
-        Assert.Contains("global::Rask.Core.Build<global::Demo.Pick<TItem>> Bind<TItem>(", host, StringComparison.Ordinal);
+        Assert.Contains(
+            "global::Rask.Core.Build<global::Demo.Pick<TItem>, global::Rask.Core.Forms.Bound> Bind<TItem>(",
+            host, StringComparison.Ordinal);
         Assert.DoesNotContain("Pick<TValue, TItem> Bind", host, StringComparison.Ordinal);
     }
 

@@ -8,10 +8,12 @@ namespace Rask.Example.Shared.Features;
 // route, so /guides/routing renders docs/routing.md. The narrative-guide layout — Chapters TOC, the
 // prose (with any inline demos), a sticky on-this-page rail, and prev/next — all lives in GuideChrome;
 // this page is just the routed shell that supplies the slug and the document title.
-[Route("guides/{slug}")]
-[ParentRoute(typeof(ShowcaseLayout))]
-public sealed partial class GuidePage : Component
+public sealed partial class GuidePage : Page
 {
+    protected override string Route => "guides/{slug}";
+
+    protected override Type? Parent => typeof(ShowcaseLayout);
+
     [RouteParam] public string Slug { get; set; } = string.Empty;
 
     protected override Component? HeadAssets => Title[$"{GuideCatalog.TitleFor(Slug)} — Guides — Rask"];

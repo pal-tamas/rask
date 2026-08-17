@@ -69,11 +69,17 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
     /// <summary>The name under which the field's text direction is submitted alongside its value.</summary>
     public string? Dirname { get; set; }
 
-    // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl.
+    // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl, but
+    // recognised as a controlled-mode member by name all the same.
     /// <summary>
     ///     Called on every keystroke with the current text — the hook for a character counter or an
     ///     autosizing textarea. It fires mid-word, so debounce anything that costs more than a render.
     /// </summary>
+    /// <remarks>
+    ///     Controlled mode only: a bound control installs its own <c>oninput</c> write-back and never
+    ///     reads this, so it is neither a step on a bound chain nor a parameter of the bound factory. Use
+    ///     <see cref="AfterBind" /> for a side effect on each bound write.
+    /// </remarks>
     public Action<string>? OnInput { get; set; }
 
     /// <summary>The <see langword="async" /> form of <see cref="OnInput" />.</summary>

@@ -68,7 +68,7 @@ internal static class Identifiers
     }
 
     /// <summary>
-    /// True if <paramref name="route"/> is safe to embed in a <c>[Route("…")]</c> attribute — no quote,
+    /// True if <paramref name="route"/> is safe to embed in a <c>Route</c> override — no quote,
     /// backslash, or control character that would break the string literal.
     /// </summary>
     public static bool IsValidRoutePath(string route)

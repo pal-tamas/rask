@@ -24,8 +24,21 @@ them until tagged releases begin.
     generator emits one `public static partial class Generated` per compilation, and Core still declares
     components, so sharing a namespace would put two `Rask.Core.Components.Generated` types in the
     reference graph (CS0433). Code naming a tag *type* explicitly needs `using Rask.Html.Components;`.
+  - **A type that ENCLOSES a component must now be `partial`** (RASK036 reports it by name). Entries
+    reached a nested component only by inheritance from `RaskMarkup`, where nesting is irrelevant; a
+    referenced library's can only be injected, and the generator skipped nested hosts silently. It now
+    re-opens the enclosing types as `partial`s around the host rather than dropping the chain.
   - **`Doctype` is an HTML component** and moved with the family. `HtmlSerializer` matches the
     `DoctypeComponent` base Core keeps, so it still emits the declaration without depending on `Rask.Html`.
+
+### Fixed
+- **The per-host builder-entry collision filter had nothing to filter against.** `EntryHostDecls` built
+  every host declaration from a `Candidate` without its member names, so an injected entry could collide
+  with a member the host declares or inherits (`Style`, `Data`, `Label`, `Cite`, `ClipPath`). Harmless
+  while the tag entries arrived by inheritance — a member merely shadows one — and CS0102/CS0108 the
+  moment any of them is injected.
+- **`ComponentDocumentationTests` walked only `src/Rask.Core/Components`**, so moving the element family
+  would have silently stopped checking ~150 tags. It spans both projects now.
 
 ### Added
 - **`RaskBuilderEntryInjection`** (MSBuild, opt-out) splits the consumer half of the builder surface: the
@@ -36,16 +49,66 @@ them until tagged releases begin.
   generic `Key`/`Class`/`Id` extensions makes them ambiguous to infer (CS0411).
 
 
+### Added
+- **A routable component is a `Page`, and it declares its route as a property rather than an attribute.**
+  `[Route("/products/{id:int}")]` becomes `protected override string Route => "/products/{id:int}";`, and
+  `[ParentRoute(typeof(Layout))]` becomes `protected override Type? Parent => typeof(Layout);`. The value is
+  still read at compile time — constant expressions and `const`s work, and a computed override is
+  **RASK047** rather than a page that silently never registers. Deriving from `Page` is now also what makes
+  a class a valid `[RouteParam]`/`[QueryParam]` target, so RASK009/RASK010 say so.
+
+  Reading the template out of the override rather than off the attribute also drops the runtime reflection
+  `RouteTemplateResolver` used for the no-template `Route<T>()` overload.
+
+- **Every page gets a generated `SomePage.Url(...)` and `SomePage.Go(...)`.** `Url` builds the typed
+  `RouteUrl` — the same parameter list as the `Routes.SomePage(...)` factory it forwards to — and `Go`
+  navigates to it, with an extra `replace` flag for the history entry:
+
+  ```csharp
+  A.Href(ProductPage.Url(42, sort: "asc"))["Open"]      // build the URL
+  Button.OnClick(() => ProductPage.Go(42))["Open"]      // navigate to it
+  ```
+
+  `Url` returns a `RouteUrl` rather than a string deliberately: a string binds `NavigateTo`'s path-only
+  overload, which **clears the query string**. The string is one implicit conversion away when you want it.
+
+  These are C# 14 static extension members, so they need `LangVersion` 14 or later (the .NET 10 default) and
+  the page's namespace imported — a fully-qualified `My.Ns.HomePage.Go()` with nothing `using`-ed does not
+  resolve. Below C# 14 they are not emitted at all and `Routes.SomePage(...)` carries the app, because an
+  extension block on an older compiler fails as a parse-error cascade inside generated code.
+
+  **One caveat worth knowing before you reach for it:** inside a markup host the bare page name is the
+  chain's `Build<TPage>` builder entry, not the type, so `HomePage.Go()` written in another page's `Render()`
+  or handler does not compile. Qualify the receiver, or use `Routes.HomePage()` — which never collides. The
+  short spelling is at its best outside markup hosts.
+
+- **`Navigator.Current`** — the navigator of the handler currently running, published from the handler scope
+  every host already enters around a dispatch. It is what lets a static `SomePage.Go()` reach the right
+  session's navigator with no receiver to inject through; outside a handler it is `null`, and
+  `Navigator.RequireCurrent()` throws the same actionable message the instance methods do.
+
+- **`Screen` — a page that owns its native chrome.** A `Screen` is a `Page` with `HeaderBar`, `Toolbar` and
+  `TabBar` slots, so a screen declares its own bars instead of the app root inspecting the current path to
+  decide what the header should show:
+
+  ```csharp
+  public sealed class TodosScreen : Screen
+  {
+      protected override string Route => "/todos";
+      protected override Component? HeaderBar => NativeHeaderBar.Title("Todos");
+      protected override Component? Render() => Div[/* the HTML body */];
+  }
+  ```
+
+  Routing is unchanged on native — a screen is addressed by the same path, which is simply never shown
+  (the WebView sits on a custom-scheme origin), and `TodosScreen.Url()` / `.Go()` are generated as for any
+  page. The slots are hoisted rather than rendered inline: walked inside the screen's own scope, so a bar
+  button's `OnClick` attributes back to the screen and re-renders it, while the bar itself emits no HTML.
+  Chrome still merges by kind, deepest-wins, so a layout screen supplies the tab bar once and each leaf
+  screen supplies its own header. On Server and WASM the slots are **never read**, so one screen class
+  serves web and native with no `IsNative` branch.
+
 ### Fixed
-- **A nested component silently lost its builder entries.** Entries reached a nested component only by
-  inheritance from `RaskMarkup`, where nesting is irrelevant; the generator skipped nested hosts outright
-  when injecting. It now re-opens the enclosing types as `partial`s around the host, and RASK036 reports
-  the type to fix when one of them is not `partial` rather than dropping the chain in silence.
-- **The per-host builder-entry collision filter had nothing to filter against.** `EntryHostDecls` built
-  every host declaration from a `Candidate` without its member names, so an injected entry could collide
-  with a member the host declares or inherits (`Style`, `Data`, `Label`, `Cite`, `ClipPath`). Harmless
-  while the tag entries arrived by inheritance — a member merely shadows one — and CS0102/CS0108 the
-  moment any of them is injected.
 - **Two analyzers had stopped firing altogether on chain-built markup — including an accessibility
   check.** `RASK022` (a list item without a `Key`) and `RASK023` (an `Img` without `Alt`) each identified
   their subject as *"a static method on the class named `Generated`"* — the factory. A chain has no such
@@ -115,6 +178,35 @@ them until tagged releases begin.
   The obvious way to reclaim it is to defer construction until the key has been seen, which needs
   `Build<T>` to carry an unmaterialised child — a wider change to the struct that every generated setter
   takes. Left for later rather than folded in here.
+
+### Changed
+- **A form control's two modes are now mutually exclusive, on both surfaces.** A control's value comes
+  from exactly one place — an expression it binds (`Bind`) or a value its parent owns (`Value`) — and the
+  step you open the chain with now decides what the rest of it may say. Bound mode adds `Validate` and
+  the `AfterBind` hooks; controlled mode adds `Value`, `Checked` and the `OnInput`/`OnChange` callbacks;
+  everything else (`Placeholder`, `Type`, `Required`, `OnFiles`, the whole element surface) belongs to
+  neither and stays reachable from both.
+  - **These were accepted and then silently dropped.** Bound mode derives the rendered value and a
+    checkbox's `checked` from the model and installs its own `oninput`/`onchange` write-back, so it never
+    read `OnInput` or `Checked` — `Input.Bind(() => m.Name).OnInput(v => …)` compiled and did nothing.
+    The mirror hole was smaller only because `AfterBind` was already off the controlled factory.
+  - **Enforced by the type, not by an analyzer.** A form control's chain is now a
+    `Build<TControl, Bound>` or a `Build<TControl, Controlled>` — the entry step fixes the mode, shared
+    steps stay generic over it, and each mode's own steps are declared only on their mode. A step from
+    the other mode is not offered in completion and does not compile. The generated factories carry the
+    same split, so `Input(() => m.Name, OnInput: …)` has no such parameter either.
+  - **BREAKING — a form control always opens on its mode.** A non-generic control pinned nothing, so it
+    had no chain in front of it and `Bind` and `Value` were both plain setters one chain could take
+    both of. It gets a seed now because it is a form control: write `BsCheck.Bind(() => m.Done)` or
+    `BsCheck.Value(false)` where a bare `BsCheck` used to do.
+  - Nothing outside form controls changes: an ordinary component's chain is the same `Build<T>`.
+  - **RASK046 sees form controls again, and no longer misfires on them.** `KeyOpensChainAnalyzer` read
+    the built type by *shape* — an arity-1 generic return — so a mode-carrying chain answered "nothing"
+    and the rule went quiet for exactly the components it was added for (the `Bs` controls derive from
+    `Component`, not `Element`). It reads both arities now. It also no longer reports the chain's
+    *opening*: a seed step is what constructs the component rather than a setter that can be lost, and it
+    necessarily precedes `Key` — `Check.Value(true).Key(1)` has no legal reordering, since the seed
+    exposes no `Key` of its own.
 
 ### Added
 - **Every public component is documented, and the documentation now reaches the call site.** A factory
@@ -544,6 +636,70 @@ them until tagged releases begin.
   the harness can show. The remaining arguments for splitting are size, per-file pragmas and blast
   radius — not latency; the outbox can never move, since it commits with the business change by design.
 
+### Fixed
+- **The quick-fixes for the newly chain-aware analyzers could damage code, found by reviewing the diff
+  rather than trusting that green tests meant done.**
+  - **RASK027's lightbulb deleted whatever enclosed the chain.** Making the analyzer fire on chains
+    without touching its fix left the provider looking *upward* for an argument to remove, so
+    `Wrap(Content: Button.OnClick(…).OnClickAsync(…)["x"], Label: "hi")` became `Wrap(Label: "hi")` —
+    the component silently gone, and the result still compiling. The diagnostic is now anchored on the
+    step's name rather than the whole chain, and the fix splices that one step out and never walks past
+    the node it was given.
+  - **RASK023's lightbulb could land the `Alt` on the wrong call.** `Wrap(Img)` became
+    `Wrap(Img).Alt("")` — uncompilable, and the image still had no text alternative. It now acts only on
+    the call the flagged node is the *callee* of.
+  - **RASK014's lightbulb could trade its error for a worse one.** The bare entry it now writes only
+    binds inside a markup host; in a service or a plain class `Widget` names the type and the rewrite is
+    `CS0119`. The fix is withheld there — the error stands with its message instead. The old test proved
+    nothing on this point: it asserted on text alone, inside a plain class.
+  - A false positive of my own making in RASK021: the bare-identifier arm matched shell names on the
+    identifier alone, so a local called `Body` in a root's `Render()` raised RASK021 on ordinary code —
+    build-breaking under `-warnaserror`. It is now restricted to `Doctype`, the one part of the shell a
+    chain writes bare; the rest are caught as element accesses.
+  - The four analyzers' copies of a `Build<T>` unwrapper collapse into one `BuilderEntry.BuildOf`, which
+    compares the resolved symbol instead of calling `ToDisplayString()` on every arity-1 generic. These
+    run on `OperationKind.PropertyReference` — every property read in the compilation — so the old
+    version allocated a string per `List<T>`/`Task<T>` read, per keystroke, in the IDE.
+- **Three more analyzers were blind to the chain, found by auditing the rest rather than stopping at the
+  ones that announced themselves.** These do not key on `Generated` at all — they test a TYPE, and a chain
+  hands back `Build<T>` rather than `T`.
+  - **RASK032 (native chrome nested in the HTML tree) never fired on a chain.** `Div[NativeHeaderBar…]`
+    serializes to nothing on a device; the diagnostic is an **Error** precisely so that never ships, and
+    it was reporting on none of the syntax the framework teaches.
+  - **RASK019 (`<head>` is a framework-managed slot) never fired on `Head[…]`.** Children passed there are
+    dropped, silently. The analyzer also had **no tests at all**; it has them now, for both spellings.
+  - **RASK021 (a root that renders the page shell) never fired on a chain.** It scans the root's `Render()`
+    for *invocations* named `Doctype`/`Html`/`Head`/`Body`, and a chain invokes nothing — `Html[…]` is an
+    element access and `Doctype` a bare identifier. It now recognises all three spellings, and the
+    standalone-identifier arm is deliberately narrow so a local called `Body` cannot trip it.
+- **Three analyzers were silently dead on the chain — the syntax the framework teaches.** Each identified
+  its subject as "a static method on a class named `Generated`", which a chain never is: a chain's steps are
+  extension methods on `Build<T>`, and its shortest spelling is a bare entry that is not an invocation at
+  all. The build stayed green throughout, because a diagnostic that never fires breaks nothing.
+  - **RASK023 (`Img` without `Alt`) never fired on `Img.Src("/logo.png")`.** An accessibility guard
+    (WCAG 1.1.1) that was absent from every chain ever written.
+  - **RASK022 (list item missing a `Key`) never fired on a keyless chain row.** `_items.Select(i => Li[…])`
+    — the exact shape the guides teach — went unreported, so those lists reconcile by position and lose
+    focus and input state on insert/remove/reorder.
+  - **RASK027 (both the sync and async handler set) never fired on a chain.**
+    `Button.OnClick(…).OnClickAsync(…)` silently dropped the async handler, which is the whole reason the
+    diagnostic is an **Error** on a factory call.
+  - **RASK034 (a `BsDataGrid` column with no `Field`) never fired on a chain either.** The column
+    chooser addresses a column by the token read off `Field`, so a column without one can never be
+    shown, hidden or reordered — it sits pinned with no menu row, silently, which is exactly the
+    failure this diagnostic exists to catch. Verified against the real `Rask.Bootstrap` types rather
+    than the test's stand-ins: removing a `Field` from a sample's grid makes it fire on the offending
+    column and nothing else.
+  - The chain branch is deliberately additive: the factory branch still owns `Generated.X(…)`, so nothing
+    reports twice. Each new branch requires the operation's type to genuinely be `Build<T>` — without that
+    the children indexer qualifies too (it is also a property reference) and every keyless row reported
+    twice.
+- **Both shipped quick-fixes wrote factory syntax.** RASK014's lightbulb was titled "Use the generated
+  factory" and rewrote `new Widget()` into `Widget()`; it now produces the bare entry `Widget`, which is
+  what RASK014's own message has been telling the reader to write. RASK023's inserted `Alt: ""`, a named
+  argument — on a chain that is not merely stale but broken, so it now appends a `.Alt("")` step (and still
+  inserts the named argument on a factory call).
+
 ### Changed
 - **The chain is now what the docs, the README, the site and the playground actually teach.** #681 made
   markup a chain but left the teaching surfaces describing the generated factory, so a newcomer's first
@@ -574,52 +730,6 @@ them until tagged releases begin.
     test, so the next such slip fails the build instead of a reader.
 
 ### Fixed
-- **Two gate tests no longer depend on how busy the machine is.** The gates are the only place tests run
-  for this repo, so a flake here is a flake in the one thing standing between a change and `main` — and
-  worse, it trains people to re-run rather than read, which is how a real failure gets waved through.
-
-  `AsyncLifecycleRenderingTests` waited a fixed 50 ms for a **fire-and-forget** continuation and then
-  asserted it had happened. The thing being awaited is precisely the one that signals nothing (that is
-  what the test is *about*), so the number was a guess at thread-pool latency — and under a full gate
-  run, with many test projects at once, 50 ms is entirely ordinary. It now polls for the render to land
-  and keeps the sleep only where a test claims "and no more than this", because nothing but elapsed time
-  can evidence a render that did *not* happen. Closes #691.
-
-  `ShopExampleTests.SignInAsync` asserted only that the browser had left `/login`, and that turns out to
-  be too early on the **Server** host. Signing in there cannot set a cookie on a response that has
-  already been sent — the live session issues an `AuthInstruction` and the *client* performs the
-  navigation that commits it — so the URL moves off `/login` before the cookie exists, and the caller's
-  next navigation races that commit: it lands on an authorized page and is bounced straight back to
-  `/login` with sign-in apparently complete. Reproduced 2 runs in 3 once the mechanism was known. It now
-  waits for content that only an authorized principal renders, which is what every caller actually
-  depends on: 5 of 5 runs green after, and the whole Shop suite 11/11. Closes #692.
-
-- **A routed frame no longer re-matches the route on every render.** `Router.Render()` runs on every
-  frame — it has to, because it publishes `ctx.Route` for the whole subtree and so cannot be
-  render-cached (#682) — and `RouteMatcher.TryMatch` allocates the chain list and the values dictionary
-  each time it is asked. It is a pure function of the flattened leaves and the path, neither of which
-  changes between renders except on navigation or a `Routes` reassignment, so the answer is now kept.
-  Same spirit as the `Routes` setter's existing reference cache, which already refuses to re-flatten the
-  same tree.
-
-  Measured (`RoutedRenderBenchmarks`, a two-level chain, 20 rows, steady-state re-render):
-
-  ```
-  | RoutedFrame                              Allocated
-  | before #682 (positional, but throwing)    3.86 KB
-  | after #682, matching every frame          4.18 KB
-  | with the match memoised                   3.96 KB
-  ```
-
-  So most of what #682 cost is back: **+0.10 KB rather than +0.32 KB** against the original. Wall clock
-  is inconclusive at this size (±0.4 us) so no claim is made about it. The remaining 0.10 KB is the
-  per-frame `RouteRenderState`, which is deliberately still fresh each frame — its `Cursor` is per-frame
-  walk state and its `Query` has to be read now, since `?page=2` moves without the path moving.
-
-  Two tests pin what a cache like this can get wrong: a query change on an unchanged path must still
-  reach the page, and replacing the routes must invalidate. The second one fails if the key is weakened
-  to the path alone. Closes #688.
-
 - **A dependency bump could fail the build of a project that has no scoped assets at all.** The
   scoped-asset bake refuses to write an empty bundle silently (#650) — but the check that decides whether
   "zero files" is a failure asked only whether *some* assembly had been skipped, on the reasoning that

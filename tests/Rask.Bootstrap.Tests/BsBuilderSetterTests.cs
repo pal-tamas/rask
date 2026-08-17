@@ -143,9 +143,24 @@ public partial class BsBuilderSetterTests : global::Rask.Core.RaskMarkup
 
     // A bound chain must not be asked for `Value`, and giving BsCheck.Value the `= false` initializer
     // its comment always claimed is what makes that true — the same default the control renders anyway.
+    // BsCheck is non-generic, so it pins nothing and used to have no seed at all: Bind and Value were
+    // both plain setters and a chain could take both. Now the mode is its opening either way, and a
+    // chain bound to a false model renders exactly what the controlled default renders.
     [Fact]
-    public void A_bound_check_defaults_Value_rather_than_requiring_it() =>
-        Assert.Equal(BsCheck.Value(false).ToHtml(), BsCheck.ToHtml());
+    public void A_bound_check_defaults_Value_rather_than_requiring_it()
+    {
+        var model = new CheckModel();
+
+        // Not an equality against the controlled form: bound mode derives the id and name from the bound
+        // property, so the two differ by exactly that. What matters is that the chain compiles without
+        // ever naming Value — Value is not even a step on a bound chain — and renders the unchecked box
+        // the initializer promises.
+        var html = BsCheck.Bind(() => model.Done).ToHtml();
+
+        Assert.Contains("type=\"checkbox\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("checked", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("checked", BsCheck.Value(false).ToHtml(), StringComparison.Ordinal);
+    }
 
     private static readonly Supplier[] Suppliers = [new(1, "Acme"), new(2, "Globex")];
 
