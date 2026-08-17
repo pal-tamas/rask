@@ -171,7 +171,7 @@ rather than sending you to a search engine.
 ### Text & inline
 
 [`a`][a], [`abbr`][abbr], [`b`][b], [`bdi`][bdi], [`bdo`][bdo], [`br`][br], [`cite`][cite], [`code`][code], [`data`][data], [`dfn`][dfn], [`del`][del], [`em`][em], [`i`][i], [`ins`][ins], [`kbd`][kbd],
-[`mark`][mark], [`q`][q], [`ruby`][ruby]/[`rp`][rp]/[`rt`][rt], [`s`][s], [`samp`][samp], [`small`][small], [`span`][span], [`strong`][strong], [`sub`][sub], [`sup`][sup], [`time`][time], [`u`][u], [`wbr`][wbr]:
+[`mark`][mark], [`q`][q], [`ruby`][ruby]/[`rp`][rp]/[`rt`][rt], [`s`][s], [`samp`][samp], [`small`][small], [`span`][span], [`strong`][strong], [`sub`][sub], [`sup`][sup], [`time`][time], [`u`][u], [`var`][var], [`wbr`][wbr]:
 
 <!-- demo:elements-text -->
 
@@ -327,6 +327,7 @@ See also: [Getting started](getting-started.md) for building your first componen
 [tr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tr
 [track]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/track
 [u]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/u
+[var]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/var
 [ul]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ul
 [video]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video
 [wbr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/wbr

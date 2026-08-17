@@ -7,6 +7,10 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`<var>`** — the one element MDN lists that Rask had no component for (part of #694). A variable in a
+  mathematical or programming context; not emphasis (`em`) and not literal code (`code`).
+
 ### Changed
 - **The HTML/SVG element family moved out of `Rask.Core` into a new `Rask.Html` assembly.** ~155 tag
   components (`Div`, `Span`, `Table`, `Input`, the 41 `<svg>` elements, `Doctype`) now live in

@@ -1,6 +1,6 @@
 ---
 name: add-html-tag
-description: Scaffold a new HTML tag component in Rask.Html. Use whenever adding support for an HTML element (e.g. <dialog>, <details>, <progress>, <video>) to the Rask framework. Creates src/Rask.Html/Components/{Tag}.cs and the matching tests/Rask.Core.Tests/Components/{Tag}Tests.cs asserting exact attribute order; the factory is generated automatically.
+description: Scaffold a new HTML tag component in Rask.Html. Use whenever adding support for an HTML element (e.g. <dialog>, <details>, <progress>, <video>) to the Rask framework. Creates src/Rask.Html/Components/{Tag}.cs and the matching tests/Rask.Html.Tests/Components/{Tag}Tests.cs asserting exact attribute order; the factory is generated automatically.
 ---
 
 # add-html-tag
@@ -31,13 +31,15 @@ nullable enabled, expression-bodied single-line members.
 See `templates/Component.cs`. References: `src/Rask.Html/Components/Span.cs` (simple),
 `Br.cs` (void), `Button.cs` (attributes), base `src/Rask.Core/Element.cs`.
 
-## 2. Test — `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`
+## 2. Test — `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`
 Two methods, xUnit:
 - `Render_NullProps_…` — only `TagName` (and self-close shape) renders.
 - `Render_AllPropsSet_…` — **asserts exact attribute order**: id, class, style, data-*, **then**
   tag-specific attrs. Tests assert this ordering — preserve it.
 
-See `templates/ComponentTests.cs`. Reference: `tests/Rask.Core.Tests/Components/ButtonTests.cs`.
+See `templates/ComponentTests.cs`. Reference: `tests/Rask.Html.Tests/Components/ProgressTests.cs`.
+The test class is `partial` and derives `RaskMarkup` — that is how it gets the tag's builder entry,
+since Rask.Html's entries are injected into a consumer's hosts rather than inherited (RASK036).
 
 ## 3. Finish
 This is a new feature → run the **`rask-ship`** gate (format → warnings-as-errors build → the
