@@ -32,6 +32,31 @@ internal static class BuilderGeneratorHarness
             result.Diagnostics);
     }
 
+    /// <summary>
+    ///     The compilation as the compiler sees it AFTER the factory generator has run with the builder
+    ///     surface on — source plus generated trees. Analyzer tests need this: the chain syntax
+    ///     (<c>Div[Span]</c>) binds to generated entries, so analyzing the bare source would leave every chain
+    ///     expression an error type and any rule under test would report nothing and pass for the wrong reason.
+    /// </summary>
+    internal static Compilation Compile(string source, string assemblyName = "TestAssembly")
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
+        var compilation = CSharpCompilation.Create(
+            assemblyName,
+            new[] { syntaxTree },
+            GeneratorDriverFixture.BuildReferences(),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable));
+
+        CSharpGeneratorDriver
+            .Create(new ComponentFactoryGenerator())
+            .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest))
+            .WithUpdatedAnalyzerConfigOptions(new BuilderSurfaceOptionsProvider())
+            .RunGeneratorsAndUpdateCompilation(compilation, out var generated, out _);
+
+        return generated;
+    }
+
     internal readonly record struct BuilderRun(
         ImmutableArray<GeneratedSourceResult> Sources,
         ImmutableArray<Diagnostic> Diagnostics)

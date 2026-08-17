@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK044)
+# Rask diagnostics (RASK001–RASK047)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -82,6 +82,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
+| [RASK047](#rask047) | Error | HTML nested inside a native screen |
 
 ---
 
@@ -543,6 +544,10 @@ protected override Component? Render() =>
 
 **Fix:** move the native component out of the HTML — compose it at the layout level, as a sibling of
 `NativeWebView`. Native chrome renders only under the native host and is inert on Server/WASM.
+
+Native **view** components (`NativeLabel`, `NativeStack`, …) are the same family, so the same rule holds
+for them — with one addition: inside a `NativeScreen` they are exactly where they belong, and the analyzer
+classifies by the container. See [RASK047](#rask047) for the mirror-image mistake.
 
 ## RASK033
 **Hardcoded path for internal navigation instead of the generated route URL** · Warning
@@ -1014,3 +1019,30 @@ Div.Class("row").Key(index)[cells]   // ✓ an element is never claimed
 
 **Fix:** move `.Key(…)` to the front of the chain. See [composition → keys](composition.md#children--fragments)
 and the reconciliation note in [the live-rendering codec](architecture/live-rendering-codec.md).
+
+## RASK047
+**HTML nested inside a native screen** · Error
+
+The mirror image of [RASK032](#rask032). A `NativeScreen` is the content root of a **pure-native** page:
+everything inside it becomes a real `UIView` / `android.view.View`, and there is no WebView behind it. An
+HTML element composed in there has nothing that could render it, so it silently disappears — which is
+exactly the kind of mistake that only shows up on a device, and only as an absence.
+
+```csharp
+// ✗ RASK047 — a Div inside a native screen renders nothing
+protected override Component? Render() => NativeScreen[Div["Hello"]];
+
+// ✓ native views inside a native screen
+protected override Component? Render() =>
+    NativeScreen[NativeStack.Spacing(12)[
+        NativeLabel.Text("Hello"),
+        NativeButton.Text("Go").OnClick(Go)]];
+
+// ✓ HTML inside a NativeWebView — both may live in one app, on different routes
+protected override Component? Render() => NativeWebView[Div["Hello"]];
+```
+
+**Fix:** use the native view family (`NativeLabel`, `NativeStack`, `NativeButton`, …) for a native screen,
+or put the markup inside a `NativeWebView` instead. An app is free to compose both — one route rendering a
+`NativeWebView` and the next a `NativeScreen` is the supported mixed-surface setup; see
+[native](native.md).
