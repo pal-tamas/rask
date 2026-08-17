@@ -9,10 +9,11 @@ namespace Rask.Example.Shop.Features.Auth;
 // content and re-renders when the post-sign-in reconnect re-seeds the principal; the signed-in view lives
 // in its own component that injects IUserProvider, so it reads the freshly-authenticated principal — no
 // manual Changed subscription.
-[Route("members")]
 [Authorize]
-public sealed partial class MembersPage : Component
+public sealed partial class MembersPage : Page
 {
+    protected override string Route => "members";
+
     protected override Component? Render() =>
         Div.Class("welcome-card")[
             Authorize

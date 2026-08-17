@@ -555,10 +555,11 @@ internal static partial class ProjectGenerator
 
         namespace Company.RaskServer.Client.Features.Auth;
 
-        [Route("login")]
         [AllowAnonymous]
-        public sealed partial class LoginPage(WasmLoginService login) : Component
+        public sealed partial class LoginPage(WasmLoginService login) : Page
         {
+            protected override string Route => "login";
+
             private readonly LoginModel _model = new();
             private string? _error;
 
@@ -599,10 +600,11 @@ internal static partial class ProjectGenerator
         // On WASM there's no server route guard — the Authorize component gates the content off the principal
         // (hydrated from /api/me). The signed-in view is a child component so it reads the fresh principal when
         // the gate opens after sign-in.
-        [Route("members")]
         [AllowAnonymous]
-        public sealed partial class MembersPage : Component
+        public sealed partial class MembersPage : Page
         {
+            protected override string Route => "members";
+
             protected override Component? Render() =>
                 Div.Style("max-width:32rem;margin:3rem auto;font-family:system-ui")[
                     Authorize
