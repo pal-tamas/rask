@@ -51,6 +51,24 @@ public static class RaskTest
         => Render(chain.Value, services);
 
     /// <summary>
+    ///     Renders a finished FORM CONTROL chain — <c>RaskTest.Render(Input.Bind(() =&gt; model.Name))</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A form control's chain carries the mode it opened in (<see cref="Build{T, TMode}" />), so it is
+    ///     a different type from the one above and needs its own overload for the same reason that one
+    ///     exists: inference runs before any user-defined conversion, so the chain cannot reach a
+    ///     <c>Component</c>-constrained parameter on its own. The mode is irrelevant once the markup is
+    ///     built, so it is inferred and discarded.
+    /// </remarks>
+    /// <typeparam name="T">The control the chain built.</typeparam>
+    /// <typeparam name="TMode">The mode the chain opened in — bound or controlled.</typeparam>
+    /// <param name="chain">The markup under test.</param>
+    /// <param name="services">Services available to the component. Defaults to an empty provider.</param>
+    public static RenderedComponent<T> Render<T, TMode>(Build<T, TMode> chain, IServiceProvider? services = null)
+        where T : Component
+        => Render(chain.Value, services);
+
+    /// <summary>
     ///     Renders the component produced by <paramref name="factory" /> as a live root and returns a handle
     ///     to the result. The factory runs on <b>every</b> render, so the tree is rebuilt from your current
     ///     state each time — use this (rather than the <see cref="Render{T}(T, IServiceProvider)" />

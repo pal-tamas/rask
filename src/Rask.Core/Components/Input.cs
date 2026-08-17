@@ -68,6 +68,10 @@ public sealed class Input<T> : Element, IFormControl<T>
     public bool? ReadOnly { get; set; }
 
     /// <summary>Whether a checkbox or radio starts checked.</summary>
+    /// <remarks>
+    ///     Controlled mode only — it is the checkbox's value. A bound control derives the checked state
+    ///     from the model, so this is neither a step on a bound chain nor a parameter of the bound factory.
+    /// </remarks>
     public bool? Checked { get; set; }
 
     /// <summary>The smallest permitted value, for numeric and date types.</summary>
@@ -182,13 +186,19 @@ public sealed class Input<T> : Element, IFormControl<T>
     // DOM event handlers in the legacy declaration order so positional factory calls keep working.
     // OnChange/OnChangeAsync are the IFormControl<T> controlled callbacks (typed T); OnInput/OnFiles are the
     // string/file DOM handlers, not part of the interface.
-    // Calling one back is `OnInput?.Invoke(value)`.
+    // Calling one back is `OnInput?.Invoke(value)`. OnFiles is NOT controlled-mode only — bound mode
+    // still wires that one.
     /// <summary>
     ///     Called on every keystroke with the raw text of the field, before any parsing — so it is the
     ///     hook for live search and character counters. Unlike <see cref="OnChange" /> it is a
     ///     <see langword="string" /> whatever <typeparamref name="T" /> is, and it fires while the value
     ///     is still half-typed and possibly not valid.
     /// </summary>
+    /// <remarks>
+    ///     Controlled mode only: a bound control installs its own <c>oninput</c> write-back and never
+    ///     reads this, so it is neither a step on a bound chain nor a parameter of the bound factory. Use
+    ///     <see cref="AfterBind" /> for a side effect on each bound write.
+    /// </remarks>
     public Action<string>? OnInput { get; set; }
 
     /// <summary>
