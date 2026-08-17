@@ -36,10 +36,11 @@ them until tagged releases begin.
     only genuinely changed properties are sent.
   - **Opt-in and backward compatible.** Register an `INativeSurface` on `host.Services` exactly like
     `INativeChrome`; with none registered the family is inert and every frame paints through the WebView.
-  - **The iOS surface backend ships; Android does not yet.** `RaskWkWebView` now implements
-    `INativeSurface`, painting a screen as a real UIKit tree in the same container as the WebView and the
-    bars, and toggling which of the two is visible without tearing either down. It compiles against the
-    real iOS SDK but has **not been run on a simulator or device**, so treat it as untested there.
+  - **Both platform backends ship.** `RaskWkWebView` (UIKit) and `RaskAndroidWebView` (framework widgets,
+    no AndroidX dependency) implement `INativeSurface`, painting a screen as a real view tree in the same
+    container as the WebView and the bars and toggling which of the two is visible without tearing either
+    down. Both compile against their real platform SDKs, but **neither has been run on a simulator,
+    emulator or device**, so treat the on-screen result as unverified.
   - **The half that could hide a bug is platform-agnostic and tested.** `NativeSurfaceHost<TView>` owns the
     retained tree and replays patches in order; a platform head supplies only an `INativeViewOps<TView>`
     mapping table. Patch replay — where an ordering slip shows up as a scrambled screen and is invisible in
