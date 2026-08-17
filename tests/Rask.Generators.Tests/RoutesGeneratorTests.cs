@@ -495,7 +495,7 @@ public class RoutesGeneratorTests
         var run = GeneratorDriverFixture.RunRoutes(src);
         var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK009");
         Assert.NotNull(diag);
-        Assert.Contains("not marked [Route]", diag!.GetMessage());
+        Assert.Contains("does not derive from Page", diag!.GetMessage());
     }
 
     [Fact]
@@ -515,7 +515,7 @@ public class RoutesGeneratorTests
         var run = GeneratorDriverFixture.RunRoutes(src);
         var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK010");
         Assert.NotNull(diag);
-        Assert.Contains("not marked [Route]", diag!.GetMessage());
+        Assert.Contains("does not derive from Page", diag!.GetMessage());
     }
 
     [Fact]

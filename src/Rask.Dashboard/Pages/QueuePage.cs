@@ -8,13 +8,16 @@ namespace Rask.Dashboard.Pages;
 /// page serves the outbox, jobs and mail — they differ in which columns mean what, not in what an operator
 /// needs from them.
 /// </summary>
-[Route("queues/{queue}")]
-[ParentRoute(typeof(DashboardLayout))]
 public sealed partial class QueuePage(
     IEnumerable<IQueuePanel> queues,
     RaskDashboardOptions options,
     TimeProvider timeProvider) : PollingPanel
 {
+    protected override string Route => "queues/{queue}";
+
+    protected override Type? Parent => typeof(DashboardLayout);
+
+
     private IQueuePanel? _panel;
     private QueueCounts _counts;
     private IReadOnlyList<QueueRow> _rows = [];

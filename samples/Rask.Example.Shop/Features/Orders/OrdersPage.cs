@@ -16,9 +16,10 @@ public sealed class ListOrdersQueryHandler(IDbContextFactory<AppDbContext> dbCon
     }
 }
 
-[Route("/orders")]
-public sealed partial class OrdersPage(IDispatcher dispatcher) : Component
+public sealed partial class OrdersPage(IDispatcher dispatcher) : Page
 {
+    protected override string Route => "/orders";
+
     private IReadOnlyList<Order> _items = [];
     private bool _loaded;
 

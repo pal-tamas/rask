@@ -9,9 +9,10 @@ namespace Rask.Example.Crdt.Features;
 // Three devices of one family, each with its own SQLite database, sharing a bucket and nothing else.
 // The point to see: take two devices offline, edit DIFFERENT FIELDS of the same todo on each, then
 // bring both back and sync — both edits survive, because merging is per column rather than per row.
-[Route("/")]
-public sealed partial class FamilyTodosPage(FamilyDevices family) : Component
+public sealed partial class FamilyTodosPage(FamilyDevices family) : Page
 {
+    protected override string Route => "/";
+
     private const string WiringSnippet =
         """
         options.UseSqlite($"Data Source={file};Pooling=False")

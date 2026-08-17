@@ -10,10 +10,12 @@ namespace Rask.Example.Server.Features;
 ///     WebSocket; surfaced in the shared sidebar via a host-registered <see cref="ShowcaseNavEntry" />
 ///     (see Program.cs), nesting in <see cref="ShowcaseLayout" />.
 /// </summary>
-[Route("server-pwa")]
-[ParentRoute(typeof(ShowcaseLayout))]
-public sealed partial class ServerPwaPage : Component
+public sealed partial class ServerPwaPage : Page
 {
+    protected override string Route => "server-pwa";
+
+    protected override Type? Parent => typeof(ShowcaseLayout);
+
     protected override Component? HeadAssets => Title["Server PWA — Rask"];
 
     protected override Component? Render() =>

@@ -9,10 +9,11 @@ namespace Rask.Example.Auth.Features;
 // reconnect re-seeds the principal it re-renders to the Authorized slot. That slot is a delegate
 // taking the freshly-authenticated principal, so the greeting reads the name directly — no injected
 // IUserProvider and no manual Changed subscription on the page.
-[Route("members")]
 [Authorize]
-public sealed partial class MembersPage : Component
+public sealed partial class MembersPage : Page
 {
+    protected override string Route => "members";
+
     protected override Component? Render() =>
         Div.Id("members").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
             Div.Class("card-body")[
