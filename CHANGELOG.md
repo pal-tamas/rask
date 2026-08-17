@@ -506,6 +506,35 @@ them until tagged releases begin.
   the harness can show. The remaining arguments for splitting are size, per-file pragmas and blast
   radius — not latency; the outbox can never move, since it commits with the business change by design.
 
+### Changed
+- **The chain is now what the docs, the README, the site and the playground actually teach.** #681 made
+  markup a chain but left the teaching surfaces describing the generated factory, so a newcomer's first
+  Rask code came from a page that taught the older spelling.
+  - **The playground taught the factory end to end, and could not have taught anything else.** Its three
+    gallery snippets and all eight guided-tutorial chapters are raw strings compiled only in the browser,
+    so no build ever saw them — every one wrote `Div(Class: …)` / `Button(OnClick: …)`. They are chains
+    now, `partial` like a real project's components, and the tutorial's bullets teach steps-versus-setters
+    and `.Key(…)` instead of factory parameters. Chapter 5's `rask generate feature` reference is gone
+    (the command was removed in #672).
+  - **The playground's Roslyn driver never switched the builder surface on.** It builds a
+    `CSharpGeneratorDriver` by hand and passed no `AnalyzerConfigOptionsProvider`, so
+    `RaskBuilderSurface` read as absent — which is *false* — and the generator emitted no entries for the
+    visitor's **own** components. `Div`/`Span` kept working (their entries are compiled into the
+    referenced `Rask.Core`), which is exactly why nothing caught it. A chain over a component you wrote in
+    the editor failed with `CS1955`; it works now, on the Run path and on the IntelliSense path alike.
+  - **The README teaches the chain rather than only using it**, with the bound-versus-controlled rule and
+    the step-versus-setter rule, and links `docs/building-components.md` from the guide map. The landing
+    page's hero sample — the most-read Rask code there is — was still factory-shaped beside a live tile
+    that was already a chain.
+  - **RASK014's documentation had drifted from the message it ships.** The analyzer says "Components must
+    be built through a chain"; `docs/diagnostics.md` still said "created via factory methods" and told the
+    reader to call `Div(...)`. RASK022's own message said "set `Key:`" and now says "chain `.Key(…)`".
+  - Two defects the doc snippets only gave up once they were compiled rather than read: the `[…]` indexer
+    is an argument list, so the **trailing comma** in `docs/building-components.md`'s opening example was a
+    syntax error, and its controlled-input example called `.Change(…)`, a step that has never existed
+    (the property is `OnChange`). The README's and that page's Rask.Core examples are now compiled by a
+    test, so the next such slip fails the build instead of a reader.
+
 ### Fixed
 - **Two gate tests no longer depend on how busy the machine is.** The gates are the only place tests run
   for this repo, so a flake here is a flake in the one thing standing between a change and `main` — and
