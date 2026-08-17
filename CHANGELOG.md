@@ -107,9 +107,17 @@ them until tagged releases begin.
     only genuinely changed properties are sent.
   - **Opt-in and backward compatible.** Register an `INativeSurface` on `host.Services` exactly like
     `INativeChrome`; with none registered the family is inert and every frame paints through the WebView.
-  - **The iOS and Android backends are not written yet**, so a `NativeScreen` currently paints nothing on a
-    device. The pipeline, the contract and the mixed-surface switching ship and are unit-tested against a
-    test-double backend that applies patches the way a real one must.
+  - **The iOS surface backend ships; Android does not yet.** `RaskWkWebView` now implements
+    `INativeSurface`, painting a screen as a real UIKit tree in the same container as the WebView and the
+    bars, and toggling which of the two is visible without tearing either down. It compiles against the
+    real iOS SDK but has **not been run on a simulator or device**, so treat it as untested there.
+  - **The half that could hide a bug is platform-agnostic and tested.** `NativeSurfaceHost<TView>` owns the
+    retained tree and replays patches in order; a platform head supplies only an `INativeViewOps<TView>`
+    mapping table. Patch replay — where an ordering slip shows up as a scrambled screen and is invisible in
+    a patch list that reads correctly — therefore runs on plain `net10.0` in the unit suite.
+  - **`NativeList` does not recycle rows.** Every row is a real view, built once and kept, which suits the
+    tens-of-rows lists most screens have rather than thousands. Cell reuse needs the platform's recycling
+    collection, whose data-source model does not fit a patch-addressed tree; it is a follow-up.
 
 ### Fixed
 - **RASK032 no longer misses the chain syntax.** The analyzer compared the argument's type against
