@@ -7,6 +7,10 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`<var>`** — the one element MDN lists that Rask had no component for (part of #694). A variable in a
+  mathematical or programming context; not emphasis (`em`) and not literal code (`code`).
+
 ### Fixed
 - **The `add-html-tag` skill sent a new tag's test to a project that no longer holds any.** After the
   HTML/SVG family moved into `Rask.Html`, the skill's component path was updated but its TEST path still

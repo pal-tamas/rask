@@ -4783,6 +4783,7 @@ code
 kbd
 kbd
 samp
+var
 sub
 sup
 p
