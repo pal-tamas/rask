@@ -19,7 +19,7 @@ public sealed partial class Fieldset : Element
     /// <summary>
     ///     The <c>id</c> of the form this group belongs to, for a fieldset that sits outside it.
     /// </summary>
-    public new string? Form { get; set; }
+    public string? Form { get; set; }
 
     /// <summary>The group's name.</summary>
     public string? Name { get; set; }

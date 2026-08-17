@@ -148,7 +148,7 @@ public class FactoryNotImportedAnalyzerTests
             }
             """;
 
-        var d = Assert.Single(await Diagnostics("using Rask.Core.Components;\nusing Rask.Html.Components;\n" + body));
+        var d = Assert.Single(await Diagnostics("using Rask.Core.Components;\n" + body));
         Assert.Equal("RASK043", d.Id);
         Assert.Contains("using static Rask.Core.Components.Generated;", d.GetMessage(),
             StringComparison.Ordinal);

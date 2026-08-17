@@ -54,7 +54,7 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
     // Shared Bootstrap field props.
 
     /// <summary>The field's label. Supply one — a placeholder is not a label.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     /// <summary>Makes the control non-interactive and excludes it from submission.</summary>
     public bool? Disabled { get; set; }

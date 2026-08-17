@@ -114,6 +114,7 @@ public sealed partial class ToastDemo : Component
                     : null,
                 Div.Class($"toast-container position-absolute {_placement} p-3")[
                     toasts.Select(t => (Component)BsToast
+                        .Key(t.Id.ToString())
                         .Id(t.Id)
                         .Message(t.Message)
                         .Title(t.Title)
@@ -121,8 +122,7 @@ public sealed partial class ToastDemo : Component
                         .Icon(t.Icon)
                         .Timestamp("just now")
                         .AutoHideMs(_autoHide ? 5000 : null)
-                        .OnClose(RemoveToast)
-                        .Key(t.Id.ToString()))
+                        .OnClose(RemoveToast))
                 ]
             ]
         ];

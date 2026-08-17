@@ -14,7 +14,7 @@ namespace Rask.Html.Components;
 public abstract partial class HtmlModElement : Element
 {
     /// <summary>A URL explaining the change — an issue, a changelog entry.</summary>
-    public new string? Cite { get; set; }
+    public string? Cite { get; set; }
 
     /// <summary>When the change was made, as a machine-readable date or datetime.</summary>
     public string? DateTime { get; set; }

@@ -72,7 +72,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
     // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
 
     /// <summary>Adds a search box for filtering long option lists.</summary>
-    public new Func<TItem, string, bool>? Filter { get; set; }
+    public Func<TItem, string, bool>? Filter { get; set; }
 
     // Opt in to a "Select all / Clear all" header row at the top of the dropdown. It toggles the currently
     // shown (filtered), enabled options in one click — adds them all, or clears them when they are already
@@ -91,7 +91,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
 
     /// <summary>The field's label.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     /// <summary>Renders the label floating inside the control.</summary>
     public bool? Floating { get; set; }
@@ -203,7 +203,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
             foreach (var item in selected!)
             {
                 var captured = item;
-                box.Add(BsBadge.Color(BsColor.Primary).Class("d-inline-flex align-items-center").Key(i)[
+                box.Add(BsBadge.Key(i).Color(BsColor.Primary).Class("d-inline-flex align-items-center")[
                     LabelOf(captured),
                     BsCloseButton
                         .White(true)

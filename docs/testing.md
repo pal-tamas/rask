@@ -170,8 +170,8 @@ The internal render entry points (`RenderAsLiveRoot`, `TryInvokeHandlerAsync`) a
 projects through `[InternalsVisibleTo]` on `Rask.Core` (`Rask.Core.Tests`,
 `Rask.Example.Shared.Tests`, the validation test projects, …).
 
-The `Rask.Core.Tests` project imports the generated factory namespaces as `global using static`, so
-tag factories (`Button(...)`, `Div(...)`), form factories (`Form(...)`, `Input(...)`), and
+The `Rask.Core.Tests` project is a markup host, so the generator injects the chain entries into it and
+tag entries (`Button`, `Div`), form entries (`Form`, `Input`), and
 `Rask.TestSupport` are all in scope unqualified.
 
 ### Rendering a component
@@ -227,9 +227,9 @@ Useful patterns from the suite:
 
 - Boolean HTML attributes emit bare (`disabled`, not `disabled="true"`) when `true`, and are omitted
   when `false`/`null`.
-- `Text` HTML-encodes (`Button()["<click>"]` → `&lt;click&gt;`); `Raw(...)` emits verbatim.
+- `Text` HTML-encodes (`Button["<click>"]` → `&lt;click&gt;`); `Raw(...)` emits verbatim.
 - When adding a new tag, add the matching `{Tag}Tests.cs` with both cases (see the project CLAUDE.md
-  conventions). Test files opt out of the `RASK014` "use the factory" analyzer with
+  conventions). Test files opt out of the `RASK014` "build it with the chain" analyzer with
   `#pragma warning disable RASK014` since they define their own `Component` subclasses.
 
 ---

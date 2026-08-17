@@ -14,6 +14,22 @@ public sealed class Router : Component
     private IReadOnlyList<RouteLeaf> _leaves = Array.Empty<RouteLeaf>();
     private IReadOnlyList<Route>? _routes;
 
+    // The memoised match (#688). Render() runs on EVERY frame now — it has to, because it publishes
+    // ctx.Route for the whole subtree (see BypassRenderCache below) — and RouteMatcher.TryMatch allocates
+    // the chain list and the values dictionary each time it is asked. It is a pure function of the
+    // flattened leaves and the path, and neither changes between renders except on navigation or a
+    // `Routes` reassignment, so the answer is worth keeping. Same spirit as the `Routes` setter's
+    // reference cache just below, which already refuses to re-flatten the same tree.
+    //
+    // The results are safe to share across frames because nothing mutates them: RouteChainRenderer reads
+    // Chain by index and hands Values to PageBinder, which also only reads. The per-frame part of the
+    // state is RouteRenderState — its Cursor, and the Query, both of which are still taken fresh below.
+    private IReadOnlyList<RouteLeaf>? _matchedLeaves;
+    private string? _matchedPath;
+    private IReadOnlyList<Type>? _matchedChain;
+    private IReadOnlyDictionary<string, string?>? _matchedValues;
+    private bool _matched;
+
     public Router(RouteState state) => _state = state;
 
     // Settable from the auto-generated factory. A null assignment resolves to the
@@ -68,7 +84,18 @@ public sealed class Router : Component
 
     protected override Component? Render()
     {
-        if (!RouteMatcher.TryMatch(_leaves, _state.Path, out var chain, out var values))
+        var path = _state.Path;
+        if (!ReferenceEquals(_matchedLeaves, _leaves)
+            || !string.Equals(_matchedPath, path, StringComparison.Ordinal))
+        {
+            _matched = RouteMatcher.TryMatch(_leaves, path, out var chain, out var values);
+            _matchedLeaves = _leaves;
+            _matchedPath = path;
+            _matchedChain = chain;
+            _matchedValues = values;
+        }
+
+        if (!_matched)
         {
             return new Fragment();
         }
@@ -77,7 +104,10 @@ public sealed class Router : Component
                   ?? throw new InvalidOperationException(
                       "Router() must render under a Rask live root. Call this through MapRask<TApp>.");
 
-        ctx.Route = new RouteRenderState(_state.Path, chain, values, _state.Query);
+        // A fresh RouteRenderState per frame even on a memoised match: its Cursor is per-frame walk
+        // state, and the Query is read now rather than when the path last changed — `?page=2` moves
+        // without the path moving.
+        ctx.Route = new RouteRenderState(path, _matchedChain!, _matchedValues!, _state.Query);
         return RouteChainRenderer.RenderChainEntry(ctx);
     }
 }

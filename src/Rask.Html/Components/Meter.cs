@@ -36,7 +36,7 @@ public sealed partial class Meter : Element
     public double? Optimum { get; set; }
 
     /// <summary>The <c>id</c> of the form this meter belongs to.</summary>
-    public new string? Form { get; set; }
+    public string? Form { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

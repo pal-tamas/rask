@@ -20,6 +20,7 @@ namespace Rask.Core.Tests;
 //      it built before the throw still have to be swept off the per-thread slot stack;
 //   2. an entry inside a Head override, which the serializer collects outside the component's own render;
 //   3. an entry built from a lifecycle hook, which the deferred commit itself is running.
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class ThrowingRenderHost : Component
 {
     internal bool Fail;
@@ -41,6 +42,7 @@ internal sealed partial class ThrowingRenderHost : Component
 // site in BuilderResetTests. The factory re-assigns every parameter, so `content` is gone the moment the
 // second branch renders; the entry has to match, which it can only do if its pending reset is owned by
 // the component whose Head this is.
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class HeadEntryLeaf : Component
 {
     public string? Word { get; set; }
@@ -53,6 +55,7 @@ internal sealed partial class HeadEntryLeaf : Component
     protected override Component? Render() => Span[Word ?? ""];
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class HeadFactoryLeaf : Component
 {
     public string? Word { get; set; }
@@ -67,6 +70,7 @@ internal sealed partial class HeadFactoryLeaf : Component
     protected override Component? Render() => Span()[Word ?? ""];
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class HeadEntryHost : Component
 {
     internal string Seed = "a";
@@ -75,6 +79,7 @@ internal sealed partial class HeadEntryHost : Component
     protected override Component? Render() => Div[Leaf = HeadEntryLeaf.Word(Seed)];
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class HeadFactoryHost : Component
 {
     internal string Seed = "a";
@@ -87,6 +92,7 @@ internal sealed partial class HeadFactoryHost : Component
 // A child whose OnMount builds a component. Under the factory that hook fires from inside the parent's
 // Render(); under the entries it fires from the parent's deferred commit, i.e. while the parent is
 // walking its own child map — and building anything writes to that very map.
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class MountBuildsLeaf : Component
 {
     public string? Word { get; set; }
@@ -98,6 +104,7 @@ internal sealed partial class MountBuildsLeaf : Component
     protected override Component? Render() => Em[Word ?? ""];
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class MountBuildsFactoryLeaf : Component
 {
     public string? Word { get; set; }
@@ -109,6 +116,7 @@ internal sealed partial class MountBuildsFactoryLeaf : Component
     protected override Component? Render() => Em()[Word ?? ""];
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class MountBuildsHost : Component
 {
     internal MountBuildsLeaf? Leaf;
@@ -116,6 +124,7 @@ internal sealed partial class MountBuildsHost : Component
     protected override Component? Render() => Div[Leaf = MountBuildsLeaf.Word("a")];
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class MountBuildsFactoryHost : Component
 {
     internal MountBuildsFactoryLeaf? Leaf;
@@ -128,6 +137,7 @@ internal sealed partial class MountBuildsFactoryHost : Component
 // session (Rask.Core names no Rask.Native type — the serializer hands every walked user component to
 // IRenderHandle.ReportNativeComponent and the native session classifies it). Built by its parent with a
 // chain that drops a prop on the second frame, the same shape the Head pair above uses.
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class ChromeEntryBar : Component
 {
     public string? Word { get; set; }
@@ -137,6 +147,7 @@ internal sealed partial class ChromeEntryBar : Component
     protected override Component? Render() => null;
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class ChromeEntryHost : Component
 {
     internal string Seed = "a";
@@ -147,6 +158,7 @@ internal sealed partial class ChromeEntryHost : Component
         Div[Bar = Seed == "a" ? ChromeEntryBar.Word(Seed).Extra("keep").Value : ChromeEntryBar.Word(Seed)];
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class ChromeFactoryHost : Component
 {
     internal string Seed = "a";
@@ -160,7 +172,7 @@ internal sealed partial class ChromeFactoryHost : Component
                 : Rask.Core.Tests.Generated.ChromeEntryBar(Word: Seed)];
 }
 
-public class BuilderRenderPathTests
+public partial class BuilderRenderPathTests : global::Rask.Core.RaskMarkup
 {
     // One live render, driven the way a parent whose own props moved would drive it, so the host
     // re-executes Render() every time and its children are genuinely rebuilt through their surface.

@@ -99,7 +99,7 @@ A nested graph with **async** validators and live totals rolling up from the row
 `BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect` (see [bootstrap.md](bootstrap.md)). The versions below are
 a **copyable worked example** of the binding API of §9 (`samples/Rask.Example.Shared/Shared/`) — `IFormControl<T>`
 is the framework primitive; the control is yours to build or take from the package. They're structured exactly like
-`MultiSelect<TItem>`, with **bound** and **controlled** modes (so the generator emits their factories):
+`MultiSelect<TItem>`, with **bound** and **controlled** modes (so the generator emits both chains):
 
 ```csharp
 // Bound — two-way binds the model, with an optional per-field Validate rule.
@@ -213,7 +213,7 @@ Passwords, file, hidden and one-time-code inputs, and anything with a `cc-*` / `
 ## Building your own form controls
 
 The binding system is public: a custom control implementing `IFormControl<T>` gets generator-synthesized
-bound + controlled factories, per-field validation, and the same ergonomics as the built-ins — see the
+bound + controlled chains, per-field validation, and the same ergonomics as the built-ins — see the
 dedicated guide **[building-form-controls.md](building-form-controls.md)** (with a complete worked example
 and the `IFormControl<T>` helper reference). `RadioGroup`/`CheckboxGroup` (§8) and the showcase
 `MultiSelect<TItem>` are built entirely on it.

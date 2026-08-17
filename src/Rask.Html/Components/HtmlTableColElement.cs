@@ -14,7 +14,7 @@ namespace Rask.Html.Components;
 public abstract partial class HtmlTableColElement : Element
 {
     /// <summary>How many consecutive columns the element applies to.</summary>
-    public new int? Span { get; set; }
+    public int? Span { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

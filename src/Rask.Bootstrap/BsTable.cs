@@ -29,7 +29,7 @@ public sealed partial class BsTable : BsBlock
     public bool? Hover { get; set; }
 
     /// <summary>Tightens the cell padding.</summary>
-    public new bool? Small { get; set; }
+    public bool? Small { get; set; }
 
     /// <summary>Scrolls the table horizontally on narrow screens instead of overflowing the page.</summary>
     public bool? Responsive { get; set; }

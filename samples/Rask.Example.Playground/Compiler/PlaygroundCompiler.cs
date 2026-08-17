@@ -9,10 +9,11 @@ namespace Rask.Example.Playground.Compiler;
 ///     Compiles a snippet of Rask component C# into an assembly entirely in-process — the same
 ///     Roslyn pipeline the SDK runs at build time, minus the Razor transpile step Blazor needs:
 ///     <c>parse → run the Rask ComponentFactoryGenerator → Emit → Assembly.Load → instantiate</c>.
-///     Because the Rask source generator runs here, the emitted assembly gets its
-///     <c>Generated.Div(...)</c> factories and the <c>global using static Rask.Core.Components.Generated;</c>
-///     that make the terse <c>Div()[…]</c> forms resolve — so a visitor writes exactly the code they'd
-///     write in a real project. A second, display-only pass runs Rask's analyzers (RASK0##) so the
+///     Because the Rask source generator runs here, the emitted assembly gets the builder entries that make
+///     a chain like <c>Div.Class("card")[…]</c> resolve — including entries for the visitor's own components,
+///     which is why the driver has to switch the builder surface on itself (see
+///     <see cref="PlaygroundCompilation" />) — so a visitor writes exactly the code they'd write in a real
+///     project. A second, display-only pass runs Rask's analyzers (RASK0##) so the
 ///     framework's diagnostics can surface as editor squiggles; analyzer/generator diagnostics never
 ///     gate execution — only CS compile errors and a failed <c>Emit</c> do.
 /// </summary>

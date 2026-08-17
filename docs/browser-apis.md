@@ -37,7 +37,7 @@ round-trip, so activation survives — so it works on **every** host, Server inc
 `IShare` (Rask.Client) lets you share from code (a lifecycle hook, after an `await`), which only the
 in-process hosts can do, so it lives one tier down.
 
-Inject through the **constructor** (not a settable property — that would become a required factory
+Inject through the **constructor** (not a settable property — that would become a required chain
 parameter) and call from an **event handler or lifecycle hook**, never from `Render()`:
 
 ```csharp

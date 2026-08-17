@@ -4,8 +4,6 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- The tag family lives in Rask.Html now; this project names tags unqualified. -->
-
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <!-- BenchmarkDotNet needs Release builds; this project is hand-run, not part of `dotnet test`. -->
@@ -24,7 +22,6 @@
     -->
     <NoWarn>$(NoWarn);0436;0618;BL0006;RASK022</NoWarn>
   </PropertyGroup>
-
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet"/>

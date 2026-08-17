@@ -71,7 +71,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
 
     /// <summary>The group's label.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     // Extra wrapper classes per item, e.g. "form-check-inline".
 

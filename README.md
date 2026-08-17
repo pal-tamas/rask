@@ -90,7 +90,7 @@ another language:
 
 ```csharp
 [Route("/counter")]
-public sealed class Counter : Component
+public sealed partial class Counter : Component
 {
     private int _count;
 
@@ -105,6 +105,48 @@ public sealed class Counter : Component
 
 <sub>☝️ A complete, live, interactive component — routing, state, and event handling in one C# class.
 **[See it running, and dozens more, in the live demo ↗](https://pal-tamas.github.io/rask/docs/)**</sub>
+
+### Markup is a chain, and the chain is the documentation
+
+There is no template language to learn, and no API to look up either. **You name a component and chain onto
+it** — `Div` *is* a div, so pressing `.` lists everything it has, with each property's own doc comment
+attached. Children go in the `[…]` indexer. There is no `new`, no factory call, and nothing to import:
+
+```csharp
+Div.Class("card")[
+    H2.Class("card-title")["Products"],
+    Button.Class("btn").OnClick(Save)["Save"]
+]
+```
+
+Components that **cannot exist** until you have told them something ask for it first, and the compiler
+holds you to it. A form control does not know what it binds until you say, so `.Bind(…)` opens the chain
+and the type comes with it — `Input<string>()` is never needed:
+
+```csharp
+Input.Bind(() => _form.Name).Placeholder("Ada Lovelace")   // bound to a model expression
+Input.Value(_text).OnChange(v => _text = v)                // controlled by a value you hold
+```
+
+Pick one and the other is not offered: a control bound to an expression *and* handed a value has two
+sources of truth, so the surface does not let you write it. Stop before a required step and there is
+nothing to render — which is a **compile error where you made the mistake**, not a null at runtime.
+
+Your own components get the identical surface — a non-nullable property with no initializer becomes a
+required step, anything else an optional setter:
+
+```csharp
+public sealed partial class ProductCard : Component
+{
+    public required string Title { get; set; }   // a step — the chain asks for it first
+    public string? Subtitle { get; set; }        // a setter
+    public Action? OnPick { get; set; }          // a plain delegate; call it with OnPick?.Invoke()
+}
+
+ProductCard.Title("Coffee").Subtitle("Dark roast").OnPick(Pick)
+```
+
+**[📖 The whole surface, step by step → Building components](docs/building-components.md)**
 
 **One codebase, every surface.** That *same* component runs three ways — pick the host per project, write the
 UI once:
@@ -123,7 +165,7 @@ no separate server to run. Add one with a package reference and a line of DI; th
 
 | Pillar | What one command / one line gives you | |
 |---|---|---|
-| **The `rask` CLI** | `new` · `dev` · `db` · `deploy` — the whole lifecycle, one tool. | [→](docs/cli.md) |
+| **The `rask` CLI** | `new` · `dev` · `db` · `deploy` · `info` · `doctor` — the whole lifecycle, one tool. | [→](docs/cli.md) |
 | **A CRUD slice** | An encapsulated entity, CQRS commands/queries, and list/create/edit pages — written once in the tutorial and repeated per feature. | [→](docs/tutorial/02-first-feature.md) |
 | **Data** (`Rask.Data`) | `Entity<TId>` + EF interceptors: audit stamps, soft delete, optimistic concurrency, domain events. | [→](docs/data.md) |
 | **CQRS** (`Rask.Cqrs`) | Source-generated, trim-safe queries / commands / notifications via `IDispatcher`. | [→](docs/cqrs.md) |
@@ -249,9 +291,9 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.Wasm`                        | `net10.0-browser`                                                   | `WasmHostBuilder.CreateDefault()` + `host.RunAsync<TApp>()` |
 | `Rask.Wasm.Hosting`                | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
 | `Rask.Native` *(preview)*          | `net10.0-ios;net10.0-android` app head                             | `NativeAppHost.CreateDefault()` + `host.RunLocalAsync<TApp>(webView)` |
-| `Rask.Validation.DataAnnotations`  | any host that hosts your forms                                      | drop `DataAnnotationsValidator()` inside a `Form<T>`        |
-| `Rask.Validation.FluentValidation` | any host that hosts your forms                                      | drop `FluentValidationValidator(new MyValidator())` inside  |
-| `Rask.Bootstrap`                   | any host with your components                                       | link `BootstrapStyles()` in `Head`, then use `Bs*` factories |
+| `Rask.Validation.DataAnnotations`  | any host that hosts your forms                                      | drop `DataAnnotationsValidator` inside a `Form`             |
+| `Rask.Validation.FluentValidation` | any host that hosts your forms                                      | drop `FluentValidationValidator.Validator(myValidator)` inside |
+| `Rask.Bootstrap`                   | any host with your components                                       | link `BootstrapStyles` in `Head`, then chain the `Bs*` components |
 | `Rask.WebPush`                     | any backend (Server app or a WASM PWA's ASP.NET host)              | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
 | `Rask.Data`                        | an EF Core app wanting a DDD base entity + interceptors           | `class X : Entity<Guid>` + `services.AddRaskData()` + `modelBuilder.ApplyRaskConventions()` |
@@ -274,7 +316,7 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.Sync`                        | offline-first apps needing a conflict-free merge                   | `new SyncEngine(...)` — an HLC + op log, with no I/O of its own |
 | `Rask.Sync.Client`                 | syncing that op log between devices with no server                 | point a `SyncEngine` at an `IObjectStore` bucket             |
 | `Rask.Signaling`                   | `net10.0` ASP.NET hosting the WebRTC signaling `IWebRtc` needs     | `services.AddRaskSignaling()` + `app.MapRaskSignaling()` — needs `app.UseWebSockets()` |
-| `Rask.Testing`                     | your `*.Tests` project (references your app)                       | `RaskTest.Render(new MyComponent())` → assert on `.Html`    |
+| `Rask.Testing`                     | your `*.Tests` project (references your app)                       | `RaskTest.Render(MyComponent.Title("hi"))` → assert on `.Html` |
 
 </details>
 
@@ -311,7 +353,8 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 | **[Tutorial: zero to deploy](docs/tutorial/00-overview.md)** | Build a whole product end to end — one OPF pillar per chapter, from `rask new` to `rask deploy`. |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup. |
 | **[Best practices](docs/best-practices.md)** | The patterns and pitfalls that keep an app correct, secure, and fast. |
-| **[Elements & the DSL](docs/elements.md)** | Primitives, tag factories, universal props, and typed SVG — the render surface. |
+| **[Building components](docs/building-components.md)** | How markup is written: naming a component and chaining onto it, the steps a component demands before it exists, bound vs. controlled form controls, and what the IDE offers at each step. |
+| **[Elements & the DSL](docs/elements.md)** | Primitives, tag entries, universal props, and typed SVG — the render surface. |
 | **[Composition](docs/composition.md)** · **[Lifecycle](docs/lifecycle.md)** | Component tiers (static/stateless/stateful), context, callbacks, children; mount/update/dispose. |
 | **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** | URLs, route params, the form pipeline, custom `IFormControl<T>` inputs. |
 | **The back half** — **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[Email](docs/mail.md)** · **[Cache](docs/cache.md)** · **[Outbox](docs/outbox.md)** · **[Logging](docs/logging.md)** · **[SQLite](docs/sqlite.md)** | The DB-backed pillars: a DDD base entity, source-generated CQRS, cookie/JWT auth, durable jobs, transactional email, a database-backed cache, a transactional outbox, and production SQLite + backup. |

@@ -9,10 +9,11 @@ namespace Rask.Example.Playground.Compiler;
 /// <summary>
 ///     The result of parsing a snippet and running the Rask <see cref="ComponentFactoryGenerator" /> over it:
 ///     the user's own <see cref="SyntaxTree" />, the generator-updated <see cref="Compilation" /> (user tree
-///     + the emitted <c>Generated.*</c> factory trees and the two <c>global using static</c> directives), and
-///     the generator's own diagnostics. Shared by the Run pipeline (<see cref="PlaygroundCompiler" />) and the
-///     live analysis pipeline (<see cref="PlaygroundWorkspace" />) so both see exactly the same bound program —
-///     the terse <c>Div()[…]</c> forms resolve identically for execution, diagnostics and completion.
+///     + the emitted builder-entry trees, the <c>Generated.*</c> factory trees and the <c>global using
+///     static</c> directives), and the generator's own diagnostics. Shared by the Run pipeline
+///     (<see cref="PlaygroundCompiler" />) and the live analysis pipeline (<see cref="PlaygroundWorkspace" />)
+///     so both see exactly the same bound program — a chain like <c>Div.Class("card")[…]</c> resolves
+///     identically for execution, diagnostics and completion.
 /// </summary>
 internal readonly record struct PlaygroundCompilation(
     SyntaxTree UserTree,
@@ -49,12 +50,6 @@ internal readonly record struct PlaygroundCompilation(
         var driver = CSharpGeneratorDriver
             .Create(new ComponentFactoryGenerator())
             .WithUpdatedParseOptions(ParseOptions)
-            // Turn the builder surface on, exactly as a real project build does via the MSBuild property.
-            // It used not to matter here: the HTML tags lived in Rask.Core and their entries arrived by
-            // INHERITANCE from RaskMarkup, already compiled into the referenced Rask.Core.dll. They ship
-            // from Rask.Html now, and a referenced library's entries are INJECTED — which this emission
-            // does, and which is skipped entirely when the property is absent. Without this a snippet
-            // that writes `Input.Bind(…)` no longer compiles in the playground.
             .WithUpdatedAnalyzerConfigOptions(BuilderSurfaceOptions.Instance);
 
         driver.RunGeneratorsAndUpdateCompilation(
@@ -71,13 +66,15 @@ internal readonly record struct PlaygroundCompilation(
     }
 
     /// <summary>
-    ///     The single MSBuild property the Rask generator reads here: <c>RaskBuilderSurface</c>. A real build
-    ///     gets it from <c>Rask.Core.targets</c> (<c>CompilerVisibleProperty</c>); the playground has no
-    ///     MSBuild, so it is stated directly.
+    ///     Turns the builder surface on for the in-browser compile. In a real project the MSBuild property
+    ///     <c>RaskBuilderSurface</c> (defaulted to <c>true</c> by <c>Rask.Core.targets</c>) reaches the
+    ///     generator as a <c>CompilerVisibleProperty</c>; here there is no MSBuild, and an absent value reads
+    ///     as <c>false</c> — which emits no builder entries at all, so a chain over a component the visitor
+    ///     just wrote would not compile. Hand-built drivers have to say it themselves.
     /// </summary>
     private sealed class BuilderSurfaceOptions : AnalyzerConfigOptionsProvider
     {
-        internal static readonly BuilderSurfaceOptions Instance = new();
+        public static readonly BuilderSurfaceOptions Instance = new();
 
         public override AnalyzerConfigOptions GlobalOptions { get; } = new Options();
 
@@ -89,7 +86,7 @@ internal readonly record struct PlaygroundCompilation(
         {
             public override bool TryGetValue(string key, out string value)
             {
-                if (string.Equals(key, "build_property.RaskBuilderSurface", StringComparison.Ordinal))
+                if (key == "build_property.RaskBuilderSurface")
                 {
                     value = "true";
                     return true;

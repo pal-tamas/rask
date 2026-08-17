@@ -16,12 +16,13 @@ namespace Rask.Core.Tests;
 // overloads per control for exactly one reason — `Validate` had to be a required, correctly-typed
 // parameter, and sync `Validate<T>` cannot share a parameter with async `ValidateAsync<T>` without
 // losing inference. On this surface that fan-out collapses: one entry, and the validator is a setter.
-public sealed class BoundForm
+public sealed partial class BoundForm : global::Rask.Core.RaskMarkup
 {
     public string Name { get; set; } = "";
     public int Age { get; set; }
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class BoundBuilderProbe : Component
 {
     internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
@@ -38,6 +39,7 @@ internal sealed partial class BoundBuilderProbe : Component
         value.Length > 0 ? Array.Empty<string>() : new[] { "required" };
 }
 
+[global::Rask.Core.RaskMarkup]
 internal sealed partial class BoundFactoryProbe : Component
 {
     internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };

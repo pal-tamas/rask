@@ -3,8 +3,8 @@
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
 
-These come from the Rask source generator and analyzers (`Rask.Generators`). The generated
-factories don't exist until a build runs, so if an ID below isn't recognised by your IDE yet,
+These come from the Rask source generator and analyzers (`Rask.Generators`). The generated chain
+surface doesn't exist until a build runs, so if an ID below isn't recognised by your IDE yet,
 build once.
 
 Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
@@ -25,7 +25,7 @@ A fix is offered only when the rewrite means exactly what you wrote. **RASK014's
 construction has arguments or an object initializer**: the factory's parameters are generated from the
 component's public properties in an order that is not the constructor's, so moving positional arguments
 across would compile and mean something else — and an object initializer is only legal after `new`. In
-those cases the error stands with its message, which already names the factory to call.
+those cases the error stands with its message, which already spells out the chain to write.
 
 Every RASK diagnostic reports under the single category **`Rask`**, so one `.editorconfig` line covers
 the family:
@@ -49,7 +49,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK011](#rask011) | Error | Route/query param type must implement `IParsable<T>` |
 | [RASK012](#rask012) | Error | Multiple `[NotFound]` components |
 | [RASK013](#rask013) | Error | `[NotFound]` cannot be combined with `[Route]` |
-| [RASK014](#rask014) | Error | Components must be created via factory methods |
+| [RASK014](#rask014) | Error | Components must be built through a chain |
 | [RASK015](#rask015) | Error | Orphan scoped-CSS file |
 | [RASK016](#rask016) | Error | Ambiguous scoped-CSS match |
 | [RASK017](#rask017) | Error | Orphan scoped-JS file |
@@ -81,6 +81,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK043](#rask043) | Warning | Component factory is not imported in a type that has no builder entries |
 | [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
+| [RASK046](#rask046) | Warning | Key must open a component's chain |
 
 ---
 
@@ -101,7 +102,7 @@ public sealed partial class Badge : Component
 **Fix (optional):** add `required` for language-level enforcement (**quick-fix available** — the IDE
 lightbulb inserts it), or make the property nullable
 (`string? Label`) if it should be optional. HTML-attribute props are intentionally declared nullable
-to stay ergonomic. See [factory generation rules](getting-started.md).
+to stay ergonomic. See [what becomes a step](getting-started.md#6-why-homepage-already-chains-the-generated-surface).
 
 ## RASK002
 **`required` property cannot be honored by the generated factory** · Warning
@@ -204,18 +205,21 @@ specific path.
 **Fix:** remove `[Route]` from the not-found page.
 
 ## RASK014
-**Components must be created via factory methods** · Error
+**Components must be built through a chain** · Error
 
-`new SomeComponent()` was used outside `Rask.Core`. Components are constructed through the generated
-factories so keys, children, and DI wiring are handled consistently.
+`new SomeComponent()` was used outside `Rask.Core`. Components are built by naming them and chaining
+onto them, which is what routes the first step through `GetOrCreate` — the identity the runtime
+reconciles across renders — and what wires keys, children, and DI consistently. `new` skips all of it,
+and can also produce a component whose required properties were never set.
 
 ```csharp
 // ✗ new Div
 // ✓ Div.Class("card")[ ... ]
 ```
 
-**Fix:** call the generated factory (`Div(...)`, `Counter(...)`). In test files that deliberately
-construct components directly, opt out per file with `#pragma warning disable RASK014`.
+**Fix:** name it and chain onto it — `Counter.Start(3)`, or `Counter` alone when it needs nothing. In
+test files that deliberately construct components directly, opt out per file with
+`#pragma warning disable RASK014`.
 
 ## RASK015
 **Orphan scoped-CSS file** · Error
@@ -298,24 +302,35 @@ rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appe
 ## RASK022
 **List item is missing a `Key`** · Warning
 
-A Rask factory call appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or
-`.Add` in a loop) without a `Key:`. Keyless items reconcile **by position**, which loses focus and
-input state and emits untrusted structural diffs on insert/remove/move.
+A Rask component appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or `.Add`
+in a loop) without a `Key`. Keyless items reconcile **by position**, which loses focus and input state
+and emits untrusted structural diffs on insert/remove/move — and for a component, position also
+decides which instance is reused, so the row's own state follows the slot rather than the item
+(see [RASK046](#rask046)).
+
+Both spellings are recognised: a chain (`Li[…]`, `Li.Class("c")[…]`) and, while it still exists, a
+generated factory call. The chain form went unreported until #704 — the check matched a method named
+after the component, and a chain has none.
 
 ```csharp
 // ✗ items.Select(i => Li[ i.Name ])
 // ✓ items.Select(i => Li.Key(i.Id)[ i.Name ])
 ```
 
-**Fix:** pass a stable `Key:` (an entity id, not the loop index). See
+**Fix:** pass a stable `.Key(…)` (an entity id, not the loop index). See
 [keyed lists](getting-started.md) and the [live-rendering architecture](architecture/live-rendering.md)
 for why identity beats position.
 
 ## RASK023
 **`Img` is missing `Alt` text** · Warning
 
-An `Img(...)` factory call supplies no `Alt`. Without a text alternative, screen readers fall back to
+An `Img` is built without naming `Alt`. Without a text alternative, screen readers fall back to
 announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/WAI/WCAG21/Understanding/non-text-content).
+
+Both spellings are recognised: a chain (`Img.Src("/x")`, or the bare `Img`) and, while it still exists,
+a generated factory call. **The chain form went unreported until #704** — the check matched a static
+method named `Img`, and on a chain the outermost call is the `Src` setter, so an accessibility check
+that the docs' own examples should have tripped never fired at all.
 
 ```csharp
 // ✗ Img.Src("/logo.png")
@@ -402,7 +417,7 @@ a lifecycle hook, async loop, or event subscription (`feed.Updated += StateHasCh
 
 Every DOM event on a component maps to a single handler slot. The typed `OnX` (sync) and `OnXAsync`
 (async) properties are two views over that one slot, so wiring **both** for the same event — e.g.
-`Button(OnClick: ..., OnClickAsync: ...)` — is a mistake: the runtime keeps the sync handler and silently
+`Button.OnClick(...).OnClickAsync(...)` — is a mistake: the runtime keeps the sync handler and silently
 ignores the async one, which is rarely what the author intended. Set exactly one handler per event.
 
 ```csharp
@@ -540,7 +555,7 @@ Rask generates a type-safe `RouteUrl` factory — `Routes.<Page>()` — for ever
 that safety: rename or remove the `[Route]` and the string becomes a silent dead link that still compiles,
 whereas `Routes.<Page>()` becomes a compile error you fix immediately. The analyzer flags a string literal
 passed to internal navigation — `Navigator.NavigateTo("…")` or any `RouteUrl` slot (`NavLink(Href: …)`,
-`BsNavItem(Href: …)`, `NativeTab(To: …)`, via the `string → RouteUrl` implicit conversion) — **only** when
+`BsNavItem.Href(…)`, `NativeTab.To(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
 the path maps to a generated parameterless factory.
 
 It deliberately leaves alone:
@@ -988,3 +1003,34 @@ settable properties, and nothing in the type system is left to forbid the write.
 **Fix:** move the assignment into the chain — every property a chain can reach has a step of the same
 name. Suppress with `#pragma warning disable RASK045` / `.editorconfig`
 (`dotnet_diagnostic.RASK045.severity = none`) where a component genuinely has to be completed later.
+
+---
+
+## RASK046
+**Key must open a component's chain** · Warning
+
+A keyed child is identified by its **key** rather than by its position among its siblings, so that the
+state a row holds itself — a private field, an edit buffer, an `OnMount` subscription — moves with the
+item rather than with the slot when the list changes shape. Settling that identity means handing back
+the instance the key owns and discarding the one the entry just built, so any step written **before**
+`Key` is applied to a component that is about to be thrown away:
+
+```csharp
+TodoRow.Item(item).Key(item.Id)   // ✗ RASK046 — Item is written to the instance Key then discards
+TodoRow.Key(item.Id).Item(item)   // ✓ identity first, then everything else
+```
+
+It compiles and it renders. The value goes missing only once the list changes shape — an insert at the
+top, a reorder — which is the worst possible time to discover it.
+
+**Elements are exempt, and that is not a carve-out.** An element is re-specified in full on every
+render: whatever its chain does not name, the deferred reset puts back. Its instance therefore carries
+nothing, it is never claimed, and its DOM identity comes from `data-rask-key` in the diff codec rather
+than from the parent's child map. So the common spelling stays exactly as it reads:
+
+```csharp
+Div.Class("row").Key(index)[cells]   // ✓ an element is never claimed
+```
+
+**Fix:** move `.Key(…)` to the front of the chain. See [composition → keys](composition.md#children--fragments)
+and the reconciliation note in [the live-rendering codec](architecture/live-rendering-codec.md).

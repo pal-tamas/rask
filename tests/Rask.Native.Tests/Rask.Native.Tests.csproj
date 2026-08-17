@@ -17,7 +17,6 @@
     <RunSettingsFilePath>$(MSBuildProjectDirectory)/hotreload.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
-
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>

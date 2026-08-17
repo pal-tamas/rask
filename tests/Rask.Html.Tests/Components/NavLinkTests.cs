@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Rask.Core.Live;
 using Rask.Core.Routing;
-using Rask.Html.Components;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 

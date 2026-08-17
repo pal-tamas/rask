@@ -14,7 +14,7 @@ public sealed partial class Optgroup : Element
     public bool? Disabled { get; set; }
 
     /// <summary>The group's heading. Required.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

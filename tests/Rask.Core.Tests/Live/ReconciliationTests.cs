@@ -102,7 +102,7 @@ public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
                 ctx.GetOrCreate<CounterStub>(_ => new CounterStub { Value = 999 });
             }
 
-            return new global::Rask.Html.Components.Span();
+            return new Span();
         });
 
         view.RenderAsLiveRoot(EmptyServices);

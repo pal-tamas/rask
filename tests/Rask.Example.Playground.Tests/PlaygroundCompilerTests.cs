@@ -67,6 +67,39 @@ public sealed class PlaygroundCompilerTests
     }
 
     [Fact]
+    public async Task Runs_the_Rask_generator_so_a_user_component_can_be_chained()
+    {
+        // The chain over the visitor's OWN component. `Badge.Message("new")` needs the generator's builder
+        // ENTRY for `Badge`, which is emitted only when the driver is told `RaskBuilderSurface=true` — the
+        // browser compile has no MSBuild to say it, so the driver has to. Without it there is no entry, the
+        // name binds to the TYPE, and the step reads as a static member call: CS1955. `Div`/`Span` would
+        // keep working either way (their entries are compiled into the referenced Rask.Core), so only a
+        // component the visitor wrote proves the option actually arrived.
+        var result = await NewCompiler().CompileAsync("""
+            using Rask.Core;
+
+            namespace Demo;
+
+            public sealed partial class Badge : Component
+            {
+                public required string Message { get; set; }
+                protected override Component? Render() => Span.Class("badge")[Message];
+            }
+
+            public sealed partial class Playground : Component
+            {
+                protected override Component? Render() =>
+                    Div[ Badge.Message("new"), Badge.Message("hot") ];
+            }
+            """);
+
+        Assert.True(result.Succeeded, DumpDiagnostics(result));
+        var html = result.Component!.ToHtml();
+        Assert.Contains("<span class=\"badge\">new</span>", html);
+        Assert.Contains("<span class=\"badge\">hot</span>", html);
+    }
+
+    [Fact]
     public async Task Renders_initial_state_of_a_stateful_component()
     {
         var result = await NewCompiler().CompileAsync("""
@@ -112,7 +145,6 @@ public sealed class PlaygroundCompilerTests
         var result = await NewCompiler().CompileAsync("""
             using Rask.Core;
             using Rask.Core.Components;
-            using Rask.Html.Components;
 
             public sealed class Playground : Component
             {

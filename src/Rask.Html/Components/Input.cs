@@ -83,7 +83,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
     ///     A regular expression the value must match. Give a <c>Title</c> as well — it is what the browser
     ///     shows when the pattern fails.
     /// </summary>
-    public new string? Pattern { get; set; }
+    public string? Pattern { get; set; }
 
     /// <summary>The control's visible width in characters. A display hint, not a limit.</summary>
     public int? Size { get; set; }
@@ -121,7 +121,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
     public bool? Autofocus { get; set; }
 
     /// <summary>The <c>id</c> of the form this control belongs to, for a control outside it.</summary>
-    public new string? Form { get; set; }
+    public string? Form { get; set; }
 
     /// <summary>Overrides the form's <c>action</c> when this control submits it.</summary>
     public string? FormAction { get; set; }

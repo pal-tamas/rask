@@ -204,7 +204,7 @@ Pass `SelectedKeys` to own it yourself — the same shape `Page` and `Sort` use.
 selection you give it and only reports clicks:
 
 ```csharp
-BsDataGrid(Data: page, SelectedKeys: _selected, OnSelectionChange: k => _selected = k, ...)
+BsDataGrid.Data(page).SelectedKeys(_selected).OnSelectionChange(k => _selected = k)
 ```
 
 Unlike `Sort`, "is it set?" is a sound signal here: an empty list is a perfectly good controlled selection

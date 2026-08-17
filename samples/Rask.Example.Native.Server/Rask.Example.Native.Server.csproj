@@ -33,7 +33,6 @@
     <ApplicationVersion>1</ApplicationVersion>
   </PropertyGroup>
 
-
   <!-- Disable each platform's linker (a showcase example, not a size-optimized shipping app) — Rask.Native's
        transitive reflection paths are not trim-clean, so a trimmed build would fail warnings-as-errors. -->
   <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">

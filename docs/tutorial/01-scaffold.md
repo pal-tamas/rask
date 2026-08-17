@@ -75,7 +75,7 @@ Everything the CLI generates lands under `Features/`: a screen is its own `Featu
 cross-cutting code (the app root, components, jobs, emails, the `DbContext`) sits in `Features/Shared/`. You'll
 add your first `Features/<Name>/` slice in the next chapter.
 
-For the component model itself — state, event handlers, the factory methods, routing — see
+For the component model itself — state, event handlers, the chain, routing — see
 [Getting started](../getting-started.md). This tutorial focuses on everything *behind* the UI.
 
 ## Verify

@@ -78,7 +78,7 @@ public abstract partial class SvgElement : Element
     public string? Transform { get; set; }
 
     /// <summary>A reference to a <c>clipPath</c> that clips this element, as <c>url(#id)</c>.</summary>
-    public new string? ClipPath { get; set; }
+    public string? ClipPath { get; set; }
 
     /// <summary>
     ///     The value <c>currentColor</c> resolves to for this element and its children — the usual way to

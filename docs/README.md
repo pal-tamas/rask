@@ -28,7 +28,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Live playground](playground.md) | Write Rask C# in the browser with IntelliSense, as-you-type diagnostics, and a gallery of examples, then see it compile & render live (Roslyn in WebAssembly) — how it works, the entry-point convention, and its limitations. |
 | [Best practices](best-practices.md) | Production patterns and common pitfalls across component design, state, forms, data access, security, accessibility, performance and testing — each linking to the deep dive. |
 | [Building components](building-components.md) | How markup is written: naming a component and chaining onto it, the properties a component demands before it exists, bound versus controlled form controls, and what the IDE offers at each step. |
-| [Elements & the DSL](elements.md) | The primitives every component is built from: tag factories, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
+| [Elements & the DSL](elements.md) | The primitives every component is built from: tag entries, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
 | [JS interop](js-interop.md) | Scoped CSS & JS conventions, calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
@@ -78,7 +78,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 ## Bootstrap components
 
-The optional `Rask.Bootstrap` package — typed Bootstrap 5.3 component factories, layered on top of
+The optional `Rask.Bootstrap` package — typed Bootstrap 5.3 components, chained like any other, layered on top of
 core. Start at the [hub](bootstrap.md) for setup and the component map; each component group then has
 its own page:
 

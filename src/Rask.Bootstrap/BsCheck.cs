@@ -63,7 +63,7 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
     public Func<bool, Task>? OnChangeAsync { get; set; }
 
     /// <summary>The control's label, rendered beside it and associated with it.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     /// <summary>Makes the control non-interactive.</summary>
     public bool? Disabled { get; set; }
@@ -77,7 +77,7 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
     // Renders the switch toggle (.form-switch + role="switch").
 
     /// <summary>Renders it as a switch rather than a checkbox.</summary>
-    public new bool? Switch { get; set; }
+    public bool? Switch { get; set; }
 
     // Lays the check inline (.form-check-inline) / right-aligned (.form-check-reverse).
 

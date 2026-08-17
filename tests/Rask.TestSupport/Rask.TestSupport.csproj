@@ -10,7 +10,6 @@
     <IsTestProject>false</IsTestProject>
   </PropertyGroup>
 
-
   <ItemGroup>
     <PackageReference Include="xunit"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>

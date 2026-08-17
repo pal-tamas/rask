@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Html.Components;
 
 namespace Rask.Bootstrap;
 

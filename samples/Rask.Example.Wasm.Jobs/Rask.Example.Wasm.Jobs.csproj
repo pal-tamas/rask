@@ -34,7 +34,6 @@
     <NoWarn>$(NoWarn);WASM0001;IL2104</NoWarn>
   </PropertyGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <!-- Rask.Wasm marks Rask.Core / Rask.Client PrivateAssets="all" (kept out of its nuspec deps),

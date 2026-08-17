@@ -21,7 +21,7 @@ public sealed partial class ValidationMessage : Component
     /// <summary>
     ///     Your own markup for the errors, given the messages. Without it, a default is rendered.
     /// </summary>
-    public new required Func<IReadOnlyList<string>, Component> Template { get; set; }
+    public required Func<IReadOnlyList<string>, Component> Template { get; set; }
 
     // No manual BypassRenderCache: reading EditContext.GetValidationMessages in Render() auto-latches
     // the render-cache opt-out (see EditContext.MarkReader / Component._readsAmbientState), so a message
@@ -65,7 +65,7 @@ public sealed partial class ValidationSummary : Component
     /// <summary>
     ///     Your own markup for the errors, given the messages. Without it, a default is rendered.
     /// </summary>
-    public new required Func<IReadOnlyList<ValidationEntry>, Component?> Template { get; set; }
+    public required Func<IReadOnlyList<ValidationEntry>, Component?> Template { get; set; }
 
     // Reads EditContext.GetValidationEntries in Render() — auto-latches the cache opt-out; see
     // ValidationMessage for the rationale.
@@ -114,7 +114,7 @@ public sealed partial class ValidatingIndicator : Component
     /// <summary>
     ///     Your own markup for the errors, given the messages. Without it, a default is rendered.
     /// </summary>
-    public new required Func<Component> Template { get; set; }
+    public required Func<Component> Template { get; set; }
 
     // Reads EditContext.ShouldShowValidatingIndicator(field) in Render() — auto-latches the cache
     // opt-out; see ValidationMessage for the rationale.

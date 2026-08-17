@@ -19,7 +19,7 @@ public sealed partial class Label : Element
     public string? For { get; set; }
 
     /// <summary>The <c>id</c> of the form to associate with, for a label outside it.</summary>
-    public new string? Form { get; set; }
+    public string? Form { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

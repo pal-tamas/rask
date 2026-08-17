@@ -1,5 +1,4 @@
 using Rask.Core;
-using Rask.Html.Components;
 
 namespace Rask.Html.Tests.Components;
 

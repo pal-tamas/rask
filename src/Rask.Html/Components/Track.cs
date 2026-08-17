@@ -27,7 +27,7 @@ public sealed partial class Track : Element
     public string? Srclang { get; set; }
 
     /// <summary>The title shown in the browser's track-selection menu.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     /// <summary>
     ///     Marks this the track to enable when the user has expressed no preference. At most one per media

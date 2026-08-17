@@ -12,7 +12,6 @@
     <StaticWebAssetBasePath>_content/Rask.Example.Shared</StaticWebAssetBasePath>
   </PropertyGroup>
 
-
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>
   </ItemGroup>

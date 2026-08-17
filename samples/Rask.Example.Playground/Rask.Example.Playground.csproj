@@ -49,7 +49,6 @@
     <NoWarn Condition=" '$(RaskPlaygroundData)' == 'true' ">$(NoWarn);WASM0001</NoWarn>
   </PropertyGroup>
 
-
   <ItemGroup>
     <!-- Bring the generated Bs* factories into scope unqualified (BsButton()/BsLink()/BsBadge()/BsIcon()/
          BootstrapStyles()/RaskTokens()), matching how the other samples consume Rask.Bootstrap. -->

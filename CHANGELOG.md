@@ -27,6 +27,15 @@ them until tagged releases begin.
   - **`Doctype` is an HTML component** and moved with the family. `HtmlSerializer` matches the
     `DoctypeComponent` base Core keeps, so it still emits the declaration without depending on `Rask.Html`.
 
+### Added
+- **`RaskBuilderEntryInjection`** (MSBuild, opt-out) splits the consumer half of the builder surface: the
+  assembly still publishes its `RaskEntries{Assembly}` class for referencing compilations, but its own
+  entries are not injected back into its own hosts, and it does not re-emit the universal setter surface.
+  A component *library* that IS the entry set needs that — injecting each of ~155 tags into every other is
+  O(n²) generated members colliding with what those hosts inherit from `Element`, and a second copy of the
+  generic `Key`/`Class`/`Id` extensions makes them ambiguous to infer (CS0411).
+
+
 ### Fixed
 - **A nested component silently lost its builder entries.** Entries reached a nested component only by
   inheritance from `RaskMarkup`, where nesting is irrelevant; the generator skipped nested hosts outright
@@ -37,13 +46,75 @@ them until tagged releases begin.
   with a member the host declares or inherits (`Style`, `Data`, `Label`, `Cite`, `ClipPath`). Harmless
   while the tag entries arrived by inheritance — a member merely shadows one — and CS0102/CS0108 the
   moment any of them is injected.
+- **Two analyzers had stopped firing altogether on chain-built markup — including an accessibility
+  check.** `RASK022` (a list item without a `Key`) and `RASK023` (an `Img` without `Alt`) each identified
+  their subject as *"a static method on the class named `Generated`"* — the factory. A chain has no such
+  method: `Li[…]` is a property reference plus a children indexer, and `Img.Src("/x")` ends at the `Src`
+  **setter**. So neither analyzer failed on the chain; neither ever ran. Every chain-written `<img>` in
+  every consuming app was going unchecked for `alt`, and every keyless chain-built list unwarned — on the
+  only spelling the docs teach.
 
-### Added
-- **`RaskBuilderEntryInjection`** (MSBuild, opt-out) splits the consumer half of the builder surface: the
-  assembly still publishes its `RaskEntries{Assembly}` class for referencing compilations, but its own
-  entries are not injected back into its own hosts. For a component *library* that IS the entry set —
-  `Rask.Html` declares ~155 tags — injecting each into every other is O(n²) generated members that collide
-  head-on with what those hosts inherit from `Element`.
+  Their own tests could not have caught it: those compile without running the builder generator, so they
+  cannot express a chain at all. `AnalyzersOnTheChainSurfaceTests` runs the generator first, and its two
+  keyless/alt-less cases fail on the previous behaviour.
+
+  Both now read the chain down to the entry that opened it and ask whether the step was named, via a
+  shared `BuilderEntry.TryReadChain`. The factory path is untouched while it still exists, and every
+  existing factory test still passes. What it deliberately does **not** do is flag any expression merely
+  *typed* as a component: a static markup helper (`Ui.Badge(x)`) yields one and cannot be keyed, so only
+  a factory call or a chain — the two things that can carry the step — are considered.
+
+  Re-enabled, the pair found five real sites in this repo. Closes #704.
+
+  This is the same failure mode `BuilderEntry.ChainedComponent` already records for RASK025/038/044, and
+  it is worth stating as a rule: **a green build proves nothing about an analyzer still firing.** Only its
+  tests do, and only if they use the surface people actually write.
+
+- **A keyed row's own state followed its POSITION, not its item.** A child's identity inside its parent
+  was its ordinal among entry-built siblings, and `Key` took no part — the parent's child map never read
+  it. `Key` was only ever the diff codec's identity (`data-rask-key`), one layer above. So inserting an
+  item at the top of a keyed list handed every later row the *next* row's instance: private fields, an
+  edit buffer, an open/closed toggle, a subscription taken in `OnMount` — all of it moved with the slot
+  rather than with the item. That is exactly the bug `Key` exists to prevent, happening one layer below
+  where `Key` was being consulted. Older than the chain surface; `main` behaved identically.
+
+  A keyed child is now identified by its key. `GetOrCreateChild` stops recycling by ordinal for any type
+  its parent has keyed — it has to, because a key that is new this frame must get a FRESH instance rather
+  than whichever item used to sit at that position — and the `Key` step claims the instance the key owns.
+
+  **`Key` must now open a component's chain**, and that is enforced: **RASK046**. Claiming an instance
+  discards the one the entry built, so a step written before `Key` lands on the discarded one and is
+  silently lost. To make that expressible, `Key` is available before the required steps too — a component
+  with required properties can settle its identity first (`BsToast.Key(id).Id(…).Message(…)`), which the
+  chain previously had no way to say.
+
+  **Elements are exempt**, and not as a carve-out: an element is re-specified in full every render — what
+  its chain does not name, the deferred reset puts back — so its instance carries nothing and is never
+  claimed. `Div.Class("row").Key(i)` is unchanged, which is the spelling used in its hundreds.
+
+  RASK046 found **nine** live instances of the trap while this was being written — in `Rask.Bootstrap`,
+  `Rask.Dashboard`, the samples and the benchmarks. `BsToaster` and the toast demos are the clearest:
+  a toast list that changed shape rendered the *previous* frame's message and title.
+
+  **What it costs, measured** (`LiveRenderRoundTripBenchmarks`, 100 keyed components reshuffled every
+  iteration):
+
+  ```
+  | RenderKeyedList100_ShuffledEachIteration   Mean       Allocated
+  | position identity (and losing state)       85.64 us    92.21 KB
+  | key identity                               83.82 us    96.20 KB
+  |                                            within noise  +4.0 KB (+4.3%)
+  ```
+
+  The allocation is inherent rather than incidental, and worth naming: a type its parent has keyed can no
+  longer be recycled by ordinal, so each keyed row is constructed and then discarded when the key claims
+  an earlier instance — about 40 bytes a row. Wall clock is unchanged within the error bars, so no claim
+  is made about it. The ELEMENT path is untouched and stays at exact allocation parity with the factory
+  (`BuilderSurfaceBenchmarks`: 19.7 KB on both arms).
+
+  The obvious way to reclaim it is to defer construction until the key has been seen, which needs
+  `Build<T>` to carry an unmaterialised child — a wider change to the struct that every generated setter
+  takes. Left for later rather than folded in here.
 
 ### Added
 - **Every public component is documented, and the documentation now reaches the call site.** A factory
@@ -473,7 +544,82 @@ them until tagged releases begin.
   the harness can show. The remaining arguments for splitting are size, per-file pragmas and blast
   radius — not latency; the outbox can never move, since it commits with the business change by design.
 
+### Changed
+- **The chain is now what the docs, the README, the site and the playground actually teach.** #681 made
+  markup a chain but left the teaching surfaces describing the generated factory, so a newcomer's first
+  Rask code came from a page that taught the older spelling.
+  - **The playground taught the factory end to end, and could not have taught anything else.** Its three
+    gallery snippets and all eight guided-tutorial chapters are raw strings compiled only in the browser,
+    so no build ever saw them — every one wrote `Div(Class: …)` / `Button(OnClick: …)`. They are chains
+    now, `partial` like a real project's components, and the tutorial's bullets teach steps-versus-setters
+    and `.Key(…)` instead of factory parameters. Chapter 5's `rask generate feature` reference is gone
+    (the command was removed in #672).
+  - **The playground's Roslyn driver never switched the builder surface on.** It builds a
+    `CSharpGeneratorDriver` by hand and passed no `AnalyzerConfigOptionsProvider`, so
+    `RaskBuilderSurface` read as absent — which is *false* — and the generator emitted no entries for the
+    visitor's **own** components. `Div`/`Span` kept working (their entries are compiled into the
+    referenced `Rask.Core`), which is exactly why nothing caught it. A chain over a component you wrote in
+    the editor failed with `CS1955`; it works now, on the Run path and on the IntelliSense path alike.
+  - **The README teaches the chain rather than only using it**, with the bound-versus-controlled rule and
+    the step-versus-setter rule, and links `docs/building-components.md` from the guide map. The landing
+    page's hero sample — the most-read Rask code there is — was still factory-shaped beside a live tile
+    that was already a chain.
+  - **RASK014's documentation had drifted from the message it ships.** The analyzer says "Components must
+    be built through a chain"; `docs/diagnostics.md` still said "created via factory methods" and told the
+    reader to call `Div(...)`. RASK022's own message said "set `Key:`" and now says "chain `.Key(…)`".
+  - Two defects the doc snippets only gave up once they were compiled rather than read: the `[…]` indexer
+    is an argument list, so the **trailing comma** in `docs/building-components.md`'s opening example was a
+    syntax error, and its controlled-input example called `.Change(…)`, a step that has never existed
+    (the property is `OnChange`). The README's and that page's Rask.Core examples are now compiled by a
+    test, so the next such slip fails the build instead of a reader.
+
 ### Fixed
+- **Two gate tests no longer depend on how busy the machine is.** The gates are the only place tests run
+  for this repo, so a flake here is a flake in the one thing standing between a change and `main` — and
+  worse, it trains people to re-run rather than read, which is how a real failure gets waved through.
+
+  `AsyncLifecycleRenderingTests` waited a fixed 50 ms for a **fire-and-forget** continuation and then
+  asserted it had happened. The thing being awaited is precisely the one that signals nothing (that is
+  what the test is *about*), so the number was a guess at thread-pool latency — and under a full gate
+  run, with many test projects at once, 50 ms is entirely ordinary. It now polls for the render to land
+  and keeps the sleep only where a test claims "and no more than this", because nothing but elapsed time
+  can evidence a render that did *not* happen. Closes #691.
+
+  `ShopExampleTests.SignInAsync` asserted only that the browser had left `/login`, and that turns out to
+  be too early on the **Server** host. Signing in there cannot set a cookie on a response that has
+  already been sent — the live session issues an `AuthInstruction` and the *client* performs the
+  navigation that commits it — so the URL moves off `/login` before the cookie exists, and the caller's
+  next navigation races that commit: it lands on an authorized page and is bounced straight back to
+  `/login` with sign-in apparently complete. Reproduced 2 runs in 3 once the mechanism was known. It now
+  waits for content that only an authorized principal renders, which is what every caller actually
+  depends on: 5 of 5 runs green after, and the whole Shop suite 11/11. Closes #692.
+
+- **A routed frame no longer re-matches the route on every render.** `Router.Render()` runs on every
+  frame — it has to, because it publishes `ctx.Route` for the whole subtree and so cannot be
+  render-cached (#682) — and `RouteMatcher.TryMatch` allocates the chain list and the values dictionary
+  each time it is asked. It is a pure function of the flattened leaves and the path, neither of which
+  changes between renders except on navigation or a `Routes` reassignment, so the answer is now kept.
+  Same spirit as the `Routes` setter's existing reference cache, which already refuses to re-flatten the
+  same tree.
+
+  Measured (`RoutedRenderBenchmarks`, a two-level chain, 20 rows, steady-state re-render):
+
+  ```
+  | RoutedFrame                              Allocated
+  | before #682 (positional, but throwing)    3.86 KB
+  | after #682, matching every frame          4.18 KB
+  | with the match memoised                   3.96 KB
+  ```
+
+  So most of what #682 cost is back: **+0.10 KB rather than +0.32 KB** against the original. Wall clock
+  is inconclusive at this size (±0.4 us) so no claim is made about it. The remaining 0.10 KB is the
+  per-frame `RouteRenderState`, which is deliberately still fresh each frame — its `Cursor` is per-frame
+  walk state and its `Query` has to be read now, since `?page=2` moves without the path moving.
+
+  Two tests pin what a cache like this can get wrong: a query change on an unchanged path must still
+  reach the page, and replacing the routes must invalidate. The second one fails if the key is weakened
+  to the path alone. Closes #688.
+
 - **A dependency bump could fail the build of a project that has no scoped assets at all.** The
   scoped-asset bake refuses to write an empty bundle silently (#650) — but the check that decides whether
   "zero files" is a failure asked only whether *some* assembly had been skipped, on the reasoning that

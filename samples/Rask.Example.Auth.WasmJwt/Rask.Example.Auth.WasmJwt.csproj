@@ -25,7 +25,6 @@
     <NoWarn>$(NoWarn);IL2104</NoWarn>
   </PropertyGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>

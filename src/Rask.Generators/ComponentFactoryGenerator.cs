@@ -182,7 +182,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // It turns off only the half of the consumer path that injects a forwarder per entry into every
         // local host partial, while still publishing this assembly's `RaskEntries{Assembly}` class so a
         // REFERENCING compilation keeps seeing the entries. A component LIBRARY wants exactly that split:
-        // Rask.Html declares ~150 tags, and injecting every one of them into every other one is O(n²)
+        // Rask.Html declares ~155 tags, and injecting every one of them into every other one is O(n²)
         // generated members whose names collide with the props those hosts inherit from Element
         // (`Style`, `Data`, `Title`, `Cite`, …) — CS0108 with nothing able to hide it, because the entries
         // land ABOVE Element rather than below it the way Rask.Core's do on RaskMarkup.
@@ -229,7 +229,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var setterHost = context.CompilationProvider.Select(static (c, _) => GetSetterHost(c));
 
         context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(setterHost),
-            static (spc, t) => EmitBuilderSetters(spc, t.Left.Left, t.Left.Right.Surface, t.Right));
+            static (spc, t) => EmitBuilderSetters(
+                spc, t.Left.Left, t.Left.Right.Surface, t.Left.Right.InjectEntries, t.Right));
     }
 
     // The universal surface (Component.Key plus Element's attributes and its ~88 GlobalEventHandlers)
@@ -294,6 +295,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         SourceProductionContext spc,
         ImmutableArray<Candidate> candidates,
         bool enabled,
+        bool emitSharedSurface,
         SetterHost host)
     {
         if (!enabled)
@@ -308,15 +310,23 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append("public static class RaskBuilderSetters").AppendLine(host.AssemblyName);
         sb.AppendLine("{");
 
+        // The universal surface — Component.Key plus Element's attributes and its ~88 GlobalEventHandlers —
+        // as constrained generic extensions over Build<T>. Being generic they already cover every component
+        // in the graph, so an assembly that is only a component LIBRARY re-emits an identical set into the
+        // same global namespace and makes `.Key(id)` ambiguous to infer (CS0411). Rask.Html is that shape,
+        // and opts out through the same switch that stops it injecting its own entries.
         var sharedBits = SharedPendingBits(host);
-        ReportSharedBitOverflow(spc, host, sharedBits);
-        foreach (var s in host.Shared)
+        if (emitSharedSurface)
         {
-            // No reachability skip, and none needed anywhere any more: the setter's receiver is the
-            // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
-            EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
-                fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
-                pendingBit: Bit(sharedBits, s.Name), summary: s.Summary);
+            ReportSharedBitOverflow(spc, host, sharedBits);
+            foreach (var s in host.Shared)
+            {
+                // No reachability skip, and none needed anywhere any more: the setter's receiver is the
+                // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
+                EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
+                    fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
+                    pendingBit: Bit(sharedBits, s.Name), summary: s.Summary);
+            }
         }
 
         // One Candidate per component TYPE. A partial class whose declarations each carry a base list
@@ -975,6 +985,31 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         EmitDocComment(sb, summary, "    ");
         var setterName = name;
 
+        // Key is not an ordinary assignment: it decides WHICH instance the chain is building (#685).
+        // Before this, a child's identity inside its parent was its ordinal among entry-built siblings
+        // and Key took no part, so inserting an item at the top of a keyed list handed every later row
+        // the next row's instance — the state-follows-position bug Key exists to prevent, one layer
+        // below where Key was being consulted. ClaimKey hands back the instance this key owns, which is
+        // why this step returns a NEW chain rather than the one it was given.
+        //
+        // It also makes Key an opening step in practice: any setter written before it would land on the
+        // instance the key is about to discard. RASK046 reports that at the call site.
+        if (generic && string.Equals(name, "Key", StringComparison.Ordinal))
+        {
+            sb.Append("    ").Append(visibility).Append(" static ")
+                .Append(BuildOf("T")).Append(" Key<T>(this ").Append(BuildOf("T")).Append(" __b, ")
+                .Append(typeFqn).Append(" value) where T : ").Append(receiver);
+            sb.Append(" { var __c = global::Rask.Core.BuilderRuntime.ClaimKey(__b.Value, value); ");
+            if (pendingBit >= 0)
+            {
+                sb.Append("global::Rask.Core.BuilderRuntime.Written(__c, ")
+                    .Append(MaskLiteral(new[] { pendingBit })).Append("); ");
+            }
+
+            sb.Append("__c.Key = value; return new ").Append(BuildOf("T")).AppendLine("(__c); }");
+            return;
+        }
+
         // `wrap` is the AutoCallback decision, and it is per property: an Element's
         // handlers go to the DOM unwrapped (owner resolution already re-renders, and wrapping would
         // allocate per render), a non-Element component's event callbacks are wrapped, and a form
@@ -1417,6 +1452,30 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(SeedName(c)).AppendLine();
         sb.Append(pad).AppendLine("{");
 
+        // Key has to be able to come FIRST — before the required steps, not merely before the optional
+        // ones (#685, RASK046). It decides WHICH instance the chain is building, so a required property
+        // written ahead of it lands on the instance the key then discards: `BsToast.Id(…).Message(…)
+        // .Key(…)` was silently rendering the previous frame's message whenever the list changed shape.
+        //
+        // The seed itself holds no component — the first step constructs one — so this step constructs,
+        // claims, and hands back the state that still awaits everything. The required steps then assign
+        // onto the instance the key settled on, which is the whole point.
+        //
+        // Only for a non-generic component: a generic one has type arguments still to be pinned by its
+        // opening, so there is no state type to name here yet. Those keep Key on the finished chain.
+        var seedCarriesKey = required.Count > 0 && c.TypeParameters.Length == 0;
+        if (seedCarriesKey)
+        {
+            sb.Append(pad).AppendLine("    private readonly object? _key;");
+            sb.Append(pad).AppendLine();
+            sb.Append(pad).Append("    internal ").Append(SeedName(c)).AppendLine("(object? key) => _key = key;");
+            sb.Append(pad).AppendLine();
+            sb.Append(pad).AppendLine(
+                "    /// <summary>Sets the reconciliation identity. Name it FIRST — see RASK046.</summary>");
+            sb.Append(pad).Append("    public ").Append(SeedName(c)).AppendLine(" Key(object? key) => new(key);");
+            sb.Append(pad).AppendLine();
+        }
+
         EmitExplicitTypeOpening(sb, c, pad + "    ", assemblyName, runtimePrefix, required);
 
         foreach (var opening in openings)
@@ -1429,7 +1488,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 {
                     EmitBuildingStep(
                         sb, c, pad + "    ", assemblyName, runtimePrefix, first, [],
-                        new HashSet<string>(StringComparer.Ordinal) { first.PropertyName });
+                        new HashSet<string>(StringComparer.Ordinal) { first.PropertyName }, seedCarriesKey);
                 }
 
                 continue;
@@ -1449,7 +1508,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             EmitBuildingStep(
                 sb, c, pad + "    ", assemblyName, runtimePrefix, opening[0], [],
-                SatisfiedBy(c, opening));
+                SatisfiedBy(c, opening), seedCarriesKey);
         }
 
         sb.Append(pad).AppendLine("}");
@@ -1496,6 +1555,24 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(pad).AppendLine();
             sb.Append(pad).Append("    private ").Append(c.FullyQualifiedName)
                 .AppendLine(" Component { get; }");
+
+            // Key is offered here, not only on the finished chain, because it has to be able to come
+            // FIRST (#685, RASK046): it decides which instance is being built, so anything written before
+            // it lands on the one the key discards. A component with required steps would otherwise have
+            // no way to satisfy both rules — `BsToast.Id(…).Message(…).Key(…)` is precisely the shape that
+            // was silently losing its props. Returns the same state, so it composes anywhere in the
+            // required sequence and changes nothing about what is still outstanding.
+            sb.Append(pad).AppendLine();
+            sb.Append(pad).AppendLine(
+                "    /// <summary>Sets the reconciliation identity. Name it FIRST — see RASK046.</summary>");
+            sb.Append(pad).Append("    public ").Append(StateName(c, state)).Append(c.TypeParameters)
+                .AppendLine(" Key(object? key)");
+            sb.Append(pad).AppendLine("    {");
+            sb.Append(pad).AppendLine(
+                "        var __c = global::Rask.Core.BuilderRuntime.ClaimKey(Component, key);");
+            sb.Append(pad).AppendLine("        __c.Key = key;");
+            sb.Append(pad).AppendLine("        return new(__c);");
+            sb.Append(pad).AppendLine("    }");
 
             foreach (var step in required.Where(r => !state.Contains(r.PropertyName)))
             {
@@ -1656,7 +1733,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitBuildingStep(
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
         EntryInference step, IReadOnlyList<(EntryInference Pin, string Value)> carried,
-        HashSet<string> satisfied)
+        HashSet<string> satisfied, bool carriesKey = false)
     {
         var required = RequiredSteps(c);
         var done = satisfied.Count == required.Count;
@@ -1681,6 +1758,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Append(c.FullyQualifiedName).Append(">(");
         EmitResetArguments(sb, c, assemblyName, c.TypeParameters);
         sb.AppendLine(");");
+
+        // The key the seed was carrying, applied BEFORE any property is assigned — which is the whole
+        // reason the seed carries it (#685, RASK046). Claiming settles which instance the chain is
+        // building, so every pin below lands on that one rather than on an instance about to be
+        // discarded. A default seed carries null, and a null key claims nothing.
+        if (carriesKey)
+        {
+            sb.Append(pad).AppendLine("    __c = global::Rask.Core.BuilderRuntime.ClaimKey(__c, _key);");
+            sb.Append(pad).AppendLine("    if (_key is not null) { __c.Key = _key; }");
+        }
 
         foreach (var (pin, value) in carried)
         {
@@ -3246,7 +3333,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             var typeParams = t.IsGenericType
                 ? "<" + string.Join(", ", t.TypeParameters.Select(static p => p.Name)) + ">"
                 : string.Empty;
-            headers.Add($"{AccessibilityKeyword(t)}{(t.IsStatic ? "static " : string.Empty)}partial {kind} {t.Name}{typeParams}");
+            headers.Add(
+                $"{AccessibilityKeyword(t)}{(t.IsStatic ? "static " : string.Empty)}partial {kind} {t.Name}{typeParams}");
         }
 
         headers.Reverse();
@@ -3370,9 +3458,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsStatic = false,
         Delivery Delivery = Delivery.Inherited,
         EquatableArray<string> MemberNames = default,
-        // The enclosing types this host is nested in, outermost first, each already written as the
-        // partial header to re-open it with ("internal static partial class Outer<T>"). Empty for a
-        // top-level host.
+        // The enclosing types this host is nested in, outermost first, each already written as the partial
+        // header to re-open it with ("internal static partial class Outer<T>"). Empty for a top-level host.
         EquatableArray<string> EnclosingTypes = default,
         // Whether every one of them is declared `partial` — the precondition for injecting at all.
         bool EnclosingAllPartial = false);
@@ -3384,10 +3471,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     /// <param name="Surface">RaskBuilderSurface — whether the builder surface is emitted at all.</param>
     /// <param name="InjectEntries">
-    ///     RaskBuilderEntryInjection — whether this compilation's own entries are also injected into its
-    ///     own host partials. Off for a component library, which publishes its entries for consumers but
-    ///     does not offer itself the chain. Kept beside <paramref name="Surface" /> in one value so the
-    ///     incremental pipeline compares both in a single step.
+    ///     RaskBuilderEntryInjection — whether this compilation's own entries are also injected into its own
+    ///     host partials, and whether it re-emits the universal setter surface. Off for a component library,
+    ///     which publishes both for consumers but does not hand them to itself a second time.
     /// </param>
     private readonly record struct BuilderOptions(bool Surface, bool InjectEntries);
 
@@ -3521,7 +3607,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
             classDecl.Identifier.Span.Start,
             classDecl.Identifier.Span.Length,
-            SummaryOf(symbol));
+            SummaryOf(symbol),
+            ReachableMemberNames(symbol),
+            EnclosingTypeHeaders(symbol),
+            AllEnclosingPartial(symbol));
     }
 
     // Detects IFormControl<T> among the component's implemented interfaces and returns the bound value
@@ -5387,7 +5476,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // The component's own <summary>, carried onto every factory that builds it — see
         // EmitMethodHeader. Empty when the component has none, which keeps today's `<see cref>`
         // breadcrumb as the fallback.
-        string Summary = "");
+        string Summary = "",
+        // Every name an injected entry must leave alone: this type's own members and its whole base chain's.
+        // Carried on the candidate because a candidate IS an injection host, and the host decl built from it
+        // used to leave this empty — so the collision filter had nothing to filter against. It went unnoticed
+        // while the tag entries arrived by INHERITANCE (a member merely shadows one, and `new` says so); the
+        // moment a tag family became a referenced library its entries are injected as members instead, and an
+        // injected member that collides is CS0102/CS0108, not a hint.
+        EquatableArray<string> MemberNames = default,
+        // The enclosing types, outermost first, each written as the partial header that re-opens it — what
+        // lets a NESTED component be injected into. Empty for a top-level component.
+        EquatableArray<string> EnclosingTypes = default,
+        bool EnclosingAllPartial = false);
 
     // Set when a component implements IFormControl<T> — drives the synthesized bound factory and the
     // exclusion of the bound-mode interface members from the controlled factory. ValueTypeFqn is the T

@@ -26,29 +26,30 @@ mistake, the rule notes the ID.
 
 ## Component design
 
-- **Make every component `sealed`.** Components aren't an inheritance hierarchy; sealing states
-  intent and keeps the generator's analysis simple. Every sample does this.
-- **Construct components through the generated factory, never `new`.** `Div()`, `Counter()`,
-  `RatingStars(...)` — the factory wires keys, children, callbacks, and DI that `new` skips.
+- **Make every component `sealed partial`.** Components aren't an inheritance hierarchy; sealing states
+  intent and keeps the generator's analysis simple, and `partial` is where the generator puts the chain
+  surface (**RASK036** without it). Every sample does this.
+- **Build components with the chain, never `new`.** `Div.Class("card")`, `Counter`,
+  `RatingStars.Value(3)` — the chain wires keys, children, callbacks, and DI that `new` skips.
   Outside `Rask.Core`, `new`-ing a component is **RASK014**. (Test files that define their own
   `Component` subclasses opt out with `#pragma warning disable RASK014`.)
 - **Inject framework services through the constructor, not as properties.** A non-nullable settable
-  property becomes a *required factory parameter* — so `public IJSRuntime Js { get; set; }` would
+  property becomes a *required step* — so `public IJSRuntime Js { get; set; }` would
   force callers to pass it. Take services as ctor parameters instead:
   ```csharp
   public sealed partial class Weather(IWeatherForecastService service) : Component { /* ... */ }
   ```
   Combining a `required` property with a DI constructor is contradictory — that's **RASK002**.
-- **Know what becomes a factory parameter.** The generator derives parameters from your public
-  settable properties: non-nullable + no initializer → **required** (a hidden **RASK001** suggests
-  marking it `required` so it reads as intentional); nullable → optional defaulting to `null`; an
-  initializer (`= ...`), `[SkipFactory]`, or `Children` → excluded. Reach for an initializer or
-  `[SkipFactory]` to keep internal state out of the factory signature. See
-  [getting started §6](getting-started.md#6-why-homepage-already-exists-factory-generation).
+- **Know what becomes a step.** The generator derives the chain from your public
+  settable properties: non-nullable + no initializer → a **required step** (a hidden **RASK001** suggests
+  marking it `required` so it reads as intentional); nullable → an optional setter; an
+  initializer (`= ...`) → an optional setter; `[SkipFactory]` or `Children` → excluded. Reach for
+  `[SkipFactory]` to keep internal state off the chain entirely. See
+  [getting started §6](getting-started.md#6-why-homepage-already-chains-the-generated-surface).
 
 ## Rendering, keys & encoding
 
-- **Give every list item a stable, unique `Key:`.** Keys are the reconciliation identity the live
+- **Give every list item a stable, unique `.Key(…)`.** Keys are the reconciliation identity the live
   diff uses to *move* a row instead of rebuilding it — preserving focus, input value, and scroll on
   reorder. A keyless list item is **RASK022**; duplicate sibling keys make the diff fall back to a
   positional walk (and report a one-time `data-rask-key` error via the diagnostics seam — treat it as
@@ -74,7 +75,7 @@ mistake, the rule notes the ID.
 ## State, callbacks & events
 
 - **Raise child→parent events with a plain delegate prop.** There is no `EventCallback` type — use
-  `Action`, `Action<T>`, `Func<Task>`, or `Func<T, Task>`. The factory wraps it so invoking it
+  `Action`, `Action<T>`, `Func<Task>`, or `Func<T, Task>`. The chain step wraps it so invoking it
   re-renders the parent that owns the lambda, with no `StateHasChanged` by hand. Write the lambda
   *inside* the component so it captures `this`:
   ```csharp
@@ -102,7 +103,7 @@ mistake, the rule notes the ID.
 
 ## Context & dependency injection
 
-- **Use `Context` to skip prop drilling, not as a general data bus.** `Context.Provide<T>(Value:)`
+- **Use `Context` to skip prop drilling, not as a general data bus.** `Context.Provide<T>(value)`
   near the top, then `Context.Get<T>()` / `Required<T>()` / `Has<T>()` *inside `Render()`* below.
   Reading a context value latches the consumer out of the render cache, so it stays reactive even
   through a render-cached intermediate — that's the point. Provide a concrete type and consume by an
@@ -271,9 +272,9 @@ mistake, the rule notes the ID.
 
 | Pitfall | Do instead |
 |---|---|
-| List items with no `Key:` (**RASK022**) — focus/input lost on reorder | Pass a stable, unique `Key:` (entity id) |
-| `new Counter()` outside Core (**RASK014**) | Call the generated factory `Counter()` |
-| Service as a settable property → required factory param (**RASK002**) | Inject via the constructor |
+| List items with no `.Key(…)` (**RASK022**) — focus/input lost on reorder | Chain a stable, unique `.Key(…)` (entity id) |
+| `new Counter()` outside Core (**RASK014**) | Name it and chain: `Counter`, `Counter.Value(3)` |
+| Service as a settable property → required step (**RASK002**) | Inject via the constructor |
 | `Head()[Title()[...]]` (**RASK019**) | Override `protected override Component? Head` |
 | Root renders `Doctype`/`Html`/`Head`/`Body` (**RASK021**) | Return the body's content; `Head`/`HtmlLang`/`BodyClass`/`Shell` |
 | User input through `Raw(...)` (XSS) | Use a plain string / `Text` (encodes by default) |

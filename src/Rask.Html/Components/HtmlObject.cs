@@ -34,7 +34,7 @@ public sealed partial class HtmlObject : Element
     public int? Height { get; set; }
 
     /// <summary>The <c>id</c> of the form this object belongs to.</summary>
-    public new string? Form { get; set; }
+    public string? Form { get; set; }
 
     /// <summary>The <c>#name</c> of a <c>map</c> to apply to the object.</summary>
     public string? UseMap { get; set; }

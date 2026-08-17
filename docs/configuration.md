@@ -144,7 +144,7 @@ overlay handles the user-facing side automatically — nothing to configure:
 > event handlers start, so the timeout (or socket close) can unwind them. Inside a handler that token
 > reflects the dispatch; in a lifecycle hook it's just the component's lifetime token.
 > ```csharp
-> Button(OnClickAsync: async () =>
+> Button.OnClickAsync(async () =>
 >     _data = await http.GetFromJsonAsync<T>(url, CancellationToken))["Load"]
 > ```
 
@@ -190,7 +190,7 @@ public sealed partial class OrdersPage(IPersistentState state) : Component
 }
 ```
 
-Inject it through the **constructor** — a settable non-nullable property becomes a required factory
+Inject it through the **constructor** — a settable non-nullable property becomes a required chain
 parameter ([RASK002](diagnostics.md)).
 
 **Declare state, don't stream it.** The bag is capped at 16 KB across all keys and rides the wire inside

@@ -25,7 +25,7 @@ public sealed partial class BsProgress : BsBlock
     // Optional label rendered inside the bar (e.g. "60%").
 
     /// <summary>Text shown inside the bar.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     /// <summary>Draws the bar with stripes.</summary>
     public bool? Striped { get; set; }
