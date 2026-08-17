@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **The `add-html-tag` skill sent a new tag's test to a project that no longer holds any.** After the
+  HTML/SVG family moved into `Rask.Html`, the skill's component path was updated but its TEST path still
+  read `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`, where the tag tests no longer live — they are in
+  `tests/Rask.Html.Tests/Components/`. Its "attributes" reference also pointed at
+  `src/Rask.Html/Components/Button.cs`, which does not exist: `Button` is one of the handful of tags
+  `Rask.Core` retained for its own shell and error pages. Both corrected, with a note about the split so
+  the retained tags are not taken as the pattern to copy, and the same path fixed in `CLAUDE.md`.
+- **Two native components documented a shadowing that no longer happens.** `NativeButton.Style` and
+  `NativeImage.Source` carried `new` to shadow the generated `Style`/`Source` markup entries; the move
+  stopped those entries being injected into native components, so `new` became CS0109 and was removed —
+  but each `<remarks>` still claimed to shadow them. Rewritten to say why the keyword went, rather than
+  dropped, since nothing being left to shadow is precisely the outcome the split was for.
+
 ### Changed
 - **The HTML/SVG element family moved out of `Rask.Core` into a new `Rask.Html` assembly.** ~155 tag
   components (`Div`, `Span`, `Table`, `Input`, the 41 `<svg>` elements, `Doctype`) now live in

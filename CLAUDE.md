@@ -86,5 +86,5 @@ started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
-- **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
+- **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–048 are documented in `docs/diagnostics.md`.
