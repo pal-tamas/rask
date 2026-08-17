@@ -60,6 +60,12 @@ internal sealed class RaskChromeContainerView : UIView
     private bool _headerVisible;
     private bool _footerVisible;
     private bool _footerIsToolbar;
+
+    // The pure-native content view, when a NativeScreen has been mounted. It sits in the same slot as the
+    // WebView and only ONE of the two is visible at a time — see ShowWebView/ShowNative. Neither is ever
+    // removed: both the WebView's DOM and the retained native tree are diff baselines the session patches
+    // against, so tearing either down would leave it patching a view that no longer exists.
+    private UIView? _nativeContent;
     private Action<string>? _raise;
     private IReadOnlyList<NativeTabDescriptor>? _tabs;
     private UITabBarItem[] _tabItems = [];
@@ -106,7 +112,48 @@ internal sealed class RaskChromeContainerView : UIView
         _toolbar.Hidden = !(_footerVisible && _footerIsToolbar);
 
         var webTop = top + headerH;
-        _webView.Frame = new CGRect(0, webTop, width, footerY - webTop);
+        var contentFrame = new CGRect(0, webTop, width, footerY - webTop);
+        _webView.Frame = contentFrame;
+        if (_nativeContent is not null)
+        {
+            _nativeContent.Frame = contentFrame;
+        }
+    }
+
+    /// <summary>
+    ///     This frame's content is HTML: show the WebView and hide the native tree, keeping the latter alive
+    ///     so returning to a native route patches it instead of rebuilding it.
+    /// </summary>
+    public void ShowWebView()
+    {
+        _webView.Hidden = false;
+        if (_nativeContent is not null)
+        {
+            _nativeContent.Hidden = true;
+        }
+    }
+
+    /// <summary>
+    ///     This frame's content is a pure-native screen: show <paramref name="root" /> and hide the WebView —
+    ///     which is only hidden, never unloaded, so its DOM still matches the session's HTML diff baseline.
+    /// </summary>
+    public void ShowNative(UIView root)
+    {
+        if (!ReferenceEquals(_nativeContent, root))
+        {
+            // A re-mount replaces the tree; the previous one is genuinely dead, so it goes.
+            _nativeContent?.RemoveFromSuperview();
+            _nativeContent = root;
+            root.TranslatesAutoresizingMaskIntoConstraints = true;
+            AddSubview(root);
+            SetNeedsLayout();
+        }
+
+        _nativeContent.Hidden = false;
+        _webView.Hidden = true;
+        // The bars are laid out around whichever content view is showing, and a mount can arrive before the
+        // first layout pass has run.
+        SetNeedsLayout();
     }
 
     public void Apply(NativeChromeDescriptor? descriptor, Action<string> raise)
@@ -332,7 +379,8 @@ internal sealed class RaskChromeContainerView : UIView
 
     // A wire token → UIColor. A fixed token yields a static color; an adaptive ("light|dark") token yields a
     // dynamic UIColor that resolves per the current UI style, so the bar tracks light/dark automatically.
-    private static UIColor? ResolveUIColor(string? token)
+    // Also used by the pure-native surface backend (UiKitViewOps), which resolves the same NativeColor tokens.
+    internal static UIColor? ResolveUIColor(string? token)
     {
         if (!NativeColor.TryResolve(token, out var light, out var dark))
         {
