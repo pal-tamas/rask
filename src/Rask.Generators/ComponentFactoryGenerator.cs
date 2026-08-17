@@ -4267,6 +4267,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 sb.AppendLine();
             }
 
+            sb.AppendLine("/// <summary>");
+            sb.AppendLine("///     Factory methods for this namespace's components — one per component, with a parameter for");
+            sb.AppendLine("///     each of its public properties. Markup is normally written as a chain");
+            sb.AppendLine("///     (<c>Div.Class(\"card\")[…]</c>); these are the same components reached by call instead.");
+            sb.AppendLine("/// </summary>");
             sb.AppendLine("public static partial class Generated");
             sb.AppendLine("{");
 

@@ -156,7 +156,12 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         // readers and Playwright polling under load.
         var p = new Person();
         var fid = new FieldIdentifier(p, nameof(Person.Name));
-        var ctx = new EditContext(p);
+        // An EXPLICIT, long window, like the sibling tests either side of this one. On the default 200 ms
+        // the assertion below is a race against wall-clock rather than a test of the behaviour: everything
+        // between completing the validator and reading the flag has to finish inside the window, and on a
+        // loaded machine it does not (observed twice, at 797 ms and 255 ms). The sticky rule is what is
+        // under test here; DefaultValidatingStickyMs is covered where the constant itself is.
+        var ctx = new EditContext(p) { ValidatingStickyMs = 60_000 };
         var gate = new TaskCompletionSource();
         ctx.AddValidator(new GatedValidator(gate.Task));
 

@@ -91,12 +91,27 @@ them until tagged releases begin.
     public members, joining `Rask.Server` and `Rask.WebPush`. `WasmAuthSignIn.SignInAsync` now says why
     it throws rather than leaving it a runtime surprise: a WASM app cannot mint its own principal, so
     credentials go to a server endpoint and the server issues the identity.
+  - **The generated `Routes` helpers are documented, with the template they build.** `Routes.UserPage(42)`
+    is how a link is meant to be written instead of `"/users/42"`, and the helper now says so along with
+    its own route template — so the reason to prefer it is visible at the point of use rather than only in
+    the guides. The `Generated` factory class, which appears in every consumer assembly, is documented too.
   - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
     and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
     post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older
     shape now redirects, and a test keeps it from creeping back.
 
 ### Fixed
+- **A mail-retry test waited on the wrong signal.**
+  `Failing_send_is_retried_with_backoff_then_delivered` waited for the mail to be *sent*, then asserted
+  the row's `ProcessedAt` — which the processor writes just after handing the mail to the sender. The wait
+  could return inside that window, leaving the assertion to fail on a loaded machine while passing in
+  isolation. It now waits for the row to be marked processed, which is what the assertions are about.
+- **A flaky test that raced the clock rather than testing the behaviour.**
+  `ValidatingIndicator_AfterPendingDropsToZero_StaysRenderedForStickyWindow` left `ValidatingStickyMs` at
+  its 200 ms default, so everything between completing the validator and reading the flag had to finish
+  inside that window — on a loaded machine it did not, failing twice (797 ms and 255 ms). It now sets the
+  window explicitly, as the two sibling tests either side of it already did. Confirmed it still fails when
+  the sticky behaviour is removed, so the race went and the coverage stayed.
 - **The README advertised `rask generate`, removed in #672.** Two places in the README and one in the
   roadmap still listed it in the CLI's command set, while `docs/cli.md` says plainly that it does not
   exist.
