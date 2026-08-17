@@ -110,10 +110,12 @@ screens next; a **scoped `.css`** or **`.js`** file is as easy as dropping `{Com
 
 ## 4. Your first component
 
-Every component is a `sealed class : Component`. Override `Render()` and return a tree of HTML built
-from generated factory methods (`Div()`, `H1()`, `P()`, …). Children attach through an **indexer** on
-every component — `Div()[ ... ]` — and strings, other components, and value types all convert to a
-child node automatically:
+Every component is a `sealed partial class : Component`. Override `Render()` and return a tree of HTML
+written as a **chain**: name a component and dot onto it — `Div.Class("greeting")`. The name *is* the
+component, so pressing `.` lists everything it has, each step carrying its own doc comment. A tag you set
+nothing on needs no parentheses at all (`H1["Hi"]`). Children attach through an **indexer** on every
+component — `Div[ ... ]` — and strings, other components, and value types all convert to a child node
+automatically:
 
 ```csharp
 public sealed partial class Greeting : Component
@@ -168,9 +170,9 @@ public sealed partial class Counter : Component
 
 ### Going further: child → parent communication
 
-A child declares a plain delegate property (`Action<int>?`, `Func<Task>?`, …), and the generated factory
-wraps it so invoking it re-renders the **parent** that owns the lambda. There is no `EventCallback`
-type, and the child stays oblivious to the parent:
+A child declares a plain delegate property (`Action<int>?`, `Func<Task>?`, …), and the chain step that
+sets it wraps it so invoking it re-renders the **parent** that owns the lambda. There is no
+`EventCallback` type, and the child stays oblivious to the parent:
 
 ```csharp
 public sealed partial class RatingStars : Component
@@ -197,39 +199,43 @@ public sealed partial class RatingDemo : Component
 }
 ```
 
-## 6. Why `HomePage()` already exists (factory generation)
+## 6. Why `HomePage` already chains (the generated surface)
 
-You never write a factory method by hand. For each concrete `Component`, the generator emits a
-`{Type}(...)` factory — that's why `HomePage()`, `Counter()`, and your own `Greeting()` are callable.
-Its parameters are derived from your public settable properties:
+You never write a builder by hand. For each concrete `Component`, the generator emits a **chain entry**
+and a step per public settable property — that's why `HomePage`, `Counter`, and your own `Greeting` can
+be named and dotted onto. Which shape a property takes is derived from its declaration:
 
-| Property shape                                    | In the factory                                  |
+| Property shape                                    | In the chain                                    |
 |---------------------------------------------------|-------------------------------------------------|
-| Non-nullable, **no initializer**                  | **required** parameter                          |
-| Nullable (`T?` / `Nullable<T>`), no initializer   | optional, defaults to `null`                    |
-| Has an initializer (`= ...`)                      | **excluded** — your default wins                |
-| `[SkipFactory]` (property or class)               | **excluded**                                    |
+| Non-nullable, **no initializer**                  | a **step** — required before the component exists |
+| Nullable (`T?` / `Nullable<T>`), no initializer   | an optional setter                              |
+| Has an initializer (`= ...`)                      | an optional setter — your default wins          |
+| `[SkipFactory]` (property or class)               | **excluded** — no step, no setter               |
 | `Children`                                        | always excluded (children attach via the indexer) |
 
 ```csharp
 public sealed partial class Card : Component
 {
-    public required string Title { get; set; }     // required factory param
-    public string? Subtitle { get; set; }          // optional, default null
-    public int Elevation { get; set; } = 1;        // excluded — your default wins
+    public required string Title { get; set; }     // a step: Card.Title("…") opens the chain
+    public string? Subtitle { get; set; }          // an optional setter
+    public int Elevation { get; set; } = 1;        // an optional setter — your default wins
     [SkipFactory] public int Internal { get; set; }// excluded explicitly
-    // → generated: Card(string Title, string? Subtitle = null, ...)
+    // → Card.Title("Pricing").Subtitle("per seat").Elevation(2)
 }
 ```
 
-Live — a `Greeting` with a required `Name` and an optional `Title`, called through its generated
-`Greeting(Name: "Ada", …)` factory:
+The steps come first and in any order; miss one and there is no component to render, so the mistake is a
+compile error where you made it rather than a null at runtime. The class must be `partial` — that is
+where the generator puts the surface.
+
+Live — a `Greeting` with a required `Name` and an optional `Title`, built with
+`Greeting.Name("Ada")…`:
 
 <!-- demo:components-greeting -->
 
 **Inject framework services (`HttpClient`, `Navigator`, `RouteState`, `IJSRuntime`) through the
-constructor, not as properties** — a non-nullable settable property would become a *required* factory
-parameter (and `required` on a property with a DI-only constructor is the **RASK002** warning). Inject
+constructor, not as properties** — a non-nullable settable property would become a *required step*
+(and `required` on a property with a DI-only constructor is the **RASK002** warning). Inject
 through the primary constructor instead:
 
 ```csharp
@@ -238,7 +244,7 @@ public sealed partial class Weather(IWeatherForecastService service) : Component
 
 <!-- demo:components-di -->
 
-`[SkipFactory]` keeps a property settable in code but out of the factory signature — useful for seeding
+`[SkipFactory]` keeps a property settable in code but off the chain — useful for seeding
 cached internal state the caller shouldn't pass. The counter below starts at 7 (its `Initial` is
 `[SkipFactory]`, seeded in `OnMount`) and keeps its state across re-renders like any private field:
 
@@ -340,7 +346,7 @@ an event handler, inject the `Navigator` service through the constructor and cal
 The snags you're most likely to hit on a fresh project:
 
 - **The IDE flags `HomePage()`, `Counter()`, or `NavLink(...)` as undefined.** These are
-  *source-generated* — the factory for every component, the URL builder for every `[Route]`. They don't
+  *source-generated* — the chain surface for every component, the URL builder for every `[Route]`. They don't
   exist until the generator runs, which happens on build. Run `dotnet build` once, then reload the
   solution / restart the language server.
 

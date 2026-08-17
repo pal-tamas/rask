@@ -164,7 +164,7 @@ rooted for the WASM trimmer. The observers additionally hand the observed elemen
 **Lifecycle.** Open from a lifecycle hook (e.g. `OnRenderedAsync(firstRender)`) and **dispose** the
 returned handle on unmount (implement `IAsyncDisposable` on the component). A handler that updates state
 calls `StateHasChanged()` — the same pattern as subscribing to a background feed. That's a subscription
-handler, **not** a generated-factory callback, so [RASK026](diagnostics.md) (which forbids
+handler, **not** a chain-set callback, so [RASK026](diagnostics.md) (which forbids
 `StateHasChanged` inside `OnChange`/`OnClick`/`Bind`/… callbacks) does not apply.
 
 ```csharp

@@ -123,7 +123,7 @@ public partial class App : Component
                 Div.Class("sec-head reveal")[
                     P.Class("eyebrow")["A component is a class that returns a tree"],
                     H2["Routing, state, and events — one C# class."],
-                    P["No template dialect, no code-behind, no build step for markup. ", Code["Div(...)[Span(...), \"hi\"]"], " is plain, refactor-safe, IDE-native C#. Here's a complete, routable, interactive component:"]
+                    P["No template dialect, no code-behind, no build step for markup. Markup is a chain — name a component and dot onto it, ", Code["Div.Class(\"card\")[Span[\"hi\"]]"], " — so the IDE lists every step as you type it. Plain, refactor-safe, IDE-native C#. Here's a complete, routable, interactive component:"]
                 ],
                 Div.Class("demo-grid reveal")[
                     Div.Class("card")[
@@ -228,10 +228,10 @@ public partial class App : Component
                 Div.Class("sec-head reveal")[
                     P.Class("eyebrow")["Batteries included · all type-safe"],
                     H2["A full framework, generated at compile time."],
-                    P["Roslyn source generators build per-component factories and typed route URLs — trim-safe, reflection-free, and checked by 30+ compile-time diagnostics."]
+                    P["Roslyn source generators build each component's chain surface and typed route URLs — trim-safe, reflection-free, and checked by 30+ compile-time diagnostics."]
                 ],
                 Div.Class("feat reveal")[
-                    Feature("⌁", "Source generators", "Per-component ", Code["{Type}(...)"], " factories and type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
+                    Feature("⌁", "Source generators", "A chain surface per component — ", Code["BsCard.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
                     Feature("◑", "Scoped CSS & JS", "Drop a sibling ", Code["{Component}.css"], "/", Code[".js"], ". Auto-scoped, no leaks, no class-name discipline — a mismatch is a build error."),
                     Feature("▤", "Forms & validation", Code["Form<T>"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators."),
                     Feature("⚿", "Auth, four ways", "Cookie & JWT on both Server and WASM, route guards, and an ", Code["--auth"], " template switch. Identity, Keycloak, Auth0, OIDC."),
@@ -254,7 +254,7 @@ public partial class App : Component
                     P["Behind the same C# UI, every stateful pillar rides the app's own SQLite database — no broker, no Redis, no second service to run. Adding one is a package reference, not a new box to operate."]
                 ],
                 Div.Class("feat reveal")[
-                    Feature("⊞", "Generate a feature", Code["rask generate feature"], " emits a full CQRS + EF Core CRUD slice — entity, validation, list/create/edit pages, and tests — and wires the DI into ", Code["Program.cs"], "."),
+                    Feature("⊞", "A feature slice", "A CQRS + EF Core CRUD slice — entity, validation, list/create/edit pages, and tests — written once in the tutorial and repeated per feature. Small enough to type, so nothing is generated you can't read."),
                     Feature("◷", "Background jobs", "Durable enqueued, delayed, and recurring work on your database, run by a hosted worker — at-least-once, with exponential backoff."),
                     Feature("✉", "Transactional email", "Email queued on the same database and delivered over SMTP off the request thread; bodies are Rask components."),
                     Feature("⤴", "Transactional outbox", "Domain events captured in the same transaction as your data and relayed at-least-once — crash-safe, no message broker."),
@@ -310,7 +310,7 @@ public partial class App : Component
     // Static, trusted syntax-highlighted markup for the Counter.cs sample (global .t-* classes).
     private const string CounterCodeHtml =
         """
-        <span class="t-key">public sealed class</span> <span class="t-type">Counter</span> : <span class="t-type">Page</span>
+        <span class="t-key">public sealed partial class</span> <span class="t-type">Counter</span> : <span class="t-type">Page</span>
         {
             <span class="t-key">protected override string</span> Route =&gt; <span class="t-str">"/counter"</span>;
 
@@ -318,9 +318,9 @@ public partial class App : Component
 
             <span class="t-key">protected override</span> <span class="t-type">Component</span>? <span class="t-fn">Render</span>() =&gt;
             [
-                <span class="t-type">H1</span>()[<span class="t-str">"Counter"</span>],
-                <span class="t-type">P</span>()[<span class="t-str">$"Current count: {_count}"</span>],
-                <span class="t-type">Button</span>(<span class="t-attr">OnClick:</span> () =&gt; _count++)[<span class="t-str">"Click me"</span>]
+                <span class="t-type">H1</span>[<span class="t-str">"Counter"</span>],
+                <span class="t-type">P</span>[<span class="t-str">$"Current count: {_count}"</span>],
+                <span class="t-type">Button</span>.<span class="t-fn">OnClick</span>(() =&gt; _count++)[<span class="t-str">"Click me"</span>]
             ];
         }
         """;

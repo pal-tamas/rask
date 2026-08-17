@@ -1,7 +1,7 @@
 # Rask.Bootstrap
 
 Typed [Bootstrap 5.3](https://getbootstrap.com/docs/5.3/) components for Rask. Discoverable C#
-factories (`BsButton`, `BsCard`, `BsModal`, …) that emit correct Bootstrap markup, interactive
+chains (`BsButton.Color(…)`, `BsCard.Title(…)`, `BsModal.Id(…)`, …) that emit correct Bootstrap markup, interactive
 components driven by Rask's live runtime with **zero JavaScript**, `IFormControl<T>`-bound form
 controls, color modes, a typed `BsIcon`, and **typed utility classes**.
 
@@ -11,7 +11,7 @@ no changes to your host beyond linking the CSS.
 
 ## Setup
 
-Reference the package, then link the CSS in your `App`'s `Head` with `BootstrapStyles()`:
+Reference the package, then link the CSS in your `App`'s `Head` with `BootstrapStyles`:
 
 ```csharp
 protected override Component? Head =>
@@ -21,20 +21,22 @@ protected override Component? Head =>
 ];
 ```
 
-`BootstrapStyles(Icons: false)` skips the Bootstrap Icons stylesheet. It also always links a tiny
+`BootstrapStyles.Icons(false)` skips the Bootstrap Icons stylesheet. It also always links a tiny
 `rask-bootstrap.css` (after Bootstrap, so it wins the cascade) with fixes for the zero-JS components:
-`BsDropdown(AlignEnd: true)` would otherwise be a no-op because Bootstrap gates its alignment classes
+`BsDropdown.AlignEnd(true)` would otherwise be a no-op because Bootstrap gates its alignment classes
 on a Popper-only attribute. The assets are served by the host's static-file pipeline (`app.UseStaticFiles()` /
 `app.MapStaticAssets()` on Server; the WASM static-web-asset pipeline bakes them into the published
 `wwwroot` automatically).
 
-The `Bs*` factories are available unqualified — the package ships a `build/*.props` that adds the
-global `using static Rask.Bootstrap.Generated`, exactly like the validation packages.
+The `Bs*` components are available unqualified — the generator injects their chain entries into every
+markup host in your project (which is why those hosts must be `partial`, [RASK036](diagnostics.md#rask036)),
+and the package ships a `build/*.props` adding the `Rask.Bootstrap` usings, exactly like the validation
+packages.
 
 Typed enums replace stringly-typed variants everywhere: `BsColor` (Primary…Dark), `BsSize` (Sm/Md/Lg),
 `BsTheme` (Light/Dark, via `data-bs-theme`), `BsPlacement`, `BsSpinnerKind`, `BsPlaceholderAnimation`,
 and `BsIconName` (every Bootstrap Icons glyph). Interactive components are **controlled** — you own the
-open/active state and wire `Open:`/`OnClose:` (etc.); flipping the field re-renders through the live
+open/active state and chain `.Open(…)`/`.OnClose(…)` (etc.); flipping the field re-renders through the live
 runtime, no `bootstrap.js`.
 
 ```csharp
