@@ -110,6 +110,44 @@ on `host.Services` before `RunLocalAsync` — it wins over the platform module's
 backends behind the *same* interfaces (biometrics, native push via APNs/FCM) are a follow-up (see
 [Roadmap](native.md#roadmap)).
 
+## Screens — a page that owns its chrome
+
+A **`Screen`** is a `Page` that also declares the native chrome around it. Instead of the app root inspecting
+the current path to decide what the header should say, each screen names its own bars:
+
+```csharp
+public sealed class TodosScreen : Screen
+{
+    protected override string Route => "/todos";
+
+    protected override Component? HeaderBar => NativeHeaderBar.Title("Todos");
+
+    protected override Component? Render() => Div[/* the HTML body */];
+}
+```
+
+**Routing works exactly as it does on the web** — this is the part that usually surprises people. A screen is
+addressed by the same path template, matched by the same `Router()`, and gets the same generated
+`TodosScreen.Url()` / `TodosScreen.Go()`. The path is simply never *shown*: the WebView sits on a
+custom-scheme origin, so there is no address bar, and a deep link (App Links / Universal Links) maps an
+external URL onto the same template. There is no separate native navigation model to learn.
+
+Three properties are worth knowing:
+
+- **The slots are hoisted, not rendered inline.** They're walked inside the screen's own scope — so a bar
+  button's `OnClick` attributes back to the screen and re-renders it like any callback — but a native bar
+  emits no HTML, so nothing leaks into the WebView markup.
+- **Chrome merges deepest-wins, per kind.** A layout screen (a [`Parent`](routing.md#nested-routes--parent--outlet))
+  supplies the `TabBar` once and each leaf screen supplies its own `HeaderBar`; the leaf's header beats the
+  layout's, and both survive.
+- **Server and WASM never read the slots.** Those hosts don't collect chrome, so the overrides aren't even
+  evaluated — one screen class serves web and native with no `IsNative` branch, and a web-only app pays
+  nothing for the base class.
+
+The three slots are `HeaderBar`, `Toolbar` and `TabBar`. (`HeaderBar`, not `Header` — `Header` is already the
+HTML `<header>` element on the markup surface.) They're typed as plain `Component?`, so `Rask.Core` takes no
+dependency on the native package; the native host recognizes the bar it's handed.
+
 ## Native header & footer
 
 A native page is a small **composed tree**: the native bars (`NativeHeaderBar` / `NativeTabBar` /
