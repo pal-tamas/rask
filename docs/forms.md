@@ -21,7 +21,7 @@ For the analyzer IDs referenced here (`RASK001`, `RASK022`, …) see [diagnostic
 The low-level path wires `Value` and an event handler yourself:
 
 ```csharp
-Input<string>().Type(InputType.Text).Value(_typed).Input(v => _typed = v)
+Input.Value(_typed).Type(InputType.Text).OnInput(v => _typed = v)
 P[$"Echo: {_typed}"]
 ```
 
@@ -51,6 +51,39 @@ derives everything from the bound property:
   [RASK025](diagnostics.md#rask025).
 - **Update timing** — `string` fields update on every keystroke (`OnInput`); every other type
   updates on `OnChange` (blur). `Textarea(() => …)` always streams on `OnInput`.
+
+### The two modes are exclusive
+
+A control's value comes from exactly one place, and the step you open the chain with says which:
+
+| Opened with | Mode | Then adds | Does **not** offer |
+| --- | --- | --- | --- |
+| `.Bind(() => model.Field)` | bound | `Validate` / `ValidateAsync`, `AfterBind` / `AfterBindAsync` | `Checked`, `OnInput`, `OnChange` |
+| `.Value(v)` or `.Of<T>()` | controlled | `Checked`, `OnInput` / `OnInputAsync`, `OnChange` / `OnChangeAsync` | `Validate`, `AfterBind` |
+
+`Bind` and `Value` are the *openings* themselves, not steps you take later — taking one is what rules
+the other out, so neither appears again on the chain. `Of<T>()` opens a controlled chain for a control
+you are giving no value at all; if you want to supply one, that is `.Value(v)`.
+
+Everything else — `Placeholder`, `Type`, `Required`, `Min`/`Max`, `OnFiles`, the whole `Class`/`Id`/
+`Aria` element surface — belongs to neither and is reachable from both.
+
+This is enforced by the type, not by a convention: the chain is a
+`Build<TControl, Bound>` or a `Build<TControl, Controlled>`, and a step from the other mode is not
+offered in completion and does not compile.
+
+```csharp
+Input.Bind(() => _model.Name).OnInput(v => _log = v)   // ✗ no such step on a bound chain
+Input.Value(_typed).AfterBind(v => Save(v))            // ✗ no such step on a controlled chain
+```
+
+The reason is that bound mode already owns those: it derives the rendered value (and a checkbox's
+`checked`) from the model and installs its own `oninput`/`onchange` write-back. Setting `OnInput`
+alongside `Bind` used to compile and then be dropped at render time, silently. Want a side effect on
+each bound write? That is what `AfterBind` is for.
+
+The generated factories carry the same split — `Input(() => m.Name, OnInput: …)` has no such
+parameter — so neither surface can express a mode it will not honour.
 
 Beyond the constraint/affordance attributes shared with plain HTML (`Min`/`Max`/`Step`/`Pattern`/
 `MaxLength`/`MinLength`/`Multiple`/`Accept`/`List`/`Autocomplete`/`Autofocus`), the core `Input` also

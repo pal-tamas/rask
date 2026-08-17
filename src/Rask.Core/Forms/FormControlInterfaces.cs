@@ -9,8 +9,15 @@ namespace Rask.Core.Forms;
 // once; the generator reads it off the interface and emits the typed surface.
 //
 // Members use fixed names (Bind/Validate/…/Value/OnChange/…) — the generator recognizes them by
-// name and excludes the bound-mode members from the controlled factory (so no [SkipFactory] is
-// needed). `Validate<T>`/`ValidateAsync<T>` (this namespace) and `Action<T>`/`Func<T, Task>`
+// name and excludes each mode's members from the OTHER mode's factory (so no [SkipFactory] is
+// needed). The exclusion runs both ways, and it is what makes the two modes mutually exclusive at
+// the call site rather than at render time:
+//   bound factory      — no Value, Checked, OnChange(Async), OnInput(Async)
+//   controlled factory — no Bind, Validate(Async), AfterBind(Async)
+// Checked and OnInput(Async) are not interface members (only Input and Textarea declare them), but
+// they are recognized by the same name rule wherever they appear on an IFormControl<T>: bound mode
+// derives the checkbox state from the model and installs its own oninput write-back, so a control
+// reads neither. Before the exclusion they were accepted next to Bind and silently dropped. `Validate<T>`/`ValidateAsync<T>` (this namespace) and `Action<T>`/`Func<T, Task>`
 // (Rask.Core) are the framework's named delegate types; the generator collapses the sync/async
 // validator pair into the none/sync/async factory fan-out, and auto-wraps OnChange/OnChangeAsync
 // (AutoCallback) so invoking them re-renders the consumer.

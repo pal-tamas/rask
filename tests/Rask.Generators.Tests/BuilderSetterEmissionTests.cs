@@ -395,8 +395,11 @@ public class BuilderSetterEmissionTests
                          }
                          """);
 
+        // …and the receiver is the BOUND chain: these are bound-mode members, so they exist only on a
+        // chain that opened with Bind (see BuilderFormControlModeTests).
         Assert.Contains(
-            "Validate(this global::Rask.Core.Build<global::Demo.Widget> __b, global::Rask.Core.Forms.Validate<int>? value) "
+            "Validate(this global::Rask.Core.Build<global::Demo.Widget, global::Rask.Core.Forms.Bound> __b, "
+            + "global::Rask.Core.Forms.Validate<int>? value) "
             + "{ var __c = __b.Value; __c.Validate = value; "
             + "return __b; }",
             output,

@@ -78,6 +78,35 @@ them until tagged releases begin.
   `Build<T>` to carry an unmaterialised child — a wider change to the struct that every generated setter
   takes. Left for later rather than folded in here.
 
+### Changed
+- **A form control's two modes are now mutually exclusive, on both surfaces.** A control's value comes
+  from exactly one place — an expression it binds (`Bind`) or a value its parent owns (`Value`) — and the
+  step you open the chain with now decides what the rest of it may say. Bound mode adds `Validate` and
+  the `AfterBind` hooks; controlled mode adds `Value`, `Checked` and the `OnInput`/`OnChange` callbacks;
+  everything else (`Placeholder`, `Type`, `Required`, `OnFiles`, the whole element surface) belongs to
+  neither and stays reachable from both.
+  - **These were accepted and then silently dropped.** Bound mode derives the rendered value and a
+    checkbox's `checked` from the model and installs its own `oninput`/`onchange` write-back, so it never
+    read `OnInput` or `Checked` — `Input.Bind(() => m.Name).OnInput(v => …)` compiled and did nothing.
+    The mirror hole was smaller only because `AfterBind` was already off the controlled factory.
+  - **Enforced by the type, not by an analyzer.** A form control's chain is now a
+    `Build<TControl, Bound>` or a `Build<TControl, Controlled>` — the entry step fixes the mode, shared
+    steps stay generic over it, and each mode's own steps are declared only on their mode. A step from
+    the other mode is not offered in completion and does not compile. The generated factories carry the
+    same split, so `Input(() => m.Name, OnInput: …)` has no such parameter either.
+  - **BREAKING — a form control always opens on its mode.** A non-generic control pinned nothing, so it
+    had no chain in front of it and `Bind` and `Value` were both plain setters one chain could take
+    both of. It gets a seed now because it is a form control: write `BsCheck.Bind(() => m.Done)` or
+    `BsCheck.Value(false)` where a bare `BsCheck` used to do.
+  - Nothing outside form controls changes: an ordinary component's chain is the same `Build<T>`.
+  - **RASK046 sees form controls again, and no longer misfires on them.** `KeyOpensChainAnalyzer` read
+    the built type by *shape* — an arity-1 generic return — so a mode-carrying chain answered "nothing"
+    and the rule went quiet for exactly the components it was added for (the `Bs` controls derive from
+    `Component`, not `Element`). It reads both arities now. It also no longer reports the chain's
+    *opening*: a seed step is what constructs the component rather than a setter that can be lost, and it
+    necessarily precedes `Key` — `Check.Value(true).Key(1)` has no legal reordering, since the seed
+    exposes no `Key` of its own.
+
 ### Added
 - **Every public component is documented, and the documentation now reaches the call site.** A factory
   call is what you *write*, so that is where the docs have to be: hovering `Video(` says what `<video>`
@@ -600,52 +629,6 @@ them until tagged releases begin.
     test, so the next such slip fails the build instead of a reader.
 
 ### Fixed
-- **Two gate tests no longer depend on how busy the machine is.** The gates are the only place tests run
-  for this repo, so a flake here is a flake in the one thing standing between a change and `main` — and
-  worse, it trains people to re-run rather than read, which is how a real failure gets waved through.
-
-  `AsyncLifecycleRenderingTests` waited a fixed 50 ms for a **fire-and-forget** continuation and then
-  asserted it had happened. The thing being awaited is precisely the one that signals nothing (that is
-  what the test is *about*), so the number was a guess at thread-pool latency — and under a full gate
-  run, with many test projects at once, 50 ms is entirely ordinary. It now polls for the render to land
-  and keeps the sleep only where a test claims "and no more than this", because nothing but elapsed time
-  can evidence a render that did *not* happen. Closes #691.
-
-  `ShopExampleTests.SignInAsync` asserted only that the browser had left `/login`, and that turns out to
-  be too early on the **Server** host. Signing in there cannot set a cookie on a response that has
-  already been sent — the live session issues an `AuthInstruction` and the *client* performs the
-  navigation that commits it — so the URL moves off `/login` before the cookie exists, and the caller's
-  next navigation races that commit: it lands on an authorized page and is bounced straight back to
-  `/login` with sign-in apparently complete. Reproduced 2 runs in 3 once the mechanism was known. It now
-  waits for content that only an authorized principal renders, which is what every caller actually
-  depends on: 5 of 5 runs green after, and the whole Shop suite 11/11. Closes #692.
-
-- **A routed frame no longer re-matches the route on every render.** `Router.Render()` runs on every
-  frame — it has to, because it publishes `ctx.Route` for the whole subtree and so cannot be
-  render-cached (#682) — and `RouteMatcher.TryMatch` allocates the chain list and the values dictionary
-  each time it is asked. It is a pure function of the flattened leaves and the path, neither of which
-  changes between renders except on navigation or a `Routes` reassignment, so the answer is now kept.
-  Same spirit as the `Routes` setter's existing reference cache, which already refuses to re-flatten the
-  same tree.
-
-  Measured (`RoutedRenderBenchmarks`, a two-level chain, 20 rows, steady-state re-render):
-
-  ```
-  | RoutedFrame                              Allocated
-  | before #682 (positional, but throwing)    3.86 KB
-  | after #682, matching every frame          4.18 KB
-  | with the match memoised                   3.96 KB
-  ```
-
-  So most of what #682 cost is back: **+0.10 KB rather than +0.32 KB** against the original. Wall clock
-  is inconclusive at this size (±0.4 us) so no claim is made about it. The remaining 0.10 KB is the
-  per-frame `RouteRenderState`, which is deliberately still fresh each frame — its `Cursor` is per-frame
-  walk state and its `Query` has to be read now, since `?page=2` moves without the path moving.
-
-  Two tests pin what a cache like this can get wrong: a query change on an unchanged path must still
-  reach the page, and replacing the routes must invalidate. The second one fails if the key is weakened
-  to the path alone. Closes #688.
-
 - **A dependency bump could fail the build of a project that has no scoped assets at all.** The
   scoped-asset bake refuses to write an empty bundle silently (#650) — but the check that decides whether
   "zero files" is a failure asked only whether *some* assembly had been skipped, on the reasoning that

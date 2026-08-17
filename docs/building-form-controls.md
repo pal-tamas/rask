@@ -49,7 +49,20 @@ emits **two factories**:
 - a **bound** factory — `MyControl(() => model.Field, …)` with the validator fanned into none/sync/async
   overloads (so `Validate:` accepts a sync `Validate<T>` *or* an async `ValidateAsync<T>` with no cast).
 
-The bound-mode members are excluded from the controlled factory automatically — no `[SkipFactory]`.
+…and a **chain** whose entry step chooses the mode: `MyControl.Bind(() => model.Field)` hands back a
+`Build<MyControl<T>, Bound>`, `MyControl.Value(v)` (and `MyControl.Of<T>()`) a
+`Build<MyControl<T>, Controlled>`.
+
+Each mode's members are excluded from the other mode automatically, on both surfaces — no
+`[SkipFactory]`. Bound mode owns the value and the write-back, so `Value` / `OnChange` / `OnChangeAsync`
+are not parameters of the bound factory and not steps on a bound chain; controlled mode parses no
+expression, so `Bind` / `Validate` / `AfterBind` are absent from its factory and its chain.
+
+The rule is by **name**, which is what lets it reach a prop the interface does not declare. If your
+control has its own `Checked`, `OnInput` or `OnInputAsync` — as the core `Input` and `Textarea` do —
+those are recognized as controlled-mode members too, because bound mode derives the checked state from
+the model and installs its own `oninput` handler and so would never read them. Any *other* property you
+declare is shared and stays reachable in both modes.
 
 ---
 

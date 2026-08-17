@@ -93,15 +93,39 @@ public sealed class KeyOpensChainAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // …and that step has to be a SETTER — something written on an existing chain. A seed step is not:
+        // it is what constructs the component, its receiver is the seed rather than a Build<…>, and it
+        // necessarily comes before Key because the thing it settles (a form control's mode, a generic
+        // component's type argument) has to be settled before there is a chain at all. Reporting one told
+        // the author to move `.Key(…)` ahead of a step that cannot be moved — `Check.Value(true).Key(1)`
+        // has no legal reordering, since the seed exposes no Key. Nothing is lost there either: the
+        // opening's own pins are assigned after ClaimKey inside the building step.
+        if (!IsChain(Receiver(previous)?.Type))
+        {
+            return;
+        }
+
         context.ReportDiagnostic(Diagnostic.Create(
             Rask046, operation.Syntax.GetLocation(), previous.TargetMethod.Name));
     }
 
-    // The T of the Build<T> this call hands back.
+    // The T of the Build<T> — or the Build<T, TMode> — this call hands back.
+    //
+    // Both arities, and the component is the FIRST type argument either way. A form control's chain
+    // carries its mode as a second parameter (see Rask.Core.Build{T,TMode}), so matching arity 1 alone
+    // returned null for every step on one and stood RASK046 down exactly where it matters most: the Bs
+    // form controls derive from BsBlock : Component rather than Element, which is the shape #685 added
+    // this rule for. Same miss BuilderEntry.ChainedComponent had, in a second place — this one matched
+    // the chain by SHAPE rather than by name, so it does not show up in a search for the type.
     private static ITypeSymbol? BuiltType(IInvocationOperation operation) =>
-        operation.TargetMethod.ReturnType is INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: 1 } build
+        operation.TargetMethod.ReturnType is INamedTypeSymbol { IsGenericType: true, Arity: 1 or 2 } build
             ? build.TypeArguments[0]
             : null;
+
+    // Whether this is a chain rather than a seed/state struct — asked through the one helper that knows
+    // both chain shapes, so a third arity can never again be half-taught to the analyzers.
+    private static bool IsChain(ITypeSymbol? type) =>
+        type is not null && !SymbolEqualityComparer.Default.Equals(BuilderEntry.ChainedComponent(type), type);
 
     // The next link DOWN the chain, matching DuplicateChainCallAnalyzer: a setter's receiver is whatever
     // produced it, written as an extension (argument 0) or as an instance call.
