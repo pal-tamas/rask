@@ -77,6 +77,11 @@ public sealed class BakeScopedAssetsTask : Task
     /// </summary>
     private readonly List<string> _skippedAlreadyLoaded = new();
 
+    /// <summary>
+    ///     Runs the bake: collects every scoped CSS/JS asset the component assemblies registered and writes
+    ///     them where the published bundle serves them from.
+    /// </summary>
+    /// <returns><see langword="true" /> when the bake succeeded; <see langword="false" /> fails the build.</returns>
     public override bool Execute()
     {
         if (string.IsNullOrEmpty(BundleDir))

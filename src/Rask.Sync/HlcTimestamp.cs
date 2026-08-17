@@ -45,12 +45,33 @@ public readonly record struct HlcTimestamp(long PhysicalMs, int Counter, string 
             : string.CompareOrdinal(NodeId, other.NodeId);
     }
 
+    /// <summary>
+    ///     Whether <paramref name="left" /> happened before <paramref name="right" />. Ordering is by
+    ///     physical time, then counter, then node id — so it is total, and every device agrees on it.
+    ///     <para>
+    ///         "Before" here means the merge order, not real time. Two clients editing offline produce
+    ///         timestamps that are ordered but not causally related, which is exactly why the node id has
+    ///         to break the tie: the result must not depend on which device asked.
+    ///     </para>
+    /// </summary>
+    /// <param name="left">The left timestamp.</param>
+    /// <param name="right">The right timestamp.</param>
     public static bool operator <(HlcTimestamp left, HlcTimestamp right) => left.CompareTo(right) < 0;
 
+    /// <summary>Whether <paramref name="left" /> sorts after <paramref name="right" />. See
+    ///     <see cref="op_LessThan" /> for what the ordering means.</summary>
+    /// <param name="left">The left timestamp.</param>
+    /// <param name="right">The right timestamp.</param>
     public static bool operator >(HlcTimestamp left, HlcTimestamp right) => left.CompareTo(right) > 0;
 
+    /// <summary>Whether <paramref name="left" /> sorts at or before <paramref name="right" />.</summary>
+    /// <param name="left">The left timestamp.</param>
+    /// <param name="right">The right timestamp.</param>
     public static bool operator <=(HlcTimestamp left, HlcTimestamp right) => left.CompareTo(right) <= 0;
 
+    /// <summary>Whether <paramref name="left" /> sorts at or after <paramref name="right" />.</summary>
+    /// <param name="left">The left timestamp.</param>
+    /// <param name="right">The right timestamp.</param>
     public static bool operator >=(HlcTimestamp left, HlcTimestamp right) => left.CompareTo(right) >= 0;
 
     /// <summary>

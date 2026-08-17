@@ -910,6 +910,26 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(pad).Append("/// <summary>").Append(summary).AppendLine("</summary>");
     }
 
+    // The doc comment on a chain ENTRY — `Div`, `Span`, `BsButton`, the identifier that OPENS a markup
+    // expression and so the first thing anyone types. It went undocumented while the factories and the
+    // setters after it were fully covered, which is the worst place to have a blank tooltip: hovering
+    // `Div` said nothing while hovering `.Class(…)` one keystroke later explained itself.
+    //
+    // The type's own summary, and a <seealso> back to it. No fallback text when a component has no
+    // summary: an empty doc comment SUPPRESSES the tooltip an IDE would otherwise synthesise, so saying
+    // nothing is better than saying nothing at length.
+    private static void EmitEntryDoc(StringBuilder sb, Candidate c)
+    {
+        if (c.Summary.Length == 0)
+        {
+            return;
+        }
+
+        var cref = c.FullyQualifiedName.Replace('<', '{').Replace('>', '}');
+        sb.Append("    /// <summary>").Append(c.Summary).AppendLine("</summary>");
+        sb.Append("    /// <seealso cref=\"").Append(cref).AppendLine("\"/>");
+    }
+
     // The opening lines every generated file shares. Centralised for the pragma, which is not optional
     // anywhere docs are emitted: a factory or a chain setter documents the properties that carry a summary
     // and leaves the rest bare, and CS1573 fires per UNDOCUMENTED parameter as soon as ANY parameter on
@@ -1245,10 +1265,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
+                EmitEntryDoc(sb, c);
                 sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
                     .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.TypeName))
                     .AppendLine(" = default;");
 
+                EmitEntryDoc(shared, c);
                 shared.Append(c.IsPublic ? "    public static " : "    internal static ")
                     .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.TypeName))
                     .AppendLine(" => default;");
@@ -1261,6 +1283,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // The entry opens a chain, so it hands back `Build<TComponent>` and not the component: the
             // steps after it are extension methods on the chain, which is what keeps a delegate-typed
             // property from swallowing its own setter (see Rask.Core.Build{T}).
+            EmitEntryDoc(sb, c);
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
                 .Append(BuildOf(c.FullyQualifiedName)).Append(' ')
                 .Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime).Append(EntryMethod(c))
@@ -1268,6 +1291,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             EmitResetArguments(sb, c, host.AssemblyName);
             sb.AppendLine("));");
 
+            EmitEntryDoc(shared, c);
             shared.Append(c.IsPublic ? "    public static " : "    internal static ")
                 .Append(BuildOf(c.FullyQualifiedName)).Append(' ')
                 .Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime).Append(EntryMethod(c))
@@ -2665,6 +2689,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // emitted below, as extensions.
                 if (seeded.Add(c.TypeName))
                 {
+                    EmitEntryDoc(sb, c);
                     sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
                         .Append(EscapeIdentifier(c.TypeName)).AppendLine(" => default;");
                 }
@@ -2675,6 +2700,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // The entry opens a chain, so it hands back `Build<TComponent>` rather than the component:
             // the steps that follow are extension methods on the chain, which is what keeps a
             // delegate-typed property from swallowing its own setter (see Rask.Core.Build{T}).
+            EmitEntryDoc(sb, c);
             sb.Append("    ").Append(visibility).Append(" static ").Append(BuildOf(c.FullyQualifiedName))
                 .Append(' ').Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime)
                 .Append(EntryMethod(c))
@@ -2871,6 +2897,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             parameters = RenameTypeParameter(parameters, name, renamed);
         }
 
+        // Point at the entry this forwards to rather than copying its summary. The canonical entry lives
+        // in another assembly, and an <inheritdoc/> is resolved by the IDE — which has the whole solution
+        // — where the generator only has metadata. Copying text here would either duplicate it or, when
+        // the metadata carries no docs, emit an empty comment that suppresses the tooltip entirely.
+        sb.Append("    /// <inheritdoc cref=\"").Append(e.HostFqn).Append('.').Append(e.Name)
+            .AppendLine("\"/>");
         sb.Append("    private static ").Append(returnType).Append(' ').Append(EscapeIdentifier(e.Name))
             .Append(typeParameters).Append(parameters).Append(constraints).Append(" => ").Append(e.HostFqn)
             .Append('.').Append(EscapeIdentifier(e.Name)).Append(typeParameters).Append(e.Arguments)

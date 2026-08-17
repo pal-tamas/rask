@@ -20,6 +20,15 @@ internal enum ErrorSource
     Lifecycle,
 }
 
+/// <summary>
+///     Catches an exception thrown while rendering its children and shows <c>Fallback</c> in their place,
+///     so one broken component degrades a region instead of taking down the page.
+/// </summary>
+/// <remarks>
+///     Put boundaries where the page has natural seams — around a widget, a panel, a route's content —
+///     rather than one at the root, which turns any failure into a blank screen. The boundary stays in its
+///     failed state until the retry callback handed to <c>Fallback</c> is invoked.
+/// </remarks>
 public sealed class ErrorBoundary : Component
 {
     /// <summary>

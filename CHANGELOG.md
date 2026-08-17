@@ -80,6 +80,17 @@ them until tagged releases begin.
     was documented. `BsBlock` is the base for every Bootstrap component, so documenting it there closed
     112 of them at once. `Class` now also states the thing worth knowing: extra classes are added
     *alongside* the component's own Bootstrap classes, never instead of them.
+  - **The chain ENTRY is documented — the first thing anyone types.** `Div`, `Span`, `BsButton`: the
+    identifier that opens a markup expression carried no documentation at all, while the factory and
+    every setter after it were fully covered. Hovering `Div` said nothing; hovering `.Class(…)` one
+    keystroke later explained itself. All three entry emitters now forward the component's summary and a
+    `<seealso>` — Core 177/177, Bootstrap 62/62 — and the injected forwarders point at the canonical
+    entry with `<inheritdoc>`, which the IDE resolves across assemblies where the generator cannot.
+    `ErrorBoundary`, `Router`, `Outlet` and `Fragment` had no class summary to forward and now do.
+  - **`Rask.Wasm`, `Rask.Wasm.Hosting`, `Rask.Sync` and `Rask.Wasm.Tasks` reach zero** undocumented
+    public members, joining `Rask.Server` and `Rask.WebPush`. `WasmAuthSignIn.SignInAsync` now says why
+    it throws rather than leaving it a runtime surprise: a WASM app cannot mint its own principal, so
+    credentials go to a server endpoint and the server issues the identity.
   - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
     and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
     post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older

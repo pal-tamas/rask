@@ -3,6 +3,11 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Routing;
 
+/// <summary>
+///     Matches the current URL against the app's routes and renders the page that wins. Place one near the
+///     root of the app; the pages themselves are registered by their <see cref="RouteAttribute" />, so
+///     there is no table to maintain.
+/// </summary>
 public sealed class Router : Component
 {
     private readonly RouteState _state;

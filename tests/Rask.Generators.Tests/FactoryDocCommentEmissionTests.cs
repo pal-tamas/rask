@@ -112,6 +112,51 @@ public class FactoryDocCommentEmissionTests
         Assert.DoesNotContain("<seealso cref", output, StringComparison.Ordinal);
     }
 
+    // The chain ENTRY is the identifier that OPENS a markup expression — `Div`, `Span`, `BsButton` — and
+    // so the very first thing anyone types. It went undocumented while the factory and every setter after
+    // it were covered, which is the worst possible place for a blank tooltip: hovering `Div` said nothing
+    // while hovering `.Class(…)` one keystroke later explained itself. Both entry emitters are pinned
+    // here, because there are two (the inherited surface and the one a referencing assembly names) and
+    // only fixing the first left every consumer package's entries blank.
+    [Fact]
+    public void ComponentSummary_ReachesTheChainEntry()
+    {
+        // The builder surface is opt-in, so the entry file only exists once it is switched on. A
+        // compilation that CONSUMES the framework emits RaskBuilderEntryHost.g.cs; the assembly that
+        // declares the markup host emits RaskBuilderEntries.g.cs instead. Both are fed by EmitEntryDoc.
+        var output = FactoryNavigationEmissionTests.RunWith(
+            Src,
+            new Dictionary<string, string> { ["build_property.RaskBuilderSurface"] = "true" },
+            "RaskBuilderEntryHost.g.cs");
+
+        Assert.Contains("/// <summary>Embeds a media player.", output, StringComparison.Ordinal);
+        Assert.Contains("/// <seealso cref=\"global::Demo.Clip\"/>", output, StringComparison.Ordinal);
+    }
+
+    // An undocumented component must emit NO doc comment on its entry rather than an empty one: an empty
+    // `<summary></summary>` suppresses the fallback tooltip an IDE would otherwise synthesise, so it is
+    // strictly worse than emitting nothing.
+    [Fact]
+    public void UndocumentedComponent_GetsNoEmptyDocOnItsEntry()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Bare : Component
+                  {
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var output = FactoryNavigationEmissionTests.RunWith(
+            src,
+            new Dictionary<string, string> { ["build_property.RaskBuilderSurface"] = "true" },
+            "RaskBuilderEntryHost.g.cs");
+
+        Assert.Contains(" Bare =>", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("<summary></summary>", output, StringComparison.Ordinal);
+    }
+
     // `<inheritdoc/>` does NOT arrive resolved from Roslyn: GetDocumentationCommentXml hands back the
     // literal element, because resolving it belongs to the IDE/DocFX layer. Every async twin in the
     // framework is written that way — OnValidSubmitAsync as `<inheritdoc cref="OnValidSubmit"/>` — so
