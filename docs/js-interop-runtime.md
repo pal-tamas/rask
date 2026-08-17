@@ -7,7 +7,7 @@ Calling JS from C#, the typed browser-API layer, element refs, and wrapping a th
 ## Calling JS from C# (`IJSRuntime`)
 
 Inject `IJSRuntime` through the **constructor** (not a property — a non-nullable settable
-property would become a required factory parameter) and dispatch from a lifecycle hook or
+property would become a required chain step) and dispatch from a lifecycle hook or
 event handler:
 
 ```csharp
@@ -251,7 +251,7 @@ right, because a `[JSInvokable]` is callable by *any* script on the page with *a
 - **Unregister on unmount**, or the entry pins the component for the life of the process.
 
 Keep the boundary to primitives and JSON strings and a trimmed WASM publish stays clean. Prefer callbacks
-that take **one** argument (bundle extras into a record): the generated factory only wraps arity-≤1
+that take **one** argument (bundle extras into a record): the generated chain step only wraps arity-≤1
 delegates for auto-re-render, so a two-arg callback silently leaves the caller reaching for
 `StateHasChanged()`.
 

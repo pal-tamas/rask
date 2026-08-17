@@ -117,7 +117,7 @@ A native page is a small **composed tree**: the native bars (`NativeHeaderBar` /
 document around it is the framework's, as on Server and WASM). The native host projects the bars to a
 **real `UINavigationBar` + `UITabBar`/`UIToolbar`** on iOS, and a top bar + bottom tab/tool bar on
 Android, and serializes the `NativeWebView`'s HTML into the WebView between them. The bars are ordinary
-factory-built components — you compose them in `Render()`, they work like any other component:
+chain-built components — you compose them in `Render()`, they work like any other component:
 
 ```csharp
 protected override Component? Render() =>
@@ -159,7 +159,7 @@ protected override Component? Render() =>
   navigate to their route; the page recomputes `Selected` from the current route on the next render. Each
   projected bar view carries a stable **accessibility identifier** (the tab/button title, or
   `rask-native-header`), so screen readers — and UI tests like the Appium on-device E2E — can address it.
-- **Bars render no HTML** — they are collected during the render walk (so their factories are DI-correct and
+- **Bars render no HTML** — they are collected during the render walk (so their chains are DI-correct and
   callbacks wire to their owner); the last bar of a kind wins. Only the settled build's chrome is pushed, and
   an unchanged bar never re-pushes (no flicker on a counter tick).
 - **Opt-in + inert elsewhere** — register an `INativeChrome` backend on `host.Services` before `RunLocalAsync`

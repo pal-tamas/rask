@@ -41,7 +41,7 @@ the token cancels the in-flight check on the next keystroke:
 Add the `Rask.Validation.DataAnnotations` package and drop `DataAnnotationsValidator()` inside the
 form. It's a real (headless) component that registers an `IFieldValidator` on the form's
 `EditContext` via `EditContextScope.Current?.AddValidator(...)` — one declaration covers the whole
-reachable model graph. The package adds a global static using, so the factory is in scope.
+reachable model graph. The package adds a global using, so the validator is in scope.
 
 ```csharp
 public sealed class SignupModel
