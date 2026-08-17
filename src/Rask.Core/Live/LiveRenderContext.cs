@@ -109,6 +109,13 @@ public sealed class LiveRenderContext : IDisposable
 
     internal void CollectNativeChrome(Component component) => _handle?.ReportNativeComponent(component);
 
+    /// <summary>
+    ///     The closing half of <see cref="CollectNativeChrome" />, raised once the component's subtree has been
+    ///     walked. Together they give the native host a balanced pre-order stream it can rebuild a native view
+    ///     tree from — see <see cref="IRenderHandle.ReportNativeComponentExit" />.
+    /// </summary>
+    internal void CollectNativeChromeExit(Component component) => _handle?.ReportNativeComponentExit(component);
+
     public IServiceProvider? Services { get; }
 
     public string? CurrentScopeId => _scopeStack.Count > 0 ? _scopeStack.Peek() : null;

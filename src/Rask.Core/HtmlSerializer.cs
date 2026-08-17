@@ -446,6 +446,14 @@ internal static class HtmlSerializer
                 // for its parent, so flag that.
                 if (frames is not null && component.TryReplayCleanSubtree(sb, frames, liveCtx))
                 {
+                    // Balance the enter reported above. Unreachable while collecting — TryCacheCleanSubtree
+                    // refuses to cache when collectsNativeChrome is set, so nothing can be replayed on a
+                    // native host — but the stream must stay balanced by construction, not by that argument.
+                    if (liveCtx is not null && liveCtx.CollectsNativeChrome)
+                    {
+                        liveCtx.CollectNativeChromeExit(component);
+                    }
+
                     _sawNestedComponent = true;
                     break;
                 }
@@ -522,6 +530,13 @@ internal static class HtmlSerializer
                             KeyForwardScope.Clear();
                         }
                     }
+                }
+
+                // Close the enter reported before the walk. The native host reads the balanced stream as a
+                // pre-order traversal and rebuilds the native view tree from it.
+                if (liveCtx is not null && liveCtx.CollectsNativeChrome)
+                {
+                    liveCtx.CollectNativeChromeExit(component);
                 }
 
                 var hadNested = _sawNestedComponent;
