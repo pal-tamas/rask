@@ -920,6 +920,31 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         EmitDocComment(sb, summary, "    ");
         var setterName = name;
 
+        // Key is not an ordinary assignment: it decides WHICH instance the chain is building (#685).
+        // Before this, a child's identity inside its parent was its ordinal among entry-built siblings
+        // and Key took no part, so inserting an item at the top of a keyed list handed every later row
+        // the next row's instance — the state-follows-position bug Key exists to prevent, one layer
+        // below where Key was being consulted. ClaimKey hands back the instance this key owns, which is
+        // why this step returns a NEW chain rather than the one it was given.
+        //
+        // It also makes Key an opening step in practice: any setter written before it would land on the
+        // instance the key is about to discard. RASK046 reports that at the call site.
+        if (generic && string.Equals(name, "Key", StringComparison.Ordinal))
+        {
+            sb.Append("    ").Append(visibility).Append(" static ")
+                .Append(BuildOf("T")).Append(" Key<T>(this ").Append(BuildOf("T")).Append(" __b, ")
+                .Append(typeFqn).Append(" value) where T : ").Append(receiver);
+            sb.Append(" { var __c = global::Rask.Core.BuilderRuntime.ClaimKey(__b.Value, value); ");
+            if (pendingBit >= 0)
+            {
+                sb.Append("global::Rask.Core.BuilderRuntime.Written(__c, ")
+                    .Append(MaskLiteral(new[] { pendingBit })).Append("); ");
+            }
+
+            sb.Append("__c.Key = value; return new ").Append(BuildOf("T")).AppendLine("(__c); }");
+            return;
+        }
+
         // `wrap` is the AutoCallback decision, and it is per property: an Element's
         // handlers go to the DOM unwrapped (owner resolution already re-renders, and wrapping would
         // allocate per render), a non-Element component's event callbacks are wrapped, and a form
@@ -1326,6 +1351,30 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(SeedName(c)).AppendLine();
         sb.Append(pad).AppendLine("{");
 
+        // Key has to be able to come FIRST — before the required steps, not merely before the optional
+        // ones (#685, RASK046). It decides WHICH instance the chain is building, so a required property
+        // written ahead of it lands on the instance the key then discards: `BsToast.Id(…).Message(…)
+        // .Key(…)` was silently rendering the previous frame's message whenever the list changed shape.
+        //
+        // The seed itself holds no component — the first step constructs one — so this step constructs,
+        // claims, and hands back the state that still awaits everything. The required steps then assign
+        // onto the instance the key settled on, which is the whole point.
+        //
+        // Only for a non-generic component: a generic one has type arguments still to be pinned by its
+        // opening, so there is no state type to name here yet. Those keep Key on the finished chain.
+        var seedCarriesKey = required.Count > 0 && c.TypeParameters.Length == 0;
+        if (seedCarriesKey)
+        {
+            sb.Append(pad).AppendLine("    private readonly object? _key;");
+            sb.Append(pad).AppendLine();
+            sb.Append(pad).Append("    internal ").Append(SeedName(c)).AppendLine("(object? key) => _key = key;");
+            sb.Append(pad).AppendLine();
+            sb.Append(pad).AppendLine(
+                "    /// <summary>Sets the reconciliation identity. Name it FIRST — see RASK046.</summary>");
+            sb.Append(pad).Append("    public ").Append(SeedName(c)).AppendLine(" Key(object? key) => new(key);");
+            sb.Append(pad).AppendLine();
+        }
+
         EmitExplicitTypeOpening(sb, c, pad + "    ", assemblyName, runtimePrefix, required);
 
         foreach (var opening in openings)
@@ -1338,7 +1387,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 {
                     EmitBuildingStep(
                         sb, c, pad + "    ", assemblyName, runtimePrefix, first, [],
-                        new HashSet<string>(StringComparer.Ordinal) { first.PropertyName });
+                        new HashSet<string>(StringComparer.Ordinal) { first.PropertyName }, seedCarriesKey);
                 }
 
                 continue;
@@ -1358,7 +1407,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             EmitBuildingStep(
                 sb, c, pad + "    ", assemblyName, runtimePrefix, opening[0], [],
-                SatisfiedBy(c, opening));
+                SatisfiedBy(c, opening), seedCarriesKey);
         }
 
         sb.Append(pad).AppendLine("}");
@@ -1405,6 +1454,24 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(pad).AppendLine();
             sb.Append(pad).Append("    private ").Append(c.FullyQualifiedName)
                 .AppendLine(" Component { get; }");
+
+            // Key is offered here, not only on the finished chain, because it has to be able to come
+            // FIRST (#685, RASK046): it decides which instance is being built, so anything written before
+            // it lands on the one the key discards. A component with required steps would otherwise have
+            // no way to satisfy both rules — `BsToast.Id(…).Message(…).Key(…)` is precisely the shape that
+            // was silently losing its props. Returns the same state, so it composes anywhere in the
+            // required sequence and changes nothing about what is still outstanding.
+            sb.Append(pad).AppendLine();
+            sb.Append(pad).AppendLine(
+                "    /// <summary>Sets the reconciliation identity. Name it FIRST — see RASK046.</summary>");
+            sb.Append(pad).Append("    public ").Append(StateName(c, state)).Append(c.TypeParameters)
+                .AppendLine(" Key(object? key)");
+            sb.Append(pad).AppendLine("    {");
+            sb.Append(pad).AppendLine(
+                "        var __c = global::Rask.Core.BuilderRuntime.ClaimKey(Component, key);");
+            sb.Append(pad).AppendLine("        __c.Key = key;");
+            sb.Append(pad).AppendLine("        return new(__c);");
+            sb.Append(pad).AppendLine("    }");
 
             foreach (var step in required.Where(r => !state.Contains(r.PropertyName)))
             {
@@ -1565,7 +1632,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitBuildingStep(
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
         EntryInference step, IReadOnlyList<(EntryInference Pin, string Value)> carried,
-        HashSet<string> satisfied)
+        HashSet<string> satisfied, bool carriesKey = false)
     {
         var required = RequiredSteps(c);
         var done = satisfied.Count == required.Count;
@@ -1590,6 +1657,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Append(c.FullyQualifiedName).Append(">(");
         EmitResetArguments(sb, c, assemblyName, c.TypeParameters);
         sb.AppendLine(");");
+
+        // The key the seed was carrying, applied BEFORE any property is assigned — which is the whole
+        // reason the seed carries it (#685, RASK046). Claiming settles which instance the chain is
+        // building, so every pin below lands on that one rather than on an instance about to be
+        // discarded. A default seed carries null, and a null key claims nothing.
+        if (carriesKey)
+        {
+            sb.Append(pad).AppendLine("    __c = global::Rask.Core.BuilderRuntime.ClaimKey(__c, _key);");
+            sb.Append(pad).AppendLine("    if (_key is not null) { __c.Key = _key; }");
+        }
 
         foreach (var (pin, value) in carried)
         {

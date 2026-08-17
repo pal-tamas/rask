@@ -905,6 +905,15 @@ public abstract partial class Component : RaskMarkup
             _live.Children.Clear();
         }
 
+        // The keyed map rotates on exactly the same discipline, and only for a parent that keys a child
+        // at all — otherwise both stay null and this is two null checks (#685).
+        if (_live?.KeyedChildren is not null)
+        {
+            _live.PreviousKeyedChildren ??= new Dictionary<(Type, object), Component>();
+            (_live.PreviousKeyedChildren, _live.KeyedChildren) = (_live.KeyedChildren, _live.PreviousKeyedChildren);
+            _live.KeyedChildren.Clear();
+        }
+
         Live.ChildPositions = 0;
 
         // HtmlSerializer wraps every user-component serialization in an EnterParentScope so
@@ -1292,14 +1301,73 @@ public abstract partial class Component : RaskMarkup
             (child.GetType(), AdoptedChildPosition)] = child;
     }
 
+    /// <summary>
+    ///     Settles which instance a keyed child actually is, replacing the one position handed us.
+    /// </summary>
+    /// <remarks>
+    ///     Called by the <c>Key</c> chain step, on the PARENT, immediately after the entry that built
+    ///     <paramref name="provisional" />. `Key` has always been the diff codec's reconciliation identity
+    ///     (<c>data-rask-key</c>); until #685 it was not the parent's, so a keyed row's own state — private
+    ///     fields, an <c>OnMount</c> subscription — followed its POSITION instead of its item.
+    ///     <para>
+    ///         The instance the entry handed over is a fresh one (<see cref="GetOrCreateChild{T}" /> stops
+    ///         recycling by ordinal once a type is keyed), so claiming an earlier instance discards it.
+    ///         That is the cost of correctness here and it is confined to keyed children: an unkeyed tree
+    ///         never reaches this method.
+    ///     </para>
+    /// </remarks>
+    internal T ClaimKeyedChild<T>(T provisional, object key) where T : Component
+    {
+        // From now on this parent identifies T by key rather than by position — see LiveState.KeyedTypes.
+        (Live.KeyedTypes ??= new HashSet<Type>()).Add(typeof(T));
+
+        var mapKey = (typeof(T), key);
+        var chosen = provisional;
+        if (Live.PreviousKeyedChildren is not null
+            && Live.PreviousKeyedChildren.TryGetValue(mapKey, out var prev)
+            && prev is T kept
+            && !ReferenceEquals(kept, provisional))
+        {
+            chosen = kept;
+            // Same reason GetOrCreateChild clears on reuse: children arrive via the `[...]` indexer after
+            // the chain, and a childless render must not inherit the last one's subtree.
+            chosen.Children = null;
+            chosen.RenderHandle ??= provisional.RenderHandle;
+        }
+
+        (Live.KeyedChildren ??= new Dictionary<(Type, object), Component>())[mapKey] = chosen;
+
+        // Re-file this frame's positional slot onto whichever instance the key settled on, so the
+        // alive-set walk sees the child that is actually rendered here.
+        if (Live.Children is not null && Live.LastChildSlot.Type == typeof(T))
+        {
+            Live.Children[Live.LastChildSlot] = chosen;
+        }
+
+        return chosen;
+    }
+
     internal T GetOrCreateChild<T>(
         Func<IServiceProvider, T> factory,
         IServiceProvider? services,
         IRenderHandle? handle) where T : Component
     {
         var key = (typeof(T), Live.ChildPositions++);
+        Live.LastChildSlot = key;
         T instance;
-        if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) && prev is T t)
+        // A type this parent identifies by Key is NOT identified by position (#685): recycling the
+        // instance that happens to sit at this ordinal would hand a brand-new key whichever item used
+        // to be here, state and all. Create, and let the Key step that follows claim the right one.
+        if (Live.KeyedTypes is not null && Live.KeyedTypes.Contains(typeof(T)))
+        {
+            instance = factory(services!);
+            if (instance is Forms.IFormControl newControl)
+            {
+                Forms.BindingConsumerRegistry.Record(newControl, this);
+            }
+        }
+        else if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) &&
+                 prev is T t)
         {
             instance = t;
             // The factory re-applies every factory-param property each render, but Children is
@@ -2465,6 +2533,24 @@ public abstract partial class Component : RaskMarkup
         public Dictionary<(Type, int), Component>? PreviousChildren;
         public bool PropsDirty;
         public bool StateDirty;
+
+        // Keyed child identity (#685). Three more null references on a parent that never keys a child,
+        // and the maps are allocated only by one that does — a keyed list is a small fraction of the
+        // nodes on a page, so this does not pay the per-node cost the note on Cached describes.
+        //
+        // KeyedTypes is deliberately CUMULATIVE rather than per-frame: once a parent has identified a
+        // child type by key, that type stops being identified by ordinal for the rest of the parent's
+        // life. It has to. A key that is new this frame must get a FRESH instance, and the ordinal path
+        // would hand it a recycled one belonging to whichever item used to sit at that position — which
+        // is the very bug being fixed, moved one step along.
+        public HashSet<Type>? KeyedTypes;
+        public Dictionary<(Type, object), Component>? KeyedChildren;
+        public Dictionary<(Type, object), Component>? PreviousKeyedChildren;
+
+        // The slot the last entry filed a child under, so the Key step that follows it can re-file onto
+        // whichever instance the key actually claims. Safe to keep as one field because Key is required
+        // to be the FIRST step of its chain (RASK046) — nothing can be built in between.
+        public (Type Type, int Ordinal) LastChildSlot;
 
         // Builder surface. Two more bools rather than a wider record: LiveState is allocated per node
         // on a mounted page, and these two land in the padding the six above already leave behind — so
