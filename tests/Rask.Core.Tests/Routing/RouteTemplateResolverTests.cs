@@ -19,7 +19,17 @@ public class RouteTemplateResolverTests
             RouteTemplateResolver.GetLocalTemplate(typeof(RouteTemplateResolverUnannotatedPage)));
 
         Assert.Contains(typeof(RouteTemplateResolverUnannotatedPage).FullName!, ex.Message);
-        Assert.Contains("[Route(\"...\")]", ex.Message);
+        Assert.Contains("derive it from", ex.Message);
+    }
+
+    [Fact]
+    public void GetLocalTemplate_PageWithRouteOverride_ResolvesFromTheRegistry()
+    {
+        // A Page carries no [Route] to reflect over — its template is read at compile time into the
+        // registry. This is what keeps the no-template Route<T>() overload working for a Page.
+        Assert.Equal(
+            "/__resolver-test/page",
+            RouteTemplateResolver.GetLocalTemplate(typeof(RouteTemplateResolverPage)));
     }
 
     [Fact]
@@ -40,5 +50,12 @@ public sealed partial class RouteTemplateResolverAnnotatedPage : Component
 
 public sealed partial class RouteTemplateResolverUnannotatedPage : Component
 {
+    protected override Component? Render() => Span;
+}
+
+public sealed partial class RouteTemplateResolverPage : Page
+{
+    protected override string Route => "/__resolver-test/page";
+
     protected override Component? Render() => Span;
 }
