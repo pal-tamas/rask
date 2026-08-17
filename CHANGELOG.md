@@ -7,6 +7,60 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **A routable component is a `Page`, and it declares its route as a property rather than an attribute.**
+  `[Route("/products/{id:int}")]` becomes `protected override string Route => "/products/{id:int}";`, and
+  `[ParentRoute(typeof(Layout))]` becomes `protected override Type? Parent => typeof(Layout);`. The value is
+  still read at compile time — constant expressions and `const`s work, and a computed override is
+  **RASK047** rather than a page that silently never registers. Deriving from `Page` is now also what makes
+  a class a valid `[RouteParam]`/`[QueryParam]` target, so RASK009/RASK010 say so.
+
+  Reading the template out of the override rather than off the attribute also drops the runtime reflection
+  `RouteTemplateResolver` used for the no-template `Route<T>()` overload.
+
+- **Every page gets a generated `SomePage.Url(...)` and `SomePage.Go(...)`.** `Url` builds the typed
+  `RouteUrl` — the same parameter list as the `Routes.SomePage(...)` factory it forwards to — and `Go`
+  navigates to it, with an extra `replace` flag for the history entry:
+
+  ```csharp
+  A.Href(ProductPage.Url(42, sort: "asc"))["Open"]      // build the URL
+  Button.OnClick(() => ProductPage.Go(42))["Open"]      // navigate to it
+  ```
+
+  `Url` returns a `RouteUrl` rather than a string deliberately: a string binds `NavigateTo`'s path-only
+  overload, which **clears the query string**. The string is one implicit conversion away when you want it.
+
+  These are C# 14 static extension members, so they need `LangVersion` 14 or later (the .NET 10 default) and
+  the page's namespace imported — a fully-qualified `My.Ns.HomePage.Go()` with nothing `using`-ed does not
+  resolve. Below C# 14 they are not emitted at all and `Routes.SomePage(...)` carries the app, because an
+  extension block on an older compiler fails as a parse-error cascade inside generated code.
+
+- **`Navigator.Current`** — the navigator of the handler currently running, published from the handler scope
+  every host already enters around a dispatch. It is what lets a static `SomePage.Go()` reach the right
+  session's navigator with no receiver to inject through; outside a handler it is `null`, and
+  `Navigator.RequireCurrent()` throws the same actionable message the instance methods do.
+
+- **`Screen` — a page that owns its native chrome.** A `Screen` is a `Page` with `HeaderBar`, `Toolbar` and
+  `TabBar` slots, so a screen declares its own bars instead of the app root inspecting the current path to
+  decide what the header should show:
+
+  ```csharp
+  public sealed class TodosScreen : Screen
+  {
+      protected override string Route => "/todos";
+      protected override Component? HeaderBar => NativeHeaderBar.Title("Todos");
+      protected override Component? Render() => Div[/* the HTML body */];
+  }
+  ```
+
+  Routing is unchanged on native — a screen is addressed by the same path, which is simply never shown
+  (the WebView sits on a custom-scheme origin), and `TodosScreen.Url()` / `.Go()` are generated as for any
+  page. The slots are hoisted rather than rendered inline: walked inside the screen's own scope, so a bar
+  button's `OnClick` attributes back to the screen and re-renders it, while the bar itself emits no HTML.
+  Chrome still merges by kind, deepest-wins, so a layout screen supplies the tab bar once and each leaf
+  screen supplies its own header. On Server and WASM the slots are **never read**, so one screen class
+  serves web and native with no `IsNative` branch.
+
 ### Fixed
 - **Two analyzers had stopped firing altogether on chain-built markup — including an accessibility
   check.** `RASK022` (a list item without a `Key`) and `RASK023` (an `Img` without `Alt`) each identified
