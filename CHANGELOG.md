@@ -67,6 +67,13 @@ them until tagged releases begin.
     any validator is async, and `AddValidationMessage` is idempotent per field and message. Alongside it
     `FieldIdentifier` (identity is by model *reference*, so a replaced model invalidates old ones),
     `ValidationEntry`, and the `[Route]`/`[RouteParam]` attributes that go on every page.
+  - **`Rask.Server` and `Rask.WebPush` are documented to zero gaps.** Both packages now have no
+    undocumented public member at all. The security-shaped ones say what they are and what they are not:
+    `RaskUploadOptions` bounds what the server accepts and proves nothing about a file being *safe*,
+    `SessionUserProvider` answers "who is this" and never on its own "may they", `VapidKeys.PrivateKey`
+    is a signing key while rotating the pair silently unsubscribes every user, and a `PushSubscription`
+    is a credential for reaching someone's device — dropped, not retried, when a send reports
+    `ShouldDelete`.
   - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
     and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
     post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older

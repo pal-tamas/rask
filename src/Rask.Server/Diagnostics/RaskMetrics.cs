@@ -74,6 +74,10 @@ public sealed class RaskMetrics : IDisposable
     // measurements from any other RaskMetrics constructed concurrently.
     internal Meter Meter => _meter;
 
+    /// <summary>
+    ///     Disposes the underlying <see cref="Meter" />. The host owns the lifetime — a meter obtained from
+    ///     an <c>IMeterFactory</c> is disposed with its scope.
+    /// </summary>
     public void Dispose() => _meter.Dispose();
 
     /// <summary>Registers the observable active-session gauge backed by <paramref name="readCount" />.</summary>
@@ -106,10 +110,22 @@ public sealed class RaskMetrics : IDisposable
         _meter.CreateObservableGauge(
             "rask.handlers.pending", readCount, "{handler}", "Action dispatches queued across all sessions.");
 
+    /// <summary>
+    ///     Counts one live session accepted. Read beside <see cref="SessionRejected" />, this is what shows
+    ///     whether admission is turning users away.
+    /// </summary>
     public void SessionCreated() => _sessionsCreated.Add(1);
 
+    /// <summary>
+    ///     Counts one session refused at admission because the capacity limit was reached. A rising count is
+    ///     the signal to raise the limit or add a host — every one of these is a user who saw nothing load.
+    /// </summary>
     public void SessionRejected() => _sessionsRejected.Add(1);
 
+    /// <summary>
+    ///     Counts one established session dropped by the server — idle timeout or reclamation, rather than
+    ///     the client leaving of its own accord.
+    /// </summary>
     public void SessionEvicted() => _sessionsEvicted.Add(1);
 
     /// <summary>
@@ -119,12 +135,27 @@ public sealed class RaskMetrics : IDisposable
     /// </summary>
     public void SessionsAbandonedAtDrain(int count) => _sessionsAbandonedAtDrain.Add(count);
 
+    /// <summary>
+    ///     Counts one action dispatch. The denominator for the fault and timeout counts below.
+    /// </summary>
     public void HandlerDispatched() => _handlersDispatched.Add(1);
 
+    /// <summary>
+    ///     Counts one action handler that threw. Sustained faults mean users are clicking things that
+    ///     silently do nothing.
+    /// </summary>
     public void HandlerFaulted() => _handlersFaulted.Add(1);
 
+    /// <summary>
+    ///     Counts one action handler abandoned for exceeding its time budget. Distinct from a fault: the work
+    ///     may still be running, so the effect can outlive the dispatch that gave up on it.
+    /// </summary>
     public void HandlerTimedOut() => _handlersTimedOut.Add(1);
 
+    /// <summary>
+    ///     Records how long one action handler took — the latency between a user acting and the UI answering.
+    /// </summary>
+    /// <param name="milliseconds">Elapsed time for the dispatch.</param>
     public void RecordHandlerDuration(double milliseconds) => _handlerDuration.Record(milliseconds);
 
     /// <summary>
