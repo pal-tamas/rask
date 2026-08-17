@@ -11,6 +11,8 @@ public class CodeFixProviderTests
         namespace Demo;
         public sealed partial class App : Component
         {
+            private static Component Wrap(Component c) => c;
+
             protected override Component? Render()
             {
                 {{body}}
@@ -66,6 +68,19 @@ public class CodeFixProviderTests
             new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
             App("return Img;"));
         Assert.Contains("Img.Alt(\"\")", fixhed);
+    }
+
+    // The fix must act on the Img, never on whatever encloses it. Walking up to the nearest ancestor
+    // invocation produced `Wrap(Img).Alt("")` — uncompilable, and the image still had no alt.
+    [Fact]
+    public async Task Rask023_AltLandsOnTheImg_NotOnAnEnclosingCall()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
+            App("return Wrap(Img);"));
+
+        Assert.Contains("Wrap(Img.Alt(\"\"))", fixhed);
+        Assert.DoesNotContain("Wrap(Img).Alt", fixhed);
     }
 
     // ---- RASK001: property becomes a required factory param -> add `required` ----
@@ -141,7 +156,22 @@ public class CodeFixProviderTests
             public string? Id { get; set; }
             public override Component? Render() => this;
         }
-        class Caller { void M() { {{body}} } }
+        // A MARKUP HOST, because the bare entry the fix writes only binds inside one.
+        partial class Caller : Component { protected override Component? Render() => null; void M() { {{body}} } }
+        """;
+
+    // The same construction outside a markup host: `Widget` there names the TYPE, so the rewrite would be
+    // CS0119 — a worse error than the one it replaces. The fix is withheld rather than offered.
+    private static string PlainCaller(string body) => $$"""
+        using Rask.Core;
+        namespace Demo;
+        public sealed partial class Widget : Component
+        {
+            public Widget() { }
+            public string? Id { get; set; }
+            public override Component? Render() => this;
+        }
+        class NotAHost { void M() { {{body}} } }
         """;
 
     [Fact]
@@ -153,6 +183,19 @@ public class CodeFixProviderTests
         // The bare entry — which is what RASK014's own message tells the reader to write.
         Assert.Contains("var x = Widget;", fixhed);
         Assert.DoesNotContain("new Widget()", fixhed);
+    }
+
+    [Fact]
+    public async Task Rask014_Withheld_OutsideAMarkupHost()
+    {
+        // Entries are protected static members on RaskMarkup, so `Widget` in a plain class names the TYPE
+        // and the rewrite would be CS0119 — worse than the error it replaces. RASK014 still fires; only
+        // the lightbulb stands down.
+        var offered = await CodeFixHarness.IsAnalyzerFixOfferedAsync(
+            new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
+            PlainCaller("var x = new Widget();"));
+
+        Assert.False(offered);
     }
 
     [Fact]
@@ -239,6 +282,56 @@ public class CodeFixProviderTests
 
         Assert.DoesNotContain("OnClickAsync", fixhed);
         Assert.Contains("OnClick: () => {}", fixhed);
+    }
+
+    // On a chain the async handler is a STEP, so the fix splices it out rather than deleting an argument.
+    [Fact]
+    public async Task Rask027_RemovesTheAsyncStep_FromAChain()
+    {
+        var source = """
+            using System.Threading.Tasks;
+            using Rask.Core;
+            namespace Demo;
+            public sealed partial class App : Component
+            {
+                protected override Component? Render() =>
+                    Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())["x"];
+            }
+            """;
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new SyncAsyncHandlerAnalyzer(), new SyncAsyncHandlerCodeFixProvider(), "RASK027", source);
+
+        Assert.DoesNotContain("OnClickAsync", fixhed);
+        Assert.Contains("Button.OnClick(() => {})[\"x\"]", fixhed);
+    }
+
+    // The fix must never reach OUTSIDE the chain it was offered on. It used to walk up to the nearest
+    // enclosing ArgumentSyntax, so a chain sitting in a named argument had that whole argument deleted —
+    // the component silently disappeared and the remaining code still compiled.
+    [Fact]
+    public async Task Rask027_DoesNotDeleteTheEnclosingArgument()
+    {
+        var source = """
+            using System.Threading.Tasks;
+            using Rask.Core;
+            namespace Demo;
+            public sealed partial class App : Component
+            {
+                private static Component Wrap(Component Content, string Label) => Content;
+
+                protected override Component? Render() =>
+                    Wrap(
+                        Content: Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())["x"],
+                        Label: "hi");
+            }
+            """;
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new SyncAsyncHandlerAnalyzer(), new SyncAsyncHandlerCodeFixProvider(), "RASK027", source);
+
+        Assert.DoesNotContain("OnClickAsync", fixhed);
+        Assert.Contains("Content:", fixhed);          // the argument survives
+        Assert.Contains("Label: \"hi\"", fixhed);
+        Assert.Contains("Button.OnClick(() => {})", fixhed);
     }
 
     // ---- CS0108: a member hides an inherited builder entry -> add `new` ----

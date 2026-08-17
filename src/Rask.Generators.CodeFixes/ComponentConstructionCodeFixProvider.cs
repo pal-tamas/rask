@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Threading;
@@ -19,13 +20,14 @@ namespace Rask.Generators.CodeFixes;
 ///         for. The diagnostic message already computes the exact replacement, so nothing is inferred here.
 ///     </para>
 ///     <para>
-///         <b>Deliberately withheld for anything but an argument-free, initializer-free construction.</b>
-///         A constructor call and a factory call are not the same shape: the factory's parameters are
-///         generated from the component's public properties in a defined order, which is not the
-///         constructor's, so carrying positional arguments across would compile and mean something else.
-///         And an object initializer is only legal after <c>new</c>, so it cannot ride along either. In
-///         both cases the error stands with its message, which names the factory to call — a quick fix
-///         that silently changes meaning is worse than none.
+///         <b>Deliberately withheld for anything but an argument-free, initializer-free construction
+///         inside a markup host.</b> A constructor call and a chain are not the same shape: a chain sets
+///         each property by name in its own step, so carrying positional constructor arguments across
+///         would compile and mean something else. An object initializer is only legal after <c>new</c>,
+///         so it cannot ride along either. And the bare entry only binds where entries live — outside a
+///         markup host the rewrite is <c>CS0119</c>, a worse error than the one it replaces. In every
+///         such case the error stands with its message, which spells out the chain to write; a quick fix
+///         that silently changes meaning, or trades one error for a worse one, is worse than none.
 ///     </para>
 /// </remarks>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ComponentConstructionCodeFixProvider))]
@@ -38,11 +40,56 @@ public sealed class ComponentConstructionCodeFixProvider : RaskCodeFixProvider<O
 
     protected override string EquivalenceKey => "RASK014_UseChain";
 
-    protected override Task<bool> CanFixAsync(CodeFixContext context, ObjectCreationExpressionSyntax node) =>
-        Task.FromResult(
-            node.Initializer is null
-            && (node.ArgumentList is null || node.ArgumentList.Arguments.Count == 0)
-            && FactoryName(node) is not null);
+    protected override async Task<bool> CanFixAsync(CodeFixContext context, ObjectCreationExpressionSyntax node)
+    {
+        if (node.Initializer is not null
+            || (node.ArgumentList is not null && node.ArgumentList.Arguments.Count != 0)
+            || FactoryName(node) is null)
+        {
+            return false;
+        }
+
+        // The bare entry only binds inside a MARKUP HOST: entries are protected static members on
+        // RaskMarkup, or injected into a host's own partial. In a service, a Program.cs, a DI factory or
+        // any plain class, `Widget` names the TYPE and the rewrite is CS0119 — worse than the error it
+        // replaces, since RASK014 fires there too. The old factory call had no such limit (it rode a
+        // project-wide `global using static`), which is why this gate arrived with the bare entry.
+        if (node.FirstAncestorOrSelf<TypeDeclarationSyntax>() is not { } declaration)
+        {
+            return false;
+        }
+
+        var model = await context.Document.GetSemanticModelAsync(context.CancellationToken).ConfigureAwait(false);
+        return model?.GetDeclaredSymbol(declaration, context.CancellationToken) is INamedTypeSymbol type
+               && IsMarkupHost(type);
+    }
+
+    // Mirrors BuilderEntry.IsEntryHost, which lives in the analyzer assembly and is not visible here:
+    // a type deriving from RaskMarkup (every Component does), or one carrying [RaskMarkup] because it
+    // could not spend its base slot.
+    private static bool IsMarkupHost(INamedTypeSymbol type)
+    {
+        foreach (var attribute in type.GetAttributes())
+        {
+            if (string.Equals(
+                    attribute.AttributeClass?.ToDisplayString(),
+                    "Rask.Core.RaskMarkupAttribute",
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        for (INamedTypeSymbol? current = type; current is not null; current = current.BaseType)
+        {
+            if (string.Equals(current.ToDisplayString(), "Rask.Core.RaskMarkup", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     protected override async Task<Document> FixAsync(
         Document document,

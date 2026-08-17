@@ -60,11 +60,13 @@ public sealed class SyncAsyncHandlerAnalyzer : DiagnosticAnalyzer
             // The chain reaches none of the above: its steps are extension methods on Build<T>, not a
             // static Generated.Button(...), so the factory branch matched no chain and one of the two
             // handlers was dropped in silence — the exact thing this diagnostic exists to prevent.
-            start.RegisterOperationAction(ctx => AnalyzeChain(ctx, component), OperationKind.Invocation);
+            var build = start.Compilation.GetTypeByMetadataName(BuilderEntry.BuildMetadataName);
+            start.RegisterOperationAction(ctx => AnalyzeChain(ctx, component, build), OperationKind.Invocation);
         });
     }
 
-    private static void AnalyzeChain(OperationAnalysisContext context, INamedTypeSymbol component)
+    private static void AnalyzeChain(
+        OperationAnalysisContext context, INamedTypeSymbol component, INamedTypeSymbol? build)
     {
         var operation = (IInvocationOperation)context.Operation;
 
@@ -80,7 +82,7 @@ public sealed class SyncAsyncHandlerAnalyzer : DiagnosticAnalyzer
             return; // The factory branch owns this one.
         }
 
-        if (BuiltComponent(operation.Type) is not { } built || !InheritsFrom(built, component))
+        if (BuilderEntry.BuildOf(operation.Type, build) is not { } built || !InheritsFrom(built, component))
         {
             return;
         }
@@ -113,18 +115,21 @@ public sealed class SyncAsyncHandlerAnalyzer : DiagnosticAnalyzer
             var syncName = asyncName.Substring(0, asyncName.Length - "Async".Length);
             if (steps.ContainsKey(syncName))
             {
+                // Anchored on the STEP NAME, not on the whole chain. An invocation's span starts at the
+                // head of the chain, so reporting the invocation would let the quick-fix walk up out of
+                // the chain entirely and delete whatever encloses it.
                 context.ReportDiagnostic(Diagnostic.Create(
-                    Rask027, entry.Value.Syntax.GetLocation(), syncName, asyncName));
+                    Rask027, StepNameLocation(entry.Value), syncName, asyncName));
             }
         }
     }
 
-    // The component a Build<T> is building, or null when the type is anything else.
-    private static INamedTypeSymbol? BuiltComponent(ITypeSymbol? type) =>
-        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
-        && string.Equals(named.ConstructedFrom.ToDisplayString(), "Rask.Core.Build<T>", StringComparison.Ordinal)
-            ? named.TypeArguments[0] as INamedTypeSymbol
-            : null;
+    // The `.OnXAsync` name itself, so the report — and the quick-fix that reads it back — lands on the
+    // one step being removed rather than on the chain that carries it.
+    private static Location StepNameLocation(IInvocationOperation step) =>
+        step.Syntax is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax member }
+            ? member.Name.GetLocation()
+            : step.Syntax.GetLocation();
 
     // The next link DOWN the chain: a step's receiver is whatever produced the Build<T> it extends,
     // written either as an extension method (argument 0) or as an instance call.

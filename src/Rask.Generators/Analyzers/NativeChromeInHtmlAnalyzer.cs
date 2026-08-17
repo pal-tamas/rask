@@ -74,7 +74,11 @@ public sealed class NativeChromeInHtmlAnalyzer : DiagnosticAnalyzer
         var node = (ElementAccessExpressionSyntax)context.Node;
         foreach (var arg in node.ArgumentList.Arguments)
         {
-            var type = ModelExtensions.GetTypeInfo(context.SemanticModel, arg.Expression, context.CancellationToken).Type;
+            // A chain hands back Build<T>, not T, so the child's own type has to be unwrapped first —
+            // without this every native component written as a chain (which is all of them now) walked
+            // straight past the test below.
+            var type = BuilderEntry.ChainedComponent(
+                ModelExtensions.GetTypeInfo(context.SemanticModel, arg.Expression, context.CancellationToken).Type);
             if (type is not null && DerivesFrom(type, nativeComponent))
             {
                 context.ReportDiagnostic(Diagnostic.Create(Rask032, arg.Expression.GetLocation(), type.Name));

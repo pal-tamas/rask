@@ -101,9 +101,19 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         }
 
         var produced = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var invocation in renderBody.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        foreach (var node in renderBody.DescendantNodes())
         {
-            var name = InvokedSimpleName(invocation.Expression);
+            // The factory spelling: `Html("en")`, `Head()`. The chain writes the same shell without ever
+            // invoking anything — `Html[ … ]` is an element access, and `Doctype` on its own is a bare
+            // identifier — so a scan over invocations alone saw none of it.
+            var name = node switch
+            {
+                InvocationExpressionSyntax invocation => InvokedSimpleName(invocation.Expression),
+                ElementAccessExpressionSyntax element => InvokedSimpleName(element.Expression),
+                IdentifierNameSyntax id when IsBareDoctype(id) => id.Identifier.ValueText,
+                _ => null,
+            };
+
             if (name is not null && Array.IndexOf(_shellFactories, name) >= 0)
             {
                 produced.Add(name);
@@ -141,8 +151,33 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         };
     }
 
-    // Simple name of an invoked expression: `Doctype()` → "Doctype",
-    // `Generated.Html(...)` → "Html", `Foo<T>()` → "Foo".
+    /// <summary>
+    ///     A bare <c>Doctype</c> used as a value — the one part of the shell a chain writes on its own,
+    ///     because it is the only one with no children to put in an indexer.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately <b>only</b> <c>Doctype</c>. Matching a bare <c>Body</c> or <c>Head</c> by name would
+    ///     report RASK021 on any local, parameter or field that happens to share it — `var Body = email.Body`
+    ///     is ordinary code — and the repo builds <c>-warnaserror</c>, so that is a broken build rather than a
+    ///     nag. The type would settle it, but an analyzer may not call <c>Compilation.GetSemanticModel</c>
+    ///     (RS1030) and this root's <c>Render()</c> generally lives in a different syntax tree from the entry
+    ///     point being analysed. <c>Doctype</c> is safe to match on the name alone: nothing else is plausibly
+    ///     called that, and the other three are still caught by the element-access arm, which is how a chain
+    ///     writes them (<c>Html[ … ]</c>).
+    /// </remarks>
+    private static bool IsBareDoctype(IdentifierNameSyntax id) =>
+        string.Equals(id.Identifier.ValueText, "Doctype", StringComparison.Ordinal)
+        && id.Parent switch
+        {
+            InvocationExpressionSyntax invocation => invocation.Expression != id,
+            ElementAccessExpressionSyntax element => element.Expression != id,
+            MemberAccessExpressionSyntax => false,
+            QualifiedNameSyntax => false,
+            _ => true,
+        };
+
+    // Simple name of an invoked or indexed expression: `Doctype()` → "Doctype",
+    // `Generated.Html(...)` → "Html", `Html[ … ]` → "Html", `Foo<T>()` → "Foo".
     private static string? InvokedSimpleName(ExpressionSyntax expression) => expression switch
     {
         IdentifierNameSyntax id => id.Identifier.ValueText,
