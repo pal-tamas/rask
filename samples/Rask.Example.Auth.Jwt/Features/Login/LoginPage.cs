@@ -5,7 +5,6 @@ using Rask.Server.Authentication;
 
 namespace Rask.Example.Auth.Jwt.Features;
 
-[Route("login")]
 [AllowAnonymous]
 public sealed partial class LoginPage(
     ICredentialStore creds,
@@ -13,8 +12,10 @@ public sealed partial class LoginPage(
     JwtValidator validator,
     ProtectedSessionStorage store,
     SessionUserProvider users,
-    Navigator nav) : Component
+    Navigator nav) : Page
 {
+    protected override string Route => "login";
+
     private readonly LoginModel _model = new();
     private string? _error;
 

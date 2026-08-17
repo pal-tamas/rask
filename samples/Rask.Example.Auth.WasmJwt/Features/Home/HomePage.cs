@@ -3,10 +3,11 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.Auth.WasmJwt.Features;
 
-[Route("/")]
 [AllowAnonymous]
-public sealed partial class HomePage : Component
+public sealed partial class HomePage : Page
 {
+    protected override string Route => "/";
+
     protected override Component? Render() =>
         Div.Id("home").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
             Div.Class("card-body")[

@@ -7,10 +7,11 @@ namespace Rask.Example.Auth.Jwt.Features;
 
 // Component-gated (not a [Authorize] route attribute): the principal is held in the live session, set from
 // the JWT held in ProtectedSessionStorage. The Authorize component re-renders when that principal changes.
-[Route("members")]
 [AllowAnonymous]
-public sealed partial class MembersPage : Component
+public sealed partial class MembersPage : Page
 {
+    protected override string Route => "members";
+
     protected override Component? Render() =>
         Div.Id("members").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
             Div.Class("card-body")[
