@@ -28,15 +28,18 @@ public sealed partial class BsToaster : Component
         ToastOutlet
             .Template((messages, dismiss) =>
             Div.Class($"toast-container position-fixed {Placement} p-3")[
+                // Key opens the chain (RASK046): it decides WHICH toast instance is being built, so every
+                // step after it lands on that one. Written last, a toast list that changed shape kept the
+                // instance the key claimed and quietly dropped this frame's message, title and level.
                 messages.Select(m => (Component)BsToast
+                    .Key(m.Id.ToString())
                     .Id(m.Id)
                     .Message(m.Message)
                     .Title(m.Title)
                     .Color(ToColor(m.Level))
                     .Icon(ToIcon(m.Level))
                     .AutoHideMs(AutoHideMs)
-                    .OnClose(id => dismiss(id))
-                    .Key(m.Id.ToString()))
+                    .OnClose(id => dismiss(id)))
             ]);
 
     private static BsColor ToColor(ToastLevel level) => level switch
