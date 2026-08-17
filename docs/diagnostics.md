@@ -12,8 +12,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | ID | What the lightbulb does |
 |----|-------------------------|
 | **RASK001** | adds the `required` modifier |
-| **RASK014** | rewrites `new Widget()` into the generated `Widget()` factory call |
-| **RASK023** | inserts `Alt: ""` |
+| **RASK014** | rewrites `new Widget()` into the bare entry `Widget` |
+| **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
 | **CS0108** | adds `new` to a member that [hides a builder entry](#cs0108-a-member-hides-a-builder-entry) |
@@ -22,10 +22,10 @@ These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyze
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
 
 A fix is offered only when the rewrite means exactly what you wrote. **RASK014's is withheld when the
-construction has arguments or an object initializer**: the factory's parameters are generated from the
-component's public properties in an order that is not the constructor's, so moving positional arguments
-across would compile and mean something else — and an object initializer is only legal after `new`. In
-those cases the error stands with its message, which already spells out the chain to write.
+construction has arguments or an object initializer**: a chain sets each property by name in its own
+step, so moving positional constructor arguments across would compile and mean something else — and an
+object initializer is only legal after `new`. In those cases the error stands with its message, which
+already spells out the chain to write.
 
 Every RASK diagnostic reports under the single category **`Rask`**, so one `.editorconfig` line covers
 the family:

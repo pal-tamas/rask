@@ -26,6 +26,22 @@ public class MissingKeyAnalyzerTests
                                                 }
                                                 """;
 
+    // The chain is what the framework teaches, so keyless-list detection has to see it. A chain's steps
+    // are extension methods on Build<T>, not a static Generated.Li(...), so the factory branch matched
+    // none of these and the warning was silently absent from every chain ever written.
+    [Fact]
+    public async Task ChainSelectProjection_NoKey_ReportsRask022()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            "return Ul[ _items.Select(i => Li[i.ToString()]) ];")));
+        Assert.Equal("RASK022", d.Id);
+    }
+
+    [Fact]
+    public async Task ChainSelectProjection_WithKey_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(App(
+            "return Ul[ _items.Select(i => Li.Key(i)[i.ToString()]) ];")));
+
     [Fact]
     public async Task SelectProjection_NoKey_ReportsRask022()
     {

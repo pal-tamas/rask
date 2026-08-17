@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Rask.Generators.Analyzers;
 
@@ -55,7 +56,91 @@ public sealed class SyncAsyncHandlerAnalyzer : DiagnosticAnalyzer
             }
 
             start.RegisterSyntaxNodeAction(ctx => Analyze(ctx, component), SyntaxKind.InvocationExpression);
+
+            // The chain reaches none of the above: its steps are extension methods on Build<T>, not a
+            // static Generated.Button(...), so the factory branch matched no chain and one of the two
+            // handlers was dropped in silence — the exact thing this diagnostic exists to prevent.
+            start.RegisterOperationAction(ctx => AnalyzeChain(ctx, component), OperationKind.Invocation);
         });
+    }
+
+    private static void AnalyzeChain(OperationAnalysisContext context, INamedTypeSymbol component)
+    {
+        var operation = (IInvocationOperation)context.Operation;
+
+        // Only the OUTERMOST link, so the chain is judged once and as a whole.
+        if (operation.Syntax.Parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax })
+        {
+            return;
+        }
+
+        if (operation.TargetMethod.IsStatic
+            && string.Equals(operation.TargetMethod.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal))
+        {
+            return; // The factory branch owns this one.
+        }
+
+        if (BuiltComponent(operation.Type) is not { } built || !InheritsFrom(built, component))
+        {
+            return;
+        }
+
+        // Every step written on this chain, and where. A step that was handed `null` is the deliberate
+        // "set at most one" conditional shape, exactly as a null argument is in the factory branch.
+        var steps = new Dictionary<string, IInvocationOperation>(StringComparer.Ordinal);
+        for (var step = operation; step is not null; step = NextStep(step))
+        {
+            var value = step.TargetMethod.IsExtensionMethod && step.Arguments.Length > 1
+                ? step.Arguments[1].Value
+                : step.Arguments.Length != 0 ? step.Arguments[0].Value : null;
+
+            if (value is not { ConstantValue: { HasValue: true, Value: null } })
+            {
+                steps[step.TargetMethod.Name] = step;
+            }
+        }
+
+        foreach (var entry in steps)
+        {
+            var asyncName = entry.Key;
+            if (asyncName.Length <= "OnAsync".Length
+                || !asyncName.StartsWith("On", StringComparison.Ordinal)
+                || !asyncName.EndsWith("Async", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var syncName = asyncName.Substring(0, asyncName.Length - "Async".Length);
+            if (steps.ContainsKey(syncName))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rask027, entry.Value.Syntax.GetLocation(), syncName, asyncName));
+            }
+        }
+    }
+
+    // The component a Build<T> is building, or null when the type is anything else.
+    private static INamedTypeSymbol? BuiltComponent(ITypeSymbol? type) =>
+        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
+        && string.Equals(named.ConstructedFrom.ToDisplayString(), "Rask.Core.Build<T>", StringComparison.Ordinal)
+            ? named.TypeArguments[0] as INamedTypeSymbol
+            : null;
+
+    // The next link DOWN the chain: a step's receiver is whatever produced the Build<T> it extends,
+    // written either as an extension method (argument 0) or as an instance call.
+    private static IInvocationOperation? NextStep(IInvocationOperation operation)
+    {
+        var receiver = operation.Instance
+                       ?? (operation.TargetMethod.IsExtensionMethod && operation.Arguments.Length != 0
+                           ? operation.Arguments[0].Value
+                           : null);
+
+        while (receiver is IParenthesizedOperation or IConversionOperation { IsImplicit: true })
+        {
+            receiver = receiver is IParenthesizedOperation p ? p.Operand : ((IConversionOperation)receiver).Operand;
+        }
+
+        return receiver as IInvocationOperation;
     }
 
     private static void Analyze(SyntaxNodeAnalysisContext context, INamedTypeSymbol component)

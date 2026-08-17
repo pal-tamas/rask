@@ -125,7 +125,11 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
             var kids = new List<Component>(Extra + 1);
             for (var i = 0; i < Extra; i++)
             {
+                // No .Key(…) on purpose: this test asserts exact HTML, and a key would add a
+                // data-rask-key attribute to it. RASK022 is right about real lists.
+#pragma warning disable RASK022
                 kids.Add(I);
+#pragma warning restore RASK022
             }
 
             kids.Add(Outlet);
