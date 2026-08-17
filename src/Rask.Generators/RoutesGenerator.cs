@@ -420,7 +420,28 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             new EquatableArray<RoutePropInfo>(properties),
             new LocationInfo(firstRouteAttrLocation),
             false,
-            true);
+            true,
+            false,
+            IsPubliclyVisible(symbol));
+    }
+
+    /// <summary>
+    ///     Whether the type is visible outside its assembly, walking containing types so a public nested type
+    ///     inside an internal one reads as internal. The generated navigation container's accessibility has to
+    ///     match: a static extension member takes the receiver type in its signature, so a public container
+    ///     over an internal page is CS0051.
+    /// </summary>
+    private static bool IsPubliclyVisible(INamedTypeSymbol symbol)
+    {
+        for (ISymbol? s = symbol; s is not null and not INamespaceSymbol; s = s.ContainingType)
+        {
+            if (s.DeclaredAccessibility != Accessibility.Public)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool InheritsFromPage(INamedTypeSymbol symbol)
@@ -1408,7 +1429,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         var replaceFree = orderedPath.All(p => !string.Equals(p.Prop.Name, "replace", StringComparison.OrdinalIgnoreCase))
                           && queryProps.All(p => !string.Equals(p.Name, "replace", StringComparison.OrdinalIgnoreCase));
 
-        sb.Append("public static class __RaskNav_").AppendLine(c.TypeName);
+        // Must not be more visible than the page itself: the receiver type is part of a static extension
+        // member's signature, so a public container over an internal page is CS0051.
+        sb.Append(c.IsPubliclyVisible ? "public" : "internal").Append(" static class __RaskNav_")
+            .AppendLine(c.TypeName);
         sb.AppendLine("{");
         sb.Append("    extension(").Append(c.FullyQualifiedName).AppendLine(")");
         sb.AppendLine("    {");
@@ -1736,7 +1760,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         LocationInfo RouteAttrLocation,
         bool IsNotFound,
         bool HasRouteAttr,
-        bool NonConstantRoute = false);
+        bool NonConstantRoute = false,
+        bool IsPubliclyVisible = true);
 
     private readonly record struct RoutePropInfo(
         string Name,
