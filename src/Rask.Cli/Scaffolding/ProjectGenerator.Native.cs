@@ -377,9 +377,10 @@ internal static partial class ProjectGenerator
 
         namespace Company.RaskServer.Features.Home;
 
-        [Route("/")]
-        public sealed partial class HomePage : Component
+        public sealed partial class HomePage : Page
         {
+            protected override string Route => "/";
+
             protected override Component? Render() =>
                 Div.Style("padding:1.25rem;font-family:system-ui,-apple-system,sans-serif")[
                     H1.Style("font-size:1.5rem;margin:0 0 .5rem")["Hello, Rask! 👋"],
