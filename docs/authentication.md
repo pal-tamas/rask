@@ -89,7 +89,7 @@ Authorize.Roles(["admin", "editor"])// ANY-of; omit for "any authenticated user"
   on its own. For static authorized content that ignores the user, use the children-indexer shorthand
   `Authorize(...)[ content ]`.
 - **`Roles`** and the authenticated check are synchronous → no flicker.
-- **`Policy`** (e.g. `Authorize(Policy: "over-18")`) resolves via `IAuthorizationService` in the background;
+- **`Policy`** (e.g. `Authorize.Policy("over-18")`) resolves via `IAuthorizationService` in the background;
   the `Authorizing` slot shows until it lands.
 - **`Authorizing`** also covers the WASM bootstrap window: while a provider's `EnsureLoadedAsync`/`RefreshAsync`
   is in flight (`IUserProvider.IsLoading == true`), the slot bridges the anonymous→authenticated flash.

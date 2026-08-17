@@ -36,7 +36,7 @@ P[$"Hello, {_model.Name}!"]
 
 <!-- demo:binding-typed -->
 
-`Bind` is an `Expression<Func<TProp>>` (`Input.Bound<TProp>`). The factory reads the expression and
+`Bind` is an `Expression<Func<TProp>>` (`Input.Bound<TProp>`). The chain step reads the expression and
 derives everything from the bound property:
 
 - **Input name** ← the property name (`name="Name"`). Override with `Name:`.

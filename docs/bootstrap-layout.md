@@ -13,7 +13,7 @@ BsContainer[
 ]
 ```
 
-Reach for these instead of hand-writing `Div(Class: "row g-4")` or `Div(Class: "d-flex gap-2")`. The
+Reach for these instead of hand-writing `Div.Class("row g-4")` or `Div.Class("d-flex gap-2")`. The
 underlying tokens stay available as typed strings in the [`Grid`](bootstrap-utilities.md) and
 [`Flex`](bootstrap-utilities.md) utility groups for the cases a component doesn't cover — pass them
 through `Class`.
@@ -27,8 +27,8 @@ bare `.row` outside a container overhangs the viewport.
 | Call | Class | Behaviour |
 |---|---|---|
 | `BsContainer()` | `.container` | width-capped at every breakpoint |
-| `BsContainer(Fluid: true)` | `.container-fluid` | full width at every breakpoint |
-| `BsContainer(FluidBelow: Bp.Md)` | `.container-md` | full width **below** md, capped from md up |
+| `BsContainer.Fluid(true)` | `.container-fluid` | full width at every breakpoint |
+| `BsContainer.FluidBelow(Bp.Md)` | `.container-md` | full width **below** md, capped from md up |
 
 `FluidBelow` is named for what it does, not for the class it emits: Bootstrap's `.container-md` reads as
 "a container at md" but is really the fluid one below md — it picks up a `max-width` only from md up. It
@@ -62,11 +62,11 @@ reachable with `Class: Grid.Col`.
 
 `Auto` and `Span` are two ways to fill the **same** unprefixed slot, so they're alternatives rather than
 additions — `Auto` wins if you set both. Pairing `Auto` with a *breakpoint* span is a different thing and
-fully supported: `BsCol(Auto: true, Md: 6)` → `.col-auto .col-md-6`, content-width below md and half from
+fully supported: `BsCol.Auto(true).Md(6)` → `.col-auto .col-md-6`, content-width below md and half from
 md up.
 
 To centre columns of unequal height, pass the typed token through `Class`:
-`BsRow(Class: Flex.Align(BsAlign.Center))`.
+`BsRow.Class(Flex.Align(BsAlign.Center))`.
 
 > `BsCol` is a grid column. Don't confuse it with [`BsColumn<T>`](data-grid.md), which is a *data-grid*
 > column definition — a config object passed to `BsDataGrid`'s `Columns`, not a component.
@@ -99,7 +99,7 @@ shorthand is a superset of `d-flex`:
 
 `.hstack` silently adds `align-items:center`, `.vstack` adds `flex:1 1 auto`, and both add
 `align-self:stretch` — so a stack built on them would restyle any plain `d-flex` it replaced.
-`BsStack(Align: BsAlign.Center)` says that alignment out loud and otherwise leaves the CSS default alone.
+`BsStack.Align(BsAlign.Center)` says that alignment out loud and otherwise leaves the CSS default alone.
 
 Migrating an existing `.hstack`/`.vstack` is therefore *not* a pure rename — `align-self:stretch` is the
 one part `BsStack` never emits. It only matters when the stack is itself a flex item (inside a card body

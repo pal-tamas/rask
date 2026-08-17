@@ -1,12 +1,12 @@
 # Elements & the DSL
 
 Rask UI is plain C#: you compose components from a small set of **primitives**, a generated **tag
-factory** for every HTML (and SVG) element, a uniform set of **universal props** on every tag, and the
+entry** for every HTML (and SVG) element, a uniform set of **universal props** on every tag, and the
 `[...]` children indexer to nest them. This guide is the reference for that surface, with a live demo of
 each piece.
 
 - [Primitives](#primitives) — `Text`, `Raw`, `Doctype`, sibling fragments via `[...]`, and children from strings
-- [Tag factories](#tag-factories) — every HTML element, strongly typed
+- [Tag entries](#tag-entries) — every HTML element, strongly typed
 - [Universal props](#universal-props) — `Id`/`Class`/`Style`/`Data`/`Aria` on every tag
 - [SVG](#svg) — typed SVG components, no `Raw()`
 - [HTML elements](#html-elements) — the full element catalog, by category
@@ -49,10 +49,10 @@ encoded exactly like `Text`):
 
 ---
 
-## Tag factories
+## Tag entries
 
-Every standard HTML element has a generator-emitted factory in `Rask.Core.Components.Generated`.
-Tag-specific attributes come first; the universal `Id`/`Class`/`Style`/`Data` trail at the end.
+Every standard HTML element has a generator-emitted chain entry: name it, dot onto it, nest with `[…]`.
+Tag-specific steps and the universal `Id`/`Class`/`Style`/`Data` steps sit side by side on every tag.
 
 Text & semantic elements:
 
@@ -132,11 +132,11 @@ copy of something the reader needs — use `Aria` for an accessible name.
 ## SVG
 
 SVG elements are first-class core components. `svg`, `g`, `path`, the shapes, `text`, gradients and
-filters all have typed factories that flow through scoped CSS, keyed lists, and event handlers — **no
+filters all have typed entries that flow through scoped CSS, keyed lists, and event handlers — **no
 `Raw()` required**.
 
 Shapes inside an `<svg>` — presentation attributes (`Fill`, `Stroke`, `StrokeWidth`, `StrokeLinecap`, …)
-live on the shared `SvgElement` base, so every shape exposes them as optional factory parameters:
+live on the shared `SvgElement` base, so every shape exposes them as optional chain steps:
 
 <!-- demo:svg-shapes -->
 
@@ -159,12 +159,12 @@ Text with `<text>` and `<tspan>` — `SvgText` is the `<text>` tag (renamed to a
 
 ## HTML elements
 
-Every standard element is a generated factory, composed through the `[...]` children indexer. The
+Every standard element is a generated chain entry, composed through the `[...]` children indexer. The
 catalog below groups them the way the HTML spec does, and each tag links to its MDN reference.
 
 You rarely need to leave the editor for that reference, though: **every element component documents
-itself, and the documentation is carried onto the factory**. Hovering `Video(` says what `<video>` is
-and links the same MDN page, and each parameter carries its own description — so `Meter`'s
+itself, and the documentation is carried onto the chain**. Hovering `Video` says what `<video>` is
+and links the same MDN page, and each step carries its own description — so `Meter`'s
 `Low`/`High`/`Optimum`, `Track`'s `Kind`, and `Iframe`'s `Sandbox` explain themselves at the call site
 rather than sending you to a search engine.
 

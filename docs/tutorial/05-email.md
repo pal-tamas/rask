@@ -5,7 +5,7 @@
 
 `Rask.Mail` is the same story as jobs: durable rows in your `app.db`, a background sender that delivers them
 over SMTP and retries on failure. The nice part is the body — it's a **Rask component**, so you write your
-email in C# with the same `Div()`/`H1()` you already know, no templating language.
+email in C# with the same `Div`/`H1` chain you already know, no templating language.
 
 ## 1. Write an email
 
@@ -24,7 +24,7 @@ public sealed partial class OrderReceipt : Component
 ```
 
 Give it the order data and build a real body. A component carries data on **public properties** (that's what
-the generated factory fills in), so add an `OrderId` and a `Total` and render them:
+its chain sets), so add an `OrderId` and a `Total` and render them:
 
 ```csharp
 public sealed partial class OrderReceipt : Component
@@ -94,16 +94,16 @@ public sealed class SendOrderReceiptHandler(
         await mail.SendAsync(
             Email.To("customer@example.com")
                  .Subject($"Your order {order.Id}")
-                 .Body(OrderReceipt(OrderId: order.Id, Total: order.Total)),
+                 .Body(OrderReceipt.OrderId(order.Id).Total(order.Total)),
             ct);
     }
 }
 ```
 
 `Email.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
-which renders your component to HTML right there. Note `Body(OrderReceipt(OrderId: …, Total: …))` calls the
-**generated `OrderReceipt` factory**, not `new OrderReceipt(...)` — every Rask component is built through its
-factory (the framework enforces this), and the factory takes one named argument per public property. `SendAsync`
+which renders your component to HTML right there. Note `Body(OrderReceipt.OrderId(…).Total(…))` builds the
+component with its **chain**, not `new OrderReceipt(...)` — every Rask component is built that way (the
+framework enforces it, [RASK014](../diagnostics.md#rask014)), and each public property is one step. `SendAsync`
 just queues the row; the background sender delivers it. You now have the full chain: **place order → enqueue job
 → job sends email**, none of it on the customer's request.
 

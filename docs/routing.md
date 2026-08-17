@@ -78,7 +78,7 @@ correctly without a manual `.ToString()`. There is also a generic `Route<T>(...)
 `Rask.Core.Routing.Generated` used by the registry machinery; in app code you almost always reach for the named
 `Routes.Foo(...)` formatter.
 
-> The generated `Routes.*` and component factory symbols don't exist until the generator runs. If the IDE flags them
+> The generated `Routes.*` and component chain symbols do not exist until the generator runs. If the IDE flags them
 > as undefined, run `dotnet build` once and reload the solution.
 
 ## Route and query parameters

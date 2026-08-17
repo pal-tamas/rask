@@ -89,9 +89,9 @@ Acquire a stream, then hand its [`MediaStreamId`](media-streams.md) to the conne
 
 ```csharp
 // Server host: the click gesture acquires it, OnStream hands back the id.
-MediaCaptureTrigger(For: _preview, Video: true, Audio: true,
-    OnStream: async id => await _conn!.AddStreamAsync(id),
-    Template: g => Button(Type: "button", Data: g)["Start camera"])
+MediaCaptureTrigger.For(_preview).Video(true).Audio(true)
+    .OnStream(async id => await _conn!.AddStreamAsync(id))
+    .Template(g => Button.Type("button").Data(g)["Start camera"])
 
 // The peer's media comes back the same way, and attaches like any other stream.
 new RtcHandlers { OnTrack = id => streams.AttachToAsync(id, _remoteVideo) }

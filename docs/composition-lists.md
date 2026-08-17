@@ -53,7 +53,7 @@ cancels + disposes superseded requests (and on unmount).
 
 ## Keyed lists
 
-A `Key:` on a list item gives it a stable identity across renders, so a reorder **moves** the live
+A `.Key(…)` on a list item gives it a stable identity across renders, so a reorder **moves** the live
 DOM node (with its focus, caret, and uncommitted input) instead of detaching and re-creating it. This
 is the same reconciliation identity the diff uses everywhere — not a reactive prop.
 

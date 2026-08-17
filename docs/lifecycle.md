@@ -77,7 +77,7 @@ public sealed partial class Weather(IWeatherForecastService service) : Component
 `OnPropsChanged*` fires on the first render and whenever a value the component is bound to **actually changes** —
 including:
 
-- A parent passing a different value for a factory parameter (a prop).
+- A parent passing a different value for a chain step (a prop).
 - A `[RouteParam]` / `[QueryParam]` value changing because the URL changed.
 - A **reused routed page** whose URL **path** changes (the router keeps the instance and re-binds it rather than
   remounting).
@@ -89,7 +89,7 @@ instance.)
 
 The live-ticker demo puts the hooks together: a poll loop started in `OnMountAsync` streams a synthetic price
 into a **zero-JS, server-rendered SVG chart**, and the **BTC / ETH / SOL** switcher hands the ticker a new
-`Symbol` — a changed factory parameter — so `OnPropsChanged*` refires (watch the *Hook activity* log), clears
+`Symbol` — a changed prop — so `OnPropsChanged*` refires (watch the *Hook activity* log), clears
 the buffer, and wakes the loop to poll the new asset immediately. `CancellationToken` tears the loop down on
 unmount:
 

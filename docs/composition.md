@@ -25,7 +25,7 @@ Div.Class("card")[
 ]
 ```
 
-> **Keys must be unique among siblings.** `Key:` is the reconciliation identity the live diff
+> **Keys must be unique among siblings.** `.Key(…)` is the reconciliation identity the live diff
 > uses to move a row instead of rebuilding it. If two siblings share a key, keyed
 > reconciliation can't tell them apart, so the diff falls back to a positional walk that may
 > attach a row's DOM state (focus, input value, scroll) to the wrong sibling on reorder. The
@@ -74,7 +74,7 @@ around it — see [the document and the `Head` override](getting-started.md#7-th
 
 ## Hosting a component you built yourself
 
-Components normally enter the tree through their **generated factory**, and that factory is what
+Components normally enter the tree through their **generated chain**, and that chain is what
 registers the instance with its parent. Occasionally you can't call one — because the type isn't known
 until runtime:
 
@@ -95,10 +95,10 @@ Div.Class("host")[Mount.Child(page)]
 ```
 
 `Mount` renders the child in place and adds no markup of its own. Passing a component that *did* come
-from a generated factory is harmless — it has already been adopted, and `Mount` is then a no-op.
+from a chain is harmless — it has already been adopted, and `Mount` is then a no-op.
 
-> You only need this for instances you constructed yourself. `Div()[Span()["hi"]]` and every other
-> factory call is already adopted. Note that constructing a component with `new` outside the framework
+> You only need this for instances you constructed yourself. `Div[Span["hi"]]` and every other
+> chain is already adopted. Note that constructing a component with `new` outside the framework
 > is a compile error ([RASK014](diagnostics.md#rask014)) — reflection-built instances are exactly the
 > case this exists for.
 
@@ -134,13 +134,13 @@ its props, with **no mutable fields**:
 ```csharp
 public sealed partial class Greeting : Component
 {
-    public required string Name { get; set; }   // non-nullable, no initializer → required factory param
+    public required string Name { get; set; }   // non-nullable, no initializer → a required chain step
     protected override Component? Render() => P["Hello, ", Strong[Name], "!"];
 }
-// call the generated factory by its bare name — Greeting.Name("Ada")
+// name it and chain — Greeting.Name("Ada")
 ```
 
-Public settable props become a generated bare-name factory (see the factory rules in
+Public settable props become chain steps and setters (see the rules in
 [the README](../README.md) and [lifecycle.md](lifecycle.md)). Over a static method it gains a
 reconciliation identity, the [lifecycle hooks](lifecycle.md), render caching, `<head>`
 contribution, and safe context reads — it simply carries no local state.
@@ -164,14 +164,14 @@ that powers [callbacks](composition-callbacks-context.md#callbacks-child--parent
 mutation happens *off* the event-dispatch path (e.g. a background poll loop — see
 [lifecycle.md](lifecycle.md)).
 
-| Tier | You write | State | Lifecycle | Render cache | Factory | Context reads |
+| Tier | You write | State | Lifecycle | Render cache | Chain | Context reads |
 |------|-----------|-------|-----------|--------------|---------|----------------|
 | **0 · static method** | `static Component Foo(…)` | none (inlined) | none | none | none — call it | ⚠️ only refreshes with the caller |
 | **1 · stateless component** | subclass, props → `Render()`, no fields | none | ✅ | ✅ | ✅ generated | ✅ |
 | **2 · stateful component** | subclass with private fields | private fields | ✅ | ✅ | ✅ generated | ✅ |
 
 **Rule of thumb:** start with a static method; promote to a stateless component when you need an
-identity, lifecycle, `<head>` assets, context-driven re-render, or a clean factory API; promote to
+identity, lifecycle, `<head>` assets, context-driven re-render, or a clean chain API; promote to
 a stateful component when you need mutable local state.
 
 ---

@@ -65,7 +65,7 @@ Tests assert this order; it is stable across releases.
 ## Images and alt text (RASK023)
 
 `Img` requires an `Alt` for accessibility. The [RASK023](diagnostics.md#rask023) analyzer warns when
-an `Img(...)` factory call omits it:
+an `Img` chain omits it:
 
 ```csharp
 Img.Src("/logo.png").Alt("Rask logo")   // informative image
@@ -104,7 +104,7 @@ document-unique and every `aria-describedby`/`for` resolves to the right field.
 
 Building your own control from the core `Input`/`ValidationMessage` primitives? Mirror the same three
 attributes: `Aria: new() { ["invalid"] = "true", ["describedby"] = errorId }` on the control, and render
-the message in a `Div(Id: errorId, Role: "alert")`. See [forms-validation.md](forms-validation.md).
+the message in a `Div.Id(errorId).Role("alert")`. See [forms-validation.md](forms-validation.md).
 
 ## Focus trapping (overlays)
 

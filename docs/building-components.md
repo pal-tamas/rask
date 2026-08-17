@@ -6,9 +6,11 @@ Markup in Rask is C#. You name a component and chain onto it; there is no `new`,
 ```csharp
 Div.Class("card")[
     H2.Class("card-title")["Products"],
-    P["Everything we sell."],
+    P["Everything we sell."]
 ]
 ```
+
+The `[…]` is an indexer, not a collection initializer, so the last child takes no trailing comma.
 
 The name is the component. `Div` *is* a `Div`, so `.` shows every property it has — its own and the whole
 inherited HTML surface. Children go in the indexer.
