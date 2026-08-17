@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Cache;
-using Rask.Example.EfCore;
 using Rask.Core.Routing;
+using Rask.Example.EfCore;
 using Rask.Example.EfCore.Features.Catalog.ListProducts;
 using Rask.Example.EfCore.Features.Catalog.Shared;
 using Rask.Mail;
