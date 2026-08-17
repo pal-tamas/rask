@@ -26,6 +26,14 @@ them until tagged releases begin.
     factory, that the MDN link on an element matches its tag, and that partial documentation stays
     warning-clean — `CS1573` fires per undocumented parameter once *any* parameter is documented, which
     would otherwise have broken every consumer's warnings-as-errors build.
+  - **The two form validators say how to use them.** `DataAnnotationsValidator` and
+    `FluentValidationValidator` render no markup, so a blank tooltip left nothing to go on: both now
+    show the `Form` they belong inside, and `FluentValidationValidator` states that validators are
+    de-duplicated by type — the first `IValidator` registered wins for the life of the form.
+  - **A bundled DLL must ship its XML docs.** `Rask.Core` is unpackable and rides inside
+    `Rask.Server`/`Rask.Wasm`'s `lib/`, so its `.xml` has to be packed by hand next to it. Dropping that
+    line breaks nothing visible — the build is green and every consumer tooltip is silently blank — so a
+    test now pins it for every DLL packed into `lib/`.
   - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
     and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
     post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older
