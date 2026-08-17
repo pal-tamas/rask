@@ -506,6 +506,30 @@ them until tagged releases begin.
   the harness can show. The remaining arguments for splitting are size, per-file pragmas and blast
   radius — not latency; the outbox can never move, since it commits with the business change by design.
 
+### Fixed
+- **Three analyzers were silently dead on the chain — the syntax the framework teaches.** Each identified
+  its subject as "a static method on a class named `Generated`", which a chain never is: a chain's steps are
+  extension methods on `Build<T>`, and its shortest spelling is a bare entry that is not an invocation at
+  all. The build stayed green throughout, because a diagnostic that never fires breaks nothing.
+  - **RASK023 (`Img` without `Alt`) never fired on `Img.Src("/logo.png")`.** An accessibility guard
+    (WCAG 1.1.1) that was absent from every chain ever written.
+  - **RASK022 (list item missing a `Key`) never fired on a keyless chain row.** `_items.Select(i => Li[…])`
+    — the exact shape the guides teach — went unreported, so those lists reconcile by position and lose
+    focus and input state on insert/remove/reorder.
+  - **RASK027 (both the sync and async handler set) never fired on a chain.**
+    `Button.OnClick(…).OnClickAsync(…)` silently dropped the async handler, which is the whole reason the
+    diagnostic is an **Error** on a factory call.
+  - RASK034 has the same defect and is **not** fixed here; it is tracked separately.
+  - The chain branch is deliberately additive: the factory branch still owns `Generated.X(…)`, so nothing
+    reports twice. Each new branch requires the operation's type to genuinely be `Build<T>` — without that
+    the children indexer qualifies too (it is also a property reference) and every keyless row reported
+    twice.
+- **Both shipped quick-fixes wrote factory syntax.** RASK014's lightbulb was titled "Use the generated
+  factory" and rewrote `new Widget()` into `Widget()`; it now produces the bare entry `Widget`, which is
+  what RASK014's own message has been telling the reader to write. RASK023's inserted `Alt: ""`, a named
+  argument — on a chain that is not merely stale but broken, so it now appends a `.Alt("")` step (and still
+  inserts the named argument on a factory call).
+
 ### Changed
 - **The chain is now what the docs, the README, the site and the playground actually teach.** #681 made
   markup a chain but left the teaching surfaces describing the generated factory, so a newcomer's first

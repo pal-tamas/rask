@@ -10,7 +10,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace Rask.Generators.CodeFixes;
 
 /// <summary>
-///     RASK014 — rewrite <c>new Widget()</c> into the generated <c>Widget()</c> factory call.
+///     RASK014 — rewrite <c>new Widget()</c> into the chain that builds it: the bare entry <c>Widget</c>.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -34,9 +34,9 @@ public sealed class ComponentConstructionCodeFixProvider : RaskCodeFixProvider<O
 {
     public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK014"];
 
-    protected override string Title => "Use the generated factory";
+    protected override string Title => "Build it with the chain";
 
-    protected override string EquivalenceKey => "RASK014_UseFactory";
+    protected override string EquivalenceKey => "RASK014_UseChain";
 
     protected override Task<bool> CanFixAsync(CodeFixContext context, ObjectCreationExpressionSyntax node) =>
         Task.FromResult(
@@ -57,13 +57,13 @@ public sealed class ComponentConstructionCodeFixProvider : RaskCodeFixProvider<O
         return await ReplaceNodeAsync(
             document,
             node,
-            InvocationExpression(IdentifierName(name)).WithTriviaFrom(node),
+            IdentifierName(name).WithTriviaFrom(node),
             cancellationToken).ConfigureAwait(false);
     }
 
-    // The factory is a static method named after the type, in scope project-wide through the generator's
-    // `global using static …Generated`. So the bare type name IS the call: carrying a qualified name over
-    // would name a type where a method has to go.
+    // The entry is a property named after the type, injected into every markup host by the generator. So
+    // the bare simple name IS the chain: carrying a qualified name over would name the TYPE, which is
+    // exactly what RASK014 is complaining about.
     private static string? FactoryName(ObjectCreationExpressionSyntax node) => node.Type switch
     {
         QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
