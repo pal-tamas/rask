@@ -8,6 +8,24 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **Two analyzer assemblies could number a diagnostic the same, and nothing failed.** Roslyn's `RS1019`
+  catches a duplicate id within ONE compilation, so the common case was already covered — but it is
+  per-compilation, and Rask declares descriptors in three analyzer assemblies (`Rask.Generators`,
+  `Rask.Cqrs.Generators`, `Rask.Jobs.Generators`). Declaring `RASK022` a second time from a different
+  assembly builds clean, warnings-as-errors and all: the family then ships two meanings under one number,
+  with one help link pointing at whichever doc section was written second.
+
+  `DiagnosticDescriptorTests` could not have caught it either — its `AllDescriptors()` keys a dictionary
+  on the id, so two colliding descriptors silently collapsed into one entry and every invariant it asserts
+  passed. The new check enumerates without collapsing, deduplicating by the descriptor's own equality
+  instead, so one descriptor reachable both through `SupportedDiagnostics` and through the static field
+  behind it still counts once while two genuinely different ones stay two. Verified by injecting a
+  cross-assembly duplicate: the solution built clean and the test went red.
+
+  Prompted by RASK047 being claimed by two open branches on the same afternoon — the third id collision in
+  a day, after RASK044/045 and RASK046.
+
+### Fixed
 - **Two analyzers had stopped firing altogether on chain-built markup — including an accessibility
   check.** `RASK022` (a list item without a `Key`) and `RASK023` (an `Img` without `Alt`) each identified
   their subject as *"a static method on the class named `Generated`"* — the factory. A chain has no such
