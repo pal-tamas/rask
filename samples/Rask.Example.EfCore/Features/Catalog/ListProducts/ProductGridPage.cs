@@ -7,9 +7,10 @@ namespace Rask.Example.EfCore.Features.Catalog.ListProducts;
 // The same catalogue as ListProductsPage, but paged and sorted by SQLite instead of by C#. Both grids below
 // pass Data — the difference is what they pass: the query itself, or one already-fetched page. They suit
 // different situations; see the notes on each.
-[Route("products/grid")]
-public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component, IDisposable
+public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Page, IDisposable
 {
+    protected override string Route => "products/grid";
+
     // --- The IQueryable way --------------------------------------------------------------------------------
     // Handing the grid an IQueryable re-runs the query during render, on every sort/page click, so the
     // DbContext behind it has to still be alive then. That rules out the `await using var db = ...` pattern the

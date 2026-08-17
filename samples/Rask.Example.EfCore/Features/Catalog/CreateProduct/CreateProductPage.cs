@@ -9,10 +9,11 @@ namespace Rask.Example.EfCore.Features.Catalog.CreateProduct;
 // the only things it shares are the domain (Product / value objects) and the FieldErrors template.
 // Inline field validators reuse the value objects' Validate methods, so the form and the domain
 // enforce the same rules from a single source.
-[Route("products/new")]
 public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext> dbContextFactory, Navigator navigator)
-    : Component
+    : Page
 {
+    protected override string Route => "products/new";
+
     private readonly CreateProductForm _form = new();
 
     protected override Component? HeadAssets => Title["New product — Rask EF Core"];
@@ -26,7 +27,7 @@ public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext
         db.Products.Add(product);
         await db.SaveChangesAsync(CancellationToken);
 
-        navigator.NavigateTo("/products");
+        navigator.NavigateTo(global::Rask.Example.EfCore.Features.Catalog.ListProducts.Routes.ListProductsPage());
     }
 
     protected override Component? Render() =>
@@ -60,7 +61,7 @@ public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext
                         ValidationMessage.Template(FieldErrors.Template).For(() => _form.Stock)
                     ],
                     Div.Class("d-flex justify-content-end gap-2 pt-2")[
-                        NavLink.Href("/products").Class("btn btn-outline-secondary")["Cancel"],
+                        NavLink.Href(global::Rask.Example.EfCore.Features.Catalog.ListProducts.Routes.ListProductsPage()).Class("btn btn-outline-secondary")["Cancel"],
                         Button.Type("submit").Class("btn btn-primary")[
                             I.Class("bi bi-check2-circle me-1"), "Add product"
                         ]

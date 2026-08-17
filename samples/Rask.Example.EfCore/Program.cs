@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Cache;
 using Rask.Example.EfCore;
+using Rask.Core.Routing;
+using Rask.Example.EfCore.Features.Catalog.ListProducts;
 using Rask.Example.EfCore.Features.Catalog.Shared;
 using Rask.Mail;
 using Rask.Server;
@@ -48,6 +50,11 @@ var app = builder.Build();
 
 // Create the schema and seed sample data once at startup.
 await CatalogSeeder.SeedAsync(app.Services.GetRequiredService<IDbContextFactory<CatalogDbContext>>());
+
+// A page declares ONE canonical route, which is what keeps ListProductsPage.Url() unambiguous. When a
+// page genuinely has to answer a second URL — here, the app root landing on the catalogue — register
+// that template explicitly. This is the escape hatch; the canonical one still comes from Page.Route.
+RouteRegistry.Add([new RouteRegistration(typeof(ListProductsPage), "/", null)]);
 
 // MapStaticAssets serves wwwroot + package _content as routed endpoints (outrank the SPA catch-all).
 app.MapStaticAssets();
