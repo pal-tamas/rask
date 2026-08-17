@@ -15,10 +15,12 @@
     <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
+
   <ItemGroup>
     <!-- Rask.Wasm.Hosting keeps its Rask.Core reference private (Core is IsPackable=false), so name it
          directly rather than inheriting it — the same reason Rask.Example.Server references Core itself. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
     <ProjectReference Include="..\Rask.Example.Auth.WasmCookie\Rask.Example.Auth.WasmCookie.csproj"
                       ReferenceOutputAssembly="false"

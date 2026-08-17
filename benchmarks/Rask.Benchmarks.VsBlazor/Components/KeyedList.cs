@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
 using C = Rask.Core.Components.Generated;
 
+using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
 ///     100 keyed rows. Re-renders shuffle two entries; the diff should encode the move
 ///     rather than the whole list. Rask uses data-rask-key; Blazor uses SetKey().
 /// </summary>
-internal static class KeyedList
+internal static partial class KeyedList
 {
     public static Component BuildRask(int[] order)
     {
@@ -20,7 +21,7 @@ internal static class KeyedList
             rows.Add(C.Div(
                 Class: "row",
                 Data: new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
-                C.Span()[$"Item {idx}"]
+                CH.Span()[$"Item {idx}"]
             ]);
         }
 
@@ -34,7 +35,7 @@ internal static class KeyedList
     // identical) row list — fair apples-to-apples vs Blazor's ParameterView path,
     // which also reuses its child component instances across the parameter change.
 #pragma warning disable RASK014
-    public sealed class StatefulKeyedList : Component
+    public sealed partial class StatefulKeyedList : Component
 #pragma warning restore RASK014
     {
         private readonly Dictionary<int, Component> _rowsByKey = new();

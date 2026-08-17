@@ -10,6 +10,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+
   <ItemGroup>
     <!-- A consumer registering a service for the component under test has DI available (their app pulls it
          in); this project needs it explicitly to exercise the Render(component, services) overload.
@@ -29,11 +30,19 @@
     <Using Include="Rask.Core"/>
     <Using Include="Rask.Testing"/>
     <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <Using Include="Rask.Html.Components.Generated" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <!-- Needed now that the tag family is a referenced LIBRARY rather than part of Rask.Core: framework
+         entries used to arrive by inheritance from RaskMarkup, which needs no generator in the consumer,
+         while a library's are injected into this project's own markup hosts - which does. -->
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>

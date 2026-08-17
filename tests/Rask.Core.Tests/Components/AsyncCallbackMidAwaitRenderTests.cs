@@ -18,7 +18,7 @@ namespace Rask.Core.Tests.Components;
 // Button(OnClickAsync:) could paint mid-flight and the identical BsDataGrid(OnSortChangeAsync:) could not:
 // the consumer's `_loading = true` was invisible, and the spinner it drove appeared only after the work it
 // was meant to cover had finished. These pin both halves of the window.
-public class AsyncCallbackMidAwaitRenderTests
+public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task AsyncCallback_MidAwaitState_IsRendered_WithoutStateHasChanged()

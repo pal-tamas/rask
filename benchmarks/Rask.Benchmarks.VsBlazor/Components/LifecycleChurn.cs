@@ -22,7 +22,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///         round-trip suite (no Blazor counterpart there yet).
 ///     </para>
 /// </summary>
-internal static class LifecycleChurn
+internal static partial class LifecycleChurn
 {
     public const int MaxActiveCount = 100;
 
@@ -40,7 +40,7 @@ internal static class LifecycleChurn
     }
 
 #pragma warning disable RASK014
-    public sealed class RaskChild : Component
+    public sealed partial class RaskChild : Component
 #pragma warning restore RASK014
     {
         public int Index { get; set; }

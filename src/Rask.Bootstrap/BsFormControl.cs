@@ -194,7 +194,7 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
     // field is marked consistently without each call site repeating the markup. Absent Required, the
     // asterisk span is null and the label renders exactly as before.
     private Component RequiredLabel(string? controlId, string? cls) =>
-        global::RaskEntriesRask_Core.Label.For(controlId).Class(cls)[
+        global::RaskEntriesRask_Html.Label.For(controlId).Class(cls)[
             Label,
             Required is true ? Span.Class("text-danger ms-1")["*"] : null
         ];

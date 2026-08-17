@@ -1,6 +1,7 @@
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Routing;
+using Rask.Html.Components;
 using Rask.Server.Tests.Infrastructure;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories

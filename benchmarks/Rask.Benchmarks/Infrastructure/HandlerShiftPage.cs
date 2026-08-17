@@ -2,6 +2,7 @@ using Rask.Core;
 using BI = Rask.Benchmarks.Infrastructure.Generated;
 using C = Rask.Core.Components.Generated;
 
+using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.Infrastructure;
 
 /// <summary>
@@ -34,16 +35,16 @@ public sealed partial class HandlerShiftPage : Component
 
         return
         [
-            C.Doctype(),
+            CH.Doctype(),
             C.Html()[
                 C.Head(),
                 C.Body()[
                     C.Div(Class: "container", Id: "root")[
                         C.Div(Class: "toolbar")[
-                            C.Span()["Rows"],
+                            CH.Span()["Rows"],
                             ShowToolbarAction ? C.Button(OnClick: () => { })["clear"] : null
                         ],
-                        C.Table(Class: "table")[C.Tbody()[rows]]
+                        CH.Table(Class: "table")[CH.Tbody()[rows]]
                     ]
                 ]
             ]

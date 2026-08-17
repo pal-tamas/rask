@@ -29,7 +29,7 @@ public static class PlaygroundSamples
             // Welcome to the Rask playground! This C# is compiled in your browser — Roslyn and the Rask
             // source generator run in WebAssembly, no server involved. Edit the code, then press Run
             // (or Ctrl/Cmd + Enter). Define a component named `Playground` as the entry point.
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private int _count;
 
@@ -58,7 +58,7 @@ public static class PlaygroundSamples
             // Rask's built-in form validation. Form<T> runs per-field `Validate:` rules and a form-level
             // rule; ValidationMessage renders a field's errors and ValidationSummary the form-level ones.
             // Inputs are two-way bound with Input.Bind(() => model.Field) — everything re-checks as you type.
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private readonly SignUp _model = new();
                 private string? _welcome;
@@ -141,7 +141,7 @@ public static class PlaygroundSamples
 
             // A small todo app: a two-way-bound text field, a keyed list (Key: keeps identity across
             // edits), and add / toggle / remove over ordinary C# state — all re-rendered automatically.
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private readonly List<Todo> _todos = new()
                 {

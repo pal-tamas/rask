@@ -203,7 +203,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
             foreach (var item in selected!)
             {
                 var captured = item;
-                box.Add(BsBadge.Key(i).Color(BsColor.Primary).Class("d-inline-flex align-items-center")[
+                box.Add(BsBadge.Color(BsColor.Primary).Class("d-inline-flex align-items-center").Key(i)[
                     LabelOf(captured),
                     BsCloseButton
                         .White(true)
@@ -365,7 +365,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
         var labelNode = Label is null
             ? null
-            : global::RaskEntriesRask_Core.Label.Id(labelId).Class(floating ? null : "form-label")[Label];
+            : global::RaskEntriesRask_Html.Label.Id(labelId).Class(floating ? null : "form-label")[Label];
 
         var children = new List<Component?>();
         if (labelNode is not null && !floating)

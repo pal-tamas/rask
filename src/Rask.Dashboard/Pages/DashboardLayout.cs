@@ -70,7 +70,7 @@ public sealed partial class DashboardLayout(
         yield return NavLink(Routes.SystemPage(), "System", BsIconName.HddStack, exact: false);
     }
 
-    private new Component NavLink(RouteUrl url, string label, BsIconName icon, bool exact) =>
+    private Component NavLink(RouteUrl url, string label, BsIconName icon, bool exact) =>
         BsNavItem.Key(label)[
             BsLink
                 .Href(url)

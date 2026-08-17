@@ -23,7 +23,7 @@ public sealed partial class CachePage(
 
     /// <summary>Substring filter on the key, from the query string so a search is a shareable link.</summary>
     [QueryParam("q")]
-    public new string? Search { get; set; }
+    public string? Search { get; set; }
 
     /// <inheritdoc />
     protected override RaskDashboardOptions Options => options;
@@ -86,7 +86,7 @@ public sealed partial class CachePage(
         ];
     }
 
-    private new Component Table(DateTime now) =>
+    private Component Table(DateTime now) =>
         BsTable.Small(true).Hover(true).Responsive(true)[
             Thead[Tr[Th["Key"], Th["Size"], Th["Written"], Th["Expires"], Th["Sliding"], Th]],
             Tbody[_rows.Select(r => Tr.Key(r.Key).Class(r.ExpiresAt <= now ? "text-body-secondary" : null)[

@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Lifecycle;
 
-public class RenderSkipTests
+public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_TwiceWithUnchangedProps_OnlyRunsOnce()

@@ -24,6 +24,7 @@
     <RunSettingsFilePath>$(MSBuildProjectDirectory)/hotreload.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -47,6 +48,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"

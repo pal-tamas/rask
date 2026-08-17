@@ -162,7 +162,7 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
         return Div.Class(wrapperCls)[
             input,
             Label is not null
-                ? global::RaskEntriesRask_Core.Label.For(controlId).Class("form-check-label")[Label]
+                ? global::RaskEntriesRask_Html.Label.For(controlId).Class("form-check-label")[Label]
                 : null,
             invalid ? Div.Id(errorId).Class("invalid-feedback d-block").Role("alert")[messages[0]] : null];
     }

@@ -57,6 +57,7 @@ public sealed class PlaygroundWorkspaceTests
         var diagnostics = await NewWorkspace().DiagnoseAsync("""
             using Rask.Core;
             using Rask.Core.Components;
+            using Rask.Html.Components;
 
             public sealed class Playground : Component
             {

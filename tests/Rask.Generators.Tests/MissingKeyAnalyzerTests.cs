@@ -15,6 +15,7 @@ public class MissingKeyAnalyzerTests
                                                 using System.Linq;
                                                 using Rask.Core;
                                                 using static Rask.Core.Components.Generated;
+                                                using static Rask.Html.Components.Generated;
                                                 namespace Demo;
                                                 public sealed partial class App : Component
                                                 {

@@ -7,6 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -42,6 +43,7 @@
          IsPackable=false and reaches consumers through Rask.Wasm), so it does not flow transitively —
          and the fakes here implement IIndexedDb and IWebLocks. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- Same reason, for ISqliteSnapshotter and SqliteSnapshotInfo. -->
     <ProjectReference Include="..\..\src\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>
   </ItemGroup>

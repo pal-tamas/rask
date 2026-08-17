@@ -255,7 +255,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
 
     private sealed class BoundHost : Component
     {
-        public new readonly BoundForm Form = new();
+        public readonly BoundForm Form = new();
 
         protected override Component? Render()
         {

@@ -2,6 +2,7 @@ using Rask.Core;
 using BI = Rask.Benchmarks.Infrastructure.Generated;
 using C = Rask.Core.Components.Generated;
 
+using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.Infrastructure;
 
 /// <summary>
@@ -71,16 +72,16 @@ public sealed partial class FootprintApp : Component
 
         return
         [
-            C.Doctype(),
+            CH.Doctype(),
             C.Html()[
                 C.Head(),
                 C.Body()[
                     C.Div(Class: "container", Id: "root")[
                         C.Div(Class: "header")[
-                            C.Span()[$"rows={RowCount} counter={Counter}"],
+                            CH.Span()[$"rows={RowCount} counter={Counter}"],
                             ShowExtraAction ? C.Button(OnClick: () => { })["extra"] : null
                         ],
-                        C.Table(Class: "table")[C.Tbody()[rows]]
+                        CH.Table(Class: "table")[CH.Tbody()[rows]]
                     ]
                 ]
             ]
@@ -94,10 +95,10 @@ public sealed partial class FootprintRow : Component
     public int Index { get; set; }
 
     protected override Component? Render() =>
-        C.Tr(Class: "row")[
-            C.Td()[$"#{Index}"],
-            C.Td()[$"Item {Index}"],
-            C.Td()[$"{Index * 37 % 1000} units"],
-            C.Td()[C.Button(OnClick: () => { })["select"]]
+        CH.Tr(Class: "row")[
+            CH.Td()[$"#{Index}"],
+            CH.Td()[$"Item {Index}"],
+            CH.Td()[$"{Index * 37 % 1000} units"],
+            CH.Td()[C.Button(OnClick: () => { })["select"]]
         ];
 }

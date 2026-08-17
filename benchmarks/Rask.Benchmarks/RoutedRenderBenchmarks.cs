@@ -22,7 +22,7 @@ namespace Rask.Benchmarks;
 // still cached normally — the expensive half of a routed frame is untouched. "It is only a route
 // match" is a claim; this is the measurement, and it is the shape every routed Rask app renders.
 [MemoryDiagnoser]
-public class RoutedRenderBenchmarks
+public partial class RoutedRenderBenchmarks
 {
     private const int Rows = 20;
 

@@ -13,6 +13,7 @@
     <PackageTags>email mail smtp mailkit transactional-email queue outbox retry entity-framework-core efcore background-service sqlite dotnet net10</PackageTags>
   </PropertyGroup>
 
+
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
        overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
   <ItemGroup>
@@ -38,6 +39,7 @@
        arrangement as Rask.Bootstrap). Enforced by PackageDependencyTests. -->
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Mail;` to downstream consumers. -->

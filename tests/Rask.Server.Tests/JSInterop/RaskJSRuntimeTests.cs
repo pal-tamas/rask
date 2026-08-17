@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Html.Components;
 using Rask.Server.Tests.Infrastructure;
 
 #pragma warning disable RASK019 // test-helper Components predate framework-managed <head>

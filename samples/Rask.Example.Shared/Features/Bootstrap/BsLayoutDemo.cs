@@ -10,7 +10,7 @@ public sealed partial class BsLayoutDemo : Component
             .Class(Bs.Join(Bg.BodyTertiary, Border.All, Rounded.Default, Padding.All(2), Txt.Center(),
             Font.Small))[label];
 
-    private static new Component Section(string title, Component body) =>
+    private static Component Section(string title, Component body) =>
         Div[
             H6.Class(Bs.Join(Txt.Uppercase, Txt.Muted, Font.Bold, Margin.Bottom(2)))[title],
             body

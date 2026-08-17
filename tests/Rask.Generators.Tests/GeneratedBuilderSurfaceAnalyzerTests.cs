@@ -26,12 +26,12 @@ public class GeneratedBuilderSurfaceAnalyzerTests
     [Fact]
     public async Task Alias_hidden_by_a_real_entry_on_Rask_Cores_Component_is_reported()
     {
-        // Nothing here declares `B`: the entry is the `protected static Rask.Core.Components.B B` the
+        // Nothing here declares `P`: the entry is the `protected static Rask.Core.Components.P P` the
         // generator emitted into Rask.Core.RaskMarkup — Component's base, and where the framework
         // entries live so a type that is not a component can inherit them too — read back out of the
         // referenced assembly.
         var diagnostics = await AnalyzeAsync("""
-            using B = Demo.Bench;
+            using P = Demo.Bench;
 
             namespace Demo
             {

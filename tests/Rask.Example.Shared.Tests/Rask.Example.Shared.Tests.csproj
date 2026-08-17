@@ -8,6 +8,7 @@
     <NoWarn>$(NoWarn);RASK014</NoWarn>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -32,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- The shipped testing package: this suite tests a sample app, so it drives it the way an
          app author would. -->
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>

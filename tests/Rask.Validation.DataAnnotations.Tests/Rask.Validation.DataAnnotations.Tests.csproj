@@ -7,6 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -27,7 +28,9 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Core.Components"/>
+    <Using Include="Rask.Html.Components"/>
     <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <Using Include="Rask.Html.Components.Generated" Static="true"/>
     <Using Include="Rask.Validation.DataAnnotations"/>
     <Using Include="Rask.Validation.DataAnnotations.Generated" Static="true"/>
     <Using Include="Rask.Testing"/>
@@ -36,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- The shipped testing package, referenced directly: this suite needs no in-repo helpers and no
          access to Rask.Core internals — the same setup an app author has. -->
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>

@@ -1,6 +1,7 @@
 using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Html.Components;
 
 #pragma warning disable RASK019 // test-infra app predates framework-managed <head>
 

@@ -1,4 +1,5 @@
 using Rask.Core.Components;
+using Rask.Html.Components;
 
 namespace Rask.Example.Shared.Features;
 

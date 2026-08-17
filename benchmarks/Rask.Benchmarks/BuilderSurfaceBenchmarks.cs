@@ -6,6 +6,7 @@ using BenchmarkDotNet.Attributes;
 using Rask.Core;
 using C = Rask.Core.Components.Generated;
 
+using CH = Rask.Html.Components.Generated;
 #pragma warning disable RASK014 // a benchmark owns the root it re-renders; there is no parent to build it
 
 namespace Rask.Benchmarks;
@@ -38,7 +39,7 @@ namespace Rask.Benchmarks;
 // which must be settled BEFORE the generated factory is dropped: that removes the Factory arm below
 // and with it the only A/B this number can be measured against.
 [MemoryDiagnoser]
-public class BuilderSurfaceBenchmarks
+public partial class BuilderSurfaceBenchmarks
 {
     private const int Rows = 50;
 
@@ -68,7 +69,7 @@ public class BuilderSurfaceBenchmarks
             for (var i = 0; i < Rows; i++)
             {
                 rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
-                    C.Span(Class: "label")[$"Item {i}"]
+                    CH.Span(Class: "label")[$"Item {i}"]
                 ]);
             }
 

@@ -7,6 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -29,6 +30,7 @@
   <ItemGroup>
     <!-- ShareData lives in Rask.Core.Browser; Rask.Client references Core privately, so name it directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
   </ItemGroup>
 

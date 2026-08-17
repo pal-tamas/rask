@@ -148,7 +148,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
                     .Id(optionId)
                     .Aria(optionAria)
                     .OnChangeAsync(disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
-                global::RaskEntriesRask_Core.Label.Class("form-check-label").For(optionId)[label]
+                global::RaskEntriesRask_Html.Label.Class("form-check-label").For(optionId)[label]
             ]);
             index++;
         }

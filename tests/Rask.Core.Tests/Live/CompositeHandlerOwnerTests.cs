@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Live;
 // component that DEFINED the handler (via the closure's captured `this`), not the wrapper that happens
 // to render the element. Without that, dogfooding interactive controls into Bs* composites silently
 // drops the consumer's re-render (the CodeSample tab-switch / Action-rating regressions).
-public class CompositeHandlerOwnerTests
+public partial class CompositeHandlerOwnerTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task HandlerCapturingThisAndLocal_NestedInComposite_RerendersDefiningComponent()

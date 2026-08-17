@@ -32,23 +32,6 @@ Div.Class("card")[
 > diff codec reports a one-time `data-rask-key="…"` error (via the diagnostics seam) when it detects
 > a duplicate — treat it as a bug to fix, not noise.
 
-> **For a component, `Key` also decides which instance is reused — so name it FIRST.**
-> A keyed component is identified by its key rather than by its position among its siblings, which
-> is what keeps the state it holds *itself* — a private field, an edit buffer, an open/closed
-> toggle, a subscription taken in `OnMount` — with the item rather than with the slot when the list
-> changes shape. Settling that identity hands back the instance the key owns, so a step written
-> before `Key` is applied to one that is about to be discarded. **RASK046** reports it:
->
-> ```csharp
-> TodoRow.Key(item.Id).Item(item)   // ✓ identity first
-> TodoRow.Item(item).Key(item.Id)   // ✗ RASK046 — Item is written to the discarded instance
-> ```
->
-> `Key` is available before a component's *required* steps too, so a row with required properties
-> can still settle its identity first. **Elements are exempt** — an element is re-specified in full
-> every render, so its instance carries nothing and `Li.Key(i.Id)[…]` or `Div.Class("row").Key(i)`
-> both read exactly as before.
-
 A `[...]` collection expression renders its items with **no wrapping element** — use it for a list
 of siblings. For the conditional "render nothing" branch, return `null` (a `null` child renders
 nothing):

@@ -14,7 +14,7 @@ namespace Rask.Bootstrap;
 /// </summary>
 public sealed partial class BootstrapStyles : Component
 {
-    private new const string Base = "/_content/Rask.Bootstrap/";
+    private const string Base = "/_content/Rask.Bootstrap/";
 
     // Include the Bootstrap Icons stylesheet (default true). Set false if you don't use BsIcon.
 

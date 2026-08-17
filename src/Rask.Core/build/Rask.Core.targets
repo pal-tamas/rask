@@ -63,6 +63,7 @@
     <CompilerVisibleProperty Include="RaskScopedJsAutoInclude"/>
     <CompilerVisibleProperty Include="RaskFactoryNavigation"/>
     <CompilerVisibleProperty Include="RaskBuilderSurface"/>
+    <CompilerVisibleProperty Include="RaskBuilderEntryInjection"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">

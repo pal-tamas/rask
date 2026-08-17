@@ -38,11 +38,11 @@ public sealed partial class GanttDemo : Component
                 BsButtonGroup.Size(BsSize.Sm)[
                     Enum.GetValues<GanttViewMode>().Select(mode =>
                         BsButton
-                            .Key(mode.ToString())
                             .Color(BsColor.Secondary)
                             .Outline(_viewMode != mode)
                             .Active(_viewMode == mode)
-                            .OnClick(() => _viewMode = mode)[ViewModeLabel(mode)])
+                            .OnClick(() => _viewMode = mode)
+                            .Key(mode.ToString())[ViewModeLabel(mode)])
                 ],
                 // Add/remove push a new task list at the library — the prop-change path.
                 BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Outline(true).OnClick(AddTask)[

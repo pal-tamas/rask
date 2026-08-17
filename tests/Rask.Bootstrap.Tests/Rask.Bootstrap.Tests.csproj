@@ -7,6 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -27,7 +28,9 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Core.Components"/>
+    <Using Include="Rask.Html.Components"/>
     <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <Using Include="Rask.Html.Components.Generated" Static="true"/>
     <Using Include="Rask.Bootstrap"/>
     <Using Include="Rask.Bootstrap.Generated" Static="true"/>
     <Using Include="Rask.Testing"/>
@@ -36,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <!-- RaskTest dispatches event handlers in-process, which is how BsDataGrid's sort/page/expand
          transitions get unit coverage without a browser. -->

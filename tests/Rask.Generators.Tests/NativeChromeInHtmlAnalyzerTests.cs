@@ -14,6 +14,7 @@ public class NativeChromeInHtmlAnalyzerTests
         var src = """
                   using Rask.Core;
                   using static Rask.Core.Components.Generated;
+                  using static Rask.Html.Components.Generated;
                   using static Rask.Native.Components.Generated;
                   namespace Demo;
                   public sealed class Page : Component
@@ -37,6 +38,7 @@ public class NativeChromeInHtmlAnalyzerTests
         var src = """
                   using Rask.Core;
                   using static Rask.Core.Components.Generated;
+                  using static Rask.Html.Components.Generated;
                   using static Rask.Native.Components.Generated;
                   namespace Demo;
                   public sealed class Page : Component
@@ -60,6 +62,7 @@ public class NativeChromeInHtmlAnalyzerTests
         var src = """
                   using Rask.Core;
                   using static Rask.Core.Components.Generated;
+                  using static Rask.Html.Components.Generated;
                   using static Rask.Native.Components.Generated;
                   namespace Demo;
                   public sealed class Page : Component
@@ -84,6 +87,7 @@ public class NativeChromeInHtmlAnalyzerTests
         var src = """
                   using Rask.Core;
                   using static Rask.Core.Components.Generated;
+                  using static Rask.Html.Components.Generated;
                   namespace Demo;
                   public sealed class Page : Component
                   {
@@ -104,6 +108,7 @@ public class NativeChromeInHtmlAnalyzerTests
         var src = """
                   using Rask.Core;
                   using static Rask.Core.Components.Generated;
+                  using static Rask.Html.Components.Generated;
                   using static Rask.Native.Components.Generated;
                   namespace Demo;
                   public sealed class Page : Component

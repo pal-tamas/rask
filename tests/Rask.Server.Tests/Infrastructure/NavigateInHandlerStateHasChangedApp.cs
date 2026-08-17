@@ -1,6 +1,7 @@
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Routing;
+using Rask.Html.Components;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
 

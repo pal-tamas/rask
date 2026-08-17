@@ -33,6 +33,10 @@
          (RenderAsLiveRoot / TryInvokeHandlerAsync) into a supported public testing API. -->
     <InternalsVisibleTo Include="Rask.Testing"/>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
+    <!-- The HTML/SVG element family, split out of Rask.Core.Components. It sits on the same internal
+         seams the tag components always used while they lived here. -->
+    <InternalsVisibleTo Include="Rask.Html"/>
+    <InternalsVisibleTo Include="Rask.Html.Tests"/>
     <!-- Rask.Bootstrap composes Core's components by FORWARDING its own carrier props into their
          generated factory arguments (`Button(OnClick: OnClick?.Fn)`), and a factory parameter is typed
          as the raw delegate — so it needs the carrier's internal Fn. Nothing public can stand in: a

@@ -214,7 +214,7 @@ internal static class HtmlSerializer
                 break;
             }
 
-            case Doctype:
+            case DoctypeComponent:
             {
                 var doctypeStart = sb.Length;
                 sb.Append("<!DOCTYPE html>");
