@@ -13,6 +13,7 @@ using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
+using Rask.Native.Surface;
 
 namespace Rask.Native;
 
@@ -190,6 +191,13 @@ public sealed class NativeAppHost
         if (provider.GetService<INativeChrome>() is { } chrome)
         {
             chrome.OnChromeEvent = json => RouteMessageAsync(nativeApp, json);
+        }
+
+        // Same idea for a pure-native surface, but its events carry a handler id rather than a JSON message,
+        // so they go straight to the session's typed entry point instead of through the JSON router.
+        if (provider.GetService<INativeSurface>() is { } surface)
+        {
+            surface.OnSurfaceEvent = e => nativeApp.Session.DispatchSurfaceEventAsync(e);
         }
 
         return nativeApp;
