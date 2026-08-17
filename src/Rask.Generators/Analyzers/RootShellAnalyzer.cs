@@ -101,9 +101,19 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         }
 
         var produced = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var invocation in renderBody.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        foreach (var node in renderBody.DescendantNodes())
         {
-            var name = InvokedSimpleName(invocation.Expression);
+            // The factory spelling: `Html("en")`, `Head()`. The chain writes the same shell without ever
+            // invoking anything — `Html[ … ]` is an element access, and `Doctype` on its own is a bare
+            // identifier — so a scan over invocations alone saw none of it.
+            var name = node switch
+            {
+                InvocationExpressionSyntax invocation => InvokedSimpleName(invocation.Expression),
+                ElementAccessExpressionSyntax element => InvokedSimpleName(element.Expression),
+                IdentifierNameSyntax id when IsStandaloneValue(id) => id.Identifier.ValueText,
+                _ => null,
+            };
+
             if (name is not null && Array.IndexOf(_shellFactories, name) >= 0)
             {
                 produced.Add(name);
@@ -143,6 +153,19 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
 
     // Simple name of an invoked expression: `Doctype()` → "Doctype",
     // `Generated.Html(...)` → "Html", `Foo<T>()` → "Foo".
+    // A bare entry used as a value — `Doctype` standing alone. Excludes the identifier that merely NAMES
+    // something larger (the receiver of a call or an indexer, the right-hand side of a member access, a
+    // declaration), which the arms above already account for; counting those too would report the same
+    // shell twice and, worse, fire on any local that happens to be called Body.
+    private static bool IsStandaloneValue(IdentifierNameSyntax id) => id.Parent switch
+    {
+        InvocationExpressionSyntax invocation => invocation.Expression != id,
+        ElementAccessExpressionSyntax element => element.Expression != id,
+        MemberAccessExpressionSyntax => false,
+        QualifiedNameSyntax => false,
+        _ => true,
+    };
+
     private static string? InvokedSimpleName(ExpressionSyntax expression) => expression switch
     {
         IdentifierNameSyntax id => id.Identifier.ValueText,

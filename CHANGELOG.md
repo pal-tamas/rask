@@ -507,6 +507,18 @@ them until tagged releases begin.
   radius — not latency; the outbox can never move, since it commits with the business change by design.
 
 ### Fixed
+- **Three more analyzers were blind to the chain, found by auditing the rest rather than stopping at the
+  ones that announced themselves.** These do not key on `Generated` at all — they test a TYPE, and a chain
+  hands back `Build<T>` rather than `T`.
+  - **RASK032 (native chrome nested in the HTML tree) never fired on a chain.** `Div[NativeHeaderBar…]`
+    serializes to nothing on a device; the diagnostic is an **Error** precisely so that never ships, and
+    it was reporting on none of the syntax the framework teaches.
+  - **RASK019 (`<head>` is a framework-managed slot) never fired on `Head[…]`.** Children passed there are
+    dropped, silently. The analyzer also had **no tests at all**; it has them now, for both spellings.
+  - **RASK021 (a root that renders the page shell) never fired on a chain.** It scans the root's `Render()`
+    for *invocations* named `Doctype`/`Html`/`Head`/`Body`, and a chain invokes nothing — `Html[…]` is an
+    element access and `Doctype` a bare identifier. It now recognises all three spellings, and the
+    standalone-identifier arm is deliberately narrow so a local called `Body` cannot trip it.
 - **Three analyzers were silently dead on the chain — the syntax the framework teaches.** Each identified
   its subject as "a static method on a class named `Generated`", which a chain never is: a chain's steps are
   extension methods on `Build<T>`, and its shortest spelling is a bare entry that is not an invocation at
