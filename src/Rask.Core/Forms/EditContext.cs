@@ -2,6 +2,21 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Rask.Core.Forms;
 
+/// <summary>
+///     The validation state of one form: which fields the user has touched or modified, what is wrong with
+///     them, and which checks are still running. A <c>Form</c> creates and owns one, so most apps never
+///     construct it — reach for it when you need to ask about validity outside a control, or drive
+///     validation yourself.
+/// </summary>
+/// <remarks>
+///     Fields are identified by <see cref="FieldIdentifier" />, which is an object reference plus a
+///     property name — so a field on a nested sub-object is distinct from a same-named field on the root,
+///     and no string path has to be assembled.
+///     <para>
+///         Whatever this says, validate again on the server. Client-side validation exists to tell the
+///         user what is wrong before they submit, not to keep bad data out.
+///     </para>
+/// </remarks>
 public sealed class EditContext : IDisposable
 {
     // Default sticky window for the ValidatingIndicator. After PendingCount
@@ -10,6 +25,9 @@ public sealed class EditContext : IDisposable
     // otherwise leave a DOM footprint too brief for screen-readers and for
     // load-balanced Playwright polling to reliably observe. Per-instance via
     // <see cref="ValidatingStickyMs" />; set to 0 to opt out.
+    /// <summary>
+    ///     The default for <see cref="ValidatingStickyMs" />, in milliseconds.
+    /// </summary>
     public const int DefaultValidatingStickyMs = 200;
 
     private readonly List<IAsyncFieldValidator> _asyncValidators = new();
@@ -24,6 +42,10 @@ public sealed class EditContext : IDisposable
     private readonly Dictionary<FieldIdentifier, Component> _bindingOwners = new();
     private Delegate? _formDelegate;
 
+    /// <summary>Creates a context for <paramref name="model" />, the object whose fields are edited.</summary>
+    /// <param name="model">The form's model. Fields bind to its properties, and to those of any nested
+    ///     object reachable from it.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="model" /> is <see langword="null" />.</exception>
     public EditContext(object model) => Model = model ?? throw new ArgumentNullException(nameof(model));
 
     /// <summary>
@@ -33,10 +55,15 @@ public sealed class EditContext : IDisposable
     /// </summary>
     public int ValidatingStickyMs { get; set; } = DefaultValidatingStickyMs;
 
+    /// <summary>The object being edited — the model this context was created for.</summary>
     public object Model { get; }
 
     internal IEnumerable<FieldIdentifier> RegisteredFields => _states.Keys;
 
+    /// <summary>
+    ///     Whether anything registered here validates asynchronously. When it does,
+    ///     <see cref="Validate()" /> refuses to run and <see cref="ValidateAsync" /> must be used instead.
+    /// </summary>
     public bool HasAsyncValidators => _asyncValidators.Count > 0 || HasAsyncDelegateValidators;
 
     // What made this context async. Without it the sync-validate refusal names the remedy but not the
@@ -65,6 +92,11 @@ public sealed class EditContext : IDisposable
         return named.Count == 0 ? "none found — this is a framework bug" : string.Join(", ", named);
     }
 
+    /// <summary>
+    ///     Whether any inline <c>Validate</c> delegate — on a field or on the form — is the asynchronous
+    ///     kind. The narrower half of <see cref="HasAsyncValidators" />, which also counts registered
+    ///     validator objects.
+    /// </summary>
     public bool HasAsyncDelegateValidators
     {
         get
@@ -86,6 +118,10 @@ public sealed class EditContext : IDisposable
         }
     }
 
+    /// <summary>
+    ///     Whether any field currently has a validator in flight. Use it to disable a submit button while
+    ///     asynchronous checks finish.
+    /// </summary>
     public bool IsValidatingAny
     {
         get
@@ -144,9 +180,22 @@ public sealed class EditContext : IDisposable
         }
     }
 
+    /// <summary>Raised when a field's value changes, with the field that changed.</summary>
     public event Action<FieldIdentifier>? FieldChanged;
+
+    /// <summary>
+    ///     Raised whenever the set of validation messages changes — one added, or some cleared. Not raised
+    ///     when a re-validation produces exactly the messages that were already there.
+    /// </summary>
     public event Action? ValidationStateChanged;
 
+    /// <summary>
+    ///     Registers a synchronous validator for the whole form. Validators are de-duplicated by runtime
+    ///     type, so registering the same kind twice — which a re-render does — adds nothing the second
+    ///     time, and swapping in a different instance of a type already present has no effect.
+    /// </summary>
+    /// <param name="validator">The validator to add.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="validator" /> is <see langword="null" />.</exception>
     public void AddValidator(IFieldValidator validator)
     {
         if (validator is null)
@@ -163,6 +212,13 @@ public sealed class EditContext : IDisposable
         _validators.Add(validator);
     }
 
+    /// <summary>
+    ///     Registers an asynchronous validator for the whole form. De-duplicated by runtime type, exactly
+    ///     as the synchronous overload is. Adding one makes <see cref="Validate()" /> throw — the form
+    ///     must be validated through <see cref="ValidateAsync" /> from then on.
+    /// </summary>
+    /// <param name="validator">The validator to add.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="validator" /> is <see langword="null" />.</exception>
     public void AddValidator(IAsyncFieldValidator validator)
     {
         if (validator is null)
@@ -183,6 +239,15 @@ public sealed class EditContext : IDisposable
     // `validate: null` clears any prior registration so a re-render that drops the parameter
     // doesn't leave a stale callback in place. The value getter lets the dispatcher read the
     // current field value without reflecting on every validate call.
+    /// <summary>
+    ///     Registers the inline rule for one field, replacing any rule already registered for it. Passing
+    ///     <see langword="null" /> removes it, which is how a re-render that no longer supplies a
+    ///     <c>Validate</c> avoids leaving the old rule behind.
+    /// </summary>
+    /// <param name="field">The field the rule guards.</param>
+    /// <param name="validate">The rule, or <see langword="null" /> to remove it.</param>
+    /// <param name="valueGetter">Reads the field's current value, so the rule can run without reflecting
+    ///     on every call.</param>
     public void RegisterFieldValidator(FieldIdentifier field, Delegate? validate, Func<object?> valueGetter)
     {
         if (validate is null)
@@ -194,6 +259,13 @@ public sealed class EditContext : IDisposable
         _fieldDelegates[field] = new DelegateRegistration(validate, valueGetter);
     }
 
+    /// <summary>
+    ///     <see cref="RegisterFieldValidator(FieldIdentifier, Delegate?, Func{object?})" /> for callers with
+    ///     no getter to hand, such as a test driving the context directly. Reads the value by reflection
+    ///     instead, so under trimming the model's properties must be preserved.
+    /// </summary>
+    /// <param name="field">The field the rule guards.</param>
+    /// <param name="validate">The rule, or <see langword="null" /> to remove it.</param>
     // Convenience overload for callers that don't have a getter handy (tests, direct API
     // use). Uses reflection over the model's runtime type to resolve the value.
     [UnconditionalSuppressMessage("Trimming", "IL2075",
@@ -203,6 +275,11 @@ public sealed class EditContext : IDisposable
         RegisterFieldValidator(field, validate, () =>
             field.Model.GetType().GetProperty(field.FieldName)?.GetValue(field.Model));
 
+    /// <summary>
+    ///     Registers the form-level rule — the one for checks that span several fields, such as confirming
+    ///     a password or ordering a date range. Replaces any previous one; <see langword="null" /> removes it.
+    /// </summary>
+    /// <param name="validate">The rule, or <see langword="null" /> to remove it.</param>
     // Form-level inline Validate delegate. Null clears.
     public void RegisterFormValidator(Delegate? validate) => _formDelegate = validate;
 
@@ -213,6 +290,12 @@ public sealed class EditContext : IDisposable
     // from the validation/submit pipeline are no-ops — no over-marking, no allocation on the hot path.
     private static void MarkReader() => Live.LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
 
+    /// <summary>
+    ///     Whether a validator is in flight for <paramref name="field" /> right now. This is the exact
+    ///     answer, for control flow such as submit gating; <see cref="ShouldShowValidatingIndicator" /> is
+    ///     the one to display.
+    /// </summary>
+    /// <param name="field">The field to ask about.</param>
     public bool IsValidating(FieldIdentifier field)
     {
         MarkReader();
@@ -249,24 +332,41 @@ public sealed class EditContext : IDisposable
         return s.StickyUntilUtc is { } until && until > DateTimeOffset.UtcNow;
     }
 
+    /// <summary>
+    ///     Whether the user has changed this field's value since the form loaded.
+    /// </summary>
+    /// <param name="field">The field to ask about.</param>
     public bool IsModified(FieldIdentifier field)
     {
         MarkReader();
         return _states.TryGetValue(field, out var s) && s.Modified;
     }
 
+    /// <summary>
+    ///     Whether the user has visited and left this field. Showing errors only once a field is touched is
+    ///     what stops a blank form shouting about every empty required field before anything is typed.
+    /// </summary>
+    /// <param name="field">The field to ask about.</param>
     public bool IsTouched(FieldIdentifier field)
     {
         MarkReader();
         return _states.TryGetValue(field, out var s) && s.Touched;
     }
 
+    /// <summary>
+    ///     The validation messages for one field, or an empty list when it has none.
+    /// </summary>
+    /// <param name="field">The field to ask about.</param>
     public IReadOnlyList<string> GetValidationMessages(FieldIdentifier field)
     {
         MarkReader();
         return _states.TryGetValue(field, out var s) ? s.Messages : Array.Empty<string>();
     }
 
+    /// <summary>
+    ///     Every validation message on the form, across all fields. Use
+    ///     <see cref="GetValidationEntries" /> when you also need to know which field each belongs to.
+    /// </summary>
     public IEnumerable<string> GetValidationMessages()
     {
         // Mark before returning the iterator: MarkReader() inside the yield body would only run on
@@ -284,6 +384,10 @@ public sealed class EditContext : IDisposable
         }
     }
 
+    /// <summary>
+    ///     Every validation message paired with the name of the field it belongs to — what a validation
+    ///     summary needs in order to link each message back to its input.
+    /// </summary>
     public IReadOnlyList<ValidationEntry> GetValidationEntries()
     {
         MarkReader();
@@ -297,6 +401,11 @@ public sealed class EditContext : IDisposable
         return entries;
     }
 
+    /// <summary>
+    ///     Whether any field currently carries a validation message. Note this reports the messages
+    ///     produced by the last run — it does not validate. Call <see cref="Validate()" /> first to ask
+    ///     whether the form is valid <em>now</em>.
+    /// </summary>
     public bool HasValidationMessages()
     {
         MarkReader();
@@ -313,6 +422,12 @@ public sealed class EditContext : IDisposable
         }
     }
 
+    /// <summary>
+    ///     Records that a field's value changed: marks it modified, raises <see cref="FieldChanged" />, and
+    ///     re-renders the component that owns the binding so UI derived from the model refreshes too. The
+    ///     built-in controls call this for you — you only need it when driving a control of your own.
+    /// </summary>
+    /// <param name="field">The field whose value changed.</param>
     public void NotifyFieldChanged(FieldIdentifier field)
     {
         var s = GetOrCreate(field);
@@ -328,9 +443,19 @@ public sealed class EditContext : IDisposable
         }
     }
 
+    /// <summary>
+    ///     Records that the user has visited and left a field — normally on blur. See
+    ///     <see cref="IsTouched" /> for why that gates error display.
+    /// </summary>
+    /// <param name="field">The field the user left.</param>
     public void NotifyFieldTouched(FieldIdentifier field) =>
         GetOrCreate(field).Touched = true;
 
+    /// <summary>
+    ///     Removes the validation messages on one field, raising <see cref="ValidationStateChanged" /> only
+    ///     if there were any to remove.
+    /// </summary>
+    /// <param name="field">The field to clear.</param>
     public void ClearMessages(FieldIdentifier field)
     {
         if (_states.TryGetValue(field, out var s) && s.Messages.Count > 0)
@@ -340,6 +465,10 @@ public sealed class EditContext : IDisposable
         }
     }
 
+    /// <summary>
+    ///     Removes every validation message on the form. Each validation run starts with this, so call it
+    ///     directly only to drop stale errors — after a reset, or when the model is replaced wholesale.
+    /// </summary>
     public void ClearAllMessages()
     {
         var any = false;
@@ -364,6 +493,16 @@ public sealed class EditContext : IDisposable
     // class of bugs that can otherwise arise when a validator runs against the same field
     // through more than one path (full Validate + per-field re-validate, re-entrant Render
     // on a sync-context resume, etc.).
+    /// <summary>
+    ///     Attaches an error message to a field — the hook for errors only the server can produce, such as
+    ///     "that email is already registered" coming back from a failed submit.
+    ///     <para>
+    ///         Adding the same message to the same field twice is a no-op, so a field validated through
+    ///         more than one path does not show its error twice.
+    ///     </para>
+    /// </summary>
+    /// <param name="field">The field the message belongs to.</param>
+    /// <param name="message">The message, written for the person reading it.</param>
     public void AddValidationMessage(FieldIdentifier field, string message)
     {
         var state = GetOrCreate(field);
@@ -376,6 +515,16 @@ public sealed class EditContext : IDisposable
         ValidationStateChanged?.Invoke();
     }
 
+    /// <summary>
+    ///     Validates the whole form and reports whether it passed. Clears the existing messages first, so
+    ///     the messages afterwards are exactly this run's.
+    /// </summary>
+    /// <returns><see langword="true" /> when no field produced a message.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     Any registered validator is asynchronous — the result could only be reported by guessing, so
+    ///     this refuses rather than return a wrong answer. Use <see cref="ValidateAsync" />. The message
+    ///     names which validators made the form async.
+    /// </exception>
     public bool Validate()
     {
         if (_asyncValidators.Count > 0 || HasAsyncDelegateValidators)
@@ -405,6 +554,15 @@ public sealed class EditContext : IDisposable
         return !HasValidationMessages();
     }
 
+    /// <summary>
+    ///     Validates one field and reports whether it passed — what a control runs as the user leaves it,
+    ///     rather than re-checking the whole form on every keystroke.
+    /// </summary>
+    /// <param name="field">The field to validate.</param>
+    /// <returns><see langword="true" /> when the field produced no message.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     Any registered validator is asynchronous. Use <see cref="ValidateFieldAsync" />.
+    /// </exception>
     public bool ValidateField(FieldIdentifier field)
     {
         if (_asyncValidators.Count > 0 || HasAsyncDelegateValidators)
@@ -437,6 +595,13 @@ public sealed class EditContext : IDisposable
         return GetValidationMessages(field).Count == 0;
     }
 
+    /// <summary>
+    ///     Validates the whole form, awaiting any asynchronous rules, and reports whether it passed. Safe
+    ///     to use whether or not the form has async validators — unlike <see cref="Validate()" />, which
+    ///     refuses when it does, so this is the one to call if you are not sure.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the in-flight validators.</param>
+    /// <returns><see langword="true" /> when no field produced a message.</returns>
     public async ValueTask<bool> ValidateAsync(CancellationToken cancellationToken = default)
     {
         // Supersede every in-flight per-field run before we re-validate from scratch.
@@ -501,6 +666,14 @@ public sealed class EditContext : IDisposable
         return !HasValidationMessages();
     }
 
+    /// <summary>
+    ///     Validates one field, awaiting any asynchronous rule, and reports whether it passed. While it
+    ///     runs, <see cref="IsValidating" /> reports the field as in flight, which is what a pending
+    ///     indicator watches.
+    /// </summary>
+    /// <param name="field">The field to validate.</param>
+    /// <param name="cancellationToken">Cancels the in-flight validator.</param>
+    /// <returns><see langword="true" /> when the field produced no message.</returns>
     public async ValueTask<bool> ValidateFieldAsync(FieldIdentifier field,
         CancellationToken cancellationToken = default)
     {
@@ -707,6 +880,11 @@ public sealed class EditContext : IDisposable
         }, (this, field), sticky, Timeout.Infinite);
     }
 
+    /// <summary>
+    ///     Marks every field the form knows about as touched, so validation messages that were held back
+    ///     until a field was visited all become visible. This is what a rejected submit does — the user
+    ///     asked to proceed, so every reason they cannot should now be on screen at once.
+    /// </summary>
     public void TouchAllRegisteredFields()
     {
         foreach (var s in _states.Values)

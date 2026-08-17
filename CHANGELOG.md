@@ -61,6 +61,12 @@ them until tagged releases begin.
   - **The attribute-bag overloads.** `.Aria("label", "Close")` and `.Data("test-id", "submit")` are how
     those attributes are actually written, and they were the undocumented overload beside a documented
     one. Each now names the prefix it renders under, so nobody writes it twice.
+  - **The validation and routing API you call directly.** `EditContext` — which a page reaches for to ask
+    whether a form is valid, or to attach a server-side error to a field — is documented across its whole
+    surface, including the two rules that surprise people: `Validate()` *throws* rather than guess when
+    any validator is async, and `AddValidationMessage` is idempotent per field and message. Alongside it
+    `FieldIdentifier` (identity is by model *reference*, so a replaced model invalidates old ones),
+    `ValidationEntry`, and the `[Route]`/`[RouteParam]` attributes that go on every page.
   - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
     and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
     post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older
