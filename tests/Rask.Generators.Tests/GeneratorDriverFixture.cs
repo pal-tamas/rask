@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Rask.Generators.Tests;
@@ -69,6 +70,54 @@ internal static class GeneratorDriverFixture
         var result = driver.RunGenerators(compilation);
         var runResult = result.GetRunResult();
         return new GeneratorRun(runResult, compilation);
+    }
+
+    /// <summary>
+    ///     Runs the factory generator over <paramref name="compilation" /> with the builder surface on, and
+    ///     returns the compilation the analyzers should actually see.
+    /// </summary>
+    /// <remarks>
+    ///     A plain compilation has no builder entries for a tag that ships from Rask.Html: the framework's
+    ///     own entries used to be precompiled into Rask.Core.dll and arrive by inheritance, so an analyzer
+    ///     test could bind `Img.Src(…)` without a generator ever running. A referenced library's entries are
+    ///     INJECTED instead, which only exists once the generator has run — so a chain over a moved tag
+    ///     silently failed to bind and the analyzer saw nothing to report.
+    /// </remarks>
+    internal static Compilation WithBuilderSurface(Compilation compilation)
+    {
+        var driver = CSharpGeneratorDriver
+            .Create(new ComponentFactoryGenerator())
+            .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest))
+            .WithUpdatedAnalyzerConfigOptions(BuilderSurfaceOptions.Instance);
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
+        return output;
+    }
+
+    // The generator reads RaskBuilderSurface from MSBuild; these tests have none, so it is stated here.
+    private sealed class BuilderSurfaceOptions : AnalyzerConfigOptionsProvider
+    {
+        internal static readonly BuilderSurfaceOptions Instance = new();
+
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new Options();
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
+
+        private sealed class Options : AnalyzerConfigOptions
+        {
+            public override bool TryGetValue(string key, out string value)
+            {
+                if (string.Equals(key, "build_property.RaskBuilderSurface", StringComparison.Ordinal))
+                {
+                    value = "true";
+                    return true;
+                }
+
+                value = null!;
+                return false;
+            }
+        }
     }
 
     internal static ImmutableArray<MetadataReference> BuildReferences()

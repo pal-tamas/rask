@@ -82,6 +82,10 @@ public class ImgMissingAltAnalyzerTests
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 
+        // The chain needs the builder entries, and a tag from Rask.Html only has them once the
+        // generator has injected them — inheritance no longer supplies it.
+        compilation = (CSharpCompilation)GeneratorDriverFixture.WithBuilderSurface(compilation);
+
         var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(new ImgMissingAltAnalyzer());
         var all = await compilation.WithAnalyzers(analyzers).GetAnalyzerDiagnosticsAsync();
         return all.Where(d => d.Id == "RASK023").ToImmutableArray();

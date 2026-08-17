@@ -333,20 +333,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             ReportSharedBitOverflow(spc, host, sharedBits);
             foreach (var s in host.Shared)
             {
-            // No reachability skip, and none needed anywhere any more: the setter's receiver is the
-            // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
-            //
-            // Twice, because there are two chain shapes and the shared surface belongs to both: an
-            // ordinary component's `Build<T>` and a form control's mode-carrying `Build<T, TMode>`. The
-            // second is written over an OPEN TMode, so `Input.Bind(…).Class("x")` keeps the mode it was
-            // in and the next step still knows it. A form control that could not say `.Class(…)` would
-            // be no trade at all.
-            foreach (var mode in new string?[] { null, OpenMode })
-            {
-                EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
-                    fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
-                    pendingBit: Bit(sharedBits, s.Name), summary: s.Summary, mode: mode);
-            }
+                // No reachability skip, and none needed anywhere any more: the setter's receiver is the
+                // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
+                //
+                // Twice, because there are two chain shapes and the shared surface belongs to both: an
+                // ordinary component's `Build<T>` and a form control's mode-carrying `Build<T, TMode>`. The
+                // second is written over an OPEN TMode, so `Input.Bind(…).Class("x")` keeps the mode it was
+                // in and the next step still knows it. A form control that could not say `.Class(…)` would
+                // be no trade at all.
+                foreach (var mode in new string?[] { null, OpenMode })
+                {
+                    EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
+                        fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
+                        pendingBit: Bit(sharedBits, s.Name), summary: s.Summary, mode: mode);
+                }
             }
         }
 
