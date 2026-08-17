@@ -33,7 +33,11 @@ public sealed class ImgMissingAltCodeFixProvider : RaskCodeFixProvider<Expressio
     protected override async Task<Document> FixAsync(
         Document document, ExpressionSyntax node, CancellationToken cancellationToken)
     {
-        var enclosing = node.FirstAncestorOrSelf<InvocationExpressionSyntax>();
+        // Only the call this node is the CALLEE of — never merely an enclosing one. Walking up to the
+        // nearest ancestor invocation reached straight out of the Img being fixed: `Wrap(Img)` became
+        // `Wrap(Img).Alt("")`, which neither compiles nor gives the image a text alternative, and
+        // `Generated.Div(Children: [Img])` had `Alt: ""` appended to the *Div*.
+        var enclosing = CalleeOf(node);
 
         if (enclosing is not null && await IsFactoryCallAsync(document, enclosing, cancellationToken)
                 .ConfigureAwait(false))
@@ -68,11 +72,25 @@ public sealed class ImgMissingAltCodeFixProvider : RaskCodeFixProvider<Expressio
         SyntaxFactory.LiteralExpression(
             SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(string.Empty));
 
-    // The end of the chain, so the new step lands after every existing one.
+    // The invocation this node is the callee of — `Img(…)`, or the `Img` in `Generated.Img(…)`. Null when
+    // the node merely sits inside some other call, which is the case that used to be mishandled.
+    private static InvocationExpressionSyntax? CalleeOf(ExpressionSyntax node) => node.Parent switch
+    {
+        InvocationExpressionSyntax invocation when invocation.Expression == node => invocation,
+        MemberAccessExpressionSyntax member when member.Name == node
+                                                 && member.Parent is InvocationExpressionSyntax outer
+                                                 && outer.Expression == member => outer,
+        _ => null,
+    };
+
+    // The end of the chain, so the new step lands after every existing one. Climbs only while the node is
+    // the RECEIVER of the next step, so it can never walk out into an enclosing expression.
     private static ExpressionSyntax Outermost(ExpressionSyntax node)
     {
         var current = node;
-        while (current.Parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax outer })
+        while (current.Parent is MemberAccessExpressionSyntax member
+               && member.Expression == current
+               && member.Parent is InvocationExpressionSyntax outer)
         {
             current = outer;
         }

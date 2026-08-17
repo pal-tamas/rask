@@ -66,6 +66,29 @@ public class RootShellAnalyzerTests
         Assert.Contains("ChainApp", d.GetMessage());
     }
 
+    // A LOCAL that happens to be called Body is not the page shell. The bare-identifier arm added for the
+    // chain matches by name, so without a symbol check this reports RASK021 on ordinary code — and the
+    // repo builds -warnaserror, so a false positive here breaks a build rather than merely nagging.
+    [Fact]
+    public async Task UseRask_LocalNamedLikeTheShell_NoDiagnostic()
+    {
+        var src = EntryStubs + """
+                               namespace Demo;
+                               public sealed partial class LocalApp : Component
+                               {
+                                   protected override Component? Render()
+                                   {
+                                       var Body = "an email body";
+                                       var Doctype = 1;
+                                       return Div[Body, Doctype.ToString()];
+                                   }
+                               }
+                               """
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<LocalApp>(null!); } } }";
+
+        Assert.Empty(await GetDiagnosticsAsync(src));
+    }
+
     [Fact]
     public async Task UseRask_RootRendersOnlyItsBody_NoDiagnostic()
     {
