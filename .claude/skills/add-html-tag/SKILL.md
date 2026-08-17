@@ -29,7 +29,11 @@ nullable enabled, expression-bodied single-line members.
   (`AppendUrlAttr` for URL attrs; `AppendAttr(sb, "disabled", null)` for bare boolean attrs).
 
 See `templates/Component.cs`. References: `src/Rask.Html/Components/Span.cs` (simple),
-`Br.cs` (void), `Button.cs` (attributes), base `src/Rask.Core/Element.cs`.
+`Br.cs` (void), `Img.cs` (attributes), base `src/Rask.Core/Element.cs`.
+
+Note the split: Rask.Core still declares the handful of tags its own engine constructs — the shell
+(`Html`/`Body`/`Head`), the error and not-found pages' markup, and `Button` among them. A NEW tag goes in
+`Rask.Html`, so don't take `src/Rask.Core/Components/Button.cs` as the pattern to copy.
 
 ## 2. Test — `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`
 Two methods, xUnit:
@@ -37,9 +41,7 @@ Two methods, xUnit:
 - `Render_AllPropsSet_…` — **asserts exact attribute order**: id, class, style, data-*, **then**
   tag-specific attrs. Tests assert this ordering — preserve it.
 
-See `templates/ComponentTests.cs`. Reference: `tests/Rask.Html.Tests/Components/ProgressTests.cs`.
-The test class is `partial` and derives `RaskMarkup` — that is how it gets the tag's builder entry,
-since Rask.Html's entries are injected into a consumer's hosts rather than inherited (RASK036).
+See `templates/ComponentTests.cs`. Reference: `tests/Rask.Html.Tests/Components/ImgTests.cs`.
 
 ## 3. Finish
 This is a new feature → run the **`rask-ship`** gate (format → warnings-as-errors build → the

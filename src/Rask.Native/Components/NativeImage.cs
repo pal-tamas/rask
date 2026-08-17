@@ -14,8 +14,10 @@ public sealed partial class NativeImage : NativeViewComponent
 {
     /// <summary>A bundled asset name or an absolute URL. Required.</summary>
     /// <remarks>
-    ///     Shadows the generated <c>Source</c> markup entry, which a native component has no use for — it
-    ///     renders platform views, never HTML.
+    ///     This carried <c>new</c> until the HTML element family moved into <c>Rask.Html</c>: it shadowed
+    ///     the generated <c>Source</c> markup entry, which a native component has no use for. Those entries
+    ///     are no longer injected into native components, so there is nothing left to shadow and <c>new</c>
+    ///     became CS0109.
     /// </remarks>
     public required string Source { get; set; }
 
