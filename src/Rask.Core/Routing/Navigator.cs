@@ -19,9 +19,41 @@ namespace Rask.Core.Routing;
 /// </summary>
 public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink = null)
 {
+    // The navigator of the handler currently running on this async flow. Published by EnterHandler and
+    // cleared when that scope disposes, so it is set for exactly the window in which navigation is legal —
+    // the same window _inHandler describes. It exists so the generated `SomePage.Go(...)` static extensions
+    // can navigate without a receiver to inject through: they have no instance and no DI to reach.
+    //
+    // AsyncLocal (not ThreadStatic) because a handler may await: the value has to flow into continuations
+    // that resume on another pool thread. Per-session correctness comes from the DI registration — Server
+    // registers Navigator per session scope, WASM/Native as a singleton because a host owns one session —
+    // so whichever navigator a dispatch entered is that dispatch's own.
+    private static readonly AsyncLocal<Navigator?> _current = new();
+
     private bool _dirty;
     private bool _inHandler;
     private bool _replace;
+
+    /// <summary>
+    ///     The <see cref="Navigator" /> for the event handler currently running, or <c>null</c> outside one.
+    ///     The generated <c>SomePage.Go(...)</c> helpers use this; injecting <see cref="Navigator" /> through a
+    ///     component constructor is the equivalent explicit route.
+    /// </summary>
+    public static Navigator? Current => _current.Value;
+
+    /// <summary>
+    ///     <see cref="Current" />, or a throw with the same actionable message the instance methods raise when
+    ///     used outside an event handler. Public because the generated <c>SomePage.Go(...)</c> helpers are
+    ///     compiled into the consumer's assembly and call it; prefer injecting <see cref="Navigator" /> through
+    ///     a component constructor in code you write by hand.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
+    public static Navigator RequireCurrent() =>
+        _current.Value ?? throw new InvalidOperationException(
+            "Navigation can only run from event handlers (e.g. Button(OnClick: ...)). " +
+            "It cannot run during component Render() or the initial GET. To navigate on load, " +
+            "express it as a route/redirect or drive it from a lifecycle hook; to redirect an " +
+            "unauthenticated user, use [Authorize]. See docs/routing.md.");
 
     /// <summary>
     ///     Navigates to <paramref name="url" /> (path + query together). Pass a type-safe
@@ -208,7 +240,9 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         _dirty = false;
         _replace = false;
         _inHandler = true;
-        return new HandlerScope(this);
+        var previous = _current.Value;
+        _current.Value = this;
+        return new HandlerScope(this, previous);
     }
 
     internal bool TryConsumeHistory(out string url, out bool replace)
@@ -278,8 +312,14 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         return QueryString.Build(rs.Path, rs.Query);
     }
 
-    private sealed class HandlerScope(Navigator nav) : IDisposable
+    // Restores the previous ambient navigator rather than clearing it, so a nested EnterHandler (the
+    // Server dispatch wraps navigator and authSignIn scopes, and tests re-enter) unwinds correctly.
+    private sealed class HandlerScope(Navigator nav, Navigator? previous) : IDisposable
     {
-        public void Dispose() => nav._inHandler = false;
+        public void Dispose()
+        {
+            nav._inHandler = false;
+            _current.Value = previous;
+        }
     }
 }

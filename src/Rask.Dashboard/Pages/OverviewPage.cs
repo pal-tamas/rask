@@ -7,10 +7,13 @@ namespace Rask.Dashboard.Pages;
 /// The landing panel: one tile per queue, plus the cache. Deliberately counters-only — the question it
 /// answers is "is anything wrong?", and the answer should be readable without reading.
 /// </summary>
-[Route("")]
-[ParentRoute(typeof(DashboardLayout))]
 public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardOptions options) : PollingPanel
 {
+    protected override string Route => "";
+
+    protected override Type? Parent => typeof(DashboardLayout);
+
+
     private readonly List<(IQueuePanel Panel, QueueCounts Counts)> _queues = [];
 
     protected override RaskDashboardOptions Options => options;
