@@ -6,9 +6,11 @@ Markup in Rask is C#. You name a component and chain onto it; there is no `new`,
 ```csharp
 Div.Class("card")[
     H2.Class("card-title")["Products"],
-    P["Everything we sell."],
+    P["Everything we sell."]
 ]
 ```
+
+The `[…]` is an indexer, not a collection initializer, so the last child takes no trailing comma.
 
 The name is the component. `Div` *is* a `Div`, so `.` shows every property it has — its own and the whole
 inherited HTML surface. Children go in the indexer.
@@ -34,7 +36,7 @@ at the first step, and the choice is the type:
 
 ```csharp
 Input.Bind(() => _form.Name).Validate(ProductName.Check).Id("name")   // bound
-Input.Value(_text).Change(v => _text = v)                             // controlled
+Input.Value(_text).OnChange(v => _text = v)                           // controlled
 ```
 
 Having picked one, the other is not offered. A control bound to an expression *and* handed a value has two

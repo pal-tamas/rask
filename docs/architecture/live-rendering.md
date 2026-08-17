@@ -71,7 +71,7 @@ the page shell / `main.js`), so nothing is injected there.
 ## See also
 
 - [`../diagnostics.md`](../diagnostics.md) — **RASK022** (warning) flags a keyless list
-  item that would reconcile positionally; add a `Key:` to get trusted keyed structural
+  item that would reconcile positionally; add a `.Key(…)` to get trusted keyed structural
   ops instead of a full-HTML morph.
 - [`CLAUDE.md`](../../CLAUDE.md) — *Live runtime & diff codec*, *Primitives*,
   *Children & factories*, *Page head* sections (the authoritative summary).

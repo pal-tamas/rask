@@ -22,10 +22,12 @@ All of that runs in the browser, on the Mono WebAssembly runtime:
    On first Run it downloads them (a few MB, once) and hands them to Roslyn as `MetadataReference`s — the
    browser has no filesystem, so `MetadataReference.CreateFromImage(bytes)` is used instead of
    `CreateFromFile`.
-2. **Compile.** `CSharpGeneratorDriver` runs the **Rask `ComponentFactoryGenerator`** over your code (so
-   the `Generated.Div(...)` factories and the `global using static …Generated;` are emitted — you write the
-   same terse `Div()[…]` you would in a real project), then `Emit` produces an assembly. Rask's analyzers
-   (RASK001–032) run as a second, display-only pass so their diagnostics can surface in the editor.
+2. **Compile.** `CSharpGeneratorDriver` runs the **Rask `ComponentFactoryGenerator`** over your code, with
+   the builder surface switched on explicitly — there is no MSBuild in a browser tab to set
+   `RaskBuilderSurface`, and an absent value reads as off, which would emit no entries for the components
+   *you* just wrote. With it on you write the same `Div.Class("card")[…]` chain you would in a real project.
+   `Emit` then produces an assembly, and Rask's analyzers (RASK001–032) run as a second, display-only pass
+   so their diagnostics can surface in the editor.
 3. **Render.** The emitted assembly is loaded, the entry component instantiated, and mounted **as a child
    of the playground's own component tree** inside an `ErrorBoundary`. Because it shares the playground's
    live session, your component's event handlers, state and live diffing all work — it's a real mini-app,
@@ -41,8 +43,8 @@ finish downloading in the background — a **workspace-backed analysis path** co
 next to the title flips to *IntelliSense ready*):
 
 - **IntelliSense** is Roslyn's own `CompletionService`, so completions know the full BCL + `Rask.Core`
-  surface *and* the `Generated.Div(...)` factories the source generator brings into scope — you get the
-  terse `Div()[…]` members exactly as you would in a real project.
+  surface *and* the chain entries the source generator emits — including the ones for components you wrote
+  in the editor. Type `Div.` and the steps list exactly as they would in a real project.
 - **Diagnostics update as you type** — CS errors and Rask's RASK hints squiggle on every edit, not only on
   Run.
 
@@ -58,7 +60,7 @@ Pick one of the **examples** in the left-hand gallery — **Counter**, **Form + 
 original code, and **Ctrl/Cmd + Enter** runs.
 
 Define a component named **`Playground`** as the entry point, in a namespace (as in any real Rask project —
-that's what lets the generator bring your own components' factories into scope):
+that is what lets the generator emit chain entries for your own components):
 
 ```csharp
 using Rask.Core;
@@ -89,10 +91,10 @@ once you get it to compile — your edits included, since the tick means *it bui
 
 | # | Chapter | What you learn |
 |---|---------|----------------|
-| 1 | Your first component | `Render()`, the tag factories, the children indexer |
+| 1 | Your first component | `Render()`, the tag entries, the chain, the children indexer |
 | 2 | State and events | a field, a handler, automatic re-render |
-| 3 | Composition and lists | a child component's generated factory, and `Key:` |
-| 4 | Forms and validation | `Form<T>`, two-way `Input(() => model.Field)`, `Validate:` |
+| 3 | Composition and lists | a child component's own chain entry, steps vs. setters, and `.Key(…)` |
+| 4 | Forms and validation | `Form.Model(…)`, two-way `Input.Bind(() => model.Field)`, `.Validate(…)` |
 | 5 | Your first entity | `Entity<Guid>`, a `DbContext`, `EnsureCreated()`, an insert |
 | 6 | Query and display | LINQ over a `DbSet`, translated to SQL |
 | 7 | Edit and delete | an update, then soft delete and the query filter that hides it |

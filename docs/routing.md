@@ -119,8 +119,8 @@ string, the implicit conversion (or `.ToString()`) gives it to you.
 Path values are formatted through `RouteValueFormatter.Format`, so an `int`, `Guid`, `DateOnly`, etc. round-trips
 correctly without a manual `.ToString()`.
 
-> The generated helpers and component factory symbols don't exist until the generator runs. If the IDE flags them
-> as undefined, run `dotnet build` once and reload the solution.
+> The generated navigation helpers and component chain symbols do not exist until the generator runs. If the
+> IDE flags them as undefined, run `dotnet build` once and reload the solution.
 
 For one page that has to answer more than one URL, register the extra template yourself —
 `RouteRegistry.Add(new RouteRegistration(typeof(MyPage), "/alias", null))`. `Route` is deliberately singular:
