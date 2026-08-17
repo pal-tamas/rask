@@ -45,6 +45,50 @@ public class RootShellAnalyzerTests
         Assert.Contains("App", d.GetMessage());
     }
 
+    // The chain spelling of the same mistake. `Html[…]` is an element access on a bare entry, not an
+    // invocation, so a name-matched scan over InvocationExpressionSyntax never sees it. Uses the REAL
+    // Rask.Core entries (inherited from RaskMarkup, so they bind here) rather than the local stubs the
+    // other cases declare — those stubs are methods, which is precisely what a chain is not.
+    [Fact]
+    public async Task UseRask_RootRendersTheShellAsAChain_ReportsRask021()
+    {
+        var src = EntryStubs + """
+                               namespace Demo;
+                               public sealed partial class ChainApp : Component
+                               {
+                                   protected override Component? Render() => Html[Body[Div["hi"]]];
+                               }
+                               """
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<ChainApp>(null!); } } }";
+
+        var d = Assert.Single(await GetDiagnosticsAsync(src));
+        Assert.Equal("RASK021", d.Id);
+        Assert.Contains("ChainApp", d.GetMessage());
+    }
+
+    // A LOCAL that happens to be called Body is not the page shell. The bare-identifier arm added for the
+    // chain matches by name, so without a symbol check this reports RASK021 on ordinary code — and the
+    // repo builds -warnaserror, so a false positive here breaks a build rather than merely nagging.
+    [Fact]
+    public async Task UseRask_LocalNamedLikeTheShell_NoDiagnostic()
+    {
+        var src = EntryStubs + """
+                               namespace Demo;
+                               public sealed partial class LocalApp : Component
+                               {
+                                   protected override Component? Render()
+                                   {
+                                       var Body = "an email body";
+                                       var Doctype = 1;
+                                       return Div[Body, Doctype.ToString()];
+                                   }
+                               }
+                               """
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<LocalApp>(null!); } } }";
+
+        Assert.Empty(await GetDiagnosticsAsync(src));
+    }
+
     [Fact]
     public async Task UseRask_RootRendersOnlyItsBody_NoDiagnostic()
     {

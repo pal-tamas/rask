@@ -507,6 +507,41 @@ them until tagged releases begin.
   radius — not latency; the outbox can never move, since it commits with the business change by design.
 
 ### Fixed
+- **The quick-fixes for the newly chain-aware analyzers could damage code, found by reviewing the diff
+  rather than trusting that green tests meant done.**
+  - **RASK027's lightbulb deleted whatever enclosed the chain.** Making the analyzer fire on chains
+    without touching its fix left the provider looking *upward* for an argument to remove, so
+    `Wrap(Content: Button.OnClick(…).OnClickAsync(…)["x"], Label: "hi")` became `Wrap(Label: "hi")` —
+    the component silently gone, and the result still compiling. The diagnostic is now anchored on the
+    step's name rather than the whole chain, and the fix splices that one step out and never walks past
+    the node it was given.
+  - **RASK023's lightbulb could land the `Alt` on the wrong call.** `Wrap(Img)` became
+    `Wrap(Img).Alt("")` — uncompilable, and the image still had no text alternative. It now acts only on
+    the call the flagged node is the *callee* of.
+  - **RASK014's lightbulb could trade its error for a worse one.** The bare entry it now writes only
+    binds inside a markup host; in a service or a plain class `Widget` names the type and the rewrite is
+    `CS0119`. The fix is withheld there — the error stands with its message instead. The old test proved
+    nothing on this point: it asserted on text alone, inside a plain class.
+  - A false positive of my own making in RASK021: the bare-identifier arm matched shell names on the
+    identifier alone, so a local called `Body` in a root's `Render()` raised RASK021 on ordinary code —
+    build-breaking under `-warnaserror`. It is now restricted to `Doctype`, the one part of the shell a
+    chain writes bare; the rest are caught as element accesses.
+  - The four analyzers' copies of a `Build<T>` unwrapper collapse into one `BuilderEntry.BuildOf`, which
+    compares the resolved symbol instead of calling `ToDisplayString()` on every arity-1 generic. These
+    run on `OperationKind.PropertyReference` — every property read in the compilation — so the old
+    version allocated a string per `List<T>`/`Task<T>` read, per keystroke, in the IDE.
+- **Three more analyzers were blind to the chain, found by auditing the rest rather than stopping at the
+  ones that announced themselves.** These do not key on `Generated` at all — they test a TYPE, and a chain
+  hands back `Build<T>` rather than `T`.
+  - **RASK032 (native chrome nested in the HTML tree) never fired on a chain.** `Div[NativeHeaderBar…]`
+    serializes to nothing on a device; the diagnostic is an **Error** precisely so that never ships, and
+    it was reporting on none of the syntax the framework teaches.
+  - **RASK019 (`<head>` is a framework-managed slot) never fired on `Head[…]`.** Children passed there are
+    dropped, silently. The analyzer also had **no tests at all**; it has them now, for both spellings.
+  - **RASK021 (a root that renders the page shell) never fired on a chain.** It scans the root's `Render()`
+    for *invocations* named `Doctype`/`Html`/`Head`/`Body`, and a chain invokes nothing — `Html[…]` is an
+    element access and `Doctype` a bare identifier. It now recognises all three spellings, and the
+    standalone-identifier arm is deliberately narrow so a local called `Body` cannot trip it.
 - **Three analyzers were silently dead on the chain — the syntax the framework teaches.** Each identified
   its subject as "a static method on a class named `Generated`", which a chain never is: a chain's steps are
   extension methods on `Build<T>`, and its shortest spelling is a bare entry that is not an invocation at
