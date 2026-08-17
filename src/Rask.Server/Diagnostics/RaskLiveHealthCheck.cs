@@ -38,6 +38,14 @@ public sealed class RaskLiveHealthCheck(LiveSessionStore store) : IHealthCheck
     /// <summary>Memory load at which the host reports <c>Unhealthy</c>. Above this an OOM is close.</summary>
     internal const double UnhealthyMemoryLoad = 0.92;
 
+    /// <summary>
+    ///     Reports whether this host can still take live sessions: degraded as it fills, unhealthy once a
+    ///     new visitor would be refused. Memory is judged first and outranks the session cap in both
+    ///     directions — what a session costs depends on the page, not on how many there are — so an
+    ///     uncapped host still reports unhealthy under memory pressure.
+    /// </summary>
+    /// <param name="context">The health-check context supplied by the host.</param>
+    /// <param name="cancellationToken">Cancels the check.</param>
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)

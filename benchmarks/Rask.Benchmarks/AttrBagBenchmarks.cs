@@ -1,7 +1,15 @@
+#pragma warning disable RASK022 // keyless rows on purpose — see the note below
+
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
 
 namespace Rask.Benchmarks;
+
+// RASK022 is suppressed for this file. Its rows ARE keyless, and correctly reported — but this benchmark
+// renders the bare minimum around the one attribute it measures, and giving every row a Key would add a
+// per-element write to both arms and move the absolute figures already recorded in the CHANGELOG
+// (80.7 KB -> 63.52 KB). The A/B is between two spellings of Data, not a reconciliation claim, so the
+// key would buy nothing here and cost the record its meaning.
 
 // What `.Data("test-id", "primary")` costs against `.Data(new Dictionary<string, string?> { … })`,
 // which is what a call site had to write before it existed.

@@ -164,6 +164,11 @@ public sealed class Usb : IUsb
 
     // Root UsbInterop's [JSInvokable] for the WASM trimmer — it's reached only via the JS DotNetDispatcher
     // (reflection), so without this the Disconnected method could be trimmed away.
+    /// <summary>
+    ///     Creates the service. Registered for you — inject <see cref="IUsb" /> rather than
+    ///     constructing this.
+    /// </summary>
+    /// <param name="js">The JS interop runtime the wrapper calls through.</param>
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, typeof(UsbInterop))]
     public Usb(IJSRuntime js) => _js = js;
 

@@ -8,6 +8,30 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **Two analyzers had stopped firing altogether on chain-built markup — including an accessibility
+  check.** `RASK022` (a list item without a `Key`) and `RASK023` (an `Img` without `Alt`) each identified
+  their subject as *"a static method on the class named `Generated`"* — the factory. A chain has no such
+  method: `Li[…]` is a property reference plus a children indexer, and `Img.Src("/x")` ends at the `Src`
+  **setter**. So neither analyzer failed on the chain; neither ever ran. Every chain-written `<img>` in
+  every consuming app was going unchecked for `alt`, and every keyless chain-built list unwarned — on the
+  only spelling the docs teach.
+
+  Their own tests could not have caught it: those compile without running the builder generator, so they
+  cannot express a chain at all. `AnalyzersOnTheChainSurfaceTests` runs the generator first, and its two
+  keyless/alt-less cases fail on the previous behaviour.
+
+  Both now read the chain down to the entry that opened it and ask whether the step was named, via a
+  shared `BuilderEntry.TryReadChain`. The factory path is untouched while it still exists, and every
+  existing factory test still passes. What it deliberately does **not** do is flag any expression merely
+  *typed* as a component: a static markup helper (`Ui.Badge(x)`) yields one and cannot be keyed, so only
+  a factory call or a chain — the two things that can carry the step — are considered.
+
+  Re-enabled, the pair found five real sites in this repo. Closes #704.
+
+  This is the same failure mode `BuilderEntry.ChainedComponent` already records for RASK025/038/044, and
+  it is worth stating as a rule: **a green build proves nothing about an analyzer still firing.** Only its
+  tests do, and only if they use the surface people actually write.
+
 - **A keyed row's own state followed its POSITION, not its item.** A child's identity inside its parent
   was its ordinal among entry-built siblings, and `Key` took no part — the parent's child map never read
   it. `Key` was only ever the diff codec's identity (`data-rask-key`), one layer above. So inserting an
@@ -84,6 +108,121 @@ them until tagged releases begin.
     exposes no `Key` of its own.
 
 ### Added
+- **Every public component is documented, and the documentation now reaches the call site.** A factory
+  call is what you *write*, so that is where the docs have to be: hovering `Video(` says what `<video>`
+  is and links its MDN page, and each parameter carries its own description.
+  - **The generator forwards the docs onto the factory.** A component's `<summary>` becomes its
+    factory's, and every documented property becomes a `<param>` on the matching parameter — so the
+    ~490 property descriptions below are visible at the call site rather than only on the type. Without
+    this the tooltip stayed blank however well the component was documented.
+  - **The whole HTML and SVG element surface, referenced to MDN.** All 141 element components and the
+    41 SVG ones now carry a summary and a link to their MDN reference page, plus per-attribute
+    descriptions — including the ones that are easy to get wrong (`Meter`'s `Low`/`High`/`Optimum`,
+    `Track.Kind`, `Iframe.Sandbox`, `Input`'s twenty-two types).
+  - **The Bootstrap surface too.** Every `Bs*` component, enum and utility group is documented, with
+    the accessibility caveats stated where they bite — a spinner needs a label, a close button needs an
+    accessible name, colour must never be the only signal.
+  - **Guarded against rot.** Tests pin that a documented component's summary and params reach its
+    factory, that the MDN link on an element matches its tag, and that partial documentation stays
+    warning-clean — `CS1573` fires per undocumented parameter once *any* parameter is documented, which
+    would otherwise have broken every consumer's warnings-as-errors build.
+  - **The two form validators say how to use them.** `DataAnnotationsValidator` and
+    `FluentValidationValidator` render no markup, so a blank tooltip left nothing to go on: both now
+    show the `Form` they belong inside, and `FluentValidationValidator` states that validators are
+    de-duplicated by type — the first `IValidator` registered wins for the life of the form.
+  - **A bundled DLL must ship its XML docs.** `Rask.Core` is unpackable and rides inside
+    `Rask.Server`/`Rask.Wasm`'s `lib/`, so its `.xml` has to be packed by hand next to it. Dropping that
+    line breaks nothing visible — the build is green and every consumer tooltip is silently blank — so a
+    test now pins it for every DLL packed into `lib/`.
+  - **The `CS1573` guard covered one generated file out of nine.** The pragma sat in the factory emitter
+    alone, so the moment the chain setters gained `<param>` tags, `Rask.Core` itself stopped compiling.
+    Every generated file now goes through one header emitter, including the files that document nothing
+    today — adding a doc comment to one of those must not be able to break a consumer's build.
+  - **The chain is documented end to end — all 1319 setters, up from 1138.** The chain is the syntax, so
+    a blank tooltip there is the one that costs most, and the gaps were in the most-written places of
+    all: `.Class`, `.Id`, `.Style`, `.Data`, `.Aria`, `.Role`, `.TabIndex`, `.Ref` and `.Draggable` live
+    on `Element` rather than on any tag, so documenting all 141 element components missed every one of
+    them. Now documented, with MDN's global-attribute and ARIA references.
+  - **All 88 DOM events and 24 media events.** `.OnClick`, `.OnInput`, `.OnBlur` and their siblings are
+    declared once and inherited everywhere; each now says what it fires on, and states the trap where
+    there is one — `dragover` must cancel on *every* event or the drop never happens, `mouseover`
+    bubbles where `mouseenter` does not, a positive `tabindex` reorders the whole page. Every MDN link
+    was resolved against the live site, so `drag` points at `HTMLElement` and `reset` at
+    `HTMLFormElement` rather than at a guessed interface.
+  - **`Key`, and the form-control contract.** `Key` explains what it buys and warns off the loop index;
+    `IFormControl<T>`'s `Bind`/`Value`/`Validate`/`AfterBind`/`OnChange` are documented once and reach
+    every control that implements them.
+  - **`<inheritdoc/>` now resolves — it never did.** Roslyn hands the generator the literal
+    `<inheritdoc/>` element, so every async twin written as `<inheritdoc cref="OnValidSubmit"/>` emitted
+    a setter with no documentation at all, beside a fully documented sibling. Nothing about the source
+    looked wrong, which is why it survived. The generator now follows a `cref`, an override, and an
+    implemented interface member — the last one covering the commoner case of an implementing member
+    with no comment at all, which is how every form control declares `Validate` and `OnChange`.
+  - **The attribute-bag overloads.** `.Aria("label", "Close")` and `.Data("test-id", "submit")` are how
+    those attributes are actually written, and they were the undocumented overload beside a documented
+    one. Each now names the prefix it renders under, so nobody writes it twice.
+  - **The validation and routing API you call directly.** `EditContext` — which a page reaches for to ask
+    whether a form is valid, or to attach a server-side error to a field — is documented across its whole
+    surface, including the two rules that surprise people: `Validate()` *throws* rather than guess when
+    any validator is async, and `AddValidationMessage` is idempotent per field and message. Alongside it
+    `FieldIdentifier` (identity is by model *reference*, so a replaced model invalidates old ones),
+    `ValidationEntry`, and the `[Route]`/`[RouteParam]` attributes that go on every page.
+  - **`Rask.Server` and `Rask.WebPush` are documented to zero gaps.** Both packages now have no
+    undocumented public member at all. The security-shaped ones say what they are and what they are not:
+    `RaskUploadOptions` bounds what the server accepts and proves nothing about a file being *safe*,
+    `SessionUserProvider` answers "who is this" and never on its own "may they", `VapidKeys.PrivateKey`
+    is a signing key while rotating the pair silently unsubscribes every user, and a `PushSubscription`
+    is a credential for reaching someone's device — dropped, not retried, when a send reports
+    `ShouldDelete`.
+  - **The Bootstrap chain is documented end to end — all 555 setters, up from 407.** The gap was the same
+    shape as Core's: `Id`, `Class`, `Style` and `Aria` are *redeclared* on `Bs*` components (which extend
+    `Component`, not `Element`), so `.Class(…)` on a `BsButton` was blank while the same call on a `Div`
+    was documented. `BsBlock` is the base for every Bootstrap component, so documenting it there closed
+    112 of them at once. `Class` now also states the thing worth knowing: extra classes are added
+    *alongside* the component's own Bootstrap classes, never instead of them.
+  - **The chain ENTRY is documented — the first thing anyone types.** `Div`, `Span`, `BsButton`: the
+    identifier that opens a markup expression carried no documentation at all, while the factory and
+    every setter after it were fully covered. Hovering `Div` said nothing; hovering `.Class(…)` one
+    keystroke later explained itself. All three entry emitters now forward the component's summary and a
+    `<seealso>` — Core 177/177, Bootstrap 62/62 — and the injected forwarders point at the canonical
+    entry with `<inheritdoc>`, which the IDE resolves across assemblies where the generator cannot.
+    `ErrorBoundary`, `Router`, `Outlet` and `Fragment` had no class summary to forward and now do.
+  - **`Rask.Wasm`, `Rask.Wasm.Hosting`, `Rask.Sync` and `Rask.Wasm.Tasks` reach zero** undocumented
+    public members, joining `Rask.Server` and `Rask.WebPush`. `WasmAuthSignIn.SignInAsync` now says why
+    it throws rather than leaving it a runtime surprise: a WASM app cannot mint its own principal, so
+    credentials go to a server endpoint and the server issues the identity.
+  - **The generated `Routes` helpers are documented, with the template they build.** `Routes.UserPage(42)`
+    is how a link is meant to be written instead of `"/users/42"`, and the helper now says so along with
+    its own route template — so the reason to prefer it is visible at the point of use rather than only in
+    the guides. The `Generated` factory class, which appears in every consumer assembly, is documented too.
+  - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
+    and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
+    post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older
+    shape now redirects, and a test keeps it from creeping back.
+
+### Fixed
+- **A mail-retry test waited on the wrong signal.**
+  `Failing_send_is_retried_with_backoff_then_delivered` waited for the mail to be *sent*, then asserted
+  the row's `ProcessedAt` — which the processor writes just after handing the mail to the sender. The wait
+  could return inside that window, leaving the assertion to fail on a loaded machine while passing in
+  isolation. It now waits for the row to be marked processed, which is what the assertions are about.
+- **A flaky test that raced the clock rather than testing the behaviour.**
+  `ValidatingIndicator_AfterPendingDropsToZero_StaysRenderedForStickyWindow` left `ValidatingStickyMs` at
+  its 200 ms default, so everything between completing the validator and reading the flag had to finish
+  inside that window — on a loaded machine it did not, failing twice (797 ms and 255 ms). It now sets the
+  window explicitly, as the two sibling tests either side of it already did. Confirmed it still fails when
+  the sticky behaviour is removed, so the race went and the coverage stayed.
+- **The README advertised `rask generate`, removed in #672.** Two places in the README and one in the
+  roadmap still listed it in the CLI's command set, while `docs/cli.md` says plainly that it does not
+  exist.
+- **`pwa.md` implied WASM had Background Sync.** It listed "no background sync" among the things a
+  Server app gives up, alongside genuinely WASM-only features — but Background Sync is wrapped on
+  neither host. Stated plainly in both places, with the gap tracked in #695.
+- **Eight shipping packages were missing from the README.** `Rask.Signaling`, `Rask.ObjectStore`,
+  `Rask.Postgres`, `Rask.SqlServer`, `Rask.Sync`, `Rask.Sync.Client`, `Rask.SQLite.Crdt` and
+  `Rask.SQLite.Crdt.Sync` had no badge and no row in the package → project-type → entry-point table.
+  `Rask.Signaling` appeared nowhere but `NUGET.md`, so the WebRTC epic's server half was effectively
+  undiscoverable; `llms.txt` now covers the realtime surface as well.
 - **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**
   `IWebRtc` deliberately doesn't pick a signaling channel; this is the channel for apps that don't already
   have one. `AddRaskSignaling()` + `MapRaskSignaling()` host rooms; `ISignaling.JoinAsync` joins one and

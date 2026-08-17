@@ -3,6 +3,7 @@
 > Query a permission's state (`granted`/`denied`/`prompt`) before prompting.
 
 - **Wraps:** Permissions API
+- **MDN:** [Permissions API](https://developer.mozilla.org/en-US/docs/Web/API/Permissions_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅ ★

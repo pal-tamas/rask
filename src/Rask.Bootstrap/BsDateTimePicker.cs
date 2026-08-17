@@ -12,13 +12,28 @@ namespace Rask.Bootstrap;
 // Native:true falls back to <input type=datetime-local>. Reuses PickerParts.CalendarGrid + TimeColumns.
 //   Bound:      BsDateTimePicker.Bind(() => model.When).Label("When")
 //   Controlled: BsDateTimePicker<DateTime>().Value(dt).OnChange(v => …)
+
+/// <summary>
+///     A combined date and time picker, bound to a model field.
+/// </summary>
 public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
 {
+    /// <summary>The earliest selectable instant.</summary>
     public DateTime? Min { get; set; }
+
+    /// <summary>The latest selectable instant.</summary>
     public DateTime? Max { get; set; }
+
+    /// <summary>Decides, per date, whether it can be chosen.</summary>
     public Func<DateOnly, bool>? Disable { get; set; }
+
+    /// <summary>The granularity of the minute list.</summary>
     public int? MinuteStep { get; set; }
+
+    /// <summary>Includes a seconds column.</summary>
     public bool? Seconds { get; set; }
+
+    /// <summary>The granularity of the seconds list.</summary>
     public int? SecondStep { get; set; }
 
     private DateOnly _cursor;

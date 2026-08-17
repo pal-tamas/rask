@@ -32,11 +32,13 @@ public sealed partial class QueuePage(
     [QueryParam("show")]
     public string? Show { get; set; }
 
+    /// <inheritdoc />
     protected override RaskDashboardOptions Options => options;
 
     private new QueueFilter Filter =>
         Enum.TryParse<QueueFilter>(Show, ignoreCase: true, out var parsed) ? parsed : QueueFilter.Outstanding;
 
+    /// <inheritdoc />
     protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
     {
         _panel = queues.FirstOrDefault(q =>
@@ -61,6 +63,7 @@ public sealed partial class QueuePage(
              .. _rows.Select(r => $"{r.Id}:{r.Attempts}:{r.ProcessedAt?.Ticks ?? 0}")]);
     }
 
+    /// <inheritdoc />
     protected override Component? Render()
     {
         if (IsLoading)

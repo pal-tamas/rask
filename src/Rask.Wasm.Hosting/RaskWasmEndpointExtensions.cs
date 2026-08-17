@@ -13,6 +13,10 @@ using Rask.Core.Live;
 
 namespace Rask.Wasm.Hosting;
 
+/// <summary>
+///     Serves a published WASM bundle from an ASP.NET Core host — the runtime, the scoped assets, and the
+///     SPA fallback that keeps client-side routes working on refresh.
+/// </summary>
 public static class RaskWasmEndpointExtensions
 {
     // Matches Blazor/WASM SDK fingerprinted asset names: <stem>.<10+ hex/alphanumeric>.<ext>.
@@ -82,6 +86,23 @@ public static class RaskWasmEndpointExtensions
         return endpoints.UseRask(bundlePath, pathBase);
     }
 
+    /// <summary>
+    ///     Serves a published WASM bundle: the runtime files, the scoped CSS/JS assets, and a fallback so
+    ///     client-side routes survive a refresh or a deep link.
+    /// </summary>
+    /// <remarks>
+    ///     Prefer the <see cref="UseRask{TApp}(IEndpointRouteBuilder, string?, string)" /> overload. This
+    ///     one does not touch the component assembly, so unless something else has already loaded it, its
+    ///     scoped-asset registrations never run and every <c>/_rask/a/{hash}</c> request 404s.
+    ///     <para>
+    ///         A non-empty <paramref name="pathBase" /> scopes every endpoint under that prefix, which is
+    ///         what lets two bundles live side by side in one host.
+    ///     </para>
+    /// </remarks>
+    /// <param name="endpoints">The endpoint route builder.</param>
+    /// <param name="bundlePath">Where the published bundle lives. Defaults to the conventional location.</param>
+    /// <param name="pathBase">Prefix to serve the bundle under. Empty serves it at the root.</param>
+    /// <returns><paramref name="endpoints" />, for chaining.</returns>
     public static IEndpointRouteBuilder UseRask(
         this IEndpointRouteBuilder endpoints,
         string? bundlePath = null,

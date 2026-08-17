@@ -139,6 +139,11 @@ public sealed class Serial : ISerial
 
     // Root SerialInterop's [JSInvokable]s for the WASM trimmer — they're reached only via the JS
     // DotNetDispatcher (reflection), so without this they could be trimmed away.
+    /// <summary>
+    ///     Creates the service. Registered for you — inject <see cref="ISerial" /> rather than
+    ///     constructing this.
+    /// </summary>
+    /// <param name="js">The JS interop runtime the wrapper calls through.</param>
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, typeof(SerialInterop))]
     public Serial(IJSRuntime js) => _js = js;
 

@@ -14,39 +14,99 @@ namespace Rask.Core.Components;
 //
 // Plain usage stays `Textarea<string>(Name: …)[content]` — the value comes from Children; bound/controlled
 // usage derives it from Bind/Value.
+
+/// <summary>
+///     A multi-line text field. Unlike <c>input</c>, its value is its text content, and it is resizable by
+///     default — <c>Rows</c> and <c>Cols</c> only set the initial size.
+///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea">MDN</see>
+/// </summary>
 public sealed class Textarea<T> : Element, IFormControl<T>
 {
     protected override string TagName => "textarea";
 
+    /// <summary>The name submitted with the form.</summary>
     public string? Name { get; set; }
+
+    /// <summary>The visible number of text lines.</summary>
     public int? Rows { get; set; }
+
+    /// <summary>The visible width in average character widths.</summary>
     public int? Cols { get; set; }
+
+    /// <summary>A hint shown while the field is empty. Not a substitute for a <c>label</c>.</summary>
     public string? Placeholder { get; set; }
+
+    /// <summary>The form will not submit while this field is empty.</summary>
     public bool? Required { get; set; }
+
+    /// <summary>Makes the control non-interactive and excludes it from submission.</summary>
     public bool? Disabled { get; set; }
+
+    /// <summary>The value cannot be edited but is still focusable and still submitted.</summary>
     public bool? ReadOnly { get; set; }
+
+    /// <summary>The most characters the user may enter.</summary>
     public int? MaxLength { get; set; }
+
+    /// <summary>The fewest characters the value may have to be valid.</summary>
     public int? MinLength { get; set; }
+
+    /// <summary>
+    ///     How the text is wrapped on submission: <c>soft</c> (the default, no inserted breaks) or
+    ///     <c>hard</c>, which needs <c>Cols</c>.
+    /// </summary>
     public string? Wrap { get; set; }
+
+    /// <summary>Focuses this control on page load.</summary>
     public bool? Autofocus { get; set; }
+
+    /// <summary>The kind of value expected, so the browser can fill it.</summary>
     public string? Autocomplete { get; set; }
+
+    /// <summary>The <c>id</c> of the form this control belongs to.</summary>
     public new string? Form { get; set; }
+
+    /// <summary>The name under which the field's text direction is submitted alongside its value.</summary>
     public string? Dirname { get; set; }
 
     // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl, but
-    // controlled-mode only all the same — bound mode installs its own oninput write-back and never reads
-    // these, so the generator keeps them off the bound factory.
+    // recognised as a controlled-mode member by name all the same.
+    /// <summary>
+    ///     Called on every keystroke with the current text — the hook for a character counter or an
+    ///     autosizing textarea. It fires mid-word, so debounce anything that costs more than a render.
+    /// </summary>
+    /// <remarks>
+    ///     Controlled mode only: a bound control installs its own <c>oninput</c> write-back and never
+    ///     reads this, so it is neither a step on a bound chain nor a parameter of the bound factory. Use
+    ///     <see cref="AfterBind" /> for a side effect on each bound write.
+    /// </remarks>
     public Action<string>? OnInput { get; set; }
+
+    /// <summary>The <see langword="async" /> form of <see cref="OnInput" />.</summary>
     public Func<string, Task>? OnInputAsync { get; set; }
 
     // IFormControl<T> — bound mode.
+
+    /// <summary>
+    ///     The model field this control is bound to, as an expression such as <c>() => model.Notes</c>.
+    /// </summary>
     public Expression<Func<T>>? Bind { get; set; }
+
+    /// <summary>A synchronous check run on the bound value, returning an error message or null.</summary>
     public Validate<T>? Validate { get; set; }
+
+    /// <summary>An asynchronous check run on the bound value.</summary>
     public ValidateAsync<T>? ValidateAsync { get; set; }
+
+    /// <summary>Runs after a successful bind, once the model has the new value.</summary>
     public Action<T>? AfterBind { get; set; }
+
+    /// <summary>Runs after a successful bind, asynchronously.</summary>
     public Func<T, Task>? AfterBindAsync { get; set; }
 
     // IFormControl<T> — controlled mode.
+
+    /// <summary>The control's current value. Prefer <c>Bind</c>.</summary>
     public T? Value { get; set; }
     public Action<T>? OnChange { get; set; }
     public Func<T, Task>? OnChangeAsync { get; set; }

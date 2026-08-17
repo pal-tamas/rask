@@ -3,6 +3,7 @@
 > One-shot position (`GetCurrentPositionAsync`) or a live `WatchAsync` stream of fixes.
 
 - **Wraps:** Geolocation API
+- **MDN:** [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

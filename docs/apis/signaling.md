@@ -3,6 +3,7 @@
 > The relay two peers trade an offer, an answer and their ICE candidates over.
 
 - **Wraps:** WebSocket (Rask's signaling relay)
+- **MDN:** [WebSockets API](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

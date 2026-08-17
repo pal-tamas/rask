@@ -34,7 +34,7 @@ public partial class BuilderMarkupHostTests : RaskMarkup
 
     // The render-fragment shape: a delegate, which a component cannot be.
     private static readonly Func<IReadOnlyList<string>, Component> _template =
-        messages => Div[messages.Select(static m => Span.Class("msg")[m])];
+        messages => Div[messages.Select(static m => Span.Key(m).Class("msg")[m])];
 
     [Fact]
     public void A_test_class_reaches_the_framework_entries() =>
@@ -46,7 +46,11 @@ public partial class BuilderMarkupHostTests : RaskMarkup
 
     [Fact]
     public void A_delegate_field_reaches_them_too() =>
-        Assert.Equal("<div><span class=\"msg\">a</span><span class=\"msg\">b</span></div>",
+        // The rows are keyed (RASK022), so each carries its data-rask-key — the attribute order is the
+        // fixed one: class before data-*.
+        Assert.Equal(
+            "<div><span class=\"msg\" data-rask-key=\"a\">a</span>"
+            + "<span class=\"msg\" data-rask-key=\"b\">b</span></div>",
             _template(["a", "b"]).ToHtml());
 
     // A `static class` cannot derive from anything, so it cannot be a markup host. It does not have to

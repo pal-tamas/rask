@@ -3,6 +3,7 @@
 > Pick a colour from anywhere on screen.
 
 - **Wraps:** EyeDropper API
+- **MDN:** [EyeDropper API](https://developer.mozilla.org/en-US/docs/Web/API/EyeDropper_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜

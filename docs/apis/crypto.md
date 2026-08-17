@@ -3,6 +3,7 @@
 > Random UUID/bytes and SHA digests.
 
 - **Wraps:** Web Crypto (random + digest)
+- **MDN:** [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

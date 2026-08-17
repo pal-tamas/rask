@@ -10,17 +10,31 @@ namespace Rask.Bootstrap;
 // that round-trips a boxed value through the accessor (nullable-agnostic), the .form-control trigger
 // box + click-outside backdrop + Esc handling (mirroring BsMultiSelect, zero bootstrap.js), and the
 // Native opt-out that degrades to a native <input> by delegating to BsInput<T>.
+
+/// <summary>
+///     The shared surface behind the date and time pickers — the native/custom switch, the placeholder, and
+///     the translatable labels.
+/// </summary>
 public abstract partial class BsPickerBase<T> : BsFormControl<T>
 {
     // Opt out of the custom popover and render the native <input type=date|time|datetime-local> instead
     // (BsInput derives the type from T). Guarantees a working control where the custom UI is unwanted.
+
+    /// <summary>
+    ///     Renders the platform's own picker instead of the custom one. Usually the better choice on
+    ///     mobile, and the accessible fallback.
+    /// </summary>
     public bool? Native { get; set; }
 
     // Placeholder shown in the trigger box when there is no value.
+
+    /// <summary>The text shown while nothing is chosen.</summary>
     public string? Placeholder { get; set; }
 
     // Localizable accessible names for the picker chrome (month-nav buttons, time-column headings, clear
     // button) that has no CultureInfo source. Null → English defaults. See BsPickerLabels.
+
+    /// <summary>The picker's user-visible strings, for translation.</summary>
     public BsPickerLabels? Labels { get; set; }
 
     // The labels to render with — the caller's overrides, or the shared English default.

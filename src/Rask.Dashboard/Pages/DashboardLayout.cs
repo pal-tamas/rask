@@ -26,6 +26,7 @@ public sealed partial class DashboardLayout(
     RouteState route,
     DashboardSecurityState security) : Component
 {
+    /// <inheritdoc />
     protected override Component? HeadAssets =>
     [
         Title["Ops"],
@@ -35,6 +36,7 @@ public sealed partial class DashboardLayout(
         RaskTokens,
     ];
 
+    /// <inheritdoc />
     protected override Component? Render() =>
     [
         BsNavbar.Class("border-bottom mb-4")[
