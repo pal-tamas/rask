@@ -8,6 +8,30 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **Two analyzers had stopped firing altogether on chain-built markup — including an accessibility
+  check.** `RASK022` (a list item without a `Key`) and `RASK023` (an `Img` without `Alt`) each identified
+  their subject as *"a static method on the class named `Generated`"* — the factory. A chain has no such
+  method: `Li[…]` is a property reference plus a children indexer, and `Img.Src("/x")` ends at the `Src`
+  **setter**. So neither analyzer failed on the chain; neither ever ran. Every chain-written `<img>` in
+  every consuming app was going unchecked for `alt`, and every keyless chain-built list unwarned — on the
+  only spelling the docs teach.
+
+  Their own tests could not have caught it: those compile without running the builder generator, so they
+  cannot express a chain at all. `AnalyzersOnTheChainSurfaceTests` runs the generator first, and its two
+  keyless/alt-less cases fail on the previous behaviour.
+
+  Both now read the chain down to the entry that opened it and ask whether the step was named, via a
+  shared `BuilderEntry.TryReadChain`. The factory path is untouched while it still exists, and every
+  existing factory test still passes. What it deliberately does **not** do is flag any expression merely
+  *typed* as a component: a static markup helper (`Ui.Badge(x)`) yields one and cannot be keyed, so only
+  a factory call or a chain — the two things that can carry the step — are considered.
+
+  Re-enabled, the pair found five real sites in this repo. Closes #704.
+
+  This is the same failure mode `BuilderEntry.ChainedComponent` already records for RASK025/038/044, and
+  it is worth stating as a rule: **a green build proves nothing about an analyzer still firing.** Only its
+  tests do, and only if they use the surface people actually write.
+
 - **A keyed row's own state followed its POSITION, not its item.** A child's identity inside its parent
   was its ordinal among entry-built siblings, and `Key` took no part — the parent's child map never read
   it. `Key` was only ever the diff codec's identity (`data-rask-key`), one layer above. So inserting an

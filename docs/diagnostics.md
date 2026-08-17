@@ -299,9 +299,15 @@ rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appe
 ## RASK022
 **List item is missing a `Key`** · Warning
 
-A Rask factory call appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or
-`.Add` in a loop) without a `Key:`. Keyless items reconcile **by position**, which loses focus and
-input state and emits untrusted structural diffs on insert/remove/move.
+A Rask component appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or `.Add`
+in a loop) without a `Key`. Keyless items reconcile **by position**, which loses focus and input state
+and emits untrusted structural diffs on insert/remove/move — and for a component, position also
+decides which instance is reused, so the row's own state follows the slot rather than the item
+(see [RASK046](#rask046)).
+
+Both spellings are recognised: a chain (`Li[…]`, `Li.Class("c")[…]`) and, while it still exists, a
+generated factory call. The chain form went unreported until #704 — the check matched a method named
+after the component, and a chain has none.
 
 ```csharp
 // ✗ items.Select(i => Li[ i.Name ])
@@ -315,8 +321,13 @@ for why identity beats position.
 ## RASK023
 **`Img` is missing `Alt` text** · Warning
 
-An `Img(...)` factory call supplies no `Alt`. Without a text alternative, screen readers fall back to
+An `Img` is built without naming `Alt`. Without a text alternative, screen readers fall back to
 announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/WAI/WCAG21/Understanding/non-text-content).
+
+Both spellings are recognised: a chain (`Img.Src("/x")`, or the bare `Img`) and, while it still exists,
+a generated factory call. **The chain form went unreported until #704** — the check matched a static
+method named `Img`, and on a chain the outermost call is the `Src` setter, so an accessibility check
+that the docs' own examples should have tripped never fired at all.
 
 ```csharp
 // ✗ Img.Src("/logo.png")
