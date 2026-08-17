@@ -50,9 +50,17 @@ NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.exa
   **Native device *backends*** have started landing: the OS share sheet (`IShare`) has a native
   `UIActivityViewController` / `Intent.ACTION_SEND` head backend (registered before `RunLocalAsync`,
   overriding the JS default); native geolocation/push/biometrics follow behind the same seam.
-- **WebView hybrid, not a native-control renderer** — C# runs native, the view is a WebView (same
-  architecture as MAUI Blazor Hybrid / Capacitor). What it buys over a PWA: App Store / Play Store
-  distribution, native device APIs, and real background execution.
+- **WebView hybrid by default** — C# runs native, the view is a WebView (same architecture as MAUI Blazor
+  Hybrid / Capacitor). What it buys over a PWA: App Store / Play Store distribution, native device APIs,
+  and real background execution.
+- **Pure-native screens, per route** — `NativeScreen` replaces `NativeWebView` on the routes you want fully
+  native, and the twelve-component view family inside it (`NativeStack`, `NativeLabel`, `NativeButton`,
+  `NativeTextField`, `NativeSwitch`, `NativeList`, …) describes a real `UIView`/`android.view.View` tree
+  instead of HTML. One app mixes both — a tab bar can hold a web page and a native screen — and neither
+  surface is torn down when switching, so returning to a web route does not reload it. `Router` works
+  inside a screen unchanged. Every callback has an awaited `OnXAsync` form.
+  *The iOS/Android surface backends are not implemented yet, so a `NativeScreen` currently paints nothing
+  on a device; register no `INativeSurface` and the family stays inert.*
 - **Native header / tab / tool bars** — compose `NativeHeaderBar` / `NativeTabBar` / `NativeToolbar` as
   siblings of a `NativeWebView` and they project to real `UINavigationBar`/`UITabBar` (iOS) and platform bars
   (Android). Style them with type-safe, dark-mode-aware `NativeColor` (background / tint / title color) per

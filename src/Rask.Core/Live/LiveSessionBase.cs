@@ -68,9 +68,13 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // Rask.Native type reference).
     bool IRenderHandle.CollectsNativeChrome => CollectsNativeChromeCore;
     void IRenderHandle.ReportNativeComponent(Component component) => ReportNativeComponentCore(component);
+    void IRenderHandle.ReportNativeComponentExit(Component component) => ReportNativeComponentExitCore(component);
 
     protected virtual bool CollectsNativeChromeCore => false;
     protected virtual void ReportNativeComponentCore(Component component) { }
+
+    /// <summary>The closing half of <see cref="ReportNativeComponentCore" /> — see <see cref="IRenderHandle" />.</summary>
+    protected virtual void ReportNativeComponentExitCore(Component component) { }
 
     // Called at the very start of each render walk (before the tree is serialized). Hosts override to reset
     // per-render collected state (the native host clears its last-collected header/footer so a removed bar

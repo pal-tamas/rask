@@ -49,4 +49,13 @@ public interface IRenderHandle
     // wired. Last bar of a kind in the pre-order walk wins. No-op everywhere else.
     internal bool CollectsNativeChrome => false;
     internal void ReportNativeComponent(Component component) { }
+
+    /// <summary>
+    ///     The closing half of <see cref="ReportNativeComponent" />, raised after the component's subtree has
+    ///     been walked. The pair turns the flat "last bar of a kind wins" report into a balanced pre-order
+    ///     enter/exit stream, which is what lets the native host rebuild a whole native view TREE (a screen of
+    ///     stacks, labels and buttons) from the same single walk that produces the HTML — rather than only the
+    ///     flat header/footer chrome. Non-native hosts never opt in, so this is a no-op everywhere else.
+    /// </summary>
+    internal void ReportNativeComponentExit(Component component) { }
 }
