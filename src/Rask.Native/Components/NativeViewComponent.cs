@@ -1,3 +1,4 @@
+using System.Text;
 using Rask.Core;
 using Rask.Native.Surface;
 
@@ -46,6 +47,45 @@ public abstract partial class NativeViewComponent : NativeComponent
 
     /// <summary>Writes this component's props for the frame. Ids are already assigned when this runs.</summary>
     internal abstract void WriteSurfaceProps(ref NativePropWriter props);
+
+    /// <summary>
+    ///     The text a component takes from its children — how a label and a button get their content, so they
+    ///     read like every other Rask component (<c>NativeLabel["Total"]</c>, the same spelling as
+    ///     <c>Span["Total"]</c>) instead of carrying a <c>Text</c> property that no other component has.
+    /// </summary>
+    /// <remarks>
+    ///     A bare <c>string</c> child is a <see cref="Rask.Core.Components.Text" />, so this reads their
+    ///     values in order. Anything else in the children of a text-bearing leaf contributes nothing — those
+    ///     components render no native view of their own.
+    /// </remarks>
+    private protected string? ChildText()
+    {
+        if (Children is null)
+        {
+            return null;
+        }
+
+        string? single = null;
+        StringBuilder? many = null;
+        foreach (var child in Children)
+        {
+            if (child is not Rask.Core.Components.Text { Value: { } value })
+            {
+                continue;
+            }
+
+            if (single is null)
+            {
+                single = value;
+                continue;
+            }
+
+            many ??= new StringBuilder(single);
+            many.Append(value);
+        }
+
+        return many?.ToString() ?? single;
+    }
 
     // Containers render their children transparently so the render walk descends into them and reports each
     // nested native component — that pre-order stream is what the tree builder reconstructs the view tree from.

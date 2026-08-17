@@ -199,6 +199,9 @@ them until tagged releases begin.
   `NativeStack`, `NativeScroll`, `NativeList`, `NativeLabel`, `NativeButton`, `NativeTextField`,
   `NativeSwitch`, `NativeImage`, `NativeActivityIndicator`, `NativeDivider` and `NativeSpacer` describe a
   `UIView`/`android.view.View` tree instead of HTML.
+  - **Content comes through the children indexer**, not a `Text` property: `NativeLabel["Total"]` and
+    `NativeButton.OnClick(Save)["Save"]` read exactly like `Span["Total"]` and `Button["Save"]` do on
+    the web, so there is one spelling for content across every host.
   - **An app mixes both, per route.** One tab can be an HTML page and the next a pure-native screen. Each
     frame is classified by what it rendered, and paints through the WebView or the native surface
     accordingly — a native frame never pushes HTML, which is what keeps the WebView's DOM in step with the
