@@ -13,8 +13,11 @@ public sealed partial class NativeButton : NativeViewComponent
 {
     /// <summary>The visual treatment. Leave <c>null</c> for <see cref="NativeButtonStyle.Filled" />.</summary>
     /// <remarks>
-    ///     Shadows the generated <c>Style</c> markup entry, which a native component has no use for — it
-    ///     renders platform views, never HTML.
+    ///     This carried <c>new</c> until the HTML element family moved into <c>Rask.Html</c>: it shadowed
+    ///     the generated <c>Style</c> markup entry, which a native component has no use for. Those entries
+    ///     are no longer injected into native components, so there is nothing left to shadow and <c>new</c>
+    ///     became CS0109 — which is the outcome the split was for. A tag is not in scope where only
+    ///     platform views can render.
     /// </remarks>
     public NativeButtonStyle? Style { get; set; }
 
