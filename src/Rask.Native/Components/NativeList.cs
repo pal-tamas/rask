@@ -20,7 +20,7 @@ namespace Rask.Native.Components;
 /// </remarks>
 /// <example>
 ///     <code>NativeList()[.. todos.Select(t =>
-///         NativeStack(OnClick: () => Toggle(t), Key: t.Id)[NativeLabel(Text: t.Title)])]</code>
+///         NativeStack.Key(t.Id).OnClick(() => Toggle(t))[NativeLabel[t.Title]])]</code>
 /// </example>
 public sealed partial class NativeList : NativeViewComponent
 {

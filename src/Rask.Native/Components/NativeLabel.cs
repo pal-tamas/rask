@@ -7,18 +7,15 @@ namespace Rask.Native.Components;
 ///     equivalent of a <c>Span</c> — and, like it, the component a screen has the most of, so its props are the
 ///     ones a diff touches most often.
 /// </summary>
+/// <remarks>
+///     Its content is its <b>children</b>, the same spelling as <c>Span["hi"]</c> — there is no <c>Text</c>
+///     property to remember.
+/// </remarks>
 /// <example>
-///     <code>NativeLabel(Text: "Signed in as " + user.Name, FontSize: 15, Color: NativeColor.Secondary)</code>
+///     <code>NativeLabel.FontSize(15).Color(NativeColor.Secondary)[$"Signed in as {user.Name}"]</code>
 /// </example>
 public sealed partial class NativeLabel : NativeViewComponent
 {
-    /// <summary>The text to show. Required.</summary>
-    /// <remarks>
-    ///     Shadows the generated <c>Text</c> markup entry, which a native component has no use for — it renders
-    ///     platform views, never HTML.
-    /// </remarks>
-    public new required string Text { get; set; }
-
     /// <summary>Font size in points. Leave <c>null</c> for the platform's body size.</summary>
     public double? FontSize { get; set; }
 
@@ -43,7 +40,7 @@ public sealed partial class NativeLabel : NativeViewComponent
     /// <inheritdoc />
     internal override void WriteSurfaceProps(ref NativePropWriter props)
     {
-        props.Text(NativePropId.Text, Text);
+        props.Text(NativePropId.Text, ChildText());
         props.Number(NativePropId.FontSize, FontSize);
         props.Enum(NativePropId.FontWeight, FontWeight);
         props.Color(NativePropId.Color, Color);

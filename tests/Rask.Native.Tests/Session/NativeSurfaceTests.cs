@@ -245,8 +245,8 @@ internal sealed partial class ScreenApp : Component
     protected override Component? Render() =>
         NativeScreen[
             NativeStack.Spacing(8)[
-                NativeLabel.Text($"count={_count}"),
-                NativeButton.Text("bump").OnClick(() => _count++)]];
+                NativeLabel[$"count={_count}"],
+                NativeButton.OnClick(() => _count++)["bump"]]];
 }
 
 internal sealed partial class AsyncScreenApp : Component
@@ -258,12 +258,12 @@ internal sealed partial class AsyncScreenApp : Component
 
     protected override Component? Render() =>
         NativeScreen[
-            NativeLabel.Text(_state),
-            NativeButton.Text("load").OnClickAsync(async () =>
+            NativeLabel[_state],
+            NativeButton.OnClickAsync(async () =>
             {
                 await Task.Yield();
                 _state = "loaded";
-            })];
+            })["load"]];
 }
 
 internal sealed partial class InputApp : Component
@@ -276,7 +276,7 @@ internal sealed partial class InputApp : Component
 
     protected override Component? Render() =>
         NativeScreen[
-            NativeLabel.Text($"echo:{_text}"),
+            NativeLabel[$"echo:{_text}"],
             NativeTextField.Value(_text).OnInput(v => _text = v),
             NativeSwitch.On(_on).OnChanged(v => _on = v)];
 }
@@ -295,7 +295,7 @@ internal sealed partial class MyRow : Component
 {
     public string? RowText { get; set; }
 
-    protected override Component? Render() => NativeLabel.Text(RowText ?? "");
+    protected override Component? Render() => NativeLabel[RowText ?? ""];
 }
 
 internal sealed partial class ListApp : Component
@@ -307,8 +307,8 @@ internal sealed partial class ListApp : Component
 
     protected override Component? Render() =>
         NativeScreen[
-            NativeButton.Text("rotate").OnClick(() => _items = [_items[2], _items[0], _items[1]]),
-            NativeList[_items.Select(i => (Component?)NativeLabel.Key(i).Text(i))]];
+            NativeButton.OnClick(() => _items = [_items[2], _items[0], _items[1]])["rotate"],
+            NativeList[_items.Select(i => NativeLabel.Key(i)[i])]];
 }
 
 // One app, two surfaces: "/" is an HTML page, "/native" is a pure-native screen.
@@ -333,8 +333,8 @@ internal sealed partial class MixedApp : Component
             return
             [
                 NativeScreen[
-                    NativeLabel.Text("native"),
-                    NativeButton.Text("home").OnClick(() => _nav.NavigateTo("/"))],
+                    NativeLabel["native"],
+                    NativeButton.OnClick(() => _nav.NavigateTo("/"))["home"]],
                 Tabs()
             ];
         }
