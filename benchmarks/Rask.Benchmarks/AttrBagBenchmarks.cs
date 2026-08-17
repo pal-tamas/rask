@@ -22,6 +22,10 @@ namespace Rask.Benchmarks;
 // The tree is built inside the benchmark rather than in [GlobalSetup] on purpose. Setting up once and
 // re-rendering would measure only the serializer, which is the same for both arms — the difference
 // lives in constructing the bag, so constructing it is the thing to time.
+// RASK022 is suppressed on purpose: these rows are deliberately keyless. A .Key(…) per row is itself
+// an allocation, and the whole point here is to isolate the cost of the attribute bag — keying the
+// rows would fold an unrelated cost into both arms and blunt the very difference being measured.
+#pragma warning disable RASK022
 [MemoryDiagnoser]
 public partial class AttrBagBenchmarks : global::Rask.Core.RaskMarkup
 {
@@ -82,3 +86,4 @@ public partial class AttrBagBenchmarks : global::Rask.Core.RaskMarkup
         return Div[rows].ToHtml();
     }
 }
+#pragma warning restore RASK022
