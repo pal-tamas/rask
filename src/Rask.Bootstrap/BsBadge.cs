@@ -17,6 +17,11 @@ public sealed partial class BsBadge : BsBlock
     /// <summary>Renders fully rounded.</summary>
     public bool? Pill { get; set; }
 
+    /// <summary>
+    ///     Inline CSS on the rendered element. Reach for a Bootstrap utility class through <c>Class</c>
+    ///     first — inline style beats every stylesheet rule and cannot be overridden by a theme, so keep it
+    ///     for values only known at runtime.
+    /// </summary>
     public new string? Style { get; set; }
 
     protected override Component? Render() => Span

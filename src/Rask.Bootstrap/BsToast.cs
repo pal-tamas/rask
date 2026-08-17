@@ -22,8 +22,16 @@ public sealed partial class BsToast : Component
 {
     // Identity passed back through OnClose so the host knows which toast to remove. Also used as the
     // element id. (BsToast extends Component, not BsBlock, because its Id is an int, not BsBlock's string.)
+    /// <summary>
+    ///     This toast's identity, handed back to <c>OnClose</c> so the host knows which one to remove from
+    ///     its stack — and used as the rendered element's <c>id</c>. Required: a stack of toasts that
+    ///     cannot tell its members apart cannot dismiss one of them.
+    /// </summary>
     public required int Id { get; set; }
 
+    /// <summary>
+    ///     Extra classes, added alongside the toast's own Bootstrap classes rather than replacing them.
+    /// </summary>
     public string? Class { get; set; }
 
     /// <summary>The toast's heading.</summary>

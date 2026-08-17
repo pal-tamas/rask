@@ -37,6 +37,15 @@ public sealed partial class BsTable : BsBlock
     // ARIA passthrough onto the <table> itself (not the responsive wrapper), the same shape BsButton
     // exposes: each entry emits aria-{key}. This is how a caller marks the table aria-busy while it
     // refetches without the wrapper swallowing the state.
+    /// <summary>
+    ///     ARIA states and properties on the rendered element. Each entry emits <c>aria-{key}="{value}"</c>,
+    ///     so <c>.Aria("label", "Close")</c> renders <c>aria-label="Close"</c> — give the key without the
+    ///     prefix.
+    ///     <para>
+    ///         State belongs here as much as labels: <c>aria-expanded</c> and <c>aria-current</c> have to
+    ///         change as the component does, or assistive technology is told the opposite of what is shown.
+    ///     </para>
+    /// </summary>
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
     // Bounds the table's height (any CSS length: "400px", "60vh"), making it scroll vertically inside

@@ -33,9 +33,23 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
     /// <summary>The model field the selection is bound to.</summary>
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
+    /// <summary>
+    ///     A rule run on the bound value: return an error message to reject it, or <see langword="null" />
+    ///     to accept. Client-side validation is a convenience, never a control — validate again on the
+    ///     server.
+    /// </summary>
     public Validate<ICollection<TItem>>? Validate { get; set; }
+    /// <summary>
+    ///     The <see langword="async" /> form of <c>Validate</c>, for a rule that must await something. Set
+    ///     one or the other: the synchronous rule wins and this is ignored.
+    /// </summary>
     public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
+    /// <summary>
+    ///     Runs just after a bound write succeeded, with the value written — for the work that FOLLOWS a
+    ///     change, not for setting the value, which the bind already did.
+    /// </summary>
     public Action<ICollection<TItem>>? AfterBind { get; set; }
+    /// <summary>The <see langword="async" /> form of <c>AfterBind</c>, awaited before the re-render.</summary>
     public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
     /// <summary>How to render each item as its label.</summary>

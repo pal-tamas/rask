@@ -9,6 +9,11 @@ namespace Rask.Bootstrap;
 public sealed partial class BsBreadcrumb : BsBlock
 {
     // Accessible label for the surrounding <nav>; defaults to "breadcrumb".
+    /// <summary>
+    ///     The accessible name for this breadcrumb landmark, announced instead of the generic role. Two
+    ///     navigation landmarks on one page need distinct names, or a screen-reader user hears the same
+    ///     thing twice with no way to tell them apart.
+    /// </summary>
     public new string? Label { get; set; }
 
     protected override Component? Render()

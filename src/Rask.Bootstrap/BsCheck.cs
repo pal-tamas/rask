@@ -18,10 +18,29 @@ namespace Rask.Bootstrap;
 public sealed partial class BsCheck : BsBlock, IFormControl<bool>
 {
     // IFormControl<bool> — bound mode.
+    /// <summary>
+    ///     Two-way binds this control to a model property: <c>.Bind(() =&gt; _model.Field)</c>. Rask reads
+    ///     the value, writes edits back, and names the field to the surrounding <c>Form</c>'s validation.
+    ///     <para>Mutually exclusive with <c>Value</c> — a bound control cannot also be handed one.</para>
+    /// </summary>
     public Expression<Func<bool>>? Bind { get; set; }
+    /// <summary>
+    ///     A rule run on the bound value: return an error message to reject it, or <see langword="null" />
+    ///     to accept. Client-side validation is a convenience, never a control — validate again on the
+    ///     server.
+    /// </summary>
     public Validate<bool>? Validate { get; set; }
+    /// <summary>
+    ///     The <see langword="async" /> form of <c>Validate</c>, for a rule that must await something. Set
+    ///     one or the other: the synchronous rule wins and this is ignored.
+    /// </summary>
     public ValidateAsync<bool>? ValidateAsync { get; set; }
+    /// <summary>
+    ///     Runs just after a bound write succeeded, with the value written — for the work that FOLLOWS a
+    ///     change, not for setting the value, which the bind already did.
+    /// </summary>
     public Action<bool>? AfterBind { get; set; }
+    /// <summary>The <see langword="async" /> form of <c>AfterBind</c>, awaited before the re-render.</summary>
     public Func<bool, Task>? AfterBindAsync { get; set; }
 
     // IFormControl<bool> — controlled mode. Value is plain bool (the interface's `T?` resolves to
@@ -29,8 +48,18 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
     // every other control's Value does. The `= false` initializer is what makes it optional instead:
     // an unchecked box is the meaningful default, and Render only reads Value when Bind is null, so a
     // bound chain that never names it is correct — without the initializer RASK038 reports it anyway.
+    /// <summary>
+    ///     The value, supplied by the parent — controlled mode. What you pass is what is shown, so handle
+    ///     <c>OnChange</c> and pass the new value back or the control appears frozen. Mutually exclusive
+    ///     with <c>Bind</c>.
+    /// </summary>
     public bool Value { get; set; } = false;
+    /// <summary>
+    ///     Called with the new value when the user changes this control, in controlled mode. Store it and
+    ///     pass it back through <c>Value</c>; the re-render is automatic.
+    /// </summary>
     public Action<bool>? OnChange { get; set; }
+    /// <summary>The <see langword="async" /> form of <c>OnChange</c>, run after the synchronous handler.</summary>
     public Func<bool, Task>? OnChangeAsync { get; set; }
 
     /// <summary>The control's label, rendered beside it and associated with it.</summary>
@@ -61,6 +90,15 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
     // ARIA passthrough onto the <input>, merged with the validation aria-* this control builds itself. The
     // same shape BsButton/BsTable expose. It exists for the label-less checkbox: a bare check in a table cell
     // or toolbar has no visible Label to name it, so aria-label is the only accessible name available.
+    /// <summary>
+    ///     ARIA states and properties on the rendered element. Each entry emits <c>aria-{key}="{value}"</c>,
+    ///     so <c>.Aria("label", "Close")</c> renders <c>aria-label="Close"</c> — give the key without the
+    ///     prefix.
+    ///     <para>
+    ///         State belongs here as much as labels: <c>aria-expanded</c> and <c>aria-current</c> have to
+    ///         change as the component does, or assistive technology is told the opposite of what is shown.
+    ///     </para>
+    /// </summary>
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
     protected override Component? Render()

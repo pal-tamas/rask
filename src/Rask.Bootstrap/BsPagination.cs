@@ -12,6 +12,11 @@ public sealed partial class BsPagination : BsBlock
     public BsSize? Size { get; set; }
 
     // Accessible label for the surrounding <nav>; defaults to "Page navigation".
+    /// <summary>
+    ///     The accessible name for this pagination landmark, announced instead of the generic role. Name it
+    ///     for what is being paged ("Search results pages") so a page with more than one set of controls
+    ///     stays navigable.
+    /// </summary>
     public new string? Label { get; set; }
 
     protected override Component? Render()
@@ -55,6 +60,15 @@ public sealed partial class BsPageItem : BsBlock
     // Extra ARIA attributes for the page link itself — pass aria-label to name an icon-only control
     // (a prev/next arrow whose only child is a decorative BsIcon has no accessible name otherwise).
     // Merged under the component's own aria-disabled, so a disabled labelled item keeps both.
+    /// <summary>
+    ///     ARIA states and properties on the rendered element. Each entry emits <c>aria-{key}="{value}"</c>,
+    ///     so <c>.Aria("label", "Close")</c> renders <c>aria-label="Close"</c> — give the key without the
+    ///     prefix.
+    ///     <para>
+    ///         State belongs here as much as labels: <c>aria-expanded</c> and <c>aria-current</c> have to
+    ///         change as the component does, or assistive technology is told the opposite of what is shown.
+    ///     </para>
+    /// </summary>
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
     protected override Component? Render()

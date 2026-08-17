@@ -74,6 +74,12 @@ them until tagged releases begin.
     is a signing key while rotating the pair silently unsubscribes every user, and a `PushSubscription`
     is a credential for reaching someone's device — dropped, not retried, when a send reports
     `ShouldDelete`.
+  - **The Bootstrap chain is documented end to end — all 555 setters, up from 407.** The gap was the same
+    shape as Core's: `Id`, `Class`, `Style` and `Aria` are *redeclared* on `Bs*` components (which extend
+    `Component`, not `Element`), so `.Class(…)` on a `BsButton` was blank while the same call on a `Div`
+    was documented. `BsBlock` is the base for every Bootstrap component, so documenting it there closed
+    112 of them at once. `Class` now also states the thing worth knowing: extra classes are added
+    *alongside* the component's own Bootstrap classes, never instead of them.
   - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
     and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
     post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older

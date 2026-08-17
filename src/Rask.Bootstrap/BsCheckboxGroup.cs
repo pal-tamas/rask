@@ -18,15 +18,44 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
     public required IEnumerable<TItem> Options { get; set; }
 
     // Controlled mode (no Bind).
+    /// <summary>
+    ///     The value, supplied by the parent — controlled mode. What you pass is what is shown, so handle
+    ///     <c>OnChange</c> and pass the new value back or the control appears frozen. Mutually exclusive
+    ///     with <c>Bind</c>.
+    /// </summary>
     public ICollection<TItem>? Value { get; set; }
+    /// <summary>
+    ///     Called with the new value when the user changes this control, in controlled mode. Store it and
+    ///     pass it back through <c>Value</c>; the re-render is automatic.
+    /// </summary>
     public Action<ICollection<TItem>>? OnChange { get; set; }
+    /// <summary>The <see langword="async" /> form of <c>OnChange</c>, run after the synchronous handler.</summary>
     public Func<ICollection<TItem>, Task>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
+    /// <summary>
+    ///     Two-way binds this control to a model property: <c>.Bind(() =&gt; _model.Field)</c>. Rask reads
+    ///     the value, writes edits back, and names the field to the surrounding <c>Form</c>'s validation.
+    ///     <para>Mutually exclusive with <c>Value</c> — a bound control cannot also be handed one.</para>
+    /// </summary>
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
+    /// <summary>
+    ///     A rule run on the bound value: return an error message to reject it, or <see langword="null" />
+    ///     to accept. Client-side validation is a convenience, never a control — validate again on the
+    ///     server.
+    /// </summary>
     public Validate<ICollection<TItem>>? Validate { get; set; }
+    /// <summary>
+    ///     The <see langword="async" /> form of <c>Validate</c>, for a rule that must await something. Set
+    ///     one or the other: the synchronous rule wins and this is ignored.
+    /// </summary>
     public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
+    /// <summary>
+    ///     Runs just after a bound write succeeded, with the value written — for the work that FOLLOWS a
+    ///     change, not for setting the value, which the bind already did.
+    /// </summary>
     public Action<ICollection<TItem>>? AfterBind { get; set; }
+    /// <summary>The <see langword="async" /> form of <c>AfterBind</c>, awaited before the re-render.</summary>
     public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
     /// <summary>How to render each item as its label.</summary>

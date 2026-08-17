@@ -22,7 +22,22 @@ namespace Rask.Bootstrap;
 /// </summary>
 public abstract partial class BsBlock : Component
 {
+    /// <summary>
+    ///     The <c>id</c> put on the element this component renders. Unique in the document — it is what a
+    ///     <c>#fragment</c> link, a <c>label</c>'s <c>for</c>, or an <c>aria-labelledby</c> points at.
+    /// </summary>
     public string? Id { get; set; }
+
+    /// <summary>
+    ///     Extra classes, added ALONGSIDE the Bootstrap classes this component already emits rather than
+    ///     replacing them — so <c>.Class("mt-3")</c> adds a margin and leaves the component's own styling
+    ///     intact.
+    ///     <para>
+    ///         The usual reason to reach for it is spacing or layout utilities. Restyling the component
+    ///         itself is better done with whatever variant or size property it offers, so the result still
+    ///         follows the theme.
+    ///     </para>
+    /// </summary>
     public string? Class { get; set; }
 
     // The children passed via the indexer, or an empty sequence. (Dynamic-child correctness is handled
