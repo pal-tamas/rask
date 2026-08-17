@@ -24,6 +24,12 @@ public sealed partial class RaskAndroidWebView
     private LinearLayout? _topBar;
     private LinearLayout? _bottomBar;
 
+    // The pure-native content view, when a NativeScreen has been mounted. It occupies the same slot as the
+    // WebView and only one of the two is ever Visible — see ShowWebViewContent/ShowNativeContent. Neither is
+    // removed: both the WebView's DOM and the retained View tree are diff baselines the session patches
+    // against, so tearing either down would leave it patching something that no longer exists.
+    private Android.Views.View? _nativeContent;
+
     /// <summary>
     ///     The container view to hand to <c>SetContentView</c> when using native header/footer chrome — a
     ///     vertical stack of a top bar, this <see cref="View" />, and a bottom bar. Use this instead of
@@ -42,6 +48,46 @@ public sealed partial class RaskAndroidWebView
         // View updates must run on the UI thread.
         _webView.Post(() => Apply(descriptor));
         return default;
+    }
+
+    /// <summary>
+    ///     This frame's content is HTML: show the WebView and hide the native tree, keeping the latter alive
+    ///     so returning to a native route patches it instead of rebuilding it.
+    /// </summary>
+    private void ShowWebViewContent()
+    {
+        _webView.Visibility = ViewStates.Visible;
+        if (_nativeContent is not null)
+        {
+            _nativeContent.Visibility = ViewStates.Gone;
+        }
+    }
+
+    /// <summary>
+    ///     This frame's content is a pure-native screen: show <paramref name="root" /> and hide the WebView —
+    ///     hidden only, never unloaded, so its DOM still matches the session's HTML diff baseline.
+    /// </summary>
+    private void ShowNativeContent(Android.Views.View root)
+    {
+        var container = _chromeRoot ??= BuildContainer();
+        if (!ReferenceEquals(_nativeContent, root))
+        {
+            // A re-mount replaces the tree; the previous one is genuinely dead, so it goes.
+            if (_nativeContent is not null)
+            {
+                container.RemoveView(_nativeContent);
+            }
+
+            _nativeContent = root;
+            // Same slot and weight as the WebView, so the bars lay out around it identically.
+            container.AddView(
+                root,
+                container.IndexOfChild(_webView) + 1,
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, 0, weight: 1f));
+        }
+
+        _nativeContent.Visibility = ViewStates.Visible;
+        _webView.Visibility = ViewStates.Gone;
     }
 
     private LinearLayout BuildContainer()
