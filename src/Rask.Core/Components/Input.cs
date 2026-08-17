@@ -34,6 +34,8 @@ public sealed class Input<T> : Element, IFormControl<T>
     public bool? Required { get; set; }
     public bool? Disabled { get; set; }
     public bool? ReadOnly { get; set; }
+
+    // The checkbox's value prop, and so controlled-mode only: bound mode derives `checked` from the model.
     public bool? Checked { get; set; }
     public string? Min { get; set; }
     public string? Max { get; set; }
@@ -71,7 +73,9 @@ public sealed class Input<T> : Element, IFormControl<T>
     // DOM event handlers in the legacy declaration order so positional factory calls keep working.
     // OnChange/OnChangeAsync are the IFormControl<T> controlled callbacks (typed T); OnInput/OnFiles are the
     // string/file DOM handlers, not part of the interface.
-    // Calling one back is `OnInput?.Invoke(value)`.
+    // Calling one back is `OnInput?.Invoke(value)`. OnInput/OnInputAsync are controlled-mode only (bound mode
+    // installs its own oninput write-back and never reads them, so the generator keeps them off the bound
+    // factory); OnFiles is not, because bound mode still wires that one.
     public Action<string>? OnInput { get; set; }
     public Action<T>? OnChange { get; set; }
     public Func<string, Task>? OnInputAsync { get; set; }

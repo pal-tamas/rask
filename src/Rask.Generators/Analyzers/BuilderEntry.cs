@@ -117,9 +117,14 @@ internal static class BuilderEntry
     ///     struct carrying it; each of them went quiet when the receiver changed, which is the failure mode
     ///     an analyzer cannot report on its own.
     /// </remarks>
+    // Both chain shapes: an ordinary component's `Build<T>`, and a form control's mode-carrying
+    // `Build<T, TMode>`. The component is the FIRST type argument either way — the second is the phantom
+    // mode (see Rask.Core.Build{T,TMode}) and says nothing about what is being built. Missing the
+    // two-arity form left every analyzer that asks "what does this chain build" answering with the chain
+    // itself for form controls, which silently stood down RASK025 on `Input.Bind(…).Type(…)`.
     public static ITypeSymbol? ChainedComponent(ITypeSymbol? type) =>
-        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
-        && string.Equals(named.ConstructedFrom.ToDisplayString(), "Rask.Core.Build<T>", StringComparison.Ordinal)
+        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 or 2 } named
+        && named.ConstructedFrom.ToDisplayString() is "Rask.Core.Build<T>" or "Rask.Core.Build<T, TMode>"
             ? named.TypeArguments[0]
             : type;
 

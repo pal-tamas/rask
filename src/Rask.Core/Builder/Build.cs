@@ -95,3 +95,58 @@ public readonly struct Build<T>
     /// <summary>Gives the component a pre-built sequence of children, ending the chain.</summary>
     public Component this[IEnumerable<Component?> children] => Value[children];
 }
+
+/// <summary>
+///     A form control under construction, carrying the MODE its chain opened in — see
+///     <see cref="Forms.Bound" /> and <see cref="Forms.Controlled" />.
+/// </summary>
+/// <remarks>
+///     <para>
+///         A form control's value comes from exactly one place: an expression it binds two-way
+///         (<c>Input.Bind(() =&gt; model.Name)</c>) or a value its parent owns and hands down
+///         (<c>Input.Value(_typed)</c>). Which one was chosen decides what the rest of the chain may say,
+///         because the other mode's steps are not merely redundant — the control does not read them.
+///         Bound mode derives the value and the checkbox state from the model and installs its own
+///         write-back handler, so <c>Value</c>, <c>Checked</c>, <c>OnInput</c> and <c>OnChange</c> are
+///         dead; controlled mode never parses an expression, so <c>Validate</c> and <c>AfterBind</c> are.
+///     </para>
+///     <para>
+///         <typeparamref name="TMode" /> is what makes that unrepresentable rather than merely wrong. The
+///         entry step fixes it — <c>Bind</c> to <see cref="Forms.Bound" />, <c>Value</c> and <c>Of</c> to
+///         <see cref="Forms.Controlled" /> — the shared steps stay generic over it and so are reachable
+///         either way, and each mode's own steps are declared only on their mode. A step from the other
+///         mode is then not a step that is rejected: it is not offered, in completion or at compile time.
+///         Before this, both were offered and the ones that did not apply were silently dropped at render
+///         time.
+///     </para>
+///     <para>
+///         It is a phantom: nothing is stored for it and no instance of it ever exists. Everything else
+///         matches <see cref="Build{T}" /> exactly — a <c>readonly struct</c> over the one component
+///         reference, the implicit conversion that lets the chain read as the component it built, and the
+///         children indexers that end it.
+///     </para>
+/// </remarks>
+/// <typeparam name="T">The form control being built.</typeparam>
+/// <typeparam name="TMode">The mode its chain opened in.</typeparam>
+public readonly struct Build<T, TMode>
+    where T : Component
+{
+    /// <inheritdoc cref="Build{T}(T)" />
+    public Build(T component) => Value = component;
+
+    /// <inheritdoc cref="Build{T}.Value" />
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public T Value { get; }
+
+    /// <inheritdoc cref="Build{T}.op_Implicit" />
+    public static implicit operator T(Build<T, TMode> chain) => chain.Value;
+
+    /// <inheritdoc cref="Build{T}.ToHtml" />
+    public string ToHtml() => Value.ToHtml();
+
+    /// <inheritdoc cref="Build{T}.this[Component?[]]" />
+    public Component this[params Component?[] children] => Value[children];
+
+    /// <inheritdoc cref="Build{T}.this[IEnumerable{Component?}]" />
+    public Component this[IEnumerable<Component?> children] => Value[children];
+}

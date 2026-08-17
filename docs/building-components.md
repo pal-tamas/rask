@@ -34,11 +34,18 @@ at the first step, and the choice is the type:
 
 ```csharp
 Input.Bind(() => _form.Name).Validate(ProductName.Check).Id("name")   // bound
-Input.Value(_text).Change(v => _text = v)                             // controlled
+Input.Value(_text).OnChange(v => _text = v)                           // controlled
 ```
 
-Having picked one, the other is not offered. A control bound to an expression *and* handed a value has two
-sources of truth and nothing decides which wins — so the surface does not let you write it.
+Having picked one, the other mode is not offered — not the opening step, and not the steps that belong
+to it. A bound chain has `Validate` and the `AfterBind` hooks; a controlled one has `Checked` and the
+`OnInput`/`OnChange` callbacks; neither can reach the other's. A control bound to an expression *and*
+handed a value has two sources of truth and nothing decides which wins — and one told to bind *and*
+given an `OnInput` is worse, because bound mode installs its own write-back and the handler simply never
+runs. So the surface does not let you write either.
+
+Everything that belongs to neither mode — `Placeholder`, `Type`, `Required`, `OnFiles`, the whole
+`Class`/`Id`/`Aria` element surface — stays reachable from both.
 
 Both spellings infer the type from what you passed, so `Input<string>()` is never needed. Where the value
 alone cannot say — `null` names no type — write it once:

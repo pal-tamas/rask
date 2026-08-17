@@ -33,7 +33,9 @@ public sealed class Textarea<T> : Element, IFormControl<T>
     public new string? Form { get; set; }
     public string? Dirname { get; set; }
 
-    // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl.
+    // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl, but
+    // controlled-mode only all the same — bound mode installs its own oninput write-back and never reads
+    // these, so the generator keeps them off the bound factory.
     public Action<string>? OnInput { get; set; }
     public Func<string, Task>? OnInputAsync { get; set; }
 

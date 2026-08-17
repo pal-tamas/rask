@@ -7,6 +7,28 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **A form control's two modes are now mutually exclusive, on both surfaces.** A control's value comes
+  from exactly one place — an expression it binds (`Bind`) or a value its parent owns (`Value`) — and the
+  step you open the chain with now decides what the rest of it may say. Bound mode adds `Validate` and
+  the `AfterBind` hooks; controlled mode adds `Value`, `Checked` and the `OnInput`/`OnChange` callbacks;
+  everything else (`Placeholder`, `Type`, `Required`, `OnFiles`, the whole element surface) belongs to
+  neither and stays reachable from both.
+  - **These were accepted and then silently dropped.** Bound mode derives the rendered value and a
+    checkbox's `checked` from the model and installs its own `oninput`/`onchange` write-back, so it never
+    read `OnInput` or `Checked` — `Input.Bind(() => m.Name).OnInput(v => …)` compiled and did nothing.
+    The mirror hole was smaller only because `AfterBind` was already off the controlled factory.
+  - **Enforced by the type, not by an analyzer.** A form control's chain is now a
+    `Build<TControl, Bound>` or a `Build<TControl, Controlled>` — the entry step fixes the mode, shared
+    steps stay generic over it, and each mode's own steps are declared only on their mode. A step from
+    the other mode is not offered in completion and does not compile. The generated factories carry the
+    same split, so `Input(() => m.Name, OnInput: …)` has no such parameter either.
+  - **BREAKING — a form control always opens on its mode.** A non-generic control pinned nothing, so it
+    had no chain in front of it and `Bind` and `Value` were both plain setters one chain could take
+    both of. It gets a seed now because it is a form control: write `BsCheck.Bind(() => m.Done)` or
+    `BsCheck.Value(false)` where a bare `BsCheck` used to do.
+  - Nothing outside form controls changes: an ordinary component's chain is the same `Build<T>`.
+
 ### Added
 - **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**
   `IWebRtc` deliberately doesn't pick a signaling channel; this is the channel for apps that don't already
