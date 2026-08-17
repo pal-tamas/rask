@@ -16,6 +16,11 @@ public sealed class Router : Component
     // shape) Just Works — the generated factory passes Routes: null and the setter fills
     // in the default. The reference cache below prevents pointless re-flattening on
     // same-tree re-renders.
+    /// <summary>
+    ///     The route table to match against. Leave it unset — the default — and the router uses every
+    ///     <c>[Route]</c>-attributed page the generator found in the entry assembly, which is what an
+    ///     ordinary app wants. Supply a list only to route over a set you build yourself.
+    /// </summary>
     public IReadOnlyList<Route>? Routes
     {
         get => _routes;

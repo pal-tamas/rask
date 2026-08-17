@@ -183,11 +183,37 @@ public sealed class Input<T> : Element, IFormControl<T>
     // OnChange/OnChangeAsync are the IFormControl<T> controlled callbacks (typed T); OnInput/OnFiles are the
     // string/file DOM handlers, not part of the interface.
     // Calling one back is `OnInput?.Invoke(value)`.
+    /// <summary>
+    ///     Called on every keystroke with the raw text of the field, before any parsing — so it is the
+    ///     hook for live search and character counters. Unlike <see cref="OnChange" /> it is a
+    ///     <see langword="string" /> whatever <typeparamref name="T" /> is, and it fires while the value
+    ///     is still half-typed and possibly not valid.
+    /// </summary>
     public Action<string>? OnInput { get; set; }
+
+    /// <summary>
+    ///     Called with the parsed value once the user commits a change, in controlled mode. Store it and
+    ///     pass it back through <c>Value</c>.
+    /// </summary>
     public Action<T>? OnChange { get; set; }
+
+    /// <summary>The <see langword="async" /> form of <see cref="OnInput" />.</summary>
     public Func<string, Task>? OnInputAsync { get; set; }
+
+    /// <summary>The <see langword="async" /> form of <see cref="OnChange" />.</summary>
     public Func<T, Task>? OnChangeAsync { get; set; }
+
+    /// <summary>
+    ///     Called with the chosen files when this is a file input. The list is empty when the user cancels
+    ///     the picker, so check it before reading the first entry.
+    ///     <para>
+    ///         Never trust what arrives: a file's reported name, size and type all come from the client.
+    ///         Re-check them on the server before storing anything.
+    ///     </para>
+    /// </summary>
     public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+
+    /// <summary>The <see langword="async" /> form of <see cref="OnFiles" /> — for reading or uploading.</summary>
     public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).

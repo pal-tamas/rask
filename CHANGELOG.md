@@ -34,6 +34,33 @@ them until tagged releases begin.
     `Rask.Server`/`Rask.Wasm`'s `lib/`, so its `.xml` has to be packed by hand next to it. Dropping that
     line breaks nothing visible — the build is green and every consumer tooltip is silently blank — so a
     test now pins it for every DLL packed into `lib/`.
+  - **The `CS1573` guard covered one generated file out of nine.** The pragma sat in the factory emitter
+    alone, so the moment the chain setters gained `<param>` tags, `Rask.Core` itself stopped compiling.
+    Every generated file now goes through one header emitter, including the files that document nothing
+    today — adding a doc comment to one of those must not be able to break a consumer's build.
+  - **The chain is documented end to end — all 1319 setters, up from 1138.** The chain is the syntax, so
+    a blank tooltip there is the one that costs most, and the gaps were in the most-written places of
+    all: `.Class`, `.Id`, `.Style`, `.Data`, `.Aria`, `.Role`, `.TabIndex`, `.Ref` and `.Draggable` live
+    on `Element` rather than on any tag, so documenting all 141 element components missed every one of
+    them. Now documented, with MDN's global-attribute and ARIA references.
+  - **All 88 DOM events and 24 media events.** `.OnClick`, `.OnInput`, `.OnBlur` and their siblings are
+    declared once and inherited everywhere; each now says what it fires on, and states the trap where
+    there is one — `dragover` must cancel on *every* event or the drop never happens, `mouseover`
+    bubbles where `mouseenter` does not, a positive `tabindex` reorders the whole page. Every MDN link
+    was resolved against the live site, so `drag` points at `HTMLElement` and `reset` at
+    `HTMLFormElement` rather than at a guessed interface.
+  - **`Key`, and the form-control contract.** `Key` explains what it buys and warns off the loop index;
+    `IFormControl<T>`'s `Bind`/`Value`/`Validate`/`AfterBind`/`OnChange` are documented once and reach
+    every control that implements them.
+  - **`<inheritdoc/>` now resolves — it never did.** Roslyn hands the generator the literal
+    `<inheritdoc/>` element, so every async twin written as `<inheritdoc cref="OnValidSubmit"/>` emitted
+    a setter with no documentation at all, beside a fully documented sibling. Nothing about the source
+    looked wrong, which is why it survived. The generator now follows a `cref`, an override, and an
+    implemented interface member — the last one covering the commoner case of an implementing member
+    with no comment at all, which is how every form control declares `Validate` and `OnChange`.
+  - **The attribute-bag overloads.** `.Aria("label", "Close")` and `.Data("test-id", "submit")` are how
+    those attributes are actually written, and they were the undocumented overload beside a documented
+    one. Each now names the prefix it renders under, so nobody writes it twice.
   - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
     and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
     post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older

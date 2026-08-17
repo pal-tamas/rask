@@ -22,6 +22,15 @@ internal enum ErrorSource
 
 public sealed class ErrorBoundary : Component
 {
+    /// <summary>
+    ///     What to render when a child throws, given the exception and a callback that clears the error and
+    ///     retries. Call that second argument from a "Try again" control — without it the boundary stays in
+    ///     its failed state for as long as it is mounted.
+    ///     <para>
+    ///         Show the user something they can act on, not the exception: a message and a way forward. The
+    ///         exception text can name internal paths and query shapes, so log it rather than render it.
+    ///     </para>
+    /// </summary>
     public Func<Exception, Action, Component>? Fallback { get; set; }
 
     internal Exception? Error { get; private set; }

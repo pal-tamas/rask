@@ -70,7 +70,13 @@ public sealed class Textarea<T> : Element, IFormControl<T>
     public string? Dirname { get; set; }
 
     // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl.
+    /// <summary>
+    ///     Called on every keystroke with the current text — the hook for a character counter or an
+    ///     autosizing textarea. It fires mid-word, so debounce anything that costs more than a render.
+    /// </summary>
     public Action<string>? OnInput { get; set; }
+
+    /// <summary>The <see langword="async" /> form of <see cref="OnInput" />.</summary>
     public Func<string, Task>? OnInputAsync { get; set; }
 
     // IFormControl<T> — bound mode.

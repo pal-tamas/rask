@@ -112,6 +112,117 @@ public class FactoryDocCommentEmissionTests
         Assert.DoesNotContain("<seealso cref", output, StringComparison.Ordinal);
     }
 
+    // `<inheritdoc/>` does NOT arrive resolved from Roslyn: GetDocumentationCommentXml hands back the
+    // literal element, because resolving it belongs to the IDE/DocFX layer. Every async twin in the
+    // framework is written that way — OnValidSubmitAsync as `<inheritdoc cref="OnValidSubmit"/>` — so
+    // before this each of them emitted a chain setter and a factory param with NO documentation, beside a
+    // fully documented sibling. Nothing about the source looked wrong, which is what made it survive.
+    [Fact]
+    public void InheritDoc_ResolvesToTheMemberItPointsAt()
+    {
+        var src = """
+                  using Rask.Core;
+                  using System;
+                  using System.Threading.Tasks;
+                  namespace Demo;
+
+                  public sealed class Twin : Component
+                  {
+                      /// <summary>Runs when the thing happens.</summary>
+                      public Action? OnThing { get; set; }
+
+                      /// <inheritdoc cref="OnThing" />
+                      public Func<Task>? OnThingAsync { get; set; }
+
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var output = GeneratorDriverFixture.Run(src).GeneratedSource("Demo.Generated.g.cs");
+
+        Assert.Contains(
+            "/// <param name=\"OnThingAsync\">Runs when the thing happens.</param>",
+            output,
+            StringComparison.Ordinal);
+    }
+
+    // The commoner half of the same problem: an implementing member usually carries no doc comment AT
+    // ALL rather than an explicit `<inheritdoc/>`, and an IDE still shows the interface's documentation
+    // for it. Input/Select/Textarea implement IFormControl<T>.Validate/OnChange/AfterBind exactly that
+    // way, so without this the interface could be documented exhaustively and every control's chain
+    // would still show nothing.
+    [Fact]
+    public void ImplementedInterfaceMember_InheritsItsDocumentation()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+
+                  public interface IHasLabel
+                  {
+                      /// <summary>The text shown beside the control.</summary>
+                      string? Label { get; set; }
+                  }
+
+                  public sealed class Field : Component, IHasLabel
+                  {
+                      public string? Label { get; set; }
+
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var output = GeneratorDriverFixture.Run(src).GeneratedSource("Demo.Generated.g.cs");
+
+        Assert.Contains(
+            "/// <param name=\"Label\">The text shown beside the control.</param>",
+            output,
+            StringComparison.Ordinal);
+    }
+
+    // A member whose name merely COLLIDES with an interface member it does not implement must not borrow
+    // that member's docs — a confidently wrong tooltip is worse than a blank one.
+    //
+    // The collision needs an EXPLICIT implementation to exist at all: implement IHasLabel explicitly and
+    // the interface's Label is satisfied by `IHasLabel.Label`, leaving the public `Label` a separate
+    // member that merely shares the name. Matching on the name alone hands it the interface's summary;
+    // matching on FindImplementationForInterfaceMember does not. (Written this way after the obvious
+    // version — a class that simply does not implement the interface — turned out to prove nothing: with
+    // no interface in the list there is nothing to borrow either way, so it passed with the check gone.)
+    [Fact]
+    public void UnrelatedMemberSharingANameDoesNotBorrowDocumentation()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+
+                  public interface IHasLabel
+                  {
+                      /// <summary>Belongs to the interface, not to the public property.</summary>
+                      string? Label { get; set; }
+                  }
+
+                  public sealed class Field : Component, IHasLabel
+                  {
+                      private string? _explicitLabel;
+
+                      string? IHasLabel.Label
+                      {
+                          get => _explicitLabel;
+                          set => _explicitLabel = value;
+                      }
+
+                      public string? Label { get; set; }
+
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var output = GeneratorDriverFixture.Run(src).GeneratedSource("Demo.Generated.g.cs");
+
+        Assert.DoesNotContain("Belongs to the interface", output, StringComparison.Ordinal);
+    }
+
     // Re-compiles the user source plus every generated source in DocumentationMode.Diagnose — the
     // mode that reports XML-doc diagnostics (CS1570 malformed, CS1572 param tag for a parameter that
     // isn't there, CS1573 parameter with no param tag). The default Parse mode reports none of them,

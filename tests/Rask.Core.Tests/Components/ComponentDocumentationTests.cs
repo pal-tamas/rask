@@ -89,6 +89,57 @@ public class ComponentDocumentationTests
             + $"{HtmlBase}{{tag}} or {SvgBase}{{tag}}: {string.Join(", ", offenders)}");
     }
 
+    // The universal surface: what EVERY element and every form control carries, and therefore the most
+    // frequently written API in the framework. `.Class(…)` appears on more lines than anything else, and
+    // it was undocumented — a blank tooltip on the single most-typed call — because these props live on
+    // the BASE types rather than on any tag, so documenting all 141 element components missed them
+    // entirely. The DOM events are the same story: `.OnClick(…)` and its 87 siblings are declared once on
+    // ElementEvents and inherited everywhere.
+    //
+    // Checks the properties a consumer writes (public, non-static, not an interface's own `internal`
+    // plumbing) and nothing else. A file-based check rather than reflection: a doc comment lives in the
+    // source, and the failure names the exact line to fix.
+    [Theory]
+    [InlineData("Element.cs")]
+    [InlineData("ElementEvents.cs")]
+    [InlineData("Components/HtmlMediaElement.cs")]
+    [InlineData("Forms/FormControlInterfaces.cs")]
+    public void Every_universal_property_is_documented(string relativePath)
+    {
+        var path = Path.Combine(RepoRoot(), "src", "Rask.Core", relativePath.Replace('/', Path.DirectorySeparatorChar));
+        var lines = File.ReadAllLines(path);
+
+        var undocumented = new List<string>();
+        for (var i = 0; i < lines.Length; i++)
+        {
+            // A property declaration: `public Type Name { … }` or an interface's `Type Name { get; set; }`.
+            // Expression-bodied members and methods are not the surface under test.
+            if (!Regex.IsMatch(lines[i], @"^\s{4}(public )?[\w<>,?\[\]. ]+\?? [A-Z]\w* \{ ?get")
+                || lines[i].Contains("private", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            // Walk back over attributes to the doc comment, exactly as ClassDocComment does.
+            var j = i - 1;
+            while (j >= 0 && lines[j].TrimStart().StartsWith('['))
+            {
+                j--;
+            }
+
+            if (j < 0 || !lines[j].TrimStart().StartsWith("///", StringComparison.Ordinal))
+            {
+                undocumented.Add($"{relativePath}:{i + 1} {lines[i].Trim()}");
+            }
+        }
+
+        Assert.True(
+            undocumented.Count == 0,
+            "Every property on the universal surface is written by consumers constantly, so an "
+            + "undocumented one is a blank tooltip on a call they make every day:"
+            + Environment.NewLine + "  " + string.Join(Environment.NewLine + "  ", undocumented));
+    }
+
     // The doc comment attached to the type declaration: the run of `///` lines immediately above the
     // `public ... class X` line, skipping any attributes between them.
     private static string ClassDocComment(string source)

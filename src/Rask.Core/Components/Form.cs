@@ -44,9 +44,15 @@ public sealed partial class Form<TModel> : Element
 
     /// <summary>The form's name, which must be unique in the document.</summary>
     public string? Name { get; set; }
+    /// <summary>
+    ///     Called on every submit with the raw posted fields, whether validation passed or not. The
+    ///     low-level hook: prefer <see cref="OnValidSubmit" />, which hands you the typed model and only
+    ///     runs once the form is actually valid.
+    /// </summary>
     // Calling one back is `OnSubmit?.Invoke(data)`.
     public Action<FormData>? OnSubmit { get; set; }
 
+    /// <inheritdoc cref="OnSubmit" />
     public Func<FormData, Task>? OnSubmitAsync { get; set; }
 
     // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
@@ -98,6 +104,11 @@ public sealed partial class Form<TModel> : Element
     /// <inheritdoc cref="Validate" />
     public ValidateAsync<TModel>? ValidateAsync { get; set; }
 
+    /// <summary>
+    ///     The validation context this form drives. Leave it unset and the form creates and owns one, which
+    ///     is what almost every form wants; supply one to share validation state with something outside the
+    ///     form, or to inspect it from the page.
+    /// </summary>
     public EditContext? Context
     {
         get => _context;

@@ -64,40 +64,193 @@ public abstract class HtmlMediaElement : Element
     /// </summary>
     public string? CrossOrigin { get; set; }
 
+    /// <summary>
+    ///     Playback was requested — the moment <c>play()</c> was called or the user hit play, which is
+    ///     <em>before</em> a single frame has been shown. For the point where it is actually running, use
+    ///     <c>playing</c>.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/play_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnPlay { get => SyncHandler<MediaEventArgs>("play"); set => SetDomEventSync("play", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnPlay"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnPlayAsync { get => AsyncHandler<MediaEventArgs>("play"); set => SetDomEventAsync("play", value); }
 
+    /// <summary>
+    ///     Playback was paused. Fires on a real pause, not at the end of the media — <c>ended</c> covers that.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/pause_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnPause { get => SyncHandler<MediaEventArgs>("pause"); set => SetDomEventSync("pause", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnPause"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnPauseAsync { get => AsyncHandler<MediaEventArgs>("pause"); set => SetDomEventAsync("pause", value); }
 
+    /// <summary>
+    ///     Playback is actually running, after any buffering. This, not <c>play</c>, is the event that means the
+    ///     user is seeing frames.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/playing_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnPlaying { get => SyncHandler<MediaEventArgs>("playing"); set => SetDomEventSync("playing", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnPlaying"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnPlayingAsync { get => AsyncHandler<MediaEventArgs>("playing"); set => SetDomEventAsync("playing", value); }
 
+    /// <summary>
+    ///     Playback reached the end of the media. Does not fire when the user pauses, and does not fire at all on a
+    ///     looping element.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/ended_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnEnded { get => SyncHandler<MediaEventArgs>("ended"); set => SetDomEventSync("ended", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnEnded"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnEndedAsync { get => AsyncHandler<MediaEventArgs>("ended"); set => SetDomEventAsync("ended", value); }
 
+    /// <summary>
+    ///     The playback position moved. Fires only a few times a second and at no guaranteed rate, so it drives a
+    ///     progress readout but never a smooth animation — use the animation frame for that.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/timeupdate_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnTimeUpdate { get => SyncHandler<MediaEventArgs>("timeupdate"); set => SetDomEventSync("timeupdate", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnTimeUpdate"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnTimeUpdateAsync { get => AsyncHandler<MediaEventArgs>("timeupdate"); set => SetDomEventAsync("timeupdate", value); }
 
+    /// <summary>
+    ///     The volume or the muted state changed. One event covers both, so read whichever you care about rather
+    ///     than assuming a volume move.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/volumechange_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnVolumeChange { get => SyncHandler<MediaEventArgs>("volumechange"); set => SetDomEventSync("volumechange", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnVolumeChange"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnVolumeChangeAsync { get => AsyncHandler<MediaEventArgs>("volumechange"); set => SetDomEventAsync("volumechange", value); }
 
+    /// <summary>
+    ///     The playback speed changed.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/ratechange_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnRateChange { get => SyncHandler<MediaEventArgs>("ratechange"); set => SetDomEventSync("ratechange", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnRateChange"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnRateChangeAsync { get => AsyncHandler<MediaEventArgs>("ratechange"); set => SetDomEventAsync("ratechange", value); }
 
+    /// <summary>
+    ///     The media's duration became known, or changed. Until this has fired the duration is <c>NaN</c>, so a
+    ///     progress bar built before it divides by nothing.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/durationchange_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnDurationChange { get => SyncHandler<MediaEventArgs>("durationchange"); set => SetDomEventSync("durationchange", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnDurationChange"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnDurationChangeAsync { get => AsyncHandler<MediaEventArgs>("durationchange"); set => SetDomEventAsync("durationchange", value); }
 
+    /// <summary>
+    ///     Duration and dimensions are known and seeking is now possible. The earliest safe point to set a start
+    ///     position or size a player to the video's aspect ratio.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/loadedmetadata_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnLoadedMetadata { get => SyncHandler<MediaEventArgs>("loadedmetadata"); set => SetDomEventSync("loadedmetadata", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnLoadedMetadata"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnLoadedMetadataAsync { get => AsyncHandler<MediaEventArgs>("loadedmetadata"); set => SetDomEventAsync("loadedmetadata", value); }
 
+    /// <summary>
+    ///     A seek finished and playback is positioned at the new time.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/seeked_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnSeeked { get => SyncHandler<MediaEventArgs>("seeked"); set => SetDomEventSync("seeked", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnSeeked"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnSeekedAsync { get => AsyncHandler<MediaEventArgs>("seeked"); set => SetDomEventAsync("seeked", value); }
 
+    /// <summary>
+    ///     A seek started. Pair it with <c>seeked</c> to show a spinner while the new position loads.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/seeking_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnSeeking { get => SyncHandler<MediaEventArgs>("seeking"); set => SetDomEventSync("seeking", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnSeeking"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnSeekingAsync { get => AsyncHandler<MediaEventArgs>("seeking"); set => SetDomEventAsync("seeking", value); }
 
+    /// <summary>
+    ///     Playback stalled waiting for more data — this is the buffering state. It is not an error and needs no
+    ///     recovery, but it is what a loading indicator should watch.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/waiting_event">MDN</see>
+    /// </summary>
     public Action<MediaEventArgs>? OnWaiting { get => SyncHandler<MediaEventArgs>("waiting"); set => SetDomEventSync("waiting", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnWaiting"/>, awaited by the renderer before
+    ///     it re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and
+    ///         this is silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
     public Func<MediaEventArgs, Task>? OnWaitingAsync { get => AsyncHandler<MediaEventArgs>("waiting"); set => SetDomEventAsync("waiting", value); }
 
     protected override void WriteAttributes(StringBuilder sb)
