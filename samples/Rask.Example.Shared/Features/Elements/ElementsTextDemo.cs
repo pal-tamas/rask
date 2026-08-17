@@ -13,7 +13,7 @@ public sealed partial class ElementsTextDemo : Component
         ],
         P[
             "Inline code ", Code["Div()[…]"], ", a key ", Kbd["Ctrl"], "+", Kbd["C"],
-            ", sample output ", Samp["exit 0"], ", a variable x", Sub["1"], " to the n", Sup["2"], "."
+            ", sample output ", Samp["exit 0"], ", a variable ", Var["x"], Sub["1"], " to the n", Sup["2"], "."
         ],
         P[
             "Define a term: ", Dfn["Rask"], " is a C# UI framework. Abbreviate it ", Abbr["UI"],
