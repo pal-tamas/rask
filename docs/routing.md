@@ -87,6 +87,21 @@ Button.OnClick(() => UserPage.Go(42))["View user"];
 instead of pushing a new one, and it navigates through the ambient `Navigator.Current` — so, like `Navigator`
 itself, it may only be called **from an event handler**.
 
+> **Inside a markup host, the bare page name is the chain's builder entry, not the type.** Every component —
+> a page included — has a builder entry of the same name, and within a component class that entry wins name
+> resolution and *constructs* the component. So `HomePage.Go()` written inside another page's `Render()` or
+> handler does not compile (`CS1929: 'Build<HomePage>' does not contain a definition for 'Go'`). This is the
+> same "a component's static members need qualifying inside a markup host" rule the chain surface has
+> everywhere. Two ways through it, both fine:
+>
+> ```csharp
+> My.Features.Home.HomePage.Go();          // qualify the receiver (the namespace must still be imported)
+> navigator.NavigateTo(Routes.HomePage()); // or use the Routes formatter, which never collides
+> ```
+>
+> `HomePage.Go()` unqualified is at its best from code that is *not* a markup host — a service, a handler
+> class, `Program.cs`.
+
 > **These need the page's namespace imported.** They are C# 14 static extension members, which resolve only
 > when their containing namespace is in scope — a fully-qualified `My.Features.HomePage.Go()` with no `using`
 > does not compile. The `using` that lets you name the page type is the same one that brings `Url`/`Go` along,

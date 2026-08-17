@@ -35,6 +35,11 @@ them until tagged releases begin.
   resolve. Below C# 14 they are not emitted at all and `Routes.SomePage(...)` carries the app, because an
   extension block on an older compiler fails as a parse-error cascade inside generated code.
 
+  **One caveat worth knowing before you reach for it:** inside a markup host the bare page name is the
+  chain's `Build<TPage>` builder entry, not the type, so `HomePage.Go()` written in another page's `Render()`
+  or handler does not compile. Qualify the receiver, or use `Routes.HomePage()` — which never collides. The
+  short spelling is at its best outside markup hosts.
+
 - **`Navigator.Current`** — the navigator of the handler currently running, published from the handler scope
   every host already enters around a dispatch. It is what lets a static `SomePage.Go()` reach the right
   session's navigator with no receiver to inject through; outside a handler it is `null`, and
