@@ -9,6 +9,11 @@ namespace Rask.Bootstrap;
 // an object option (BsSelect<TValue, TItem> with OptionValue: p => p.Id). Everything else — the .form-select
 // display box, the .dropdown-menu listbox, the opt-in dropdown search, nullable × clear, floating label and
 // the Native <select> fallback — lives here. The value of an option is obtained through ValueOf().
+
+/// <summary>
+///     The shared surface behind <c>BsSelect</c> and <c>BsMultiSelect</c> — the option list, its labelling
+///     and its filtering.
+/// </summary>
 public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 {
     /// <summary>The options to choose from.</summary>
@@ -23,21 +28,25 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (p, text) => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
+
     /// <summary>Adds a search field to the dropdown and decides which options a typed query matches.</summary>
     public new Func<TItem, string, bool>? Filter { get; set; }
 
     // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: p => p.SoldOut.
+
     /// <summary>Marks individual options non-selectable — greyed, unclickable, skipped by the keyboard.</summary>
     public Func<TItem, bool>? OptionDisabled { get; set; }
 
     // Groups the options, keyed by the returned string in first-seen order — <optgroup label> in Native mode,
     // non-interactive .dropdown-header rows in the custom dropdown; e.g. OptionGroup: p => p.Category.
+
     /// <summary>Groups the options by the returned key, in first-seen order.</summary>
     public Func<TItem, string>? OptionGroup { get; set; }
 
     // Opt out of the custom popover and render the native <select> instead. Guarantees a working control
     // (and the OS picker on mobile) where the custom UI is unwanted.
+
     /// <summary>Renders the OS <c>&lt;select&gt;</c> instead of the custom dropdown.</summary>
     public bool? Native { get; set; }
 
@@ -481,9 +490,15 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
 // that fixes TValue would have to yield the finished component for one and a stage for the other from the
 // same receiver and the same argument, and the two continuations are ambiguous (CS0121) precisely when the
 // option type equals the value type — which is the whole of what the second arity was for.
+
+/// <summary>
+///     A single-choice picker over a typed option list. It renders a searchable custom control by default,
+///     or the platform's native picker with <c>Native</c>.
+/// </summary>
 public sealed partial class BsSelect<TValue, TItem> : BsSelectBase<TValue, TItem>
 {
     // Projects an option to the value bound to the model (e.g. p => p.Id).
+
     /// <summary>Projects an option to the value bound to the model — <c>p =&gt; p.Id</c>.</summary>
     public required Func<TItem, TValue> OptionValue { get; set; }
 

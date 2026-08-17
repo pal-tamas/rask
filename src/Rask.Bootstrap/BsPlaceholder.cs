@@ -2,14 +2,25 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap placeholder (loading skeleton): <span class="placeholder col-{n}">. When Animation is
 // set, the placeholder is wrapped in a .placeholder-glow / .placeholder-wave span so it shimmers.
+
+/// <summary>
+///     A skeleton block standing in for content that is still loading, so the layout does not jump when the
+///     real content arrives.
+/// </summary>
 public sealed partial class BsPlaceholder : BsBlock
 {
+    /// <summary>The block's colour.</summary>
     public BsColor? Color { get; set; }
+
+    /// <summary>The block's height.</summary>
     public BsSize? Size { get; set; }
 
     // Grid column width 1–12 (col-{n}); the usual way to size a placeholder line.
+
+    /// <summary>The block's width in grid columns.</summary>
     public new int? Col { get; set; }
 
+    /// <summary>The shimmer to animate with, if any.</summary>
     public BsPlaceholderAnimation? Animation { get; set; }
 
     protected override Component? Render()

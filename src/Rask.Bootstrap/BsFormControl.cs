@@ -9,28 +9,68 @@ namespace Rask.Bootstrap;
 // Input/Select/Textarea and reuse the framework binding helpers (RegisterValidator/StringSetHandler/…)
 // — no re-implemented
 // binding. Mirrors the worked-example controls (RadioGroup/CheckboxGroup).
+
+/// <summary>
+///     The shared surface behind the Bootstrap form controls — binding, validation, label and help text.
+///     Use the concrete controls (<c>BsInput</c>, <c>BsSelect</c>, <c>BsTextarea</c>) rather than this
+///     directly.
+/// </summary>
 public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
 {
     // IFormControl<T> — bound mode.
+
+    /// <summary>
+    ///     The model field this control is bound to, as an expression such as <c>() => model.Email</c>.
+    ///     Rask parses, validates and writes the value back for you.
+    /// </summary>
     public Expression<Func<T>>? Bind { get; set; }
+
+    /// <summary>A synchronous check on the bound value, returning an error message or null.</summary>
     public Validate<T>? Validate { get; set; }
+
+    /// <summary>An asynchronous check on the bound value — a uniqueness lookup, say.</summary>
     public ValidateAsync<T>? ValidateAsync { get; set; }
+
+    /// <summary>Runs once the model has the new value.</summary>
     public Action<T>? AfterBind { get; set; }
+
+    /// <summary>Runs once the model has the new value, asynchronously.</summary>
     public Func<T, Task>? AfterBindAsync { get; set; }
 
     // IFormControl<T> — controlled mode.
+
+    /// <summary>
+    ///     The control's current value. Prefer <c>Bind</c>, which keeps it in step with your model both
+    ///     ways.
+    /// </summary>
     public T? Value { get; set; }
+
+    /// <summary>Runs when the value changes.</summary>
     public Action<T>? OnChange { get; set; }
+
+    /// <summary>Runs when the value changes, asynchronously.</summary>
     public Func<T, Task>? OnChangeAsync { get; set; }
 
     // Shared Bootstrap field props.
+
+    /// <summary>The field's label. Supply one — a placeholder is not a label.</summary>
     public new string? Label { get; set; }
+
+    /// <summary>Makes the control non-interactive and excludes it from submission.</summary>
     public bool? Disabled { get; set; }
+
+    /// <summary>Marks the field required, and blocks submission while it is empty.</summary>
     public bool? Required { get; set; }
+
+    /// <summary>Makes the control smaller or larger than the default.</summary>
     public BsSize? Size { get; set; }
 
     // Muted helper text rendered under the control (.form-text).
+
+    /// <summary>Guidance shown beneath the control, associated with it for screen readers.</summary>
     public string? HelpText { get; set; }
+
+    /// <summary>The name submitted with the form.</summary>
     public string? Name { get; set; }
 
     // Field() bakes the per-field .invalid-feedback straight into this control's own render output from
@@ -43,6 +83,10 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
     // control + label in a .form-floating with the label AFTER the control, so the label floats over an
     // empty field and shrinks on focus/fill. Requires a Label; controls that need a placeholder for the
     // effect (BsInput/BsTextarea) supply one from the Label when floating.
+
+    /// <summary>
+    ///     Renders the label floating inside the control, which animates up once there is a value.
+    /// </summary>
     public bool? Floating { get; set; }
 
     // The resolved binding for a render: accessor/context/field + current value + validation state.

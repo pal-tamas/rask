@@ -3,6 +3,7 @@
 > Capture and replay the PWA install prompt.
 
 - **Wraps:** `beforeinstallprompt`
+- **MDN:** [beforeinstallprompt](https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeinstallprompt_event)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜

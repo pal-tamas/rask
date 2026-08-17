@@ -7,11 +7,21 @@ namespace Rask.Bootstrap;
 // The CSS ships as static web assets under _content/Rask.Bootstrap and is served by the host's
 // MapStaticAssets() on Server and by the static-web-assets pipeline on WASM. Drop BootstrapStyles() in
 // your App's Head. URLs are prefixed with LiveOptions.PathBase so sub-path deploys resolve.
+
+/// <summary>
+///     The head contributions that pull in Bootstrap's stylesheet and, optionally, its icon font. Add it
+///     once in your page shell.
+/// </summary>
 public sealed partial class BootstrapStyles : Component
 {
     private new const string Base = "/_content/Rask.Bootstrap/";
 
     // Include the Bootstrap Icons stylesheet (default true). Set false if you don't use BsIcon.
+
+    /// <summary>
+    ///     Also links the Bootstrap Icons font, which <c>BsIcon</c> needs. Leave it off if you use no icons
+    ///     — it is a separate download.
+    /// </summary>
     public bool? Icons { get; set; }
 
     protected override Component? Render()
@@ -31,6 +41,11 @@ public sealed partial class BootstrapStyles : Component
 // palette plus the Bootstrap 5.3 --bs-* bridge that reskins every Bs* component to it. Link this AFTER
 // BootstrapStyles() (so the --bs-* bridge wins the cascade) and BEFORE the app's own global.css (so app
 // CSS can still override the tokens). URLs are PathBase-prefixed so sub-path deploys resolve.
+
+/// <summary>
+///     The CSS custom properties Rask's own components read, so a theme can be changed in one place rather
+///     than per component.
+/// </summary>
 public sealed partial class RaskTokens : Component
 {
     protected override Component? Render() =>

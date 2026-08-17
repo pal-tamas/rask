@@ -5,6 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Wasm.Hosting;
 
+/// <summary>
+///     Registers what a WASM-bundle host needs before <c>UseRask</c> can serve one.
+/// </summary>
 public static class RaskWasmServiceCollectionExtensions
 {
     /// <summary>

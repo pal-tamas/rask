@@ -3,6 +3,7 @@
 > Detect user idle / screen lock.
 
 - **Wraps:** Idle Detection API
+- **MDN:** [IdleDetector](https://developer.mozilla.org/en-US/docs/Web/API/IdleDetector)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ⬜ · PWA/WASM ✅ · Native ⬜
