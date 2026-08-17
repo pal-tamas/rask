@@ -37,7 +37,7 @@ public partial class BsDataGridColumnsTests : global::Rask.Core.RaskMarkup
     // `new`: the <thead> tag entry arrives with the markup host and this helper hides it (CS0108). The
     // attribute form does not avoid that — an attributed type with a free base slot is given `: RaskMarkup`
     // in its generated partial, so the entry is inherited either way.
-    private static new string Thead(string html) =>
+    private static string Thead(string html) =>
         Regex.Match(html, "<thead>.*?</thead>", RegexOptions.Singleline).Value;
 
     private static string FirstBodyRow(string html)

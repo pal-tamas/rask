@@ -8,7 +8,7 @@ namespace Rask.Core;
 ///     An element's delegate props normally go straight to the DOM, where handler-owner resolution
 ///     already repaints the parent — wrapping those would add a closure on the render hot path for
 ///     nothing, which is why they are assigned verbatim. A callback the component dispatches on its own
-///     terms has no such mechanism behind it: <see cref="Components.Form{TModel}" />'s submit handlers run
+///     terms has no such mechanism behind it: <c>Form&lt;TModel&gt;</c>'s submit handlers run
 ///     from its submit bridge after validation, and without the wrap the component that supplied them
 ///     never re-renders.
 /// </remarks>

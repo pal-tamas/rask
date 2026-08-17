@@ -24,7 +24,7 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (p, text) => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
     /// <summary>Adds a search field to the dropdown and decides which options a typed query matches.</summary>
-    public new Func<TItem, string, bool>? Filter { get; set; }
+    public Func<TItem, string, bool>? Filter { get; set; }
 
     // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: p => p.SoldOut.
@@ -313,7 +313,7 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
 
         var labelNode = Label is null
             ? null
-            : global::RaskEntriesRask_Core.Label.Id(labelId).Class(floating ? null : "form-label")[
+            : global::RaskEntriesRask_Html.Label.Id(labelId).Class(floating ? null : "form-label")[
                 Label,
                 Required is true ? Span.Class("text-danger ms-1")["*"] : null];
 

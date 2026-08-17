@@ -34,7 +34,7 @@ public sealed partial class QueuePage(
 
     protected override RaskDashboardOptions Options => options;
 
-    private new QueueFilter Filter =>
+    private QueueFilter Filter =>
         Enum.TryParse<QueueFilter>(Show, ignoreCase: true, out var parsed) ? parsed : QueueFilter.Outstanding;
 
     protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)

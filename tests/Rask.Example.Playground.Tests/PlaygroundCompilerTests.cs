@@ -112,6 +112,7 @@ public sealed class PlaygroundCompilerTests
         var result = await NewCompiler().CompileAsync("""
             using Rask.Core;
             using Rask.Core.Components;
+            using Rask.Html.Components;
 
             public sealed class Playground : Component
             {

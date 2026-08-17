@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Lifecycle;
 
-public class AsyncLifecycleRenderingTests
+public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task OnMountAsync_TriggersStateHasChanged_AfterEachAwait()
@@ -23,8 +23,8 @@ public class AsyncLifecycleRenderingTests
         await c.Step1.Task;
         await c.Step2.Task;
         await c.Done.Task;
-        // Wait for the Post→StateHasChanged dispatches to land, rather than guessing how long they take.
-        await WaitUntilAsync(() => handle.RequestRenderCount >= 2);
+        // Drain pending continuations to allow Post→StateHasChanged dispatches to complete.
+        await Task.Delay(50);
 
         Assert.True(handle.RequestRenderCount >= 2,
             $"expected progressive renders after awaits, got {handle.RequestRenderCount}");
@@ -52,8 +52,6 @@ public class AsyncLifecycleRenderingTests
         }
 
         await c.Done.Task;
-        await WaitUntilAsync(() => handle.RequestRenderCount >= 1);
-        // Settle: the claim is exactly one, and only elapsed time evidences the absence of a second.
         await Task.Delay(50);
 
         Assert.Equal(1, handle.RequestRenderCount);
@@ -77,8 +75,6 @@ public class AsyncLifecycleRenderingTests
         }
 
         await c.Done.Task;
-        await WaitUntilAsync(() => handle.RequestRenderCount >= 1);
-        // Settle: the claim is exactly one, and only elapsed time evidences the absence of a second.
         await Task.Delay(50);
 
         Assert.Equal(1, handle.RequestRenderCount);
@@ -119,7 +115,7 @@ public class AsyncLifecycleRenderingTests
         var beforeGate = handle.RequestPublishRenderCount;
 
         c.Gate.SetResult();
-        await WaitUntilAsync(() => handle.RequestPublishRenderCount > beforeGate);
+        await Task.Delay(50);
 
         Assert.True(handle.RequestPublishRenderCount > beforeGate,
             $"expected auto-rerender after OnRenderedAsync continuation; " +
@@ -294,24 +290,6 @@ public class AsyncLifecycleRenderingTests
         }
 
         protected override Component? Render() => this;
-    }
-
-    // Waits for a fire-and-forget continuation to land instead of guessing how long it takes. Fast on an
-    // idle machine and correct on a loaded one, which is where a fixed delay loses: the gate runs many
-    // test projects at once, and 50 ms of thread-pool latency is entirely ordinary. That is what made
-    // OnMountAsync_ConfigureAwaitFalse_StillFiresTerminalRender fail in a full gate run and pass in
-    // isolation (#691).
-    //
-    // Only ever for the POSITIVE half of an assertion. Where a test also claims "and no more than this",
-    // it keeps a short settle afterwards — nothing but elapsed time can evidence a render that did NOT
-    // happen, so the upper-bound tests below still sleep on purpose.
-    private static async Task WaitUntilAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (!condition() && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(5);
-        }
     }
 
     private sealed class RecordingHandle : IRenderHandle

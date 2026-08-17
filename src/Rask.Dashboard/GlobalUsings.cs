@@ -5,6 +5,7 @@
 global using Rask.Bootstrap;
 global using Rask.Core;
 global using Rask.Core.Components;
+global using Rask.Html.Components;
 global using static Rask.Bootstrap.Generated;
 global using static Rask.Core.Components.Generated;
 // Router()/Outlet() — the dashboard ships a route chain of its own, so it needs the routing factories.

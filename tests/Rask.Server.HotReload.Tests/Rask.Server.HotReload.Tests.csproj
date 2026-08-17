@@ -29,6 +29,7 @@
     <RunSettingsFilePath>$(MSBuildProjectDirectory)/hotreload.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -60,6 +61,7 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <Using Include="Rask.Html.Components.Generated" Static="true"/>
     <Using Include="Rask.Core.Routing.Generated" Static="true"/>
     <Using Include="Rask.Testing"/>
     <Using Include="Rask.TestSupport"/>
@@ -67,6 +69,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"

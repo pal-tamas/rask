@@ -30,11 +30,11 @@ public sealed partial class ToasterDemo(IToaster toast) : Component
                     .Template((messages, dismiss) =>
                     Div[
                         messages.Select(m => (Component)BsAlert
-                            .Key(m.Id.ToString())
                             .Color(ToColor(m.Level))
                             .Dismissible(true)
                             .OnClose(() => dismiss(m.Id))
-                            .Class("d-flex align-items-center")[
+                            .Class("d-flex align-items-center")
+                            .Key(m.Id.ToString())[
                             m.Title is { } title ? Strong.Class("me-1")[$"{title}:"] : null,
                             m.Message])
                     ])

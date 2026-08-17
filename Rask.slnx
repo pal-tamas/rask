@@ -45,6 +45,7 @@
         <Project Path="src/Rask.Sync.Client/Rask.Sync.Client.csproj"/>
         <Project Path="src/Rask.Outbox/Rask.Outbox.csproj"/>
         <Project Path="src/Rask.Outbox.Generators/Rask.Outbox.Generators.csproj"/>
+        <Project Path="src/Rask.Html/Rask.Html.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
         <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
         <Project Path="src/Rask.Native/Rask.Native.csproj"/>

@@ -11,9 +11,11 @@ public abstract partial class Element : Component
 {
     public string? Id { get; set; }
     public string? Class { get; set; }
-    public new string? Style { get; set; }
+    // No `new` on these two (unlike Title below): the builder entries named after the <style> and <data>
+    // tags now come from Rask.Html, so there is no longer an inherited member here to hide.
+    public string? Style { get; set; }
 
-    public new IReadOnlyDictionary<string, string?>? Data { get; set; }
+    public IReadOnlyDictionary<string, string?>? Data { get; set; }
 
     // Accessibility, available on every element. `Aria` is the data-* model applied to ARIA: each
     // entry emits aria-{key}="{value}" (key verbatim, value HTML-encoded) — so `Aria: new() {

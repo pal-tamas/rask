@@ -31,7 +31,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
     // The group's accessible name. When set, the radios are wrapped in a <fieldset> named by a <legend>
     // (the correct grouping semantics + accessible name for a set of related radios); when null, the bare
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     // Extra wrapper classes per item, e.g. "form-check-inline".
     public string? ItemClass { get; set; }
@@ -104,7 +104,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
                     .Id(optionId)
                     .Aria(optionAria)
                     .OnChangeAsync(disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
-                global::RaskEntriesRask_Core.Label.Class("form-check-label").For(optionId)[label]
+                global::RaskEntriesRask_Html.Label.Class("form-check-label").For(optionId)[label]
             ]);
             index++;
         }

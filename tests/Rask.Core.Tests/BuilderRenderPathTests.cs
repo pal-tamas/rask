@@ -5,6 +5,7 @@
 using Rask.Core.Components;
 using Rask.Core.HeadAssets;
 using Rask.Core.Live;
+using Rask.Html.Components;
 
 #pragma warning disable RASK014 // the tests need the very instance they hand to the render context
 
@@ -103,7 +104,7 @@ internal sealed partial class MountBuildsFactoryLeaf : Component
 
     internal Component? Built;
 
-    protected override void OnMount() => Built = Rask.Core.Components.Generated.Span(Id: "from-mount");
+    protected override void OnMount() => Built = Rask.Html.Components.Generated.Span(Id: "from-mount");
 
     protected override Component? Render() => Em()[Word ?? ""];
 }

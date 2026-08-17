@@ -5,7 +5,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Lifecycle;
 
-public class ComponentCancellationTests
+public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void CancellationToken_BeforeDispose_NotCancelled()

@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Live;
 
 // Component.CancellationToken is the lifetime token by default, but reflects the per-dispatch token an
 // event handler runs under (so a handler timeout / socket close cancels the handler's async work).
-public class CancellationTokenScopeTests
+public partial class CancellationTokenScopeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void OutsideAHandler_IsAStableLifetimeToken()

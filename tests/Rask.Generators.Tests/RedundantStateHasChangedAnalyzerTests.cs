@@ -38,7 +38,7 @@ public class RedundantStateHasChangedAnalyzerTests
         // Qualified: the generic builder entry (Component.Input<T>) shadows the unqualified factory.
         var d = Assert.Single(await Diagnostics(App(
             "protected override Component? Render() => "
-            + "Rask.Core.Components.Generated.Input<string>(OnChange: _ => StateHasChanged());")));
+            + "Rask.Html.Components.Generated.Input<string>(OnChange: _ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("OnChange", d.GetMessage());
     }
@@ -49,7 +49,7 @@ public class RedundantStateHasChangedAnalyzerTests
         var d = Assert.Single(await Diagnostics(App(
             "private string _name = \"\";"
             + "protected override Component? Render() => "
-            + "Rask.Core.Components.Generated.Input(() => _name, AfterBind: _ => StateHasChanged());")));
+            + "Rask.Html.Components.Generated.Input(() => _name, AfterBind: _ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("AfterBind", d.GetMessage());
     }
@@ -61,7 +61,8 @@ public class RedundantStateHasChangedAnalyzerTests
     {
         var d = Assert.Single(await Diagnostics(App(
             "private string _name = \"\";"
-            + "protected override Component? Render() => Input.Bind(() => _name).AfterBind(_ => StateHasChanged());")));
+            + "protected override Component? Render() => global::RaskEntriesRask_Html.Input.Bind(() => _name)"
+            + ".AfterBind(_ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("AfterBind", d.GetMessage());
     }

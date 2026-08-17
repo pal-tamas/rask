@@ -6,7 +6,7 @@ namespace Rask.Bootstrap;
 public sealed partial class BsDropdown : BsBlock
 {
     public bool? Open { get; set; }
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
     public BsColor? Color { get; set; }
     public bool? Outline { get; set; }
     public BsSize? Size { get; set; }
@@ -47,7 +47,7 @@ public sealed partial class BsDropdownItem : BsBlock
     public string? Href { get; set; }
     public bool? Active { get; set; }
     public bool? Disabled { get; set; }
-    public new bool? Header { get; set; }
+    public bool? Header { get; set; }
     public bool? Divider { get; set; }
     public Action? OnClick { get; set; }
     public Func<Task>? OnClickAsync { get; set; }

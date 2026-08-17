@@ -7,7 +7,7 @@ public sealed partial class BsPagination : BsBlock
     public BsSize? Size { get; set; }
 
     // Accessible label for the surrounding <nav>; defaults to "Page navigation".
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     protected override Component? Render()
     {

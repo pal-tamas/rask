@@ -51,7 +51,7 @@ encoded exactly like `Text`):
 
 ## Tag factories
 
-Every standard HTML element has a generator-emitted factory in `Rask.Core.Components.Generated`.
+Every standard HTML element has a generator-emitted factory in `Rask.Html.Components.Generated`.
 Tag-specific attributes come first; the universal `Id`/`Class`/`Style`/`Data` trail at the end.
 
 Text & semantic elements:

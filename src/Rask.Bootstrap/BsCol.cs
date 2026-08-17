@@ -26,7 +26,7 @@ namespace Rask.Bootstrap;
 // BsDataGrid's Columns, not a component.)
 public sealed partial class BsCol : BsBlock
 {
-    public new int? Span { get; set; }
+    public int? Span { get; set; }
     public bool? Auto { get; set; }
     public int? Sm { get; set; }
     public int? Md { get; set; }

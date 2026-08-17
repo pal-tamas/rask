@@ -1,6 +1,6 @@
 ---
 name: add-html-tag
-description: Scaffold a new HTML tag component in Rask.Core. Use whenever adding support for an HTML element (e.g. <dialog>, <details>, <progress>, <video>) to the Rask framework. Creates src/Rask.Core/Components/{Tag}.cs and the matching tests/Rask.Core.Tests/Components/{Tag}Tests.cs asserting exact attribute order; the factory is generated automatically.
+description: Scaffold a new HTML tag component in Rask.Html. Use whenever adding support for an HTML element (e.g. <dialog>, <details>, <progress>, <video>) to the Rask framework. Creates src/Rask.Html/Components/{Tag}.cs and the matching tests/Rask.Core.Tests/Components/{Tag}Tests.cs asserting exact attribute order; the factory is generated automatically.
 ---
 
 # add-html-tag
@@ -9,7 +9,7 @@ Adds one HTML element. The `Generated.{Tag}(...)` factory is produced by the Ros
 you only write the component + its test. Follow C# conventions: `sealed`, file-scoped namespace,
 nullable enabled, expression-bodied single-line members.
 
-## 1. Component — `src/Rask.Core/Components/{Tag}.cs`
+## 1. Component — `src/Rask.Html/Components/{Tag}.cs`
 - `public sealed class {Tag} : Element`, override `protected override string TagName => "{tag}";`.
   - **If the tag shares a DOM interface with sibling tags, derive from the matching `Html*Element`
     base instead of `Element`** — these mirror the DOM hierarchy and hold the shared attributes:
@@ -28,7 +28,7 @@ nullable enabled, expression-bodied single-line members.
   **first** (emits id, class, style, data-*, ref), then `AppendAttr(sb, "name", value)` per attr
   (`AppendUrlAttr` for URL attrs; `AppendAttr(sb, "disabled", null)` for bare boolean attrs).
 
-See `templates/Component.cs`. References: `src/Rask.Core/Components/Span.cs` (simple),
+See `templates/Component.cs`. References: `src/Rask.Html/Components/Span.cs` (simple),
 `Br.cs` (void), `Button.cs` (attributes), base `src/Rask.Core/Element.cs`.
 
 ## 2. Test — `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`

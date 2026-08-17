@@ -36,7 +36,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
-    public new Func<TItem, string, bool>? Filter { get; set; }
+    public Func<TItem, string, bool>? Filter { get; set; }
 
     // Opt in to a "Select all / Clear all" header row at the top of the dropdown. It toggles the currently
     // shown (filtered), enabled options in one click — adds them all, or clears them when they are already
@@ -49,7 +49,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
     public bool? Floating { get; set; }
 
     // View state only — the selection lives in the bound model / parent Value. Toggling re-renders. _filter
@@ -159,7 +159,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
             foreach (var item in selected!)
             {
                 var captured = item;
-                box.Add(BsBadge.Key(i).Color(BsColor.Primary).Class("d-inline-flex align-items-center")[
+                box.Add(BsBadge.Color(BsColor.Primary).Class("d-inline-flex align-items-center").Key(i)[
                     LabelOf(captured),
                     BsCloseButton
                         .White(true)
@@ -321,7 +321,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
         var labelNode = Label is null
             ? null
-            : global::RaskEntriesRask_Core.Label.Id(labelId).Class(floating ? null : "form-label")[Label];
+            : global::RaskEntriesRask_Html.Label.Id(labelId).Class(floating ? null : "form-label")[Label];
 
         var children = new List<Component?>();
         if (labelNode is not null && !floating)

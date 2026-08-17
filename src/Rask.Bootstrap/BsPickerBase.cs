@@ -204,7 +204,7 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
 
         var labelNode = Label is null
             ? null
-            : global::RaskEntriesRask_Core.Label.For(controlId).Class(floating ? null : "form-label")[
+            : global::RaskEntriesRask_Html.Label.For(controlId).Class(floating ? null : "form-label")[
                 Label,
                 Required is true ? Span.Class("text-danger ms-1")["*"] : null];
 

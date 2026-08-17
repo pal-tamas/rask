@@ -1,5 +1,6 @@
 using Rask.Core.Components;
 using Rask.Core.Live;
+using Rask.Html.Components;
 
 #pragma warning disable RASK014 // DefaultErrorPage is [SkipFactory]; tests construct it directly
 

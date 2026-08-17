@@ -12,6 +12,7 @@
     <Description>Rask browser-WASM runtime. Boots a Rask App in the browser via dotnet WASM. Ships the JS boot scripts, the framework page shell, and an MSBuild integration that wires them into a WasmGenerateAppBundle project. Includes Rask.Core and the Rask source generators.</Description>
   </PropertyGroup>
 
+
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
     <IsTrimmable>true</IsTrimmable>
     <!-- Runs the trim + AOT Roslyn analysers over the runtime's browser code so the
@@ -23,6 +24,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
+         so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
     <!-- Rask.Client: the WASM+Native-shared in-process client APIs (IShare). Bundled into lib/ below like
          Rask.Core (PrivateAssets="all" keeps it out of the nuspec dependency list). -->
     <ProjectReference Include="..\Rask.Client\Rask.Client.csproj" PrivateAssets="all"/>
@@ -209,6 +213,19 @@
                               PackagePath="lib/net10.0/"
                               Condition=" '$(TargetFramework)' == 'net10.0' "/>
       <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.xml"
+                              PackagePath="lib/net10.0-browser1.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
+      <!-- Rask.Html.dll/.xml — the HTML/SVG element family, bundled on the same terms as Rask.Core. -->
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Html.dll"
+                              PackagePath="lib/net10.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Html.dll"
+                              PackagePath="lib/net10.0-browser1.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Html.xml"
+                              PackagePath="lib/net10.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Html.xml"
                               PackagePath="lib/net10.0-browser1.0/"
                               Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
     </ItemGroup>

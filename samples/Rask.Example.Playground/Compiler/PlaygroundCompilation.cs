@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Rask.Generators;
 
 namespace Rask.Example.Playground.Compiler;
@@ -47,7 +48,14 @@ internal readonly record struct PlaygroundCompilation(
 
         var driver = CSharpGeneratorDriver
             .Create(new ComponentFactoryGenerator())
-            .WithUpdatedParseOptions(ParseOptions);
+            .WithUpdatedParseOptions(ParseOptions)
+            // Turn the builder surface on, exactly as a real project build does via the MSBuild property.
+            // It used not to matter here: the HTML tags lived in Rask.Core and their entries arrived by
+            // INHERITANCE from RaskMarkup, already compiled into the referenced Rask.Core.dll. They ship
+            // from Rask.Html now, and a referenced library's entries are INJECTED — which this emission
+            // does, and which is skipped entirely when the property is absent. Without this a snippet
+            // that writes `Input.Bind(…)` no longer compiles in the playground.
+            .WithUpdatedAnalyzerConfigOptions(BuilderSurfaceOptions.Instance);
 
         driver.RunGeneratorsAndUpdateCompilation(
             compilation, out var output, out var generatorDiagnostics, cancellationToken);
@@ -60,5 +68,36 @@ internal readonly record struct PlaygroundCompilation(
     {
         var userTree = UserTree; // struct members can't be captured by the lambda; copy to a local first.
         return Output.SyntaxTrees.Where(t => t != userTree);
+    }
+
+    /// <summary>
+    ///     The single MSBuild property the Rask generator reads here: <c>RaskBuilderSurface</c>. A real build
+    ///     gets it from <c>Rask.Core.targets</c> (<c>CompilerVisibleProperty</c>); the playground has no
+    ///     MSBuild, so it is stated directly.
+    /// </summary>
+    private sealed class BuilderSurfaceOptions : AnalyzerConfigOptionsProvider
+    {
+        internal static readonly BuilderSurfaceOptions Instance = new();
+
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new Options();
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
+
+        private sealed class Options : AnalyzerConfigOptions
+        {
+            public override bool TryGetValue(string key, out string value)
+            {
+                if (string.Equals(key, "build_property.RaskBuilderSurface", StringComparison.Ordinal))
+                {
+                    value = "true";
+                    return true;
+                }
+
+                value = null!;
+                return false;
+            }
+        }
     }
 }

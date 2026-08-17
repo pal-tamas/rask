@@ -12,6 +12,7 @@
     <PackageTags>rask testing unit-test component-testing render blazor-like dotnet net10</PackageTags>
   </PropertyGroup>
 
+
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework overview
        that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
   <ItemGroup>
@@ -33,6 +34,9 @@
          resolves transitively — same pattern as Rask.Bootstrap. Core still resolves at compile time
          (and its InternalsVisibleTo grants the live-render/handler-dispatch access this wraps). -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
+         so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
   </ItemGroup>
 
 </Project>

@@ -42,7 +42,7 @@ public sealed partial class BsConfirmDialog : BsBlock
                 .OnCloseAsync(OnCancelAsync)
                 .Footer(Footer())[Body()];
 
-    private new Component Footer() =>
+    private Component Footer() =>
     [
         BsButton.Color(BsColor.Secondary).OnClick(OnCancel).OnClickAsync(OnCancelAsync)[CancelText],
         BsButton.Color(ConfirmColor).OnClick(OnConfirm).OnClickAsync(OnConfirmAsync)[ConfirmText]

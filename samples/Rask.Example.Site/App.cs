@@ -1,6 +1,7 @@
 using Microsoft.JSInterop;
 using Rask.Core.Components;
 using Rask.Core.Live;
+using Rask.Html.Components;
 
 namespace Rask.Example.Site;
 

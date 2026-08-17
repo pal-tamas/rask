@@ -1,6 +1,7 @@
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Example.Shared.Features;
+using Rask.Html.Components;
 
 namespace Rask.Example.Shared;
 
@@ -34,7 +35,7 @@ public sealed partial class GuideCards : Component
     }
 
     private static Component Card(GuideEntry g) =>
-        BsCol.Key(g.Slug).Md(6).Lg(4)[
+        BsCol.Md(6).Lg(4).Key(g.Slug)[
             NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("text-decoration-none")[
                 BsCard.Class(Bs.Join(Sizing.H(100), Border.None, Shadow.Sm, "feature-card"))[
                     BsCardBody.Class("p-4")[

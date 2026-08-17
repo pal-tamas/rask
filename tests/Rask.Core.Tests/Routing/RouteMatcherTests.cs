@@ -3,7 +3,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Routing;
 
-public class RouteMatcherTests
+public partial class RouteMatcherTests : global::Rask.Core.RaskMarkup
 {
     private static IReadOnlyList<RouteLeaf> Flat(params Route[] routes) => RouteFlattener.Flatten(routes);
 

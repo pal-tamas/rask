@@ -7,6 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -37,6 +38,7 @@
     <!-- Rask.Mail references Rask.Core with PrivateAssets="all", so it does not flow here; the email-body
          component in the harness needs Rask.Core (Component) directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
   </ItemGroup>
 
 </Project>

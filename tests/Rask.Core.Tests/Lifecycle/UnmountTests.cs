@@ -7,7 +7,7 @@ using Rask.Server;
 namespace Rask.Core.Tests.Lifecycle;
 
 [Collection("ConsoleRedirect")]
-public class UnmountTests
+public partial class UnmountTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void OnUnmount_FiresOnce_OnDisposeComponentTree()

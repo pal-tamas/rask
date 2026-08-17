@@ -49,6 +49,7 @@
     <NoWarn Condition=" '$(RaskPlaygroundData)' == 'true' ">$(NoWarn);WASM0001</NoWarn>
   </PropertyGroup>
 
+
   <ItemGroup>
     <!-- Bring the generated Bs* factories into scope unqualified (BsButton()/BsLink()/BsBadge()/BsIcon()/
          BootstrapStyles()/RaskTokens()), matching how the other samples consume Rask.Bootstrap. -->
@@ -61,6 +62,7 @@
          flow transitively — reference it directly, as any Rask app that doesn't go through the showcase
          shared library would. Microsoft.JSInterop likewise, for IJSRuntime in the editor interop. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- Rask.Wasm also references Rask.Client with PrivateAssets="all" and needs it at runtime, so an app
          referencing the host by ProjectReference (rather than the NuGet package) must pull it in directly. -->
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>

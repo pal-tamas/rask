@@ -20,12 +20,12 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     filter produces RemoveSubtree ops on positional siblings (untrusted, so the
 ///     gate routes through full HTML for the filter step).
 /// </summary>
-internal static class TableSortFilter
+internal static partial class TableSortFilter
 {
     public const int InitialRowCount = 200;
 
 #pragma warning disable RASK014
-    public sealed class StatefulTableSortFilter : Component
+    public sealed partial class StatefulTableSortFilter : Component
 #pragma warning restore RASK014
     {
         private readonly Dictionary<int, Component> _rowCache = new();

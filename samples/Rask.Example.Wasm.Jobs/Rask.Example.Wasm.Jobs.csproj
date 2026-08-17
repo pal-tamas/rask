@@ -34,11 +34,13 @@
     <NoWarn>$(NoWarn);WASM0001;IL2104</NoWarn>
   </PropertyGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <!-- Rask.Wasm marks Rask.Core / Rask.Client PrivateAssets="all" (kept out of its nuspec deps),
          so an in-repo consumer referencing the host by ProjectReference must pull them in directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
     <!-- The point of the sample: the browser database, and the same job queue the server uses. -->
     <ProjectReference Include="..\..\src\Rask.SQLite.Browser\Rask.SQLite.Browser.csproj"/>

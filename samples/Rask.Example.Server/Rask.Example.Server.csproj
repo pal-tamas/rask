@@ -6,9 +6,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Signaling\Rask.Signaling.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\..\src\Rask.WebPush\Rask.WebPush.csproj"/>
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>

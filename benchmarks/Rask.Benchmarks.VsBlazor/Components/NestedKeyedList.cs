@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
 using C = Rask.Core.Components.Generated;
 
+using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
@@ -13,7 +14,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     Validates that keyed matching composes through nesting — same scenario class
 ///     a typical data table (rows of expandable groups) renders into.
 /// </summary>
-internal static class NestedKeyedList
+internal static partial class NestedKeyedList
 {
     public const int OuterCardCount = 20;
     public const int InnerRowCount = 5;
@@ -27,18 +28,18 @@ internal static class NestedKeyedList
             var rows = new List<Component>(InnerRowCount);
             for (var r = 0; r < InnerRowCount; r++)
             {
-                rows.Add(C.Li(
+                rows.Add(CH.Li(
                     Class: "row",
                     Data: new Dictionary<string, string?> { ["rask-key"] = $"{cardKey}.{r}" })[
-                    C.Span()[$"Card {cardKey} · row {r}"]
+                    CH.Span()[$"Card {cardKey} · row {r}"]
                 ]);
             }
 
             cards.Add(C.Div(
                 Class: "card",
                 Data: new Dictionary<string, string?> { ["rask-key"] = cardKey.ToString() })[
-                C.H3()[$"Card {cardKey}"],
-                C.Ul()[rows]
+                CH.H3()[$"Card {cardKey}"],
+                CH.Ul()[rows]
             ]);
         }
 
@@ -49,7 +50,7 @@ internal static class NestedKeyedList
     // inner Ul + 5 rows) by key once; benchmark mutations swap two entries of the
     // outer-order array. Mirrors Blazor's ParameterView reuse path.
 #pragma warning disable RASK014
-    public sealed class StatefulNestedKeyedList : Component
+    public sealed partial class StatefulNestedKeyedList : Component
 #pragma warning restore RASK014
     {
         private Component[]? _cardsByKey;

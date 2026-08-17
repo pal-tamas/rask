@@ -30,7 +30,7 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
     // The group's accessible name. When set, the checkboxes are wrapped in a <fieldset> named by a <legend>
     // (the correct grouping semantics + accessible name for a set of related checkboxes); when null, the bare
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
 
@@ -93,7 +93,7 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
                 Input.Value(BindingHelpers.FormatValue(option)).Type(InputType.Checkbox).Name(groupName).Checked(isChecked).Disabled(Disabled).Class("form-check-input").Id(optionId).Aria(optionAria).OnChangeAsync(disabled
                         ? null
                         : value => ToggleAsync(acc, ctx, fid, optionValue, comparer, bool.TryParse(value, out var b) && b)),
-                global::RaskEntriesRask_Core.Label.Class("form-check-label").For(optionId)[label]
+                global::RaskEntriesRask_Html.Label.Class("form-check-label").For(optionId)[label]
             ]);
             index++;
         }

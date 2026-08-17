@@ -286,7 +286,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
     ///         <see cref="TotalCount" /> — the same feature, with the await in your hands.
     ///     </para>
     /// </remarks>
-    public new IEnumerable<T>? Data { get; set; }
+    public IEnumerable<T>? Data { get; set; }
     public IReadOnlyList<BsColumn<T>>? Columns { get; set; }
 
     // Rows per page; 0 (default) shows everything with no pager.
@@ -294,7 +294,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
 
     public bool Striped { get; set; } = true;
     public bool Hover { get; set; } = true;
-    public new bool Small { get; set; } = false;
+    public bool Small { get; set; } = false;
     public bool Responsive { get; set; } = true;
 
     // Stable per-row key (defaults to the row index) and an optional empty-state placeholder.

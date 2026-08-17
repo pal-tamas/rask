@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Authentication;
 // Injecting IUserProvider and reading .Current (resolved from the active render scope) is the
 // imperative way to gate content (the declarative counterpart is the Authorize component — see
 // AuthorizeTests). These pin that gating in Render() reflects the provider's principal, incl. roles.
-public class UserGatingTests
+public partial class UserGatingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void User_Anonymous_RendersFallback()

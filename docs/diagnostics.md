@@ -81,7 +81,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK043](#rask043) | Warning | Component factory is not imported in a type that has no builder entries |
 | [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
-| [RASK046](#rask046) | Warning | Key must open a component's chain |
 
 ---
 
@@ -299,15 +298,9 @@ rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appe
 ## RASK022
 **List item is missing a `Key`** · Warning
 
-A Rask component appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or `.Add`
-in a loop) without a `Key`. Keyless items reconcile **by position**, which loses focus and input state
-and emits untrusted structural diffs on insert/remove/move — and for a component, position also
-decides which instance is reused, so the row's own state follows the slot rather than the item
-(see [RASK046](#rask046)).
-
-Both spellings are recognised: a chain (`Li[…]`, `Li.Class("c")[…]`) and, while it still exists, a
-generated factory call. The chain form went unreported until #704 — the check matched a method named
-after the component, and a chain has none.
+A Rask factory call appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or
+`.Add` in a loop) without a `Key:`. Keyless items reconcile **by position**, which loses focus and
+input state and emits untrusted structural diffs on insert/remove/move.
 
 ```csharp
 // ✗ items.Select(i => Li[ i.Name ])
@@ -321,13 +314,8 @@ for why identity beats position.
 ## RASK023
 **`Img` is missing `Alt` text** · Warning
 
-An `Img` is built without naming `Alt`. Without a text alternative, screen readers fall back to
+An `Img(...)` factory call supplies no `Alt`. Without a text alternative, screen readers fall back to
 announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/WAI/WCAG21/Understanding/non-text-content).
-
-Both spellings are recognised: a chain (`Img.Src("/x")`, or the bare `Img`) and, while it still exists,
-a generated factory call. **The chain form went unreported until #704** — the check matched a static
-method named `Img`, and on a chain the outermost call is the `Src` setter, so an accessibility check
-that the docs' own examples should have tripped never fired at all.
 
 ```csharp
 // ✗ Img.Src("/logo.png")
@@ -688,9 +676,26 @@ For a host that **derives** from `RaskMarkup`, nothing else is lost: the compone
 gets its own entry *elsewhere*, and its generated factory is unaffected — `Generated.SalesCard(…)` keeps
 working from anywhere. An **`[RaskMarkup]`** host loses more, and the message says so: the generated
 `partial` is where its base — or, when the base slot is already spent, the framework tags themselves —
-would have come from, so without `partial` it gets no builder surface at all. Nested types are skipped
-without a warning either way, because injecting into one would need every enclosing type to be `partial`
-as well.
+would have come from, so without `partial` it gets no builder surface at all.
+
+A **nested** host is injected into as well — the generated file re-opens each enclosing type as a
+`partial` around it — so every one of them has to be `partial` too. When one is not, this is the warning
+you get, naming the nested component that loses its entries:
+
+```csharp
+public partial class RouterTests : RaskMarkup        // ✓ — enclosing type is partial too
+{
+    private sealed partial class CounterPage : Component
+    {
+        protected override Component? Render() => Div["…"];
+    }
+}
+```
+
+This used not to matter: the HTML tags lived in `Rask.Core` and reached a nested component by
+*inheritance*, where nesting is irrelevant. They ship from `Rask.Html` now, and a referenced library's
+entries can only be injected — so a nested component whose enclosing chain is not `partial` would
+silently lose the chain, which is what this reports instead.
 
 **Fix:** add `partial`. Suppress with `#pragma warning disable RASK036` / `.editorconfig`
 (`dotnet_diagnostic.RASK036.severity = none`) if you build every component through the factory.
@@ -983,34 +988,3 @@ settable properties, and nothing in the type system is left to forbid the write.
 **Fix:** move the assignment into the chain — every property a chain can reach has a step of the same
 name. Suppress with `#pragma warning disable RASK045` / `.editorconfig`
 (`dotnet_diagnostic.RASK045.severity = none`) where a component genuinely has to be completed later.
-
----
-
-## RASK046
-**Key must open a component's chain** · Warning
-
-A keyed child is identified by its **key** rather than by its position among its siblings, so that the
-state a row holds itself — a private field, an edit buffer, an `OnMount` subscription — moves with the
-item rather than with the slot when the list changes shape. Settling that identity means handing back
-the instance the key owns and discarding the one the entry just built, so any step written **before**
-`Key` is applied to a component that is about to be thrown away:
-
-```csharp
-TodoRow.Item(item).Key(item.Id)   // ✗ RASK046 — Item is written to the instance Key then discards
-TodoRow.Key(item.Id).Item(item)   // ✓ identity first, then everything else
-```
-
-It compiles and it renders. The value goes missing only once the list changes shape — an insert at the
-top, a reorder — which is the worst possible time to discover it.
-
-**Elements are exempt, and that is not a carve-out.** An element is re-specified in full on every
-render: whatever its chain does not name, the deferred reset puts back. Its instance therefore carries
-nothing, it is never claimed, and its DOM identity comes from `data-rask-key` in the diff codec rather
-than from the parent's child map. So the common spelling stays exactly as it reads:
-
-```csharp
-Div.Class("row").Key(index)[cells]   // ✓ an element is never claimed
-```
-
-**Fix:** move `.Key(…)` to the front of the chain. See [composition → keys](composition.md#children--fragments)
-and the reconciliation note in [the live-rendering codec](architecture/live-rendering-codec.md).

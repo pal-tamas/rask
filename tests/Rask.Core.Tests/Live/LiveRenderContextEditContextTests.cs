@@ -64,7 +64,7 @@ public partial class LiveRenderContextEditContextTests : global::Rask.Core.RaskM
         var view = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(view);
 
-        var span = ctx.GetOrCreate<Span>(_ => Span);
+        var span = ctx.GetOrCreate<global::Rask.Html.Components.Span>(_ => Span);
 
         Assert.NotNull(span);
     }

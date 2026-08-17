@@ -84,6 +84,11 @@ internal static class GeneratorDriverFixture
         var raskCore = Assembly.Load("Rask.Core");
         refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
 
+        // Rask.Html, which now declares the HTML/SVG element family — the test snippets are full of
+        // Div/Span/Img/Input, and the analyzers that pin a tag by full metadata name resolve it here.
+        var raskHtml = Assembly.Load("Rask.Html");
+        refs.Add(MetadataReference.CreateFromFile(raskHtml.Location));
+
         // Rask.Server too, so analyzer tests can resolve the real UseRask symbol (the ASP.NET Core
         // shared framework rides along in the trusted-platform-assemblies set above via the project's
         // transitive framework reference, giving UseAuthentication / WebApplication as well).

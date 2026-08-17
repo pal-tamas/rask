@@ -16,7 +16,7 @@ namespace Rask.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class InputTypeMismatchAnalyzer : DiagnosticAnalyzer
 {
-    private const string InputMetadataName = "Rask.Core.Components.Input`1";
+    private const string InputMetadataName = "Rask.Html.Components.Input`1";
     private const string RaskCoreAssembly = "Rask.Core";
     private const string GeneratedClassName = "Generated";
     private const string BuilderSettersPrefix = "RaskBuilderSetters";

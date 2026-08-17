@@ -25,8 +25,10 @@
     <NoWarn>$(NoWarn);IL2104</NoWarn>
   </PropertyGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- Rask.Client (IShare) is a runtime dep of the WASM host; surface it in the boot manifest in-repo
          (the host bundles it for package consumers via PrivateAssets="all"). -->
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>

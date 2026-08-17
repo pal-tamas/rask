@@ -33,7 +33,7 @@ public sealed partial class LoadPage(LoadPageOptions options) : Component
         var rows = new List<Component>(options.RowCount);
         for (var i = 0; i < options.RowCount; i++)
         {
-            rows.Add(FootprintRow.Key(i).Index(i));
+            rows.Add(FootprintRow.Index(i).Key(i));
         }
 
         return Div.Class("container").Id("root")[

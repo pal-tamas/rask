@@ -15,7 +15,7 @@ namespace Rask.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ImgMissingAltAnalyzer : DiagnosticAnalyzer
 {
-    private const string ImgFullName = "Rask.Core.Components.Img";
+    private const string ImgFullName = "Rask.Html.Components.Img";
     private const string RaskCoreAssembly = "Rask.Core";
     private const string GeneratedClassName = "Generated";
     private const string AltParameter = "Alt";
@@ -23,8 +23,8 @@ public sealed class ImgMissingAltAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask023 = new(
         "RASK023",
         "Img is missing Alt text",
-        "Img is created without Alt — name '.Alt(…)' with a text alternative, or '.Alt(\"\")' for a "
-        + "decorative image, so screen readers don't announce the file name (WCAG 1.1.1)",
+        "Img is created without Alt — set Alt: to a text alternative, or Alt: \"\" for a decorative "
+        + "image, so screen readers don't announce the file name (WCAG 1.1.1)",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
@@ -54,47 +54,27 @@ public sealed class ImgMissingAltAnalyzer : DiagnosticAnalyzer
 
             start.RegisterSyntaxNodeAction(
                 ctx => Analyze(ctx, img),
-                SyntaxKind.InvocationExpression,
-                SyntaxKind.ElementAccessExpression,
-                SyntaxKind.IdentifierName);
+                SyntaxKind.InvocationExpression);
         });
     }
 
     private static void Analyze(SyntaxNodeAnalysisContext context, INamedTypeSymbol img)
     {
-        var node = (ExpressionSyntax)context.Node;
-        var model = context.SemanticModel;
+        var invocation = (InvocationExpressionSyntax)context.Node;
 
-        // The FACTORY: a static `Generated.Img(...)` returning Rask.Core.Components.Img.
-        if (node is InvocationExpressionSyntax invocation
-            && model.GetSymbolInfo(invocation, context.CancellationToken).Symbol is IMethodSymbol method
-            && method.IsStatic
-            && string.Equals(method.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal)
-            && string.Equals(method.Name, "Img", StringComparison.Ordinal)
-            && SymbolEqualityComparer.Default.Equals(method.ReturnType, img))
-        {
-            if (!SuppliesAlt(invocation, method))
-            {
-                context.ReportDiagnostic(Diagnostic.Create(Rask023, NameLocation(invocation)));
-            }
-
-            return;
-        }
-
-        // A CHAIN. This analyzer used to look only for a method NAMED Img, so `Img.Src("/x")` — whose
-        // outermost call is the `Src` SETTER, and whose bare form is not a call at all — never matched and
-        // the alt check silently stopped firing on the spelling the docs teach (#704). An accessibility
-        // check that does not run is worse than one that is noisy.
-        if (!BuilderEntry.TryReadChain(
-                node, model, context.CancellationToken, out var entry, out var built, out var steps)
-            || !SymbolEqualityComparer.Default.Equals(built, img))
+        // Is this the generated Img factory? A static `Generated.Img(...)` returning Rask.Core.Components.Img.
+        if (context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken).Symbol is not IMethodSymbol method
+            || !method.IsStatic
+            || !string.Equals(method.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal)
+            || !string.Equals(method.Name, "Img", StringComparison.Ordinal)
+            || !SymbolEqualityComparer.Default.Equals(method.ReturnType, img))
         {
             return;
         }
 
-        if (!steps.Contains(AltParameter))
+        if (!SuppliesAlt(invocation, method))
         {
-            context.ReportDiagnostic(Diagnostic.Create(Rask023, entry.GetLocation()));
+            context.ReportDiagnostic(Diagnostic.Create(Rask023, NameLocation(invocation)));
         }
     }
 

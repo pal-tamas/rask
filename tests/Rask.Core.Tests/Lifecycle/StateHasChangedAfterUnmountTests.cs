@@ -11,7 +11,7 @@ namespace Rask.Core.Tests.Lifecycle;
 // against the newly-mounted page. The visible symptom was 11+ spurious
 // OnRendered(firstRender:false) entries on a freshly-mounted LifecycleProbe
 // after navigating from /realtime/BTC → /lifecycle.
-public class StateHasChangedAfterUnmountTests
+public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void StateHasChanged_AfterUnmount_IsNoop()

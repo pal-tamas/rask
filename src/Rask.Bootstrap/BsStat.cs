@@ -14,10 +14,10 @@ public sealed partial class BsStat : BsBlock
     public required string Value { get; set; }
 
     // What the number counts, shown above it in small caps.
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     // Optional supporting line under the number: a unit, a threshold, a timestamp.
-    public new string? Caption { get; set; }
+    public string? Caption { get; set; }
 
     // Colours the value. Leave unset for the neutral default.
     public BsColor? Tone { get; set; }

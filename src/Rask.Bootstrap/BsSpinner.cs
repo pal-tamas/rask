@@ -9,10 +9,10 @@ public sealed partial class BsSpinner : BsBlock
     public BsSpinnerKind? Kind { get; set; }
 
     // The small variant (.spinner-border-sm / .spinner-grow-sm).
-    public new bool? Small { get; set; }
+    public bool? Small { get; set; }
 
     // The visually-hidden status text for assistive tech; defaults to "Loading…".
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     private bool Grow => Kind == BsSpinnerKind.Grow;
 
