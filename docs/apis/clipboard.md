@@ -3,6 +3,7 @@
 > Copy text to, and read text from, the system clipboard.
 
 - **Wraps:** Async Clipboard API
+- **MDN:** [Clipboard API](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

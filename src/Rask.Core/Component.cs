@@ -132,6 +132,22 @@ public abstract partial class Component : RaskMarkup
     // structural change rides a navigation diff (the inserted row's HTML fragment is sliced from
     // post-head-splice HTML via offsets that RenderAsLiveRootCore keeps in lockstep — see
     // FrameWriter.AdjustOffsetsFrom and KeyedInsertNavTests).
+    /// <summary>
+    ///     A stable identity for this item in a list, so the diff can tell "the same row moved" from "a
+    ///     different row is now in this position". Give it something that belongs to the data —
+    ///     <c>.Key(todo.Id)</c> — never the loop index, which changes the moment anything is inserted or
+    ///     removed and so identifies nothing.
+    ///     <para>
+    ///         Without it, a list is matched by position: inserting at the top rewrites every row below,
+    ///         and any state living in the real DOM rather than in your model — focus, text selection,
+    ///         scroll position, a half-typed input — moves to the wrong row. With it, the same edit ships
+    ///         as one insert.
+    ///     </para>
+    ///     <para>
+    ///         It is an identity, not a prop: changing it does not re-render anything, it tells the
+    ///         reconciler this is a <em>different</em> item. Keys only need to be unique among siblings.
+    ///     </para>
+    /// </summary>
     public object? Key { get; set; }
 
     // Stringified Key for emit (data-rask-key) and key-forwarding, computed per render on every

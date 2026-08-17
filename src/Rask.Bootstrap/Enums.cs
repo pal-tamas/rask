@@ -6,6 +6,12 @@ namespace Rask.Bootstrap;
 // list-group items, table variants, spinners and progress bars — each component maps the color to
 // the relevant Bootstrap class via the helpers in BsClass. (btn-link is intentionally not modelled
 // here; it is a link style rather than a theme color — use Class:"btn btn-link" for that.)
+
+/// <summary>
+///     Bootstrap's eight theme colours, used for buttons, alerts, badges, backgrounds, borders, text,
+///     list-group items, table variants, spinners and progress bars. Colour carries meaning here — but
+///     never let it carry the meaning <b>alone</b>, or the message is lost to a colour-blind reader.
+/// </summary>
 public enum BsColor
 {
     Primary,
@@ -20,6 +26,11 @@ public enum BsColor
 
 // Sizing scale. Md is the Bootstrap default and emits no size class, so it is the natural
 // "unset" value for an optional size parameter.
+
+/// <summary>
+///     The sizing scale. <c>Md</c> is Bootstrap's default and emits no class, so it is the natural "unset"
+///     value for an optional size.
+/// </summary>
 public enum BsSize
 {
     Sm,
@@ -30,6 +41,12 @@ public enum BsSize
 // Bootstrap 5.3 color modes. Emitted as the data-bs-theme attribute. Only the two concrete modes
 // are modelled: the docs' "auto" value is resolved to light/dark by a client script, which the
 // zero-JS design deliberately does not ship.
+
+/// <summary>
+///     Bootstrap 5.3's colour modes, emitted as <c>data-bs-theme</c>. Only the two concrete modes exist:
+///     resolving the docs' <c>auto</c> needs a client script, which the zero-JS design deliberately does
+///     not ship.
+/// </summary>
 public enum BsTheme
 {
     Light,
@@ -38,6 +55,10 @@ public enum BsTheme
 
 // The two Bootstrap spinner styles (.spinner-border / .spinner-grow). Named *Kind to leave the
 // BsSpinner name free for the component.
+
+/// <summary>
+///     The two spinner styles — a spinning border or a growing dot.
+/// </summary>
 public enum BsSpinnerKind
 {
     Border,
@@ -45,6 +66,11 @@ public enum BsSpinnerKind
 }
 
 // Placeholder shimmer animation (.placeholder-glow / .placeholder-wave); None emits no animation.
+
+/// <summary>
+///     How a loading placeholder animates, if at all. Respect a reduced-motion preference before choosing
+///     one.
+/// </summary>
 public enum BsPlaceholderAnimation
 {
     None,
@@ -53,6 +79,10 @@ public enum BsPlaceholderAnimation
 }
 
 // Edge an offcanvas slides in from (.offcanvas-start/-end/-top/-bottom).
+
+/// <summary>
+///     Which edge or corner a floating element is anchored to.
+/// </summary>
 public enum BsPlacement
 {
     Start,

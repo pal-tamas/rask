@@ -5,28 +5,62 @@ namespace Rask.Bootstrap;
 // state. Click-outside-to-close works without JS: the outer .modal carries OnClose while a no-op
 // "shield" handler on .modal-dialog stops inner clicks from bubbling to it (Rask invokes only the
 // nearest data-rask-on-click handler). Set StaticBackdrop to disable outside-click dismissal.
+
+/// <summary>
+///     A modal dialog. It traps focus and closes on <c>Escape</c>, so it is a real dialog rather than a
+///     floating panel — keep <c>Title</c> set, since that is its accessible name.
+/// </summary>
 public sealed partial class BsModal : BsBlock
 {
+    /// <summary>
+    ///     Whether the modal is shown. Drive it from your own state and close it in <c>OnClose</c>.
+    /// </summary>
     public bool? Open { get; set; }
+
+    /// <summary>The dialog's heading, and its accessible name.</summary>
     public new string? Title { get; set; }
+
+    /// <summary>Makes the dialog narrower or wider than the default.</summary>
     public BsSize? Size { get; set; }
+
+    /// <summary>Centres the dialog vertically instead of anchoring it near the top.</summary>
     public bool? Centered { get; set; }
+
+    /// <summary>Scrolls the body inside the dialog, keeping the header and footer in place.</summary>
     public bool? Scrollable { get; set; }
 
     // Full-screen dialog (edge-to-edge, no margins/border-radius). Fullscreen=true is full-screen at
     // every width (.modal-fullscreen); FullscreenBelow makes it full-screen only below the given
     // breakpoint (.modal-fullscreen-{bp}-down, e.g. Bp.Sm for phones) and supersedes Fullscreen when
     // both are set. Composes with Size: the dialog is sized at/above the breakpoint, full-screen below.
+
+    /// <summary>Fills the viewport.</summary>
     public bool? Fullscreen { get; set; }
+
+    /// <summary>
+    ///     Fills the viewport only below this breakpoint — the usual way to make a dialog full-screen on
+    ///     phones.
+    /// </summary>
     public Bp? FullscreenBelow { get; set; }
 
+    /// <summary>
+    ///     Keeps the dialog open when the backdrop is clicked, for a step the user must answer rather than
+    ///     dismiss.
+    /// </summary>
     public bool? StaticBackdrop { get; set; }
+
+    /// <summary>Hides the header's close button. Leave the user another way out.</summary>
     public bool? HideClose { get; set; }
 
     // Optional footer content (e.g. action buttons) placed in .modal-footer.
+
+    /// <summary>The footer content, normally the actions.</summary>
     public new Component? Footer { get; set; }
 
+    /// <summary>Runs when the dialog is dismissed — set your <c>Open</c> state to false here.</summary>
     public Action? OnClose { get; set; }
+
+    /// <summary>Runs when the dialog is dismissed, asynchronously.</summary>
     public Func<Task>? OnCloseAsync { get; set; }
 
     // Shields clicks inside the dialog from the outer close handler (nearest-handler delegation).

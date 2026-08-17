@@ -4,6 +4,10 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Components;
 
+/// <summary>
+///     The built-in 404 page, rendered when no route matches. Replace it by registering your own not-found
+///     page rather than editing this.
+/// </summary>
 public sealed class DefaultNotFoundPage : Component
 {
     // Cached at mount because LiveRenderContext.Current is null during disposal, so

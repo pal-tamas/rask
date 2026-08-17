@@ -11,6 +11,15 @@ namespace Rask.WebPush;
 
 // Default IWebPushSender. Stateless apart from the validated options; one instance is shared and the
 // HttpClient is supplied by IHttpClientFactory (see AddRaskWebPush).
+/// <summary>
+///     The default <see cref="IWebPushSender" />. Registered by <c>AddRaskWebPush</c> as a typed
+///     <see cref="HttpClient" />, so inject the interface rather than constructing this.
+/// </summary>
+/// <remarks>
+///     A VAPID token is valid for every request to the same push service until it expires, so signed
+///     headers are cached per authority: broadcasting to a thousand subscribers on one service signs once,
+///     not a thousand times.
+/// </remarks>
 public sealed partial class WebPushSender : IWebPushSender
 {
     // A VAPID token is valid for any request to the same push-service authority until it expires, so
@@ -24,6 +33,11 @@ public sealed partial class WebPushSender : IWebPushSender
     private readonly WebPushOptions _options;
     private readonly ILogger<WebPushSender> _logger;
 
+    /// <summary>Creates the sender. <c>AddRaskWebPush</c> does this for you.</summary>
+    /// <param name="http">The HTTP client used to reach push services.</param>
+    /// <param name="options">Validated options carrying the VAPID keys and contact subject.</param>
+    /// <param name="logger">Optional. Failures log the endpoint and status — never the payload. Endpoints
+    ///     are part of a subscription, so treat those logs accordingly.</param>
     public WebPushSender(HttpClient http, WebPushOptions options, ILogger<WebPushSender>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(http);
@@ -34,6 +48,7 @@ public sealed partial class WebPushSender : IWebPushSender
         _logger = logger ?? NullLogger<WebPushSender>.Instance;
     }
 
+    /// <inheritdoc cref="IWebPushSender.SendAsync" />
     public async Task<WebPushResult> SendAsync(
         PushSubscription subscription,
         WebPushMessage message,

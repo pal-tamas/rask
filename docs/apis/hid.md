@@ -3,6 +3,7 @@
 > Talk to a HID device; input reports push to a callback.
 
 - **Wraps:** WebHID API
+- **MDN:** [WebHID API](https://developer.mozilla.org/en-US/docs/Web/API/WebHID_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ⬜ · PWA/WASM ✅ · Native ⬜

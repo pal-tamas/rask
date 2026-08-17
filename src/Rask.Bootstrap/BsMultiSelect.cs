@@ -9,47 +9,91 @@ namespace Rask.Bootstrap;
 // chips, bound to an ICollection<TItem>. Implements IFormControl<ICollection<TItem>> (bound +
 // controlled). Open/close, the click-outside backdrop and Esc-to-close are pure live-diff state — no
 // bootstrap.js. The chips reuse BsBadge + BsCloseButton.
+
+/// <summary>
+///     A multiple-choice picker over a typed option list, with filtering and an optional select-all.
+/// </summary>
 public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TItem>>
 {
+    /// <summary>The items to choose from.</summary>
     public required IEnumerable<TItem> Options { get; set; }
 
     // Controlled mode (no Bind).
+
+    /// <summary>The chosen items. Prefer <c>Bind</c>.</summary>
     public ICollection<TItem>? Value { get; set; }
+
+    /// <summary>Runs when the selection changes.</summary>
     public Action<ICollection<TItem>>? OnChange { get; set; }
+
+    /// <summary>Runs when the selection changes, asynchronously.</summary>
     public Func<ICollection<TItem>, Task>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
+
+    /// <summary>The model field the selection is bound to.</summary>
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
+    /// <summary>
+    ///     A rule run on the bound value: return an error message to reject it, or <see langword="null" />
+    ///     to accept. Client-side validation is a convenience, never a control — validate again on the
+    ///     server.
+    /// </summary>
     public Validate<ICollection<TItem>>? Validate { get; set; }
+    /// <summary>
+    ///     The <see langword="async" /> form of <c>Validate</c>, for a rule that must await something. Set
+    ///     one or the other: the synchronous rule wins and this is ignored.
+    /// </summary>
     public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
+    /// <summary>
+    ///     Runs just after a bound write succeeded, with the value written — for the work that FOLLOWS a
+    ///     change, not for setting the value, which the bind already did.
+    /// </summary>
     public Action<ICollection<TItem>>? AfterBind { get; set; }
+    /// <summary>The <see langword="async" /> form of <c>AfterBind</c>, awaited before the re-render.</summary>
     public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
+    /// <summary>How to render each item as its label.</summary>
     public Func<TItem, Component>? OptionLabel { get; set; }
+
+    /// <summary>The text shown while nothing is chosen.</summary>
     public string? Placeholder { get; set; }
+
+    /// <summary>Makes the control non-interactive.</summary>
     public bool? Disabled { get; set; }
 
     // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: t => t.Retired.
+
+    /// <summary>Decides, per item, whether it can be chosen.</summary>
     public Func<TItem, bool>? OptionDisabled { get; set; }
 
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
+
+    /// <summary>Adds a search box for filtering long option lists.</summary>
     public new Func<TItem, string, bool>? Filter { get; set; }
 
     // Opt in to a "Select all / Clear all" header row at the top of the dropdown. It toggles the currently
     // shown (filtered), enabled options in one click — adds them all, or clears them when they are already
     // all selected — never touching a disabled option. With a Filter active it applies to the visible subset.
+
+    /// <summary>Adds a control that selects or clears every option at once.</summary>
     public bool? SelectAll { get; set; }
 
     // Groups the options under non-interactive .dropdown-header rows, keyed by the returned string in first-seen
     // order; e.g. OptionGroup: t => t.Category. The roving cursor still walks the flat option order.
+
+    /// <summary>Groups items under headings, keyed per item.</summary>
     public Func<TItem, string>? OptionGroup { get; set; }
 
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
+
+    /// <summary>The field's label.</summary>
     public new string? Label { get; set; }
+
+    /// <summary>Renders the label floating inside the control.</summary>
     public bool? Floating { get; set; }
 
     // View state only — the selection lives in the bound model / parent Value. Toggling re-renders. _filter

@@ -3,6 +3,7 @@
 > Attach or stop a live media stream, wherever it came from.
 
 - **Wraps:** MediaStream (attach / stop)
+- **MDN:** [MediaStream](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

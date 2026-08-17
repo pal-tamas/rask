@@ -3,6 +3,7 @@
 > Quota and usage, to budget caches.
 
 - **Wraps:** `navigator.storage.estimate`
+- **MDN:** [StorageManager.estimate](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/estimate)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

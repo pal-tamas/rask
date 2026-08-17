@@ -20,8 +20,10 @@ public sealed partial class SystemPage(
     private BackupReplicationInfo? _replication;
     private IReadOnlyList<BackupSnapshotInfo> _snapshots = [];
 
+    /// <inheritdoc />
     protected override RaskDashboardOptions Options => options;
 
+    /// <inheritdoc />
     protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
     {
         _database = await system.DatabaseAsync(cancellationToken).ConfigureAwait(false);
@@ -36,6 +38,7 @@ public sealed partial class SystemPage(
              .. _recurring.Select(r => $"{r.Name}:{r.LastEnqueuedAt?.Ticks ?? 0}")]);
     }
 
+    /// <inheritdoc />
     protected override Component? Render()
     {
         if (IsLoading)

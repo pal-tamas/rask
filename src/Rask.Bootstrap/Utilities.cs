@@ -10,6 +10,11 @@ namespace Rask.Bootstrap;
 // The text group is named Txt to avoid clashing with the core Text component.
 
 // Responsive breakpoint infix (min-width). Null = applies at all widths (no infix).
+
+/// <summary>
+///     A responsive breakpoint infix (min-width), such as the <c>-md-</c> in <c>d-md-flex</c>. Unset means
+///     the utility applies at every width.
+/// </summary>
 public enum Bp
 {
     Sm,
@@ -19,6 +24,9 @@ public enum Bp
     Xxl,
 }
 
+/// <summary>
+///     How children are distributed along a flex container's main axis.
+/// </summary>
 public enum BsJustify
 {
     Start,
@@ -29,6 +37,9 @@ public enum BsJustify
     Evenly,
 }
 
+/// <summary>
+///     How children line up across a flex container's cross axis.
+/// </summary>
 public enum BsAlign
 {
     Start,
@@ -40,6 +51,11 @@ public enum BsAlign
 
 // The utility entry point: Bs.Join composes tokens; nested helpers are exposed as the top-level groups
 // below.
+
+/// <summary>
+///     Joins typed utility tokens into a single <c>Class</c> string — <c>Bs.Join(Shadow.Sm,
+///     Margin.Bottom(4))</c>. The entry point to the utility groups below.
+/// </summary>
 public static class Bs
 {
     // Joins utility tokens (and any raw class strings) into a single Class value, skipping null/empty;
@@ -73,6 +89,10 @@ internal static class Breakpoints
 }
 
 // shadow-* (no responsive variants in Bootstrap).
+
+/// <summary>
+///     Box-shadow utilities.
+/// </summary>
 public static class Shadow
 {
     public const string None = "shadow-none";
@@ -82,6 +102,10 @@ public static class Shadow
 }
 
 // border / border-0 / border-{side} / border-{color}.
+
+/// <summary>
+///     Border width, side, colour and removal utilities.
+/// </summary>
 public static class Border
 {
     public const string All = "border";
@@ -99,6 +123,10 @@ public static class Border
 }
 
 // margin: m{side}-{bp?}-{size} (size 0–5). Auto via the *Auto members.
+
+/// <summary>
+///     Margin utilities on Bootstrap's 0–5 spacing scale, per side and optionally per breakpoint.
+/// </summary>
 public static class Margin
 {
     public static string All(int size, Bp? bp = null) => $"m-{bp.Infix()}{size}";
@@ -115,6 +143,10 @@ public static class Margin
 }
 
 // padding: p{side}-{bp?}-{size} (size 0–5).
+
+/// <summary>
+///     Padding utilities on Bootstrap's 0–5 spacing scale, per side and optionally per breakpoint.
+/// </summary>
 public static class Padding
 {
     public static string All(int size, Bp? bp = null) => $"p-{bp.Infix()}{size}";
@@ -127,6 +159,11 @@ public static class Padding
 }
 
 // d-{bp?}-{value} display utilities.
+
+/// <summary>
+///     Display utilities (<c>d-*</c>), optionally per breakpoint — how you show or hide something
+///     responsively without writing a media query.
+/// </summary>
 public static class Display
 {
     public static string None(Bp? bp = null) => $"d-{bp.Infix()}none";
@@ -139,6 +176,10 @@ public static class Display
 }
 
 // flex utilities (direction / wrap / gap / justify / align / grow-shrink).
+
+/// <summary>
+///     Flexbox utilities: direction, wrapping, gap, alignment and grow/shrink.
+/// </summary>
 public static class Flex
 {
     public static string Row(Bp? bp = null) => $"flex-{bp.Infix()}row";
@@ -176,6 +217,10 @@ public static class Flex
 }
 
 // rounded-* corner utilities.
+
+/// <summary>
+///     Border-radius utilities, per corner or side.
+/// </summary>
 public static class Rounded
 {
     public const string Default = "rounded";
@@ -193,6 +238,11 @@ public static class Rounded
 
 // text-* utilities: alignment, color, wrapping, transform. (Named Txt to avoid the core Text
 // component. Font weight/style/size live in the Font group, matching Bootstrap's fw-/fst-/fs- prefixes.)
+
+/// <summary>
+///     Text utilities: alignment, colour, weight, transform and truncation. Named <c>Txt</c> so it does not
+///     collide with Rask's <c>Text</c> component.
+/// </summary>
 public static class Txt
 {
     public static string Start(Bp? bp = null) => $"text-{bp.Infix()}start";
@@ -214,6 +264,10 @@ public static class Txt
 }
 
 // fw-* / fst-* / fs-* font utilities (weight, style, size).
+
+/// <summary>
+///     Font-size, weight and family utilities.
+/// </summary>
 public static class Font
 {
     public const string Bold = "fw-bold";
@@ -234,6 +288,10 @@ public static class Font
 }
 
 // w-* / h-* / mw-* / vw-* / vh-* sizing utilities (Bootstrap supports 25/50/75/100 + auto).
+
+/// <summary>
+///     Width and height utilities, including the viewport-relative ones.
+/// </summary>
 public static class Sizing
 {
     public static string W(int percent) => $"w-{percent}";
@@ -252,6 +310,10 @@ public static class Sizing
 // (Named Grid — not Col/Row — so it doesn't collide with the generated <col>/<tr> element factories.)
 // A bare Column(n) also caps width to n/12 of its container, so it centres a card with Margin.XAuto
 // without needing a Row parent.
+
+/// <summary>
+///     CSS-grid utilities: columns, rows and gaps.
+/// </summary>
 public static class Grid
 {
     public const string Row = "row";
@@ -271,6 +333,10 @@ public static class Grid
 }
 
 // position-* and edge/translate helpers.
+
+/// <summary>
+///     Position utilities, plus the offset and translate helpers that go with them.
+/// </summary>
 public static class Position
 {
     public const string Static = "position-static";
@@ -294,6 +360,10 @@ public static class Position
 }
 
 // bg-* background utilities.
+
+/// <summary>
+///     Background-colour and gradient utilities.
+/// </summary>
 public static class Bg
 {
     public static string Color(BsColor color) => $"bg-{color.Infix()}";

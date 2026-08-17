@@ -3,6 +3,7 @@
 > Now-playing metadata and hardware media-key action handlers.
 
 - **Wraps:** Media Session API
+- **MDN:** [Media Session API](https://developer.mozilla.org/en-US/docs/Web/API/Media_Session_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

@@ -160,55 +160,61 @@ Text with `<text>` and `<tspan>` — `SvgText` is the `<text>` tag (renamed to a
 ## HTML elements
 
 Every standard element is a generated factory, composed through the `[...]` children indexer. The
-catalog below groups them the way the HTML spec does.
+catalog below groups them the way the HTML spec does, and each tag links to its MDN reference.
+
+You rarely need to leave the editor for that reference, though: **every element component documents
+itself, and the documentation is carried onto the factory**. Hovering `Video(` says what `<video>` is
+and links the same MDN page, and each parameter carries its own description — so `Meter`'s
+`Low`/`High`/`Optimum`, `Track`'s `Kind`, and `Iframe`'s `Sandbox` explain themselves at the call site
+rather than sending you to a search engine.
 
 ### Text & inline
 
-`a`, `abbr`, `b`, `bdi`, `bdo`, `br`, `cite`, `code`, `data`, `dfn`, `del`, `em`, `i`, `ins`, `kbd`,
-`mark`, `q`, `ruby`/`rp`/`rt`, `s`, `samp`, `small`, `span`, `strong`, `sub`, `sup`, `time`, `u`, `wbr`:
+[`a`][a], [`abbr`][abbr], [`b`][b], [`bdi`][bdi], [`bdo`][bdo], [`br`][br], [`cite`][cite], [`code`][code], [`data`][data], [`dfn`][dfn], [`del`][del], [`em`][em], [`i`][i], [`ins`][ins], [`kbd`][kbd],
+[`mark`][mark], [`q`][q], [`ruby`][ruby]/[`rp`][rp]/[`rt`][rt], [`s`][s], [`samp`][samp], [`small`][small], [`span`][span], [`strong`][strong], [`sub`][sub], [`sup`][sup], [`time`][time], [`u`][u], [`wbr`][wbr]:
 
 <!-- demo:elements-text -->
 
 ### Grouping & lists
 
-`p`, `hr`, `pre`, `blockquote`, `ol`/`ul`/`li`, `dl`/`dt`/`dd`, `figure`/`figcaption`, `div`:
+[`p`][p], [`hr`][hr], [`pre`][pre], [`blockquote`][blockquote], [`ol`][ol]/[`ul`][ul]/[`li`][li], [`dl`][dl]/[`dt`][dt]/[`dd`][dd], [`figure`][figure]/[`figcaption`][figcaption], [`div`][div]:
 
 <!-- demo:elements-grouping -->
 
 ### Sections & headings
 
-`h1`–`h6`, `header`, `footer`, `main`, `section`, `article`, `aside`, `nav`, `address`, `hgroup`:
+[`h1`][h1]–[`h6`][h6], [`header`][header], [`footer`][footer], [`main`][main], [`section`][section], [`article`][article], [`aside`][aside], [`nav`][nav], [`address`][address], [`hgroup`][hgroup]:
 
 <!-- demo:elements-sections -->
 
 ### Form elements
 
-`form`, `label`, `input`, `button`, `select`/`option`/`optgroup`, `textarea`, `fieldset`/`legend`,
-`datalist`, `output`, `progress`, `meter`:
+[`form`][form], [`label`][label], [`input`][input], [`button`][button], [`select`][select]/[`option`][option]/[`optgroup`][optgroup], [`textarea`][textarea], [`fieldset`][fieldset]/[`legend`][legend],
+[`datalist`][datalist], [`output`][output], [`progress`][progress], [`meter`][meter]:
 
 <!-- demo:elements-forms -->
 
 ### Table elements
 
-`table`, `caption`, `colgroup`/`col`, `thead`/`tbody`/`tfoot`, `tr`, `th`/`td`:
+[`table`][table], [`caption`][caption], [`colgroup`][colgroup]/[`col`][col], [`thead`][thead]/[`tbody`][tbody]/[`tfoot`][tfoot], [`tr`][tr], [`th`][th]/[`td`][td]:
 
 <!-- demo:elements-tables -->
 
 ### Media & embedded
 
-`img`, `picture`/`source`, `audio`, `video`/`track`, `iframe`, `embed`, `object`, `canvas`, `map`/`area`:
+[`img`][img], [`picture`][picture]/[`source`][source], [`audio`][audio], [`video`][video]/[`track`][track], [`iframe`][iframe], [`embed`][embed], [`object`][object], [`canvas`][canvas], [`map`][map]/[`area`][area]:
 
 <!-- demo:elements-media -->
 
 ### Interactive
 
-`details`/`summary`, `dialog`, `menu`:
+[`details`][details]/[`summary`][summary], [`dialog`][dialog], [`menu`][menu]:
 
 <!-- demo:elements-interactive -->
 
 ### Document & metadata
 
-`html`, `head`, `body`, `title`, `base`, `link`, `meta`, `style`, `script`, `noscript`:
+[`html`][html], [`head`][head], [`body`][body], [`title`][title], [`base`][base], [`link`][link], [`meta`][meta], [`style`][style], [`script`][script], [`noscript`][noscript]:
 
 <!-- demo:elements-metadata -->
 
@@ -216,3 +222,111 @@ catalog below groups them the way the HTML spec does.
 
 See also: [Getting started](getting-started.md) for building your first component, and
 [Best practices](best-practices.md) for production patterns.
+
+<!-- MDN reference links for the element catalog above. Every element component also carries
+     its own MDN link in its XML docs, so the same reference is one hover away in the IDE. -->
+
+[a]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a
+[abbr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/abbr
+[address]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/address
+[area]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area
+[article]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/article
+[aside]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/aside
+[audio]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio
+[b]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/b
+[base]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/base
+[bdi]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/bdi
+[bdo]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/bdo
+[blockquote]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/blockquote
+[body]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/body
+[br]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/br
+[button]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button
+[canvas]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/canvas
+[caption]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/caption
+[cite]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/cite
+[code]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/code
+[col]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/col
+[colgroup]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/colgroup
+[data]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/data
+[datalist]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/datalist
+[dd]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dd
+[del]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/del
+[details]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details
+[dfn]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dfn
+[dialog]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog
+[div]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/div
+[dl]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dl
+[dt]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dt
+[em]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/em
+[embed]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/embed
+[fieldset]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/fieldset
+[figcaption]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/figcaption
+[figure]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/figure
+[footer]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/footer
+[form]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form
+[h1]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/Heading_Elements
+[h6]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/Heading_Elements
+[head]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/head
+[header]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/header
+[hgroup]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/hgroup
+[hr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/hr
+[html]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/html
+[i]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/i
+[iframe]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe
+[img]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img
+[input]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input
+[ins]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ins
+[kbd]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/kbd
+[label]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/label
+[legend]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/legend
+[li]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/li
+[link]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link
+[main]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/main
+[map]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/map
+[mark]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/mark
+[menu]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/menu
+[meta]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta
+[meter]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter
+[nav]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/nav
+[noscript]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/noscript
+[object]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object
+[ol]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ol
+[optgroup]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/optgroup
+[option]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/option
+[output]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/output
+[p]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/p
+[picture]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/picture
+[pre]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/pre
+[progress]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/progress
+[q]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/q
+[rp]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/rp
+[rt]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/rt
+[ruby]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ruby
+[s]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/s
+[samp]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/samp
+[script]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script
+[section]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/section
+[select]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/select
+[small]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/small
+[source]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source
+[span]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/span
+[strong]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/strong
+[style]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/style
+[sub]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/sub
+[summary]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/summary
+[sup]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/sup
+[table]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table
+[tbody]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tbody
+[td]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td
+[textarea]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea
+[tfoot]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tfoot
+[th]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th
+[thead]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/thead
+[time]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/time
+[title]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/title
+[tr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tr
+[track]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/track
+[u]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/u
+[ul]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ul
+[video]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video
+[wbr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/wbr

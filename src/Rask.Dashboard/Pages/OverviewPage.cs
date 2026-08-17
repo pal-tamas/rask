@@ -13,8 +13,10 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
 {
     private readonly List<(IQueuePanel Panel, QueueCounts Counts)> _queues = [];
 
+    /// <inheritdoc />
     protected override RaskDashboardOptions Options => options;
 
+    /// <inheritdoc />
     protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
     {
         _queues.Clear();
@@ -29,6 +31,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
             $"{q.Panel.Slug}:{q.Counts.Due}:{q.Counts.Delayed}:{q.Counts.Failed}:{q.Counts.Processed}"));
     }
 
+    /// <inheritdoc />
     protected override Component? Render()
     {
         if (IsLoading)

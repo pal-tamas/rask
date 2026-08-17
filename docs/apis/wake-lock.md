@@ -3,6 +3,7 @@
 > Keep the screen awake; release by disposing the sentinel.
 
 - **Wraps:** Screen Wake Lock API
+- **MDN:** [Screen Wake Lock API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

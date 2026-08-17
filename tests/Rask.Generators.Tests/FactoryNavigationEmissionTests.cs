@@ -55,14 +55,19 @@ public class FactoryNavigationEmissionTests
     [Fact]
     public void OptOut_DropsBreadcrumbButKeepsDebuggerStepThrough()
     {
-        var output = Run(Src,
+        var output = RunWith(Src,
             new Dictionary<string, string> { ["build_property.RaskFactoryNavigation"] = "false" });
 
         Assert.DoesNotContain("<see cref", output);
         Assert.Contains("[global::System.Diagnostics.DebuggerStepThrough]", output);
     }
 
-    private static string Run(string source, Dictionary<string, string> buildProps)
+    // Shared with FactoryDocCommentEmissionTests: the same opt-out has to be exercised against the
+    // doc-comment emission, and one driver-with-build-properties helper is enough.
+    // `hint` selects which generated file to return; the factory file is what most callers want, but the
+    // builder-surface tests need the entry files, which only exist when RaskBuilderSurface is on.
+    internal static string RunWith(
+        string source, Dictionary<string, string> buildProps, string hint = "Demo.Generated.g.cs")
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
         var compilation = CSharpCompilation.Create(
@@ -81,12 +86,12 @@ public class FactoryNavigationEmissionTests
             .Results.SelectMany(r => r.GeneratedSources)
             .ToImmutableArray();
         var match = generated.FirstOrDefault(s =>
-            s.HintName.Contains("Demo.Generated.g.cs", StringComparison.Ordinal));
+            s.HintName.Contains(hint, StringComparison.Ordinal));
         if (match.SourceText is null)
         {
             var available = string.Join(", ", generated.Select(s => s.HintName));
             throw new InvalidOperationException(
-                $"No Demo.Generated.g.cs generated. Available: [{available}]");
+                $"No {hint} generated. Available: [{available}]");
         }
 
         return match.SourceText.ToString();
