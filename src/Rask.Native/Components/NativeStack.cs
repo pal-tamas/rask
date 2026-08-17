@@ -12,9 +12,9 @@ namespace Rask.Native.Components;
 ///     responds, which is how a list row becomes a row you can select without a separate component for it.
 /// </remarks>
 /// <example>
-///     <code>NativeStack(Spacing: 12, Padding: 16)[
-///         NativeLabel(Text: "Total", FontWeight: NativeFontWeight.Semibold),
-///         NativeLabel(Text: total.ToString("C"))]</code>
+///     <code>NativeStack.Spacing(12).Padding(16)[
+///         NativeLabel.FontWeight(NativeFontWeight.Semibold)["Total"],
+///         NativeLabel[total.ToString("C")]]</code>
 /// </example>
 public sealed partial class NativeStack : NativeViewComponent
 {

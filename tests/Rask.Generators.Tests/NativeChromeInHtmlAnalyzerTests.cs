@@ -222,7 +222,7 @@ public class NativeChromeInHtmlAnalyzerTests
                   public sealed class Page : Component
                   {
                       protected override Component? Render() =>
-                          NativeScreen()[NativeStack()[NativeLabel("hi"), NativeButton("go")]];
+                          NativeScreen()[NativeStack()[NativeLabel()["hi"], NativeButton()["go"]]];
                   }
                   """;
 
@@ -244,7 +244,7 @@ public class NativeChromeInHtmlAnalyzerTests
                   {
                       public bool Native { get; set; }
                       protected override Component? Render() =>
-                          Native ? NativeScreen()[NativeLabel("hi")] : NativeWebView()[Div()[Span()]];
+                          Native ? NativeScreen()[NativeLabel()["hi"]] : NativeWebView()[Div()[Span()]];
                   }
                   """;
 
