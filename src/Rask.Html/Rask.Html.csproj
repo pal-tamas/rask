@@ -76,8 +76,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Html.Tests"/>
-    <!-- The element family's tests still live in Rask.Core.Tests (they moved assembly, not test project),
-         and some reach internal seams like Form&lt;T&gt;.ResolveContext that Rask.Core already grants them. -->
+    <!-- The element family's own tests live in Rask.Html.Tests. Rask.Core.Tests keeps a handful that are
+         about Core behaviour but reach an element's internal seam to assert it — ActionableExceptionMessageTests
+         on Form&lt;T&gt;.ResolveContext — which Rask.Core already grants it. -->
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <InternalsVisibleTo Include="Rask.Testing"/>
     <InternalsVisibleTo Include="Rask.Testing.Tests"/>
