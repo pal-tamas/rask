@@ -368,6 +368,32 @@ them until tagged releases begin.
   radius — not latency; the outbox can never move, since it commits with the business change by design.
 
 ### Fixed
+- **A routed frame no longer re-matches the route on every render.** `Router.Render()` runs on every
+  frame — it has to, because it publishes `ctx.Route` for the whole subtree and so cannot be
+  render-cached (#682) — and `RouteMatcher.TryMatch` allocates the chain list and the values dictionary
+  each time it is asked. It is a pure function of the flattened leaves and the path, neither of which
+  changes between renders except on navigation or a `Routes` reassignment, so the answer is now kept.
+  Same spirit as the `Routes` setter's existing reference cache, which already refuses to re-flatten the
+  same tree.
+
+  Measured (`RoutedRenderBenchmarks`, a two-level chain, 20 rows, steady-state re-render):
+
+  ```
+  | RoutedFrame                              Allocated
+  | before #682 (positional, but throwing)    3.86 KB
+  | after #682, matching every frame          4.18 KB
+  | with the match memoised                   3.96 KB
+  ```
+
+  So most of what #682 cost is back: **+0.10 KB rather than +0.32 KB** against the original. Wall clock
+  is inconclusive at this size (±0.4 us) so no claim is made about it. The remaining 0.10 KB is the
+  per-frame `RouteRenderState`, which is deliberately still fresh each frame — its `Cursor` is per-frame
+  walk state and its `Query` has to be read now, since `?page=2` moves without the path moving.
+
+  Two tests pin what a cache like this can get wrong: a query change on an unchanged path must still
+  reach the page, and replacing the routes must invalidate. The second one fails if the key is weakened
+  to the path alone. Closes #688.
+
 - **A dependency bump could fail the build of a project that has no scoped assets at all.** The
   scoped-asset bake refuses to write an empty bundle silently (#650) — but the check that decides whether
   "zero files" is a failure asked only whether *some* assembly had been skipped, on the reasoning that
