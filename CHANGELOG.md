@@ -519,7 +519,12 @@ them until tagged releases begin.
   - **RASK027 (both the sync and async handler set) never fired on a chain.**
     `Button.OnClick(…).OnClickAsync(…)` silently dropped the async handler, which is the whole reason the
     diagnostic is an **Error** on a factory call.
-  - RASK034 has the same defect and is **not** fixed here; it is tracked separately.
+  - **RASK034 (a `BsDataGrid` column with no `Field`) never fired on a chain either.** The column
+    chooser addresses a column by the token read off `Field`, so a column without one can never be
+    shown, hidden or reordered — it sits pinned with no menu row, silently, which is exactly the
+    failure this diagnostic exists to catch. Verified against the real `Rask.Bootstrap` types rather
+    than the test's stand-ins: removing a `Field` from a sample's grid makes it fire on the offending
+    column and nothing else.
   - The chain branch is deliberately additive: the factory branch still owns `Generated.X(…)`, so nothing
     reports twice. Each new branch requires the operation's type to genuinely be `Build<T>` — without that
     the children indexer qualifies too (it is also a property reference) and every keyless row reported

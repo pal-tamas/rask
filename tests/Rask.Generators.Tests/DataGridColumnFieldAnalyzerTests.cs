@@ -37,6 +37,30 @@ public class DataGridColumnFieldAnalyzerTests
                     IReadOnlyList<string> HiddenColumns = null,
                     IReadOnlyList<string> ColumnOrder = null) => null;
             }
+
+            // The chain surface, reproduced in the shape the analyzer keys on: a component named
+            // BsDataGrid, and steps that are EXTENSION METHODS on Rask.Core.Build<T> handing it back.
+            public sealed class BsDataGrid<T> { }
+
+            public static class BsDataGridSteps
+            {
+                public static Rask.Core.Build<BsDataGrid<T>> Data<T>(
+                    this Rask.Core.Build<BsDataGrid<T>> b, IEnumerable<T> v) => b;
+
+                public static Rask.Core.Build<BsDataGrid<T>> Columns<T>(
+                    this Rask.Core.Build<BsDataGrid<T>> b, IReadOnlyList<BsColumn<T>> v) => b;
+
+                public static Rask.Core.Build<BsDataGrid<T>> ColumnChooser<T>(
+                    this Rask.Core.Build<BsDataGrid<T>> b, bool v) => b;
+
+                public static Rask.Core.Build<BsDataGrid<T>> HiddenColumns<T>(
+                    this Rask.Core.Build<BsDataGrid<T>> b, IReadOnlyList<string> v) => b;
+            }
+        }
+
+        namespace Rask.Core
+        {
+            public readonly struct Build<T> { }
         }
 
         namespace Demo
@@ -48,10 +72,76 @@ public class DataGridColumnFieldAnalyzerTests
 
             public static class Use
             {
+                // The entry a chain opens on. How it is produced is irrelevant to the analyzer — what
+                // matters is that the chain's type is Build<BsDataGrid<Row>>.
+                private static Rask.Core.Build<BsDataGrid<Row>> Grid => default;
+
                 public static object M() => {{call}};
             }
         }
         """;
+
+    // The chain is what the framework teaches. Its steps are extension methods on Build<T>, not a static
+    // Generated.BsDataGrid(...), so the factory branch matched none of these and a column that could never
+    // be shown, hidden or reordered went unreported.
+    [Fact]
+    public async Task Chain_ChooserOn_ColumnWithoutField_ReportsRask034()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            """
+            Grid.ColumnChooser(true).Columns(
+            [
+                new BsColumn<Row> { Title = "Name", Value = r => r.Name },
+                new BsColumn<Row> { Title = "Amount", Field = r => r.Amount },
+            ])
+            """)));
+
+        Assert.Equal("RASK034", d.Id);
+    }
+
+    [Fact]
+    public async Task Chain_ControlledHiddenColumns_TriggersTheCheck_Too()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            """
+            Grid.HiddenColumns(new[] { "amount" }).Columns(
+            [
+                new BsColumn<Row> { Title = "Name", Value = r => r.Name },
+            ])
+            """)));
+
+        Assert.Equal("RASK034", d.Id);
+    }
+
+    [Fact]
+    public async Task Chain_NoChooser_ColumnWithoutField_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(App(
+            """
+            Grid.Columns(
+            [
+                new BsColumn<Row> { Title = "Name", Value = r => r.Name },
+            ])
+            """)));
+
+    [Fact]
+    public async Task Chain_ChooserOn_EveryColumnHasField_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(App(
+            """
+            Grid.ColumnChooser(true).Columns(
+            [
+                new BsColumn<Row> { Title = "Name", Field = r => r.Name },
+            ])
+            """)));
+
+    [Fact]
+    public async Task Chain_ChooserOn_PinnedFixtureWithoutField_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(App(
+            """
+            Grid.ColumnChooser(true).Columns(
+            [
+                new BsColumn<Row> { Title = "N", Value = r => r.Name, Hideable = false, Reorderable = false },
+            ])
+            """)));
 
     [Fact]
     public async Task ChooserOn_ColumnWithoutField_ReportsRask034()
