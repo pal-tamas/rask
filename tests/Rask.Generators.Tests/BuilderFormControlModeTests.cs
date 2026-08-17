@@ -155,6 +155,30 @@ public class BuilderFormControlModeTests
             output, StringComparison.Ordinal);
     }
 
+    // Bind never folds into propsChanged. An expression tree is a fresh object every render and the eager
+    // reset blanks it first, so a Track call compares a new tree against null and reports a change on
+    // EVERY frame — which costs a bound control the render cache outright. PinCandidates (the generic
+    // path) and EmitBoundSetters both already say Track: false; the non-generic opening has to agree.
+    [Fact]
+    public void The_Bind_opening_does_not_fold_into_props_changed()
+    {
+        var bind = Entries(Flag).Split('\n')
+            .SkipWhile(l => !l.Contains("Forms.Bound> Bind(", StringComparison.Ordinal))
+            .Take(6)
+            .ToList();
+
+        Assert.DoesNotContain(bind, l => l.Contains("BuilderRuntime.Track", StringComparison.Ordinal));
+        Assert.DoesNotContain(bind, l => l.Contains("BuilderRuntime.Written", StringComparison.Ordinal));
+
+        // …while Value is an ordinary value prop and folds like one, or a controlled control would stop
+        // reporting real changes.
+        var value = Entries(Flag).Split('\n')
+            .SkipWhile(l => !l.Contains("Forms.Controlled> Value(", StringComparison.Ordinal))
+            .Take(6)
+            .ToList();
+        Assert.Contains(value, l => l.Contains("BuilderRuntime.Track", StringComparison.Ordinal));
+    }
+
     // …and the mode steps are then not ALSO setters, or choosing one would not rule out the other.
     [Theory]
     [InlineData("Bind")]

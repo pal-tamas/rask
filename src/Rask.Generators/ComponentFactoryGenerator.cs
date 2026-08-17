@@ -1045,7 +1045,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
             .Append(" = ").Append(assigned).AppendLine("; return __b; }");
         EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
-            generic: false, mode, typeParameters);
+            generic: false, mode, typeParameters, constraints);
     }
 
     // A property whose type IS an attribute bag — Data, Aria, FieldAria, and anything added later.
@@ -1079,7 +1079,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitAttrBagOverloads(
         StringBuilder sb, string setterName, string propertyName, string typeFqn, string receiver,
         bool fold, int pendingBit, string visibility, bool generic, string? mode = null,
-        string typeParameters = "")
+        string typeParameters = "", string constraints = "")
     {
         if (!IsAttrBag(typeFqn))
         {
@@ -1104,7 +1104,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // declared none would not compile. Non-generic components (every one that has a bag prop today)
         // are unaffected: the list is empty either way.
         var typeArgs = WithMode(generic ? "<T>" : typeParameters, mode);
-        var where = generic ? " where T : " + receiver : string.Empty;
+        // …and with them their CONSTRAINTS, or a constrained generic component with a bag prop emits
+        // `Foo<TValue>(this Build<Widget<TValue>, TMode> …)` with no `where TValue : …` and fails to
+        // compile (CS0314). Carrying the parameters without the constraints was half a fix.
+        var where = generic ? " where T : " + receiver : constraints;
 
         // The body is assigned here rather than forwarded to the dictionary overload. Every component's
         // setters are extension methods on Build<…> in one static class, so a forwarding `Data(__b, …)`
@@ -1191,22 +1194,38 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            // A step SUPPLIES its property, so its parameter is non-nullable however the property is
+            // Bind NEVER folds into propsChanged, exactly as PinCandidates and EmitBoundSetters have it:
+            // an expression tree is a fresh object every render and the eager reset blanks it beforehand,
+            // so a Track call here compares a new tree against null and reports a change on every single
+            // frame — which costs a bound control the render cache entirely. Value is an ordinary value
+            // prop and folds like one.
+            var isBind = string.Equals(p.Name, "Bind", StringComparison.Ordinal);
+
+            // Bind SUPPLIES the binding, so its parameter is non-nullable however the property is
             // declared: `BsCheck.Bind(x)` taking an `Expression<…>?` would let the mode be chosen and
-            // left empty in the same breath.
+            // left empty in the same breath. Value keeps its declared nullability — a control over a
+            // nullable value type legitimately opens on `Value(null)`, and the generic path
+            // (PinCandidates) keeps it nullable too.
             openings.Add([
                 new EntryInference(
                     p.Name,
-                    StripNullable(p.TypeFqn),
+                    isBind ? StripNullable(p.TypeFqn) : p.TypeFqn,
                     p.Name,
-                    FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
-                    Bit(bits, p.Name),
+                    !isBind && FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                    isBind ? -1 : Bit(bits, p.Name),
                     p.Summary),
             ]);
         }
 
         return openings;
     }
+
+    // Whether a form control actually has a mode to choose. A control that implements IFormControl<T>
+    // EXPLICITLY exposes neither Bind nor Value as a settable property, so there is no opening to build
+    // and forcing a seed on it would emit one with no members at all — leaving the control unreachable
+    // from markup with nothing reported. Such a control keeps the ordinary entry it always had.
+    private static bool HasModeOpening(Candidate c) =>
+        c.FormControl is not null && c.Properties.Any(static p => p.Name is "Bind" or "Value");
 
     // A generated parameter, and a generated assignment, are the property's own type and the value
     // itself. There used to be a layer here: a callback property was a CARRIER wrapping its delegate, so
@@ -1878,13 +1897,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // …and a FORM CONTROL always needs one, whether or not it has anything to pin or demand: its seed is
     // where the mode is chosen, and the mode has to be chosen before there is a chain to put steps on.
     private static bool NeedsSeed(Candidate c) =>
-        c.TypeParameters.Length != 0 || RequiredSteps(c).Count != 0 || c.FormControl is not null;
+        c.TypeParameters.Length != 0 || RequiredSteps(c).Count != 0 || HasModeOpening(c);
 
     private static List<List<EntryInference>> Openings(Candidate c)
     {
         if (c.TypeParameters.Length == 0)
         {
-            return c.FormControl is null ? [[]] : ModeOpenings(c);
+            return HasModeOpening(c) ? ModeOpenings(c) : [[]];
         }
 
         var sets = PinSets(c);

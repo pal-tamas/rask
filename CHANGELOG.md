@@ -75,6 +75,13 @@ them until tagged releases begin.
     both of. It gets a seed now because it is a form control: write `BsCheck.Bind(() => m.Done)` or
     `BsCheck.Value(false)` where a bare `BsCheck` used to do.
   - Nothing outside form controls changes: an ordinary component's chain is the same `Build<T>`.
+  - **RASK046 sees form controls again, and no longer misfires on them.** `KeyOpensChainAnalyzer` read
+    the built type by *shape* — an arity-1 generic return — so a mode-carrying chain answered "nothing"
+    and the rule went quiet for exactly the components it was added for (the `Bs` controls derive from
+    `Component`, not `Element`). It reads both arities now. It also no longer reports the chain's
+    *opening*: a seed step is what constructs the component rather than a setter that can be lost, and it
+    necessarily precedes `Key` — `Check.Value(true).Key(1)` has no legal reordering, since the seed
+    exposes no `Key` of its own.
 
 ### Added
 - **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**

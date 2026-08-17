@@ -56,10 +56,14 @@ derives everything from the bound property:
 
 A control's value comes from exactly one place, and the step you open the chain with says which:
 
-| Opened with | Mode | Adds | Does **not** offer |
+| Opened with | Mode | Then adds | Does **not** offer |
 | --- | --- | --- | --- |
-| `.Bind(() => model.Field)` | bound | `Validate` / `ValidateAsync`, `AfterBind` / `AfterBindAsync` | `Value`, `Checked`, `OnInput`, `OnChange` |
-| `.Value(v)` or `.Of<T>()` | controlled | `Value`, `Checked`, `OnInput` / `OnInputAsync`, `OnChange` / `OnChangeAsync` | `Bind`, `Validate`, `AfterBind` |
+| `.Bind(() => model.Field)` | bound | `Validate` / `ValidateAsync`, `AfterBind` / `AfterBindAsync` | `Checked`, `OnInput`, `OnChange` |
+| `.Value(v)` or `.Of<T>()` | controlled | `Checked`, `OnInput` / `OnInputAsync`, `OnChange` / `OnChangeAsync` | `Validate`, `AfterBind` |
+
+`Bind` and `Value` are the *openings* themselves, not steps you take later — taking one is what rules
+the other out, so neither appears again on the chain. `Of<T>()` opens a controlled chain for a control
+you are giving no value at all; if you want to supply one, that is `.Value(v)`.
 
 Everything else — `Placeholder`, `Type`, `Required`, `Min`/`Max`, `OnFiles`, the whole `Class`/`Id`/
 `Aria` element surface — belongs to neither and is reachable from both.
