@@ -23,6 +23,13 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private const string RouteUrlFullName = "global::Rask.Core.Routing.RouteUrl";
     private const string NotFoundTemplate = "{**__rask_notfound}";
 
+    // The routable base class. A page declares its template by overriding Page.Route with a compile-time
+    // constant; this generator reads that constant out of the override's syntax, which is why RASK036
+    // exists (a non-constant override has nothing to read and would silently never register).
+    private const string PageBaseFullName = "Rask.Core.Page";
+    private const string RoutePropertyName = "Route";
+    private const string ParentPropertyName = "Parent";
+
     private const string FormatterFullName = "global::Rask.Core.Routing.RouteValueFormatter";
 
     private static readonly DiagnosticDescriptor Rask003 = new(
@@ -105,21 +112,21 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask009 = new(
         "RASK009",
         "[RouteParam] on a non-routed class",
-        "Property '{0}.{1}' has [RouteParam] but '{0}' is not a valid route target ({2}) — mark '{0}' with "
-        + "[Route] (a concrete Component subclass), or remove [RouteParam]",
+        "Property '{0}.{1}' has [RouteParam] but '{0}' is not a valid route target ({2}) — derive '{0}' from "
+        + "Page (a concrete subclass), or remove [RouteParam]",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "Route binding only runs for pages the router can reach. On a class with no [Route] and no "
-                     + "[ParentRoute] chain to one, the attribute describes binding that never happens, so the property "
+        description: "Route binding only runs for pages the router can reach. On a class that is not a Page and has "
+                     + "no Parent chain to one, the attribute describes binding that never happens, so the property "
                      + "silently keeps its default.",
         helpLinkUri: DiagnosticHelp.Link("RASK009"));
 
     private static readonly DiagnosticDescriptor Rask010 = new(
         "RASK010",
         "[QueryParam] on a non-routed class",
-        "Property '{0}.{1}' has [QueryParam] but '{0}' is not a valid route target ({2}) — mark '{0}' with "
-        + "[Route] (a concrete Component subclass), or remove [QueryParam]",
+        "Property '{0}.{1}' has [QueryParam] but '{0}' is not a valid route target ({2}) — derive '{0}' from "
+        + "Page (a concrete subclass), or remove [QueryParam]",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
@@ -181,19 +188,43 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                      + "well asks it to be both a specific path and the catch-all for every other one.",
         helpLinkUri: DiagnosticHelp.Link("RASK013"));
 
+    private static readonly DiagnosticDescriptor Rask047 = new(
+        "RASK047",
+        "Page.Route must be a compile-time constant",
+        "The 'Route' override on '{0}' is not a compile-time constant — return a string literal or a const "
+        + "so the route can be registered at build time",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Error,
+        true,
+        description: "The route table, the typed 'SomePage.Url(...)' formatter and the 'SomePage.Go(...)' "
+                     + "helper are all built at compile time from this value. A route computed at run time "
+                     + "could not contribute to any of them, so the page would silently never be reachable.",
+        helpLinkUri: DiagnosticHelp.Link("RASK047"));
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var candidates = context.SyntaxProvider
             .CreateSyntaxProvider(
+                // A routable class is either attributed ([NotFound]) or derives from Page — and deriving
+                // needs a base list, so the cheap syntax filter accepts both and GetCandidate rejects the
+                // rest via the semantic model.
                 static (node, _) => node is ClassDeclarationSyntax c
-                                    && c.AttributeLists.Count > 0
+                                    && (c.AttributeLists.Count > 0 || c.BaseList is not null)
                                     && !c.Modifiers.Any(m => m.IsKind(SyntaxKind.AbstractKeyword)),
                 static (ctx, _) => GetCandidate(ctx))
             .Where(static c => c is not null)
             .Select(static (c, _) => c!);
 
-        var grouped = candidates.Collect();
-        context.RegisterSourceOutput(grouped, static (spc, list) => Emit(spc, list));
+        // The per-page `SomePage.Url(...)` / `SomePage.Go(...)` helpers are C# 14 static extension members.
+        // Generated code is compiled with the CONSUMER's language version, and below C# 14 an extension
+        // block does not fail with a clean "feature unavailable" message — it fails as a parse-error
+        // cascade (CS1001/CS1513/CS1519) pointing inside generated source, which is unactionable. So the
+        // emission is gated here and the legacy Routes.X(...) factories carry those consumers.
+        var supportsExtensionMembers = context.ParseOptionsProvider.Select(static (options, _) =>
+            options is CSharpParseOptions cs && cs.LanguageVersion >= LanguageVersion.CSharp14);
+
+        var grouped = candidates.Collect().Combine(supportsExtensionMembers);
+        context.RegisterSourceOutput(grouped, static (spc, pair) => Emit(spc, pair.Left, pair.Right));
 
         var orphanCandidates = context.SyntaxProvider
             .CreateSyntaxProvider(
@@ -309,10 +340,57 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             }
         }
 
+        // A Page declares its route by overriding Page.Route with a compile-time constant. The override
+        // wins over any [Route] attribute (the attribute is the legacy spelling and is on its way out),
+        // and a Page whose override isn't constant is RASK036 rather than a page that silently vanishes
+        // from the route table.
+        var isPage = InheritsFromPage(symbol);
+        var routePropLocation = (Location?)null;
+        var routePropNotConstant = false;
+        if (isPage)
+        {
+            var declared = TryReadRouteOverride(ctx, symbol, out var template, out routePropLocation);
+            if (declared)
+            {
+                if (template is null)
+                {
+                    routePropNotConstant = true;
+                }
+                else
+                {
+                    templates.Clear();
+                    templates.Add(template);
+                    firstRouteAttrLocation = routePropLocation;
+                }
+            }
+
+            if (TryReadParentOverride(ctx, symbol, out var parentFqn))
+            {
+                parentTypeFqn = parentFqn;
+            }
+        }
+
         var ns = symbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
         var properties = GetPageProperties(symbol);
+
+        if (routePropNotConstant)
+        {
+            // Carry the failure through to Emit so the diagnostic is reported once, from the source-output
+            // stage, rather than from the (cached, possibly re-run) syntax transform.
+            return new Candidate(
+                ns,
+                symbol.Name,
+                symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                new EquatableArray<string>(new List<string>()),
+                parentTypeFqn,
+                new EquatableArray<RoutePropInfo>(properties),
+                new LocationInfo(routePropLocation),
+                false,
+                false,
+                true);
+        }
 
         if (hasNotFound)
         {
@@ -343,6 +421,123 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             new LocationInfo(firstRouteAttrLocation),
             false,
             true);
+    }
+
+    private static bool InheritsFromPage(INamedTypeSymbol symbol)
+    {
+        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
+        {
+            if (t.ToDisplayString() == PageBaseFullName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Reads the <c>Route</c> override off <paramref name="symbol" />. Returns <c>false</c> when this type
+    ///     doesn't declare one (an intermediate base in the hierarchy may). Returns <c>true</c> with a null
+    ///     <paramref name="template" /> when the override exists but isn't a compile-time constant — the
+    ///     RASK036 case.
+    /// </summary>
+    private static bool TryReadRouteOverride(GeneratorSyntaxContext ctx, INamedTypeSymbol symbol,
+        out string? template, out Location? location)
+    {
+        template = null;
+        location = null;
+
+        var prop = symbol.GetMembers(RoutePropertyName).OfType<IPropertySymbol>().FirstOrDefault();
+        if (prop is null || !prop.IsOverride)
+        {
+            return false;
+        }
+
+        if (prop.DeclaringSyntaxReferences.Length == 0)
+        {
+            return false;
+        }
+
+        if (prop.DeclaringSyntaxReferences[0].GetSyntax() is not PropertyDeclarationSyntax decl)
+        {
+            return false;
+        }
+
+        location = decl.GetLocation();
+
+        // Accept both spellings: `=> "/x"` and a getter whose body is a single `return "/x";`.
+        var expr = decl.ExpressionBody?.Expression
+                   ?? decl.AccessorList?.Accessors
+                       .FirstOrDefault(a => a.IsKind(SyntaxKind.GetAccessorDeclaration))
+                       ?.ExpressionBody?.Expression
+                   ?? decl.AccessorList?.Accessors
+                       .FirstOrDefault(a => a.IsKind(SyntaxKind.GetAccessorDeclaration))
+                       ?.Body?.Statements.OfType<ReturnStatementSyntax>().FirstOrDefault()?.Expression;
+
+        if (expr is null)
+        {
+            return true;
+        }
+
+        // The property may be declared in a different syntax tree than the one that triggered this
+        // transform (a partial page), so resolve the model for the tree the expression actually lives in.
+        var model = expr.SyntaxTree == ctx.SemanticModel.SyntaxTree
+            ? ctx.SemanticModel
+            : ctx.SemanticModel.Compilation.GetSemanticModel(expr.SyntaxTree);
+
+        var constant = model.GetConstantValue(expr);
+        if (constant is { HasValue: true, Value: string s })
+        {
+            template = s;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Reads the <c>Parent</c> override — <c>typeof(SomePage)</c> — off <paramref name="symbol" />.
+    /// </summary>
+    private static bool TryReadParentOverride(GeneratorSyntaxContext ctx, INamedTypeSymbol symbol,
+        out string? parentFqn)
+    {
+        parentFqn = null;
+
+        var prop = symbol.GetMembers(ParentPropertyName).OfType<IPropertySymbol>().FirstOrDefault();
+        if (prop is null || !prop.IsOverride || prop.DeclaringSyntaxReferences.Length == 0)
+        {
+            return false;
+        }
+
+        if (prop.DeclaringSyntaxReferences[0].GetSyntax() is not PropertyDeclarationSyntax decl)
+        {
+            return false;
+        }
+
+        var expr = decl.ExpressionBody?.Expression
+                   ?? decl.AccessorList?.Accessors
+                       .FirstOrDefault(a => a.IsKind(SyntaxKind.GetAccessorDeclaration))
+                       ?.ExpressionBody?.Expression
+                   ?? decl.AccessorList?.Accessors
+                       .FirstOrDefault(a => a.IsKind(SyntaxKind.GetAccessorDeclaration))
+                       ?.Body?.Statements.OfType<ReturnStatementSyntax>().FirstOrDefault()?.Expression;
+
+        if (expr is not TypeOfExpressionSyntax typeOf)
+        {
+            return false;
+        }
+
+        var model = expr.SyntaxTree == ctx.SemanticModel.SyntaxTree
+            ? ctx.SemanticModel
+            : ctx.SemanticModel.Compilation.GetSemanticModel(expr.SyntaxTree);
+
+        if (model.GetSymbolInfo(typeOf.Type).Symbol is not INamedTypeSymbol parent)
+        {
+            return false;
+        }
+
+        parentFqn = parent.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return true;
     }
 
     // Normalize a route template to the shape the runtime router matches on (mirrors
@@ -516,7 +711,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
 
         var inheritsComponent = InheritsFromComponent(symbol);
-        var hasRoute = classAttrs.Any(a => a.AttributeClass?.ToDisplayString() == RouteAttrFullName);
+
+        // A class is a route target if it derives from Page (the current spelling) or carries [Route]
+        // (the legacy one). Deriving is enough on its own — the Route override is what supplies the
+        // template, and a missing/non-constant one is RASK047's business, not this analyzer's.
+        var isRouteTarget = InheritsFromPage(symbol)
+                            || classAttrs.Any(a => a.AttributeClass?.ToDisplayString() == RouteAttrFullName);
 
         string? reason = null;
         if (!inheritsComponent)
@@ -527,9 +727,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         {
             reason = "class is abstract";
         }
-        else if (!hasRoute)
+        else if (!isRouteTarget)
         {
-            reason = "class is not marked [Route]";
+            reason = "class does not derive from Page";
         }
 
         if (reason is null)
@@ -643,7 +843,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates)
+    private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates,
+        bool supportsExtensionMembers)
     {
         if (candidates.IsDefaultOrEmpty)
         {
@@ -656,6 +857,16 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         var filtered = new List<Candidate>(candidates.Length);
         foreach (var c in candidates)
         {
+            // RASK036: a Page whose Route override isn't a compile-time constant. Reported here rather
+            // than in the syntax transform so it surfaces once per build, and the page is dropped —
+            // there is no template to register.
+            if (c.NonConstantRoute)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask047, c.RouteAttrLocation.ToLocation(),
+                    c.FullyQualifiedName));
+                continue;
+            }
+
             if (c.IsNotFound && c.HasRouteAttr)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(Rask013, c.RouteAttrLocation.ToLocation(),
@@ -778,6 +989,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             sb.AppendLine("public static partial class Routes");
             sb.AppendLine("{");
 
+            // Collected separately and appended as a second partial below, because the extension blocks
+            // must not interleave with the factory methods they forward to.
+            var extSb = supportsExtensionMembers ? new StringBuilder() : null;
+
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var c in routedInGroup.OrderBy(c => c.TypeName, StringComparer.Ordinal))
             {
@@ -786,11 +1001,17 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                EmitRouteFactory(spc, sb, c, byFqn);
+                EmitRouteFactory(spc, sb, extSb, c, byFqn);
                 sb.AppendLine();
             }
 
             sb.AppendLine("}");
+
+            if (extSb is { Length: > 0 })
+            {
+                sb.AppendLine();
+                sb.Append(extSb);
+            }
 
             var hint = hasNs ? $"{group.Key}.Routes.g.cs" : "Routes.g.cs";
             spc.AddSource(hint, SourceText.From(sb.ToString(), Encoding.UTF8));
@@ -898,8 +1119,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         spc.AddSource("__RaskRoutesRegistry.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    private static void EmitRouteFactory(SourceProductionContext spc, StringBuilder sb, Candidate c,
-        Dictionary<string, Candidate> byFqn)
+    private static void EmitRouteFactory(SourceProductionContext spc, StringBuilder sb, StringBuilder? extSb,
+        Candidate c, Dictionary<string, Candidate> byFqn)
     {
         var unbindable = false;
         foreach (var prop in c.Properties)
@@ -1008,7 +1229,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
         // URL formatter is built from the first template only — see TryResolveFullTemplate's
         // index-0 comment for the rationale.
-        EmitFactoryBody(sb, c, firstParts!, firstResolved!, queryProps);
+        EmitFactoryBody(sb, extSb, c, firstParts!, firstResolved!, queryProps);
     }
 
     private static void EmitStub(StringBuilder sb, Candidate c)
@@ -1018,8 +1239,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             "        => throw new global::System.InvalidOperationException(\"Route source generation failed; see diagnostics.\");");
     }
 
-    private static void EmitFactoryBody(StringBuilder sb, Candidate c, List<TemplatePart> parts,
-        List<ResolvedPathParam> pathParams, List<RoutePropInfo> queryProps)
+    private static void EmitFactoryBody(StringBuilder sb, StringBuilder? extSb, Candidate c,
+        List<TemplatePart> parts, List<ResolvedPathParam> pathParams, List<RoutePropInfo> queryProps)
     {
         // Signature: required path params first (in declaration order), then optional, then query
         var orderedPath = pathParams.OrderBy(p => p.Part.Optional ? 1 : 0).ToList();
@@ -1153,6 +1374,132 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("    }");
+
+        if (extSb is not null)
+        {
+            EmitNavigationExtension(extSb, c, orderedPath, queryProps);
+        }
+    }
+
+    /// <summary>
+    ///     Emits the per-page <c>SomePage.Url(...)</c> / <c>SomePage.Go(...)</c> pair as a C# 14 static
+    ///     extension block. Both mirror the legacy <c>Routes.SomePage(...)</c> signature exactly — the same
+    ///     path params (required before optional) then the query params — and <c>Url</c> forwards to it, so
+    ///     the URL-building logic has exactly one implementation.
+    ///     <para>
+    ///         The block is emitted into the page's OWN namespace. Extension members resolve only when their
+    ///         containing namespace is imported (a fully-qualified <c>My.Ns.SomePage.Go()</c> with no
+    ///         <c>using</c> does not compile), so co-locating them means the import that brings the page type
+    ///         into scope also brings its navigation helpers.
+    ///     </para>
+    ///     <para>
+    ///         Each page gets its OWN container class. A static extension member lowers to a plain static
+    ///         method on the containing class with no receiver parameter, so two pages that both take no
+    ///         route parameters would lower to two identical <c>Url()</c> signatures and collide with CS0111
+    ///         if they shared one container.
+    ///     </para>
+    /// </summary>
+    private static void EmitNavigationExtension(StringBuilder sb, Candidate c,
+        List<ResolvedPathParam> orderedPath, List<RoutePropInfo> queryProps)
+    {
+        // A route or query param literally named "replace" would collide with Go's history flag. The
+        // page's own parameter wins and Go simply loses the flag for that page — a shadowed, silently
+        // mis-bound argument is far worse than a missing convenience.
+        var replaceFree = orderedPath.All(p => !string.Equals(p.Prop.Name, "replace", StringComparison.OrdinalIgnoreCase))
+                          && queryProps.All(p => !string.Equals(p.Name, "replace", StringComparison.OrdinalIgnoreCase));
+
+        sb.Append("public static class __RaskNav_").AppendLine(c.TypeName);
+        sb.AppendLine("{");
+        sb.Append("    extension(").Append(c.FullyQualifiedName).AppendLine(")");
+        sb.AppendLine("    {");
+
+        sb.Append("        public static ").Append(RouteUrlFullName).Append(" Url(");
+        AppendSignature(sb, orderedPath, queryProps);
+        sb.Append(')').AppendLine();
+        sb.Append("            => Routes.").Append(c.TypeName).Append('(');
+        AppendArguments(sb, orderedPath, queryProps);
+        sb.AppendLine(");");
+        sb.AppendLine();
+
+        sb.Append("        public static void Go(");
+        AppendSignature(sb, orderedPath, queryProps);
+        if (replaceFree)
+        {
+            if (orderedPath.Count > 0 || queryProps.Count > 0)
+            {
+                sb.Append(", ");
+            }
+
+            sb.Append("bool replace = false");
+        }
+
+        sb.Append(')').AppendLine();
+        sb.Append("            => global::Rask.Core.Routing.Navigator.RequireCurrent().NavigateTo(Routes.")
+            .Append(c.TypeName).Append('(');
+        AppendArguments(sb, orderedPath, queryProps);
+        sb.Append(')').Append(replaceFree ? ", replace" : string.Empty).AppendLine(");");
+
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+    }
+
+    private static void AppendSignature(StringBuilder sb, List<ResolvedPathParam> orderedPath,
+        List<RoutePropInfo> queryProps)
+    {
+        var first = true;
+        foreach (var rp in orderedPath)
+        {
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
+            first = false;
+            sb.Append(PathParamTypeFqn(rp.Prop, rp.Part.Constraint, rp.Part.Optional)).Append(' ')
+                .Append(rp.Prop.Name);
+            if (rp.Part.Optional)
+            {
+                sb.Append(" = null");
+            }
+        }
+
+        foreach (var qp in queryProps)
+        {
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
+            first = false;
+            sb.Append(qp.IsNullable ? qp.TypeFqn : qp.TypeFqn + "?").Append(' ').Append(qp.Name).Append(" = null");
+        }
+    }
+
+    private static void AppendArguments(StringBuilder sb, List<ResolvedPathParam> orderedPath,
+        List<RoutePropInfo> queryProps)
+    {
+        var first = true;
+        foreach (var rp in orderedPath)
+        {
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
+            first = false;
+            sb.Append(rp.Prop.Name);
+        }
+
+        foreach (var qp in queryProps)
+        {
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
+            first = false;
+            sb.Append(qp.Name);
+        }
     }
 
     private static string FormatExpr(string ident)
@@ -1388,7 +1735,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         EquatableArray<RoutePropInfo> Properties,
         LocationInfo RouteAttrLocation,
         bool IsNotFound,
-        bool HasRouteAttr);
+        bool HasRouteAttr,
+        bool NonConstantRoute = false);
 
     private readonly record struct RoutePropInfo(
         string Name,
