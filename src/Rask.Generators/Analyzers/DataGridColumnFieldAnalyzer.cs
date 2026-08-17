@@ -56,10 +56,15 @@ public sealed class DataGridColumnFieldAnalyzer : DiagnosticAnalyzer
         // The chain reaches none of the above: its steps are extension methods on Build<T>, not a static
         // Generated.BsDataGrid(...), so the factory branch matched no chain and a column that can never be
         // shown, hidden or reordered went unreported.
-        context.RegisterOperationAction(AnalyzeChain, OperationKind.Invocation);
+        context.RegisterCompilationStartAction(static start =>
+        {
+            // Resolved once rather than per callback.
+            var build = start.Compilation.GetTypeByMetadataName(BuilderEntry.BuildMetadataName);
+            start.RegisterOperationAction(ctx => AnalyzeChain(ctx, build), OperationKind.Invocation);
+        });
     }
 
-    private static void AnalyzeChain(OperationAnalysisContext context)
+    private static void AnalyzeChain(OperationAnalysisContext context, INamedTypeSymbol? build)
     {
         var operation = (IInvocationOperation)context.Operation;
 
@@ -76,7 +81,7 @@ public sealed class DataGridColumnFieldAnalyzer : DiagnosticAnalyzer
             return; // The factory branch owns this one.
         }
 
-        if (BuiltComponent(operation.Type) is not { Name: FactoryName })
+        if (BuilderEntry.BuildOf(operation.Type, build) is not { Name: FactoryName })
         {
             return;
         }
@@ -126,13 +131,6 @@ public sealed class DataGridColumnFieldAnalyzer : DiagnosticAnalyzer
         var index = step.TargetMethod.IsExtensionMethod ? 1 : 0;
         return step.Arguments.Length > index ? step.Arguments[index].Value.Syntax as ExpressionSyntax : null;
     }
-
-    // The component a Build<T> is building, or null when the type is anything else.
-    private static INamedTypeSymbol? BuiltComponent(ITypeSymbol? type) =>
-        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
-        && string.Equals(named.ConstructedFrom.ToDisplayString(), "Rask.Core.Build<T>", StringComparison.Ordinal)
-            ? named.TypeArguments[0] as INamedTypeSymbol
-            : null;
 
     // The next link DOWN the chain: a step's receiver is whatever produced the Build<T> it extends,
     // written either as an extension method (argument 0) or as an instance call.
