@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The sibling test project for src/Rask.Html — the HTML/SVG element family. These tests moved here with
+    the components they cover; the ones left in Rask.Core.Tests/Components are for what Rask.Core still
+    declares (Text/Raw/Fragment/ErrorBoundary, the shell tags, the default pages).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Testing"/>
+    <Using Include="Rask.TestSupport"/>
+    <!-- Both halves of the element family: Rask.Core still declares the components its own engine builds,
+         and each assembly emits its own Generated class (one per compilation, which is exactly why the
+         namespaces had to differ). Tests name tags unqualified through these. -->
+    <!-- Component/Element, and InputType — which keeps `namespace Rask.Core` despite shipping from
+         Rask.Html, so that existing `InputType.Email` call sites keep resolving. These tests used to
+         reach it by namespace nesting from Rask.Core.Tests.*; that is gone, so it is imported. -->
+    <Using Include="Rask.Core"/>
+    <Using Include="Rask.Core.Components"/>
+    <Using Include="Rask.Html.Components"/>
+    <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <Using Include="Rask.Html.Components.Generated" Static="true"/>
+    <Using Include="Rask.Core.Routing.Generated" Static="true"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
+    <!-- The element family's entries are INJECTED into this project's own markup hosts (a referenced
+         library's cannot be inherited), so the generator has to run here. -->
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>
