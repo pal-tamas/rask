@@ -252,6 +252,18 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         await _page.FillAsync("#password", "password");
         await _page.ClickAsync("button[type=submit]");
         await Assertions.Expect(_page).Not.ToHaveURLAsync(new Regex("/login"));
+
+        // …and then wait for the AUTHORIZED CONTENT, not just for the URL to change (#692). On the Server
+        // host, signing in cannot set a cookie on a response that has already been sent — the live session
+        // issues an AuthInstruction and the CLIENT performs the navigation that commits it. So the URL
+        // moves off /login before the cookie exists, and the next `GotoAsync` races that commit: the
+        // caller lands on an authorized page and is bounced straight back to /login, with sign-in
+        // apparently complete. Reproduced 2 runs in 3 in isolation.
+        //
+        // MemberContent renders only for an authorized principal, so its Sign-out button appearing is
+        // evidence the cookie round-trip finished — which is what every caller of this actually needs.
+        await Assertions.Expect(_page.Locator("button:has-text('Sign out')"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
     }
 
     private static async Task<string?> WaitForFileAsync(string directory, string pattern, TimeSpan timeout)

@@ -368,6 +368,26 @@ them until tagged releases begin.
   radius — not latency; the outbox can never move, since it commits with the business change by design.
 
 ### Fixed
+- **Two gate tests no longer depend on how busy the machine is.** The gates are the only place tests run
+  for this repo, so a flake here is a flake in the one thing standing between a change and `main` — and
+  worse, it trains people to re-run rather than read, which is how a real failure gets waved through.
+
+  `AsyncLifecycleRenderingTests` waited a fixed 50 ms for a **fire-and-forget** continuation and then
+  asserted it had happened. The thing being awaited is precisely the one that signals nothing (that is
+  what the test is *about*), so the number was a guess at thread-pool latency — and under a full gate
+  run, with many test projects at once, 50 ms is entirely ordinary. It now polls for the render to land
+  and keeps the sleep only where a test claims "and no more than this", because nothing but elapsed time
+  can evidence a render that did *not* happen. Closes #691.
+
+  `ShopExampleTests.SignInAsync` asserted only that the browser had left `/login`, and that turns out to
+  be too early on the **Server** host. Signing in there cannot set a cookie on a response that has
+  already been sent — the live session issues an `AuthInstruction` and the *client* performs the
+  navigation that commits it — so the URL moves off `/login` before the cookie exists, and the caller's
+  next navigation races that commit: it lands on an authorized page and is bounced straight back to
+  `/login` with sign-in apparently complete. Reproduced 2 runs in 3 once the mechanism was known. It now
+  waits for content that only an authorized principal renders, which is what every caller actually
+  depends on: 5 of 5 runs green after, and the whole Shop suite 11/11. Closes #692.
+
 - **A routed frame no longer re-matches the route on every render.** `Router.Render()` runs on every
   frame — it has to, because it publishes `ctx.Route` for the whole subtree and so cannot be
   render-cached (#682) — and `RouteMatcher.TryMatch` allocates the chain list and the values dictionary
