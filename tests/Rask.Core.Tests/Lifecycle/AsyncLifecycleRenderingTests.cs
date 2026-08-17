@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Lifecycle;
 
-public class AsyncLifecycleRenderingTests
+public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task OnMountAsync_TriggersStateHasChanged_AfterEachAwait()

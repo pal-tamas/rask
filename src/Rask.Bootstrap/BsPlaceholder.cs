@@ -18,7 +18,7 @@ public sealed partial class BsPlaceholder : BsBlock
     // Grid column width 1–12 (col-{n}); the usual way to size a placeholder line.
 
     /// <summary>The block's width in grid columns.</summary>
-    public new int? Col { get; set; }
+    public int? Col { get; set; }
 
     /// <summary>The shimmer to animate with, if any.</summary>
     public BsPlaceholderAnimation? Animation { get; set; }

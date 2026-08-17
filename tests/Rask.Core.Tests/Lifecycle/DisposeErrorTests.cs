@@ -7,7 +7,7 @@ using Rask.Server;
 namespace Rask.Core.Tests.Lifecycle;
 
 [Collection("ConsoleRedirect")]
-public class DisposeErrorTests
+public partial class DisposeErrorTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void DisposeComponentTree_ChildThrows_LogsAndContinues()

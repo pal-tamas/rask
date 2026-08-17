@@ -295,7 +295,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         public Person? Manager { get; set; }
     }
 
-    private new sealed class Address
+    private sealed class Address
     {
         [Required(ErrorMessage = "Street required")]
         public string Street { get; set; } = "";

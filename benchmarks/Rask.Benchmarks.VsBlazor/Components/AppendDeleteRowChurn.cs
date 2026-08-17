@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
 using C = Rask.Core.Components.Generated;
 
+using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
@@ -12,7 +13,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     diff op kinds — the cases the live-diff gate explicitly checks for before
 ///     deciding to ship a diff vs full-HTML payload.
 /// </summary>
-internal static class AppendDeleteRowChurn
+internal static partial class AppendDeleteRowChurn
 {
     public const int InitialRowCount = 100;
 
@@ -30,7 +31,7 @@ internal static class AppendDeleteRowChurn
             rows.Add(C.Div(
                 Class: "row",
                 Data: new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
-                C.Span()[$"Item {idx}"]
+                CH.Span()[$"Item {idx}"]
             ]);
         }
 
@@ -43,7 +44,7 @@ internal static class AppendDeleteRowChurn
     // parameter changes) instead of paying for 100+ fresh element allocations per
     // benchmark iteration on the Rask side.
 #pragma warning disable RASK014
-    public sealed class StatefulAppendDeleteList : Component
+    public sealed partial class StatefulAppendDeleteList : Component
 #pragma warning restore RASK014
     {
         private readonly Dictionary<int, Component> _rowsByKey = new();

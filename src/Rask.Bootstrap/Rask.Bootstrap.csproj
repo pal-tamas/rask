@@ -41,6 +41,8 @@
          duplicate assembly. Rask.Core is only distributed via a host — Bootstrap has no
          host-less consumption path by design. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!-- The HTML/SVG element family, split out of Rask.Core.Components. Bs* components compose it. -->
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

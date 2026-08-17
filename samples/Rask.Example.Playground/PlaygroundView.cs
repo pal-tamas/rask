@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using Rask.Bootstrap;
 using Rask.Core.Components;
 using Rask.Example.Playground.Compiler;
+using Rask.Html.Components;
 
 namespace Rask.Example.Playground;
 

@@ -1,6 +1,6 @@
-// Template — copy to src/Rask.Core/Components/{Tag}.cs and replace {Tag}/{tag}/attrs.
+// Template — copy to src/Rask.Html/Components/{Tag}.cs and replace {Tag}/{tag}/attrs.
 // Delete the comment header. The Generated.{Tag}(...) factory is produced automatically.
-namespace Rask.Core.Components;
+namespace Rask.Html.Components;
 
 /// <summary>The HTML <c>&lt;{tag}&gt;</c> element.</summary>
 public sealed class {Tag} : Element

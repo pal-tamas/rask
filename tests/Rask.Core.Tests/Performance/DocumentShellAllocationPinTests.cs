@@ -20,7 +20,7 @@ namespace Rask.Core.Tests.Performance;
 ///         composition and not the harness. Absolute numbers drift with unrelated work; this does not.
 ///     </para>
 /// </remarks>
-public class DocumentShellAllocationPinTests
+public partial class DocumentShellAllocationPinTests : global::Rask.Core.RaskMarkup
 {
     /// <summary>
     ///     The shell is five elements and one grouping fragment. It must not cost per render what a page

@@ -71,7 +71,7 @@ public sealed partial class BsUtilitiesDemo : Component
         ]
     ];
 
-    private static new Component Section(string title, Component body) =>
+    private static Component Section(string title, Component body) =>
         Div[
             H6.Class(Bs.Join(Txt.Uppercase, Txt.Muted, Font.Bold, Margin.Bottom(2)))[title],
             body

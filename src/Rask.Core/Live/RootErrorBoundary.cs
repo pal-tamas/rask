@@ -142,6 +142,6 @@ internal sealed class RootErrorBoundary : Component
         // component that re-renders every frame. Retained per live session it measures; allocated per
         // render it does not (it is the same transient Fragment every root render used to build for the
         // App's own [Doctype(), Html(...)]).
-        return [Doctype, document];
+        return [CoreDoctype, document];
     }
 }

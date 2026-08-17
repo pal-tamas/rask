@@ -6,7 +6,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Routing;
 
-public class PageBinderTests
+public partial class PageBinderTests : global::Rask.Core.RaskMarkup
 {
     private static QueryCollection Query(params (string key, string value)[] pairs)
     {

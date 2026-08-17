@@ -22,11 +22,13 @@
     <RootNamespace>Rask.Client</RootNamespace>
   </PropertyGroup>
 
+
   <ItemGroup>
     <!-- ShareData (the shared payload) lives in Rask.Core.Browser — used by both the all-host declarative
          ShareButton in Core and this imperative IShare. Core is IsPackable=false and already bundled into
          the Wasm/Native host packages alongside Rask.Client. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
     <PackageReference Include="Microsoft.JSInterop"/>
   </ItemGroup>
 

@@ -2,7 +2,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Routing;
 
-public class RouteFlattenerTests
+public partial class RouteFlattenerTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Flatten_SingleLevel_ProducesOneLeafPerRoute()

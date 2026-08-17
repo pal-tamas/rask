@@ -5,6 +5,7 @@ using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Html.Components;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Live;

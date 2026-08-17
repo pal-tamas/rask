@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Html.Components;
 
 namespace Rask.Mail.Tests;
 

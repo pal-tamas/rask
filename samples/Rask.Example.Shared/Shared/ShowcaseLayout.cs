@@ -1,6 +1,7 @@
 using Microsoft.JSInterop;
 using Rask.Core.Components;
 using Rask.Core.Routing;
+using Rask.Html.Components;
 
 namespace Rask.Example.Shared;
 

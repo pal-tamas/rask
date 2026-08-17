@@ -697,9 +697,26 @@ For a host that **derives** from `RaskMarkup`, nothing else is lost: the compone
 gets its own entry *elsewhere*, and its generated factory is unaffected — `Generated.SalesCard(…)` keeps
 working from anywhere. An **`[RaskMarkup]`** host loses more, and the message says so: the generated
 `partial` is where its base — or, when the base slot is already spent, the framework tags themselves —
-would have come from, so without `partial` it gets no builder surface at all. Nested types are skipped
-without a warning either way, because injecting into one would need every enclosing type to be `partial`
-as well.
+would have come from, so without `partial` it gets no builder surface at all.
+
+A **nested** host is injected into as well — the generated file re-opens each enclosing type as a
+`partial` around it — so every one of them has to be `partial` too. When one is not, this is the warning
+you get, naming the nested component that loses its entries:
+
+```csharp
+public partial class RouterTests : RaskMarkup        // ✓ — enclosing type is partial too
+{
+    private sealed partial class CounterPage : Component
+    {
+        protected override Component? Render() => Div["…"];
+    }
+}
+```
+
+This used not to matter: the HTML tags lived in `Rask.Core` and reached a nested component by
+*inheritance*, where nesting is irrelevant. They ship from `Rask.Html` now, and a referenced library's
+entries can only be injected — so a nested component whose enclosing chain is not `partial` would
+silently lose the chain, which is what this reports instead.
 
 **Fix:** add `partial`. Suppress with `#pragma warning disable RASK036` / `.editorconfig`
 (`dotnet_diagnostic.RASK036.severity = none`) if you build every component through the factory.

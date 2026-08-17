@@ -19,6 +19,7 @@
     <PackageTags>sqlite wasm webassembly browser indexeddb persistence offline efcore dotnet net10</PackageTags>
   </PropertyGroup>
 
+
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
     <!-- Run the trim + AOT analysers on every build, as Rask.Core and Rask.Wasm do, so a browser app
          that publishes trimmed keeps working. Microsoft.Data.Sqlite is reflection-free and trim-clean;
@@ -39,6 +40,7 @@
          Rask.Core is IsPackable=false and arrives at the consumer through Rask.Wasm — the same
          arrangement Rask.Bootstrap and Rask.Validation.* use. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
     <!-- The Online Backup API snapshotter, its options, and the ISqliteSnapshotStore seam this package
          implements over IndexedDB. A real package dependency: consumers resolve it from NuGet. -->
     <ProjectReference Include="..\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>

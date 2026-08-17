@@ -104,7 +104,7 @@ public sealed partial class Markdown : Component
     // Non-nullable + no initializer ⇒ the factory generator emits Source as a required positional
     // parameter (mirrors CodeSample.Files). Rask assigns it after construction, so CS8618 is expected.
 #pragma warning disable CS8618
-    public new string Source { get; set; }
+    public string Source { get; set; }
 #pragma warning restore CS8618
 
     protected override Component? Render() =>

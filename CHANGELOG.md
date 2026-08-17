@@ -7,6 +7,48 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **The HTML/SVG element family moved out of `Rask.Core` into a new `Rask.Html` assembly.** ~155 tag
+  components (`Div`, `Span`, `Table`, `Input`, the 41 `<svg>` elements, `Doctype`) now live in
+  `Rask.Html.Components`; `Rask.Core` keeps only what its own engine constructs — `Text`, `Raw`,
+  `Fragment`, `ErrorBoundary`, `Context`, `Mount`, the default error/not-found pages, and the shell tags
+  those build from (`Html`, `Body`, `Head`, `A`, `Div`, `H1`, `P`, `Pre`, `Code`, `Details`, `Summary`,
+  `Meta`, `Title`, `Button`). The dependency is one-way and now checkable: Core can no longer reach for a
+  tag component by accident.
+  - **Nothing changes at the call site.** `Rask.Html` is `IsPackable=false` and bundled into the
+    `Rask.Server` / `Rask.Wasm` / `Rask.Native` package `lib/` folders next to `Rask.Core.dll`, exactly
+    like `Rask.Client`. `[assembly: RaskFactoryNamespace("Rask.Html.Components")]` — the same opt-in
+    `Rask.Native` uses — makes a consuming app's generator surface the factories, so `Div.Class("card")`
+    and `Generated.Img(…)` resolve with no per-file `using`.
+  - **The factory namespace had to change** (`Rask.Core.Components` → `Rask.Html.Components`): the
+    generator emits one `public static partial class Generated` per compilation, and Core still declares
+    components, so sharing a namespace would put two `Rask.Core.Components.Generated` types in the
+    reference graph (CS0433). Code naming a tag *type* explicitly needs `using Rask.Html.Components;`.
+  - **A type that ENCLOSES a component must now be `partial`** (RASK036 reports it by name). Entries
+    reached a nested component only by inheritance from `RaskMarkup`, where nesting is irrelevant; a
+    referenced library's can only be injected, and the generator skipped nested hosts silently. It now
+    re-opens the enclosing types as `partial`s around the host rather than dropping the chain.
+  - **`Doctype` is an HTML component** and moved with the family. `HtmlSerializer` matches the
+    `DoctypeComponent` base Core keeps, so it still emits the declaration without depending on `Rask.Html`.
+
+### Fixed
+- **The per-host builder-entry collision filter had nothing to filter against.** `EntryHostDecls` built
+  every host declaration from a `Candidate` without its member names, so an injected entry could collide
+  with a member the host declares or inherits (`Style`, `Data`, `Label`, `Cite`, `ClipPath`). Harmless
+  while the tag entries arrived by inheritance — a member merely shadows one — and CS0102/CS0108 the
+  moment any of them is injected.
+- **`ComponentDocumentationTests` walked only `src/Rask.Core/Components`**, so moving the element family
+  would have silently stopped checking ~150 tags. It spans both projects now.
+
+### Added
+- **`RaskBuilderEntryInjection`** (MSBuild, opt-out) splits the consumer half of the builder surface: the
+  assembly still publishes its `RaskEntries{Assembly}` class for referencing compilations, but its own
+  entries are not injected back into its own hosts, and it does not re-emit the universal setter surface.
+  A component *library* that IS the entry set needs that — injecting each of ~155 tags into every other is
+  O(n²) generated members colliding with what those hosts inherit from `Element`, and a second copy of the
+  generic `Key`/`Class`/`Id` extensions makes them ambiguous to infer (CS0411).
+
+
 ### Added
 - **A routable component is a `Page`, and it declares its route as a property rather than an attribute.**
   `[Route("/products/{id:int}")]` becomes `protected override string Route => "/products/{id:int}";`, and

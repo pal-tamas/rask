@@ -10,7 +10,7 @@ using Rask.Core.ScopedAssets;
 namespace Rask.Core.Tests.ScopedAssets;
 
 [Collection("ScopedAssets")]
-public class ScopedAssetRegistryTests
+public partial class ScopedAssetRegistryTests
 {
     public ScopedAssetRegistryTests() => ScopedAssetRegistry.InvalidateAll();
 
@@ -723,9 +723,9 @@ public class ScopedAssetRegistryTests
     {
     }
 
-    internal static class Outer
+    internal static partial class Outer
     {
-        internal sealed class Inner : Component
+        internal sealed partial class Inner : Component
         {
             protected override Component? Render() => this;
         }

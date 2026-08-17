@@ -39,6 +39,7 @@
     <!-- Rask.Core is PrivateAssets="all" from Rask.Dashboard (it ships transitively from a host
          package), so an in-repo consumer must reference it directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <!-- AddRaskCqrs: the jobs and outbox processors dispatch through the mediator, so registering
          those batteries in the harness needs it. -->
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>

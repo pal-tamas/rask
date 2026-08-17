@@ -16,7 +16,7 @@ public sealed partial class NativeButton : NativeViewComponent
     ///     Shadows the generated <c>Style</c> markup entry, which a native component has no use for — it
     ///     renders platform views, never HTML.
     /// </remarks>
-    public new NativeButtonStyle? Style { get; set; }
+    public NativeButtonStyle? Style { get; set; }
 
     /// <summary>The title color. Leave <c>null</c> to let <see cref="Style" /> decide.</summary>
     public NativeColor? Color { get; set; }

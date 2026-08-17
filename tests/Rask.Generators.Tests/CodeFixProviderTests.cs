@@ -8,6 +8,7 @@ public class CodeFixProviderTests
     private static string App(string body) => $$"""
         using Rask.Core;
         using static Rask.Core.Components.Generated;
+        using static Rask.Html.Components.Generated;
         namespace Demo;
         public sealed partial class App : Component
         {
@@ -239,6 +240,7 @@ public class CodeFixProviderTests
         var source = """
             using Rask.Core;
             using static Rask.Core.Components.Generated;
+            using static Rask.Html.Components.Generated;
             namespace Demo;
             public sealed class App : Component
             {
@@ -269,6 +271,7 @@ public class CodeFixProviderTests
             using System.Threading.Tasks;
             using Rask.Core;
             using static Rask.Core.Components.Generated;
+            using static Rask.Html.Components.Generated;
             namespace Demo;
             public sealed class App : Component
             {
@@ -360,8 +363,8 @@ public class CodeFixProviderTests
     {
         var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
             new HiddenBuilderEntryCodeFixProvider(), "CS0108",
-            Hiding("public Component? Footer => null;"));
-        Assert.Contains("public new Component? Footer => null;", fixhed);
+            Hiding("public Component? Summary => null;"));
+        Assert.Contains("public new Component? Summary => null;", fixhed);
     }
 
     [Fact]
@@ -369,8 +372,8 @@ public class CodeFixProviderTests
     {
         var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
             new HiddenBuilderEntryCodeFixProvider(), "CS0108",
-            Hiding("private Component? Section() => null;"));
-        Assert.Contains("private new Component? Section() => null;", fixhed);
+            Hiding("private Component? Details() => null;"));
+        Assert.Contains("private new Component? Details() => null;", fixhed);
     }
 
     [Fact]
@@ -380,8 +383,8 @@ public class CodeFixProviderTests
         // csharp_preferred_modifier_order wants it — so the fix does not fight `dotnet format`.
         var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
             new HiddenBuilderEntryCodeFixProvider(), "CS0108",
-            Hiding("public sealed record Line(int X);"));
-        Assert.Contains("public new sealed record Line(int X);", fixhed);
+            Hiding("public sealed record Code(int X);"));
+        Assert.Contains("public new sealed record Code(int X);", fixhed);
     }
 
     [Fact]
@@ -389,8 +392,8 @@ public class CodeFixProviderTests
     {
         var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
             new HiddenBuilderEntryCodeFixProvider(), "CS0108",
-            Hiding("private readonly string Table = \"\";"));
-        Assert.Contains("private new readonly string Table = \"\";", fixhed);
+            Hiding("private readonly string Title = \"\";"));
+        Assert.Contains("private new readonly string Title = \"\";", fixhed);
     }
 
     [Fact]
@@ -398,8 +401,8 @@ public class CodeFixProviderTests
     {
         var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
             new HiddenBuilderEntryCodeFixProvider(), "CS0108",
-            Hiding("string Table = \"\";"));
-        Assert.Contains("    new string Table = \"\";", fixhed);
+            Hiding("string Title = \"\";"));
+        Assert.Contains("    new string Title = \"\";", fixhed);
     }
 
     [Fact]

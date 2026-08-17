@@ -9,7 +9,7 @@ namespace Rask.Testing.Tests;
 ///     — rather than <c>Assert.Contains("&lt;span class=\"badge\"&gt;3&lt;/span&gt;", page.Html)</c>, which is brittle
 ///     against the very attribute-order invariant this framework's own suite goes to lengths to pin.
 /// </summary>
-public class StructuralQueryTests
+public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
 {
     private sealed class Card : Component
     {

@@ -100,13 +100,14 @@ public class ComponentDocumentationTests
     // plumbing) and nothing else. A file-based check rather than reflection: a doc comment lives in the
     // source, and the failure names the exact line to fix.
     [Theory]
-    [InlineData("Element.cs")]
-    [InlineData("ElementEvents.cs")]
-    [InlineData("Components/HtmlMediaElement.cs")]
-    [InlineData("Forms/FormControlInterfaces.cs")]
-    public void Every_universal_property_is_documented(string relativePath)
+    [InlineData("Rask.Core", "Element.cs")]
+    [InlineData("Rask.Core", "ElementEvents.cs")]
+    // HtmlMediaElement moved with the element family; the project is a parameter so the case can follow it.
+    [InlineData("Rask.Html", "Components/HtmlMediaElement.cs")]
+    [InlineData("Rask.Core", "Forms/FormControlInterfaces.cs")]
+    public void Every_universal_property_is_documented(string project, string relativePath)
     {
-        var path = Path.Combine(RepoRoot(), "src", "Rask.Core", relativePath.Replace('/', Path.DirectorySeparatorChar));
+        var path = Path.Combine(RepoRoot(), "src", project, relativePath.Replace('/', Path.DirectorySeparatorChar));
         var lines = File.ReadAllLines(path);
 
         var undocumented = new List<string>();
@@ -129,7 +130,7 @@ public class ComponentDocumentationTests
 
             if (j < 0 || !lines[j].TrimStart().StartsWith("///", StringComparison.Ordinal))
             {
-                undocumented.Add($"{relativePath}:{i + 1} {lines[i].Trim()}");
+                undocumented.Add($"{project}/{relativePath}:{i + 1} {lines[i].Trim()}");
             }
         }
 
@@ -172,8 +173,12 @@ public class ComponentDocumentationTests
     // Read once: every theory case looks the sources up, and there are ~180 of each.
     private static readonly Lazy<IReadOnlyList<(string File, string Source)>> Sources = new(() =>
     {
-        var dir = Path.Combine(RepoRoot(), "src", "Rask.Core", "Components");
-        return Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories)
+        // Both halves of the element family: Rask.Core keeps the components its own engine constructs and
+        // Rask.Html declares the rest, so walking only one of them would quietly stop documenting ~150 tags.
+        return new[] { "Rask.Core", "Rask.Html" }
+            .Select(project => Path.Combine(RepoRoot(), "src", project, "Components"))
+            .Where(Directory.Exists)
+            .SelectMany(dir => Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
             .Order(StringComparer.Ordinal)
             .Select(f => (f, File.ReadAllText(f)))
             .ToList();

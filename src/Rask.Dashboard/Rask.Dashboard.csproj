@@ -14,6 +14,7 @@
     <PackageTags>web component framework net10 dashboard ops admin observability jobs outbox mail cache sqlite</PackageTags>
   </PropertyGroup>
 
+
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
        overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
   <ItemGroup>
@@ -31,6 +32,7 @@
          packages (Rask.Server), so listing it as a nuspec dependency would reference a package that
          exists on no feed and make Rask.Dashboard unrestorable. Guarded by PackageDependencyTests. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
 
     <!-- The panels read these packages' entity types directly. Referencing all four is what lets a
          single package light up whichever batteries an app registered, with no glue from the caller. -->

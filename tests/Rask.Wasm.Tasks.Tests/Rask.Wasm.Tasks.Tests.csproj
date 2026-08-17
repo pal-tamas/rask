@@ -35,6 +35,7 @@
     -->
     <ProjectReference Include="..\..\src\Rask.Wasm.Tasks\Rask.Wasm.Tasks.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
   </ItemGroup>
 

@@ -13,6 +13,7 @@
     <PackageTags>validation fluentvalidation forms model-validation rask dotnet net10</PackageTags>
   </PropertyGroup>
 
+
   <ItemGroup>
     <PackageReference Include="FluentValidation"/>
   </ItemGroup>
@@ -22,6 +23,7 @@
          a nonexistent "Rask.Core" package and every restore fails with NU1101. Core.dll reaches consumers
          from the Rask.Server / Rask.Wasm package this add-on sits alongside, which bundle it into lib/. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Rask.Core.Browser;
 using Rask.Core.Components;
+using Rask.Html.Components;
 
 namespace Rask.Core.Tests.Components;
 

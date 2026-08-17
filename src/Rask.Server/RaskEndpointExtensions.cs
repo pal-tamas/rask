@@ -35,11 +35,13 @@ using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
+using Rask.Html.Components;
 using Rask.Server.Authentication;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
 using Components = Rask.Core.Components.Generated;
+using ComponentsH = Rask.Html.Components.Generated;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
 using QueryString = Rask.Core.Routing.QueryString;
@@ -2036,7 +2038,7 @@ public static class RaskEndpointExtensions
 
     private sealed class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Components.Script(LiveOptions.PathBase + RuntimePath);
+        public Component Render() => ComponentsH.Script(LiveOptions.PathBase + RuntimePath);
     }
 
     internal sealed class RaskLiveMarker

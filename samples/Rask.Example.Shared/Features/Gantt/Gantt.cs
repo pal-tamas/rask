@@ -104,7 +104,7 @@ public sealed partial class Gantt : Component
     public Gantt(IJSRuntime js) => _js = js;
 
     /// <summary>The bars to draw. Required.</summary>
-    public new required IReadOnlyList<GanttTask> Data { get; set; }
+    public required IReadOnlyList<GanttTask> Data { get; set; }
 
     /// <summary>Non-working days to highlight. Weekends are highlighted by the library regardless.</summary>
     public IReadOnlyList<GanttHoliday>? Holidays { get; set; }

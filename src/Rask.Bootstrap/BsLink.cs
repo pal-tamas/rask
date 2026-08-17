@@ -45,7 +45,7 @@ public sealed partial class BsLink : BsBlock
     ///     first — inline style beats every stylesheet rule and cannot be overridden by a theme, so keep it
     ///     for values only known at runtime.
     /// </summary>
-    public new string? Style { get; set; }
+    public string? Style { get; set; }
     /// <summary>
     ///     ARIA states and properties on the rendered element. Each entry emits <c>aria-{key}="{value}"</c>,
     ///     so <c>.Aria("label", "Close")</c> renders <c>aria-label="Close"</c> — give the key without the

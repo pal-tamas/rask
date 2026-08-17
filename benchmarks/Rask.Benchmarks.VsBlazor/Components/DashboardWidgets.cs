@@ -13,13 +13,13 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     If a regression accidentally pulls an unchanged widget into the diff, the
 ///     payload-bytes number will balloon.
 /// </summary>
-internal static class DashboardWidgets
+internal static partial class DashboardWidgets
 {
     public const int AlertCount = 8;
     public const int StatusGridSize = 12;
 
 #pragma warning disable RASK014
-    public sealed class StatefulDashboard : Component
+    public sealed partial class StatefulDashboard : Component
 #pragma warning restore RASK014
     {
         private List<Component>? _staticAlerts;

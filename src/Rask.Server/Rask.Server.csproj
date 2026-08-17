@@ -11,12 +11,16 @@
     <Description>Rask server host. Renders Rask components from ASP.NET with live updates over a WebSocket. Includes Rask.Core and the Rask source generators.</Description>
   </PropertyGroup>
 
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
+         so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
   </ItemGroup>
 
   <!--
@@ -123,6 +127,12 @@
     <!-- Ship Rask.Core's XML docs next to its bundled DLL so Core's public API (Component,
          Element, factories, forms, routing) surfaces IntelliSense for consumers too. -->
     <None Include="$(OutputPath)Rask.Core.xml"
+          Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
+    <!-- Rask.Html (the HTML/SVG element family) rides along on the same terms as Rask.Core: IsPackable=false,
+         referenced with PrivateAssets="all", DLL + XML docs bundled here rather than resolved as a package. -->
+    <None Include="$(OutputPath)Rask.Html.dll"
+          Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
+    <None Include="$(OutputPath)Rask.Html.xml"
           Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
   </ItemGroup>
 

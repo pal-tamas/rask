@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Rask.Generators.Tests;
@@ -71,6 +72,54 @@ internal static class GeneratorDriverFixture
         return new GeneratorRun(runResult, compilation);
     }
 
+    /// <summary>
+    ///     Runs the factory generator over <paramref name="compilation" /> with the builder surface on, and
+    ///     returns the compilation the analyzers should actually see.
+    /// </summary>
+    /// <remarks>
+    ///     A plain compilation has no builder entries for a tag that ships from Rask.Html: the framework's
+    ///     own entries used to be precompiled into Rask.Core.dll and arrive by inheritance, so an analyzer
+    ///     test could bind `Img.Src(…)` without a generator ever running. A referenced library's entries are
+    ///     INJECTED instead, which only exists once the generator has run — so a chain over a moved tag
+    ///     silently failed to bind and the analyzer saw nothing to report.
+    /// </remarks>
+    internal static Compilation WithBuilderSurface(Compilation compilation)
+    {
+        var driver = CSharpGeneratorDriver
+            .Create(new ComponentFactoryGenerator())
+            .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest))
+            .WithUpdatedAnalyzerConfigOptions(BuilderSurfaceOptions.Instance);
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
+        return output;
+    }
+
+    // The generator reads RaskBuilderSurface from MSBuild; these tests have none, so it is stated here.
+    private sealed class BuilderSurfaceOptions : AnalyzerConfigOptionsProvider
+    {
+        internal static readonly BuilderSurfaceOptions Instance = new();
+
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new Options();
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
+
+        private sealed class Options : AnalyzerConfigOptions
+        {
+            public override bool TryGetValue(string key, out string value)
+            {
+                if (string.Equals(key, "build_property.RaskBuilderSurface", StringComparison.Ordinal))
+                {
+                    value = "true";
+                    return true;
+                }
+
+                value = null!;
+                return false;
+            }
+        }
+    }
+
     internal static ImmutableArray<MetadataReference> BuildReferences()
     {
         var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
@@ -83,6 +132,11 @@ internal static class GeneratorDriverFixture
         // Pull Rask.Core in directly (TestAssembly compilation needs to know about Rask.Core.Component).
         var raskCore = Assembly.Load("Rask.Core");
         refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
+
+        // Rask.Html, which now declares the HTML/SVG element family — the test snippets are full of
+        // Div/Span/Img/Input, and the analyzers that pin a tag by full metadata name resolve it here.
+        var raskHtml = Assembly.Load("Rask.Html");
+        refs.Add(MetadataReference.CreateFromFile(raskHtml.Location));
 
         // Rask.Server too, so analyzer tests can resolve the real UseRask symbol (the ASP.NET Core
         // shared framework rides along in the trusted-platform-assemblies set above via the project's

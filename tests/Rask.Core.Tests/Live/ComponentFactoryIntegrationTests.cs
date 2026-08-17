@@ -57,7 +57,7 @@ public partial class ComponentFactoryIntegrationTests : global::Rask.Core.RaskMa
         Assert.Contains("bob", html2);
     }
 
-    public sealed class GreetCard : Component
+    public sealed partial class GreetCard : Component
     {
         public required string Name { get; set; }
         public string? Subtitle { get; set; }
