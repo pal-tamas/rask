@@ -244,10 +244,10 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                         }
 
                         return (Component)BsNavItem
+                            .Key(i.Path)
                             .Href(i.Path)
                             .Match(match)
                             .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
-                            .Key(i.Path)
                             .Class("side-nav-link")[
                             I.Class($"bi {i.Icon} me-2"),
                             Span[i.Label]
