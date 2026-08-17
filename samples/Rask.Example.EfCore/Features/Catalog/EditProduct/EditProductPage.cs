@@ -8,10 +8,11 @@ namespace Rask.Example.EfCore.Features.Catalog.EditProduct;
 // Vertical slice: edit a product (a command). Loads the current values into its own form, then on
 // submit loads the tracked aggregate and mutates it through Product.Update so the invariants and
 // the same value-object validation rules apply.
-[Route("products/{id:int}/edit")]
 public sealed partial class EditProductPage(IDbContextFactory<CatalogDbContext> dbContextFactory, Navigator navigator)
-    : Component
+    : Page
 {
+    protected override string Route => "products/{id:int}/edit";
+
     private readonly EditProductForm _form = new();
     private bool _loaded;
     private bool _found;
@@ -50,7 +51,7 @@ public sealed partial class EditProductPage(IDbContextFactory<CatalogDbContext> 
             await db.SaveChangesAsync(CancellationToken);
         }
 
-        navigator.NavigateTo("/products");
+        navigator.NavigateTo(global::Rask.Example.EfCore.Features.Catalog.ListProducts.Routes.ListProductsPage());
     }
 
     protected override Component? Render()
@@ -65,7 +66,7 @@ public sealed partial class EditProductPage(IDbContextFactory<CatalogDbContext> 
         if (!_found)
         {
             return Div.Class("alert alert-warning")[
-                "Product not found. ", NavLink.Href("/products")["Back to the list"], "."
+                "Product not found. ", NavLink.Href(global::Rask.Example.EfCore.Features.Catalog.ListProducts.Routes.ListProductsPage())["Back to the list"], "."
             ];
         }
 
@@ -99,7 +100,7 @@ public sealed partial class EditProductPage(IDbContextFactory<CatalogDbContext> 
                         ValidationMessage.Template(FieldErrors.Template).For(() => _form.Stock)
                     ],
                     Div.Class("d-flex justify-content-end gap-2 pt-2")[
-                        NavLink.Href("/products").Class("btn btn-outline-secondary")["Cancel"],
+                        NavLink.Href(global::Rask.Example.EfCore.Features.Catalog.ListProducts.Routes.ListProductsPage()).Class("btn btn-outline-secondary")["Cancel"],
                         Button.Type("submit").Class("btn btn-primary")[
                             I.Class("bi bi-check2-circle me-1"), "Save changes"
                         ]

@@ -89,9 +89,10 @@ event handler is a delegate, and the component re-renders itself — no `.razor`
 another language:
 
 ```csharp
-[Route("/counter")]
-public sealed partial class Counter : Component
+public sealed partial class Counter : Page
 {
+    protected override string Route => "/counter";
+
     private int _count;
 
     protected override Component? Render() =>

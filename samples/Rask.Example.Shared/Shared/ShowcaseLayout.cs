@@ -4,10 +4,11 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.Shared;
 
-[Route("/")]
 public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav, IJSRuntime js)
-    : Component
+    : Page
 {
+    protected override string Route => "/";
+
     private static readonly IReadOnlyDictionary<string, string?> ThemeToggleAria =
         new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle light / dark theme" };
 

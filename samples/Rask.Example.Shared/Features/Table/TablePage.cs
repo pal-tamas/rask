@@ -7,10 +7,12 @@ namespace Rask.Example.Shared.Features;
 // lives in the URL as [QueryParam] properties. BsDataGrid renders the table and reports what the user clicked;
 // this page decides what that means and writes it back through Navigator.SetQuery. Rask re-resolves the page
 // against the new query, so the state is shareable, bookmarkable, and replayed by browser back/forward for free.
-[Route("table")]
-[ParentRoute(typeof(ShowcaseLayout))]
-public sealed partial class TablePage(Navigator nav) : Component
+public sealed partial class TablePage(Navigator nav) : Page
 {
+    protected override string Route => "table";
+
+    protected override Type? Parent => typeof(ShowcaseLayout);
+
     private static readonly Person[] _people = BuildPeople(120);
 
     [QueryParam] public new string? Filter { get; set; }

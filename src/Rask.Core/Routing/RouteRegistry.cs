@@ -118,6 +118,31 @@ public static class RouteRegistry
         }
     }
 
+    /// <summary>
+    ///     The local template registered for <paramref name="pageType" />, if any. A page's template lives in
+    ///     its registration rather than in an attribute — <c>Page.Route</c> is read at compile time and baked
+    ///     into the generated registry — so this is how the runtime recovers it without reflecting over the
+    ///     type. The first registration wins, matching the generated <c>Routes.{Type}()</c> formatter for a
+    ///     page that answers more than one template.
+    /// </summary>
+    internal static bool TryGetLocalTemplate(Type pageType, out string template)
+    {
+        lock (_lock)
+        {
+            foreach (var r in Flatten())
+            {
+                if (r.PageType == pageType)
+                {
+                    template = r.Template;
+                    return true;
+                }
+            }
+        }
+
+        template = string.Empty;
+        return false;
+    }
+
     internal static void Reset()
     {
         lock (_lock)

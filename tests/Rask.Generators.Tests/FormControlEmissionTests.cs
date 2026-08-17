@@ -21,10 +21,26 @@ public class FormControlEmissionTests
                                       public ValidateAsync<int>? ValidateAsync { get; set; }
                                       public Action<int>? AfterBind { get; set; }
                                       public Func<int, Task>? AfterBindAsync { get; set; }
+                                      public bool? Checked { get; set; }
+                                      public Action<string>? OnInput { get; set; }
+                                      public Func<string, Task>? OnInputAsync { get; set; }
                                       public string? Label { get; set; }
                                       public override Component? Render() => this;
                                   }
                                   """;
+
+    // The emitter writes each factory signature on one line, so a signature IS a line. Bound overloads are
+    // the ones taking the Bind expression; everything else is the controlled factory. Splitting them is what
+    // lets a DoesNotContain assertion mean "not a parameter of THIS factory" rather than "absent everywhere"
+    // — the two factories deliberately share most of their parameter names.
+    private static (List<string> Bound, List<string> Controlled) Signatures(string output)
+    {
+        var sigs = output.Split('\n').Where(l => l.Contains("Widget Widget(", StringComparison.Ordinal)).ToList();
+        Assert.NotEmpty(sigs);
+        var bound = sigs.Where(l => l.Contains("Func<int>> Bind", StringComparison.Ordinal)).ToList();
+        Assert.Equal(3, bound.Count); // none / sync / async validator fan-out
+        return (bound, sigs.Except(bound).ToList());
+    }
 
     [Fact]
     public void EmitsControlledFactory_WithoutBoundMembers()
@@ -68,6 +84,48 @@ public class FormControlEmissionTests
         var output = GeneratorDriverFixture.Run(Widget).GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("global::Rask.Core.AutoCallback.Wrap(OnChange)", output);
+    }
+
+    // Bind owns the value and the write-back handler, so the controlled props are not parameters of the
+    // bound factory: setting them next to Bind used to compile and then be dropped at render time.
+    [Theory]
+    [InlineData("Value")]
+    [InlineData("Checked")]
+    [InlineData("OnChange")]
+    [InlineData("OnChangeAsync")]
+    [InlineData("OnInput")]
+    [InlineData("OnInputAsync")]
+    public void BoundFactory_DoesNotTakeControlledProps(string prop)
+    {
+        var (bound, controlled) = Signatures(GeneratorDriverFixture.Run(Widget).GeneratedSource("Demo.Generated.g.cs"));
+
+        Assert.All(bound, sig => Assert.DoesNotContain(" " + prop + " =", sig, StringComparison.Ordinal));
+        // Guard the assertion itself: the prop IS a controlled-factory parameter, so a typo in the name
+        // would otherwise make the check above pass for the wrong reason.
+        Assert.All(controlled, sig => Assert.Contains(" " + prop + " =", sig, StringComparison.Ordinal));
+    }
+
+    // The mirror rule: AfterBind/AfterBindAsync are post-bind hooks, so they exist only where Bind does.
+    [Theory]
+    [InlineData("AfterBind")]
+    [InlineData("AfterBindAsync")]
+    public void ControlledFactory_DoesNotTakeBoundProps(string prop)
+    {
+        var (bound, controlled) = Signatures(GeneratorDriverFixture.Run(Widget).GeneratedSource("Demo.Generated.g.cs"));
+
+        Assert.All(controlled, sig => Assert.DoesNotContain(" " + prop + " =", sig, StringComparison.Ordinal));
+        Assert.All(bound, sig => Assert.Contains(" " + prop + " =", sig, StringComparison.Ordinal));
+    }
+
+    // Everything that is neither mode's business stays on both factories — the exclusion is targeted, not a
+    // blanket "the bound factory takes Bind and nothing else".
+    [Fact]
+    public void BothFactories_KeepSharedDisplayProps()
+    {
+        var (bound, controlled) = Signatures(GeneratorDriverFixture.Run(Widget).GeneratedSource("Demo.Generated.g.cs"));
+
+        Assert.All(bound.Concat(controlled),
+            sig => Assert.Contains("string? Label = null", sig, StringComparison.Ordinal));
     }
 
     [Fact]
