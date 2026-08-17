@@ -354,7 +354,7 @@ public sealed partial class LogsPage(
             ? null
             : Div.Class("d-flex flex-wrap gap-1 mt-1")[
                 scopes.Select(s =>
-                    BsBadge.Color(BsColor.Secondary).Class("fw-normal font-monospace").Key(s.Key)[
+                    BsBadge.Key(s.Key).Color(BsColor.Secondary).Class("fw-normal font-monospace")[
                         $"{s.Key}={s.Value}"
                     ])
             ];

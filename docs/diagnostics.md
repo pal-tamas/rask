@@ -81,6 +81,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK043](#rask043) | Warning | Component factory is not imported in a type that has no builder entries |
 | [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
+| [RASK046](#rask046) | Warning | Key must open a component's chain |
 
 ---
 
@@ -971,3 +972,34 @@ settable properties, and nothing in the type system is left to forbid the write.
 **Fix:** move the assignment into the chain — every property a chain can reach has a step of the same
 name. Suppress with `#pragma warning disable RASK045` / `.editorconfig`
 (`dotnet_diagnostic.RASK045.severity = none`) where a component genuinely has to be completed later.
+
+---
+
+## RASK046
+**Key must open a component's chain** · Warning
+
+A keyed child is identified by its **key** rather than by its position among its siblings, so that the
+state a row holds itself — a private field, an edit buffer, an `OnMount` subscription — moves with the
+item rather than with the slot when the list changes shape. Settling that identity means handing back
+the instance the key owns and discarding the one the entry just built, so any step written **before**
+`Key` is applied to a component that is about to be thrown away:
+
+```csharp
+TodoRow.Item(item).Key(item.Id)   // ✗ RASK046 — Item is written to the instance Key then discards
+TodoRow.Key(item.Id).Item(item)   // ✓ identity first, then everything else
+```
+
+It compiles and it renders. The value goes missing only once the list changes shape — an insert at the
+top, a reorder — which is the worst possible time to discover it.
+
+**Elements are exempt, and that is not a carve-out.** An element is re-specified in full on every
+render: whatever its chain does not name, the deferred reset puts back. Its instance therefore carries
+nothing, it is never claimed, and its DOM identity comes from `data-rask-key` in the diff codec rather
+than from the parent's child map. So the common spelling stays exactly as it reads:
+
+```csharp
+Div.Class("row").Key(index)[cells]   // ✓ an element is never claimed
+```
+
+**Fix:** move `.Key(…)` to the front of the chain. See [composition → keys](composition.md#children--fragments)
+and the reconciliation note in [the live-rendering codec](architecture/live-rendering-codec.md).

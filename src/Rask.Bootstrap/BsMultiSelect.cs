@@ -159,7 +159,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
             foreach (var item in selected!)
             {
                 var captured = item;
-                box.Add(BsBadge.Color(BsColor.Primary).Class("d-inline-flex align-items-center").Key(i)[
+                box.Add(BsBadge.Key(i).Color(BsColor.Primary).Class("d-inline-flex align-items-center")[
                     LabelOf(captured),
                     BsCloseButton
                         .White(true)

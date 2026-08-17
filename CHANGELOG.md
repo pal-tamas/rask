@@ -7,6 +7,53 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **A keyed row's own state followed its POSITION, not its item.** A child's identity inside its parent
+  was its ordinal among entry-built siblings, and `Key` took no part — the parent's child map never read
+  it. `Key` was only ever the diff codec's identity (`data-rask-key`), one layer above. So inserting an
+  item at the top of a keyed list handed every later row the *next* row's instance: private fields, an
+  edit buffer, an open/closed toggle, a subscription taken in `OnMount` — all of it moved with the slot
+  rather than with the item. That is exactly the bug `Key` exists to prevent, happening one layer below
+  where `Key` was being consulted. Older than the chain surface; `main` behaved identically.
+
+  A keyed child is now identified by its key. `GetOrCreateChild` stops recycling by ordinal for any type
+  its parent has keyed — it has to, because a key that is new this frame must get a FRESH instance rather
+  than whichever item used to sit at that position — and the `Key` step claims the instance the key owns.
+
+  **`Key` must now open a component's chain**, and that is enforced: **RASK046**. Claiming an instance
+  discards the one the entry built, so a step written before `Key` lands on the discarded one and is
+  silently lost. To make that expressible, `Key` is available before the required steps too — a component
+  with required properties can settle its identity first (`BsToast.Key(id).Id(…).Message(…)`), which the
+  chain previously had no way to say.
+
+  **Elements are exempt**, and not as a carve-out: an element is re-specified in full every render — what
+  its chain does not name, the deferred reset puts back — so its instance carries nothing and is never
+  claimed. `Div.Class("row").Key(i)` is unchanged, which is the spelling used in its hundreds.
+
+  RASK046 found **nine** live instances of the trap while this was being written — in `Rask.Bootstrap`,
+  `Rask.Dashboard`, the samples and the benchmarks. `BsToaster` and the toast demos are the clearest:
+  a toast list that changed shape rendered the *previous* frame's message and title.
+
+  **What it costs, measured** (`LiveRenderRoundTripBenchmarks`, 100 keyed components reshuffled every
+  iteration):
+
+  ```
+  | RenderKeyedList100_ShuffledEachIteration   Mean       Allocated
+  | position identity (and losing state)       85.64 us    92.21 KB
+  | key identity                               83.82 us    96.20 KB
+  |                                            within noise  +4.0 KB (+4.3%)
+  ```
+
+  The allocation is inherent rather than incidental, and worth naming: a type its parent has keyed can no
+  longer be recycled by ordinal, so each keyed row is constructed and then discarded when the key claims
+  an earlier instance — about 40 bytes a row. Wall clock is unchanged within the error bars, so no claim
+  is made about it. The ELEMENT path is untouched and stays at exact allocation parity with the factory
+  (`BuilderSurfaceBenchmarks`: 19.7 KB on both arms).
+
+  The obvious way to reclaim it is to defer construction until the key has been seen, which needs
+  `Build<T>` to carry an unmaterialised child — a wider change to the struct that every generated setter
+  takes. Left for later rather than folded in here.
+
 ### Changed
 - **A form control's two modes are now mutually exclusive, on both surfaces.** A control's value comes
   from exactly one place — an expression it binds (`Bind`) or a value its parent owns (`Value`) — and the

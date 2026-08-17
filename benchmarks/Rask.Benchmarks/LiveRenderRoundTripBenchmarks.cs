@@ -71,7 +71,7 @@ public partial class LiveRenderRoundTripBenchmarks : global::Rask.Core.RaskMarku
         var rows = new List<Component>(20);
         for (var i = 0; i < 20; i++)
         {
-            rows.Add(RowItem.Index(i).Key(i));
+            rows.Add(RowItem.Key(i).Index(i));
         }
 
         return [
