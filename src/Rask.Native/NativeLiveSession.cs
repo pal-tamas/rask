@@ -8,6 +8,7 @@ using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Native.Components;
+using Rask.Native.Surface;
 
 namespace Rask.Native;
 
@@ -50,11 +51,25 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     private byte[]? _lastPushedChrome;
     private Dictionary<string, Action> _chromeTapHandlers = new(StringComparer.Ordinal);
 
+    // Pure-native content. Optional in exactly the same way as _chrome: with no INativeSurface registered the
+    // NativeScreen family is inert and every frame paints through the WebView, so existing apps are untouched.
+    //
+    // _surfaceTree is the retained baseline the differ patches against. It, and the HTML baseline in
+    // _lastSentBuffer, are BOTH truthful at all times because a surface backend only ever HIDES the content
+    // view it is not showing — see INativeSurface. That is what makes switching between a web route and a
+    // native route free: neither side re-mounts, and coming back to a web page does not reload it.
+    private readonly INativeSurface? _surface;
+    private readonly NativeTreeBuilder _treeBuilder = new();
+    private NativeNode? _surfaceTree;
+    private IReadOnlyDictionary<int, Func<string?, Task>> _surfaceHandlers =
+        new Dictionary<int, Func<string?, Task>>();
+
     public NativeLiveSession(Component view, IServiceProvider services, INativeWebView webView, LiveDiffMode diffMode)
         : base(view, services, diffMode)
     {
         _webView = webView;
         _chrome = services.GetService<INativeChrome>();
+        _surface = services.GetService<INativeSurface>();
 
         // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
         services.GetService<NativeJSRuntime>()?.AttachHost(this, webView);
@@ -97,7 +112,8 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     // ---- Native header/footer chrome ------------------------------------------------------------------------
 
     // Opt into the serializer's render-walk collection only when a backend is registered (else pure no-op).
-    protected override bool CollectsNativeChromeCore => _chrome is not null;
+    // Either backend needs it: the bars come from the same walk that the native view tree is rebuilt from.
+    protected override bool CollectsNativeChromeCore => _chrome is not null || _surface is not null;
 
     // The serializer hands us every user component it walks; pick out the native bars composed in the tree —
     // a NativeHeaderBar becomes the header, a NativeTabBar/NativeToolbar the footer. Last of each kind wins
@@ -113,25 +129,127 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 _pendingFooter = (NativeComponent)component;
                 break;
         }
+
+        // The same walk feeds the pure-native view tree. The builder ignores everything that is not a
+        // NativeViewComponent, so the bars and the app's own components pass straight through it.
+        if (_surface is not null)
+        {
+            _treeBuilder.Enter(component);
+        }
+    }
+
+    // The closing half: a native component's node is materialized on its exit, once the children it collected
+    // while open are known.
+    protected override void ReportNativeComponentExitCore(Component component)
+    {
+        if (_surface is not null)
+        {
+            _treeBuilder.Exit(component);
+        }
     }
 
     // Clear the last-collected chrome before each render walk so a removed bar drops out — the walk then
     // re-reports whatever the current tree composes (last of each kind wins).
     protected override void OnBeforeRenderWalk()
     {
-        if (_chrome is null)
+        _pendingHeader = null;
+        _pendingFooter = null;
+
+        // Reset the collected view tree too, so a frame that renders no NativeScreen reports none — that is
+        // exactly the signal that this frame's content is the WebView.
+        _treeBuilder.Reset();
+    }
+
+    /// <summary>
+    ///     Push everything this frame produced outside the WebView's HTML: the bars, then the native content.
+    ///     Called under <c>_renderLock</c> right after a committed frame (same UI-thread + memory-validity
+    ///     contract as <c>SendFrameAsync</c>), and a no-op when neither native backend is registered.
+    /// </summary>
+    private async Task PushNativeFrameAsync()
+    {
+        await PushChromeAsync().ConfigureAwait(false);
+        await PushSurfaceAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Whether the frame just walked renders pure-native content rather than HTML. This is the content-mode
+    ///     switch the whole mixed-surface design turns on: a native frame must not push its (empty) HTML to the
+    ///     WebView, or the WebView's DOM would stop matching the HTML diff baseline and returning to a web
+    ///     route would repaint it from scratch.
+    /// </summary>
+    private bool IsNativeFrame => _surface is not null && _treeBuilder.Root is not null;
+
+    /// <summary>
+    ///     The emit gate every send in this session goes through. On a native frame it reports "nothing sent"
+    ///     WITHOUT touching the base's double-buffered baseline, so <c>_lastSentBuffer</c> keeps describing the
+    ///     HTML the WebView is actually still showing.
+    /// </summary>
+    private ValueTask<bool> EmitFrameAsync(bool force) =>
+        IsNativeFrame ? ValueTask.FromResult(false) : TryEmitFrameAsync(force);
+
+    /// <summary>
+    ///     Commit the frame just built — paint it, then push the bars and the native content — and return the
+    ///     HTML frame bytes for the callers that report them as a test seam.
+    /// </summary>
+    /// <remarks>
+    ///     A native frame paints through the surface and emits no HTML at all, so it must NOT take the
+    ///     "nothing was emitted, bail out" path the HTML callers use: that would skip the surface push and the
+    ///     screen would never update. Navigating from a web route to a native one goes through exactly here.
+    /// </remarks>
+    private async Task<byte[]> CommitFrameAsync(bool force)
+    {
+        if (IsNativeFrame)
+        {
+            await PushNativeFrameAsync().ConfigureAwait(false);
+            return Array.Empty<byte>();
+        }
+
+        if (!await EmitFrameAsync(force).ConfigureAwait(false))
+        {
+            return Array.Empty<byte>();
+        }
+
+        _htmlBuffers.Commit();
+        await PushNativeFrameAsync().ConfigureAwait(false);
+        return _lastSentBuffer!.WrittenSpan.ToArray();
+    }
+
+    // Diff this frame's view tree against the retained one and push the result. A root whose kind changed
+    // cannot be patched in place, so the differ says so and the whole tree re-mounts.
+    private async Task PushSurfaceAsync()
+    {
+        if (_surface is null)
         {
             return;
         }
 
-        _pendingHeader = null;
-        _pendingFooter = null;
+        // Adopt this frame's handler map even when the tree is unchanged: the delegates capture fresh state
+        // every render, so a tap must always reach the latest closure.
+        _surfaceHandlers = _treeBuilder.Handlers;
+
+        if (_treeBuilder.Root is not { } root)
+        {
+            // No native content this frame — the page composed a NativeWebView (or nothing). Show the WebView
+            // and KEEP the retained tree: the native view is only hidden, so returning to a native route
+            // patches it instead of rebuilding it.
+            await _surface.ShowWebViewAsync().ConfigureAwait(false);
+            return;
+        }
+
+        if (_surfaceTree is { } previous && NativeTreeDiffer.Diff(previous, root) is { } patches)
+        {
+            _surfaceTree = root;
+            await _surface.PatchAsync(patches).ConfigureAwait(false);
+            return;
+        }
+
+        _surfaceTree = root;
+        await _surface.MountAsync(root).ConfigureAwait(false);
     }
 
     // Build the descriptor from the just-collected header/footer, refresh the tap-handler map, and push to the
-    // native bars only when the bytes changed. Called under _renderLock right after a committed frame (same
-    // UI-thread + memory-validity contract as SendFrameAsync). No-op when no INativeChrome is registered.
-    private async Task PushChromeIfChangedAsync()
+    // native bars only when the bytes changed. No-op when no INativeChrome is registered.
+    private async Task PushChromeAsync()
     {
         if (_chrome is null)
         {
@@ -373,6 +491,73 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     public ValueTask GoBackAsync() => _webView.EvaluateJavaScriptAsync("window.history.back()");
 
     /// <summary>
+    ///     Handle an interaction on a pure-native view — a button tap, a text field's edit, a switch toggle.
+    ///     Resolves the handler id the surface echoed back against the map this session rebuilt on the last
+    ///     render, awaits the delegate, then re-renders and pushes the resulting patches.
+    /// </summary>
+    /// <remarks>
+    ///     The handler is AWAITED, so <c>OnClickAsync</c>/<c>OnInputAsync</c>/<c>OnChangedAsync</c> finish
+    ///     before the frame is built and state they set after an <c>await</c> paints in that same frame rather
+    ///     than a later one. It runs inside a <c>Navigator</c> handler scope like every other event path, so a
+    ///     handler that navigates — including from a native screen to a WebView route — works and its history
+    ///     push reaches the client.
+    /// </remarks>
+    /// <returns>The emitted HTML frame bytes, or empty when the frame painted natively (the test seam).</returns>
+    public async Task<byte[]> DispatchSurfaceEventAsync(NativeSurfaceEvent surfaceEvent)
+    {
+        await _lock.WaitAsync().ConfigureAwait(false);
+        InHandlerScope = true;
+        try
+        {
+            // Resolve under the lock so a concurrent render's map swap can't race the lookup.
+            if (!_surfaceHandlers.TryGetValue(surfaceEvent.HandlerId, out var handler))
+            {
+                return Array.Empty<byte>();
+            }
+
+            var navigator = Services.GetRequiredService<Navigator>();
+            using (navigator.EnterHandler())
+            {
+                try
+                {
+                    await handler(surfaceEvent.Value).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    RaskDiagnostics.Report(
+                        RaskLogLevel.Error, "Rask.Native",
+                        $"Rask native surface handler '{surfaceEvent.HandlerId}' threw", ex);
+                    return Array.Empty<byte>();
+                }
+
+                string? historyUrl = null;
+                var historyReplace = false;
+                if (navigator.TryConsumeHistory(out var url, out var replace))
+                {
+                    historyUrl = url;
+                    historyReplace = replace;
+                }
+
+                await _renderLock.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
+                    return await CommitFrameAsync(historyUrl is not null).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _renderLock.Release();
+                }
+            }
+        }
+        finally
+        {
+            InHandlerScope = false;
+            _lock.Release();
+        }
+    }
+
+    /// <summary>
     ///     Handle a bar-button tap (<c>{"type":"nativeTap","id":"…"}</c>): look up the button's <c>OnClick</c>,
     ///     invoke it (its factory wrapper re-renders the owner), then render + emit + push exactly like
     ///     <see cref="DispatchAsync" />. Returns the sent frame bytes (the test seam). A tab tap arrives as a
@@ -435,7 +620,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 try
                 {
                     await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
-                    var emitted = await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false);
+                    var emitted = await EmitFrameAsync(historyUrl is not null).ConfigureAwait(false);
                     if (emitted)
                     {
                         _htmlBuffers.Commit();
@@ -444,7 +629,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                     // Push chrome even when the body produced no diff: a bar tap can change ONLY native chrome
                     // (a tab badge, a segmented selection, a menu action) and leave the HTML body identical, which
                     // emits no frame — but the bars still need the update.
-                    await PushChromeIfChangedAsync().ConfigureAwait(false);
+                    await PushNativeFrameAsync().ConfigureAwait(false);
                     return emitted ? _lastSentBuffer!.WrittenSpan.ToArray() : Array.Empty<byte>();
                 }
                 finally
@@ -480,12 +665,12 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         try
         {
             await BuildPayloadAsync(null, false).ConfigureAwait(false);
-            if (await TryEmitFrameAsync(false).ConfigureAwait(false))
+            if (await EmitFrameAsync(false).ConfigureAwait(false))
             {
                 _htmlBuffers.Commit();
             }
 
-            await PushChromeIfChangedAsync().ConfigureAwait(false);
+            await PushNativeFrameAsync().ConfigureAwait(false);
         }
         finally
         {
@@ -515,16 +700,16 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             // chrome, since native bars render no HTML and their change never shows in the HTML noop check.
             if (publishOnly && !_lastBuildHadJsInvokes && _htmlBuffers.CurrentEqualsPrevious())
             {
-                await PushChromeIfChangedAsync().ConfigureAwait(false);
+                await PushNativeFrameAsync().ConfigureAwait(false);
                 return;
             }
 
-            if (await TryEmitFrameAsync(false).ConfigureAwait(false))
+            if (await EmitFrameAsync(false).ConfigureAwait(false))
             {
                 _htmlBuffers.Commit();
             }
 
-            await PushChromeIfChangedAsync().ConfigureAwait(false);
+            await PushNativeFrameAsync().ConfigureAwait(false);
         }
         finally
         {
@@ -552,14 +737,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             // 404-ing shell path instead of the app's first screen.
             var initialPath = Services.GetRequiredService<RouteState>().Path;
             await BuildPayloadAsync(initialPath, replace: true).ConfigureAwait(false);
-            if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
-            {
-                return Array.Empty<byte>();
-            }
-
-            _htmlBuffers.Commit();
-            await PushChromeIfChangedAsync().ConfigureAwait(false);
-            return _lastSentBuffer!.WrittenSpan.ToArray();
+            return await CommitFrameAsync(true).ConfigureAwait(false);
         }
         finally
         {
@@ -632,14 +810,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                     try
                     {
                         await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
-                        if (!await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
-                        {
-                            return Array.Empty<byte>();
-                        }
-
-                        _htmlBuffers.Commit();
-                        await PushChromeIfChangedAsync().ConfigureAwait(false);
-                        return _lastSentBuffer!.WrittenSpan.ToArray();
+                        return await CommitFrameAsync(historyUrl is not null).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -694,14 +865,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             try
             {
                 await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
-                if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
-                {
-                    return Array.Empty<byte>();
-                }
-
-                _htmlBuffers.Commit();
-                await PushChromeIfChangedAsync().ConfigureAwait(false);
-                return _lastSentBuffer!.WrittenSpan.ToArray();
+                return await CommitFrameAsync(true).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Rask.Generators;
 using Rask.Generators.Analyzers;
 
 namespace Rask.Generators.Tests;
@@ -149,21 +150,129 @@ public class NativeChromeInHtmlAnalyzerTests
         Assert.Empty(diagnostics);
     }
 
-    private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source,
-        string assemblyName = "TestAssembly")
+    [Fact]
+    public async Task NativeComponentAsElementChild_InChainSyntax_ReportsRask032()
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
-        var references = GeneratorDriverFixture.BuildReferences();
-        var compilation = CSharpCompilation.Create(
-            assemblyName,
-            new[] { syntaxTree },
-            references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+        // The chain yields Build<T>, not T. Until the analyzer saw through it, a chain RECEIVER was an
+        // unrecognized type and the rule went quiet — green on the syntax the docs actually teach.
+        var src = """
+                  using Rask.Core;
+                  using static Rask.Core.Components.Generated;
+                  using static Rask.Native.Components.Generated;
+                  namespace Demo;
+                  public sealed class Page : Component
+                  {
+                      protected override Component? Render() => Div[NativeHeaderBar()];
+                  }
+                  """;
+
+        var diagnostics = await GetDiagnosticsAsync(src);
+
+        var d = Assert.Single(diagnostics);
+        Assert.Equal("RASK032", d.Id);
+        Assert.Contains("NativeHeaderBar", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task HtmlInsideNativeScreen_ReportsRask048()
+    {
+        // A pure-native screen has no WebView behind it, so a Div there renders nothing at all.
+        var src = """
+                  using Rask.Core;
+                  using static Rask.Core.Components.Generated;
+                  using static Rask.Native.Components.Generated;
+                  namespace Demo;
+                  public sealed class Page : Component
+                  {
+                      protected override Component? Render() => NativeScreen()[Div];
+                  }
+                  """;
+
+        var diagnostics = await GetDiagnosticsAsync(src, id: "RASK048");
+
+        var d = Assert.Single(diagnostics);
+        Assert.Equal("RASK048", d.Id);
+        Assert.Contains("Div", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task HtmlInsideANativeStack_ReportsRask048()
+    {
+        var src = """
+                  using Rask.Core;
+                  using static Rask.Core.Components.Generated;
+                  using static Rask.Native.Components.Generated;
+                  namespace Demo;
+                  public sealed class Page : Component
+                  {
+                      protected override Component? Render() => NativeScreen()[NativeStack()[Span()]];
+                  }
+                  """;
+
+        var diagnostics = await GetDiagnosticsAsync(src, id: "RASK048");
+
+        Assert.Equal("RASK048", Assert.Single(diagnostics).Id);
+    }
+
+    [Fact]
+    public async Task NativeViewsInsideANativeScreen_NoDiagnostic()
+    {
+        // The whole point of the pure-native family: native views compose inside a screen. This must NOT be
+        // mistaken for "a native component in the HTML tree".
+        var src = """
+                  using Rask.Core;
+                  using static Rask.Core.Components.Generated;
+                  using static Rask.Native.Components.Generated;
+                  namespace Demo;
+                  public sealed class Page : Component
+                  {
+                      protected override Component? Render() =>
+                          NativeScreen()[NativeStack()[NativeLabel()["hi"], NativeButton()["go"]]];
+                  }
+                  """;
+
+        var diagnostics = await GetDiagnosticsAsync(src, id: null);
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
+    public async Task MixedApp_WebViewAndScreenOnDifferentBranches_NoDiagnostic()
+    {
+        // One app, two surfaces — markup inside the WebView, native views inside the screen.
+        var src = """
+                  using Rask.Core;
+                  using static Rask.Core.Components.Generated;
+                  using static Rask.Native.Components.Generated;
+                  namespace Demo;
+                  public sealed class Page : Component
+                  {
+                      public bool Native { get; set; }
+                      protected override Component? Render() =>
+                          Native ? NativeScreen()[NativeLabel()["hi"]] : NativeWebView()[Div()[Span()]];
+                  }
+                  """;
+
+        var diagnostics = await GetDiagnosticsAsync(src, id: null);
+
+        Assert.Empty(diagnostics);
+    }
+
+    private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source,
+        string assemblyName = "TestAssembly", string? id = "RASK032")
+    {
+        // Analyze the post-generator compilation with the builder surface ON, so the chain syntax
+        // (`Div[NativeHeaderBar]`) binds to real generated entries. Analyzing the bare source would leave
+        // every chain expression an error type, and a chain test would report nothing and pass for the wrong
+        // reason.
+        var generated = BuilderGeneratorHarness.Compile(source, assemblyName);
 
         var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(new NativeChromeInHtmlAnalyzer());
-        var withAnalyzers = compilation.WithAnalyzers(analyzers);
+        var withAnalyzers = generated.WithAnalyzers(analyzers);
         var all = await withAnalyzers.GetAnalyzerDiagnosticsAsync();
-        return all.Where(d => d.Id == "RASK032").ToImmutableArray();
+
+        // id: null asks for "nothing at all should be reported", which is a stronger assertion than filtering
+        // to one rule and finding it empty — that would pass while the OTHER rule false-positives.
+        return id is null ? all : all.Where(d => d.Id == id).ToImmutableArray();
     }
 }

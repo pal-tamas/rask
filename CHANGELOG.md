@@ -109,6 +109,24 @@ them until tagged releases begin.
   serves web and native with no `IsNative` branch.
 
 ### Fixed
+- **Two analyzer assemblies could number a diagnostic the same, and nothing failed.** Roslyn's `RS1019`
+  catches a duplicate id within ONE compilation, so the common case was already covered — but it is
+  per-compilation, and Rask declares descriptors in three analyzer assemblies (`Rask.Generators`,
+  `Rask.Cqrs.Generators`, `Rask.Jobs.Generators`). Declaring `RASK022` a second time from a different
+  assembly builds clean, warnings-as-errors and all: the family then ships two meanings under one number,
+  with one help link pointing at whichever doc section was written second.
+
+  `DiagnosticDescriptorTests` could not have caught it either — its `AllDescriptors()` keys a dictionary
+  on the id, so two colliding descriptors silently collapsed into one entry and every invariant it asserts
+  passed. The new check enumerates without collapsing, deduplicating by the descriptor's own equality
+  instead, so one descriptor reachable both through `SupportedDiagnostics` and through the static field
+  behind it still counts once while two genuinely different ones stay two. Verified by injecting a
+  cross-assembly duplicate: the solution built clean and the test went red.
+
+  Prompted by RASK047 being claimed by two open branches on the same afternoon — the third id collision in
+  a day, after RASK044/045 and RASK046.
+
+### Fixed
 - **Two analyzers had stopped firing altogether on chain-built markup — including an accessibility
   check.** `RASK022` (a list item without a `Key`) and `RASK023` (an `Img` without `Alt`) each identified
   their subject as *"a static method on the class named `Generated`"* — the factory. A chain has no such
@@ -324,6 +342,57 @@ them until tagged releases begin.
   `Rask.SQLite.Crdt.Sync` had no badge and no row in the package → project-type → entry-point table.
   `Rask.Signaling` appeared nowhere but `NUGET.md`, so the WebRTC epic's server half was effectively
   undiscoverable; `llms.txt` now covers the realtime surface as well.
+- **Pure-native screens — twelve components that render real platform views, with no WebView.**
+  `NativeScreen` is the counterpart of `NativeWebView` and sits in the same slot; inside it,
+  `NativeStack`, `NativeScroll`, `NativeList`, `NativeLabel`, `NativeButton`, `NativeTextField`,
+  `NativeSwitch`, `NativeImage`, `NativeActivityIndicator`, `NativeDivider` and `NativeSpacer` describe a
+  `UIView`/`android.view.View` tree instead of HTML.
+  - **Content comes through the children indexer**, not a `Text` property: `NativeLabel["Total"]` and
+    `NativeButton.OnClick(Save)["Save"]` read exactly like `Span["Total"]` and `Button["Save"]` do on
+    the web, so there is one spelling for content across every host.
+  - **An app mixes both, per route.** One tab can be an HTML page and the next a pure-native screen. Each
+    frame is classified by what it rendered, and paints through the WebView or the native surface
+    accordingly — a native frame never pushes HTML, which is what keeps the WebView's DOM in step with the
+    HTML diff baseline.
+  - **Neither surface is torn down when switching.** A backend hides the content view it isn't showing and
+    keeps it, so returning to a web route doesn't reload the page and returning to a native route patches
+    the retained view tree rather than rebuilding it. Both of the session's diff baselines stay truthful
+    because the views they describe still exist.
+  - **One render walk feeds both.** The serializer already reported each user component it walked (for the
+    native bars); that report is now a balanced enter/exit pair, which is enough to rebuild a whole view
+    *tree* from the same single walk that produces the page HTML. No second render pass, and `Rask.Core`
+    still references no `Rask.Native` type.
+  - **Routing is unchanged.** `Router`/`Outlet` render no HTML of their own, so `NativeScreen[Router]`
+    gives `[Route]` pages, route parameters, guards and type-safe `Features.Routes.*` navigation with no
+    native-specific routing API.
+  - **Async event handlers throughout.** Every callback has an `OnXAsync` form (`OnClickAsync`,
+    `OnInputAsync`, `OnChangedAsync`) that is awaited *before* the frame is built, so state set after an
+    `await` paints in that frame rather than a later one.
+  - **Keyed rows move instead of being rewritten.** The tree differ reconciles keyed children by identity,
+    so reordering a list moves its row views — keeping scroll position, focus and animation state — and
+    only genuinely changed properties are sent.
+  - **Opt-in and backward compatible.** Register an `INativeSurface` on `host.Services` exactly like
+    `INativeChrome`; with none registered the family is inert and every frame paints through the WebView.
+  - **Both platform backends ship.** `RaskWkWebView` (UIKit) and `RaskAndroidWebView` (framework widgets,
+    no AndroidX dependency) implement `INativeSurface`, painting a screen as a real view tree in the same
+    container as the WebView and the bars and toggling which of the two is visible without tearing either
+    down. Both compile against their real platform SDKs, but **neither has been run on a simulator,
+    emulator or device**, so treat the on-screen result as unverified.
+  - **The half that could hide a bug is platform-agnostic and tested.** `NativeSurfaceHost<TView>` owns the
+    retained tree and replays patches in order; a platform head supplies only an `INativeViewOps<TView>`
+    mapping table. Patch replay — where an ordering slip shows up as a scrambled screen and is invisible in
+    a patch list that reads correctly — therefore runs on plain `net10.0` in the unit suite.
+  - **`NativeList` does not recycle rows.** Every row is a real view, built once and kept, which suits the
+    tens-of-rows lists most screens have rather than thousands. Cell reuse needs the platform's recycling
+    collection, whose data-source model does not fit a patch-addressed tree; it is a follow-up.
+
+### Fixed
+- **RASK032 no longer misses the chain syntax.** The analyzer compared the argument's type against
+  `NativeComponent`, but a chain expression is a `Build<T>` — so a native bar nested in HTML compiled clean
+  on exactly the syntax the docs teach. It now sees through `Build<T>` on both the receiver and the
+  children, and classifies by the container, which is also what lets native views compose legitimately
+  inside a `NativeScreen`. The mirror-image mistake — HTML inside a native screen, which would silently
+  render nothing — is the new **RASK048**.
 - **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**
   `IWebRtc` deliberately doesn't pick a signaling channel; this is the channel for apps that don't already
   have one. `AddRaskSignaling()` + `MapRaskSignaling()` host rooms; `ISignaling.JoinAsync` joins one and

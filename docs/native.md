@@ -3,9 +3,13 @@
 **Ship real, store-distributable iOS/Android apps from the same Rask component code — no Swift, Kotlin,
 React Native, or MAUI.** `Rask.Native` runs your app on the device inside a platform WebView, driven by
 the *same* render → diff pipeline as the Server and WASM hosts. Your C# runs **natively** on the device
-(App Store / Play Store distribution, native device APIs, real background execution); only the *view* is
-a WebView. Every existing Rask component — `Div()[Span(), …]`, forms, routing, scoped CSS/JS — works
-unchanged.
+(App Store / Play Store distribution, native device APIs, real background execution); by default the
+*view* is a WebView. Every existing Rask component — `Div()[Span(), …]`, forms, routing, scoped CSS/JS —
+works unchanged.
+
+A page can also skip the WebView entirely: [pure-native screens](#pure-native-screens-no-webview) render
+real `UIView`/`android.view.View` trees from the same component model, and an app may mix the two —
+one route served as HTML, the next fully native.
 
 > **Status — preview / pre-1.0.** The host, the `native` template (with the iOS
 > `WKWebView` and Android `WebView` app heads), and the native client runtime **ship and run
@@ -27,7 +31,8 @@ unchanged.
 - [Modes & the JS bridge](native-bridge.md) — Local vs Server, INativeWebView, platform heads, asset serving.
 - [Device capabilities & chrome](native-devices.md) — safe-area insets, device backends, native header/footer.
 
-Also in this doc: [How it fits](#how-it-fits), [Get started](#get-started), [Honest framing](#honest-framing), [Roadmap](#roadmap).
+Also in this doc: [How it fits](#how-it-fits), [Pure-native screens](#pure-native-screens-no-webview),
+[Get started](#get-started), [Honest framing](#honest-framing), [Roadmap](#roadmap).
 
 ---
 
@@ -51,6 +56,133 @@ and turns WebView events back into handler/navigate dispatches — structurally 
 `WasmLiveSession`. Because the C# host is transport-agnostic, the `Rask.Native` library targets plain
 `net10.0` and builds/tests with **no iOS/Android SDK workloads**; the WebView itself is abstracted behind
 [`INativeWebView`](native-bridge.md#the-inativewebview-bridge), implemented per platform in the app head.
+
+## Pure-native screens (no WebView)
+
+> **Status — both backends ship; neither has been run on a device.** The component family, the render →
+> view-tree → diff → patch pipeline, the surface/event contract and the mixed-surface switching all ship,
+> covered by unit tests against a test-double backend. The **iOS** (`RaskWkWebView`, UIKit) and **Android**
+> (`RaskAndroidWebView`, framework widgets) `INativeSurface` backends both ship and both compile against
+> their real platform SDKs — but neither has yet been run on a simulator, emulator or device, so treat the
+> on-screen result as unverified. Register no `INativeSurface` and your app keeps rendering through the
+> WebView exactly as before.
+
+`NativeScreen` is the pure-native counterpart of `NativeWebView`, and sits in the same slot — a sibling of
+the native bars. Everything inside it is a real platform view: no WebView, no HTML, no JavaScript.
+
+```csharp
+protected override Component? Render() =>
+[
+    NativeHeaderBar.Title("Profile"),
+    NativeScreen[
+        NativeStack.Spacing(12).Padding(16)[
+            NativeLabel.FontWeight(NativeFontWeight.Semibold)[$"Signed in as {_user.Name}"],
+            NativeTextField.Value(_note).Placeholder("Add a note").OnInput(v => _note = v),
+            NativeSwitch.On(_notify).OnChanged(v => _notify = v),
+            NativeButton.OnClickAsync(SaveAsync)["Save"]]],
+    NativeTabBar.Tabs([...])
+];
+```
+
+### The components
+
+| Component | iOS | Android |
+| --- | --- | --- |
+| `NativeScreen` | `UIStackView` | `LinearLayout` |
+| `NativeStack` | `UIStackView` | `LinearLayout` |
+| `NativeScroll` | `UIScrollView` + stack | `ScrollView` + stack |
+| `NativeList` | `UIScrollView` + stack | `ScrollView` + stack |
+| `NativeLabel` | `UILabel` | `TextView` |
+| `NativeButton` | `UIButton` | `Button` |
+| `NativeTextField` | `UITextField` | `EditText` |
+| `NativeSwitch` | `UISwitch` | `Switch` |
+| `NativeImage` | `UIImageView` | `ImageView` |
+| `NativeActivityIndicator` | `UIActivityIndicatorView` | `ProgressBar` |
+| `NativeDivider` | hairline `UIView` | hairline `View` |
+| `NativeSpacer` | flexible space | flexible space |
+
+Android uses framework widgets only — no AndroidX/Material dependency — matching how the native bars are
+built, so a pure-native screen themes with the app's default theme and adds nothing to the APK.
+
+Every callback comes in both shapes — `OnClick` (`Action`) and `OnClickAsync` (`Func<Task>`), `OnInput` /
+`OnInputAsync`, `OnChanged` / `OnChangedAsync`. The async form is **awaited before the frame is built**,
+so state a handler sets after an `await` paints in that same frame rather than a later one.
+
+### Routing is unchanged
+
+`Router` and `Outlet` render no HTML of their own, so they work inside a `NativeScreen` exactly as on the
+web: `NativeScreen[Router]` gives you `[Route]` pages, route parameters, guards and type-safe
+`Features.Routes.*` navigation, with no native-specific routing API.
+
+### Mixing screens and WebView pages
+
+One app can serve some routes as HTML and others as pure-native — a tab bar whose first tab is a web page
+and whose second is a native screen is the intended setup. Compose a `NativeWebView` on the routes you
+want as markup and a `NativeScreen` on the ones you want native; the host swaps surfaces as you navigate.
+
+**Neither surface is torn down on the switch.** The WebView and the native content view both stay alive
+and are merely hidden, so returning to a web route does not reload the page (its DOM, scroll position and
+JS state survive) and returning to a native route patches the retained view tree instead of rebuilding it.
+
+Putting HTML inside a `NativeScreen` is a compile error ([RASK048](diagnostics.md#rask048)), as is putting
+a native component inside the HTML tree ([RASK032](diagnostics.md#rask032)).
+
+### Wiring it up
+
+The surface backend is opt-in, exactly like `INativeChrome` — register it before `RunLocalAsync` and the
+platform head implements it alongside the WebView bridge:
+
+```csharp
+host.Services.AddSingleton<INativeSurface>(webView);
+```
+
+With no `INativeSurface` registered the native view family is inert and every frame paints through the
+WebView, so an existing app is unaffected.
+
+### Building the heads locally
+
+`Platforms/**` is excluded from the default `net10.0` build, so the ordinary solution build, the pre-commit
+gate and the pre-push E2E all skip the platform backends entirely — a head can be completely broken while
+every default gate stays green. Build them explicitly:
+
+```bash
+# iOS — needs the ios workload
+dotnet build src/Rask.Native/Rask.Native.csproj -p:RaskNativeHeads=ios
+
+# Android — needs the android workload AND explicit SDK/JDK paths
+dotnet build src/Rask.Native/Rask.Native.csproj -p:RaskNativeHeads=android \
+  -p:AndroidSdkDirectory=/opt/homebrew/share/android-commandlinetools \
+  -p:JavaSdkDirectory=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+```
+
+Android needs **three** things and .NET finds none of them by default: the workload
+(`sudo dotnet workload install android`), an SDK, and a JDK. `JavaSdkDirectory` must be the **inner**
+`libexec/openjdk.jdk/Contents/Home` — pointing at the Homebrew prefix fails with the same `XA5300` as
+having no JDK at all, which reads like the JDK is missing rather than misaddressed.
+
+Check `bin/Debug/net10.0-android/Rask.Native.dll` actually exists before believing a green build: if a
+`RaskNativeHeads` value is missing from the singular `TargetFramework` condition in the csproj, the build
+reports success having compiled only `net10.0`, where `Platforms/**` is excluded.
+
+### Keys on lists
+
+```csharp
+NativeList[todos.Select(t => NativeStack.Key(t.Id).OnClick(() => Toggle(t))[NativeLabel[t.Title]])]
+```
+
+`Key` comes **first** in the chain ([RASK046](diagnostics.md#rask046)) — it decides which instance is being
+built, so anything written before it lands on one that is about to be discarded. And because the chain ends
+at the children indexer it hands back a `Component`, so the enumerable needs no `(Component)` cast; a chain
+ending at a setter would, since that yields a `Build<T>`.
+
+Give every row in a `NativeList` a `Key`. Keyed rows reconcile by identity, so inserting, removing or
+reordering **moves** the existing row views — keeping scroll position, focus and in-flight animations —
+instead of rewriting each row's contents. Without keys the rows match by position and a reorder repaints
+all of them.
+
+`NativeList` does **not** recycle rows: every row is a real view that is built once and kept. That suits
+the tens-of-rows lists most screens have, not thousands of them. Cell reuse needs the platform's recycling
+collection, whose data-source model doesn't fit a patch-addressed tree; it's a tracked follow-up.
 
 ## Get started
 

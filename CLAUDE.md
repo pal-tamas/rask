@@ -81,10 +81,10 @@ dotnet run --project samples/Rask.Example.Server
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/JS + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–047 (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–048 (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–047 are documented in `docs/diagnostics.md`.
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–048 are documented in `docs/diagnostics.md`.
