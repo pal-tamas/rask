@@ -47,6 +47,27 @@ public class CodeFixProviderTests
         Assert.Contains("Img(\"/a.png\", Alt: \"\")", fixhed);
     }
 
+    // A chain takes a `.Alt("")` STEP, not a named argument — appending `Alt: ""` into whichever step
+    // happened to be nearest would not even compile.
+    [Fact]
+    public async Task Rask023_AppendsAltStep_ToAChain()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
+            App("return Img.Src(\"/a.png\");"));
+        Assert.Contains("Img.Src(\"/a.png\").Alt(\"\")", fixhed);
+    }
+
+    [Fact]
+    public async Task Rask023_AppendsAltStep_ToABareEntry()
+    {
+        // A bare entry has no argument list at all, so only a step can be added.
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
+            App("return Img;"));
+        Assert.Contains("Img.Alt(\"\")", fixhed);
+    }
+
     // ---- RASK001: property becomes a required factory param -> add `required` ----
 
     [Fact]
@@ -105,7 +126,7 @@ public class CodeFixProviderTests
         Assert.True(offered);
     }
 
-    // ---- RASK014: `new Widget()` -> the generated factory ----
+    // ---- RASK014: `new Widget()` -> the chain that builds it ----
     //
     // A user component rather than a built-in tag: inside a `using static …Generated` scope a tag name
     // binds to the generated factory METHOD, so `new Div()` doesn't resolve to the type there at all.
@@ -124,24 +145,25 @@ public class CodeFixProviderTests
         """;
 
     [Fact]
-    public async Task Rask014_RewritesArgumentlessNew_ToTheFactoryCall()
+    public async Task Rask014_RewritesArgumentlessNew_ToTheBareEntry()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
             Caller("var x = new Widget();"));
-        Assert.Contains("var x = Widget();", fixhed);
+        // The bare entry — which is what RASK014's own message tells the reader to write.
+        Assert.Contains("var x = Widget;", fixhed);
         Assert.DoesNotContain("new Widget()", fixhed);
     }
 
     [Fact]
-    public async Task Rask014_DropsTheQualifier_BecauseTheFactoryIsAMethodNotAType()
+    public async Task Rask014_DropsTheQualifier_BecauseTheEntryIsNotAType()
     {
-        // `new Demo.Widget()` must become `Widget()`, not `Demo.Widget()` — the latter names a type where
+        // `new Demo.Widget()` must become `Widget`, not `Demo.Widget` — the latter names a type where
         // a method has to go, and would not compile.
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
             Caller("var x = new Demo.Widget();"));
-        Assert.Contains("var x = Widget();", fixhed);
+        Assert.Contains("var x = Widget;", fixhed);
     }
 
     [Fact]
