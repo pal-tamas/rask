@@ -27,7 +27,6 @@ public sealed partial class DashboardLayout(
 {
     protected override string Route => "_ops";
 
-
     protected override Component? HeadAssets =>
     [
         Title["Ops"],
