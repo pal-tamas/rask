@@ -194,6 +194,45 @@ them until tagged releases begin.
   `Rask.SQLite.Crdt.Sync` had no badge and no row in the package → project-type → entry-point table.
   `Rask.Signaling` appeared nowhere but `NUGET.md`, so the WebRTC epic's server half was effectively
   undiscoverable; `llms.txt` now covers the realtime surface as well.
+- **Pure-native screens — twelve components that render real platform views, with no WebView.**
+  `NativeScreen` is the counterpart of `NativeWebView` and sits in the same slot; inside it,
+  `NativeStack`, `NativeScroll`, `NativeList`, `NativeLabel`, `NativeButton`, `NativeTextField`,
+  `NativeSwitch`, `NativeImage`, `NativeActivityIndicator`, `NativeDivider` and `NativeSpacer` describe a
+  `UIView`/`android.view.View` tree instead of HTML.
+  - **An app mixes both, per route.** One tab can be an HTML page and the next a pure-native screen. Each
+    frame is classified by what it rendered, and paints through the WebView or the native surface
+    accordingly — a native frame never pushes HTML, which is what keeps the WebView's DOM in step with the
+    HTML diff baseline.
+  - **Neither surface is torn down when switching.** A backend hides the content view it isn't showing and
+    keeps it, so returning to a web route doesn't reload the page and returning to a native route patches
+    the retained view tree rather than rebuilding it. Both of the session's diff baselines stay truthful
+    because the views they describe still exist.
+  - **One render walk feeds both.** The serializer already reported each user component it walked (for the
+    native bars); that report is now a balanced enter/exit pair, which is enough to rebuild a whole view
+    *tree* from the same single walk that produces the page HTML. No second render pass, and `Rask.Core`
+    still references no `Rask.Native` type.
+  - **Routing is unchanged.** `Router`/`Outlet` render no HTML of their own, so `NativeScreen[Router]`
+    gives `[Route]` pages, route parameters, guards and type-safe `Features.Routes.*` navigation with no
+    native-specific routing API.
+  - **Async event handlers throughout.** Every callback has an `OnXAsync` form (`OnClickAsync`,
+    `OnInputAsync`, `OnChangedAsync`) that is awaited *before* the frame is built, so state set after an
+    `await` paints in that frame rather than a later one.
+  - **Keyed rows move instead of being rewritten.** The tree differ reconciles keyed children by identity,
+    so reordering a list moves its row views — keeping scroll position, focus and animation state — and
+    only genuinely changed properties are sent.
+  - **Opt-in and backward compatible.** Register an `INativeSurface` on `host.Services` exactly like
+    `INativeChrome`; with none registered the family is inert and every frame paints through the WebView.
+  - **The iOS and Android backends are not written yet**, so a `NativeScreen` currently paints nothing on a
+    device. The pipeline, the contract and the mixed-surface switching ship and are unit-tested against a
+    test-double backend that applies patches the way a real one must.
+
+### Fixed
+- **RASK032 no longer misses the chain syntax.** The analyzer compared the argument's type against
+  `NativeComponent`, but a chain expression is a `Build<T>` — so a native bar nested in HTML compiled clean
+  on exactly the syntax the docs teach. It now sees through `Build<T>` on both the receiver and the
+  children, and classifies by the container, which is also what lets native views compose legitimately
+  inside a `NativeScreen`. The mirror-image mistake — HTML inside a native screen, which would silently
+  render nothing — is the new **RASK048**.
 - **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**
   `IWebRtc` deliberately doesn't pick a signaling channel; this is the channel for apps that don't already
   have one. `AddRaskSignaling()` + `MapRaskSignaling()` host rooms; `ISignaling.JoinAsync` joins one and
