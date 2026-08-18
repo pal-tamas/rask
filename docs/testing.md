@@ -121,6 +121,55 @@ Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
 `.Calls` lists every call in order; `.ArgsFor(id)` is the single-call shorthand, `.CallCount(id)` counts, and
 `.SetException(id, ex)` faults one. An unconfigured call returns `default` — the same as a real absent value.
 
+### Components that take file uploads
+
+A file input's handler receives `RaskFile`s the host reads back from the browser, so a test has to supply
+that host half. `TestFileBackend` is it — stage the bytes, register it, pick the files:
+
+```csharp
+var files = new TestFileBackend();
+var picked = files.Add("notes.txt", "hello world", "text/plain");
+
+var page = RaskTest.Render(new UploadPage(), TestServiceProvider.With<IBrowserFileBackend>(files));
+await page.On("#picker").FilesAsync(picked);
+
+Assert.Equal("notes.txt", page.TextOf("[data-testid=name]"));
+```
+
+The handler gets real files: `OpenReadStream()` returns the staged bytes, `Size` is their length, and the
+`maxAllowedSize` limit is enforced exactly as the real backends enforce it — so a component that forgot to
+raise the limit for a large upload fails here rather than on a real file.
+
+> **Register the backend, or the test proves nothing.** Without one, `FileListReader` hands the handler an
+> **empty list** — the handler still fires, and a test that asserts "no crash" passes while exercising the
+> empty branch. That silence is why `Rask.Core` now reports it through `RaskDiagnostics`.
+
+`FilesAsync` takes either specific files or the whole backend (`FilesAsync(files)`) when there is one input.
+For a file inside a submitted form, use `FormPayload`, which shapes the payload the way `FormData.Files`
+reads it:
+
+```csharp
+await page.On("#form").SubmitAsync(files.FormPayload("attachment", files.Add("cv.pdf", "…")));
+```
+
+`.Staged` lists everything added; `.Released` records what the framework handed back after the handler
+returned — the browser hosts drop their client-side references at that point and the server frees its upload
+slot, so a component holding a `RaskFile` past the handler is holding something already gone.
+
+### Handing a component its services
+
+`RaskTest.Render` takes any `IServiceProvider`, and `Rask.Testing` depends on no DI container. `TestServiceProvider`
+is the one-liner for the common case of one or two services:
+
+```csharp
+var services = new TestServiceProvider()
+    .Add<IBrowserFileBackend>(files)
+    .Add<IDownloadSink>(downloads);
+```
+
+Registrations are by exact type with no lifetimes or scopes — whatever you put in is what comes out. When a
+test needs more than that, build a real container and pass its provider instead.
+
 ### Forms: asserting validation state
 
 Validation state (messages, `IsModified`, `IsValidating`) never reaches the markup, so reach the form's
@@ -192,7 +241,7 @@ Assert.Equal("<button data-rask-on-click=\"h0\">x</button>", view.RenderAsLiveRo
 
 `RenderAsLiveRoot(IServiceProvider)` takes a service provider when the component needs DI
 (`RenderHarness.EmptyServices()`, or a project-specific builder like the example suite's
-`TestServices.Default(...)`).
+`TestServiceProvider.Default(...)`).
 
 ---
 
@@ -338,7 +387,7 @@ it needs, then asserted on the resulting HTML:
 
 ```csharp
 var routeState = new RouteState { Path = "/" };
-var html = new App.RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+var html = new App.RenderAsLiveRoot(TestServiceProvider.Default(routeState: routeState));
 Assert.Contains("Hello, world!", html);
 ```
 
@@ -347,7 +396,7 @@ assertion is about the *page* (the doctype, `<html lang>`, what landed in `<head
 through `RaskTest.RenderDocument` instead, which composes the document the way a host does:
 
 ```csharp
-var html = RaskTest.RenderDocument(new App, TestServices.Default(routeState: routeState)).Html;
+var html = RaskTest.RenderDocument(new App, TestServiceProvider.Default(routeState: routeState)).Html;
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 

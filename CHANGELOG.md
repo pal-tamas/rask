@@ -7,6 +7,43 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
+  shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler
+  test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the
+  handler an **empty list** when there is none, so a test that rendered a file input and raised its event ran
+  the handler with nothing in it and passed on whatever it did. That is the same silent-empty failure the
+  native host shipped with (#736), reproduced in every test.
+
+  ```csharp
+  var files = new TestFileBackend();
+  var picked = files.Add("notes.txt", "hello world", "text/plain");
+
+  var page = RaskTest.Render(new UploadPage(), TestServiceProvider.With<IBrowserFileBackend>(files));
+  await page.On("#picker").FilesAsync(picked);
+  ```
+
+  The handler gets real files: `OpenReadStream()` returns the staged bytes and `maxAllowedSize` is enforced
+  exactly as the real backends enforce it, so a component that forgot to raise the limit for a large upload
+  fails in a unit test rather than on a real file. `.FormPayload(field, …)` covers a file inside a submitted
+  form (the `FormData.Files` shape), `.Staged` lists what was added, and `.Released` records the framework's
+  release call — the browser hosts drop their client-side references there and the server frees its upload
+  slot, so a component holding a `RaskFile` past the handler is holding something already gone. An unstaged
+  ref throws with the reason instead of quietly yielding an empty file.
+
+  `TestServiceProvider` is the provider that makes it a one-liner: `RaskTest.Render` takes an `IServiceProvider` and
+  `Rask.Testing` depends on no DI container, so every test needing one service had to pull in
+  `Microsoft.Extensions.DependencyInjection` or hand-roll one. Registrations are by exact type with no
+  lifetimes or scopes; pass a real container's provider when a test needs more.
+
+  `RenderedComponent` gained `FilesAsync` on both interaction surfaces (`page.On(selector).FilesAsync(...)`
+  and the first-handler shortcut), which builds the metadata payload a real client would send. Closes #737.
+
+### Changed
+- **The "no `IBrowserFileBackend`" diagnostic now names the fix.** It reported the silent-empty case (added
+  in #736) but could only say "register a backend", because none shipped. It now points at
+  `Rask.Testing`'s `TestFileBackend`.
+
 ### Fixed
 - **Everything in `Rask.Core` now works on all three hosts, and a test says so.** Core is the shared
   component surface, so a component written once is supposed to run on Server, WASM and Native alike. Four
