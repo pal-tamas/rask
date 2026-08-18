@@ -13,17 +13,20 @@ public class HostBootstrapPlanTests
         User: "root", IsRoot: true, HasSystemd: true,
         DockerInstalled: false, DockerUsable: false, InDockerGroup: false, CanSudo: true,
         HasApt: true,
-        UfwInstalled: false, UfwActive: false, SshPorts: sshPorts.Length == 0 ? [22] : sshPorts,
+        UfwInstalled: false, UfwActive: false, DockerFirewall: "", SshPorts: sshPorts.Length == 0 ? [22] : sshPorts,
         SshConfigInclude: true, SshdReadable: true,
         SshRootLoginPermitted: true, SshPasswordAuthEnabled: true, SshKbdAuthEnabled: true,
         Complete: true);
 
-    /// <summary>A box that's already fully set up — the second and every later deploy.</summary>
+    /// <summary>
+    /// A box that's already fully set up — the second and every later deploy. "Fully set up" now
+    /// includes the Docker/ufw block, whose signature is the one domain mode asks for (80 and 443).
+    /// </summary>
     private static HostFacts Ready() => new(
         User: "deploy", IsRoot: false, HasSystemd: true,
         DockerInstalled: true, DockerUsable: true, InDockerGroup: true, CanSudo: true,
         HasApt: true,
-        UfwInstalled: true, UfwActive: true, SshPorts: [22],
+        UfwInstalled: true, UfwActive: true, DockerFirewall: "v1:80,443", SshPorts: [22],
         SshConfigInclude: true, SshdReadable: true,
         SshRootLoginPermitted: false, SshPasswordAuthEnabled: false, SshKbdAuthEnabled: false,
         Complete: true);
@@ -53,7 +56,11 @@ public class HostBootstrapPlanTests
             ["Install Docker", "Start the Docker daemon", "Create the 'deploy' login and give it Docker access"],
             plan.Preparation.Select(s => s.Description));
         Assert.Equal(
-            ["Enable the firewall (allow 22, 80, 443; deny everything else inbound)", "Harden SSH (disable SSH password login and root login)"],
+            [
+                "Enable the firewall (allow 22, 80, 443; deny everything else inbound)",
+                "Make Docker's published ports obey the firewall (allow 80, 443; deny every other container port)",
+                "Harden SSH (disable SSH password login and root login)",
+            ],
             plan.Risky.Select(s => s.Description));
         Assert.Equal("deploy", plan.NewUser);
         Assert.Empty(plan.Warnings);
@@ -211,6 +218,175 @@ public class HostBootstrapPlanTests
         Assert.Contains("allow 22, 8080", plan.Risky[0].Description, StringComparison.Ordinal);
     }
 
+    // ── The firewall vs. Docker ─────────────────────────────────────────────────────────────────────
+
+    /// <summary>The step that exists at all is the point: without it "deny incoming" is not true.</summary>
+    private static string DockerFirewall(BootstrapPlan plan) =>
+        plan.Risky.Single(s => s.Description.StartsWith("Make Docker's", StringComparison.Ordinal)).Script;
+
+    [Fact]
+    public void Docker_published_ports_are_put_behind_the_firewall_through_dockers_own_hook()
+    {
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup()));
+
+        // DOCKER-USER is the chain Docker consults before its own accepts and never writes to itself.
+        // Anywhere else and Docker would either overwrite us or reach its ACCEPT first.
+        Assert.Contains("-A DOCKER-USER -j RASK-DOCKER", script, StringComparison.Ordinal);
+        Assert.Contains("-A RASK-DOCKER -o docker0 -j DROP", script, StringComparison.Ordinal);
+        Assert.Contains("-A RASK-DOCKER -o br-+ -j DROP", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_container_rules_live_in_after_rules_so_they_survive_a_reboot()
+    {
+        // A raw `iptables` call is gone after the first reboot, silently handing the exposure back.
+        // ufw reloads after.rules at boot, which is the only reason this persists.
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup()));
+
+        Assert.Contains("/etc/ufw/after.rules", script, StringComparison.Ordinal);
+        Assert.Contains("ufw reload", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Only_traffic_headed_into_a_docker_bridge_is_denied()
+    {
+        // The widespread recipe drops by RFC1918 destination, which also kills a box's unrelated
+        // forwarding — a VPN or router on the same host stops working. Matching the outgoing
+        // interface denies exactly what is headed for a container and nothing else.
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup()));
+
+        Assert.DoesNotContain("-d 10.0.0.0/8", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("-d 172.16.0.0/12", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("-d 192.168.0.0/16", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Containers_can_still_reach_out_and_reach_each_other()
+    {
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup()));
+
+        // Without the conntrack RETURN nothing in a container could use the network at all, and
+        // without the bridge RETURNs Caddy could not reach the app it proxies to.
+        Assert.Contains("-m conntrack --ctstate RELATED,ESTABLISHED -j RETURN", script, StringComparison.Ordinal);
+        Assert.Contains("-A RASK-DOCKER -i docker0 -j RETURN", script, StringComparison.Ordinal);
+        Assert.Contains("-A RASK-DOCKER -i br-+ -j RETURN", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Domain_mode_lets_caddys_ports_through_the_container_firewall()
+    {
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup(port: null)));
+
+        Assert.Contains("-A RASK-DOCKER -p tcp -m tcp --dport 80 -j RETURN", script, StringComparison.Ordinal);
+        Assert.Contains("-A RASK-DOCKER -p tcp -m tcp --dport 443 -j RETURN", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Port_mode_allows_the_container_port_not_the_published_one()
+    {
+        // THE trap. Docker's DNAT rewrites the destination in nat/PREROUTING, so by the time the
+        // packet reaches DOCKER-USER the port is 8080, not 9000. Allowing the published port here
+        // would deny every packet and take the app off the internet.
+        var options = FullSetup(port: 9000) with { ContainerPort = 8080 };
+
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), options));
+
+        Assert.Contains("--dport 8080 -j RETURN", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("--dport 9000", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_published_port_with_no_known_container_port_is_left_alone_rather_than_guessed()
+    {
+        // Denying by default without knowing what to keep open would take the deployed app offline.
+        var plan = HostBootstrap.Plan(BareRoot(), FullSetup(port: 9000) with { ContainerPort = null });
+
+        Assert.DoesNotContain(plan.Risky, s => s.Description.StartsWith("Make Docker's", StringComparison.Ordinal));
+        Assert.Contains(plan.Warnings, w => w.Contains("outside the firewall", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_box_that_already_runs_ufw_still_gets_its_docker_ports_covered()
+    {
+        // The most dangerous shape there is: ufw is up, `ufw status` says the port is denied, and
+        // Docker is serving it to the internet anyway. We leave the box's own allow list alone.
+        var facts = BareRoot() with { UfwInstalled = true, UfwActive = true };
+
+        var plan = HostBootstrap.Plan(facts, FullSetup());
+
+        Assert.DoesNotContain("ufw --force enable", AllScripts(plan), StringComparison.Ordinal);
+        Assert.Contains("-A DOCKER-USER -j RASK-DOCKER", DockerFirewall(plan), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_unchanged_box_is_left_completely_alone()
+    {
+        // Idempotency: the block already on the box is exactly the one we'd write, so there is
+        // nothing to do — no rewrite, no ufw reload, no re-armed rollback guard, every later deploy.
+        var plan = HostBootstrap.Plan(Ready(), FullSetup());
+
+        Assert.True(plan.IsEmpty);
+    }
+
+    [Fact]
+    public void Changing_the_port_rewrites_a_block_that_would_now_be_wrong()
+    {
+        // The stale-allow-list trap: the box carries rules for 80/443 while the app has moved to a
+        // published port. Skipping on "a block exists" would black-hole the new port.
+        var facts = Ready() with { DockerFirewall = "v1:80,443" };
+
+        var plan = HostBootstrap.Plan(facts, FullSetup(port: 9000) with { ContainerPort = 8080 });
+
+        Assert.Contains("--dport 8080 -j RETURN", DockerFirewall(plan), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_block_from_an_older_rask_is_refreshed_even_when_the_ports_match()
+    {
+        var facts = Ready() with { DockerFirewall = "v0:80,443" };
+
+        var plan = HostBootstrap.Plan(facts, FullSetup());
+
+        Assert.Contains("v1:80,443", DockerFirewall(plan), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_block_is_replaced_rather_than_appended_and_reloads_the_same_either_way()
+    {
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup()));
+
+        // Fenced and stripped before rewriting, so re-running replaces our block and only ours...
+        Assert.Contains("###RASK-DOCKER-BEGIN", script, StringComparison.Ordinal);
+        Assert.Contains("###RASK-DOCKER-END", script, StringComparison.Ordinal);
+        Assert.Contains("awk '/^###RASK-DOCKER-BEGIN/", script, StringComparison.Ordinal);
+
+        // ...and flushed on load, because ufw restores with --noflush: a chain we only appended to
+        // would grow a duplicate copy of every rule on each reload.
+        Assert.Contains("-F RASK-DOCKER", script, StringComparison.Ordinal);
+        Assert.Contains("-F DOCKER-USER", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_rules_file_ufw_rejects_puts_the_original_back_rather_than_leaving_no_firewall()
+    {
+        // `ufw reload` on a file it can't parse leaves the box with the firewall DOWN. Failing here
+        // has to restore and reload, not just report.
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup()));
+
+        var write = script.IndexOf("mv /etc/ufw/after.rules.rask-new", StringComparison.Ordinal);
+        var restore = script.IndexOf("mv /etc/ufw/after.rules.rask-bak /etc/ufw/after.rules", StringComparison.Ordinal);
+        Assert.True(write >= 0 && restore > write, "the failure path must put the saved copy back");
+        Assert.Contains("iptables -C DOCKER-USER -j RASK-DOCKER", script, StringComparison.Ordinal); // proved, not assumed
+    }
+
+    [Fact]
+    public void Turning_the_firewall_off_skips_the_docker_rules_too()
+    {
+        var plan = HostBootstrap.Plan(BareRoot(), FullSetup() with { Firewall = false });
+
+        Assert.DoesNotContain("RASK-DOCKER", AllScripts(plan), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_box_with_no_way_to_install_ufw_skips_the_firewall_instead_of_failing_the_deploy()
     {
@@ -261,12 +437,17 @@ public class HostBootstrapPlanTests
     }
 
     [Fact]
-    public void An_already_firewalled_box_is_left_alone()
+    public void An_already_firewalled_boxs_own_rules_are_left_alone()
     {
-        // The box's existing rules are the user's business, not ours to overwrite.
+        // The box's existing rules are the user's business, not ours to overwrite — we neither
+        // re-enable it nor add an allow of our own. (What we DO still fix on such a box is that
+        // Docker isn't behind it at all: see A_box_that_already_runs_ufw_still_gets_its_docker_ports_covered.)
         var plan = HostBootstrap.Plan(BareRoot() with { UfwInstalled = true, UfwActive = true }, FullSetup());
 
-        Assert.DoesNotContain("ufw", AllScripts(plan), StringComparison.Ordinal);
+        var scripts = AllScripts(plan);
+        Assert.DoesNotContain("ufw allow", scripts, StringComparison.Ordinal);
+        Assert.DoesNotContain("ufw default", scripts, StringComparison.Ordinal);
+        Assert.DoesNotContain("ufw --force", scripts, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -389,7 +570,7 @@ public class HostBootstrapGuardTests
     private static HostFacts BareRoot() => new(
         User: "root", IsRoot: true, HasSystemd: true,
         DockerInstalled: false, DockerUsable: false, InDockerGroup: false, CanSudo: true,
-        HasApt: true, UfwInstalled: false, UfwActive: false, SshPorts: [22],
+        HasApt: true, UfwInstalled: false, UfwActive: false, DockerFirewall: "", SshPorts: [22],
         SshConfigInclude: true, SshdReadable: true,
         SshRootLoginPermitted: true, SshPasswordAuthEnabled: true, SshKbdAuthEnabled: true,
         Complete: true);
@@ -420,8 +601,22 @@ public class HostBootstrapGuardTests
 
         var arm = HostBootstrap.ArmGuardScript(plan, isRoot: true);
 
-        Assert.DoesNotContain("ufw", arm, StringComparison.Ordinal);
+        // It may reload their firewall (after taking our own block back out of it), but it must never
+        // turn it off — that is the one action that would leave the box more exposed than it started.
+        Assert.DoesNotContain("ufw --force disable", arm, StringComparison.Ordinal);
+        Assert.DoesNotContain("ufw disable", arm, StringComparison.Ordinal);
         Assert.Contains("rm -f /etc/ssh/sshd_config.d/99-rask.conf", arm, StringComparison.Ordinal); // still reverts what it DID do
+    }
+
+    [Fact]
+    public void The_guard_body_can_never_break_out_of_its_own_quoting()
+    {
+        // Every Undo is spliced into the guard's `/bin/sh -c '…'`, which is hand-quoted rather than
+        // escaped. A single quote anywhere in one would end that string early and leave the guard
+        // running whatever followed — as root, on a timer, with nobody watching.
+        var plan = HostBootstrap.Plan(BareRoot(), FullSetup);
+
+        Assert.All(plan.Risky, step => Assert.DoesNotContain('\'', step.Undo ?? string.Empty));
     }
 
     [Fact]
