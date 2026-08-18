@@ -298,6 +298,20 @@ public abstract partial class Component : RaskMarkup
         }
     }
 
+    // Backing store for Element.Attributes, on the same terms as AriaInternal: reading never allocates,
+    // and writing only forces the LiveState into existence once a value is actually assigned.
+    internal IReadOnlyDictionary<string, string?>? ExtraAttrsInternal
+    {
+        get => _live?.ExtraAttrs;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.ExtraAttrs = value;
+            }
+        }
+    }
+
     /// <summary>
     ///     A <see cref="System.Threading.CancellationToken" /> for this component's cancellable async
     ///     work. It is cancelled when the component is unmounted (navigation away, parent removed, or
@@ -2536,6 +2550,13 @@ public abstract partial class Component : RaskMarkup
         public string? Role;
         public int? TabIndex;
         public IReadOnlyDictionary<string, string?>? Aria;
+
+        // Every remaining global HTML attribute, in one bag rather than a typed field each. A field here
+        // costs ~8 B on every node of every live session (~56 KB per field on a 1,000-row page — see
+        // CachedSubtree above), and the shared Element surface has a hard 16-pending-bit budget for
+        // folding properties, so one dictionary keeps both budgets where nine typed props would keep
+        // neither.
+        public IReadOnlyDictionary<string, string?>? ExtraAttrs;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Action)>? Handlers;

@@ -115,6 +115,24 @@ attributes. See the [accessibility guide](accessibility.md) and the RASK023 img-
 
 <!-- demo:props-aria -->
 
+`Attributes` — the escape hatch for anything the class does not name. Global HTML attributes Rask has
+no typed property for (`lang`, `dir`, `hidden`, `inert`, `popover`, `contenteditable`, `inputmode`),
+microdata, and vendor or experimental attributes all go here, emitted verbatim as `{key}="{value}"` with
+the value HTML-encoded and a null value rendering the attribute bare, exactly like `Data`:
+
+```csharp
+Span.Attributes(new() { ["lang"] = "fr" })["déjà vu"]     // <span lang="fr">
+Div.Attributes(new() { ["inert"] = null })                // bare: <div inert>
+```
+
+`lang` is the one to know about: [WCAG 3.1.2 (Language of Parts)][wcag312] asks you to mark the element
+that *changes* language, not just `<html>`, and that is what makes a screen reader switch pronunciation
+mid-sentence. Prefer a typed property wherever one exists — it is checked, documented and discoverable —
+and reach for `Attributes` for the rest. It renders last within the universal block, so a typed property
+always wins the ordering argument.
+
+<!-- demo:props-attributes -->
+
 **Attribute order** is fixed: base props first (`id`, `class`, `style`, `title`, `data-*`, `role`,
 `tabindex`, `aria-*`), then tag-specific. Tests enforce it, so the output is predictable for diffing and
 DOM tooling:
@@ -331,3 +349,4 @@ See also: [Getting started](getting-started.md) for building your first componen
 [ul]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ul
 [video]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video
 [wbr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/wbr
+[wcag312]: https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts

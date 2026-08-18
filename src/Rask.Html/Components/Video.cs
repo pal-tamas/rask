@@ -30,6 +30,25 @@ public sealed partial class Video : HtmlMediaElement
     /// </summary>
     public bool? PlaysInline { get; set; }
 
+    /// <summary>
+    ///     Hides individual native controls: any of <c>nodownload</c>, <c>nofullscreen</c>,
+    ///     <c>noremoteplayback</c>, space-separated. A hint, not a security boundary — the media is still
+    ///     fetchable by anyone who looks.
+    /// </summary>
+    public string? ControlsList { get; set; }
+
+    /// <summary>Suppresses the picture-in-picture affordance.</summary>
+    public bool? DisablePictureInPicture { get; set; }
+
+    /// <summary>Suppresses casting to a remote device (Chromecast, AirPlay).</summary>
+    public bool? DisableRemotePlayback { get; set; }
+
+    /// <summary>
+    ///     <c>lazy</c> defers loading until the video is near the viewport — worth setting on anything
+    ///     below the fold, where the poster and metadata are otherwise fetched immediately.
+    /// </summary>
+    public string? Loading { get; set; }
+
     protected override void WriteAttributes(StringBuilder sb)
     {
         // Emits the universal attrs then the shared HtmlMediaElement block (src, controls, …,
@@ -54,6 +73,26 @@ public sealed partial class Video : HtmlMediaElement
         if (PlaysInline is true)
         {
             AppendAttr(sb, "playsinline", null);
+        }
+
+        if (ControlsList is not null)
+        {
+            AppendAttr(sb, "controlslist", ControlsList);
+        }
+
+        if (DisablePictureInPicture is true)
+        {
+            AppendAttr(sb, "disablepictureinpicture", null);
+        }
+
+        if (DisableRemotePlayback is true)
+        {
+            AppendAttr(sb, "disableremoteplayback", null);
+        }
+
+        if (Loading is not null)
+        {
+            AppendAttr(sb, "loading", Loading);
         }
     }
 }

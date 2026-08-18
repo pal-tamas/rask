@@ -8,8 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The per-element attribute gaps MDN turned up (closes #694).** `<button>` gains the six form-override
+  attributes `Input` already had — `Form`, `FormAction`, `FormEnctype`, `FormMethod`, `FormNovalidate`,
+  `FormTarget` — so a submit button can override the form's action written as `<button>` and not only as
+  `<input type="submit">`, plus `Autofocus`, `PopoverTarget` and `PopoverTargetAction`. `<video>` gains
+  `ControlsList`, `DisablePictureInPicture`, `DisableRemotePlayback` and `Loading`. `<form>` gains `Rel`.
+  `FormAction` is sanitised like every other URL-valued attribute — it is a navigation target, so a
+  `javascript:` value there would be script execution on submit.
 - **`<var>`** — the one element MDN lists that Rask had no component for (part of #694). A variable in a
   mathematical or programming context; not emphasis (`em`) and not literal code (`code`).
+- **`Element.Attributes` — the escape hatch for HTML's global attributes (part of #693).** Everything
+  `Element` does not name is now reachable: `lang`, `dir`, `hidden`, `inert`, `popover`,
+  `contenteditable`, `inputmode`, microdata, and anything vendor or experimental —
+  `.Attributes(new() { ["lang"] = "fr" })`, HTML-encoded, `null` emitting a bare attribute like `Data`.
+  `lang`/`dir` were the pointed case: WCAG 3.1.2 (Language of Parts) needs the element that *changes*
+  language marked, and that could previously be written on `<html>` and nowhere else.
 
 ### Fixed
 - **The `add-html-tag` skill sent a new tag's test to a project that no longer holds any.** After the
