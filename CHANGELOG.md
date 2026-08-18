@@ -8,6 +8,23 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Button` gained `command`/`commandfor`, and four elements gained the loading-priority attributes.**
+  `command`/`commandfor` generalise what `popovertarget` does for popovers: the button names the element
+  it acts on and the action to invoke — `show-modal`, `close`, `request-close`, `toggle-popover`,
+  `show-popover`, `hide-popover`, or a custom `--name` that dispatches a `CommandEvent` — so a
+  `<dialog>` opens and closes with no script on either side. Declared beside `PopoverTarget` and
+  **appended** after it, because factory parameters are ordered by declaration span.
+
+  `FetchPriority` lands on `Img`, `Link`, `Script` and `Iframe`; `Blocking` on `Link` and `Script`; and
+  `ImageSrcset`/`ImageSizes` on `Link`, for `rel="preload" as="image"`. The one with a measurable story
+  is `fetchpriority="high"` on the LCP image — the browser discovers it at the same moment either way,
+  this moves it ahead in the queue. `blocking="render"` is the odd one out among loading knobs: an
+  opt-**in** to blocking rather than the usual opt-out. And a responsive-image preload without
+  `imagesrcset` fetches the wrong candidate, so the page pays for two downloads — the opposite of what
+  the preload was for.
+
+  `interestfor` is deliberately excluded: still experimental and Chromium-only, the same bar #694 used
+  to leave out `<fencedframe>` and `<selectedcontent>`. Closes #729.
 - **Every HTML global attribute is now reachable, and there is an escape hatch for the rest.** `Element`
   exposed `Id`/`Class`/`Style`/`Title`/`Data`/`Role`/`TabIndex`/`Aria`/`Ref`/`Draggable` and nothing else,
   so the remainder of MDN's global attributes were not verbose — they were **impossible**.

@@ -27,4 +27,24 @@ public partial class LinkTests : global::Rask.Core.RaskMarkup
                 .Style("s")
                 .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
+
+    [Fact]
+    public void Render_FetchPriorityAndBlocking_EmitAfterTheOtherLinkAttrs() =>
+        Assert.Equal(
+            "<link href=\"/a.css\" rel=\"stylesheet\" fetchpriority=\"high\" blocking=\"render\" />",
+            Link.Rel("stylesheet").Href("/a.css").FetchPriority("high").Blocking("render").ToHtml());
+
+    [Fact]
+    public void Render_ImagePreloadCarriesItsOwnSrcsetAndSizes() =>
+        // Preloading a responsive image without these fetches the wrong candidate and the page pays for
+        // two downloads — the opposite of what the preload was for.
+        Assert.Equal(
+            "<link href=\"/a.png\" rel=\"preload\" as=\"image\" "
+            + "imagesrcset=\"/a.png 1x, /a@2x.png 2x\" imagesizes=\"100vw\" />",
+            Link
+                .Rel("preload")
+                .Href("/a.png")
+                .As("image")
+                .ImageSrcset("/a.png 1x, /a@2x.png 2x")
+                .ImageSizes("100vw").ToHtml());
 }

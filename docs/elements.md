@@ -185,6 +185,39 @@ reference. `Element.WriteAttributes` reads the side object once into a local rat
 attribute, so an element naming no global does *less* work than a typed-field-each layout would have.
 
 
+### Commands and loading priority
+
+`Button.Command` and `Button.CommandFor` generalise what `PopoverTarget` does for popovers: the button
+names the element it acts on and the action to invoke, and the browser does the rest with no script on
+either side. Built-in actions are `show-modal`, `close`, `request-close`, `toggle-popover`,
+`show-popover` and `hide-popover`; a custom `--name` dispatches a `CommandEvent` instead.
+
+```csharp
+Button.Command("show-modal").CommandFor("edit-dialog")["Edit"]
+Button.Command("--spin").CommandFor("widget")["Spin"]     // dispatches a CommandEvent
+```
+
+<!-- demo:props-command -->
+
+`FetchPriority` (`high`, `low`, `auto`) is on `Img`, `Link`, `Script` and `Iframe`. The use with a
+measurable story behind it is `high` on the LCP image — the browser discovers it at the same moment
+either way, this moves it ahead of the other images in the queue. Marking everything high marks nothing
+high.
+
+`Blocking` on `Link` and `Script` takes `render`, and is the one loading knob that works the other way
+round: an opt **in** to blocking rendering until the resource loads, for when a flash of unstyled or
+un-scripted content is worse than the delay.
+
+`ImageSrcset` and `ImageSizes` belong on `Link.Rel("preload").As("image")`. Without them a responsive
+image preloads the wrong candidate and the page pays for two downloads, which is the opposite of what
+preloading it was for.
+
+```csharp
+Img.Src("/hero.png").Alt("Hero").FetchPriority("high")
+Link.Rel("preload").Href("/hero.png").As("image")
+    .ImageSrcset("/hero.png 1x, /hero@2x.png 2x").ImageSizes("100vw")
+```
+
 **Attribute order** is fixed: `id`, `class`, `style`, `title`, the plain globals (`lang`, `dir`,
 `hidden`, `inert`, `popover`, `contenteditable`, `spellcheck`, `translate`), `data-*`, `role`,
 `tabindex`, `aria-*`, then `Attributes`, then tag-specific. Tests enforce it, so the output is

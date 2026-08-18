@@ -30,4 +30,11 @@ public partial class ImgTests : global::Rask.Core.RaskMarkup
                 .Style("s")
                 .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
+
+    [Fact]
+    public void Render_FetchPriority_EmitsAfterTheOtherImgAttrs() =>
+        // `high` on the LCP image is the one use with a measurable story: the browser discovers it at
+        // the same moment either way, this just moves it ahead in the queue.
+        Assert.Equal("<img src=\"/hero.png\" alt=\"Hero\" fetchpriority=\"high\" />",
+            Img.Src("/hero.png").Alt("Hero").FetchPriority("high").ToHtml());
 }

@@ -189,4 +189,32 @@ public partial class ButtonTests : global::Rask.Core.RaskMarkup
             "<button popovertarget=\"menu\" popovertargetaction=\"toggle\">Open</button>",
             Button.PopoverTarget("menu").PopoverTargetAction("toggle")["Open"].ToHtml());
 
+    [Fact]
+    public void Render_Command_EmitsBothHalves() =>
+        // command/commandfor generalise popovertarget past popovers — this drives a <dialog> with no
+        // script on either side.
+        Assert.Equal(
+            "<button command=\"show-modal\" commandfor=\"edit\">Edit</button>",
+            Button.Command("show-modal").CommandFor("edit")["Edit"].ToHtml());
+
+    [Fact]
+    public void Render_CustomCommand_IsEmittedVerbatim() =>
+        // A `--name` command dispatches a CommandEvent rather than invoking a built-in action; the
+        // leading dashes are part of the value and must survive.
+        Assert.Equal(
+            "<button command=\"--spin\" commandfor=\"w\">Go</button>",
+            Button.Command("--spin").CommandFor("w")["Go"].ToHtml());
+
+    [Fact]
+    public void Render_Command_EmitsAfterThePopoverPair() =>
+        // Appended after popovertarget/popovertargetaction, not inserted among them — the order is the
+        // declaration order, and inserting would have shifted every factory parameter below.
+        Assert.Equal(
+            "<button popovertarget=\"m\" popovertargetaction=\"toggle\" command=\"close\" "
+            + "commandfor=\"d\">x</button>",
+            Button
+                .CommandFor("d")
+                .Command("close")
+                .PopoverTargetAction("toggle")
+                .PopoverTarget("m")["x"].ToHtml());
 }
