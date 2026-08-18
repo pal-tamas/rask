@@ -177,5 +177,5 @@ The complete worked example — filter, sort, page and page size all in the URL 
 With a list as `Data`, the grid sorts and pages **in memory**. For large sets pass an `IQueryable`, or a
 fetched page + `TotalCount` (above), so the database does the work.
 
-For very long *unpaged* lists, `VirtualizeModel<T>` ([composition](composition-lists.md#virtualize--windowed-lists))
+For very long *unpaged* lists, `Virtualize.Items<T>` ([composition](composition-lists.md#virtualize--windowed-lists))
 renders only the visible window instead.

@@ -17,7 +17,7 @@ public sealed partial class VirtualizeItemsDemo : Component
         "position:sticky; top:0; z-index:1; background:#f8f9fa; box-shadow:inset 0 -1px 0 #dee2e6; ";
 
     protected override Component? Render() =>
-        VirtualizeModel<VirtualizeRow>(
+        Virtualize.Items<VirtualizeRow>(
             ctx => Div
                 .Class("border rounded bg-white")
                 .Style("height:360px; overflow:auto;")

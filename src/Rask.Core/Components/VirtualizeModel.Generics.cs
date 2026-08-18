@@ -4,15 +4,24 @@ using Rask.Core.Virtualization;
 
 namespace Rask.Core.Components;
 
-// Hand-written generic factory for VirtualizeModel. Lives in the same `partial class Generated`
-// that ComponentFactoryGenerator emits the non-generic factory into. Captures T in a closure
-// so the runtime side stays type-erased — no reflection, no DynamicInvoke, trim-safe.
+// Hand-written generic entry point for VirtualizeModel — the ONE on the surface, because a chain
+// infers its type argument from the step that OPENS it and T here comes from the RENDER delegate.
+// Captures T in a closure so the runtime side stays type-erased: no reflection, no DynamicInvoke,
+// trim-safe.
 //
 // The typed call site:
-//   VirtualizeModel<Person>(Items: people, ItemSize: 32, Render: ctx => Div(...)[..ctx.VisibleItems.Select(...)])
+//   Virtualize.Items<Person>(Render: ctx => Div(...)[..ctx.VisibleItems.Select(...)], Items: people)
 // becomes a forward to the generated non-generic factory:
 //   VirtualizeModel(Items: ..., ItemSize: 32, Body: state => Render(new VirtualizationContext<Person>(state)))
-public static partial class Generated
+//
+// It lives in its OWN class rather than in `Generated` (#684). While it sat in `Generated` it was
+// reachable by simple name only because that whole class is globally imported — which is exactly what
+// #681's follow-up wants to stop doing. Moving it out as `VirtualizeModel` did not work either: the
+// simple name also names the COMPONENT's chain entry, an inherited member beats a `using static`
+// import in simple-name lookup, and every call site failed with CS1744 as overload resolution landed
+// on the entry. Renaming the method to `Items` is what removes the collision, so this class can be
+// static-imported on its own without dragging the factory class along with it.
+public static partial class Virtualize
 {
     // Wrapper-cache: dedup erased-provider closures per typed user delegate. Without this,
     // every VirtualizeModel<T> factory call would allocate a fresh `async req => …` wrapper, the
@@ -52,7 +61,7 @@ public static partial class Generated
     [UnconditionalSuppressMessage("Trimming", "IL2091",
         Justification = "T flows through here only via closures over user-supplied delegates. " +
                         "No reflection, no DynamicInvoke; the typed → erased projections are static casts.")]
-    public static VirtualizeModel VirtualizeModel<T>(
+    public static VirtualizeModel Items<T>(
         Func<VirtualizationContext<T>, Component> Render,
         IEnumerable<T>? Items = null,
         Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>? ItemsProvider = null,
@@ -77,10 +86,9 @@ public static partial class Generated
                     (Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>)typed));
         }
 
-        // Built through the CHAIN, reached by naming the assembly's entry class outright: this facade
-        // lives in `Generated`, which already declares a `VirtualizeModel` method, so the inherited entry
-        // is not in scope here and marking this class a markup host would collide with it (CS0102).
-        // Same escape the Bs controls use for the `<label>` entry their own `Label` property hides.
+        // Built through the CHAIN, reached by naming the assembly's entry class outright: this class is
+        // not a markup host, so the entry is not in scope by simple name here. Qualifying is the same
+        // escape the Bs controls use for the `<label>` entry their own `Label` property hides.
         // ItemSize opens it: non-nullable with no initializer, so it is a REQUIRED step (RASK001) and
         // the component does not exist until it has been supplied. Everything else is a setter.
         return global::RaskEntriesRask_Core.VirtualizeModel

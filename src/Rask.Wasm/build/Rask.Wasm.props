@@ -3,6 +3,12 @@
     <Using Include="Rask.Core"/>
     <!-- Auto-generated HTML tag factories live in Rask.Core.Components.Components. -->
     <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <!-- The one hand-written generic entry point, VirtualizeModel's typed opener. Aliased rather
+         than static-imported so the call site reads Virtualize.Items&lt;T&gt;(...): importing it
+         statically would put a bare `Items` in scope, which is far too general a simple name to
+         hand every markup host, and importing the NAMESPACE is what the note below rules out.
+         An alias puts exactly one type in scope and nothing else (#684). -->
+    <Using Include="Rask.Core.Components.Virtualize" Alias="Virtualize"/>
     <!-- The HTML/SVG element family moved to Rask.Html. Only the .Generated static is imported, exactly
          as for Rask.Core above and for the same reason: importing the NAMESPACE would put the tag
          TYPES in scope, and a type beats a same-named builder-entry property (CS0119). Entries reach
