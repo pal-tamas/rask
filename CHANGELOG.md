@@ -192,6 +192,26 @@ them until tagged releases begin.
   card shows the same split — a "Last verified restore" tile beside the replication one, amber for
   unproven and red only for a genuinely broken restore (`IDashboardBackupProbe.VerificationAsync`, a
   default interface member, so existing probes keep compiling). Closes #751.
+
+
+- **The operator dashboard runs on the `wasm-hosted` template.** `rask new --template wasm-hosted --ops`
+  (and `--all-batteries`) now scaffolds the database and every DB-backed battery into the `.Server`
+  project and mounts the dashboard there, server-rendered at `/_rask`, while the WASM client keeps every
+  other route. Previously all of that was server-template-only: the `.Server` host had no database and
+  served nothing but static files, so an app whose UI ran in the browser had no way to see its own queues,
+  dead letters or logs.
+
+  The batteries are the server template's, emitted from one shared source rather than a second copy, so
+  the wiring order that matters — the outbox registered before the `DbContext` factory, so its interceptor
+  joins the `SaveChanges` pipeline — cannot drift between the two templates. `--push` is the one battery
+  this template does not take: its subscribe endpoints and the service worker that posts to them live in
+  two different projects, which is a feature rather than a wiring gap, so it is left out rather than
+  half-scaffolded.
+
+  `Rask.Dashboard` ships `RaskDashboardShell` for it — a root component that renders the router and
+  contributes the two document-level head tags the dashboard's layout cannot. A host serving a WASM bundle
+  runs no components of its own, so `UseRaskServer<TApp>` had nothing to name; every such app would
+  otherwise hand-roll the same four lines.
 - **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
   shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler
   test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the
@@ -250,6 +270,30 @@ them until tagged releases begin.
   unchanged box stays a no-op.
 
 ### Changed
+- **BREAKING: the operator dashboard moved from `/_ops` to `/_rask`.** Rask already reserved `/_rask` for
+  itself — scoped assets are served from `/_rask/a/{hash}.{ext}`, and the live runtime owns
+  `/_rask/auth/redeem`, `/_rask/upload/{sessionId}` and `/_rask/download/{sessionId}/{token}` — so `/_ops`
+  was a second framework-owned prefix carved out of an app's URL space for no reason beyond history. One
+  prefix is now one prefix. Update any bookmark, reverse-proxy rule or IP allow-list that named `/_ops`;
+  nothing else changes, and the pages, policy and panels are identical.
+
+  The dashboard's own routes (`/_rask`, `/_rask/queues/{queue}`, `/_rask/cache`, `/_rask/logs`,
+  `/_rask/system`) resolve through the router's catch-all, and the framework's endpoints are literal
+  routes, so the two coexist by ordinary routing precedence. A page whose first segment collided with one
+  of `a`, `auth`, `upload` or `download` would be shadowed and silently 404 — pinned by a test rather than
+  left to a comment.
+
+- **`Rask.Wasm.Hosting` and `Rask.Server` gained host-specific names for `AddRask`/`UseRask`.**
+  `AddRaskWasmHost()` / `UseRaskWasmHost()` and `AddRaskServer()` / `UseRaskServer<TApp>()` behave exactly
+  like the calls they forward to. They exist because an app referencing **both** hosts — which the
+  wasm-hosted `--ops` scaffold now is — cannot say `AddRask()` and mean anything definite: both packages
+  declare one on `IServiceCollection`, and C# does **not** report an ambiguity. The WASM host's overload
+  takes no optional parameters and the server's takes two, so the "fewer defaulted arguments" tie-break
+  silently selects the WASM one; the app then compiles, starts with no live runtime registered, and fails
+  on its first request with a missing-service error naming a type the author never used.
+  `UseRask<TApp>` resolves the other way, so the two collide in opposite directions in one file. The
+  original names are unchanged and remain correct for an app with a single host.
+
 - **The "no `IBrowserFileBackend`" diagnostic now names the fix.** It reported the silent-empty case (added
   in #736) but could only say "register a backend", because none shipped. It now points at
   `Rask.Testing`'s `TestFileBackend`.
@@ -278,6 +322,27 @@ them until tagged releases begin.
   next assertion to time out. Re-clicking is safe by construction: a click that landed never reaches the
   retry. Verified 6/6 on the host that failed, with the network fault that destabilised the layout still
   present.
+
+- **Referencing two Rask host packages made the build fail in generated code.** `Rask.Server`, `Rask.Wasm`
+  and `Rask.Native` each pack their own copy of `analyzers/dotnet/cs/Rask.Generators.dll`, so referencing
+  any one of them is enough to get the generator. Reference **two** and NuGet hands csc both copies at
+  different package paths, which Roslyn reads as two distinct generators: both run, both emit
+  `RaskBuilderSetters.g.cs`, and the build dies with `CS0101 ... already contains a definition for
+  RaskBuilderSetters<Assembly>` pointing at a file the author never wrote. The shared core targets now
+  deduplicate the analyzer payload by file name (the paths are what differ; the copies are byte-identical)
+  before the compiler reads `@(Analyzer)`.
+
+  Nothing hit this before because no supported composition referenced two host packages. The wasm-hosted
+  `--ops` scaffold is the first, pulling in `Rask.Wasm.Hosting` (and with it `Rask.Wasm`) alongside
+  `Rask.Server`.
+
+- **Two hosts in one app fought over the scoped-asset endpoint.** `Rask.Server` and `Rask.Wasm.Hosting`
+  both map `/_rask/a/{hash}.css` and `.js`. Two endpoints with an identical route template and identical
+  precedence are accepted at startup and then throw `AmbiguousMatchException` on the first request for a
+  scoped stylesheet — an app that boots clean and serves an unstyled 500. It is now mapped at most once
+  per app, and the two handlers were made interchangeable first: both resolve a registry miss through the
+  published bundle's baked files, so whichever host maps it serves the same bytes and the order of the two
+  `UseRask` calls stops being load-bearing.
 
 - **The SQLite docs said EF Core's `SaveChanges` transaction was `DEFERRED`. It never was.**
   `docs/sqlite.md` told you to wrap read-then-write EF work in `BeginImmediate` (nested inside

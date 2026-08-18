@@ -20,14 +20,12 @@ namespace Rask.Dashboard.Pages;
 /// </para>
 /// </summary>
 [Authorize(Policy = RaskDashboardPolicies.Access)]
-[Route("_ops")]
+[Route("_rask")]
 public sealed partial class DashboardLayout(
     IEnumerable<IQueuePanel> queues,
     RouteState route,
     DashboardSecurityState security) : Component
 {
-    /// <inheritdoc />
-
     /// <inheritdoc />
     protected override Component? HeadAssets =>
     [
@@ -84,7 +82,7 @@ public sealed partial class DashboardLayout(
             ]
         ];
 
-    // Exact for the overview, prefix for the rest — otherwise "/_ops" would light up on every page,
+    // Exact for the overview, prefix for the rest — otherwise "/_rask" would light up on every page,
     // since every dashboard path starts with it.
     private bool IsActive(string href, bool exact)
     {

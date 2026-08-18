@@ -1,7 +1,7 @@
 # The batteries dashboard
 
 Every DB-backed pillar keeps its state in a table in your application's own database. That is what makes
-`Rask.Dashboard` possible: one package reference and one line mounts an operator dashboard at `/_ops` over
+`Rask.Dashboard` possible: one package reference and one line mounts an operator dashboard at `/_rask` over
 the outbox, background jobs, queued mail and cache — no exporter, no second datastore, no agent.
 
 ```bash
@@ -11,12 +11,42 @@ dotnet add package Rask.Dashboard
 ```csharp
 builder.Services.AddRaskDashboard<AppDbContext>();
 
-// Who may operate the app. Without this, /_ops denies everyone outside Development.
+// Who may operate the app. Without this, /_rask denies everyone outside Development.
 builder.Services.AddAuthorization(o =>
     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
 ```
 
 `rask new --ops` (and `--all-batteries`) wires both lines for you.
+
+## Where it can run
+
+The dashboard is server-rendered and reads your database directly, so it lives wherever your ASP.NET host
+does — the `server` template, and the `wasm-hosted` template's `.Server` project.
+
+On `wasm-hosted` the host normally runs no components at all: it serves a WASM bundle and an API. Mounting
+the dashboard gives it exactly one server-rendered route chain, scoped so the client keeps everything else:
+
+```csharp
+builder.Services.AddRaskServer();       // the live runtime, for the dashboard's pages
+builder.Services.AddRaskWasmHost();     // compression for the published bundle
+
+// …
+
+app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");   // the dashboard, server-rendered
+app.UseRaskWasmHost();                                      // the SPA, everywhere else
+```
+
+`rask new --template wasm-hosted --ops` writes all of it, including the database the panels read.
+
+Two details are worth knowing if you assemble this by hand. The calls are spelled `AddRaskServer` /
+`AddRaskWasmHost` rather than `AddRask` because **both** packages declare an `AddRask` on
+`IServiceCollection`, and C# does not report an ambiguity — the WASM host's takes no optional parameters
+and the server's takes two, so the tie-break silently picks the WASM one and the app starts with no live
+runtime, failing on its first request. And the SPA is a `MapFallback`, the lowest precedence there is, so
+mounting the dashboard above it claims the dashboard's routes without taking any of the client's.
+
+`RaskDashboardShell` is the root the pages render through: a host serving a WASM bundle has no component
+of its own for `UseRaskServer<TApp>` to name.
 
 ## What it shows
 
@@ -43,8 +73,13 @@ MaxAttempts`, the inverse of their own drain query. It is not a status column; t
 
 ## Security
 
-The dashboard shows job payloads, stored email bodies and log lines. Treat `/_ops` as a view of your
+The dashboard shows job payloads, stored email bodies and log lines. Treat `/_rask` as a view of your
 database, because that is what it is.
+
+`/_rask` is the framework's own reserved prefix — scoped assets are served from `/_rask/a/{hash}.{ext}`,
+and the live runtime owns `/_rask/auth/redeem`, `/_rask/upload/{id}` and `/_rask/download/{id}/{token}`.
+Those are literal routes and the dashboard's pages resolve through a catch-all, so they coexist by
+ordinary routing precedence and none of them shadows an application route of yours.
 
 Pages are gated on the `RaskDashboard` policy, applied to the route **layout** — so it protects every page
 including ones a future version adds, and is re-checked on each in-app navigation rather than only the

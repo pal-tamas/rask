@@ -43,7 +43,7 @@ internal static class CliBuildE2E
         "Rask.Mail",                        // generate email, and tutorial ch5
         "Rask.Cache",                       // tutorial ch6 — AddRaskCache / ICache.GetOrCreateAsync
         "Rask.Logging",                     // --logs — AddRaskLogging, and the dashboard's History mode
-        "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_ops pages
+        "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_rask pages
         "Rask.Validation.DataAnnotations",  // tutorial ch.2's form validation
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
     ];

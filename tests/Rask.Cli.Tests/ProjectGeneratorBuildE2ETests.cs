@@ -214,7 +214,8 @@ public sealed class ProjectGeneratorBuildE2ETests
         var projectDir = Path.Combine(temp, name);
         try
         {
-            var result = ProjectGenerator.GenerateWasmHosted(projectDir, name, auth, pwa, docker: false, version);
+            var result = ProjectGenerator.GenerateWasmHosted(
+                projectDir, name, new ServerBatteries { Auth = auth, Pwa = pwa }, version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -281,6 +282,59 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
             Assert.True(exit == 0, $"generated --all-batteries project failed to build.{CliBuildE2E.Diagnostics(output)}");
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
+
+    /// <summary>
+    /// <c>--all-batteries</c> on the <b>wasm-hosted</b> template: the same pillars, but composed into the
+    /// <c>.Server</c> host of a three-project solution whose UI runs in the browser.
+    /// <para>
+    /// This is the composition nothing else covers, and the one where the two hosts meet. The generated
+    /// <c>Program.cs</c> references <c>Rask.Wasm.Hosting</c> and <c>Rask.Server</c> at once, and both
+    /// packages declare an <c>AddRask</c> and a <c>UseRask&lt;TApp&gt;</c>; a bare call to either binds to
+    /// whichever wins overload resolution rather than whichever was meant, and for <c>AddRask</c> that is
+    /// silent — the WASM host's takes no optional parameters and so wins the tie-break, leaving an app
+    /// that starts with no live runtime and fails on its first request. Only a real compile of a real
+    /// generated solution proves the emitted spellings still bind to the hosts they name.
+    /// </para>
+    /// </summary>
+    [SkippableFact]
+    public async Task Generated_all_batteries_wasm_hosted_solution_builds()
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        const string name = "AllBatteriesHostedE2E";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            // Push is the one battery this template does not carry (its subscribe endpoints and the
+            // service worker that posts to them live in two different projects), and NewCommand clears
+            // it for exactly this path — mirrored here so the test builds what `rask new` would write.
+            var batteries = NewCommand.ToBatteries(["all-batteries", "auth"]) with { Push = false };
+            var result = ProjectGenerator.GenerateWasmHosted(projectDir, name, batteries, version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            // The Server project rather than the solution — see Generated_wasm_hosted_solution_builds for
+            // why the solution puts the Client into the restore graph twice.
+            var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -warnaserror -m:1");
+            Assert.True(exit == 0,
+                $"generated wasm-hosted --all-batteries solution failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {

@@ -12,26 +12,38 @@ namespace Rask.Wasm.Hosting;
 ///     a WASM client and a Server client see byte-identical responses for the same hash.
 ///     Kept as a small duplicate (rather than a shared abstraction) to avoid adding an
 ///     ASP.NET dependency to <c>Rask.Core</c> — the shared invariant is the URL pattern,
-///     the cache headers, and the content-type mapping, all documented inline.
+///     the cache headers, and the content-type mapping, all now expressed through
+///     <see cref="ScopedAssetBundle" /> so the two copies cannot drift apart.
 /// </summary>
 internal static class RaskAssetEndpoint
 {
     private static readonly string[] _methods = ["GET", "HEAD"];
 
-    public static void MapRaskAssets(IEndpointRouteBuilder endpoints, string pathBase, string? bundleDir = null)
+    public static void MapRaskAssets(IEndpointRouteBuilder endpoints, string pathBase)
     {
+        // A wasm-hosted app that also mounts the server-rendered dashboard calls both hosts' UseRask,
+        // and both want this route. Two endpoints with an identical template and identical precedence
+        // are not an error at startup — routing throws AmbiguousMatchException on the first request
+        // for a scoped stylesheet, so the app boots clean and then serves an unstyled 500. Mapping at
+        // most once is what prevents that; because both handlers resolve through ScopedAssetBundle,
+        // whichever host wins the race serves the same bytes.
+        if (RaskEndpointMap.IsMapped(endpoints, pathBase + "/_rask/a/{hash}.css"))
+        {
+            return;
+        }
+
         endpoints.MapMethods(pathBase + "/_rask/a/{hash}.css", _methods,
-                ctx => ServeAsync(ctx, AssetKind.Css, bundleDir))
+                ctx => ServeAsync(ctx, AssetKind.Css))
             .AllowAnonymous();
         endpoints.MapMethods(pathBase + "/_rask/a/{hash}.js", _methods,
-                ctx => ServeAsync(ctx, AssetKind.Js, bundleDir))
+                ctx => ServeAsync(ctx, AssetKind.Js))
             .AllowAnonymous();
     }
 
-    private static Task ServeAsync(HttpContext ctx, AssetKind kind, string? bundleDir)
+    private static Task ServeAsync(HttpContext ctx, AssetKind kind)
     {
         var hash = ctx.Request.RouteValues["hash"] as string;
-        if (string.IsNullOrEmpty(hash) || !IsLowercaseHex(hash, ScopedAssetRegistry.HashHexLength))
+        if (!ScopedAssetBundle.IsContentHash(hash))
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
             return Task.CompletedTask;
@@ -47,16 +59,14 @@ internal static class RaskAssetEndpoint
             // the host), so its hash for the single concatenated bundle won't match the browser's request.
             // Because routing matched this endpoint, UseStaticFiles was skipped and can't serve the baked
             // file — so serve it here instead of shadowing it with a 404.
-            return ServeBakedFileAsync(ctx, hash, kind, bundleDir);
+            return ServeBakedFileAsync(ctx, hash, kind);
         }
 
         ctx.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
         ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
         ctx.Response.Headers.Vary = "Accept-Encoding";
 
-        var contentType = kind == AssetKind.Css
-            ? "text/css; charset=utf-8"
-            : "text/javascript; charset=utf-8";
+        var contentType = ScopedAssetBundle.ContentType(kind);
 
         // Negotiate br/gzip via the shared Core helper so a WASM-hosting client sees byte-identical
         // compressed responses to the Server one. Compressed reps are cached (content-addressed).
@@ -79,14 +89,11 @@ internal static class RaskAssetEndpoint
     }
 
     // Serves the baked /_rask/a/{hash}.{ext} file from the published bundle when the in-process
-    // registry doesn't carry the hash. The hash is already validated as fixed-length lowercase hex, so
-    // it can't traverse outside the bundle directory. Negotiates a precompressed .br/.gz sibling when
-    // present (the WASM publish bakes them next to the asset), matching the in-registry serving path.
-    private static async Task ServeBakedFileAsync(HttpContext ctx, string hash, AssetKind kind, string? bundleDir)
+    // registry doesn't carry the hash. Negotiates a precompressed .br/.gz sibling when present (the
+    // WASM publish bakes them next to the asset), matching the in-registry serving path.
+    private static async Task ServeBakedFileAsync(HttpContext ctx, string hash, AssetKind kind)
     {
-        var ext = kind == AssetKind.Css ? ".css" : ".js";
-        var path = bundleDir is null ? null : Path.Combine(bundleDir, "_rask", "a", hash + ext);
-        if (path is null || !File.Exists(path))
+        if (ScopedAssetBundle.FindBakedFile(hash, kind) is not { } path)
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
@@ -96,18 +103,10 @@ internal static class RaskAssetEndpoint
         ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
         ctx.Response.Headers.Vary = "Accept-Encoding";
         ctx.Response.Headers.ETag = "\"" + hash + "\"";
-        ctx.Response.ContentType = kind == AssetKind.Css
-            ? "text/css; charset=utf-8"
-            : "text/javascript; charset=utf-8";
+        ctx.Response.ContentType = ScopedAssetBundle.ContentType(kind);
 
         var encoding = ScopedAssetCompression.Negotiate(ctx.Request.Headers.AcceptEncoding.ToString());
-        var sibling = encoding switch
-        {
-            "br" => path + ".br",
-            "gzip" => path + ".gz",
-            _ => null
-        };
-        if (sibling is not null && File.Exists(sibling))
+        if (ScopedAssetBundle.FindPrecompressedSibling(path, encoding) is { } sibling)
         {
             ctx.Response.Headers.ContentEncoding = encoding;
             await ctx.Response.SendFileAsync(sibling);
@@ -116,22 +115,33 @@ internal static class RaskAssetEndpoint
 
         await ctx.Response.SendFileAsync(path);
     }
+}
 
-    private static bool IsLowercaseHex(string s, int expectedLength)
+/// <summary>
+///     Whether a route template is already on an <see cref="IEndpointRouteBuilder" />.
+///     <para>
+///         Deliberately a six-line duplicate of the identical helper in <c>Rask.Server</c> rather than a
+///         shared one in <c>Rask.Core</c>: the check needs <c>RoutePattern</c>, and Core takes no
+///         ASP.NET routing dependency. The contract it encodes — a framework endpoint is mapped at most
+///         once per app, whichever host gets there first — lives in both copies' comments.
+///     </para>
+/// </summary>
+internal static class RaskEndpointMap
+{
+    public static bool IsMapped(IEndpointRouteBuilder endpoints, string rawTemplate)
     {
-        if (s.Length != expectedLength)
+        foreach (var source in endpoints.DataSources)
         {
-            return false;
-        }
-
-        foreach (var c in s)
-        {
-            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+            foreach (var endpoint in source.Endpoints)
             {
-                return false;
+                if (endpoint is RouteEndpoint route
+                    && string.Equals(route.RoutePattern.RawText, rawTemplate, StringComparison.Ordinal))
+                {
+                    return true;
+                }
             }
         }
 
-        return true;
+        return false;
     }
 }

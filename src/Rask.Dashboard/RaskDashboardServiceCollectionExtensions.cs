@@ -29,7 +29,7 @@ public static class RaskDashboardPolicies
 public static class RaskDashboardServiceCollectionExtensions
 {
     /// <summary>
-    /// Mounts the operator dashboard at <c>/_ops</c>, reading the battery tables owned by
+    /// Mounts the operator dashboard at <c>/_rask</c>, reading the battery tables owned by
     /// <typeparamref name="TContext"/>. Call it after the <c>AddRaskX&lt;TContext&gt;()</c> registrations —
     /// a panel appears only when its battery is both registered and mapped in the model, so an app with
     /// only jobs gets only the jobs panel.

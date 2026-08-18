@@ -782,13 +782,17 @@ public sealed class ProjectGeneratorTests
         "App.Server/appsettings.json", "App.Server/appsettings.Production.json",
     ];
 
-    private static Dictionary<string, string> GenerateWasmHosted(bool auth = false, bool pwa = false, bool docker = false) =>
-        Index(ProjectGenerator.GenerateWasmHosted(Root, "App", auth, pwa, docker, Version));
+    private static Dictionary<string, string> GenerateWasmHosted(
+        bool auth = false, bool pwa = false, bool docker = false, ServerBatteries? batteries = null) =>
+        Index(ProjectGenerator.GenerateWasmHosted(
+            Root, "App",
+            (batteries ?? new ServerBatteries()) with { Auth = auth, Pwa = pwa, Docker = docker },
+            Version));
 
     [Fact]
     public void WasmHosted_base_emits_the_three_projects_and_restores_the_solution()
     {
-        var result = ProjectGenerator.GenerateWasmHosted(Root, "App", auth: false, pwa: false, docker: false, Version);
+        var result = ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version);
         var files = Index(result);
 
         Assert.Equal(WithHygiene(WasmHostedAlwaysPresent).Order(), files.Keys.Order());
@@ -828,8 +832,10 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("App.Client\\App.Client.csproj", server, StringComparison.Ordinal);
         Assert.Contains("ReferenceOutputAssembly=\"false\"", server, StringComparison.Ordinal);
         Assert.Contains("<StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>", server, StringComparison.Ordinal);
-        // The static-file host serves the bundle without running components — non-generic UseRask.
-        Assert.Contains("app.UseRask();", files["App.Server/Program.cs"], StringComparison.Ordinal);
+        // The static-file host serves the bundle without running components — the non-generic call.
+        // Spelled UseRaskWasmHost, not UseRask: with --ops this project also references Rask.Server,
+        // which declares its own UseRask, and the two differ only in what their string argument means.
+        Assert.Contains("app.UseRaskWasmHost();", files["App.Server/Program.cs"], StringComparison.Ordinal);
 
         // The solution lists all three projects, in the .slnx format the SDK reads directly.
         var solution = files["App.slnx"];
