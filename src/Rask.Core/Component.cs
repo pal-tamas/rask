@@ -46,6 +46,7 @@ public abstract partial class Component : RaskMarkup
     //   bit 0 — reads-ambient-state (below)
     //   bit 1 — Element: Draggable present
     //   bit 2 — Element: Draggable value
+    //   bit 3 — a chain assigned a callback prop (below)
     private byte _flags;
 
     // Set the first time this component reads untracked ambient state during Render: a context value
@@ -58,6 +59,30 @@ public abstract partial class Component : RaskMarkup
     private const byte FlagReadsAmbientState = 1 << 0;
 
     private bool _readsAmbientState => (_flags & FlagReadsAmbientState) != 0;
+
+    // Set by a chain setter assigning a CALLBACK prop; read-and-cleared by the eager reset that acts
+    // on it.
+    //
+    // The eager reset runs at the entry, BEFORE this render's setters, and puts every non-folding prop
+    // back to its default so a callback the chain named last render cannot survive into one where it
+    // does not. On Element that is ~88 delegate fields written unconditionally, on every entry-built
+    // element, on every render — and the overwhelming majority of elements carry no callback at all,
+    // so nearly all of those writes were assigning null over null. This bit means "there is something
+    // to clear", which lets the common element skip the block entirely.
+    //
+    // Only callbacks set it. `Key` is non-folding too, but it is a single write, and gating it here
+    // would mean a Key-only chain still paid for the whole delegate block.
+    private const byte FlagCallbackAssigned = 1 << 3;
+
+    internal void MarkCallbackAssignedInternal() => SetFlag(FlagCallbackAssigned, true);
+
+    // Peek, not take. One reset pass can run several of these routines — a component's own eager reset
+    // calls the shared Element one first — and they must all reach the same answer, so the bit is
+    // cleared once by the entry that ran them (BuilderRuntime.Entry) rather than by whichever routine
+    // happened to look first.
+    internal bool HasCallbackAssignedInternal() => (_flags & FlagCallbackAssigned) != 0;
+
+    internal void ClearCallbackAssignedInternal() => SetFlag(FlagCallbackAssigned, false);
 
     private protected bool GetFlag(byte mask) => (_flags & mask) != 0;
 
