@@ -191,6 +191,144 @@ public abstract partial class Element : Component
         }
     }
 
+    // The rest of HTML's global attributes (#693). Before these, everything MDN lists as global beyond
+    // id/class/style/title/data-*/role/tabindex/aria-*/draggable was UNREACHABLE — not verbose, impossible,
+    // because there was no escape hatch either. The sharpest case was `lang`: it existed on <html> only, so
+    // the page language worked and a phrase inside it did not, which is WCAG 3.1.2 (Language of Parts).
+    //
+    // Storage follows what each one costs. Hidden/Inert take two bits each of the flags byte (present +
+    // value) like Draggable, because `hidden` is common and allocating a LiveState for it would be a
+    // regression. The others hoist into the lazy LiveState like Role/TabIndex/Aria: opt-in and rare, so an
+    // element naming none keeps `_live` null and pays nothing.
+    // Bits 4-7. The byte is SHARED with Component's own flags — 0 is FlagReadsAmbientState and 3 is
+    // FlagCallbackAssigned — so these must start above the last one Component claims. Landing on bit 3
+    // made setting `Hidden` mark the element as having a callback, which no test in either change could
+    // see alone: the two arrived in separate PRs and only collided once composed. This fills the byte;
+    // the next flag needs it widened.
+    private const byte FlagHiddenPresent = 1 << 4;
+    private const byte FlagHiddenValue = 1 << 5;
+    private const byte FlagInertPresent = 1 << 6;
+    private const byte FlagInertValue = 1 << 7;
+
+    /// <summary>
+    ///     The global <c>lang</c> attribute — the language of this element's content, as a BCP 47 tag
+    ///     (<c>"en"</c>, <c>"en-GB"</c>, <c>"cy"</c>).
+    ///     <para>
+    ///         Set it on any run of text in a different language from the page. A screen reader switches
+    ///         pronunciation on it, and without it a French quotation inside an English page is read with
+    ///         English phonetics — which is
+    ///         <see href="https://www.w3.org/WAI/WCAG21/Understanding/language-of-parts">WCAG 3.1.2</see>.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/lang">MDN</see>
+    /// </summary>
+    public string? Lang
+    {
+        get => LangInternal;
+        set => LangInternal = value;
+    }
+
+    /// <summary>
+    ///     The global <c>dir</c> attribute — text direction: <c>"ltr"</c>, <c>"rtl"</c>, or <c>"auto"</c>
+    ///     to let the browser decide from the first strongly-typed character.
+    ///     <para>
+    ///         <c>"auto"</c> is the right choice for user-supplied text whose language you do not know at
+    ///         render time — a name, a comment, a search query.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/dir">MDN</see>
+    /// </summary>
+    public string? Dir
+    {
+        get => DirInternal;
+        set => DirInternal = value;
+    }
+
+    /// <summary>
+    ///     The global <c>hidden</c> attribute — hides the element from every presentation, including
+    ///     assistive technology.
+    ///     <para>
+    ///         Prefer this to inventing a display-none class: a class hides it visually while leaving it in
+    ///         the accessibility tree, which is how a screen reader ends up announcing something invisible.
+    ///         Note CSS can override it, so a stylesheet setting <c>display</c> on the same element wins.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/hidden">MDN</see>
+    /// </summary>
+    public bool? Hidden
+    {
+        get => GetFlag(FlagHiddenPresent) ? GetFlag(FlagHiddenValue) : null;
+        set
+        {
+            SetFlag(FlagHiddenPresent, value.HasValue);
+            SetFlag(FlagHiddenValue, value.GetValueOrDefault());
+        }
+    }
+
+    /// <summary>
+    ///     The global <c>inert</c> attribute — makes this element and its whole subtree unfocusable,
+    ///     unclickable and invisible to assistive technology.
+    ///     <para>
+    ///         This is the correct primitive behind a modal: mark everything OUTSIDE the dialog inert and
+    ///         focus can no longer escape it. Hand-rolled focus traps are where keyboard users get stuck.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inert">MDN</see>
+    /// </summary>
+    public bool? Inert
+    {
+        get => GetFlag(FlagInertPresent) ? GetFlag(FlagInertValue) : null;
+        set
+        {
+            SetFlag(FlagInertPresent, value.HasValue);
+            SetFlag(FlagInertValue, value.GetValueOrDefault());
+        }
+    }
+
+    /// <summary>
+    ///     The global <c>popover</c> attribute — makes this element a popover: <c>"auto"</c> (light-dismiss,
+    ///     closes others), <c>"manual"</c>, or <c>"hint"</c>.
+    ///     <para>
+    ///         The browser handles the top layer, dismissal and focus. Pair it with
+    ///         <c>Button.PopoverTarget</c>, which opens it without a line of JavaScript.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover">MDN</see>
+    /// </summary>
+    public string? Popover
+    {
+        get => PopoverInternal;
+        set => PopoverInternal = value;
+    }
+
+    /// <summary>
+    ///     The global <c>contenteditable</c> attribute — <c>"true"</c>, <c>"false"</c> or
+    ///     <c>"plaintext-only"</c>. A string rather than a <c>bool?</c> because the third value is the one
+    ///     most editors actually want.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/contenteditable">MDN</see>
+    /// </summary>
+    public string? ContentEditable
+    {
+        get => ContentEditableInternal;
+        set => ContentEditableInternal = value;
+    }
+
+    /// <summary>
+    ///     The global <c>spellcheck</c> attribute — whether to spell- and grammar-check editable content.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/spellcheck">MDN</see>
+    /// </summary>
+    public bool? Spellcheck
+    {
+        get => SpellcheckInternal;
+        set => SpellcheckInternal = value;
+    }
+
+    /// <summary>
+    ///     The global <c>translate</c> attribute — whether translation tools should translate this
+    ///     element's text. Set <c>false</c> on a product name, a code sample or a username.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate">MDN</see>
+    /// </summary>
+    public bool? Translate
+    {
+        get => TranslateInternal;
+        set => TranslateInternal = value;
+    }
+
     /// <summary>
     ///     The escape hatch for every global HTML attribute this class does not name — <c>lang</c>,
     ///     <c>dir</c>, <c>hidden</c>, <c>inert</c>, <c>popover</c>, <c>contenteditable</c>,
@@ -243,6 +381,55 @@ public abstract partial class Element : Component
             AppendAttr(sb, "title", Title);
         }
 
+        // The remaining plain global attributes, slotted with the other plain ones (id/class/style/title)
+        // and ahead of the prefixed data-*/aria-* groups, so the documented order stays "globals first,
+        // grouped".
+        //
+        // Hidden/Inert read two flag bits each. The other six hang off one lazily-allocated side object
+        // (Component.GlobalAttrs), read ONCE into a local here rather than walked per attribute — so an
+        // element naming none of them tests a null local and allocates nothing, and one that names any
+        // pays a single field load for the lot.
+        var globals = GlobalAttrsInternal;
+        if (globals?.Lang is { } lang)
+        {
+            AppendAttr(sb, "lang", lang);
+        }
+
+        if (globals?.Dir is { } dir)
+        {
+            AppendAttr(sb, "dir", dir);
+        }
+
+        if (Hidden is true)
+        {
+            AppendAttr(sb, "hidden", null);
+        }
+
+        if (Inert is true)
+        {
+            AppendAttr(sb, "inert", null);
+        }
+
+        if (globals?.Popover is { } popover)
+        {
+            AppendAttr(sb, "popover", popover);
+        }
+
+        if (globals?.ContentEditable is { } contentEditable)
+        {
+            AppendAttr(sb, "contenteditable", contentEditable);
+        }
+
+        if (globals?.Spellcheck is { } spellcheck)
+        {
+            AppendAttr(sb, "spellcheck", spellcheck ? "true" : "false");
+        }
+
+        if (globals?.Translate is { } translate)
+        {
+            AppendAttr(sb, "translate", translate ? "yes" : "no");
+        }
+
         // Effective keyed-list identity: this element's own Key, else a key forwarded from a
         // transparent ancestor component (Consume clears the slot so only the FIRST element
         // adopts it). Emitted in the data-* group below so FrameDiffer.ExtractRaskKey finds it
@@ -286,9 +473,11 @@ public abstract partial class Element : Component
             EmitDomEvents(sb, ctx);
         }
 
-        // Accessibility group, last in the universal block so it lands after data-* yet before any
-        // subclass tag-specific attrs (those run after base.WriteAttributes). Documented order:
-        // id, class, style, data-*, role, tabindex, aria-*, then tag-specific.
+        // Accessibility group: after data-*, before the Attributes escape hatch and any subclass
+        // tag-specific attrs (those run after base.WriteAttributes). Documented order in full:
+        // id, class, style, title, the plain globals (lang, dir, hidden, inert, popover,
+        // contenteditable, spellcheck, translate), data-*, role, tabindex, aria-*, Attributes,
+        // then tag-specific.
         if (Role is not null)
         {
             AppendAttr(sb, "role", Role);

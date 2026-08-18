@@ -49,7 +49,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal(
-            "<input id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" type=\"text\" name=\"n\" value=\"v\" placeholder=\"p\" required disabled readonly checked min=\"1\" max=\"10\" step=\"1\" pattern=\"[a-z]&#x2B;\" size=\"20\" maxlength=\"100\" minlength=\"1\" multiple accept=\".png\" capture=\"user\" alt=\"alt\" autocomplete=\"off\" inputmode=\"numeric\" enterkeyhint=\"done\" spellcheck=\"false\" dirname=\"d\" autofocus form=\"f\" formaction=\"/a\" formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate formtarget=\"_blank\" list=\"l\" src=\"/s\" width=\"80\" height=\"40\" />",
+            "<input id=\"i\" class=\"c\" style=\"s\" spellcheck=\"false\" data-k=\"v\" type=\"text\" name=\"n\" value=\"v\" placeholder=\"p\" required disabled readonly checked min=\"1\" max=\"10\" step=\"1\" pattern=\"[a-z]&#x2B;\" size=\"20\" maxlength=\"100\" minlength=\"1\" multiple accept=\".png\" capture=\"user\" alt=\"alt\" autocomplete=\"off\" inputmode=\"numeric\" enterkeyhint=\"done\" dirname=\"d\" autofocus form=\"f\" formaction=\"/a\" formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate formtarget=\"_blank\" list=\"l\" src=\"/s\" width=\"80\" height=\"40\" />",
             Input<string>(InputType.Text, "n", "v", "p", true, true, true, true, "1", "10", "1", "[a-z]+", 20, 100, 1, true, ".png",
                 "alt", "off", true, "f", "/a", "multipart/form-data", "post", true, "_blank", "l", "/s", 80, 40,
                 InputMode: "numeric", EnterKeyHint: "done", Spellcheck: false, Capture: "user", Dirname: "d",

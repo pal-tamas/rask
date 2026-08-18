@@ -171,9 +171,6 @@ public sealed partial class Input<T> : Element, IFormControl<T>
     /// </summary>
     public string? EnterKeyHint { get; set; }
 
-    /// <summary>Whether the browser should spell-check the value.</summary>
-    public bool? Spellcheck { get; set; }
-
     /// <summary>
     ///     For a file input, asks for the camera or microphone directly: <c>user</c> for the front camera,
     ///     <c>environment</c> for the rear.
@@ -408,11 +405,6 @@ public sealed partial class Input<T> : Element, IFormControl<T>
         if (EnterKeyHint is not null)
         {
             AppendAttr(sb, "enterkeyhint", EnterKeyHint);
-        }
-
-        if (Spellcheck is not null)
-        {
-            AppendAttr(sb, "spellcheck", Spellcheck.Value ? "true" : "false");
         }
 
         if (Dirname is not null)

@@ -84,8 +84,16 @@ public static partial class BuilderRuntime
     ///     Fixed rather than "however many the shared surface currently has" so a component compiled
     ///     against one version of Rask.Core cannot have its own bits collide with a shared prop added in
     ///     a later one. The generator falls back to an eager reset for any prop that does not fit.
+    ///     <para>
+    ///         Raised 16 -> 32 when the global attributes landed (#693): the shared surface reached 19
+    ///         folding props and RASK041 fired. Moving it is a REBUILD-REQUIRED change — a component
+    ///         compiled against the old value numbered its own props from 16, which the shared surface now
+    ///         occupies — so the value here and the generator's copy must move together, and everything
+    ///         must be rebuilt against the pair. That is the whole reason RASK041 exists rather than the
+    ///         overflow being silent.
+    ///     </para>
     /// </remarks>
-    public const int OwnPendingBit = 16;
+    public const int OwnPendingBit = 32;
 
     // ---- Pending resets --------------------------------------------------------------------------
     //
