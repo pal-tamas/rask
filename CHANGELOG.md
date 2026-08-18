@@ -8,6 +8,32 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The portable chrome now has a sample, which is what the repo's own definition of done asks for.** #743
+  shipped `AppBar`/`TabStrip` and documented them, but no sample used them — and no sample used `Screen` at
+  all — so the cross-host claim was proven only in unit tests, never in a running app.
+
+  - **`/chrome`** in the showcase is a real `Screen`, naming no `Rask.Native` type. All three showcase hosts
+    compile it from the same `Rask.Example.Shared` project: Server and WASM render its slots as landmark
+    HTML, and the native heads project the same declaration to a `UINavigationBar` + `UITabBar`. Unlisted in
+    the sidebar, like `/table`.
+  - **`ChromeBarsDemo`** renders the bars inline with its source, embedded in the native guide at
+    `<!-- demo:chrome-bars -->`, with a ~20-line scoped stylesheet that doubles as the demonstration:
+    `Rask.Core` ships no CSS for the bars and emits `data-rask-icon="add"` rather than a glyph, so the class
+    names *are* the styling contract and one rule per icon token wires up whatever set the app already has.
+
+  Covered by the shared browser journey (so it runs on Server, WASM and standalone WASM): the two landmarks,
+  exactly one `aria-current="page"` tab and that it is the one matching the route, and a bar button's
+  callback re-rendering the screen.
+
+### Fixed
+- **A comment added in #743 described a hazard that isn't one.** It claimed importing a component namespace
+  shadows the chain entries of the same name. Entries are injected into the enclosing partial class, and a
+  member of the enclosing type wins simple-name lookup over a namespace-imported type — which is why the
+  native tests import `Rask.Native.Components` and the new sample imports `Rask.Chrome.Components`, both
+  compiling fine. The real rule, already documented in the host `.props`, is narrower: it is why the
+  framework emits a `global using static` for the entries but never a global namespace import.
+
+### Added
 - **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
   shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler
   test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the

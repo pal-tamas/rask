@@ -7,8 +7,11 @@ using Rask.Core.Routing;
 using Rask.Native.Tests.Infrastructure;
 using static Rask.Chrome.Components.Generated;
 using static Rask.Core.Components.Generated;
-// A type alias rather than a namespace import: importing Rask.Core.Components wholesale would put the
-// component TYPES in scope alongside the chain entries of the same name.
+// An alias rather than a namespace import, but not because the import breaks: entries are injected into
+// this partial class, and a member of the enclosing type wins simple-name lookup over a namespace-imported
+// type, so `using Rask.Chrome.Components;` compiles here too (the sibling ScreenChromeTests imports
+// Rask.Native.Components exactly that way). The alias only avoids leaning on that ordering for the one type
+// actually needed — BarIcon is a struct, so no entry exists for it.
 using BarIcon = Rask.Chrome.Components.BarIcon;
 
 #pragma warning disable RASK019 // test apps predate framework-managed <head>

@@ -2329,6 +2329,33 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
+        // Portable chrome: /chrome is a Screen — a Page that also declares the bars AROUND it. Unlisted like
+        // /table, and reached by hard nav for the same reason. On a native head those two slots become a real
+        // UINavigationBar + UITabBar; here they have to be landmark HTML, which is the half a browser can
+        // prove. Everything asserted below comes from Rask.Chrome — the screen names no Rask.Native type,
+        // which is what makes one class serve all three hosts.
+        await Page.GotoAsync("/chrome");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Portable chrome",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        // The landmarks, not the classes: role is what assistive technology reads, and it is the part of the
+        // contract Rask.Core actually emits (the styling is the app's).
+        await Expect(Page.Locator("main div.rask-header-bar[role='banner']")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("main div.rask-tab-bar[role='navigation']")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // Exactly one tab is current, and it is the one matching this route — TabStrip derives it with the
+        // same method the native descriptor builder calls, so a drift here is a cross-host disagreement.
+        await Expect(Page.Locator("main a.rask-tab[aria-current='page']")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        await Expect(Page.Locator("main a.rask-tab.rask-tab-active")).ToHaveTextAsync(new Regex("Chrome"),
+            new LocatorAssertionsToHaveTextOptions { Timeout = 5_000 });
+        // A bar button's callback attributes back to the screen and re-renders it like any other callback —
+        // the behaviour that has to hold identically when the button is a real platform bar item.
+        Assert.Equal("0", await Page.Locator("#chrome-screen-refreshed").InnerTextAsync());
+        await Page.Locator("main .rask-header-bar button.rask-bar-button").ClickAsync();
+        await Expect(Page.Locator("#chrome-screen-refreshed")).ToHaveTextAsync("1",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
         if (opts.DeepLink)
         {
             // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)

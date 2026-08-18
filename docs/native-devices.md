@@ -205,6 +205,8 @@ screen emits no markup for either. On Server and WASM the same declaration rende
 </div>
 ```
 
+<!-- demo:chrome-bars -->
+
 Three things that are deliberate:
 
 - **Core ships no stylesheet.** The class names above *are* the styling contract, and the icon arrives as
