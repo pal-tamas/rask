@@ -383,15 +383,21 @@ public abstract partial class Element : Component
 
         // The remaining plain global attributes, slotted with the other plain ones (id/class/style/title)
         // and ahead of the prefixed data-*/aria-* groups, so the documented order stays "globals first,
-        // grouped". Each is opt-in, so the common element skips all of them on a null check.
-        if (Lang is not null)
+        // grouped".
+        //
+        // Hidden/Inert read two flag bits each. The other six hang off one lazily-allocated side object
+        // (Component.GlobalAttrs), read ONCE into a local here rather than walked per attribute — so an
+        // element naming none of them tests a null local and allocates nothing, and one that names any
+        // pays a single field load for the lot.
+        var globals = GlobalAttrsInternal;
+        if (globals?.Lang is { } lang)
         {
-            AppendAttr(sb, "lang", Lang);
+            AppendAttr(sb, "lang", lang);
         }
 
-        if (Dir is not null)
+        if (globals?.Dir is { } dir)
         {
-            AppendAttr(sb, "dir", Dir);
+            AppendAttr(sb, "dir", dir);
         }
 
         if (Hidden is true)
@@ -404,22 +410,22 @@ public abstract partial class Element : Component
             AppendAttr(sb, "inert", null);
         }
 
-        if (Popover is not null)
+        if (globals?.Popover is { } popover)
         {
-            AppendAttr(sb, "popover", Popover);
+            AppendAttr(sb, "popover", popover);
         }
 
-        if (ContentEditable is not null)
+        if (globals?.ContentEditable is { } contentEditable)
         {
-            AppendAttr(sb, "contenteditable", ContentEditable);
+            AppendAttr(sb, "contenteditable", contentEditable);
         }
 
-        if (Spellcheck is { } spellcheck)
+        if (globals?.Spellcheck is { } spellcheck)
         {
             AppendAttr(sb, "spellcheck", spellcheck ? "true" : "false");
         }
 
-        if (Translate is { } translate)
+        if (globals?.Translate is { } translate)
         {
             AppendAttr(sb, "translate", translate ? "yes" : "no");
         }

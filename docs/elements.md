@@ -170,6 +170,21 @@ argument.
 
 <!-- demo:props-attributes -->
 
+### What the globals cost
+
+One reference per node, and nothing at all on the static path.
+
+`Hidden` and `Inert` are two bits each of the flags byte every component already carries, so they are
+free. The other six share **one** reference on the lazy live state — a side object allocated only by an
+element that actually names one of them — rather than a typed field each, because that state is
+allocated per node on a mounted page and a field there is paid for by every node of every live session.
+
+Measured against the commit before them: a static render is unchanged (35.31 KB either way), since a
+plain element keeps its live state null; a live render grows by 8 B per node for the single added
+reference. `Element.WriteAttributes` reads the side object once into a local rather than once per
+attribute, so an element naming no global does *less* work than a typed-field-each layout would have.
+
+
 **Attribute order** is fixed: `id`, `class`, `style`, `title`, the plain globals (`lang`, `dir`,
 `hidden`, `inert`, `popover`, `contenteditable`, `spellcheck`, `translate`), `data-*`, `role`,
 `tabindex`, `aria-*`, then `Attributes`, then tag-specific. Tests enforce it, so the output is

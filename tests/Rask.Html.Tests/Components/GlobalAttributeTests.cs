@@ -103,4 +103,36 @@ public partial class GlobalAttributeTests : global::Rask.Core.RaskMarkup
         // The whole point of the flag-bit/LiveState storage: adding ten properties must cost the common
         // element nothing, in output or in footprint.
         Assert.Equal("<div class=\"card\"><span>hi</span></div>", Div.Class("card")[Span["hi"]].ToHtml());
+
+    [Fact]
+    public void Hidden_and_Inert_share_the_flags_byte_with_Component_and_must_not_alias_it()
+    {
+        // Hidden/Inert are stored in `_flags`, which Element does NOT own alone: Component takes bit 0
+        // (ReadsAmbientState) and bit 3 (CallbackAssigned), Element's Draggable takes bits 1-2, and the
+        // two sets of constants live in different files. Overlapping them is an easy and SILENT mistake:
+        // this branch originally gave Hidden bit 3, and everything still rendered correctly, because the
+        // damage is to what the flag MEANS rather than to the markup.
+        //
+        // So assert the meaning, not the output — rendering `<div hidden>` passes either way and is why
+        // an output-only version of this test is worthless. Setting Hidden must not make the element
+        // claim it carries a callback (which would run the ~88-field eager delegate reset on every
+        // hidden element), and assigning a callback must not give Hidden a value it was never set to.
+        var hidden = (Element)Div.Hidden(true).Inert(true);
+        Assert.False(hidden.HasCallbackAssignedInternal());
+
+        var clickable = (Element)Div.OnClick(() => { });
+        Assert.True(clickable.HasCallbackAssignedInternal());
+        Assert.Null(clickable.Hidden);
+        Assert.Null(clickable.Inert);
+
+        // Draggable shares the same byte from the other side.
+        var draggable = (Element)Div.Draggable(true);
+        Assert.Null(draggable.Hidden);
+        Assert.Null(draggable.Inert);
+
+        // And the rendered output still has to be right with all of them at once. Draggable renders in
+        // the data-* group, so it lands AFTER the plain globals despite sharing the byte with them.
+        Assert.Equal("<div hidden inert draggable=\"true\"></div>",
+            Div.Draggable(true).Hidden(true).Inert(true).ToHtml());
+    }
 }

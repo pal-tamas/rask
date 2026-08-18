@@ -337,81 +337,103 @@ public abstract partial class Component : RaskMarkup
         }
     }
 
-    // Backing store for the TYPED global attributes Element exposes (#693), hoisted for the same reason
-    // as Role/TabIndex/Aria: each is opt-in, so an element that names none keeps `_live` null. Only a
-    // LiveState-bearing node carries these at all — a plain tag never allocates one.
+    // The rest of HTML's global attributes (#693), on a side object rather than a typed field each.
+    // The reasoning is the one LiveState.ExtraAttrs records: LiveState is allocated per node on a
+    // mounted page, so every field on it costs ~8 B on every node of every live session (~56 KB per
+    // field on a 1,000-row page). Six typed fields would be ~336 KB there; one reference is ~56 KB,
+    // and only an element that actually names one of these attributes allocates the side object.
+    //
+    // Reads go through `_live?.Globals?.X`, so an element that names none pays two null checks and no
+    // allocation — and Element.WriteAttributes fetches the object ONCE via GlobalAttrsInternal rather
+    // than re-walking it per attribute, which makes the common element cheaper than a field each.
+    internal sealed class GlobalAttrs
+    {
+        public string? Lang;
+        public string? Dir;
+        public string? Popover;
+        public string? ContentEditable;
+        public bool? Spellcheck;
+        public bool? Translate;
+    }
+
+    // The whole side object in one read, for the writer's single null check.
+    internal GlobalAttrs? GlobalAttrsInternal => _live?.Globals;
+
+    private GlobalAttrs Globals => Live.Globals ??= new GlobalAttrs();
+
+    // Each setter mirrors the Role/Aria shape: assigning null to an element that never set one is a
+    // no-op, so neither the LiveState nor the side object is forced into existence by a null write.
     internal string? LangInternal
     {
-        get => _live?.Lang;
+        get => _live?.Globals?.Lang;
         set
         {
-            if (value is not null || _live is not null)
+            if (value is not null || _live?.Globals is not null)
             {
-                Live.Lang = value;
+                Globals.Lang = value;
             }
         }
     }
 
     internal string? DirInternal
     {
-        get => _live?.Dir;
+        get => _live?.Globals?.Dir;
         set
         {
-            if (value is not null || _live is not null)
+            if (value is not null || _live?.Globals is not null)
             {
-                Live.Dir = value;
+                Globals.Dir = value;
             }
         }
     }
 
     internal string? PopoverInternal
     {
-        get => _live?.Popover;
+        get => _live?.Globals?.Popover;
         set
         {
-            if (value is not null || _live is not null)
+            if (value is not null || _live?.Globals is not null)
             {
-                Live.Popover = value;
+                Globals.Popover = value;
             }
         }
     }
 
     internal string? ContentEditableInternal
     {
-        get => _live?.ContentEditable;
+        get => _live?.Globals?.ContentEditable;
         set
         {
-            if (value is not null || _live is not null)
+            if (value is not null || _live?.Globals is not null)
             {
-                Live.ContentEditable = value;
+                Globals.ContentEditable = value;
             }
         }
     }
 
     internal bool? SpellcheckInternal
     {
-        get => _live?.Spellcheck;
+        get => _live?.Globals?.Spellcheck;
         set
         {
-            if (value is not null || _live is not null)
+            if (value is not null || _live?.Globals is not null)
             {
-                Live.Spellcheck = value;
+                Globals.Spellcheck = value;
             }
         }
     }
 
     internal bool? TranslateInternal
     {
-        get => _live?.Translate;
+        get => _live?.Globals?.Translate;
         set
         {
-            if (value is not null || _live is not null)
+            if (value is not null || _live?.Globals is not null)
             {
-                Live.Translate = value;
+                Globals.Translate = value;
             }
         }
     }
-
 
     /// <summary>
     ///     A <see cref="System.Threading.CancellationToken" /> for this component's cancellable async
@@ -2652,18 +2674,21 @@ public abstract partial class Component : RaskMarkup
         public int? TabIndex;
         public IReadOnlyDictionary<string, string?>? Aria;
 
-        // Element.Attributes' bag — the escape hatch for anything the surface does not name.
+        // Every remaining global HTML attribute, in one bag rather than a typed field each. A field here
+        // costs ~8 B on every node of every live session (~56 KB per field on a 1,000-row page — see
+        // CachedSubtree above), and the shared Element surface has a hard pending-bit budget for
+        // folding properties, so one dictionary keeps both budgets where a typed prop each would keep
+        // neither. This is the verbatim escape hatch behind Element.Attributes.
         public IReadOnlyDictionary<string, string?>? ExtraAttrs;
 
-        // …and typed storage for the globals that ARE named. Only LiveState-bearing nodes carry these,
-        // and a plain tag never allocates one. Hidden/Inert are deliberately NOT here: they are two bits
-        // of the flags byte, so the two commonest cost nothing at all.
-        public string? Lang;
-        public string? Dir;
-        public string? Popover;
-        public string? ContentEditable;
-        public bool? Spellcheck;
-        public bool? Translate;
+        // The typed global attributes that are neither plain-and-always-there (id/class/style/title)
+        // nor cheap enough for a flag bit — see Component.GlobalAttrs. ONE reference for the six of
+        // them, for exactly the reason the field above gives: six fields here would be ~336 KB on that
+        // same 1,000-row page, where this is ~56 KB and only the elements that actually name one of
+        // them allocate the side object. Hidden/Inert are in neither place — they are two bits each of
+        // the flags byte, because `hidden` is common enough that allocating for it would be a
+        // regression (see Element.FlagHiddenPresent).
+        public GlobalAttrs? Globals;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Action)>? Handlers;

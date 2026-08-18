@@ -5,6 +5,7 @@ element, plus the analyzer that catches missing image alt text.
 
 - [The `Aria` dictionary](#the-aria-dictionary)
 - [`Role` and `TabIndex`](#role-and-tabindex)
+- [Language of parts (`Lang` and `Dir`)](#language-of-parts-lang-and-dir)
 - [Attribute order](#attribute-order)
 - [Images and alt text (RASK023)](#images-and-alt-text-rask023)
 - [What's not covered yet](#whats-not-covered-yet)
@@ -51,13 +52,37 @@ Div.Role("dialog").TabIndex(-1).Aria(new() { ["modal"] = "true", ["labelledby"] 
 `Role` is a `string?`; `TabIndex` is an `int?` (`0` to make a non-interactive element focusable, `-1`
 to take it out of the tab order but keep it programmatically focusable).
 
+## Language of parts (`Lang` and `Dir`)
+
+`Lang` marks the language of an element's content as a BCP 47 tag, and it belongs on any run of text in
+a different language from the page — not only on `<html>`. A screen reader switches pronunciation on it,
+and without it a French quotation inside an English page is read with English phonetics. That is
+[WCAG 3.1.2 *Language of Parts*](https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts), a
+Level AA criterion:
+
+```csharp
+P["The exhibition is called ", Span.Lang("fr")["Les Demoiselles"], "."]
+```
+
+`Dir` is the same idea for direction — `"ltr"`, `"rtl"` or `"auto"`. Reach for `"auto"` on text you did
+not author and whose language you do not know at render time (a display name, a comment, a search
+query): the browser takes the direction from the first strongly-typed character, which is the only
+correct answer when the content is arbitrary.
+
+`Hidden` and `Inert` belong to the same family. `Hidden` removes an element from every presentation
+*including* the accessibility tree — prefer it to a display-none class, which hides an element visually
+while leaving a screen reader announcing it. `Inert` makes a whole subtree unfocusable and unreachable,
+which is the correct primitive behind a modal (see [Focus trapping](#focus-trapping-overlays)).
+
 ## Attribute order
 
 Accessibility attributes render in the universal attribute block, after `data-*` and before any
 tag-specific attributes. The full documented order is:
 
 ```
-id, class, style, data-*, role, tabindex, aria-*, then tag-specific
+id, class, style, title,
+lang, dir, hidden, inert, popover, contenteditable, spellcheck, translate,
+data-*, role, tabindex, aria-*, Attributes, then tag-specific
 ```
 
 Tests assert this order; it is stable across releases.

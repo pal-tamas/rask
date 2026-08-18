@@ -21,9 +21,17 @@ them until tagged releases begin.
   prefix, which reaches microdata, `nonce`, `part`/`exportparts`, `accesskey`, `slot`, `inputmode` and
   whatever HTML adds next.
 
-  **It costs the common element nothing.** `Hidden` and `Inert` are two bits each of the flags byte every
-  component already carries (as `Draggable` is); the rest hoist into the lazy live state that
-  `Role`/`TabIndex`/`Aria` use, so an element naming none keeps that state null. Closes #693.
+  **The cost is one reference per node, and nothing at all on the static path.** `Hidden` and `Inert` are
+  two bits each of the flags byte every component already carries (as `Draggable` is). The other six
+  share a **single** reference on the lazy live state — a side object allocated only by an element that
+  actually names one of them — rather than a typed field each, because that state is allocated per node
+  on a mounted page.
+
+  Measured against the previous commit: a static render (`RenderAndBuildPayload`) is unchanged at
+  35.31 KB, since a plain element keeps its live state null. A live render grows by 655 B–819 B
+  depending on node count — exactly 8 B per node, the one added reference. Six typed fields would have
+  been roughly six times that. An element naming no global renders byte-for-byte as it did before.
+  Closes #693.
 - **`Button` gained the attributes the spec defines**: the six form-override attributes (`form`,
   `formaction`, `formenctype`, `formmethod`, `formnovalidate`, `formtarget`), plus `popovertarget`,
   `popovertargetaction` and `autofocus`. `Input` has had all six form-* since it was written, so until now

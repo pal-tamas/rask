@@ -111,8 +111,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         true,
         description: "A folding setter clears its own PENDING bit as it writes, and whatever is still pending when "
                      + "the parent's Render() returns is reset to what the factory would have left. The shared "
-                     + "Element/Component surface owns the low 16 of those bits so that a component compiled against "
-                     + "one Rask.Core cannot collide with a shared property added in a later one. The bits are handed "
+                     + "Element/Component surface owns the low bits, up to BuilderRuntime.OwnPendingBit, so a "
+                     + "component compiled against one Rask.Core cannot collide with a shared property added in "
+                     + "a later one. The bits are handed "
                      + "out in ordinal NAME order, so overflowing the budget does not push the NEW property off the "
                      + "end — it pushes whichever alphabetically-later one was last onto the eager reset, which "
                      + "reports that property changed on every render and defeats the render cache for it. Nothing "
