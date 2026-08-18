@@ -247,7 +247,7 @@ Two ordering rules the generated heads already follow — keep them if you edit 
 
 `Rask.Core` is the shared component surface, so anything a component can inject or call from it has to work
 on Server, WASM **and** native — otherwise a component written once breaks on one head only, at runtime,
-with nothing at compile time to warn you. `RaskHostContracts` names that set (47 contracts), and each host's
+with nothing at compile time to warn you. `RaskHostContracts` names that set, and each host's
 test project asserts its own bootstrap resolves every one of them.
 
 Three of them used to be missing here, and the failures were quiet: a file input handed the handler an
