@@ -11,7 +11,6 @@ namespace Rask.Chrome.Components;
 ///     <code>
 /// public sealed class TodosScreen : Screen
 /// {
-///     protected override string Route => "/todos";
 ///
 ///     protected override Component? HeaderBar =>
 ///         AppBar.Title("Todos").Trailing([BarButton.Icon(BarIcon.Add).Title("New").OnClick(Add)]);

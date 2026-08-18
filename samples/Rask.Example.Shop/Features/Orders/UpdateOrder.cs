@@ -35,10 +35,9 @@ public sealed class UpdateOrderCommandHandler(IDbContextFactory<AppDbContext> db
     }
 }
 
-public sealed partial class UpdateOrder(IDispatcher dispatcher, Navigator navigator) : Page
+[Route("/orders/{id:guid}/edit")]
+public sealed partial class UpdateOrder(IDispatcher dispatcher, Navigator navigator) : Component
 {
-    protected override string Route => "/orders/{id:guid}/edit";
-
     private readonly OrderRequest _form = new();
     private bool _loaded;
     private bool _found;

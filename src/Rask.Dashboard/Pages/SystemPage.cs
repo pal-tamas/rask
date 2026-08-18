@@ -8,16 +8,13 @@ namespace Rask.Dashboard.Pages;
 /// happening. Everything here is read-only and cheap — it is the page you screenshot when someone asks
 /// "is production set up correctly?".
 /// </summary>
+[Route("system")]
+[ParentRoute(typeof(DashboardLayout))]
 public sealed partial class SystemPage(
     ISystemPanelReader system,
     RaskDashboardOptions options,
     TimeProvider timeProvider) : PollingPanel
 {
-    protected override string Route => "system";
-
-    protected override Type? Parent => typeof(DashboardLayout);
-
-
     private DatabaseInfo? _database;
     private IReadOnlyList<RecurringJobRow> _recurring = [];
     private BackupReplicationInfo? _replication;

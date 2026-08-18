@@ -17,7 +17,7 @@ public sealed class ChainSnippetTests
         new(TestReferences.Build(), new ServiceCollection().BuildServiceProvider());
 
     // README.md — the only C# on the front page. It is a Page, so it also pins the two things a routable
-    // component needs: a compile-time-constant Route (RASK047) and a parameterless render that returns a
+    // component needs: a [Route] naming the URL it answers, and a parameterless render that returns a
     // collection expression rather than a single root.
     [Fact]
     public async Task Readme_counter_example_compiles()
@@ -25,13 +25,13 @@ public sealed class ChainSnippetTests
         var result = await NewCompiler().CompileAsync("""
             using System;
             using Rask.Core;
+            using Rask.Core.Routing;
 
             namespace Demo;
 
-            public sealed partial class Counter : Page
+            [Route("/counter")]
+            public sealed partial class Counter : Component
             {
-                protected override string Route => "/counter";
-
                 private int _count;
 
                 protected override Component? Render() =>

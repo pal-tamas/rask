@@ -7,10 +7,9 @@ using Rask.Core.Routing;
 namespace Rask.Example.Auth.Features;
 
 [AllowAnonymous]
-public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Page
+[Route("login")]
+public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
 {
-    protected override string Route => "login";
-
     private readonly LoginModel _model = new();
     private string? _error;
 

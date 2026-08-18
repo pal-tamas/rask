@@ -19,10 +19,9 @@ public sealed class CreateProductCommandHandler(IDbContextFactory<AppDbContext> 
     }
 }
 
-public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Page
+[Route("/products/new")]
+public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component
 {
-    protected override string Route => "/products/new";
-
     private readonly ProductRequest _form = new();
     private string? _error;
 

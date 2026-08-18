@@ -160,7 +160,7 @@ public sealed class WatchHotReloadE2ETests
 
         Assert.Contains(WatchApp.OriginalHeading, await app.Http.GetStringAsync("/"), StringComparison.Ordinal);
 
-        app.ReplaceInFile("Features/Home/HomePage.cs", "Route => \"/\";", "Route => \"/moved\";");
+        app.ReplaceInFile("Features/Home/HomePage.cs", "[Route(\"/\")]", "[Route(\"/moved\")]");
 
         // Poll on the page's own content, never on the status code: an unrouted path falls through to
         // the framework's not-found page, which is served with 200 — so a status check here would pass

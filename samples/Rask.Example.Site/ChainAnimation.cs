@@ -57,6 +57,8 @@ internal sealed partial class ChainAnimation : Component
         Mem,
         Str,
         Mut,
+        Op,
+        Interp,
     }
 
     private readonly record struct Tok(string Text, Tk Kind);
@@ -72,6 +74,12 @@ internal sealed partial class ChainAnimation : Component
     private static Tok Mu(string t) => new(t, Tk.Mut);
 
     private static Tok Pl(string t) => new(t, Tk.Plain);
+
+    /// <summary>An operator: <c>=&gt;</c> is code, not the chrome <see cref="Mu" /> paints.</summary>
+    private static Tok Op(string t) => new(t, Tk.Op);
+
+    /// <summary>An interpolation hole: <c>{_count}</c> is code that happens to sit inside a literal.</summary>
+    private static Tok In(string t) => new(t, Tk.Interp);
 
     // One typed run. `Col` is the character column it starts at, so line 9 can be two segments — the
     // caret stops after `Button.` for the completion list, then finishes the line.
@@ -95,33 +103,32 @@ internal sealed partial class ChainAnimation : Component
     // declared width then spreads every glyph apart. Col is exact and costs nothing.
     private static readonly Seg[] Lines =
     [
-        new(0, 0, 1.5, 8.5, [
+        new(0, 0, 1.5, 5.7, [
+            Mu("["), En("Route"), Mu("("), St("\"/counter\""), Mu(")]")
+        ]),
+        new(1, 0, 6.2, 16.6, [
             Kw("public"), Pl(" "), Kw("sealed"), Pl(" "), Kw("partial"), Pl(" "), Kw("class"), Pl(" "),
-            Pl("Counter"), Mu(" : "), Pl("Page")
+            Pl("Counter"), Mu(" : "), Pl("Component")
         ]),
-        new(1, 0, 8.5, 9, [Mu("{")]),
-        new(2, 4, 9.5, 17.5, [
-            Kw("protected"), Pl(" "), Kw("override"), Pl(" "), Kw("string"), Pl(" "),
-            Me("Route"), Pl(" "), Mu("=>"), Pl(" "), St("\"/counter\""), Mu(";")
-        ]),
-        new(3, 4, 18, 22, [
+        new(2, 0, 17.1, 17.4, [Mu("{")]),
+        new(3, 4, 17.8, 22, [
             Kw("private"), Pl(" "), Kw("int"), Pl(" "), Pl("_count"), Mu(";")
         ]),
         new(5, 4, 22.5, 30, [
             Kw("protected"), Pl(" "), Kw("override"), Pl(" "), Pl("Component?"), Pl(" "),
-            Me("Render"), Mu("()"), Pl(" "), Mu("=>")
+            Me("Render"), Mu("()"), Pl(" "), Op("=>")
         ]),
         new(6, 4, 30, 31, [Mu("[")]),
         new(7, 8, 31.5, 35.5, [
             En("H1"), Mu("["), St("\"Counter\""), Mu("]"), Mu(",")
         ]),
         new(8, 8, 42.5, 49, [
-            En("P"), Mu("["), St("$\"Current count: {_count}\""), Mu("]"), Mu(",")
+            En("P"), Mu("["), St("$\"Current count: "), In("{_count}"), St("\""), Mu("]"), Mu(",")
         ]),
         // The caret stops here — this is where the member list opens.
         new(9, 8, 49.5, 53, [En("Button"), Mu(".")]),
         new(9, 15, 71.5, 77.5, [
-            Me("OnClick"), Mu("(()"), Pl(" "), Mu("=>"), Pl(" "), Pl("_count"), Mu("++)"), Mu("["),
+            Me("OnClick"), Mu("(()"), Pl(" "), Op("=>"), Pl(" "), Pl("_count"), Mu("++)"), Mu("["),
             St("\"Click me\""), Mu("]")
         ]),
         new(10, 4, 78, 79, [Mu("];")]),
@@ -160,7 +167,8 @@ internal sealed partial class ChainAnimation : Component
         {
             SvgTitle["The Counter component being typed, with the IDE's completion list and doc comment"],
             Desc[
-                "An editor types a Rask Counter page character by character. As H1[ is written a tooltip "
+                "An editor types a Rask Counter page character by character, starting with its "
+                + "[Route(\"/counter\")] attribute. As H1[ is written a tooltip "
                 + "explains the indexer; when the caret stops after Button. a completion list opens showing "
                 + "Class, Id, OnClick and Style with each member's XML doc summary, then the line finishes "
                 + "as Button.OnClick(() => _count++)[\"Click me\"]."
@@ -207,11 +215,17 @@ internal sealed partial class ChainAnimation : Component
         var x = Num(seg.X);
         var baseline = Num(seg.Baseline);
 
+        // spacingAndGlyphs, not spacing: `spacing` adjusts only the gaps BETWEEN glyphs, so the last
+        // glyph keeps its natural advance and its ink can spill past textLength. The cover rectangle is
+        // exactly textLength wide, so that spill is never covered — the tail of a line (`=>` on the
+        // Render line) hangs there in plain sight from the first frame, before the line is typed.
+        // Scaling the glyphs too makes the run occupy exactly the declared width, which is also what
+        // keeps the steps() reveal landing on real character boundaries under a fallback font.
         var text = SvgText
             .X(x)
             .Y(baseline)
             .TextLength(Num(seg.Width))
-            .LengthAdjust("spacing")
+            .LengthAdjust("spacingAndGlyphs")
             .Class("rc-t")[seg.Toks.Select(Span).ToList()];
 
         return G.Key($"seg{index.ToString(CultureInfo.InvariantCulture)}")[
@@ -244,6 +258,8 @@ internal sealed partial class ChainAnimation : Component
         Tk.Mem => "rc-mem",
         Tk.Str => "rc-str",
         Tk.Mut => "rc-mut",
+        Tk.Op => "rc-op",
+        Tk.Interp => "rc-interp",
         _ => "rc-t",
     };
 
@@ -372,6 +388,8 @@ internal sealed partial class ChainAnimation : Component
             .rc-ent { fill: var(--accent, #8b5cf6); }
             .rc-mem { fill: var(--ink, #e9e9f2); }
             .rc-str { fill: var(--signal, #34d399); }
+            .rc-op { fill: var(--ink-soft, #c3c2d6); }
+            .rc-interp { fill: var(--accent-ink, #c4b5fd); }
             .rc-chip { fill: var(--accent, #8b5cf6); opacity: 0.35; }
             /* fill-opacity, not opacity: .rc-hl on the same element has its opacity driven by keyframes,
                and two opacity declarations would let the animation paint a solid block over the row. */

@@ -9,12 +9,10 @@ namespace Rask.Example.Wasm.Features;
 ///     (the API is WASM-only) and is surfaced in the shared sidebar via a host-registered
 ///     <see cref="ShowcaseNavEntry" /> (see Program.cs), nesting in the shared <see cref="ShowcaseLayout" />.
 /// </summary>
-public sealed partial class WakeLockPage : Page
+[Route("wake-lock")]
+[ParentRoute(typeof(ShowcaseLayout))]
+public sealed partial class WakeLockPage : Component
 {
-    protected override string Route => "wake-lock";
-
-    protected override Type? Parent => typeof(ShowcaseLayout);
-
     protected override Component? HeadAssets => Title["Wake lock — Rask"];
 
     protected override Component? Render() =>

@@ -29,7 +29,7 @@ public sealed class ErrorPageScaffoldTests
         var files = Generate(flags);
 
         Assert.Contains("Features/Shared/ErrorPage.cs", files.Keys);
-        Assert.Contains("""protected override string Route => "/error";""", files["Features/Shared/ErrorPage.cs"], StringComparison.Ordinal);
+        Assert.Contains("""[Route("/error")]""", files["Features/Shared/ErrorPage.cs"], StringComparison.Ordinal);
     }
 
     [Fact]

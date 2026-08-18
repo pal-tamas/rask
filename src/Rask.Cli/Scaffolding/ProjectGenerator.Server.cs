@@ -798,10 +798,9 @@ internal static partial class ProjectGenerator
         // [AllowAnonymous] because an error page that redirects to /login is worse than the error: if you
         // later add a fallback authorization policy, this route must stay reachable.
         [AllowAnonymous]
-        public sealed partial class ErrorPage : Page
+        [Route("/error")]
+        public sealed partial class ErrorPage : Component
         {
-            protected override string Route => "/error";
-
             protected override Component? HeadAssets => [Title["Something went wrong"]];
 
             protected override Component? Render() =>
@@ -930,10 +929,9 @@ internal static partial class ProjectGenerator
         namespace Company.RaskServer.Features.Auth;
 
         [AllowAnonymous]
-        public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Page
+        [Route("login")]
+        public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
         {
-            protected override string Route => "login";
-
             private readonly LoginModel _model = new();
             private string? _error;
 
@@ -982,10 +980,9 @@ internal static partial class ProjectGenerator
         // in its own component that injects IUserProvider, so it reads the freshly-authenticated principal — no
         // manual Changed subscription.
         [Authorize]
-        public sealed partial class MembersPage : Page
+        [Route("members")]
+        public sealed partial class MembersPage : Component
         {
-            protected override string Route => "members";
-
             protected override Component? Render() =>
                 Div.Class("welcome-card")[
                     Authorize
