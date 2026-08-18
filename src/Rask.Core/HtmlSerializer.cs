@@ -516,11 +516,11 @@ internal static class HtmlSerializer
                         // (HeaderBar / TabBar) render markup on the web hosts and null on native. That is what
                         // lets one Screen subclass serve web and native — which it could not while these
                         // overrides were read on the native host alone.
-                        var screenChrome = component as Screen;
+                        var screenChrome = component as IScreenChrome;
                         if (screenChrome is not null)
                         {
-                            Serialize(screenChrome.HeaderBarInternal, sb);
-                            Serialize(screenChrome.ToolbarInternal, sb);
+                            Serialize(screenChrome.HeaderBarSlot, sb);
+                            Serialize(screenChrome.ToolbarSlot, sb);
                         }
 
                         // The tab bar's position differs by host, and for two unrelated reasons. On the web it
@@ -531,14 +531,14 @@ internal static class HtmlSerializer
                         // leaf's — inverting deepest-wins for that one slot.
                         if (screenChrome is not null && liveCtx is { CollectsNativeChrome: true })
                         {
-                            Serialize(screenChrome.TabBarInternal, sb);
+                            Serialize(screenChrome.TabBarSlot, sb);
                         }
 
                         Serialize(rendered, sb);
 
                         if (screenChrome is not null && liveCtx is not { CollectsNativeChrome: true })
                         {
-                            Serialize(screenChrome.TabBarInternal, sb);
+                            Serialize(screenChrome.TabBarSlot, sb);
                         }
                     }
                     finally

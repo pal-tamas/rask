@@ -68,8 +68,9 @@ them until tagged releases begin.
   components, and were read on the native host alone. So a shared `Screen` forced a web app to reference the
   native package, and rendered nothing there if it did. The feature was, in practice, native-only.
 
-  `Rask.Core` now ships the portable vocabulary — **`AppBar`**, **`TabStrip`** + **`TabItem`**,
-  **`BarButton`**, **`BarIcon`** — and the slots are walked on every host. One declaration:
+  A new **`Rask.Chrome`** assembly now owns `Screen` and the portable vocabulary — **`AppBar`**,
+  **`TabStrip`** + **`TabItem`**, **`BarButton`**, **`BarIcon`** — and the slots are walked on every host.
+  One declaration:
 
   ```csharp
   protected override Component? HeaderBar =>
@@ -91,6 +92,15 @@ them until tagged releases begin.
   descriptor builder, so one declaration cannot light different tabs on different heads. `NativeIcon`'s
   curated members now delegate to `BarIcon` for the same reason — two hand-kept copies of the same
   SF-Symbol/drawable pairs would drift the moment either gained an icon.
+
+  **Why its own assembly.** `Rask.Chrome` is `IsPackable=false` and bundled into the lib/ folder of every
+  host package — the treatment `Rask.Core`, `Rask.Html` and `Rask.Client` already get — so `Rask.Core` stays
+  free of UI chrome and keeps exactly one seam for it (the internal `IScreenChrome` the serializer
+  type-tests). It is deliberately *not* in `Rask.Native`: that is the mobile **host** package
+  (`INativeWebView`, `NativeAppHost`, the platform bridge, iOS/Android TFMs), and putting `Screen` there
+  would force a shared UI project to reference a WebView host from its Server and WASM builds.
+  `Screen` moves from namespace `Rask.Core` to `Rask.Chrome`, so a screen file adds `using Rask.Chrome;`;
+  the bar entries need no using (the assembly declares `RaskFactoryNamespace`).
 
   The `Rask.Native` family (`NativeHeaderBar`, `NativeTabBar`, `NativeToolbar`, `NativeMenuButton`, per-bar
   tinting, segmented titles) stays as the platform-exact escape hatch, and the two mix in one screen. Naming

@@ -1,4 +1,5 @@
-namespace Rask.Core.Components;
+using Rask.Core;
+namespace Rask.Chrome.Components;
 
 /// <summary>
 ///     A type-safe icon for the cross-host chrome bars (<see cref="AppBar" />, <see cref="TabStrip" />). Each

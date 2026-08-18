@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Core.Tests.Components;
+namespace Rask.Chrome.Tests;
 
 // AppBar / TabStrip are the portable chrome vocabulary: one declaration that renders semantic markup on the
 // web hosts and is projected to real platform bars inside a native shell. These cover the web half — the
@@ -119,9 +119,9 @@ public partial class TabStripSelectionTests : global::Rask.Core.RaskMarkup
     [InlineData("/unknown", 0)]
     [InlineData(null, 0)]
     public void DeriveSelected_PicksTheLongestMatchingTabPath(string? path, int expected) =>
-        Assert.Equal(expected, global::Rask.Core.Components.TabStrip.DeriveSelected(Tabs, path));
+        Assert.Equal(expected, global::Rask.Chrome.Components.TabStrip.DeriveSelected(Tabs, path));
 
     [Fact]
     public void DeriveSelected_NoTabs_IsZero() =>
-        Assert.Equal(0, global::Rask.Core.Components.TabStrip.DeriveSelected(null, "/anything"));
+        Assert.Equal(0, global::Rask.Chrome.Components.TabStrip.DeriveSelected(null, "/anything"));
 }

@@ -126,7 +126,7 @@ public sealed class TodosScreen : Screen
 }
 ```
 
-`AppBar` is a **`Rask.Core`** component, so that class names no native type and compiles for every head — see
+`AppBar` is a **`Rask.Chrome`** component, so that class names no native type and compiles for every head — see
 [Portable chrome](#portable-chrome-one-screen-every-host) just below.
 
 **Routing works exactly as it does on the web** — this is the part that usually surprises people. A screen is
@@ -156,7 +156,7 @@ dependency on the native package; the native host recognizes whichever bar it's 
 
 The slots accept two families, and the choice is the usual portability trade:
 
-| | `Rask.Core` — portable | `Rask.Native` — platform-exact |
+| | `Rask.Chrome` — portable | `Rask.Native` — platform-exact |
 | --- | --- | --- |
 | Header | `AppBar` | `NativeHeaderBar` |
 | Tabs | `TabStrip` + `TabItem` | `NativeTabBar` + `NativeTab` |

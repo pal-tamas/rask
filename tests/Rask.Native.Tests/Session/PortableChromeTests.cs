@@ -1,13 +1,15 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Chrome;
 using Rask.Core;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Native.Tests.Infrastructure;
+using static Rask.Chrome.Components.Generated;
 using static Rask.Core.Components.Generated;
 // A type alias rather than a namespace import: importing Rask.Core.Components wholesale would put the
 // component TYPES in scope alongside the chain entries of the same name.
-using BarIcon = Rask.Core.Components.BarIcon;
+using BarIcon = Rask.Chrome.Components.BarIcon;
 
 #pragma warning disable RASK019 // test apps predate framework-managed <head>
 
@@ -15,10 +17,10 @@ namespace Rask.Native.Tests.Session;
 
 /// <summary>
 ///     The portable chrome vocabulary — <c>AppBar</c> / <c>TabStrip</c> / <c>BarButton</c> / <c>TabItem</c>,
-///     all in <c>Rask.Core</c> — projected to real platform bars by this host. The point of the exercise is
+///     all in <c>Rask.Chrome</c> — projected to real platform bars by this host. The point of the exercise is
 ///     that the screen declaring them contains no <c>Rask.Native</c> type at all, so the same class compiles
 ///     and renders on the Server and WASM heads (where it emits HTML instead; see
-///     <c>Rask.Core.Tests.Components.ChromeBarTests</c>).
+///     <c>Rask.Chrome.Tests.ChromeBarTests</c>).
 /// </summary>
 [Collection("NativeSession")]
 public class PortableChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
@@ -103,7 +105,7 @@ public class PortableChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull
 }
 
 // Deliberately free of any Rask.Native type: this is the class that is supposed to compile for the web heads
-// too. It names only Rask.Core components.
+// too. It names only Rask.Chrome / Rask.Core components.
 internal sealed partial class PortableChromeApp : Screen
 {
     private int _added;

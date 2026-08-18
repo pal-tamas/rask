@@ -1,6 +1,7 @@
+using Rask.Core;
 using Rask.Core.Routing;
 
-namespace Rask.Core.Components;
+namespace Rask.Chrome.Components;
 
 /// <summary>
 ///     One tab in a <see cref="TabStrip" /> — a label + icon that navigates to a route when tapped. On the web

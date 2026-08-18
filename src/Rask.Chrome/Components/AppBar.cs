@@ -1,4 +1,5 @@
-namespace Rask.Core.Components;
+using Rask.Core;
+namespace Rask.Chrome.Components;
 
 /// <summary>
 ///     The bar across the top of a screen — a title, an optional leading action, and optional trailing

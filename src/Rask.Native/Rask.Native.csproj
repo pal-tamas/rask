@@ -85,6 +85,10 @@
     <!-- Rask.Client: the WASM+Native-shared in-process client APIs (IShare). Bundled into lib/ below like
          Rask.Core (PrivateAssets="all" keeps it out of the nuspec dependency list). -->
     <ProjectReference Include="..\Rask.Client\Rask.Client.csproj" PrivateAssets="all"/>
+    <!-- Rask.Chrome: Screen + the portable chrome bars. Bundled into lib/ like Rask.Core so one Screen
+         subclass compiles and renders on every host (PrivateAssets="all" keeps it out of the nuspec
+         dependency list — the DLL is packed directly). -->
+    <ProjectReference Include="..\Rask.Chrome\Rask.Chrome.csproj" PrivateAssets="all"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Logging"/>
     <!-- Rask.Core's package dependencies must be surfaced at THIS package boundary: Core is bundled with
@@ -143,6 +147,8 @@
       <BuildOutputInPackage Include="$(OutputPath)Rask.Core.xml"/>
       <BuildOutputInPackage Include="$(OutputPath)Rask.Client.dll"/>
       <BuildOutputInPackage Include="$(OutputPath)Rask.Client.xml"/>
+      <BuildOutputInPackage Include="$(OutputPath)Rask.Chrome.dll"/>
+      <BuildOutputInPackage Include="$(OutputPath)Rask.Chrome.xml"/>
       <BuildOutputInPackage Include="$(OutputPath)Rask.Html.dll"/>
       <BuildOutputInPackage Include="$(OutputPath)Rask.Html.xml"/>
     </ItemGroup>

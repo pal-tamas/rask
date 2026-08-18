@@ -1,4 +1,4 @@
-using Rask.Core.Components;
+using Rask.Chrome.Components;
 
 namespace Rask.Native.Components;
 

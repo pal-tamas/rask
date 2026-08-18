@@ -35,6 +35,10 @@
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <!-- The HTML/SVG element family, split out of Rask.Core.Components. It sits on the same internal
          seams the tag components always used while they lived here. -->
+    <!-- Screen + the portable chrome bars. They implement Core's IScreenChrome seam explicitly, which is
+         how Core walks a screen's chrome slots while naming no chrome type of its own. -->
+    <InternalsVisibleTo Include="Rask.Chrome"/>
+    <InternalsVisibleTo Include="Rask.Chrome.Tests"/>
     <InternalsVisibleTo Include="Rask.Html"/>
     <InternalsVisibleTo Include="Rask.Html.Tests"/>
     <!-- Rask.Bootstrap composes Core's components by FORWARDING its own carrier props into their

@@ -1,9 +1,12 @@
-namespace Rask.Core;
+using Rask.Chrome.Components;
+using Rask.Core;
+
+namespace Rask.Chrome;
 
 /// <summary>
 ///     A <see cref="Page" /> that also declares the chrome around it — the header bar, toolbar and tab bar.
-///     Fill the slots with the portable <c>Rask.Core</c> bars (<see cref="Components.AppBar" /> /
-///     <see cref="Components.TabStrip" />) and one screen class serves every host: the web hosts render
+///     Fill the slots with the portable bars (<see cref="AppBar" /> /
+///     <see cref="TabStrip" />) and one screen class serves every host: the web hosts render
 ///     landmark markup, and a native host projects the same declaration to real platform widgets (a
 ///     <c>UINavigationBar</c>/<c>UITabBar</c> on iOS, a top/bottom bar on Android).
 ///     <code>
@@ -47,7 +50,7 @@ namespace Rask.Core;
 ///         heads; the portable bars are the subset that does.
 ///     </para>
 /// </summary>
-public abstract class Screen : Page
+public abstract partial class Screen : Page, IScreenChrome
 {
     /// <summary>
     ///     The header bar for this screen, e.g. <c>AppBar.Title("Todos")</c>, or <c>null</c> for none. Typed as
@@ -70,11 +73,12 @@ public abstract class Screen : Page
     /// </summary>
     protected virtual Component? TabBar => null;
 
-    // Protected members aren't reachable from a sibling class in the same assembly, so the serializer reads
-    // the slots through these — the same pattern Head uses (HeadInternal).
-    internal Component? HeaderBarInternal => HeaderBar;
+    // Explicit IScreenChrome implementation: the serializer (in Rask.Core, which names no chrome type) reads
+    // the slots through this interface, while they stay `protected` on the public surface — a screen's chrome
+    // is declared by overriding, not by anyone calling it.
+    Component? IScreenChrome.HeaderBarSlot => HeaderBar;
 
-    internal Component? ToolbarInternal => Toolbar;
+    Component? IScreenChrome.ToolbarSlot => Toolbar;
 
-    internal Component? TabBarInternal => TabBar;
+    Component? IScreenChrome.TabBarSlot => TabBar;
 }

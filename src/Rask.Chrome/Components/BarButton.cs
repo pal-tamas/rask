@@ -1,4 +1,5 @@
-namespace Rask.Core.Components;
+using Rask.Core;
+namespace Rask.Chrome.Components;
 
 /// <summary>
 ///     A tappable button inside a <see cref="AppBar" />. On the web hosts it renders a real

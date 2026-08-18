@@ -1,8 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 
-namespace Rask.Core.Components;
+namespace Rask.Chrome.Components;
 
 /// <summary>
 ///     Primary navigation across the bottom of a screen. One declaration serves every host: the web hosts

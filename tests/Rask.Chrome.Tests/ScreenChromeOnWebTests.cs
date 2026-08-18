@@ -1,6 +1,7 @@
+using Rask.Core;
 using Rask.Core.Routing;
 
-namespace Rask.Core.Tests.Components;
+namespace Rask.Chrome.Tests;
 
 // The point of the portable chrome vocabulary: ONE Screen subclass, naming no Rask.Native type, that renders
 // real markup on the web heads and is projected to platform bars inside a native shell (asserted from the

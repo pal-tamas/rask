@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Chrome.Components;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
-using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;

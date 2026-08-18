@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Chrome;
 using Rask.Core;
 using Rask.Core.Live;
 using Rask.Native.Components;
