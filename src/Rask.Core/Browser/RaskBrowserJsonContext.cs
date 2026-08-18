@@ -55,4 +55,5 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(RtcMessageWire[]))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSerializable(typeof(Dictionary<string, string[]>))]
+[JsonSerializable(typeof(AnimationOptions))]
 internal sealed partial class RaskBrowserJsonContext : JsonSerializerContext;

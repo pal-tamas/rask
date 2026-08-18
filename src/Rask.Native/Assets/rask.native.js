@@ -1836,6 +1836,69 @@ window.__raskVt = window.__raskVt || {
     }
 };
 
+// Web Animations (#695). An Animation object cannot cross interop, so this holds them in a map and
+// hands C# an integer handle — the same shape __raskMedia uses for a MediaStream, and for the same
+// reason.
+//
+// Unlike the view-transition helper above, prefers-reduced-motion is NOT applied here. These are the
+// app's own animations, so the app owns the decision, and it already has IMediaQuery to read the
+// preference. Silently refusing to run an animation an app explicitly asked for would be the framework
+// overriding a choice it cannot see the intent behind — a loading spinner and a decorative parallax are
+// not the same call.
+window.__raskAnim = window.__raskAnim || (() => {
+    const anims = new Map();
+    let next = 1;
+
+    const get = (id) => anims.get(id) || null;
+
+    return {
+        supported: () => typeof Element !== "undefined" && typeof Element.prototype.animate === "function",
+
+        // keyframes arrives as the OBJECT form — {opacity: ["0","1"], transform: [...]} — which is what
+        // Element.animate takes natively and what serializes as a Dictionary<string, string[]> without
+        // any new trim-unsafe JSON shape.
+        start: (el, keyframes, options) => {
+            if (!el || typeof el.animate !== "function") return 0;
+            const opts = options || {};
+            const timing = {
+                duration: typeof opts.durationMs === "number" ? opts.durationMs : 400,
+                delay: typeof opts.delayMs === "number" ? opts.delayMs : 0,
+                // -1 is the wire spelling of Infinity: JSON has no literal for it, and a C# double
+                // Infinity would not round-trip.
+                iterations: opts.iterations === -1 ? Infinity : (opts.iterations || 1)
+            };
+            if (opts.easing) timing.easing = opts.easing;
+            if (opts.direction) timing.direction = opts.direction;
+            if (opts.fill) timing.fill = opts.fill;
+
+            const anim = el.animate(keyframes, timing);
+            const id = next++;
+            anims.set(id, anim);
+            // Drop the handle once the animation can no longer be acted on, so a page that animates on
+            // every render does not grow the map forever. `finished` rejects on cancel, which is not an
+            // error here — either way the animation is done with.
+            const forget = () => anims.delete(id);
+            anim.finished.then(forget, forget);
+            return id;
+        },
+
+        // Each of these is a no-op on an unknown handle rather than a throw: the animation may simply
+        // have finished and been forgotten, which is not a caller error.
+        cancel: (id) => { const a = get(id); if (a) a.cancel(); },
+        finish: (id) => { const a = get(id); if (a) a.finish(); },
+        pause: (id) => { const a = get(id); if (a) a.pause(); },
+        play: (id) => { const a = get(id); if (a) a.play(); },
+
+        // true when it ran to completion, false when it was cancelled or is already gone. Never throws,
+        // so `await` at a call site does not need a try/catch around an ordinary cancel.
+        finished: (id) => {
+            const a = get(id);
+            if (!a) return Promise.resolve(false);
+            return a.finished.then(() => true, () => false);
+        }
+    };
+})();
+
 
 // ----- Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) -----
 // Transport-agnostic PWA framework helpers, spliced into BOTH the Server client (rask.js) and the WASM
