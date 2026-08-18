@@ -159,4 +159,34 @@ public partial class ButtonTests : global::Rask.Core.RaskMarkup
             "<button data-rask-on-click=\"h0\">x</button>",
             view.RenderAsLiveRoot());
     }
+    [Fact]
+    public void Render_FormOverrides_EmitsThemAfterTheButtonAttrs() =>
+        Assert.Equal(
+            "<button type=\"submit\" name=\"n\" value=\"v\" autofocus form=\"f\" formaction=\"/save\" "
+            + "formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate formtarget=\"_blank\">"
+            + "Save</button>",
+            Button
+                .Type("submit")
+                .Name("n")
+                .Value("v")
+                .Autofocus(true)
+                .Form("f")
+                .FormAction("/save")
+                .FormEnctype("multipart/form-data")
+                .FormMethod("post")
+                .FormNovalidate(true)
+                .FormTarget("_blank")["Save"].ToHtml());
+
+    // formaction is a navigation target, so it goes through the same sanitiser as href/src.
+    [Fact]
+    public void Render_JavascriptFormAction_IsSanitised() =>
+        Assert.DoesNotContain("javascript:", Button.FormAction("javascript:alert(1)").ToHtml(),
+            StringComparison.OrdinalIgnoreCase);
+
+    [Fact]
+    public void Render_PopoverTarget_EmitsBothHalves() =>
+        Assert.Equal(
+            "<button popovertarget=\"menu\" popovertargetaction=\"toggle\">Open</button>",
+            Button.PopoverTarget("menu").PopoverTargetAction("toggle")["Open"].ToHtml());
+
 }

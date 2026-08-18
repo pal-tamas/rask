@@ -91,4 +91,37 @@ public partial class DivTests : RaskMarkup
     // An unset Title must emit nothing — every element in the framework gained this property, and any
     // stray attribute would change the rendered output (and the diff) of every existing page.
     public void Render_TitleUnset_EmitsNothing() => Assert.Equal("<div></div>", Div.ToHtml());
+    // The escape hatch (#693). Emits last in the universal block, after aria-*, before tag-specific.
+    [Fact]
+    public void Render_Attributes_EmitAfterTheAriaGroup() =>
+        Assert.Equal(
+            "<div id=\"i\" role=\"note\" aria-label=\"a\" lang=\"fr\" dir=\"rtl\"></div>",
+            Div
+                .Id("i")
+                .Role("note")
+                .Aria(new Dictionary<string, string?> { ["label"] = "a" })
+                .Attributes(new Dictionary<string, string?> { ["lang"] = "fr", ["dir"] = "rtl" })
+                .ToHtml());
+
+    // WCAG 3.1.2 Language of Parts: a phrase in another language marked on the element that changes
+    // language. Before the escape hatch this was unwritable anywhere but <html>.
+    [Fact]
+    public void Render_LangOnAPhrase_IsExpressible() =>
+        Assert.Equal(
+            // non-ASCII text is encoded by HtmlSerializer's safe-ASCII rule, hence the entities
+            "<div lang=\"fr\">d&#xE9;j&#xE0; vu</div>",
+            Div.Attributes(new Dictionary<string, string?> { ["lang"] = "fr" })["déjà vu"].ToHtml());
+
+    [Fact]
+    public void Render_NullValuedAttribute_EmitsItBare() =>
+        Assert.Equal(
+            "<div hidden></div>",
+            Div.Attributes(new Dictionary<string, string?> { ["hidden"] = null }).ToHtml());
+
+    [Fact]
+    public void Render_AttributeValue_IsHtmlEncoded() =>
+        Assert.Equal(
+            "<div data-x=\"&quot;&amp;\"></div>",
+            Div.Attributes(new Dictionary<string, string?> { ["data-x"] = "\"&" }).ToHtml());
+
 }

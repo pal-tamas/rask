@@ -200,10 +200,15 @@ public abstract partial class Element : Component
     // value) like Draggable, because `hidden` is common and allocating a LiveState for it would be a
     // regression. The others hoist into the lazy LiveState like Role/TabIndex/Aria: opt-in and rare, so an
     // element naming none keeps `_live` null and pays nothing.
-    private const byte FlagHiddenPresent = 1 << 3;
-    private const byte FlagHiddenValue = 1 << 4;
-    private const byte FlagInertPresent = 1 << 5;
-    private const byte FlagInertValue = 1 << 6;
+    // Bits 4-7. The byte is SHARED with Component's own flags — 0 is FlagReadsAmbientState and 3 is
+    // FlagCallbackAssigned — so these must start above the last one Component claims. Landing on bit 3
+    // made setting `Hidden` mark the element as having a callback, which no test in either change could
+    // see alone: the two arrived in separate PRs and only collided once composed. This fills the byte;
+    // the next flag needs it widened.
+    private const byte FlagHiddenPresent = 1 << 4;
+    private const byte FlagHiddenValue = 1 << 5;
+    private const byte FlagInertPresent = 1 << 6;
+    private const byte FlagInertValue = 1 << 7;
 
     /// <summary>
     ///     The global <c>lang</c> attribute — the language of this element's content, as a BCP 47 tag
@@ -325,24 +330,26 @@ public abstract partial class Element : Component
     }
 
     /// <summary>
-    ///     Arbitrary attributes, verbatim — the escape hatch for anything this surface does not name.
+    ///     The escape hatch for every global HTML attribute this class does not name — <c>lang</c>,
+    ///     <c>dir</c>, <c>hidden</c>, <c>inert</c>, <c>popover</c>, <c>contenteditable</c>,
+    ///     <c>inputmode</c>, microdata, and anything vendor or experimental. Each entry emits
+    ///     <c>{key}="{value}"</c> with the value HTML-encoded: <c>.Attributes(new() { ["lang"] = "fr" })</c>.
     ///     <para>
-    ///         Each entry renders <c>{key}="{value}"</c> with the key written as-is and the value
-    ///         HTML-encoded, exactly like <c>Data</c> and <c>Aria</c> but with no prefix. This is how you
-    ///         reach microdata (<c>itemscope</c>/<c>itemprop</c>), <c>nonce</c>, <c>part</c>/<c>exportparts</c>,
-    ///         <c>accesskey</c>, <c>slot</c>, <c>inputmode</c>, and whatever HTML adds next.
+    ///         <c>lang</c> and <c>dir</c> are the ones that matter most: WCAG 3.1.2 (Language of Parts)
+    ///         needs a phrase in another language marked on the element that changes language, and before
+    ///         this there was no way to write it anywhere but <c>&lt;html&gt;</c>.
     ///     </para>
     ///     <para>
-    ///         Nothing is validated or de-duplicated: naming an attribute a typed property already emits
-    ///         (<c>class</c>, say) renders it twice, and the browser takes the first. Prefer the typed
-    ///         property whenever one exists — it is the documented, checkable route.
+    ///         A <see langword="null" /> value renders the attribute bare (<c>&lt;div hidden&gt;</c>), the
+    ///         same rule <see cref="Data" /> follows. Declared last, and stored on the lazy LiveState, so an
+    ///         element that sets none pays a single null reference and no factory parameter moves.
     ///     </para>
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes">MDN</see>
     /// </summary>
     public IReadOnlyDictionary<string, string?>? Attributes
     {
-        get => AttributesInternal;
-        set => AttributesInternal = value;
+        get => ExtraAttrsInternal;
+        set => ExtraAttrsInternal = value;
     }
 
     // Subclasses transform the `class` attribute value without re-implementing the universal
@@ -480,13 +487,12 @@ public abstract partial class Element : Component
             AppendPrefixedAttrs(sb, "aria-", Aria, skipKey: null);
         }
 
-        // The escape hatch, last in the universal block and so immediately before any subclass
-        // tag-specifics. Deliberately after every ordered group: these are arbitrary names, and putting
-        // them anywhere earlier would make the documented order depend on what a caller happened to pass.
-        // An empty prefix reuses the same allocation-conscious walk Data and Aria use.
-        if (Attributes is not null)
+        // Last in the universal block, so the documented order still reads "globals first, grouped" and a
+        // subclass's tag-specific attrs still follow everything here. One null check on an element that
+        // sets none, and an unprefixed pass through the same emitter data-*/aria-* use.
+        if (ExtraAttrsInternal is { } extra)
         {
-            AppendPrefixedAttrs(sb, string.Empty, Attributes, skipKey: null);
+            AppendPrefixedAttrs(sb, string.Empty, extra, skipKey: null);
         }
     }
 

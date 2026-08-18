@@ -29,50 +29,40 @@ public sealed class Button : Element
     /// <summary>The value submitted alongside <c>Name</c>.</summary>
     public string? Value { get; set; }
 
+    /// <summary>Focus this button when the page loads. At most one control per page may ask.</summary>
+    public bool? Autofocus { get; set; }
+
     /// <summary>
-    ///     The <c>id</c> of the form this button belongs to, when it is not nested inside one.
-    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#form">MDN</see>
+    ///     The <c>id</c> of the form this button submits, when the button is not inside it.
     /// </summary>
     public string? Form { get; set; }
 
-    // The form-override set. `Input` has had all six since it was written, so until now a submit button
-    // could override the form's action spelled as <input type="submit"> but not as <button> — an
-    // inconsistency rather than a decision (#694). They apply only to a submit button.
-
-    /// <summary>Overrides the form's <c>action</c> when this button submits it.</summary>
+    /// <summary>
+    ///     Overrides the form's <c>action</c> for this button only — how one form offers "save" and
+    ///     "save and publish" as two submit buttons.
+    /// </summary>
     public string? FormAction { get; set; }
 
-    /// <summary>Overrides the form's <c>enctype</c> when this button submits it.</summary>
+    /// <summary>Overrides the form's <c>enctype</c> for this button only.</summary>
     public string? FormEnctype { get; set; }
 
-    /// <summary>Overrides the form's <c>method</c> when this button submits it.</summary>
+    /// <summary>Overrides the form's <c>method</c> for this button only.</summary>
     public string? FormMethod { get; set; }
 
-    /// <summary>Skips validation when this button submits the form — a "save draft" button.</summary>
+    /// <summary>Submits without running the form's validation — a "save draft" button.</summary>
     public bool? FormNovalidate { get; set; }
 
-    /// <summary>Overrides the form's <c>target</c> when this button submits it.</summary>
+    /// <summary>Overrides the form's <c>target</c> for this button only.</summary>
     public string? FormTarget { get; set; }
 
     /// <summary>
-    ///     The <c>id</c> of a popover this button controls — the other half of <c>Element.Popover</c>.
-    ///     The browser handles opening, light-dismiss, the top layer and focus, with no JavaScript.
-    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#popovertarget">MDN</see>
+    ///     The <c>id</c> of the popover this button controls. The other half of the <c>Popover</c> global
+    ///     attribute: the popover declares itself, and this is what opens it without script.
     /// </summary>
     public string? PopoverTarget { get; set; }
 
-    /// <summary>
-    ///     What <c>PopoverTarget</c> does: <c>"toggle"</c> (the default), <c>"show"</c> or <c>"hide"</c>.
-    /// </summary>
+    /// <summary><c>toggle</c> (the default), <c>show</c> or <c>hide</c> for <see cref="PopoverTarget" />.</summary>
     public string? PopoverTargetAction { get; set; }
-
-    /// <summary>
-    ///     Focuses this button on page load. At most one control per page may set it, and moving focus on
-    ///     load disorients screen-reader and magnifier users — so reserve it for a page whose entire
-    ///     purpose is the control (a search page), never a general form.
-    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/autofocus">MDN</see>
-    /// </summary>
-    public bool? Autofocus { get; set; }
 
     // OnClick / OnClickAsync are inherited from Element (the GlobalEventHandlers surface).
 
@@ -99,11 +89,18 @@ public sealed class Button : Element
             AppendAttr(sb, "value", Value);
         }
 
+        if (Autofocus is true)
+        {
+            AppendAttr(sb, "autofocus", null);
+        }
+
         if (Form is not null)
         {
             AppendAttr(sb, "form", Form);
         }
 
+        // Sanitised like every other URL-valued attribute: formaction is a navigation target, so a
+        // `javascript:` value here is script execution on submit.
         if (FormAction is not null)
         {
             AppendUrlAttr(sb, "formaction", FormAction);
@@ -137,11 +134,6 @@ public sealed class Button : Element
         if (PopoverTargetAction is not null)
         {
             AppendAttr(sb, "popovertargetaction", PopoverTargetAction);
-        }
-
-        if (Autofocus is true)
-        {
-            AppendAttr(sb, "autofocus", null);
         }
     }
 }

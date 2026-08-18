@@ -121,7 +121,7 @@ attributes. See the [accessibility guide](accessibility.md) and the RASK023 img-
 
 `Lang` and `Dir` are the two that matter most, and they are why this section exists: before them, `lang`
 was reachable on `<html>` only — so the page's language worked and a phrase inside it did not. Marking a
-run of text in another language is [WCAG 3.1.2 *Language of Parts*](https://www.w3.org/WAI/WCAG21/Understanding/language-of-parts),
+run of text in another language is [WCAG 3.1.2 *Language of Parts*][wcag312],
 and without it a screen reader reads a French quotation with English phonetics:
 
 ```csharp
@@ -149,26 +149,26 @@ Span.Translate(false)                // translate="no" — a product name, a use
 
 ### `Attributes` — the escape hatch
 
-Anything this surface does not name. Each entry renders `{key}="{value}"` with the key verbatim and the
-value HTML-encoded, exactly like `Data` and `Aria` but with no prefix:
+Everything the class does not name: microdata (`itemscope`/`itemprop`), `nonce`, `part`/`exportparts`,
+`accesskey`, `slot`, `inputmode`, and anything vendor or experimental. Entries emit verbatim as
+`{key}="{value}"` with the value HTML-encoded, and a null value renders the attribute bare, exactly like
+`Data`:
 
 ```csharp
-Div.Attributes(new Dictionary<string, string?>
-{
-    ["itemscope"] = "",
-    ["itemtype"] = "https://schema.org/Person",
-})
+Div.Attributes(new() { ["itemscope"] = null, ["itemtype"] = "https://schema.org/Person" })
+Div.Attributes(new() { ["inputmode"] = "decimal" })
 ```
 
-That covers microdata, `nonce`, `part`/`exportparts`, `accesskey`, `slot`, `inputmode`, and whatever
-HTML adds next. Nothing is validated or de-duplicated: naming an attribute a typed property already
-emits renders it twice and the browser takes the first, so **prefer the typed property whenever one
-exists** — it is the documented, checkable route. `Attributes` renders last of the universal block, after
-every ordered group, precisely because its names are arbitrary.
+**Prefer a typed property wherever one exists** — it is checked, documented and discoverable, and for
+`Hidden`/`Inert` it is also free, where a dictionary is an allocation. `lang`, `dir`, `hidden`, `inert`,
+`popover`, `contenteditable`, `spellcheck` and `translate` all have typed properties now (above), so
+reach for `Attributes` for the rest. Nothing here is validated or de-duplicated: naming an attribute a
+typed property already emits renders it twice and the browser takes the first.
 
-Adding these cost the common element nothing. `Hidden` and `Inert` are two bits each of the flags byte
-every component already carries; the rest hoist into the lazy live state the accessibility props use, so
-an element naming none allocates nothing for the feature.
+`Attributes` renders last within the universal block, so a typed property always wins the ordering
+argument.
+
+<!-- demo:props-attributes -->
 
 **Attribute order** is fixed: `id`, `class`, `style`, `title`, the plain globals (`lang`, `dir`,
 `hidden`, `inert`, `popover`, `contenteditable`, `spellcheck`, `translate`), `data-*`, `role`,
@@ -387,3 +387,4 @@ See also: [Getting started](getting-started.md) for building your first componen
 [ul]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ul
 [video]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video
 [wbr]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/wbr
+[wcag312]: https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts

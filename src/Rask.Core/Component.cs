@@ -46,6 +46,7 @@ public abstract partial class Component : RaskMarkup
     //   bit 0 — reads-ambient-state (below)
     //   bit 1 — Element: Draggable present
     //   bit 2 — Element: Draggable value
+    //   bit 3 — a chain assigned a callback prop (below)
     private byte _flags;
 
     // Set the first time this component reads untracked ambient state during Render: a context value
@@ -58,6 +59,30 @@ public abstract partial class Component : RaskMarkup
     private const byte FlagReadsAmbientState = 1 << 0;
 
     private bool _readsAmbientState => (_flags & FlagReadsAmbientState) != 0;
+
+    // Set by a chain setter assigning a CALLBACK prop; read-and-cleared by the eager reset that acts
+    // on it.
+    //
+    // The eager reset runs at the entry, BEFORE this render's setters, and puts every non-folding prop
+    // back to its default so a callback the chain named last render cannot survive into one where it
+    // does not. On Element that is ~88 delegate fields written unconditionally, on every entry-built
+    // element, on every render — and the overwhelming majority of elements carry no callback at all,
+    // so nearly all of those writes were assigning null over null. This bit means "there is something
+    // to clear", which lets the common element skip the block entirely.
+    //
+    // Only callbacks set it. `Key` is non-folding too, but it is a single write, and gating it here
+    // would mean a Key-only chain still paid for the whole delegate block.
+    private const byte FlagCallbackAssigned = 1 << 3;
+
+    internal void MarkCallbackAssignedInternal() => SetFlag(FlagCallbackAssigned, true);
+
+    // Peek, not take. One reset pass can run several of these routines — a component's own eager reset
+    // calls the shared Element one first — and they must all reach the same answer, so the bit is
+    // cleared once by the entry that ran them (BuilderRuntime.Entry) rather than by whichever routine
+    // happened to look first.
+    internal bool HasCallbackAssignedInternal() => (_flags & FlagCallbackAssigned) != 0;
+
+    internal void ClearCallbackAssignedInternal() => SetFlag(FlagCallbackAssigned, false);
 
     private protected bool GetFlag(byte mask) => (_flags & mask) != 0;
 
@@ -298,8 +323,23 @@ public abstract partial class Component : RaskMarkup
         }
     }
 
-    // Backing store for the remaining global attributes Element exposes (#693), hoisted for the same
-    // reason as Role/TabIndex/Aria: each is opt-in, so an element that names none keeps `_live` null.
+    // Backing store for Element.Attributes, on the same terms as AriaInternal: reading never allocates,
+    // and writing only forces the LiveState into existence once a value is actually assigned.
+    internal IReadOnlyDictionary<string, string?>? ExtraAttrsInternal
+    {
+        get => _live?.ExtraAttrs;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.ExtraAttrs = value;
+            }
+        }
+    }
+
+    // Backing store for the TYPED global attributes Element exposes (#693), hoisted for the same reason
+    // as Role/TabIndex/Aria: each is opt-in, so an element that names none keeps `_live` null. Only a
+    // LiveState-bearing node carries these at all — a plain tag never allocates one.
     internal string? LangInternal
     {
         get => _live?.Lang;
@@ -372,17 +412,6 @@ public abstract partial class Component : RaskMarkup
         }
     }
 
-    internal IReadOnlyDictionary<string, string?>? AttributesInternal
-    {
-        get => _live?.Attributes;
-        set
-        {
-            if (value is not null || _live is not null)
-            {
-                Live.Attributes = value;
-            }
-        }
-    }
 
     /// <summary>
     ///     A <see cref="System.Threading.CancellationToken" /> for this component's cancellable async
@@ -2623,18 +2652,18 @@ public abstract partial class Component : RaskMarkup
         public int? TabIndex;
         public IReadOnlyDictionary<string, string?>? Aria;
 
-        // The global attributes that are neither plain-and-always-there (id/class/style/title) nor
-        // cheap enough for a flag bit. Same reasoning as Role/Aria above: every one is opt-in, so an
-        // element that names none keeps `_live` null. Hidden/Inert are NOT here — they are two bits of
-        // the flags byte, because `hidden` is common enough that allocating for it would be a
-        // regression (see Element.FlagHiddenPresent).
+        // Element.Attributes' bag — the escape hatch for anything the surface does not name.
+        public IReadOnlyDictionary<string, string?>? ExtraAttrs;
+
+        // …and typed storage for the globals that ARE named. Only LiveState-bearing nodes carry these,
+        // and a plain tag never allocates one. Hidden/Inert are deliberately NOT here: they are two bits
+        // of the flags byte, so the two commonest cost nothing at all.
         public string? Lang;
         public string? Dir;
         public string? Popover;
         public string? ContentEditable;
         public bool? Spellcheck;
         public bool? Translate;
-        public IReadOnlyDictionary<string, string?>? Attributes;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Action)>? Handlers;

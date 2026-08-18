@@ -31,22 +31,21 @@ public sealed partial class Video : HtmlMediaElement
     public bool? PlaysInline { get; set; }
 
     /// <summary>
-    ///     Hides parts of the browser's own control set — space-separated
-    ///     <c>nodownload</c> / <c>nofullscreen</c> / <c>noremoteplayback</c>. A hint, not a guarantee, and
-    ///     it removes affordances rather than adding them, so do not rely on it to protect anything.
-    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#controlslist">MDN</see>
+    ///     Hides individual native controls: any of <c>nodownload</c>, <c>nofullscreen</c>,
+    ///     <c>noremoteplayback</c>, space-separated. A hint, not a security boundary — the media is still
+    ///     fetchable by anyone who looks.
     /// </summary>
     public string? ControlsList { get; set; }
 
-    /// <summary>Opts this video out of picture-in-picture.</summary>
+    /// <summary>Suppresses the picture-in-picture affordance.</summary>
     public bool? DisablePictureInPicture { get; set; }
 
-    /// <summary>Opts this video out of remote playback (Chromecast, AirPlay).</summary>
+    /// <summary>Suppresses casting to a remote device (Chromecast, AirPlay).</summary>
     public bool? DisableRemotePlayback { get; set; }
 
     /// <summary>
-    ///     <c>"lazy"</c> defers loading until the video is near the viewport — the right default for a
-    ///     video below the fold. <c>"eager"</c> loads immediately.
+    ///     <c>lazy</c> defers loading until the video is near the viewport — worth setting on anything
+    ///     below the fold, where the poster and metadata are otherwise fetched immediately.
     /// </summary>
     public string? Loading { get; set; }
 
