@@ -10,7 +10,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_HeadlessNoOwnDom_OnlyEmitsUserMarkup()
     {
-        var view = new StubComponent(() => VirtualizeModel(
+        var view = new StubComponent(() => Virtualize.Items(
             ctx => Div["x"],
             new List<int> { 1, 2, 3 },
             ItemSize: 20,
@@ -24,7 +24,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     {
         VirtualizationContext<int>? captured = null;
         var items = Enumerable.Range(0, 100).ToList();
-        var view = new StubComponent(() => VirtualizeModel(
+        var view = new StubComponent(() => Virtualize.Items(
             ctx =>
             {
                 captured = ctx;
@@ -55,7 +55,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     {
         VirtualizationContext<int>? captured = null;
         var items = Enumerable.Range(0, 100).ToList();
-        var view = new StubComponent(() => VirtualizeModel(
+        var view = new StubComponent(() => Virtualize.Items(
             ctx =>
             {
                 captured = ctx;
@@ -95,7 +95,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         // flow where StateHasChanged would trigger the second render through the WS.
         var requests = new List<ItemsProviderRequest>();
         VirtualizationContext<string>? captured = null;
-        var view = new StubComponent(() => VirtualizeModel<string>(
+        var view = new StubComponent(() => Virtualize.Items<string>(
             ctx =>
             {
                 captured = ctx;
@@ -134,7 +134,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_NoItemsAndNoProvider_Throws()
     {
-        var view = new StubComponent(() => VirtualizeModel<int>(
+        var view = new StubComponent(() => Virtualize.Items<int>(
             ctx => Div,
             ItemSize: 20));
 
@@ -144,7 +144,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_BothItemsAndProvider_Throws()
     {
-        var view = new StubComponent(() => VirtualizeModel(
+        var view = new StubComponent(() => Virtualize.Items(
             ctx => Div,
             new List<int> { 1 },
             req => ValueTask.FromResult(new ItemsProviderResult<int>(Array.Empty<int>(), 0)),
@@ -156,7 +156,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_ItemSizeZero_Throws()
     {
-        var view = new StubComponent(() => VirtualizeModel(
+        var view = new StubComponent(() => Virtualize.Items(
             ctx => Div,
             new List<int> { 1 },
             ItemSize: 0));
@@ -175,7 +175,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     {
         VirtualizationContext<int>? captured = null;
         var items = new List<int> { 1, 2, 3 };
-        var view = new StubComponent(() => VirtualizeModel(
+        var view = new StubComponent(() => Virtualize.Items(
             ctx =>
             {
                 captured = ctx;
@@ -200,7 +200,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         // path so reordered / scrolled rows keep their DOM identity (focus, scroll
         // state) across re-renders.
         var items = Enumerable.Range(0, 50).ToList();
-        var view = new StubComponent(() => VirtualizeModel(
+        var view = new StubComponent(() => Virtualize.Items(
             ctx => Div[
                 ctx.VisibleItems.Select(item =>
                     Div.Data(new Dictionary<string, string?> { ["rask-key"] = item.Index.ToString() })[
@@ -239,7 +239,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
 
         var show = true;
         var view = new StubComponent(() => show
-            ? VirtualizeModel<string>(
+            ? Virtualize.Items<string>(
                 ctx => Div,
                 ItemsProvider: provider,
                 ItemSize: 20,
@@ -285,7 +285,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
 
         var show = true;
         var view = new StubComponent(() => show
-            ? VirtualizeModel<string>(
+            ? Virtualize.Items<string>(
                 ctx => Div,
                 ItemsProvider: provider,
                 ItemSize: 20,
@@ -321,7 +321,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         // FetchAsync wraps the provider call in try/catch(Exception): a throwing provider must be
         // logged and dropped, never surfaced out of render. The window stays empty (count unknown).
         VirtualizationContext<int>? captured = null;
-        var view = new StubComponent(() => VirtualizeModel<int>(
+        var view = new StubComponent(() => Virtualize.Items<int>(
             ctx =>
             {
                 captured = ctx;
@@ -352,7 +352,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         }
 
         VirtualizationContext<int>? captured = null;
-        var view = new StubComponent(() => VirtualizeModel(
+        var view = new StubComponent(() => Virtualize.Items(
             ctx =>
             {
                 captured = ctx;
