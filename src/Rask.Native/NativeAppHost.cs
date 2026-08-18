@@ -10,9 +10,12 @@ using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Diagnostics;
+using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
+using Rask.Native.Authentication;
+using Rask.Native.Files;
 using Rask.Native.Surface;
 
 namespace Rask.Native;
@@ -68,6 +71,16 @@ public sealed class NativeAppHost
         // the WebView's JS engine. This is the framework-picks-the-best-impl path — see UsePlatform below.
 
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
+        // The rest of Rask.Core's per-host contract (RaskHostContracts.HostServices). These three were the
+        // gap this host shipped with: a component shared with the web heads lost its file uploads silently,
+        // threw on Navigator.Download, and failed DI outright on IAuthSignIn — all only on native, all only
+        // at runtime. TryAdd throughout, so an app or platform module that registers its own still wins.
+        Services.TryAddSingleton<IBrowserFileBackend, NativeFileBackend>();
+        Services.TryAddSingleton<NativeDownloadSink>();
+        Services.TryAddSingleton<IDownloadSink>(sp => sp.GetRequiredService<NativeDownloadSink>());
+        // No platform head registered one, so downloads land on disk and say so rather than vanishing.
+        Services.TryAddSingleton<INativeFileExport, DiagnosticFileExport>();
+        Services.TryAddSingleton<IAuthSignIn, NativeAuthSignIn>();
         Services.AddAuthorizationCore();
 
         // IJSRuntime backed by the native WebView bridge. Singleton — one runtime per app instance;
@@ -284,9 +297,52 @@ public sealed class NativeAppHost
                 // A native back button — pop WebView history (its popstate re-enters the router as a navigate).
                 await app.Session.GoBackAsync().ConfigureAwait(false);
                 return;
+            case "download":
+                // Navigator.Download staged bytes and the client handed the token back. Pull them, write the
+                // file, and let the platform present it. See HandleDownloadAsync.
+                await HandleDownloadAsync(app, root).ConfigureAwait(false);
+                return;
             default:
                 await app.Session.DispatchAsync(json).ConfigureAwait(false);
                 return;
+        }
+    }
+
+    // { type:"download", token:"<hex>" } — the client echoing back the token Navigator.Download put in the
+    // render payload. The bytes never left .NET; this drains them, stages a file under the app's cache
+    // directory, and hands it to INativeFileExport (the OS share sheet on a real platform head).
+    //
+    // Every failure here is reported rather than thrown: this runs on the WebView's message pump, where an
+    // escaping exception takes down message routing for the whole app — a failed download must not cost the
+    // user their session.
+    private static async Task HandleDownloadAsync(NativeApp app, JsonElement root)
+    {
+        if (!root.TryGetProperty("token", out var tokenEl) || tokenEl.ValueKind != JsonValueKind.String
+            || tokenEl.GetString() is not { Length: > 0 } token)
+        {
+            RaskDiagnostics.Report(RaskLogLevel.Warning, "Rask.Native",
+                "[Rask.Native] discarded a download message with no token");
+            return;
+        }
+
+        // A stale or replayed token pulls nothing — the client is the one place a token can arrive twice.
+        if (app.Services.GetService<IDownloadSink>() is not NativeDownloadSink sink
+            || sink.Pull(token) is not { } staged)
+        {
+            return;
+        }
+
+        try
+        {
+            var file = await NativeDownloadStaging
+                .StageAsync(staged.FileName, staged.ContentType, staged.Bytes).ConfigureAwait(false);
+            var export = app.Services.GetService<INativeFileExport>() ?? new DiagnosticFileExport();
+            await export.ExportAsync(file).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Native",
+                $"[Rask.Native] failed to hand the download '{staged.FileName}' to the platform", ex);
         }
     }
 

@@ -23,8 +23,9 @@ one route served as HTML, the next fully native.
 > [Native device backends](native-devices.md#native-device-backends)) — with biometrics/push still to come. The native client
 > now shares the
 > transport-neutral DOM behaviour — rAF input/scroll coalescing, keyboard + drag events, and
-> scoped-CSS FOUC gating — with the Server and WASM clients (see [Roadmap](#roadmap)); only the
-> scoped-JS invoke gate and file uploads remain host-specific.
+> scoped-CSS FOUC gating — with the Server and WASM clients (see [Roadmap](#roadmap)), and
+> [file input, downloads and sign-out](#files-downloads-and-sign-out) work here as they do on the web
+> heads; only the scoped-JS invoke gate remains host-specific.
 
 ## On this page
 
@@ -32,7 +33,8 @@ one route served as HTML, the next fully native.
 - [Device capabilities & chrome](native-devices.md) — safe-area insets, device backends, native header/footer.
 
 Also in this doc: [How it fits](#how-it-fits), [Pure-native screens](#pure-native-screens-no-webview),
-[Get started](#get-started), [Honest framing](#honest-framing), [Roadmap](#roadmap).
+[Get started](#get-started), [Files, downloads and sign-out](#files-downloads-and-sign-out),
+[Honest framing](#honest-framing), [Roadmap](#roadmap).
 
 ---
 
@@ -241,6 +243,74 @@ Two ordering rules the generated heads already follow — keep them if you edit 
   inject `IRaskSqliteConnectionFactory`. The showcase's **Todos** tab does exactly this
   (`SqliteTodoStore`), so it survives an app restart on device while staying in-memory on Server/WASM.
 
+## Files, downloads and sign-out
+
+`Rask.Core` is the shared component surface, so anything a component can inject or call from it has to work
+on Server, WASM **and** native — otherwise a component written once breaks on one head only, at runtime,
+with nothing at compile time to warn you. `RaskHostContracts` names that set (47 contracts), and each host's
+test project asserts its own bootstrap resolves every one of them.
+
+Three of them used to be missing here, and the failures were quiet: a file input handed the handler an
+**empty list**, `Navigator.Download` threw, and injecting `IAuthSignIn` failed DI.
+
+### File input
+
+Nothing to wire. A file input works exactly as it does on the other hosts:
+
+```csharp
+Input.Value<string>(null)
+    .Type(InputType.File)
+    .OnFiles(files => { foreach (var f in files) Save(f.OpenReadStream()); })
+```
+
+The picked `File` stays in the WebView, registered under a short ref by the shared
+`Rask.Core/Resources/rask-files.js` module (spliced into both in-process clients). `NativeFileBackend`
+reads it back a chunk at a time over `IJSRuntime`, so `OpenReadStream` is a real stream — a large upload is
+never buffered through a render payload. Files picked in a form's `submit` arrive the same way.
+
+### Downloads → the OS share sheet
+
+`Navigator.Download(name, bytes, contentType)` works from any handler. What differs is the *delivery*: a
+browser downloads, and a device shares. `<a download>` does nothing useful in a `WKWebView`, and a file
+written into the app sandbox is invisible to the user on iOS unless the app opts into file sharing — so the
+host stages the file under the app cache directory and hands it to **`INativeFileExport`**:
+
+```csharp
+public interface INativeFileExport
+{
+    ValueTask ExportAsync(NativeFileExport file);   // FileName, ContentType, Path
+}
+```
+
+A platform head registers one (`UIActivityViewController` with the file URL on iOS,
+`Intent.ACTION_SEND` with a `FileProvider` URI on Android) through `INativePlatform.Register`, the same
+native-first seam the [device backends](native-devices.md#native-device-backends) use. Register your own on
+`host.Services` to send downloads somewhere else. With none registered the file is still staged and its
+location reported through `RaskDiagnostics`, so a shared component never crashes on a head that has no
+share sheet.
+
+The bytes never ride the frame: the payload carries a token, the client hands it straight back, and the host
+pulls the bytes — the same token-pull contract the WASM host uses. Download names are reduced to a single
+safe path segment before they touch the filesystem; on this host the name becomes a real path, and it can be
+attacker-influenced (a record title, a filename echoed back from an API).
+
+> `INativeFileExport` is deliberately separate from `IShare`. `ShareData` is Web-Share-shaped — title, text,
+> URL, no file — and widening it would change what the same type means on the WASM host.
+
+### Sign-out
+
+`NativeAuthSignIn` clears the local `ITokenStore`, posts to its `LogoutPath` when the app has registered an
+`HttpClient` to reach a server, refreshes `IUserProvider`, then navigates. Both server-facing dependencies
+are optional, because a Native + Local app need not have a backend at all — an offline app signs out by
+dropping its token. The token is cleared **before** the network call, so a failed request still leaves the
+device signed out rather than holding a live token. `returnUrl` goes through the same `LocalUrl` sanitizer
+the web hosts use; a native app reaches these through deep links.
+
+`SignInAsync(principal)` throws, as it does on WASM: a device cannot mint its own principal. POST credentials
+to a server endpoint and persist the issued token through `ITokenStore`.
+
+All four registrations use `TryAdd`, so an app or platform module that registers its own wins.
+
 ## Honest framing
 
 This is a **WebView hybrid** (the same architecture as .NET MAUI Blazor Hybrid, Ionic/Capacitor): C# runs
@@ -266,11 +336,13 @@ sandbox, and real background execution — without giving up "the same component
    (`Rask.Core/Resources/rask-input.js` — rAF input/scroll coalescing; `rask-scoped.js` — scoped-CSS
    FOUC gating; keyboard + the four core drag events folded into `rask-events.js`), spliced into all
    three clients (`rask.js`, `rask.wasm.js`, `rask.native.js`) instead of re-copied — so the native
-   client reached parity for them and the former Server↔WASM duplication collapsed. **Still per-host
+   client reached parity for them and the former Server↔WASM duplication collapsed. **File input and
+   download now work here too** — see [Files, downloads and sign-out](#files-downloads-and-sign-out); the
+   ref registry moved into a shared `rask-files.js`, and the transports stay per-host by design (a WASM
+   JSExport pull, a Server `fetch` upload, an `IJSRuntime` chunk read on native). **Still per-host
    (deferred):** the scoped-JS `Rask.*` invoke gate (genuinely diverged — WASM tracks scoped `rsk-`
    scripts with a 30s backstop, Server skips them with a 5s timeout; reconciling changes error-boundary
-   timing and needs its own pass) and file input/download (WASM JSExport pull vs Server `fetch` upload
-   vs a not-yet-built native file bridge).
+   timing and needs its own pass).
 4. **Showcase examples + on-device E2E** — ✅ *done.* Two runnable examples mirror the Server/WASM
    pairing, both mounting the **same** `Rask.Example.Shared.App`: `samples/Rask.Example.Native`
    (Native + Local, in-process) and `samples/Rask.Example.Native.Server` (Native + Server, a thin shell

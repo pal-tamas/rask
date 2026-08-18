@@ -53,6 +53,20 @@ public sealed class WasmHostBuilder
         Services.AddClientBrowserApis(ServiceLifetime.Singleton);
         Services.AddWasmBrowserApis(ServiceLifetime.Singleton);
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
+        // WasmAuthSignIn posts sign-out to the server, so it needs an HttpClient. Registering the sign-in
+        // service without one made IAuthSignIn — a contract Rask.Core promises on every host — resolvable on
+        // Server and Native but a DI failure here, at the injection site, in any app that hadn't happened to
+        // register an HttpClient of its own. TryAdd, so an app that registers one (typed clients, a handler
+        // chain, a different base address) still wins.
+        //
+        // The factory is lazy on purpose: BaseAddress reads the page origin back through the JS module, which
+        // only answers after RunAsync has imported it. Resolving before then (or off-browser, in a test)
+        // yields a relative "/" — not a legal HttpClient.BaseAddress — so leave it unset in that case rather
+        // than throwing out of a service factory.
+        Services.TryAddSingleton(_ =>
+            Uri.TryCreate(BaseAddress, UriKind.Absolute, out var origin)
+                ? new HttpClient { BaseAddress = origin }
+                : new HttpClient());
         Services.TryAddSingleton<IAuthSignIn, WasmAuthSignIn>();
         Services.AddAuthorizationCore();
         // IJSRuntime backed by the WASM JSImport/JSExport bridge. Singleton — one

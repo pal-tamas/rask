@@ -227,8 +227,10 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
 
     private IDownloadSink ResolveSink() =>
         downloadSink ?? throw new InvalidOperationException(
-            "Navigator.Download requires an IDownloadSink. Rask.Server registers one via AddRask(); " +
-            "WASM hosts get one from WasmHostBuilder. If you're in a unit test, register a fake.");
+            "Navigator.Download requires an IDownloadSink. Every Rask host registers one — Rask.Server via " +
+            "AddRask(), WASM via WasmHostBuilder, native via NativeAppHost — so reaching this means the " +
+            "Navigator was built outside a host. If you're in a unit test, register a fake (Rask.Testing " +
+            "ships TestDownloadSink).");
 
     internal IDisposable EnterHandler()
     {
