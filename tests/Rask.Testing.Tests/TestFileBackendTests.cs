@@ -34,11 +34,20 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         var files = new TestFileBackend();
         var picked = files.Add("notes.txt", "hello world", "text/plain");
 
+        // Capture the report and assert it: the framework tells you about this case (RaskDiagnostics, added
+        // with the host-parity fix) and nothing else pins that the warning fires at all. Capturing also keeps
+        // this process-global diagnostic out of a parallel test's window — belt to #750's braces, which fixed
+        // the real bug by making the wait there look for its own diagnostic rather than the first to arrive.
+        using var diagnostics = CapturingDiagnostics.Install();
+
         var page = RaskTest.Render(UploadProbe);
         await page.On("#picker").FilesAsync(picked);
 
         Assert.True(page.Instance.Fired, "the handler still runs");
         Assert.Empty(page.Instance.Received);
+        Assert.Contains(diagnostics.Captured, e =>
+            e.Category == "Rask.Forms" && e.Message.Contains("no IBrowserFileBackend is registered",
+                StringComparison.Ordinal));
     }
 
     [Fact]
