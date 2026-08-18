@@ -43,6 +43,12 @@ them until tagged releases begin.
   those `ValueGenerated.OnAdd` by convention, so the guard has to test for store-supplied values rather than
   for `OnAdd`.
 
+  `samples/Rask.Example.Sqlite` gains a third card that imports 10,000 rows each way and reports the
+  elapsed time, so the difference is visible rather than only measured. Its `Reading` row derives from
+  `Entity<Guid>`, which is also the shape that matters: the key is assigned on the client, where the
+  sample's existing `WriteLog` has an int key SQLite assigns as the rowid — a shape `SkipChangeTracking`
+  refuses on purpose.
+
   The obvious alternative is a trap, and the benchmark records it: a multi-row `INSERT … VALUES (…),(…)`
   loses at every packing, because each distinct row count is a new statement for SQLite to parse and
   Microsoft.Data.Sqlite binds parameters by name. Packed to SQLite's 32,766-parameter statement limit it is

@@ -77,7 +77,7 @@ trim/AOT-safe.
 | `Rask.Testing` | [![Rask.Testing](https://img.shields.io/nuget/v/Rask.Testing.svg?label=%20)](https://www.nuget.org/packages/Rask.Testing) | Render a component in a unit test and assert on its HTML |
 | **Vertical-slice back end** | | |
 | `Rask.Cqrs` | [![Rask.Cqrs](https://img.shields.io/nuget/v/Rask.Cqrs.svg?label=%20)](https://www.nuget.org/packages/Rask.Cqrs) | Source-generated, reflection-free queries / commands / notifications via `IDispatcher` |
-| `Rask.Data` | [![Rask.Data](https://img.shields.io/nuget/v/Rask.Data.svg?label=%20)](https://www.nuget.org/packages/Rask.Data) | `Entity<TId>` + EF interceptors: audit stamps, soft delete, optimistic concurrency, domain events |
+| `Rask.Data` | [![Rask.Data](https://img.shields.io/nuget/v/Rask.Data.svg?label=%20)](https://www.nuget.org/packages/Rask.Data) | `Entity<TId>` + EF interceptors: audit stamps, soft delete, optimistic concurrency, domain events — and `BulkInsertAsync`, the bulk insert EF Core leaves out |
 | `Rask.Outbox` | [![Rask.Outbox](https://img.shields.io/nuget/v/Rask.Outbox.svg?label=%20)](https://www.nuget.org/packages/Rask.Outbox) | Crash-safe domain events, committed in the same transaction as your data |
 | `Rask.Jobs` | [![Rask.Jobs](https://img.shields.io/nuget/v/Rask.Jobs.svg?label=%20)](https://www.nuget.org/packages/Rask.Jobs) | Durable enqueued / delayed / recurring background work, with retries |
 | `Rask.Mail` | [![Rask.Mail](https://img.shields.io/nuget/v/Rask.Mail.svg?label=%20)](https://www.nuget.org/packages/Rask.Mail) | Durable transactional email over SMTP — bodies are Rask components |
