@@ -61,4 +61,23 @@ public sealed class SqliteExampleTests(SqliteExampleAppFixture app, PlaywrightFi
         await Assertions.Expect(result).ToBeVisibleAsync();
         await Assertions.Expect(result).ToContainTextAsync("25 of 25 IMMEDIATE writers committed");
     }
+
+    [Fact]
+    public async Task Bulk_import_lands_every_row_on_both_paths()
+    {
+        await _page.GotoAsync("/");
+
+        var result = _page.Locator("#import-result");
+
+        await _page.ClickAsync("#import-tracked");
+        await Assertions.Expect(result).ToContainTextAsync("Change tracker:");
+        await Assertions.Expect(result).ToContainTextAsync("Rows imported so far: 10,000.");
+
+        // The raw writer has to land the same rows: 10,000 more on top of the tracked import's 10,000.
+        // Asserting the running total (rather than each import in isolation) is what would catch a fast
+        // path that wrote nothing, or wrote a partial batch, while still reporting a time.
+        await _page.ClickAsync("#import-raw");
+        await Assertions.Expect(result).ToContainTextAsync("SkipChangeTracking:");
+        await Assertions.Expect(result).ToContainTextAsync("Rows imported so far: 20,000.");
+    }
 }
