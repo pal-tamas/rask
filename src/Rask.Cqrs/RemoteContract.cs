@@ -47,6 +47,19 @@ public delegate void RemoteResultWriter(Utf8JsonWriter writer, object? result);
 public delegate object? RemoteResultReader(ref Utf8JsonReader reader);
 
 /// <summary>
+///     Dispatches a received message to its local handler and hands back the result as
+///     <see cref="object" />.
+/// </summary>
+/// <param name="provider">The request's service scope.</param>
+/// <param name="message">The decoded message.</param>
+/// <param name="cancellationToken">Cancels the handler; the endpoint passes the request's abort token.</param>
+/// <returns>The handler's result, or null for a void command or a notification.</returns>
+public delegate Task<object?> RemoteLocalInvoker(
+    IServiceProvider provider,
+    object message,
+    CancellationToken cancellationToken);
+
+/// <summary>
 ///     Everything the transports need to move one message across a process boundary: what to call it
 ///     on the wire, which HTTP shape it takes, and how to encode it — with no reflection at any point.
 ///     Emitted by the Rask.Cqrs source generator; you do not construct one.
@@ -96,6 +109,37 @@ public sealed class RemoteContract
     ///     with a <c>Content-Disposition</c> rather than a JSON document.
     /// </summary>
     public bool ReturnsFile { get; init; }
+
+    /// <summary>
+    ///     Runs this message against its local handler, boxing the result so an endpoint that only knows
+    ///     the message as <see cref="object" /> can serialize it.
+    /// </summary>
+    /// <remarks>
+    ///     The mirror of <see cref="Invoker" /> and generated for the same reason: pulling a result out
+    ///     of a <c>Task&lt;TResult&gt;</c> without knowing <c>TResult</c> would need reflection. It goes
+    ///     through <see cref="IDispatcher" /> rather than around it, so pipeline behaviors still wrap the
+    ///     handler. Only a server calls this — a client installs remote invokers, where routing a
+    ///     received message back through the dispatcher would send it out again.
+    /// </remarks>
+    public RemoteLocalInvoker? LocalInvoker { get; init; }
+
+    /// <summary>
+    ///     The authorization policy the handler declared with <c>[Authorize(Policy = …)]</c>, or null.
+    /// </summary>
+    public string? Policy { get; init; }
+
+    /// <summary>
+    ///     The roles the handler declared with <c>[Authorize(Roles = …)]</c>, comma-separated, or null.
+    ///     Read as well as <see cref="Policy" /> because ignoring it would be worse than not supporting
+    ///     it: an author who wrote <c>[Authorize(Roles = "admin")]</c> would believe it was enforced.
+    /// </summary>
+    public string? Roles { get; init; }
+
+    /// <summary>
+    ///     True when the handler is marked <c>[AllowAnonymous]</c>, which is the only way past the
+    ///     endpoint's authenticated-by-default rule.
+    /// </summary>
+    public bool AllowAnonymous { get; init; }
 
     /// <summary>
     ///     Sends this message through the ambient <see cref="IRemoteDispatch" />, returning the

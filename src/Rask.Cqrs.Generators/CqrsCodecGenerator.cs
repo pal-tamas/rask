@@ -64,6 +64,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             return;
         }
 
+        var handlers = DiscoverHandlers(compilation);
+
         var contracts = new List<ContractModel>();
         foreach (var message in DiscoverMessages(compilation))
         {
@@ -73,6 +75,16 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             }
 
             var model = Describe(message.Type, message.Kind, message.ResultType, compilation);
+            if (model.Problem is null)
+            {
+                handlers.TryGetValue(message.Type.ToDisplayString(), out var handler);
+                model.HasLocalHandler = handler is not null;
+                var authorization = Authorization(handler);
+                model.Policy = authorization.Policy;
+                model.Roles = authorization.Roles;
+                model.AllowAnonymous = authorization.AllowAnonymous;
+            }
+
             if (model.Problem is { } problem)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
@@ -117,19 +129,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     private static IEnumerable<(INamedTypeSymbol Type, RemoteKind Kind, ITypeSymbol? ResultType)> DiscoverMessages(
         Compilation compilation)
     {
-        var assemblies = new List<IAssemblySymbol> { compilation.Assembly };
-        foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
-        {
-            // Only assemblies that reference Rask.Cqrs can declare a message, so this skips the BCL and
-            // every unrelated package without walking a single namespace of them.
-            if (reference.Modules.Any(m => m.ReferencedAssemblies.Any(a => a.Name == CqrsAssembly)))
-            {
-                assemblies.Add(reference);
-            }
-        }
-
         var seen = new HashSet<string>();
-        foreach (var assembly in assemblies)
+        foreach (var assembly in MessageAssemblies(compilation))
         {
             foreach (var type in Types(assembly.GlobalNamespace))
             {
@@ -164,6 +165,108 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                 yield return (type, kind.Value, resultType);
             }
         }
+    }
+
+    // Maps a request type to the handler that handles it here, so the endpoint can read the handler's
+    // [Authorize] without knowing the handler's type at runtime. Only the compilation being built is
+    // scanned plus the assemblies it shares a message vocabulary with — which is where handlers live.
+    private static Dictionary<string, INamedTypeSymbol> DiscoverHandlers(Compilation compilation)
+    {
+        var map = new Dictionary<string, INamedTypeSymbol>();
+
+        foreach (var assembly in MessageAssemblies(compilation))
+        {
+            foreach (var type in Types(assembly.GlobalNamespace))
+            {
+                if (type.IsAbstract || type.TypeKind != TypeKind.Class)
+                {
+                    continue;
+                }
+
+                foreach (var iface in type.AllInterfaces)
+                {
+                    if (iface.ContainingNamespace?.ToDisplayString() != CqrsNamespace || !iface.IsGenericType)
+                    {
+                        continue;
+                    }
+
+                    var handles = iface.MetadataName is "IQueryHandler`2" or "ICommandHandler`1"
+                        or "ICommandHandler`2" or "INotificationHandler`1";
+
+                    if (handles && iface.TypeArguments.Length > 0)
+                    {
+                        map[iface.TypeArguments[0].ToDisplayString()] = type;
+                    }
+                }
+            }
+        }
+
+        return map;
+    }
+
+    // Matched by name so this generator needs no reference to ASP.NET. Roles is read as well as Policy
+    // because dropping it silently would leave an author believing [Authorize(Roles = "admin")] was
+    // enforced when nothing checked it.
+    private static (string? Policy, string? Roles, bool AllowAnonymous) Authorization(INamedTypeSymbol? handler)
+    {
+        if (handler is null)
+        {
+            return (null, null, false);
+        }
+
+        string? policy = null;
+        string? roles = null;
+        var anonymous = false;
+
+        foreach (var attribute in handler.GetAttributes())
+        {
+            switch (attribute.AttributeClass?.Name)
+            {
+                case "AllowAnonymousAttribute":
+                    anonymous = true;
+                    break;
+
+                case "AuthorizeAttribute":
+                    if (attribute.ConstructorArguments.Length == 1 &&
+                        attribute.ConstructorArguments[0].Value is string positional)
+                    {
+                        policy = positional;
+                    }
+
+                    foreach (var named in attribute.NamedArguments)
+                    {
+                        if (named.Key == "Policy" && named.Value.Value is string p)
+                        {
+                            policy = p;
+                        }
+                        else if (named.Key == "Roles" && named.Value.Value is string r)
+                        {
+                            roles = r;
+                        }
+                    }
+
+                    break;
+            }
+        }
+
+        return (policy, roles, anonymous);
+    }
+
+    // The compilation itself, plus every referenced assembly that references Rask.Cqrs. Only those can
+    // declare a message or a handler, so this skips the BCL and every unrelated package without walking
+    // a single namespace of them.
+    private static List<IAssemblySymbol> MessageAssemblies(Compilation compilation)
+    {
+        var assemblies = new List<IAssemblySymbol> { compilation.Assembly };
+        foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
+        {
+            if (reference.Modules.Any(m => m.ReferencedAssemblies.Any(a => a.Name == CqrsAssembly)))
+            {
+                assemblies.Add(reference);
+            }
+        }
+
+        return assemblies;
     }
 
     private static IEnumerable<INamedTypeSymbol> Types(INamespaceSymbol ns)
@@ -334,8 +437,49 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                     + $"R{resultId}(ref reader, NoFiles, \"result\"),");
             }
 
+            if (contract.Policy is { } policy)
+            {
+                entry.AppendLine($"            Policy = \"{policy}\",");
+            }
+
+            if (contract.Roles is { } roles)
+            {
+                entry.AppendLine($"            Roles = \"{roles}\",");
+            }
+
+            if (contract.AllowAnonymous)
+            {
+                entry.AppendLine("            AllowAnonymous = true,");
+            }
+
             entry.AppendLine($"            CarriesFiles = {(contract.CarriesFiles ? "true" : "false")},");
             entry.AppendLine($"            ReturnsFile = {(contract.ReturnsFile ? "true" : "false")},");
+            // The server's mirror of the invoker below: it runs the message against its local handler and
+            // boxes the result, so an endpoint holding the message only as `object` can serialize what
+            // comes back. Cast to the message interface rather than the concrete type — a type that
+            // implements both ICommand and ICommand<T> would otherwise make the call ambiguous.
+            var local = contract.Kind switch
+            {
+                RemoteKind.Query =>
+                    $"(object)await Dispatcher(provider).DispatchAsync((global::Rask.Cqrs.IQuery<{contract.ResultFqn}>)message, cancellationToken)",
+                RemoteKind.ResultCommand =>
+                    $"(object)await Dispatcher(provider).DispatchAsync((global::Rask.Cqrs.ICommand<{contract.ResultFqn}>)message, cancellationToken)",
+                RemoteKind.VoidCommand =>
+                    "await Dispatcher(provider).DispatchAsync((global::Rask.Cqrs.ICommand)message, cancellationToken); return null",
+                _ =>
+                    $"await Dispatcher(provider).PublishAsync(({contract.Message.Fqn})message, cancellationToken); return null",
+            };
+
+            // Emitted only where a handler actually exists, so the endpoint can tell "I cannot serve this"
+            // from "I can" without asking the registry - and answer 404 rather than letting the dispatcher
+            // throw its no-handler exception into a 500.
+            if (contract.HasLocalHandler)
+            {
+                entry.AppendLine(
+                    "            LocalInvoker = static async (provider, message, cancellationToken) => "
+                    + $"{{ {(contract.Kind is RemoteKind.VoidCommand or RemoteKind.Notification ? local : "return " + local)}; }},");
+            }
+
             // A request's invoker is emitted closed over the concrete result type, which is what lets a
             // client hand back a real Task<TResult> without MakeGenericType. Notifications need none:
             // IRemoteDispatch.PublishAsync is not generic, so a transport calls it directly.
@@ -365,6 +509,11 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.Append(emitter.Methods);
 
+        sb.AppendLine("    private static global::Rask.Cqrs.IDispatcher Dispatcher(global::System.IServiceProvider provider) =>");
+        sb.AppendLine("        provider.GetService(typeof(global::Rask.Cqrs.IDispatcher)) as global::Rask.Cqrs.IDispatcher");
+        sb.AppendLine("        ?? throw new global::System.InvalidOperationException(");
+        sb.AppendLine("            \"Rask.Cqrs is not registered in this scope. Call AddRaskCqrsServer() during startup.\");");
+        sb.AppendLine();
         sb.AppendLine("    // Resolved per dispatch rather than captured: a transport can be a scoped service,");
         sb.AppendLine("    // and a contract is a static that outlives every scope.");
         sb.AppendLine("    private static global::Rask.Cqrs.IRemoteDispatch Remote(global::System.IServiceProvider provider) =>");
@@ -425,6 +574,14 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         public bool CarriesFiles { get; set; }
 
         public bool ReturnsFile { get; set; }
+
+        public string? Policy { get; set; }
+
+        public string? Roles { get; set; }
+
+        public bool AllowAnonymous { get; set; }
+
+        public bool HasLocalHandler { get; set; }
 
         public string? Problem { get; set; }
 

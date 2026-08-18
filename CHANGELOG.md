@@ -8,6 +8,39 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+
+- **Remote CQRS — `Rask.Cqrs.Client` and `Rask.Cqrs.Server`.** A WASM-hosted or native app now reaches
+  its server through the same `IDispatcher` call it already uses in-process, with no `HttpClient` at the
+  call site and no hand-written `/api/*` endpoints. One package and one line per project: the client
+  calls `AddRaskCqrsClient()`, the server calls `AddRaskCqrsServer()` + `MapRaskCqrs()`, and neither
+  references the other half — so a browser bundle cannot compile the endpoint code and the server never
+  carries the browser transport.
+  - **Nothing marks a message as remote.** You write a record and a handler, exactly as for in-process
+    CQRS; where the project sits decides where it runs. A client is a *pure* client — every message it
+    dispatches goes to the server, so a stray client-side handler can never quietly intercept one.
+    Notifications are the deliberate exception: they fan out, so a client's own handlers still run and
+    the notification also travels.
+  - **The wire codec is source-generated**, not reflected: `Utf8JsonWriter`/`Utf8JsonReader` code emitted
+    per contract, so remote dispatch publishes clean under the WASM/AOT trimmer. **RASK053** reports a
+    shape that has no wire encoding. This reaches no existing code — codecs are generated only for a
+    compilation that references one of the two transport packages, so an app using `Rask.Cqrs`
+    in-process is unconstrained.
+  - **`[LocalOnly]`** keeps a message off the wire entirely, and on an *interface* covers a whole family:
+    `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and outbox
+    event would become an internet-reachable endpoint.
+  - **Two endpoints, not one per message** — `GET` and `POST` on `/_rask/cqrs/request/{name}`. The verb
+    carries what `IQuery` and `ICommand` already declare, so a command is 405 on GET and cannot be
+    triggered by a URL, a prefetch or a link scanner. A query too long for a URL falls back to POST with
+    an identical result.
+  - **Fails closed.** Authenticated-required by default with `[AllowAnonymous]` as the only way past;
+    `[Authorize]` on the handler supplies a policy *and* roles (both enforced — ignoring `Roles` would
+    leave an author believing it was checked). An anonymous caller gets the same answer for a real
+    message name as for a typo, so the endpoint cannot be used to enumerate an app's messages. Both
+    verbs require the `X-Rask-Cqrs` header, which no cross-site markup can set. Handler exceptions become
+    RFC 9457 `problem+json` with no exception text in production.
+  - **Files both directions.** `RemoteFile` on a message uploads as multipart; a query returning
+    `FileDownload` streams back with an `attachment` disposition, a filename reduced to a safe leaf, and
+    `nosniff`. Responses are read headers-first, so a download is never buffered.
 - **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
   shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler
   test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the
