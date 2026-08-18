@@ -37,6 +37,24 @@ public sealed class ShopBackupProbeTests
         // as it being broken.
         Assert.Null(await probe.ReplicationAsync(CancellationToken.None));
         Assert.Empty(await probe.SnapshotsAsync(CancellationToken.None));
+        Assert.Null(await probe.VerificationAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task The_probe_reports_no_verification_until_a_pass_has_actually_run()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<SQLite.Litestream.LitestreamStatus>();
+        services.AddSingleton<IDashboardBackupProbe, BackupProbe>();
+
+        await using var provider = services.BuildServiceProvider();
+        var probe = provider.GetRequiredService<IDashboardBackupProbe>();
+
+        // Litestream is registered and replicating, and still nothing has checked that the replica can be
+        // read back — verification is opt-in. Reporting anything else here would let a tile claim the
+        // backup is restorable on the strength of the replicator merely being alive.
+        Assert.NotNull(await probe.ReplicationAsync(CancellationToken.None));
+        Assert.Null(await probe.VerificationAsync(CancellationToken.None));
     }
 
     [Fact]

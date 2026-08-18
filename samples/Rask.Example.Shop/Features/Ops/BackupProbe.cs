@@ -58,4 +58,28 @@ public sealed class BackupProbe(LitestreamStatus? litestream = null, ISqliteSnap
                 .Select(s => new BackupSnapshotInfo(s.Name, s.SizeBytes, s.CreatedAt)),
         ];
     }
+
+    /// <inheritdoc/>
+    public Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken)
+    {
+        // null in two different situations, both honest: Litestream isn't configured here, or it is but
+        // verification is off (the default) so nothing has ever checked. Neither is "the backup is fine".
+        if (litestream?.Verification is not { } verification)
+        {
+            return Task.FromResult<BackupVerificationInfo?>(null);
+        }
+
+        return Task.FromResult<BackupVerificationInfo?>(new BackupVerificationInfo(
+            verification.Outcome.ToString(),
+            verification.Outcome switch
+            {
+                LitestreamVerificationOutcome.Verified => BackupVerificationLevel.Verified,
+                LitestreamVerificationOutcome.Failed => BackupVerificationLevel.Broken,
+                // Inconclusive and Skipped both mean nothing was proven either way — replication lag, or
+                // a config-mode setup with no single database to probe. Neither is a broken backup.
+                _ => BackupVerificationLevel.Unknown,
+            },
+            verification.LastVerifiedAt,
+            verification.LastError));
+    }
 }
