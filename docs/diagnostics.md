@@ -839,18 +839,20 @@ it names, so a builder entry marks its folding properties **pending** and resets
 pending when the parent's `Render()` returns — that is what makes `Div.Id("x")` on one render and a
 bare `Div` on the next drop the `id`, exactly as the factory does. The pending bits are split so a
 component compiled against one `Rask.Core` cannot collide with a shared property added in a later
-one: the shared `Element`/`Component` surface owns the low 16 (`BuilderRuntime.OwnPendingBit`), each
+one: the shared `Element`/`Component` surface owns the low 32 (`BuilderRuntime.OwnPendingBit`), each
 component's own properties get the rest.
 
-Those 16 are handed out in ordinal **name** order, which is the trap: adding a 17th folding property
-to `Element` does not push *itself* off the end — it pushes whichever alphabetically-later property
-was last (`Title`, `TabIndex`) onto the eager reset path, which reports that property changed on
-every render and defeats the render cache for it. Nothing fails to compile and no test goes red,
+Those 32 are handed out in ordinal **name** order, which is the trap: adding one folding property too
+many to `Element` does not push *itself* off the end — it pushes whichever alphabetically-later
+property was last (`Title`, `TabIndex`) onto the eager reset path, which reports that property changed
+on every render and defeats the render cache for it. Nothing fails to compile and no test goes red,
 which is why the generator counts them.
 
 **Fix:** raise `Rask.Core.BuilderRuntime.OwnPendingBit` and the generator's mirrored `OwnPendingBit`
 constant **together** (they are a wire format between an app and the Rask it was built against), or
-make the new property non-folding.
+make the new property non-folding. The budget was raised 16 → 32 when the global attributes landed
+(#693) and the shared surface reached 19 folding properties; because a component compiled against the
+old value numbered its own properties from 16, everything must be rebuilt against the new pair.
 
 ## RASK042
 **Retired** — delegate-typed property cannot receive a builder setter

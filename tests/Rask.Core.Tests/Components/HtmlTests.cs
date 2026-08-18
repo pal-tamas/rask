@@ -9,7 +9,10 @@ public partial class HtmlTests : global::Rask.Core.RaskMarkup
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal(
-            "<html id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" lang=\"en\" dir=\"ltr\" xmlns=\"http://www.w3.org/1999/xhtml\"></html>",
+            // lang/dir are the GLOBAL attributes inherited from Element now (#693) rather than <html>'s
+            // own, so they emit with the plain globals — before data-* — leaving xmlns as the only
+            // html-specific attribute after it.
+            "<html id=\"i\" class=\"c\" style=\"s\" lang=\"en\" dir=\"ltr\" data-k=\"v\" xmlns=\"http://www.w3.org/1999/xhtml\"></html>",
             Html
                 .Lang("en")
                 .Dir("ltr")

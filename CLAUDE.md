@@ -50,7 +50,9 @@ dotnet run --project samples/Rask.Example.Server
 ## Primitives & rules (the load-bearing invariants)
 - `Component` (base: `Render`, `Children`, `Key`, `TagName`, `WriteAttributes`) → `Element` (universal
   HTML attrs). `Text` encodes; `Raw` is verbatim. `Fragment`/`Doctype` special-cased in `HtmlSerializer`.
-- **Attribute render order: id, class, style, title, data-*, role, tabindex, aria-*, then tag-specific — tests assert it; preserve it.**
+- **Attribute render order: id, class, style, title, the plain globals (lang, dir, hidden, inert,
+  popover, contenteditable, spellcheck, translate), data-*, role, tabindex, aria-*, `Attributes`
+  (the verbatim escape hatch), then tag-specific — tests assert it; preserve it.**
 - Markup is a CHAIN: `Div.Class("card")[Span["hi"]]` — no `new`, no factory call. Children via the
   indexer (no `Children:` param; `..` spread breaks — pass enumerables). A component's REQUIRED props are
   chain steps taken first (any order); `Bind` vs `Value` are mutually exclusive openings; type arguments
