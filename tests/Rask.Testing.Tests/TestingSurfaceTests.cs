@@ -164,6 +164,9 @@ public class TestingSurfaceTests
         protected override Component? Render() => Div["x"];
     }
 
+    private static bool IsTheSwallowedFault(CapturedDiagnostic e) =>
+        e.Level == DiagnosticLevel.Error && e.Exception?.Message == "boom";
+
     [Fact]
     public async Task CapturingDiagnostics_SeesAFaultTheFrameworkSwallowed()
     {
@@ -173,10 +176,9 @@ public class TestingSurfaceTests
 
         // Swallow-and-log is the framework's designed behaviour here; without a capture there is no
         // supported way for an app author to assert that it happened, or that it didn't.
-        await WaitForCaptureAsync(diagnostics);
+        await WaitForCaptureAsync(diagnostics, IsTheSwallowedFault);
 
-        Assert.Contains(diagnostics.Captured, e =>
-            e.Level == DiagnosticLevel.Error && e.Exception?.Message == "boom");
+        Assert.Contains(diagnostics.Captured, IsTheSwallowedFault);
     }
 
     [Fact]
@@ -196,9 +198,17 @@ public class TestingSurfaceTests
     }
 
     // The hook faults on a thread-pool continuation, so the report lands after Render() returns.
-    private static async Task WaitForCaptureAsync(CapturingDiagnostics diagnostics)
+    //
+    // Waits for the diagnostic the caller is actually about, not merely for the list to become non-empty.
+    // CapturingDiagnostics installs a PROCESS-GLOBAL sink, so a sibling test class running in parallel can
+    // drop its own diagnostic in first; a "wait until non-empty" loop then returns before the awaited one
+    // has landed and the assertion fails on a full-solution run while passing standalone.
+    private static async Task WaitForCaptureAsync(
+        CapturingDiagnostics diagnostics, Func<CapturedDiagnostic, bool>? match = null)
     {
-        for (var i = 0; i < 200 && diagnostics.Captured.Count == 0; i++)
+        match ??= _ => true;
+
+        for (var i = 0; i < 200 && !diagnostics.Captured.Any(match); i++)
         {
             await Task.Delay(10);
         }
