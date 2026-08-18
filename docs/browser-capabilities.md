@@ -61,6 +61,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IUsb`](apis/usb.md) | ⬜ | ✅ | ⬜ | — |
 | [`IHid`](apis/hid.md) | ⬜ | ✅ | ⬜ | — |
 | [`IBluetooth`](apis/bluetooth.md) | ⬜ | ✅ | ⬜ | — |
+| [`IBackgroundSync`](apis/background-sync.md) | ⬜ | ✅ | ⬜ | — |
 
 ## Notes
 

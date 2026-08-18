@@ -703,3 +703,91 @@ window.__raskBluetooth = window.__raskBluetooth || (() => {
         }
     };
 })();
+
+// Background Sync + Periodic Background Sync (driven by IBackgroundSync). WASM-only: the registration
+// lives on the service worker, and a Server app's SW has no client-side runtime to wake into.
+//
+// Registration goes through getRegistration(), NOT navigator.serviceWorker.ready — `ready` never settles
+// when no service worker is registered, so an app that skipped the SW would hang on every call here
+// instead of being told plainly that background sync is unavailable.
+//
+// The SW handler (Resources/rask-sw.js) postMessages each woken-up tag to its clients. Those arriving
+// before C# has subscribed are held rather than dropped: the common case is a sync landing while the page
+// is still booting after a spell offline, which is precisely the event the app most wants to see.
+window.__raskSync = window.__raskSync || (() => {
+    const buffered = [];
+    let listening = false;
+
+    const toDotNet = (periodic, tag) =>
+        window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskBackgroundSync", periodic, tag);
+
+    if (navigator.serviceWorker) {
+        navigator.serviceWorker.addEventListener("message", (e) => {
+            const d = e.data;
+            if (!d || (d.rask !== "sync" && d.rask !== "periodicsync")) {
+                return;
+            }
+            const periodic = d.rask === "periodicsync";
+            if (listening) {
+                toDotNet(periodic, d.tag);
+            } else {
+                buffered.push({periodic: periodic, tag: d.tag});
+            }
+        });
+    }
+
+    // undefined when there is no SW at all, so every caller below can answer "unavailable" instead of
+    // throwing at a call site that has no way to act on it.
+    const reg = () => (navigator.serviceWorker
+        ? navigator.serviceWorker.getRegistration().catch(() => undefined)
+        : Promise.resolve(undefined));
+
+    const onProto = (name) =>
+        typeof ServiceWorkerRegistration !== "undefined" && name in ServiceWorkerRegistration.prototype;
+
+    return {
+        supported: () => onProto("sync"),
+        periodicSupported: () => onProto("periodicSync"),
+
+        // Called by C# on the first subscription; idempotent, and flushes whatever arrived during boot.
+        listen: () => {
+            listening = true;
+            const held = buffered.splice(0, buffered.length);
+            for (let i = 0; i < held.length; i++) {
+                toDotNet(held[i].periodic, held[i].tag);
+            }
+        },
+
+        request: (tag) => reg().then((r) => {
+            if (!r || !r.sync) return false;
+            return r.sync.register(tag).then(() => true, () => false);
+        }),
+
+        tags: () => reg().then((r) => (r && r.sync ? r.sync.getTags() : [])).catch(() => []),
+
+        // "periodic-background-sync" is not a permission name every browser knows; an unknown name
+        // rejects (and in some engines throws outright), so both paths land on "denied".
+        periodicPermission: () => {
+            if (!navigator.permissions) return Promise.resolve("denied");
+            try {
+                return navigator.permissions.query({name: "periodic-background-sync"})
+                    .then((s) => s.state, () => "denied");
+            } catch (e) {
+                return Promise.resolve("denied");
+            }
+        },
+
+        requestPeriodic: (tag, minIntervalMs) => reg().then((r) => {
+            if (!r || !r.periodicSync) return false;
+            return r.periodicSync.register(tag, {minInterval: minIntervalMs}).then(() => true, () => false);
+        }),
+
+        unregisterPeriodic: (tag) => reg()
+            .then((r) => (r && r.periodicSync ? r.periodicSync.unregister(tag) : undefined))
+            .catch(() => undefined),
+
+        periodicTags: () => reg()
+            .then((r) => (r && r.periodicSync ? r.periodicSync.getTags() : []))
+            .catch(() => [])
+    };
+})();
