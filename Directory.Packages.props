@@ -66,6 +66,12 @@
     -->
     <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageVersion Include="SQLitePCLRaw.core" Version="3.0.5" />
+    <!--
+      Rask.Example.Auth.Jwt signs and validates its own tokens without the ASP.NET Core bearer
+      handler. Keep this on the version Microsoft.AspNetCore.Authentication.JwtBearer resolves for
+      Rask.Example.Auth.WasmJwt.Host, so the two samples share one IdentityModel graph.
+    -->
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />

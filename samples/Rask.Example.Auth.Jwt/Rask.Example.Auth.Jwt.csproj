@@ -7,7 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
+    <!--
+      This sample issues and validates tokens itself (JwtSecurityTokenHandler in Shared/CredentialStore.cs)
+      and authenticates through Rask's own session pipeline — it never calls AddJwtBearer. So it wants the
+      token library, not the ASP.NET Core bearer authentication handler that used to drag it in transitively.
+      Rask.Example.Auth.WasmJwt.Host is the sample that does wire the handler; it keeps the JwtBearer reference.
+    -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt"/>
   </ItemGroup>
 
   <ItemGroup>
