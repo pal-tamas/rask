@@ -24,7 +24,7 @@ internal static class FileListReader
             RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Forms",
                 $"[Rask.Forms] {arr.GetArrayLength()} file(s) arrived from the client but no "
                 + "IBrowserFileBackend is registered, so the handler will receive an empty list. Every Rask "
-                + "host registers one; if you built this container yourself, register a backend.");
+                + "host registers one; in a unit test register Rask.Testing's TestFileBackend.");
             return Array.Empty<RaskFile>();
         }
 
