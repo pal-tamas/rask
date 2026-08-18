@@ -70,6 +70,27 @@ them until tagged releases begin.
   conflates the two tells the user their preference was ignored. Part of #695.
 
 ### Changed
+- **Pruned four `PackageReference`s that no code was compiling against.** The audit was a full sweep —
+  every `PackageVersion` in `Directory.Packages.props` still has a referencing project, and every other
+  reference either has API usage behind it or a stated reason to exist. Only these four had neither:
+
+  `Rask.Html` carried `Microsoft.Extensions.Primitives`, `Microsoft.AspNetCore.Authorization` and
+  `Microsoft.JSInterop` because the element family had them when it lived in `Rask.Core`. The types
+  behind all three stayed in Core when the family moved out (#710), so the references have been dead
+  since. Nothing needs re-declaring at a package boundary either: the project is `IsPackable=false` and
+  every host references it with `PrivateAssets="all"`, so its dependencies never reached a nuspec —
+  `Rask.Wasm` and `Rask.Native` already surface Core's runtime deps themselves, which is why *their*
+  seemingly-unused copies of the same packages stay put.
+
+  `Rask.Example.Auth.WasmCookie` referenced `Microsoft.Extensions.Logging` without logging anything.
+
+- **`Rask.Example.Auth.Jwt` depends on the JWT token library instead of the bearer handler.** The
+  sample issues and validates its own tokens (`JwtSecurityTokenHandler`) and authenticates through
+  Rask's session pipeline — it never calls `AddJwtBearer`, and was reaching
+  `System.IdentityModel.Tokens.Jwt` transitively through
+  `Microsoft.AspNetCore.Authentication.JwtBearer`. It now references that package directly, pinned to
+  the same 8.19.2 the handler resolves, so the two JWT samples share one IdentityModel graph.
+  `Rask.Example.Auth.WasmJwt.Host` does wire the handler and keeps its `JwtBearer` reference.
 - **`VirtualizeModel<T>(…)` is now `Virtualize.Items<T>(…)`.** It is the one hand-written generic entry
   point on the surface — a chain infers its type argument from the step that opens it, and `T` here
   comes from the *render delegate* — and it was reachable by simple name only because it sat inside the
