@@ -4192,8 +4192,19 @@ function applyRender(json) {
     handle(reply);
 }
 
+// Navigator.Download staged bytes on the host. There is nothing useful a WebView can do with them itself —
+// <a download> is inert in a WKWebView — so the client's whole job is to hand the token straight back, and
+// the host pulls the bytes and gives them to the platform (INativeFileExport → the OS share sheet).
+function applyDownload(download) {
+    if (!download || typeof download.token !== "string" || download.token.length === 0) return;
+    send({ type: "download", token: download.token });
+}
+
 function handle(reply) {
     if (!reply || typeof reply !== "object") return;
+    // Before the render is queued: the download is an out-of-band side effect with no dependency on the DOM
+    // commit, and queueing it behind the morph would delay the share sheet behind a FOUC wait for no reason.
+    applyDownload(reply.download);
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
         _renderQueue = _renderQueue.then(() => applyDiffReply(reply), () => applyDiffReply(reply));
         return;
@@ -4411,13 +4422,103 @@ document.addEventListener("scroll", (e) => {
 }, true);
 
 
-// Change — report the control's value (checkbox → checked). Flush any pending coalesced input first
-// so a change-triggered validator reads the freshly-typed value, not the pre-flush one.
+// ----- input[type=file] ref registry (raskRegisterFiles / raskReadFileChunkBase64) — rask-files.js -----
+// Shared with the WASM client. The host reads the bytes back through window.__raskFiles.readChunkBase64
+// over IJSRuntime — see NativeFileBackend.
+// Shared file-input plumbing for every in-process host (WASM and Native), spliced at @@RASK_FILES@@.
+//
+// An <input type=file> hands JS a live File object that cannot cross the interop boundary, so the client
+// keeps the File here and ships only metadata plus a short ref. .NET reads the bytes back a chunk at a time
+// through that ref, which is what lets RaskFile.OpenReadStream be a real Stream instead of a whole file
+// buffered into a render payload.
+//
+// This lived in rask.wasm.js and made file input a WASM-only capability by accident: the native client had
+// no registry, so a shared component's file handler silently received nothing on a native head. Anything
+// Rask.Core promises on every host has to live in a module every host splices — this one.
+//
+// Two readers because the hosts reach it differently: WASM re-exports raskReadFileChunk through a [JSImport]
+// that marshals a Uint8Array directly, while the Native host has no such bridge and goes through IJSRuntime,
+// which is JSON — hence the base64 variant, reached by identifier as window.__raskFiles.readChunkBase64.
+
+const raskFileRegistry = new Map();
+
+// Registers each File under a fresh ref and returns the metadata .NET turns into RaskFile instances.
+// Re-picking on the same input drops that input's previous refs, so a user cycling through files does not
+// pile up File objects (and their backing blobs) for the lifetime of the page.
+function raskRegisterFiles(inputEl, files) {
+    if (inputEl && inputEl.__raskFileRefs) {
+        for (const r of inputEl.__raskFileRefs) raskFileRegistry.delete(r);
+    }
+    const metas = [];
+    const refs = [];
+    for (const f of files) {
+        const r = (typeof crypto !== "undefined" && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : "f-" + Math.random().toString(36).slice(2);
+        raskFileRegistry.set(r, f);
+        refs.push(r);
+        metas.push({
+            ref: r,
+            name: f.name,
+            size: f.size,
+            type: f.type || "application/octet-stream",
+            lastModified: f.lastModified || 0
+        });
+    }
+    if (inputEl) inputEl.__raskFileRefs = refs;
+    return metas;
+}
+
+// An unknown ref yields an empty chunk rather than throwing: .NET reads until it gets a short read, so a ref
+// invalidated mid-read (the user re-picked while a stream was open) ends the stream instead of faulting it.
+async function raskReadFileChunk(ref, offset, length) {
+    const file = raskFileRegistry.get(ref);
+    if (!file) return new Uint8Array();
+    const end = Math.min(file.size, offset + length);
+    if (end <= offset) return new Uint8Array();
+    const buf = await file.slice(offset, end).arrayBuffer();
+    return new Uint8Array(buf);
+}
+
+async function raskReadFileChunkBase64(ref, offset, length) {
+    const bytes = await raskReadFileChunk(ref, offset, length);
+    // Built one bounded slice at a time: String.fromCharCode.apply over a whole chunk blows the argument
+    // limit on large reads, and a per-byte string concat is quadratic. 8KB keeps both away.
+    let binary = "";
+    const step = 8192;
+    for (let i = 0; i < bytes.length; i += step) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + step));
+    }
+    return btoa(binary);
+}
+
+// The identifier the Native host's IJSRuntime resolves. Harmless on WASM, which uses its [JSImport] export.
+if (typeof window !== "undefined") {
+    window.__raskFiles = {
+        readChunkBase64: raskReadFileChunkBase64
+    };
+}
+
+
+// Change — report the control's value (checkbox → checked), or the picked files for a file input. Flush any
+// pending coalesced input first so a change-triggered validator reads the freshly-typed value, not the
+// pre-flush one.
 document.addEventListener("change", function (e) {
     const el = e.target;
     if (!el || !el.getAttribute) return;
+    if (!inRoot(el)) return;
+    // A file input carries data-rask-on-files, not data-rask-on-change: the frame ships file metadata rather
+    // than a value, and el.value on a file input is only the browser's fakepath stub.
+    // (No backslashes in this template — the MSBuild splice path-normalizes them into forward slashes.)
+    if (el.tagName === "INPUT" && el.type === "file" && el.hasAttribute("data-rask-on-files")) {
+        const files = el.files;
+        if (!files || files.length === 0) return;
+        if (typeof flushInputsNow === "function") flushInputsNow();
+        send({ id: el.getAttribute("data-rask-on-files"), type: "files", files: raskRegisterFiles(el, files) });
+        return;
+    }
     const id = el.getAttribute("data-rask-on-change");
-    if (!id || !inRoot(el)) return;
+    if (!id) return;
     if (typeof flushInputsNow === "function") flushInputsNow();
     // Through the shared module (rask-morph.js, spliced above at @@RASK_MORPH@@) rather than a local
     // valueOf — this host had its own copy, which is exactly the drift that left <select> unguarded.
@@ -4440,6 +4541,15 @@ document.addEventListener("submit", function (e) {
     const data = {};
     const fd = new FormData(form);
     fd.forEach(function (v, k) { if (typeof v === "string") data[k] = v; });
+    // File inputs inside the form: FormData yields File objects, which the loop above drops (they are not
+    // strings). Register them the same way the change path does and carry the metadata under __files, which
+    // is the key Core's FormData reader looks under. Same shape as the WASM client.
+    const fileFields = {};
+    for (const input of form.querySelectorAll('input[type="file"][name]')) {
+        if (!input.files || input.files.length === 0) continue;
+        fileFields[input.name] = raskRegisterFiles(input, input.files);
+    }
+    if (Object.keys(fileFields).length > 0) data.__files = fileFields;
     send({ id: id, type: "submit", form: data });
 });
 

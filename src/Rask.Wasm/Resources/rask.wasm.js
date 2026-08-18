@@ -349,40 +349,19 @@ export function hotReloadApplied() {
     if (window.__raskHotReloadPill) window.__raskHotReloadPill();
 }
 
-// File registry for input[type=file]: maps short refs -> live File objects.
-// Cleared when the file input fires another change so old refs become unreachable.
-const fileRegistry = new Map();
+// The input[type=file] ref registry (rask-files.js), shared with the native client — it was local to this
+// file, which is precisely why file input worked on WASM and silently did nothing on a native head.
+// @@RASK_FILES@@
 
-export async function readFileChunk(ref, offset, length) {
-    const file = fileRegistry.get(ref);
-    if (!file) return new Uint8Array();
-    const end = Math.min(file.size, offset + length);
-    const slice = file.slice(offset, end);
-    const buf = await slice.arrayBuffer();
-    return new Uint8Array(buf);
+// The [JSImport] on the .NET side binds to this module export, so the export has to be declared here (an ES
+// module cannot re-export a spliced-in function declaration by name from an inner scope). The registry and
+// the read itself are shared.
+export function readFileChunk(ref, offset, length) {
+    return raskReadFileChunk(ref, offset, length);
 }
 
 function registerFiles(inputEl, files) {
-    // Drop any prior refs for this input so a re-pick doesn't pile up File objects.
-    if (inputEl.__raskFileRefs) {
-        for (const r of inputEl.__raskFileRefs) fileRegistry.delete(r);
-    }
-    const metas = [];
-    const refs = [];
-    for (const f of files) {
-        const r = (crypto && crypto.randomUUID) ? crypto.randomUUID() : "f-" + Math.random().toString(36).slice(2);
-        fileRegistry.set(r, f);
-        refs.push(r);
-        metas.push({
-            ref: r,
-            name: f.name,
-            size: f.size,
-            type: f.type || "application/octet-stream",
-            lastModified: f.lastModified || 0
-        });
-    }
-    inputEl.__raskFileRefs = refs;
-    return metas;
+    return raskRegisterFiles(inputEl, files);
 }
 
 function triggerDownload(download) {

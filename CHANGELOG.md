@@ -7,6 +7,52 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Everything in `Rask.Core` now works on all three hosts, and a test says so.** Core is the shared
+  component surface, so a component written once is supposed to run on Server, WASM and Native alike. Four
+  of its contracts did not: the Native host registered no `IBrowserFileBackend`, no `IDownloadSink` and no
+  `IAuthSignIn`, and the WASM host registered a `WasmAuthSignIn` that needed an `HttpClient` nobody
+  registered. Each failed only on one host, only at runtime, with nothing at compile time to warn you.
+
+  This was not hypothetical: `samples/Rask.Example.Shared` is compiled into the native showcase, and its
+  `UploadDemo` handed the handler an **empty file list** (the user picks a file, the UI reports success,
+  nothing uploaded) while its `DownloadDemo` threw `InvalidOperationException`. A shared
+  `LoginPage(IAuthSignIn auth, ...)` — the shape `rask new` scaffolds — failed DI outright on a device.
+
+  - **File input on Native.** The `<input type=file>` ref registry moved out of `rask.wasm.js` into a
+    shared `Rask.Core/Resources/rask-files.js` spliced into both in-process clients, so the native client
+    captures picked files on `change` *and* on `submit` (`__files`). `NativeFileBackend` reads them back
+    a chunk at a time over `IJSRuntime`, so `RaskFile.OpenReadStream` is a real stream rather than bytes
+    inlined into a render payload.
+  - **`Navigator.Download` on Native.** `NativeDownloadSink` uses the same token-pull contract as WASM —
+    the bytes never ride the frame. Delivery is the platform's job: the host stages the file under the app
+    cache directory and hands it to the new **`INativeFileExport`**, whose platform implementations present
+    the OS share sheet (`UIActivityViewController` / `ACTION_SEND`), which is what "here is a file for you"
+    means on a device. With no platform module registered the file is still staged and the location
+    reported, so a shared component never crashes on the one head that has no share sheet. Download names
+    are reduced to a single safe path segment before they touch the filesystem — they can be
+    attacker-influenced, and on this host they become a real path.
+  - **`IAuthSignIn` on Native.** `NativeAuthSignIn` clears the local `ITokenStore`, posts to the logout
+    endpoint when the app has an `HttpClient` to reach one, refreshes `IUserProvider` and navigates. The
+    token is cleared *before* the network call, so an offline device still ends up signed out. `returnUrl`
+    is sanitized with the same `LocalUrl` rule the other hosts use — a native app reaches these through
+    deep links.
+  - **`HttpClient` on WASM.** `WasmHostBuilder` registers a lazy default (page origin as base address) with
+    `TryAdd`, so `IAuthSignIn` resolves out of the box and an app that registers its own still wins.
+
+  **The gate.** `RaskHostContracts` names the contracts Core promises everywhere, and each host's test
+  project asserts its own bootstrap *resolves* every one — resolution rather than registration, because a
+  descriptor whose dependencies are missing looks registered and still throws at the injection site, which
+  is exactly how the WASM `HttpClient` hole shipped. A completeness test in `Rask.Core.Tests` partitions the
+  whole `Rask.Core.Browser` namespace against the list, so adding a wrapper forces an explicit decision
+  instead of quietly landing on one host.
+
+### Changed
+- **`Navigator.Download` and file-input errors name every host.** `Navigator`'s "no `IDownloadSink`" message
+  mentioned only Server and WASM. Worse, `FileListReader` returned an empty list when no
+  `IBrowserFileBackend` was registered and said nothing at all — the framework's quietest failure, and the
+  one that hid the native gap for a release. It now reports through `RaskDiagnostics`.
+
 ### Added
 - **Background Sync — `IBackgroundSync`** *(WASM)*. Ask the browser to wake the app when connectivity
   returns, or on a recurring schedule, so an edit made offline is flushed without the user coming back to
