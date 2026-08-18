@@ -80,6 +80,32 @@ because the browser lacks the API or the reader asked for less motion.
 await _viewTransitions.SetEnabledAsync(true);
 ```
 
+**`IWebAnimations`** — run and control an animation on an element from C#, no stylesheet and no
+animation library.
+
+Keyframes use the API's *object* form — a property name to the values it moves through — which is what
+`Element.animate()` takes natively:
+
+```csharp
+var id = await _anim.StartAsync(_card, new Dictionary<string, string[]>
+{
+    ["opacity"] = ["0", "1"],
+    ["transform"] = ["translateY(8px)", "none"],
+}, new AnimationOptions(DurationMs: 200, Easing: "ease-out", Fill: "forwards"));
+
+await _anim.WaitAsync(id);   // true if it finished, false if it was cancelled — never throws
+```
+
+`StartAsync` returns a handle (`AnimationId`) because an `Animation` object cannot cross interop — the
+same shape `MediaStreamId` uses. On a browser without the API the handle is simply invalid rather than
+an error, so you can animate without feature-testing first. `Iterations: -1` means forever (JSON has no
+`Infinity` literal). `Cancel`/`Finish`/`Pause`/`Play` are all harmless on a handle that has already
+finished.
+
+Unlike `IViewTransitions`, **reduced motion is yours to decide here** — these are your animations, and
+only you know whether a given one is a loading affordance or decoration. Read the preference with
+`IMediaQuery` and skip what should be skipped.
+
 **`IPerformance`** — a high-resolution monotonic clock and page-load (Navigation Timing) metrics.
 
 <!-- demo:browser-performance -->

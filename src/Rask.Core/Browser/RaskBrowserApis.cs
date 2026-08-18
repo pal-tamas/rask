@@ -74,6 +74,7 @@ public static class RaskBrowserApis
         services.AddBrowserApi<IVibration, Vibration>(lifetime);
         services.AddBrowserApi<IPageVisibility, PageVisibilityInfo>(lifetime);
         services.AddBrowserApi<IViewTransitions, ViewTransitions>(lifetime);
+        services.AddBrowserApi<IWebAnimations, WebAnimations>(lifetime);
         services.AddBrowserApi<IWebLocks, WebLocks>(lifetime);
         services.AddBrowserApi<IMediaStreams, MediaStreams>(lifetime);
         services.AddBrowserApi<ISignaling, Signaling>(lifetime);
