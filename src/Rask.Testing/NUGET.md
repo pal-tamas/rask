@@ -91,6 +91,16 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
 - **`TestDownloadSink`** — an `IDownloadSink` that records what a component staged. `Navigator.Download`
   refuses to run without one and tells you to "register a fake"; this is that fake. Assert on
   `.Staged` (`FileName`, `ContentType`, `Bytes`, `.Text`).
+- **`TestFileBackend`** — an `IBrowserFileBackend` serving files a test staged in memory, so an `OnFiles`
+  handler can be tested at all. Stage with `.Add("notes.txt", "hello")`, register it, then
+  `page.On("#picker").FilesAsync(file)`. The handler gets real files: `OpenReadStream()` returns the bytes
+  and `maxAllowedSize` is enforced as the real backends enforce it. **Without a backend registered the
+  handler is handed an empty list** — it still fires, so a test can pass while proving nothing.
+  `.FormPayload(field, …)` covers a file inside a submitted form; `.Released` records the framework's
+  release call.
+- **`TestServiceProvider`** — a minimal `IServiceProvider` for handing a component the one or two services it
+  resolves: `TestServiceProvider.With<IBrowserFileBackend>(files)`, or `.Add(...).Add(...)` for several. Exists
+  because `RaskTest.Render` takes an `IServiceProvider` and this package depends on no DI container.
 - **`TestRoute.At("/search?q=hello%20world")`** — a `RouteState` at a URL, query string parsed and
   decoded, repeated keys kept. `TestRoute.NavigatorFor(state, downloads)` wires the `Navigator`.
   Register the `Navigator` in the provider and event dispatch enters its handler scope, so a component

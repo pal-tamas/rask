@@ -302,6 +302,22 @@ public class RenderedComponent : IRenderHandle
         /// <summary>Dispatches this element's <c>submit</c> handler, then re-renders.</summary>
         public Task<string> SubmitAsync(string? jsonPayload = null) => Raise("submit", jsonPayload);
 
+        /// <summary>
+        ///     Picks <paramref name="files" /> on this file input: raises its <c>files</c> handler with the
+        ///     metadata a real client would send, so the handler receives real <c>RaskFile</c>s.
+        ///     Stage them with <c>TestFileBackend.Add(...)</c> and register that backend — without one the
+        ///     handler is handed an empty list and the test silently proves nothing.
+        /// </summary>
+        public Task<string> FilesAsync(params TestFile[] files) =>
+            Raise("files", TestFileBackend.PayloadFor(files));
+
+        /// <summary>Picks every file staged in <paramref name="backend" /> — the single-input case.</summary>
+        public Task<string> FilesAsync(TestFileBackend backend)
+        {
+            ArgumentNullException.ThrowIfNull(backend);
+            return Raise("files", backend.Payload());
+        }
+
         /// <summary>Dispatches an arbitrary DOM event by name, for anything without a helper above.</summary>
         public Task<string> RaiseAsync(string domEvent, string? jsonPayload = null) =>
             Raise(domEvent, jsonPayload);
@@ -456,6 +472,10 @@ public class RenderedComponent : IRenderHandle
 
     /// <summary>Dispatches the <b>first</b> <c>submit</c> handler, e.g. <c>SubmitAsync("{\"form\":{...}}")</c>.</summary>
     public Task<string> SubmitAsync(string? jsonPayload = null) => InvokeEventAsync("submit", jsonPayload);
+
+    /// <summary>Picks <paramref name="files" /> on the <b>first</b> file input in the current render.</summary>
+    public Task<string> FilesAsync(params TestFile[] files) =>
+        InvokeEventAsync("files", TestFileBackend.PayloadFor(files));
 
     // Resolves the event's handler id from the CURRENT render, then dispatches — so the id is never stale.
     private Task<string> InvokeEventAsync(string domEvent, string? jsonPayload)
