@@ -121,7 +121,7 @@
      inline in HTML is document-scoped, not scoped to the SVG. */
   .hero-anim { margin: 0 0 56px; }
   .hero-anim svg {
-    display: block; width: 100%; height: auto; aspect-ratio: 880 / 400;
+    display: block; width: 100%; height: auto; aspect-ratio: 880 / 580;
     border-radius: var(--radius);
   }
   .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 54px; align-items: center; }

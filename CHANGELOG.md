@@ -37,7 +37,9 @@ them until tagged releases begin.
 ### Changed
 - **The README opens on the chain instead of on a wall of badges.** It led with 31 NuGet version badges
   before showing a line of C#; it now opens with the logo, three named links (Site · Docs · Playground),
-  an animated hero showing a chain being written, and the `Counter` component. 391 lines → 185.
+  an animated hero that types the `Counter` component out a character at a time — with the IDE's hints
+  arriving mid-flight, the indexer tooltip as `H1[` is written and the member list plus its doc comment
+  when the caret stops after `Button.` — and then the `Counter` source itself. 391 lines → 185.
   - The versions moved into a grouped **Packages** table (Package · Version · What it's for), so the same
     31 badges each carry a description instead of forming an unlabelled grid.
   - The batteries table, the "Why the One Person Framework" prose and the Rask-vs-Blazor table left the

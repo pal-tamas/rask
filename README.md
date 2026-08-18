@@ -9,7 +9,7 @@
 
 **[Site ↗](https://pal-tamas.github.io/rask/)** · **[Docs ↗](https://pal-tamas.github.io/rask/docs/)** · **[Playground ↗](https://pal-tamas.github.io/rask/playground/)**
 
-<img alt="Chaining onto Div in an editor: a completion list offers Class, Style, OnClick and Id, each step's doc comment appears beside it, and the same summary lands on the generated factory parameter." src="assets/rask-chain.svg" width="880">
+<img alt="The Counter component typed out in an editor: a tooltip explains the [ … ] indexer as H1[ is written, then the caret stops after Button. and a completion list opens showing Class, Id, OnClick and Style, each with its own doc comment." src="assets/rask-chain.svg" width="880">
 
 </div>
 
