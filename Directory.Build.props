@@ -102,12 +102,13 @@
   -->
   <PropertyGroup>
     <_RaskInRepoImplicitUsings>false</_RaskInRepoImplicitUsings>
-    <!-- Rask.Example.Playground.Tests opts OUT of the consumer implicit-usings: unlike the other example
-         test projects it references neither the Wasm/Server hosts nor Bootstrap/validation (it links the
-         playground's portable compiler sources and references types by name), so the injected global
-         usings would fail to resolve. Exclude it by name rather than all '.Tests' (Shared.Tests /
-         Server.Tests do want the usings and reference the libs that back them). -->
-    <_RaskInRepoImplicitUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.')) AND '$(MSBuildProjectName)' != 'Rask.Example.Playground.Tests' ">true</_RaskInRepoImplicitUsings>
+    <!-- Rask.Example.Playground.Tests and Rask.Example.Site.Tests opt OUT of the consumer implicit-usings:
+         unlike the other example test projects they reference neither the Wasm/Server hosts nor
+         Bootstrap/validation (they link portable sources out of a browser-WASM sample and reference types
+         by name), so the injected global usings would fail to resolve. Exclude them by name rather than
+         all '.Tests' (Shared.Tests / Server.Tests do want the usings and reference the libs that back
+         them). -->
+    <_RaskInRepoImplicitUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.')) AND '$(MSBuildProjectName)' != 'Rask.Example.Playground.Tests' AND '$(MSBuildProjectName)' != 'Rask.Example.Site.Tests' ">true</_RaskInRepoImplicitUsings>
     <!--
       The validation packages inject their own global usings (Rask.Validation.* below). Downstream
       consumers only get them by referencing the validation NuGet package; in-repo we'd otherwise force

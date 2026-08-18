@@ -66,6 +66,15 @@ them until tagged releases begin.
   `.Attributes(new() { ["lang"] = "fr" })`, HTML-encoded, `null` emitting a bare attribute like `Data`.
   `lang`/`dir` were the pointed case: WCAG 3.1.2 (Language of Parts) needs the element that *changes*
   language marked, and that could previously be written on `<html>` and nowhere else.
+- **`tests/Rask.Example.Site.Tests`** — the landing app's first unit coverage. It bakes the new
+  `ChainAnimation` component to `assets/rask-chain.svg` and compares byte-for-byte, so the README's asset
+  cannot drift from the component (`RASK_BAKE_CHAIN_SVG=1 dotnet test tests/Rask.Example.Site.Tests`
+  re-bakes). It also pins the three properties the standalone file depends on: the SVG namespace, a
+  literal fallback behind every `var(--token)`, and the `rc-` prefix on every class and keyframe — an SVG
+  `<style>` inline in HTML is document-scoped, so an unprefixed rule would restyle the page around it.
+- The README's `Counter` example is now compiled by the snippet gate (`ReadmeChainSnippetTests` →
+  `ChainSnippetTests`), which previously mirrored three README blocks that have since moved to
+  [`docs/building-components.md`](docs/building-components.md).
 
 ### Fixed
 - **The `add-html-tag` skill sent a new tag's test to a project that no longer holds any.** After the
@@ -82,6 +91,28 @@ them until tagged releases begin.
   dropped, since nothing being left to shadow is precisely the outcome the split was for.
 
 ### Changed
+- **The README opens on the chain instead of on a wall of badges.** It led with 31 NuGet version badges
+  before showing a line of C#; it now opens with the logo, three named links (Site · Docs · Playground),
+  an animated hero that types the `Counter` component out a character at a time — with the IDE's hints
+  arriving mid-flight, the indexer tooltip as `H1[` is written and the member list plus its doc comment
+  when the caret stops after `Button.` — and then the `Counter` source itself. 391 lines → 185.
+  - The versions moved into a grouped **Packages** table (Package · Version · What it's for), so the same
+    31 badges each carry a description instead of forming an unlabelled grid.
+  - The batteries table, the "Why the One Person Framework" prose and the Rask-vs-Blazor table left the
+    front page. Nothing was deleted: [`docs/one-person-framework.md`](docs/one-person-framework.md)
+    already carried a richer version of the first two (it gains the missing `Rask.Dashboard` row), and the
+    perf numbers live in the CI-enforced
+    [vs-blazor baselines](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md).
+  - The Pages site is three apps — the landing page at `/`, the live showcase at `/docs/`, the playground
+    at `/playground/` — and calling `/docs/` "the live demo" left the docs themselves unnamed. Both the
+    README and the landing page's hero now name all three.
+- **The landing page (`samples/Rask.Example.Site`) opens with the same animation.** `ChainAnimation` is
+  built from the typed SVG family with CSS keyframes in an `SvgStyle` — `Rask.Html` ships no `<animate>`,
+  so SMIL is not available and CSS is also what survives being loaded through an `<img>`. Rendered inline
+  it inherits the site's theme tokens and follows the theme toggle; every colour is written
+  `var(--token, #literal)`, so the same markup baked to a standalone file is self-contained for GitHub.
+  Its base state is its final frame, so `prefers-reduced-motion: reduce` lands on the finished picture
+  rather than a blank one.
 - **The HTML/SVG element family moved out of `Rask.Core` into a new `Rask.Html` assembly.** ~155 tag
   components (`Div`, `Span`, `Table`, `Input`, the 41 `<svg>` elements, `Doctype`) now live in
   `Rask.Html.Components`; `Rask.Core` keeps only what its own engine constructs — `Text`, `Raw`,
