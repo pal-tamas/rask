@@ -183,6 +183,22 @@ public static class CqrsRegistry
                 "IQueryHandler/ICommandHandler for it exists, that its assembly is loaded, and that " +
                 "AddRaskCqrs() was called during startup.");
 
+    /// <summary>
+    ///     Finds the fan-out invoker for a notification type, or null when nothing handles it here.
+    /// </summary>
+    /// <param name="notificationType">The notification's concrete type.</param>
+    /// <remarks>
+    ///     Public so a remote transport can <em>compose</em> with the local fan-out rather than replace
+    ///     it: on a client, publishing a notification should still reach the handlers in that process —
+    ///     a badge, a toast — and also travel to the server. Replacing the invoker outright would
+    ///     silently drop the local ones.
+    /// </remarks>
+    public static NotificationInvoker? FindNotificationInvoker(Type notificationType)
+    {
+        ArgumentNullException.ThrowIfNull(notificationType);
+        return _notifications.TryGetValue(notificationType, out var invoker) ? invoker : null;
+    }
+
     internal static NotificationInvoker? GetNotificationInvoker(Type notificationType) =>
         _notifications.TryGetValue(notificationType, out var invoker) ? invoker : null;
 

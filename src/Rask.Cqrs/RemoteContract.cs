@@ -96,4 +96,16 @@ public sealed class RemoteContract
     ///     with a <c>Content-Disposition</c> rather than a JSON document.
     /// </summary>
     public bool ReturnsFile { get; init; }
+
+    /// <summary>
+    ///     Sends this message through the ambient <see cref="IRemoteDispatch" />, returning the
+    ///     <c>Task&lt;TResult&gt;</c> the dispatcher expects.
+    /// </summary>
+    /// <remarks>
+    ///     Generated, and closed over the concrete result type — which is the only way to produce a typed
+    ///     task without <c>MakeGenericType</c>. A client transport installs this into
+    ///     <see cref="CqrsRegistry" /> so that dispatching the message reaches the server instead of a
+    ///     local handler; a server leaves it alone and dispatches in-process.
+    /// </remarks>
+    public CqrsRegistry.RequestInvoker? Invoker { get; init; }
 }

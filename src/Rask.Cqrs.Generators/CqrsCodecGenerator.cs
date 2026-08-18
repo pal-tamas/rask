@@ -301,41 +301,56 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     private static string Build(List<ContractModel> contracts)
     {
         var emitter = new WireCodecEmitter();
-        var registrations = new List<string>();
+        var registrations = new List<(string Field, string Declaration)>();
 
         foreach (var contract in contracts.OrderBy(c => c.WireName, System.StringComparer.Ordinal))
         {
             var messageId = emitter.Ensure(contract.Message);
             var resultId = contract.Result is null ? null : emitter.Ensure(contract.Result);
 
+            var field = "C" + registrations.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var entry = new StringBuilder();
-            entry.AppendLine("            new global::Rask.Cqrs.RemoteContract");
-            entry.AppendLine("            {");
-            entry.AppendLine($"                MessageType = typeof({contract.Message.Fqn}),");
-            entry.AppendLine($"                Name = \"{contract.WireName}\",");
-            entry.AppendLine($"                Kind = global::Rask.Cqrs.RemoteMessageKind.{contract.Kind},");
-            entry.AppendLine($"                ResultType = typeof({contract.ResultFqn}),");
+            entry.AppendLine($"    private static readonly global::Rask.Cqrs.RemoteContract {field} =");
+            entry.AppendLine("        new global::Rask.Cqrs.RemoteContract");
+            entry.AppendLine("        {");
+            entry.AppendLine($"            MessageType = typeof({contract.Message.Fqn}),");
+            entry.AppendLine($"            Name = \"{contract.WireName}\",");
+            entry.AppendLine($"            Kind = global::Rask.Cqrs.RemoteMessageKind.{contract.Kind},");
+            entry.AppendLine($"            ResultType = typeof({contract.ResultFqn}),");
             entry.AppendLine(
-                $"                WriteMessage = static (writer, message, files) => W{messageId}(writer, "
+                $"            WriteMessage = static (writer, message, files) => W{messageId}(writer, "
                 + $"({contract.Message.Fqn})message, files),");
             entry.AppendLine(
-                $"                ReadMessage = static (ref {Reader} reader, {FileListRead} files) => "
+                $"            ReadMessage = static (ref {Reader} reader, {FileListRead} files) => "
                 + $"R{messageId}(ref reader, files, \"{contract.WireName}\"),");
 
             if (resultId is not null)
             {
                 entry.AppendLine(
-                    $"                WriteResult = static (writer, result) => W{resultId}(writer, "
+                    $"            WriteResult = static (writer, result) => W{resultId}(writer, "
                     + $"({contract.Result!.Fqn})result, NoFiles),");
                 entry.AppendLine(
-                    $"                ReadResult = static (ref {Reader} reader) => "
+                    $"            ReadResult = static (ref {Reader} reader) => "
                     + $"R{resultId}(ref reader, NoFiles, \"result\"),");
             }
 
-            entry.AppendLine($"                CarriesFiles = {(contract.CarriesFiles ? "true" : "false")},");
-            entry.AppendLine($"                ReturnsFile = {(contract.ReturnsFile ? "true" : "false")},");
-            entry.Append("            },");
-            registrations.Add(entry.ToString());
+            entry.AppendLine($"            CarriesFiles = {(contract.CarriesFiles ? "true" : "false")},");
+            entry.AppendLine($"            ReturnsFile = {(contract.ReturnsFile ? "true" : "false")},");
+            // A request's invoker is emitted closed over the concrete result type, which is what lets a
+            // client hand back a real Task<TResult> without MakeGenericType. Notifications need none:
+            // IRemoteDispatch.PublishAsync is not generic, so a transport calls it directly.
+            if (contract.Kind != RemoteKind.Notification)
+            {
+                var send = contract.Kind == RemoteKind.VoidCommand
+                    ? $"Remote(provider).SendAsync({field}, message, cancellationToken)"
+                    : $"Remote(provider).SendAsync<{contract.ResultFqn}>({field}, message, cancellationToken)";
+                entry.AppendLine(
+                    $"            Invoker = static (provider, message, cancellationToken) => {send},");
+            }
+
+            entry.AppendLine("        };");
+            entry.AppendLine();
+            registrations.Add((field, entry.ToString()));
         }
 
         var sb = new StringBuilder();
@@ -349,6 +364,21 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         sb.AppendLine("    private static readonly global::Rask.Cqrs.RemoteFile[] NoFiles = new global::Rask.Cqrs.RemoteFile[0];");
         sb.AppendLine();
         sb.Append(emitter.Methods);
+
+        sb.AppendLine("    // Resolved per dispatch rather than captured: a transport can be a scoped service,");
+        sb.AppendLine("    // and a contract is a static that outlives every scope.");
+        sb.AppendLine("    private static global::Rask.Cqrs.IRemoteDispatch Remote(global::System.IServiceProvider provider) =>");
+        sb.AppendLine("        provider.GetService(typeof(global::Rask.Cqrs.IRemoteDispatch)) as global::Rask.Cqrs.IRemoteDispatch");
+        sb.AppendLine("        ?? throw new global::System.InvalidOperationException(");
+        sb.AppendLine("            \"This message has no handler in this process and no transport to send it through. \"");
+        sb.AppendLine("            + \"Call AddRaskCqrsClient() during startup, or give the message a handler here.\");");
+        sb.AppendLine();
+
+        foreach (var (_, declaration) in registrations)
+        {
+            sb.Append(declaration);
+        }
+
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         sb.AppendLine("    internal static void Initialize()");
         sb.AppendLine("    {");
@@ -356,9 +386,9 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         sb.AppendLine("            typeof(__RaskCqrsCodecs),");
         sb.AppendLine("            new global::Rask.Cqrs.RemoteContract[]");
         sb.AppendLine("            {");
-        foreach (var registration in registrations)
+        foreach (var (field, _) in registrations)
         {
-            sb.AppendLine(registration);
+            sb.AppendLine($"                {field},");
         }
 
         sb.AppendLine("            });");
