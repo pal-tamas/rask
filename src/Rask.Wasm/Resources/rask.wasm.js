@@ -548,10 +548,10 @@ function applyDiffReply(reply) {
         if (freshHead) {
             morph(document.head, freshHead);
             const wait = waitForUnappliedHeadCss();
-            if (wait) return wait.then(applyBody);
+            if (wait) return wait.then(() => window.__raskVt.run(applyBody));
         }
     }
-    applyBody();
+    return window.__raskVt.run(applyBody);
 }
 
 function applyFullReply(reply) {
@@ -599,9 +599,9 @@ function applyFullReply(reply) {
     // no new scoped CSS.
     if (freshHtml) {
         const wait = preloadNewHeadStylesheets(freshHtml);
-        if (wait) return wait.then(applyDom);
+        if (wait) return wait.then(() => window.__raskVt.run(applyDom));
     }
-    applyDom();
+    return window.__raskVt.run(applyDom);
 }
 
 // Cached at module scope: TextEncoder construction is cheap but not free, and a
