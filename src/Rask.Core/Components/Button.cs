@@ -64,6 +64,31 @@ public sealed class Button : Element
     /// <summary><c>toggle</c> (the default), <c>show</c> or <c>hide</c> for <see cref="PopoverTarget" />.</summary>
     public string? PopoverTargetAction { get; set; }
 
+    // command/commandfor generalise what popovertarget does for popovers, so they are declared next to
+    // it — and APPENDED after it, never inserted, because factory parameters are ordered by declaration
+    // span and inserting here would shift the positional index of every parameter below.
+    //
+    // `interestfor` is deliberately absent: still experimental and Chromium-only, the same bar #694 used
+    // to leave out <fencedframe> and <selectedcontent>.
+
+    /// <summary>
+    ///     The action this button invokes on <see cref="CommandFor" />: <c>show-modal</c>, <c>close</c>,
+    ///     <c>request-close</c>, <c>toggle-popover</c>, <c>show-popover</c>, <c>hide-popover</c>, or a
+    ///     custom <c>--name</c> that dispatches a <c>CommandEvent</c> instead.
+    ///     <para>
+    ///         This is <see cref="PopoverTarget" /> generalised past popovers — it drives a
+    ///         <c>&lt;dialog&gt;</c> the same way, with no script on either side.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#command">MDN</see>
+    /// </summary>
+    public string? Command { get; set; }
+
+    /// <summary>
+    ///     The <c>id</c> of the element <see cref="Command" /> acts on.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#commandfor">MDN</see>
+    /// </summary>
+    public string? CommandFor { get; set; }
+
     // OnClick / OnClickAsync are inherited from Element (the GlobalEventHandlers surface).
 
     protected override void WriteAttributes(StringBuilder sb)
@@ -134,6 +159,16 @@ public sealed class Button : Element
         if (PopoverTargetAction is not null)
         {
             AppendAttr(sb, "popovertargetaction", PopoverTargetAction);
+        }
+
+        if (Command is not null)
+        {
+            AppendAttr(sb, "command", Command);
+        }
+
+        if (CommandFor is not null)
+        {
+            AppendAttr(sb, "commandfor", CommandFor);
         }
     }
 }

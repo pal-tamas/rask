@@ -55,6 +55,25 @@ public sealed partial class Script : Element
     /// <summary>The script's encoding. Deprecated: serve UTF-8 and omit this.</summary>
     public string? Charset { get; set; }
 
+    /// <summary>
+    ///     The <c>fetchpriority</c> hint — <c>high</c>, <c>low</c>, or <c>auto</c> (the default).
+    ///     <para>
+    ///         The load-bearing use is <c>high</c> on the LCP image: the browser discovers it at the same
+    ///         moment either way, but this moves it ahead of the other images in the queue. Marking
+    ///         everything high marks nothing high.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#fetchpriority">MDN</see>
+    /// </summary>
+    public string? FetchPriority { get; set; }
+
+    /// <summary>
+    ///     The <c>blocking</c> attribute — currently only <c>render</c>, which makes this an
+    ///     opt-IN to blocking rendering until it loads, rather than the opt-out everything else is.
+    ///     Reach for it when a flash of unstyled or un-scripted content is worse than the delay.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#blocking">MDN</see>
+    /// </summary>
+    public string? Blocking { get; set; }
+
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
@@ -101,6 +120,16 @@ public sealed partial class Script : Element
         if (Charset is not null)
         {
             AppendAttr(sb, "charset", Charset);
+        }
+
+        if (FetchPriority is not null)
+        {
+            AppendAttr(sb, "fetchpriority", FetchPriority);
+        }
+
+        if (Blocking is not null)
+        {
+            AppendAttr(sb, "blocking", Blocking);
         }
     }
 }
