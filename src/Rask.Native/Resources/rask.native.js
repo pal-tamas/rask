@@ -100,8 +100,19 @@ function applyRender(json) {
     handle(reply);
 }
 
+// Navigator.Download staged bytes on the host. There is nothing useful a WebView can do with them itself —
+// <a download> is inert in a WKWebView — so the client's whole job is to hand the token straight back, and
+// the host pulls the bytes and gives them to the platform (INativeFileExport → the OS share sheet).
+function applyDownload(download) {
+    if (!download || typeof download.token !== "string" || download.token.length === 0) return;
+    send({ type: "download", token: download.token });
+}
+
 function handle(reply) {
     if (!reply || typeof reply !== "object") return;
+    // Before the render is queued: the download is an out-of-band side effect with no dependency on the DOM
+    // commit, and queueing it behind the morph would delay the share sheet behind a FOUC wait for no reason.
+    applyDownload(reply.download);
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
         _renderQueue = _renderQueue.then(() => applyDiffReply(reply), () => applyDiffReply(reply));
         return;
@@ -219,13 +230,30 @@ window.addEventListener("popstate", function () {
 // call it regardless of splice order.
 // @@RASK_INPUT@@
 
-// Change — report the control's value (checkbox → checked). Flush any pending coalesced input first
-// so a change-triggered validator reads the freshly-typed value, not the pre-flush one.
+// ----- input[type=file] ref registry (raskRegisterFiles / raskReadFileChunkBase64) — rask-files.js -----
+// Shared with the WASM client. The host reads the bytes back through window.__raskFiles.readChunkBase64
+// over IJSRuntime — see NativeFileBackend.
+// @@RASK_FILES@@
+
+// Change — report the control's value (checkbox → checked), or the picked files for a file input. Flush any
+// pending coalesced input first so a change-triggered validator reads the freshly-typed value, not the
+// pre-flush one.
 document.addEventListener("change", function (e) {
     const el = e.target;
     if (!el || !el.getAttribute) return;
+    if (!inRoot(el)) return;
+    // A file input carries data-rask-on-files, not data-rask-on-change: the frame ships file metadata rather
+    // than a value, and el.value on a file input is only the browser's fakepath stub.
+    // (No backslashes in this template — the MSBuild splice path-normalizes them into forward slashes.)
+    if (el.tagName === "INPUT" && el.type === "file" && el.hasAttribute("data-rask-on-files")) {
+        const files = el.files;
+        if (!files || files.length === 0) return;
+        if (typeof flushInputsNow === "function") flushInputsNow();
+        send({ id: el.getAttribute("data-rask-on-files"), type: "files", files: raskRegisterFiles(el, files) });
+        return;
+    }
     const id = el.getAttribute("data-rask-on-change");
-    if (!id || !inRoot(el)) return;
+    if (!id) return;
     if (typeof flushInputsNow === "function") flushInputsNow();
     // Through the shared module (rask-morph.js, spliced above at @@RASK_MORPH@@) rather than a local
     // valueOf — this host had its own copy, which is exactly the drift that left <select> unguarded.
@@ -248,6 +276,15 @@ document.addEventListener("submit", function (e) {
     const data = {};
     const fd = new FormData(form);
     fd.forEach(function (v, k) { if (typeof v === "string") data[k] = v; });
+    // File inputs inside the form: FormData yields File objects, which the loop above drops (they are not
+    // strings). Register them the same way the change path does and carry the metadata under __files, which
+    // is the key Core's FormData reader looks under. Same shape as the WASM client.
+    const fileFields = {};
+    for (const input of form.querySelectorAll('input[type="file"][name]')) {
+        if (!input.files || input.files.length === 0) continue;
+        fileFields[input.name] = raskRegisterFiles(input, input.files);
+    }
+    if (Object.keys(fileFields).length > 0) data.__files = fileFields;
     send({ id: id, type: "submit", form: data });
 });
 
