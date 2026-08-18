@@ -75,6 +75,17 @@ public sealed partial class Img : Element
     /// </summary>
     public bool? Ismap { get; set; }
 
+    /// <summary>
+    ///     The <c>fetchpriority</c> hint — <c>high</c>, <c>low</c>, or <c>auto</c> (the default).
+    ///     <para>
+    ///         The load-bearing use is <c>high</c> on the LCP image: the browser discovers it at the same
+    ///         moment either way, but this moves it ahead of the other images in the queue. Marking
+    ///         everything high marks nothing high.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#fetchpriority">MDN</see>
+    /// </summary>
+    public string? FetchPriority { get; set; }
+
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
@@ -136,6 +147,11 @@ public sealed partial class Img : Element
         if (Ismap is true)
         {
             AppendAttr(sb, "ismap", null);
+        }
+
+        if (FetchPriority is not null)
+        {
+            AppendAttr(sb, "fetchpriority", FetchPriority);
         }
     }
 }

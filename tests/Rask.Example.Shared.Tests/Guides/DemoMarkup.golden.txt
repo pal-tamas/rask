@@ -6247,6 +6247,29 @@ p .mb-0
 span .fst-italic
 code
 
+=== props-command ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+button .btn .btn-outline-primary
+dialog .border-0 .p-3 .rounded .shadow
+p .mb-3
+code
+button .btn .btn-secondary .btn-sm
+
 === props-data ===
 div .border-0 .card .mb-4 .sample-card .shadow-sm
 div .sample-code-col

@@ -55,6 +55,39 @@ public sealed partial class Link : Element
     /// <summary>The colour for a <c>mask-icon</c>. Safari-specific.</summary>
     public string? Color { get; set; }
 
+    /// <summary>
+    ///     The <c>fetchpriority</c> hint — <c>high</c>, <c>low</c>, or <c>auto</c> (the default).
+    ///     <para>
+    ///         The load-bearing use is <c>high</c> on the LCP image: the browser discovers it at the same
+    ///         moment either way, but this moves it ahead of the other images in the queue. Marking
+    ///         everything high marks nothing high.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#fetchpriority">MDN</see>
+    /// </summary>
+    public string? FetchPriority { get; set; }
+
+    /// <summary>
+    ///     The <c>blocking</c> attribute — currently only <c>render</c>, which makes this an
+    ///     opt-IN to blocking rendering until it loads, rather than the opt-out everything else is.
+    ///     Reach for it when a flash of unstyled or un-scripted content is worse than the delay.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#blocking">MDN</see>
+    /// </summary>
+    public string? Blocking { get; set; }
+
+    /// <summary>
+    ///     For <c>rel="preload" as="image"</c>: the <c>srcset</c> the preload should honour. Without it a
+    ///     responsive-image preload fetches the wrong candidate and the page pays for two downloads —
+    ///     which is the opposite of what preloading it was for.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#imagesrcset">MDN</see>
+    /// </summary>
+    public string? ImageSrcset { get; set; }
+
+    /// <summary>
+    ///     The <c>sizes</c> that pairs with <see cref="ImageSrcset" /> on an image preload.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#imagesizes">MDN</see>
+    /// </summary>
+    public string? ImageSizes { get; set; }
+
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
@@ -111,6 +144,26 @@ public sealed partial class Link : Element
         if (Color is not null)
         {
             AppendAttr(sb, "color", Color);
+        }
+
+        if (FetchPriority is not null)
+        {
+            AppendAttr(sb, "fetchpriority", FetchPriority);
+        }
+
+        if (Blocking is not null)
+        {
+            AppendAttr(sb, "blocking", Blocking);
+        }
+
+        if (ImageSrcset is not null)
+        {
+            AppendAttr(sb, "imagesrcset", ImageSrcset);
+        }
+
+        if (ImageSizes is not null)
+        {
+            AppendAttr(sb, "imagesizes", ImageSizes);
         }
     }
 }

@@ -30,4 +30,9 @@ public partial class IframeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_StringChild_EncodesText() =>
         Assert.Equal("<iframe>&lt;x&gt;</iframe>", Iframe["<x>"].ToHtml());
+
+    [Fact]
+    public void Render_FetchPriority_EmitsAfterTheOtherIframeAttrs() =>
+        Assert.Equal("<iframe src=\"/a\" loading=\"lazy\" fetchpriority=\"low\"></iframe>",
+            Iframe.Src("/a").Loading("lazy").FetchPriority("low").ToHtml());
 }
