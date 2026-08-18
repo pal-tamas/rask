@@ -105,6 +105,19 @@ public sealed partial class Form<TModel> : Element
     public ValidateAsync<TModel>? ValidateAsync { get; set; }
 
     /// <summary>
+    ///     The relationship between this form and the destination it submits to — MDN lists
+    ///     <c>noopener</c>, <c>noreferrer</c>, <c>external</c> and friends. Only meaningful together with
+    ///     <see cref="Target" />, since a form that stays in the page navigates nowhere to relate to.
+    ///     <para>
+    ///         Declared last on purpose: factory parameters are ordered by declaration span, so putting it
+    ///         next to the other attributes would shift the positional index of every callback below it —
+    ///         a silent source break for anyone passing them positionally. Same reason as
+    ///         <c>Element.Title</c>.
+    ///     </para>
+    /// </summary>
+    public string? Rel { get; set; }
+
+    /// <summary>
     ///     The validation context this form drives. Leave it unset and the form creates and owns one, which
     ///     is what almost every form wants; supply one to share validation state with something outside the
     ///     form, or to inspect it from the page.
@@ -264,6 +277,11 @@ public sealed partial class Form<TModel> : Element
         if (Name is not null)
         {
             AppendAttr(sb, "name", Name);
+        }
+
+        if (Rel is not null)
+        {
+            AppendAttr(sb, "rel", Rel);
         }
 
         Delegate? submit;

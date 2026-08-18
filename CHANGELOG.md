@@ -7,9 +7,65 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **The pre-push gates blamed your branch for your machine.** When the `wasm-tools` workload is momentarily
+  unresolvable every browser-targeting project fails at *evaluation* with `NETSDK1147`, and the CLI gate
+  reported that as *"the code the CLI writes doesn't compile"* — measured at 0 `error CS` against 24
+  `error NETSDK1147`. It sent two people hunting a scaffolder bug that did not exist.
+
+  All four gate arms (browser E2E, CLI build, watch hot-reload, deploy) now run through one `run_gate`
+  helper that keeps the full output and **reads the verdict off the log** instead of asserting one. The
+  reading itself lives in `scripts/lib/build-failure.sh`, shared by the hook and by the gate scripts a
+  developer runs directly, and sorts a log into four kinds: `code` (`error CS` present — the branch really
+  is broken, and the gate's own message stands), `workload` (`NETSDK1147` and no compiler error — names
+  the usual cause, a concurrent `dotnet workload install` from any session or worktree bumping the shared
+  mono/emscripten manifests for the whole SDK band before the packs are restored, and prints the two
+  commands that confirm it), `sdk` (any other `NETSDK` — still not your branch), and `unknown` (neither,
+  so the gate did not fail at compiling at all: a failing journey, an assertion, a timeout). `CS` wins
+  when both appear, because a real compiler error is the actionable one; the two machine kinds are the
+  only ones that suppress the gate's own "what to do now", since pointing at your diff there is the whole
+  defect. Closes #718.
+
+  Four predicates over two counts decide whether a red gate sends you to your own diff or to `ps aux`, so
+  it is table tested (`scripts/tests/build-failure-kind.test.sh`, run first by `run-unit-local.sh`) rather
+  than left to the two cases someone happened to try — the same reasoning as
+  `BakeScopedAssetsTask.IsNodeReuseBakeFailure`'s table test in #690. Both halves were verified by being
+  made to fail: reordering the classifier to check `workload` before `cs` reddens the "CS wins" row, and
+  letting the `workload` message carry the gate's branch-blame reddens the message assertions. `scripts/`
+  and `.githooks/` also join the pre-commit path filter — a change to the gate logic was otherwise the one
+  change that skipped the gate.
+- **The CLI build gate deleted packages out of the machine-global NuGet cache.** `EvictFromGlobalCache`
+  removes all 22 packed `Rask.*` packages at the version under test, which is load-bearing — without it a
+  restore reuses a previously-cached nupkg of the same version and the gate silently tests stale bits
+  (#534). But MinVer stamps the *same* version for the same commit in every worktree, so one gate run
+  could delete what another worktree's build was restoring at that moment.
+
+  The gate now restores into a private cache under `artifacts/`, scoped to the test invocation so the
+  repo's own build still uses the normal one. Verified directly: 20 package directories used to land in
+  `~/.nuget/packages` at the packed version and now none do, with the gate still passing 27/27. A test may
+  not reach outside its sandbox to delete shared state.
+
+  This is the prime suspect for #721, but **it is not a reproduction** — the gate ran green 8/8
+  consecutively while investigating. That is consistent with the reported failure having occurred while
+  nine sessions were saturating the machine, and it is why this is justified by the hazard being real in
+  the code rather than by a repro. #721 stays open pending a sighting under load.
+
 ### Added
+- **The per-element attribute gaps MDN turned up (closes #694).** `<button>` gains the six form-override
+  attributes `Input` already had — `Form`, `FormAction`, `FormEnctype`, `FormMethod`, `FormNovalidate`,
+  `FormTarget` — so a submit button can override the form's action written as `<button>` and not only as
+  `<input type="submit">`, plus `Autofocus`, `PopoverTarget` and `PopoverTargetAction`. `<video>` gains
+  `ControlsList`, `DisablePictureInPicture`, `DisableRemotePlayback` and `Loading`. `<form>` gains `Rel`.
+  `FormAction` is sanitised like every other URL-valued attribute — it is a navigation target, so a
+  `javascript:` value there would be script execution on submit.
 - **`<var>`** — the one element MDN lists that Rask had no component for (part of #694). A variable in a
   mathematical or programming context; not emphasis (`em`) and not literal code (`code`).
+- **`Element.Attributes` — the escape hatch for HTML's global attributes (part of #693).** Everything
+  `Element` does not name is now reachable: `lang`, `dir`, `hidden`, `inert`, `popover`,
+  `contenteditable`, `inputmode`, microdata, and anything vendor or experimental —
+  `.Attributes(new() { ["lang"] = "fr" })`, HTML-encoded, `null` emitting a bare attribute like `Data`.
+  `lang`/`dir` were the pointed case: WCAG 3.1.2 (Language of Parts) needs the element that *changes*
+  language marked, and that could previously be written on `<html>` and nowhere else.
 - **`tests/Rask.Example.Site.Tests`** — the landing app's first unit coverage. It bakes the new
   `ChainAnimation` component to `assets/rask-chain.svg` and compares byte-for-byte, so the README's asset
   cannot drift from the component (`RASK_BAKE_CHAIN_SVG=1 dotnet test tests/Rask.Example.Site.Tests`
@@ -589,27 +645,29 @@ them until tagged releases begin.
   re-render (one entry plus three setter calls per row, 150 setter calls a frame) allocates **19.7 KB
   on both surfaces — Alloc Ratio 1.00**.
 
-  **On wall-clock it currently costs 18%**, and that is a regression inside this branch rather than a
-  property of the surface — the same benchmark had the chain slightly AHEAD earlier (Entry/Factory
-  0.95–0.97):
+  **On wall-clock it is 43% AHEAD** — but only after a regression the surface introduced was found
+  and fixed, so both numbers are worth keeping. Each row is its own run, so read the ratio rather than
+  comparing the two `Factory` means (they differ by run-to-run drift):
 
   ```
-  Factory   21.89 us   19.7 KB   1.00
-  Entry     25.88 us   19.7 KB   1.00   (time ratio 1.18 ± 0.02)
+  before   Factory 22.73 us   Entry 27.74 us   ratio 1.22   19.7 KB both, Alloc Ratio 1.00
+  after    Factory 24.11 us   Entry 13.62 us   ratio 0.57   19.7 KB both, Alloc Ratio 1.00
   ```
 
-  **The cause is not yet known.** `BuilderSurfaceBenchmarks`' own comment predicts one — the deferred
-  reset grew a form where a property whose setter has a BODY is assigned unconditionally rather than
-  skipped when it already reads as its default, and five props on the shared `Element`/`Component`
-  surface take that form (`Draggable`, `Role`, `TabIndex`, `Aria`, `Ref`), so every element pays. That
-  prediction was **measured and disproved**: narrowing the unconditional path to `Router.Routes` alone
-  (the one property that genuinely derives state, resolving `RouteRegistry.BuildTree()` on assignment)
-  moves the ratio from 1.18 to 1.17. It is not where the time goes.
+  What it was: the eager reset runs at the entry, before the chain's setters, and puts every
+  non-folding prop back so a callback named LAST render cannot survive into one that does not name it.
+  On `Element` that is ~88 delegate fields, written unconditionally on every entry-built element on
+  every render — and almost no element carries a callback, so nearly every one of those writes was
+  assigning null over null. A single bit on `Component` (`FlagCallbackAssigned`, in the existing
+  `_flags` byte, so it costs no memory) now records whether there is anything to put back, and the
+  block is skipped when there is not.
 
-  What has not been ruled out is the per-step bookkeeping each setter does (`Track` + `Written`, 150
-  calls a frame here) and the reset's own shape — every prop on the shared surface is a separate mask
-  test per component per render, whether or not the form of the write changes. Tracked in the issue;
-  the number is recorded here rather than left to be rediscovered.
+  Worth recording what it was NOT, because the benchmark's own comment had predicted a different cause
+  and it was wrong: the unconditional reset of the five body-setter props (`Draggable`, `Role`,
+  `TabIndex`, `Aria`, `Ref`). Measured during the original investigation: narrowing that path to
+  `Router.Routes` alone — the one property that genuinely derives state — moved the ratio 1.18 → 1.17,
+  and removing the *whole* pending reset moved it to 1.11. Neither was the cost; the eager block was,
+  and it is not the one the comment named.
 
   The ratio is recorded because dropping the generated factory removes the arm that produces it, so
   this comparison cannot be reproduced afterwards.

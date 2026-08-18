@@ -191,6 +191,29 @@ public abstract partial class Element : Component
         }
     }
 
+    /// <summary>
+    ///     The escape hatch for every global HTML attribute this class does not name — <c>lang</c>,
+    ///     <c>dir</c>, <c>hidden</c>, <c>inert</c>, <c>popover</c>, <c>contenteditable</c>,
+    ///     <c>inputmode</c>, microdata, and anything vendor or experimental. Each entry emits
+    ///     <c>{key}="{value}"</c> with the value HTML-encoded: <c>.Attributes(new() { ["lang"] = "fr" })</c>.
+    ///     <para>
+    ///         <c>lang</c> and <c>dir</c> are the ones that matter most: WCAG 3.1.2 (Language of Parts)
+    ///         needs a phrase in another language marked on the element that changes language, and before
+    ///         this there was no way to write it anywhere but <c>&lt;html&gt;</c>.
+    ///     </para>
+    ///     <para>
+    ///         A <see langword="null" /> value renders the attribute bare (<c>&lt;div hidden&gt;</c>), the
+    ///         same rule <see cref="Data" /> follows. Declared last, and stored on the lazy LiveState, so an
+    ///         element that sets none pays a single null reference and no factory parameter moves.
+    ///     </para>
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes">MDN</see>
+    /// </summary>
+    public IReadOnlyDictionary<string, string?>? Attributes
+    {
+        get => ExtraAttrsInternal;
+        set => ExtraAttrsInternal = value;
+    }
+
     // Subclasses transform the `class` attribute value without re-implementing the universal
     // id/class/style/data-* walk. NavLink overrides this to splice in its active class.
     protected virtual string? ResolveClass() => Class;
@@ -279,6 +302,14 @@ public abstract partial class Element : Component
         if (Aria is not null)
         {
             AppendPrefixedAttrs(sb, "aria-", Aria, skipKey: null);
+        }
+
+        // Last in the universal block, so the documented order still reads "globals first, grouped" and a
+        // subclass's tag-specific attrs still follow everything here. One null check on an element that
+        // sets none, and an unprefixed pass through the same emitter data-*/aria-* use.
+        if (ExtraAttrsInternal is { } extra)
+        {
+            AppendPrefixedAttrs(sb, string.Empty, extra, skipKey: null);
         }
     }
 

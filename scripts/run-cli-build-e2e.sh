@@ -22,20 +22,67 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
+# shellcheck source=lib/build-failure.sh
+. "$root/scripts/lib/build-failure.sh"
+
 # The gates read this to decide whether to run; without it every case reports SKIPPED.
 export RASK_CLI_BUILD_E2E=1
+
+# Everything below is teed here so a failure can be classified by ERROR KIND before this gate blames
+# anyone. It used to report every failure as "the code the CLI writes doesn't compile", which is a lie
+# when the machine cannot build browser targets at that moment — see scripts/lib/build-failure.sh.
+#
+# When .githooks/pre-push runs this gate it captures the same log and delivers the verdict itself
+# (RASK_GATE_WRAPPED=1), so a direct run gets an explanation and a wrapped one is not told twice.
+log="$(mktemp -t rask-cli-build-gate.XXXXXX)"
+trap 'rm -f "$log"' EXIT
+
+# `|| status=$?` rather than letting `set -e` fire: this gate has to reach the classification below.
+# `set -o pipefail` (set above) is what makes `dotnet … | tee` report dotnet's status rather than tee's —
+# without it every run through a pipe reads as a pass.
+status=0
 
 echo "==> Build the CLI test project (Release)"
 # MinVerSkip is deliberately NOT set: the gate packs the Rask packages and reads the packed version off
 # the nupkg filename, so MinVer must stamp a real version here.
-dotnet build tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release -m:1
+dotnet build tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release -m:1 2>&1 | tee "$log" || status=$?
 
-echo "==> CLI build gates (scaffold output + tutorial walk-through must compile)"
-# Serial (-m:1 above, and one pack at a time inside the fixture): the gates share a single packed feed,
-# built lazily on first use.
-dotnet test tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release --no-build \
-  --filter "FullyQualifiedName~BuildE2ETests|FullyQualifiedName~TutorialWalkthroughE2ETests" \
-  --logger "console;verbosity=normal"
+# A package cache of the gate's OWN, and the reason is that this gate MUTATES one.
+#
+# CliBuildE2E.EvictFromGlobalCache deletes ~/.nuget/packages/<pkg>/<version> for all 22 Rask packages it
+# packs. That eviction is load-bearing — without it a restore reuses a previously-cached nupkg of the same
+# version and the gate silently tests stale bits, which is worse than no gate (#534). But MinVer stamps
+# the SAME version for the same commit in every worktree, so pointing it at the machine-global cache means
+# one gate run can delete the packages another worktree's build is restoring at that moment. A test may
+# not reach outside its own sandbox to delete shared state.
+#
+# Scoped to the test invocation on purpose: the repo's own build above keeps using the normal cache
+# (it only reads), so this re-downloads what the SCAFFOLDED projects need and nothing else, once, and
+# reuses it afterwards. artifacts/ is gitignored.
+gate_packages="$root/artifacts/cli-gate-packages"
+mkdir -p "$gate_packages"
+
+if [ "$status" -eq 0 ]; then
+  echo "==> CLI build gates (scaffold output + tutorial walk-through must compile)"
+  # Serial (-m:1 above, and one pack at a time inside the fixture): the gates share a single packed feed,
+  # built lazily on first use.
+  NUGET_PACKAGES="$gate_packages" \
+  dotnet test tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release --no-build \
+    --filter "FullyQualifiedName~BuildE2ETests|FullyQualifiedName~TutorialWalkthroughE2ETests" \
+    --logger "console;verbosity=normal" 2>&1 | tee -a "$log" || status=$?
+fi
+
+if [ "$status" -ne 0 ]; then
+  if [ "${RASK_GATE_WRAPPED:-}" != "1" ]; then
+    echo >&2
+    rask_explain_build_failure \
+      "$(rask_build_failure_kind "$log")" \
+      "CLI build gate" \
+      "FAILED — the code the CLI writes doesn't compile." \
+      "A scaffolded project built, but a gate assertion failed — read the failure above."
+  fi
+  exit "$status"
+fi
 
 echo
 echo "==> CLI build gate passed."

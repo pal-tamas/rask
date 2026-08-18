@@ -14,16 +14,63 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 
+# shellcheck source=../scripts/lib/build-failure.sh
+. "$root/scripts/lib/build-failure.sh"
+
+gate_logs="${TMPDIR:-/tmp}/rask-pre-push-$$"
+mkdir -p "$gate_logs"
+
+# Run one gate, keep its full output, and — if it fails — say something TRUE about why.
+#
+# Every gate below builds. When the wasm-tools workload is momentarily unresolvable, every
+# browser-targeting project fails at EVALUATION with NETSDK1147 and the gate goes red without a single
+# compiler error. Reporting that as "the code the CLI writes doesn't compile" names the wrong culprit,
+# and it sent two people hunting a scaffolder bug that did not exist (#718). So the verdict is READ OFF
+# THE LOG rather than assumed, by the shared classifier in scripts/lib/build-failure.sh — which is table
+# tested (scripts/tests/build-failure-kind.test.sh), because four predicates over two counts is exactly
+# the kind of thing that is quietly wrong until it costs someone an afternoon.
+#
+#   $1 label · $2 script · $3 what a COMPILE failure means for this gate · $4 what a non-compile one means
+#
+# The two machine kinds (workload, sdk) get neither message: the whole point is that this gate cannot
+# tell you anything about your branch when the branch is not what failed.
+#
+# The output goes to a FILE as well as the terminal. `cmd | tail` reports tail's status, so a gate whose
+# exit code is swallowed is a false green; `tee` is only safe here because `pipefail` is set above.
+run_gate() {
+  gate_label="$1"
+  gate_script="$2"
+  gate_code_hint="$3"
+  gate_other_hint="$4"
+  gate_log="$gate_logs/$(basename "$gate_script" .sh).log"
+
+  # RASK_GATE_WRAPPED tells the gate script that something is capturing its log and will deliver the
+  # verdict, so a failure is explained once rather than twice. Exported to the child only.
+  if RASK_GATE_WRAPPED=1 "$root/$gate_script" 2>&1 | tee "$gate_log"; then
+    return 0
+  fi
+
+  echo >&2
+  rask_explain_build_failure \
+    "$(rask_build_failure_kind "$gate_log")" \
+    "pre-push: $gate_label" \
+    "FAILED — push aborted. $gate_code_hint" \
+    "$gate_other_hint"
+
+  echo >&2
+  echo "pre-push: full gate output kept at $gate_log" >&2
+  exit 1
+}
+
 if [ "${RASK_SKIP_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_E2E=1 set — skipping the local browser E2E gate."
 else
   echo "pre-push: running the local E2E gate (browser journeys)."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_E2E=1 (e.g. docs-only pushes)."
 
-  if ! "$root/scripts/run-e2e-local.sh"; then
-    echo "pre-push: E2E gate FAILED — push aborted. Fix the failing journey, or bypass with --no-verify." >&2
-    exit 1
-  fi
+  run_gate "E2E gate (browser journeys)" scripts/run-e2e-local.sh \
+    "The E2E graph doesn't compile." \
+    "Fix the failing journey, or bypass with --no-verify."
 fi
 
 # Like the deploy gate below, this one is scoped to the pushes it can actually say something about:
@@ -36,17 +83,18 @@ if [ "${RASK_SKIP_CLI_BUILD_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_CLI_BUILD_E2E=1 set — skipping the CLI build gate."
 elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
   echo "pre-push: no origin/main to diff against — running the CLI build gate to be safe."
-  "$root/scripts/run-cli-build-e2e.sh" || { echo "pre-push: CLI build gate FAILED — push aborted." >&2; exit 1; }
+  run_gate "CLI build gate" scripts/run-cli-build-e2e.sh \
+    "The code the CLI writes doesn't compile." \
+    "A scaffolded project built, but a gate assertion failed — read the failure above."
 elif ! git diff --name-only origin/main...HEAD | grep -E "$generator_paths" >/dev/null; then
   : # nothing in this push can change what the generators emit
 else
   echo "pre-push: this push touches the generators or the packages they emit — running the CLI build gate."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_CLI_BUILD_E2E=1."
 
-  if ! "$root/scripts/run-cli-build-e2e.sh"; then
-    echo "pre-push: CLI build gate FAILED — push aborted. The code the CLI writes doesn't compile." >&2
-    exit 1
-  fi
+  run_gate "CLI build gate" scripts/run-cli-build-e2e.sh \
+    "The code the CLI writes doesn't compile." \
+    "A scaffolded project built, but a gate assertion failed — read the failure above."
 fi
 
 # The watch gate runs a real `dotnet watch` session with 2-minute ceilings, so like the others it runs
@@ -64,10 +112,9 @@ else
   echo "pre-push: this push touches the hot-reload loop — running the watch gate."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_WATCH_E2E=1."
 
-  if ! "$root/scripts/run-watch-e2e.sh"; then
-    echo "pre-push: watch hot-reload gate FAILED — push aborted. An edit no longer reaches a running app." >&2
-    exit 1
-  fi
+  run_gate "watch hot-reload gate" scripts/run-watch-e2e.sh \
+    "The hot-reload path doesn't compile." \
+    "An edit no longer reaches a running app."
 fi
 
 # The deploy gate boots a privileged container, so it runs only when this push actually touches the
@@ -85,8 +132,7 @@ else
   echo "pre-push: this push changes the deploy path — running the deploy gate against a container host."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_DEPLOY_E2E=1."
 
-  if ! "$root/scripts/run-deploy-e2e-local.sh"; then
-    echo "pre-push: deploy gate FAILED — push aborted. Fix it, or bypass with RASK_SKIP_DEPLOY_E2E=1." >&2
-    exit 1
-  fi
+  run_gate "deploy gate" scripts/run-deploy-e2e-local.sh \
+    "The deploy path doesn't compile." \
+    "Fix it, or bypass with RASK_SKIP_DEPLOY_E2E=1."
 fi
