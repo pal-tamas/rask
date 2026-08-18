@@ -40,7 +40,7 @@ them until tagged releases begin.
   - **`HttpClient` on WASM.** `WasmHostBuilder` registers a lazy default (page origin as base address) with
     `TryAdd`, so `IAuthSignIn` resolves out of the box and an app that registers its own still wins.
 
-  **The gate.** `RaskHostContracts` names the 47 contracts Core promises everywhere, and each host's test
+  **The gate.** `RaskHostContracts` names the contracts Core promises everywhere, and each host's test
   project asserts its own bootstrap *resolves* every one — resolution rather than registration, because a
   descriptor whose dependencies are missing looks registered and still throws at the injection site, which
   is exactly how the WASM `HttpClient` hole shipped. A completeness test in `Rask.Core.Tests` partitions the

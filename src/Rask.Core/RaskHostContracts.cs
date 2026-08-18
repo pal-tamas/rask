@@ -74,8 +74,8 @@ public static class RaskHostContracts
         typeof(INotifications), typeof(IOriginPrivateFileSystem), typeof(IPageVisibility),
         typeof(IPerformance), typeof(IPermissions), typeof(IResizeObserver), typeof(IScreenInfo),
         typeof(ISignaling), typeof(ISpeechRecognition), typeof(ISpeechSynthesis), typeof(IStorageEstimator),
-        typeof(IVibration), typeof(IVisualViewport), typeof(IWakeLock), typeof(IWebAuthn),
-        typeof(IWebLocks), typeof(IWebPush), typeof(IWebRtc),
+        typeof(IVibration), typeof(IViewTransitions), typeof(IVisualViewport), typeof(IWakeLock),
+        typeof(IWebAnimations), typeof(IWebAuthn), typeof(IWebLocks), typeof(IWebPush), typeof(IWebRtc),
     ];
 
     /// <summary>
