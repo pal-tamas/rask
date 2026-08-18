@@ -22,7 +22,7 @@ service to operate.
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database, delivered off the request thread over SMTP; bodies are Rask components. |
 | **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
-| **The door out of one box** | ✅ | [`databases.md`](databases.md) — `rask new --database postgres|sqlserver` wires PostgreSQL or SQL Server via `Rask.Postgres` / `Rask.SqlServer` (production session settings + retry), and deploy/`rask db` follow. Jobs, mail and the outbox **lease** the work they claim, so several instances is safe; a lease bounds, but does not eliminate, a duplicate side effect. |
+| **The door out of one box** | ❌ | Not shipped — Rask wires SQLite only. Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — cookie & JWT sessions, claims, authorization, and hardening guidance. |
 | **Auth — user store** | ❌ | Not shipped. `rask new --auth` scaffolds a **demo** `ICredentialStore` with hardcoded logins, clearly marked as such; you supply the real one. See [below](#not-shipped). |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
@@ -58,6 +58,18 @@ hardening guidance. What `rask new --auth` scaffolds behind it is a **demo** cre
 hardcoded logins — honestly labelled in the generated code, but it is not a user system. There is no
 registration, password hashing, reset flow, email verification, lockout, or MFA. Bring ASP.NET Core
 Identity or a users table of your own.
+
+### Another database
+Rask wires **SQLite and nothing else**. There is no provider package for PostgreSQL or SQL Server, and
+`rask new` has no database choice to make. Nothing stops you pointing EF Core at your own provider — the
+[`Rask.Data`](data.md) aggregates, [`Rask.Cqrs`](cqrs.md) handlers and generated slices are
+provider-agnostic — but you give up everything that treats the database as a file (Litestream, snapshots,
+`rask db backup`, the deploy volume) and you are off the framework's happy path. See
+[Scaling](scaling.md) for where the single-writer wall actually is.
+
+### Offline-first sync and object storage
+No CRDT replication, no op log, no `IObjectStore`. Several devices sharing one database with no server
+between them is not something Rask does.
 
 ### File and blob storage
 No `IBlobStorage`. Rask can move bytes between the browser and the server

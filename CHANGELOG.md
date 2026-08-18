@@ -72,6 +72,39 @@ them until tagged releases begin.
   RASK041 fired, which is exactly what that diagnostic is for. **This is a rebuild-required change**: a
   component compiled against the old value numbered its own pending bits from 16, which the shared surface
   now occupies. The constant and the generator's copy of it must move together.
+### Removed
+- **Seven packages are withdrawn: `Rask.SQLite.Crdt`, `Rask.SQLite.Crdt.Sync`, `Rask.ObjectStore`,
+  `Rask.Sync`, `Rask.Sync.Client`, `Rask.Postgres` and `Rask.SqlServer`.** Rask wires **SQLite and nothing
+  else**. There is no offline-first sync story, no CRDT replication, no object-storage client, and no
+  alternative database provider.
+
+  **BREAKING for `Rask.Postgres` and `Rask.SqlServer`**, which shipped in `v0.20.0` and exist on
+  nuget.org — an app referencing either keeps working on the version it already resolved, but there will
+  be no further release of them. Point EF Core at your own provider instead: the [`Rask.Data`](docs/data.md)
+  aggregates, [`Rask.Cqrs`](docs/cqrs.md) handlers and generated slices are provider-agnostic, so what you
+  give up is the file-shaped machinery (Litestream, snapshots, `rask db backup`, the deploy volume) rather
+  than your code. The other five were added after `v0.20.0` and were only ever published as nightly
+  prereleases.
+
+  **`rask new` no longer has a `--database` option.** SQLite is unconditional, so the flag, the wizard's
+  "Database engine" question and the whole `DatabaseProvider`/`DatabaseCatalog` model are gone rather than
+  left as a one-valued choice — along with the branches they gated: `rask db backup`/`restore` no longer
+  refuses a client-server database, `rask deploy` no longer refuses a deploy with no
+  `ConnectionStrings__App`, and the data volume plus its connection string are now always injected.
+  `rask doctor` drops its `database` row, which could only ever say one thing.
+
+  The `Rask.Example.Crdt` sample and its browser journey go with them, as do
+  `tests/Rask.Providers.Tests` and `scripts/run-providers-local.sh` — a Docker-based gate racing 20
+  instances against real PostgreSQL and SQL Server, which proved a claim about servers Rask no longer
+  ships against.
+
+  **The lease documentation survives the move.** `docs/databases.md` is deleted, but its "Running more
+  than one instance" section is about jobs/mail/outbox leasing, not about the provider, and three
+  processors name it in the message they log at 3am. It now lives in
+  [`docs/scaling.md`](docs/scaling.md#running-more-than-one-instance) under the same anchor, so every
+  existing link and log line still resolves. The sentence citing the deleted provider gate as evidence is
+  gone with it — the mechanism is unchanged, but it is no longer tested against a real multi-writer
+  server, and saying otherwise would be a claim with nothing behind it.
 
 ### Fixed
 - **The pre-push gates blamed your branch for your machine.** When the `wasm-tools` workload is momentarily

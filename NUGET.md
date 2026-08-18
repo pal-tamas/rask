@@ -66,12 +66,9 @@ dotnet add package Rask.Logging           # durable log store (its own SQLite fi
 dotnet add package Rask.Dashboard         # the /_ops operator dashboard over every pillar
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
-dotnet add package Rask.ObjectStore       # S3 / Azure Blob client, server-side or straight from the browser
-dotnet add package Rask.Sync              # offline-first merge engine (HLC + op log, no I/O)
-dotnet add package Rask.Sync.Client       # sync it between devices through a bucket, with no server
 ```
 
-**Database** — SQLite is the production default; Postgres and SQL Server are drop-in alternatives:
+**Database** — SQLite, treated as a real production database:
 
 ```bash
 dotnet add package Rask.SQLite                        # production pragmas (WAL, busy_timeout) via UseRaskSqlite
@@ -79,10 +76,6 @@ dotnet add package Rask.SQLite.EntityFrameworkCore    # the EF Core provider glu
 dotnet add package Rask.SQLite.Litestream             # managed continuous replication
 dotnet add package Rask.SQLite.Snapshots              # scheduled Online-Backup-API copies
 dotnet add package Rask.SQLite.Browser                # a persistent SQLite database inside a WASM app
-dotnet add package Rask.SQLite.Crdt                   # many replicas, merged per column, through plain EF Core
-dotnet add package Rask.SQLite.Crdt.Sync              # share those replicas through a bucket, with no server
-dotnet add package Rask.Postgres                      # or Postgres
-dotnet add package Rask.SqlServer                     # or SQL Server
 ```
 
 **UI and testing:**

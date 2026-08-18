@@ -90,15 +90,6 @@ trim/AOT-safe.
 | `Rask.SQLite.Litestream` | [![Rask.SQLite.Litestream](https://img.shields.io/nuget/v/Rask.SQLite.Litestream.svg?label=%20)](https://www.nuget.org/packages/Rask.SQLite.Litestream) | Continuous streaming replication off-box, managed for you |
 | `Rask.SQLite.Snapshots` | [![Rask.SQLite.Snapshots](https://img.shields.io/nuget/v/Rask.SQLite.Snapshots.svg?label=%20)](https://www.nuget.org/packages/Rask.SQLite.Snapshots) | Scheduled backups |
 | `Rask.SQLite.Browser` | [![Rask.SQLite.Browser](https://img.shields.io/nuget/v/Rask.SQLite.Browser.svg?label=%20)](https://www.nuget.org/packages/Rask.SQLite.Browser) | A real SQLite database inside the browser tab that survives a reload |
-| `Rask.SQLite.Crdt` | [![Rask.SQLite.Crdt](https://img.shields.io/nuget/v/Rask.SQLite.Crdt.svg?label=%20)](https://www.nuget.org/packages/Rask.SQLite.Crdt) | Many replicas of one database, merged per column without conflicts |
-| `Rask.SQLite.Crdt.Sync` | [![Rask.SQLite.Crdt.Sync](https://img.shields.io/nuget/v/Rask.SQLite.Crdt.Sync.svg?label=%20)](https://www.nuget.org/packages/Rask.SQLite.Crdt.Sync) | Shares those replicas between devices through a bucket — no server in between |
-| **Other databases** | | |
-| `Rask.Postgres` | [![Rask.Postgres](https://img.shields.io/nuget/v/Rask.Postgres.svg?label=%20)](https://www.nuget.org/packages/Rask.Postgres) | PostgreSQL instead of SQLite |
-| `Rask.SqlServer` | [![Rask.SqlServer](https://img.shields.io/nuget/v/Rask.SqlServer.svg?label=%20)](https://www.nuget.org/packages/Rask.SqlServer) | SQL Server instead of SQLite |
-| **Storage & sync** | | |
-| `Rask.ObjectStore` | [![Rask.ObjectStore](https://img.shields.io/nuget/v/Rask.ObjectStore.svg?label=%20)](https://www.nuget.org/packages/Rask.ObjectStore) | One `IObjectStore` across S3, Azure Blob or a local folder — server-side or straight from the browser |
-| `Rask.Sync` | [![Rask.Sync](https://img.shields.io/nuget/v/Rask.Sync.svg?label=%20)](https://www.nuget.org/packages/Rask.Sync) | An HLC + op log for offline-first merges, with no I/O of its own |
-| `Rask.Sync.Client` | [![Rask.Sync.Client](https://img.shields.io/nuget/v/Rask.Sync.Client.svg?label=%20)](https://www.nuget.org/packages/Rask.Sync.Client) | Syncs that op log between devices through a bucket |
 | **Forms, push & realtime** | | |
 | `Rask.Validation.DataAnnotations` | [![Rask.Validation.DataAnnotations](https://img.shields.io/nuget/v/Rask.Validation.DataAnnotations.svg?label=%20)](https://www.nuget.org/packages/Rask.Validation.DataAnnotations) | `DataAnnotationsValidator` inside a `Form` |
 | `Rask.Validation.FluentValidation` | [![Rask.Validation.FluentValidation](https://img.shields.io/nuget/v/Rask.Validation.FluentValidation.svg?label=%20)](https://www.nuget.org/packages/Rask.Validation.FluentValidation) | `FluentValidationValidator` inside a `Form` |
@@ -134,13 +125,6 @@ transitively.
 | `Rask.SQLite.Litestream`           | server-side SQLite app wanting managed backup                      | `services.AddRaskSqliteLitestream(...)` + `RestoreSqliteFromLitestreamAsync()` |
 | `Rask.SQLite.Snapshots`            | server-side SQLite app wanting scheduled backups                   | `services.AddRaskSqliteSnapshots(...)` (or inject `ISqliteSnapshotter`)       |
 | `Rask.SQLite.Browser`              | a WASM app wanting a real SQLite database that survives a reload   | `services.AddRaskBrowserSqlite("app")` + `o.UseSqlite(BrowserSqlite.ConnectionString("app"))` |
-| `Rask.SQLite.Crdt`                 | many replicas of one database, merged without conflicts            | `o.UseRaskCrdt(...)` + `modelBuilder.ApplyCrdtConventions()` |
-| `Rask.SQLite.Crdt.Sync`            | sharing those replicas between devices through a bucket            | pairs `Rask.SQLite.Crdt` with an `IObjectStore` bucket — no server between the devices |
-| `Rask.Postgres`                    | an EF Core app on PostgreSQL rather than SQLite                    | `o.UseRaskPostgres(cs)` on the `DbContextOptionsBuilder`     |
-| `Rask.SqlServer`                   | an EF Core app on SQL Server rather than SQLite                    | `o.UseRaskSqlServer(cs)` on the `DbContextOptionsBuilder`    |
-| `Rask.ObjectStore`                 | any app storing blobs (S3 / Azure Blob / a local folder)           | inject `IObjectStore` — one interface across every backend, server-side or straight from the browser |
-| `Rask.Sync`                        | offline-first apps needing a conflict-free merge                   | `new SyncEngine(...)` — an HLC + op log, with no I/O of its own |
-| `Rask.Sync.Client`                 | syncing that op log between devices with no server                 | point a `SyncEngine` at an `IObjectStore` bucket             |
 | `Rask.Signaling`                   | `net10.0` ASP.NET hosting the WebRTC signaling `IWebRtc` needs     | `services.AddRaskSignaling()` + `app.MapRaskSignaling()` — needs `app.UseWebSockets()` |
 | `Rask.Testing`                     | your `*.Tests` project (references your app)                       | `RaskTest.Render(MyComponent.Title("hi"))` → assert on `.Html` |
 

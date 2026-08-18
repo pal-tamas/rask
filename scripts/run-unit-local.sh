@@ -55,7 +55,7 @@ dotnet format Rask.slnx --verify-no-changes --no-restore
 
 echo "==> Unit & integration tests (excludes the browser E2E)"
 dotnet test Rask.slnx -c Release --no-build \
-  --filter "FullyQualifiedName!~Rask.Examples.E2E&FullyQualifiedName!~Rask.Providers" \
+  --filter "FullyQualifiedName!~Rask.Examples.E2E" \
   --logger "console;verbosity=normal"
 
 echo "==> Format + unit gate passed."

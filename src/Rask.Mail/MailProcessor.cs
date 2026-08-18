@@ -11,7 +11,7 @@ namespace Rask.Mail;
 /// exponential backoff up to <see cref="MailOptions.MaxAttempts"/> (after which it is left as a dead letter).
 /// Also purges sent messages past <see cref="MailOptions.RetentionPeriod"/>. A failing send — or a transient
 /// database error — never crashes the app. Each processor <b>leases</b> the batch it claims, so several
-/// instances is safe; see <c>docs/databases.md</c> for what a lease does and does not guarantee.
+/// instances is safe; see <c>docs/scaling.md</c> for what a lease does and does not guarantee.
 /// </summary>
 /// <typeparam name="TContext">The application's <see cref="DbContext"/> that owns the mail table.</typeparam>
 public sealed class MailProcessor<TContext>(
@@ -173,7 +173,7 @@ public sealed class MailProcessor<TContext>(
                     ex,
                     "Rask.Mail added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
                     + "Run: rask db add AddMailLeases && rask db update. See docs/{Doc}.",
-                    "databases.md#running-more-than-one-instance");
+                    "scaling.md#running-more-than-one-instance");
                 return;
             }
 

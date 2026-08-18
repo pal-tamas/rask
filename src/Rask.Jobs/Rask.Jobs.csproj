@@ -29,9 +29,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
-    <!-- Drives ClaimAsync against a real PostgreSQL server: the claim's portability rests on how the
-         provider re-evaluates an UPDATE predicate, which only a real server can prove. -->
-    <InternalsVisibleTo Include="Rask.Providers.Tests"/>
   </ItemGroup>
 
   <ItemGroup>

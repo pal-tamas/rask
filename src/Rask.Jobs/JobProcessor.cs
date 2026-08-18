@@ -13,7 +13,7 @@ namespace Rask.Jobs;
 /// <see cref="JobOptions.MaxAttempts"/> (after which it is left as a dead letter). Also enqueues due
 /// interval-recurring jobs and purges completed jobs past <see cref="JobOptions.RetentionPeriod"/>. A failing
 /// job never crashes the app. Each processor <b>leases</b> the batch it claims, so several instances is
-/// safe; see <c>docs/databases.md</c> for what a lease does and does not guarantee.
+/// safe; see <c>docs/scaling.md</c> for what a lease does and does not guarantee.
 /// </summary>
 /// <typeparam name="TContext">The application's <see cref="DbContext"/> that owns the jobs tables.</typeparam>
 public sealed class JobProcessor<TContext>(
@@ -39,10 +39,10 @@ public sealed class JobProcessor<TContext>(
     /// </summary>
     /// <remarks>
     /// Three steps, and the middle one is the whole design: a single <c>UPDATE … WHERE</c> whose predicate
-    /// re-tests claimability. Every supported provider re-evaluates that predicate against the row version
-    /// the winner committed — PostgreSQL through EvaluatePlanQual, SQL Server under its update locks,
-    /// SQLite by having one writer — so a row can be claimed by exactly one instance, with no
-    /// <c>SKIP LOCKED</c> and no provider-specific SQL.
+    /// re-tests claimability, re-evaluated against the row version the winner committed — on SQLite by
+    /// having one writer, and on a client-server provider you bring yourself by its own concurrent-update
+    /// semantics — so a row can be claimed by exactly one instance, with no <c>SKIP LOCKED</c> and no
+    /// provider-specific SQL.
     ///
     /// <para>The predicate tests <em>lease expiry</em>, not <c>ClaimToken == null</c>. That is what makes
     /// crash recovery free: an instance that dies holding rows never clears its token, so a null test would
@@ -153,7 +153,7 @@ public sealed class JobProcessor<TContext>(
                     ex,
                     "Rask.Jobs added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
                     + "Run: rask db add AddJobLeases && rask db update. See docs/{Doc}.",
-                    "databases.md#running-more-than-one-instance");
+                    "scaling.md#running-more-than-one-instance");
                 return;
             }
 
