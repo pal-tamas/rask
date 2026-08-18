@@ -45,6 +45,26 @@ them until tagged releases begin.
   `Rask.Testing`'s `TestFileBackend`.
 
 ### Fixed
+- **The SQLite docs said EF Core's `SaveChanges` transaction was `DEFERRED`. It never was.**
+  `docs/sqlite.md` told you to wrap read-then-write EF work in `BeginImmediate` (nested inside
+  `IExecutionStrategy.ExecuteAsync`) to avoid an unretryable lock-upgrade dead-lock. That ceremony
+  guarded against nothing: Microsoft.Data.Sqlite composes its begin as
+  `IsolationLevel == Serializable && !deferred ? "BEGIN IMMEDIATE;" : "BEGIN;"`, ADO.NET's default
+  isolation is `Serializable`, and EF Core's `Unspecified` normalises to it — so every transaction EF
+  opens on SQLite, implicit or explicit, already takes the write lock up front. The `IMMEDIATE` default
+  Rails 8 had to add is something the .NET driver has always done.
+
+  The docs, `llms.txt` and `BeginImmediate`'s own summary now say so, and redirect the read-then-write
+  paragraph to the hazard EF users actually have: the read usually happens *outside* any transaction, so
+  the risk is a **lost update**, whose fix is a concurrency token rather than a transaction mode.
+  `connection.BeginImmediate()` is documented for what it is — the driver default spelled out at the call
+  site, so it cannot quietly become deferred if an isolation level is passed later.
+
+  New `RaskSqliteTransactionModeTests` pins the behaviour rather than restating it: a second connection
+  with SQLite's busy handler off asks for the write lock, so a held lock reports instantly. It covers the
+  implicit `SaveChanges` transaction (probed from a `DbCommandInterceptor` in the one window where the two
+  modes differ — after `BEGIN`, before the first statement), the sync and async explicit transactions, and
+  `ReadUncommitted` as the deferred negative control that proves the probe can tell them apart.
 - **Everything in `Rask.Core` now works on all three hosts, and a test says so.** Core is the shared
   component surface, so a component written once is supposed to run on Server, WASM and Native alike. Four
   of its contracts did not: the Native host registered no `IBrowserFileBackend`, no `IDownloadSink` and no
