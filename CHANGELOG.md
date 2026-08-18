@@ -8,6 +8,40 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`BulkInsertAsync` — loading many rows is no longer everyone's hand-rolled loop.** EF Core covers the bulk
+  *update* and *delete* shapes with `ExecuteUpdate`/`ExecuteDelete`, and its own plan puts bulk **inserts**
+  out of scope, so every app that seeds, imports or migrates data writes the same loop — usually the one that
+  keeps every entity tracked to the end and commits nothing as a unit.
+
+  ```csharp
+  await db.BulkInsertAsync(products);
+  await db.Products.BulkInsertAsync(products, o => o.BatchSize = 10_000);
+  ```
+
+  It runs through the context, so `Rask.Data`'s guarantees survive: `AuditingInterceptor` stamps
+  `CreatedAt`/`UpdatedAt` and `DomainEventInterceptor` publishes each entity's events, for every batched row.
+  What changes is the shape — batched adds (5,000 by default), change detection off, and the change tracker
+  **cleared between batches**.
+
+  The tracker clearing is what makes a large load flat rather than quadratic: measured over 100,000 rows on
+  SQLite, `AddRange` + one `SaveChanges` takes 1.25 s and allocates 1.37 GB where the batched load takes
+  942 ms and allocates 1.16 GB, and the naive save-per-row takes 5.20 s and 2.59 GB.
+
+  **Each batch commits on its own**, and that is the deliberate default: SQLite has one write lock, so
+  wrapping a long import in a single transaction makes every other writer wait for the whole load while the
+  WAL holds every uncommitted page. `o.SingleTransaction = true` asks for all-or-nothing when a load needs it.
+
+  That mode — and any ambient transaction — **rejects entities carrying domain events**, which is a real trap
+  found while building this rather than a theoretical one: `DomainEventInterceptor` publishes in
+  `SavedChanges`, which inside a transaction runs *before* the commit, so a load that failed at batch 7 had
+  already announced batches 1–6. Rather than ship that, the combination throws and points at `Rask.Outbox`,
+  whose messages are written in the same transaction and drained after it commits.
+
+  Two more consequences are deliberate and enforced: the context must have **no pending changes** (the load
+  clears the tracker, so it refuses rather than silently discard unsaved work), and an **ambient transaction
+  still owns the commit**, so the load composes inside one you opened. Under a retrying execution strategy a
+  `SingleTransaction` load is one retryable unit with the sequence buffered for re-enumeration, while the
+  per-batch default lets EF retry each batch on its own with no replay.
 - **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
   shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler
   test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the
