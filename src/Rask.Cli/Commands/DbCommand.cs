@@ -152,22 +152,8 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
         if (FileSubcommands.Contains(subcommand))
         {
             // Both of these copy a database *file* — locally through SQLite's Online Backup API, remotely
-            // with VACUUM INTO in a sidecar. Neither has a meaning on a client-server database, and there is
-            // no half-working version worth shipping: a "backup" that quietly did nothing is the worst
-            // possible outcome for a backup command.
-            var database = DatabaseCatalog.For(ProjectLocator.Locate(_fileSystem, project)?.Provider ?? DatabaseProvider.Sqlite);
-            if (!database.IsFileBased)
-            {
-                Console.WriteErrorLine(
-                    $"`rask db {subcommand}` works on a SQLite file, and this app uses {database.ShortName}.",
-                    ConsoleStyle.Error);
-                Console.Error.WriteLine(
-                    database.Provider == DatabaseProvider.Postgres
-                        ? "    Use `pg_dump` / `pg_restore`, or your provider's snapshots. See docs/databases.md."
-                        : "    Use your provider's own backup tooling. See docs/databases.md.");
-                return 1;
-            }
-
+            // with VACUUM INTO in a sidecar.
+            //
             // Restore replaces a database and, when remote, stops the app to do it — so "what exactly
             // would this touch" is worth being able to ask without finding out (#600).
             if (parsed.HasFlag("dry-run"))

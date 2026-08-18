@@ -6,7 +6,7 @@
 #
 # The CLI build gate is here too because it is the only thing proving the code `rask new` / `rask generate`
 # writes actually COMPILES — every other CLI test asserts on generated strings. It is too slow for
-# pre-commit (it packs 15 packages and runs full builds), so push is the right boundary.
+# pre-commit (it packs 19 packages and runs full builds), so push is the right boundary.
 #
 # Bypass for docs-only or emergency pushes:  git push --no-verify
 # Per-gate bypass: RASK_SKIP_E2E=1 (browser) · RASK_SKIP_CLI_BUILD_E2E=1 (CLI build)
@@ -74,7 +74,7 @@ else
 fi
 
 # Like the deploy gate below, this one is scoped to the pushes it can actually say something about:
-# it packs 15 packages and runs several full builds, and only the CLI's generators, the packages a
+# it packs 19 packages and runs several full builds, and only the CLI's generators, the packages a
 # generated project references, or the tutorial it reproduces can change its answer. Running it on
 # every push (a docs typo, a Bootstrap component) is minutes of tax for a foregone conclusion.
 generator_paths='^(src/Rask\.Cli/(Scaffolding|Templates)/|src/Rask\.[A-Za-z.]+/|docs/tutorial/|Directory\.Packages\.props|tests/Rask\.Cli\.Tests/(CliBuildE2E|ProjectGeneratorBuildE2ETests|TutorialWalkthroughE2ETests)\.cs)'

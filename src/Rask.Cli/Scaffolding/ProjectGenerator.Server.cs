@@ -83,17 +83,12 @@ internal static partial class ProjectGenerator
         if (batteries.Data)
         {
             packages.Add("Rask.Data");
-            packages.Add(batteries.Database.Package);
+            packages.Add("Rask.SQLite.EntityFrameworkCore");
 
-            if (batteries.Database.IsFileBased)
-            {
-                // Continuous backup. Referenced whenever there's a SQLite database: the wiring in Program.cs
-                // stays inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys
-                // a one-env-var path from "single copy on one disk" to "the box is disposable". It replicates
-                // a file's write-ahead log, so it has no counterpart on a client-server database — there,
-                // backup is the provider's job.
-                packages.Add("Rask.SQLite.Litestream");
-            }
+            // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
+            // inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
+            // one-env-var path from "single copy on one disk" to "the box is disposable".
+            packages.Add("Rask.SQLite.Litestream");
         }
 
         if (batteries.Outbox)
@@ -141,9 +136,9 @@ internal static partial class ProjectGenerator
 
     private static string ServerCsproj(ServerBatteries batteries, string version)
     {
-        // The database package (Rask.SQLite.EntityFrameworkCore or Rask.Postgres) brings the Use… extension
-        // and pulls its EF Core provider transitively; `rask db` adds EF's Design package on the first
-        // migration, so the base app builds and runs with no design-time dependency.
+        // Rask.SQLite.EntityFrameworkCore brings the UseRaskSqlite extension and pulls its EF Core provider
+        // transitively; `rask db` adds EF's Design package on the first migration, so the base app builds
+        // and runs with no design-time dependency.
         var refs = new StringBuilder();
         foreach (var package in ServerPackages(batteries).Skip(1))
         {
@@ -154,7 +149,7 @@ internal static partial class ProjectGenerator
         // told not to, so without this a scaffolded app can't be built offline — and errors outright on a
         // RID with no published asset. The binary belongs on the server (--docker copies it into the
         // image), not in everyone's build.
-        var litestreamProperty = batteries.Data && batteries.Database.IsFileBased
+        var litestreamProperty = batteries.Data
             ? "\n    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->"
               + "\n    <RaskLitestreamDownload>false</RaskLitestreamDownload>"
             : "";
@@ -214,13 +209,9 @@ internal static partial class ProjectGenerator
             sb.Append("using Microsoft.EntityFrameworkCore;\n");
             sb.Append("using Microsoft.EntityFrameworkCore.Diagnostics;\n");
             sb.Append("using Rask.Data;\n");
-            sb.Append("using ").Append(batteries.Database.Namespace).Append(";\n");
-
-            if (batteries.Database.IsFileBased)
-            {
-                sb.Append("using Microsoft.Data.Sqlite;\n");
-                sb.Append("using Rask.SQLite.Litestream;\n");
-            }
+            sb.Append("using Rask.SQLite;\n");
+            sb.Append("using Microsoft.Data.Sqlite;\n");
+            sb.Append("using Rask.SQLite.Litestream;\n");
         }
 
         if (batteries.Jobs)
@@ -303,7 +294,7 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        sb.Append(ShutdownBudgetBlock(batteries.Data && batteries.Database.IsFileBased));
+        sb.Append(ShutdownBudgetBlock(batteries.Data));
 
         if (batteries.Cqrs)
         {
@@ -329,9 +320,9 @@ internal static partial class ProjectGenerator
                 // Add a `DbSet<T>` to AppDbContext per entity, then `rask db add <Name>` / `rask db update`
                 // to create and apply the migration.
                 __ADDRASKDATA__
-                var connectionString = builder.Configuration.GetConnectionString("App") ?? "__CONNECTIONSTRING__";
+                var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-                    .__USEMETHOD__(connectionString)
+                    .UseRaskSqlite(connectionString)
                     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
                 // Continuous backup. Litestream streams the write-ahead log to object storage, which is what
@@ -355,32 +346,7 @@ internal static partial class ProjectGenerator
 
                 """;
 
-            // A client-server database: no Litestream (there is no file to replicate) and no local-file
-            // default — a connection string that silently points at localhost is worse than one that is
-            // obviously a placeholder, so the fallback names the provider's own default and the comment
-            // says where the real one belongs.
-            var serverData = """
-
-                // The app's database. AddRaskData registers the auditing/soft-delete/concurrency/domain-event
-                // interceptors; __USEMETHOD__ is a drop-in for __RAWUSEMETHOD__ that also applies the production
-                // session settings (statement/lock/idle-in-transaction timeouts) and turns on transient-failure
-                // retrying. Set the real connection string via ConnectionStrings:App — in production pass it as
-                // an environment variable, e.g. `rask deploy --env "ConnectionStrings__App=..."`, so it never
-                // lands in source control.
-                // Add a `DbSet<T>` to AppDbContext per entity, then `rask db add <Name>` / `rask db update`
-                // to create and apply the migration.
-                __ADDRASKDATA__
-                var connectionString = builder.Configuration.GetConnectionString("App") ?? "__CONNECTIONSTRING__";
-                __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-                    .__USEMETHOD__(connectionString)
-                    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-
-                """;
-
-            sb.Append((batteries.Database.IsFileBased ? sqliteData : serverData).TrimStart('\n')
-                    .Replace("__CONNECTIONSTRING__", batteries.Database.DefaultConnectionString, StringComparison.Ordinal)
-                    .Replace("__RAWUSEMETHOD__", batteries.Database.TestUseMethod, StringComparison.Ordinal)
-                    .Replace("__USEMETHOD__", batteries.Database.UseMethod, StringComparison.Ordinal)
+            sb.Append(sqliteData.TrimStart('\n')
                     .Replace("__ADDRASKDATA__", batteries.Outbox
                         ? """
                           builder.Services.AddRaskData(o =>
@@ -459,11 +425,7 @@ internal static partial class ProjectGenerator
 
         if (batteries.Logs)
         {
-            // Litestream only replicates a SQLite file, so naming it here on a client-server database
-            // would point someone at a backup path that does not exist for them.
-            var logBackupCaveat = batteries.Database.IsFileBased
-                ? "`rask db backup` or Litestream"
-                : "your database's backups";
+            const string logBackupCaveat = "`rask db backup` or Litestream";
             Block(sb, """
                 // The application log, kept in a database of its own so it survives the restart that hid it.
                 // This registers an ILoggerProvider, so it captures exactly what every other sink sees; log
@@ -621,7 +583,7 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        if (batteries.Data && batteries.Database.IsFileBased)
+        if (batteries.Data)
         {
             sb.Append("""
 
@@ -729,9 +691,7 @@ internal static partial class ProjectGenerator
         if (batteries.Data)
         {
             steps.Append("  rask db add Init    # create the first migration\n");
-            steps.Append(batteries.Database.IsFileBased
-                ? "  rask db update      # apply it to app.db\n"
-                : "  rask db update      # apply it (set ConnectionStrings:App first)\n");
+            steps.Append("  rask db update      # apply it to app.db\n");
         }
 
         steps.Append("  rask dev            # run with hot reload (or: dotnet run)\n");
@@ -1061,11 +1021,8 @@ internal static partial class ProjectGenerator
     /// </remarks>
     private static string Dockerfile(ServerBatteries batteries)
     {
-        var dataDirectory = batteries.Database.IsFileBased;
-        var litestream = batteries.Data && dataDirectory;
-
-        return Splice(Splice(DockerfileTemplate, "@@LITESTREAM@@", litestream ? LitestreamLayer : null),
-            "@@DATADIR@@", dataDirectory ? DataDirectoryLayer : null);
+        return Splice(Splice(DockerfileTemplate, "@@LITESTREAM@@", batteries.Data ? LitestreamLayer : null),
+            "@@DATADIR@@", DataDirectoryLayer);
 
         // Fill the slot, or drop the marker and the line it sits on so an unused slot leaves no stray blank.
         static string Splice(string template, string marker, string? content) =>

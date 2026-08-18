@@ -133,7 +133,7 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
   derivatives register as usual. Nesting inside a plain `static class` is fine, and the usual way to group
   a feature's jobs.
 - **Running more than one instance is safe.** Each processor *leases* the batch it claims, so a job goes to
-  exactly one instance. See [running more than one instance](databases.md#running-more-than-one-instance) for
+  exactly one instance. See [running more than one instance](scaling.md#running-more-than-one-instance) for
   what the lease does and does not guarantee. On SQLite you will still usually run one instance for the
   unrelated reason that it is single-writer; because `EnqueueAsync` writes while the processor may also be
   writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a concurrent enqueue

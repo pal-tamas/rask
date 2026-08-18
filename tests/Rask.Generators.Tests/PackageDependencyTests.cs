@@ -71,10 +71,9 @@ public class PackageDependencyTests
     }
 
     // The list of `dotnet pack` steps in the publishing workflows is maintained by hand, and nothing tied it to
-    // the projects that actually declare themselves packable. Rask.Postgres and Rask.SqlServer were added with a
-    // PackageId, a Description and their own NUGET.md — everything a shipped package has except a pack step — so
-    // they were built, tested and documented (docs/databases.md links their nuget.org page, and `rask new
-    // --database postgres` scaffolds a PackageReference to them) while existing on no feed at all.
+    // the projects that actually declare themselves packable. A package can otherwise be added with a
+    // PackageId, a Description and its own NUGET.md — everything a shipped package has except a pack step —
+    // and so be built, tested and documented while existing on no feed at all (#602).
     //
     // A missing step in release.yml means the package is never published; a missing one in nightly.yml means it
     // is never smoke-tested from a feed before the release. Matching on the csproj path is what both workflows

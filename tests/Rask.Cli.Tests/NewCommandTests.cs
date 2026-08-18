@@ -456,74 +456,43 @@ public sealed class NewCommandTests
     }
 
     [Fact]
-    public async Task Unknown_database_fails_and_lists_the_available_ones()
+    public async Task Database_is_no_longer_an_option()
     {
+        // SQLite is the only database Rask wires, so there is nothing to choose. An unrecognised option is
+        // a usage error rather than something quietly ignored — a flag that appears to be honoured but
+        // isn't would leave someone believing they had scaffolded a different database.
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--data", "--database", "mongo"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--data", "--database", "postgres"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("Option '--database' does not accept 'mongo'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("sqlite, postgres", console.ErrorText, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
-    [InlineData("native")]
-    public async Task Database_is_rejected_on_a_template_that_has_no_database(string template)
-    {
-        var (console, _, runner, command) = Build();
-
-        var exit = await command.ExecuteAsync(
-            ["MyApp", "--template", template, "--database", "postgres"], CancellationToken.None);
-
-        Assert.Equal(CliCommand.UsageExitCode, exit);
-        Assert.Empty(runner.Invocations);
-        Assert.Contains("does not support --database", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("--database", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Snapshots_with_a_server_database_is_rejected_rather_than_dropped()
-    {
-        // Snapshots copy the database file. Silently ignoring the flag would leave someone believing they
-        // had scheduled backups — the kind of thing found out after losing data, so it must fail loudly.
-        var (console, _, runner, command) = Build();
-
-        var exit = await command.ExecuteAsync(
-            ["MyApp", "--data", "--database", "postgres", "--snapshots"], CancellationToken.None);
-
-        Assert.Equal(CliCommand.UsageExitCode, exit);
-        Assert.Empty(runner.Invocations);
-        Assert.Contains("--snapshots needs a file-based database", console.ErrorText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Snapshots_with_sqlite_is_accepted()
+    public async Task Snapshots_is_accepted()
     {
         var (_, fs, _, command) = Build();
 
         var exit = await command.ExecuteAsync(
-            ["MyApp", "--data", "--database", "sqlite", "--snapshots", "--no-restore"], CancellationToken.None);
+            ["MyApp", "--data", "--snapshots", "--no-restore"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Contains("AddRaskSqliteSnapshots", fs.ReadAllText("/proj/MyApp/Program.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task All_batteries_with_a_server_database_succeeds_without_snapshots()
+    public async Task All_batteries_includes_snapshots()
     {
-        // The expansion narrows to what applies; only an explicitly named --snapshots is an error.
         var (_, fs, _, command) = Build();
 
-        var exit = await command.ExecuteAsync(
-            ["MyApp", "--all-batteries", "--database", "postgres", "--no-restore"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--all-batteries", "--no-restore"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var program = fs.ReadAllText("/proj/MyApp/Program.cs");
-        Assert.Contains("UseRaskPostgres", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
+        Assert.Contains("UseRaskSqlite", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
     }
 
     private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()

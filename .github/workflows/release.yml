@@ -94,15 +94,6 @@ jobs:
       - name: Pack Rask.Signaling
         run: dotnet pack src/Rask.Signaling/Rask.Signaling.csproj -c Release --no-build -o ./artifacts
 
-      - name: Pack Rask.ObjectStore
-        run: dotnet pack src/Rask.ObjectStore/Rask.ObjectStore.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Sync
-        run: dotnet pack src/Rask.Sync/Rask.Sync.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Sync.Client
-        run: dotnet pack src/Rask.Sync.Client/Rask.Sync.Client.csproj -c Release --no-build -o ./artifacts
-
       - name: Pack Rask.SQLite
         run: dotnet pack src/Rask.SQLite/Rask.SQLite.csproj -c Release --no-build -o ./artifacts
 
@@ -117,20 +108,6 @@ jobs:
 
       - name: Pack Rask.SQLite.Browser
         run: dotnet pack src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.SQLite.Crdt
-        run: dotnet pack src/Rask.SQLite.Crdt/Rask.SQLite.Crdt.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.SQLite.Crdt.Sync
-        run: dotnet pack src/Rask.SQLite.Crdt.Sync/Rask.SQLite.Crdt.Sync.csproj -c Release --no-build -o ./artifacts
-
-      # The door out of one box — the two non-SQLite providers. They ship on the same cadence as the
-      # SQLite family above because `rask new --database postgres|sqlserver` scaffolds a reference to them.
-      - name: Pack Rask.Postgres
-        run: dotnet pack src/Rask.Postgres/Rask.Postgres.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.SqlServer
-        run: dotnet pack src/Rask.SqlServer/Rask.SqlServer.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Data
         run: dotnet pack src/Rask.Data/Rask.Data.csproj -c Release --no-build -o ./artifacts

@@ -100,7 +100,7 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
   to group a feature's events.
 - **Running more than one instance is safe.** Each processor *leases* the batch it claims, so a message is
   published by exactly one instance. See
-  [running more than one instance](databases.md#running-more-than-one-instance). On SQLite you will still
+  [running more than one instance](scaling.md#running-more-than-one-instance). On SQLite you will still
   usually run one instance for the unrelated reason that it is single-writer; WAL + a busy-timeout (see
   [Rask.SQLite](sqlite.md)) keep reads flowing while it writes.
 - **`Attempts` counts attempts *started*, not failures.** The claim increments it, so a handler that takes

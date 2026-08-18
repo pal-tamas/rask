@@ -694,12 +694,13 @@ not just asserted in prose.
   are the app's job.
 
 **Outgrowing it is cheap.** Moving to a client-server database when you genuinely need multi-writer
-scale-out or managed HA is a provider + connection-string change: `rask new --database postgres` scaffolds
-it, and the [`Rask.Data`](data.md) aggregates, [`Rask.Cqrs`](cqrs.md) handlers and generated slices are
-provider-agnostic either way. What you leave behind is everything on this page that treats the database as
-a *file* — Litestream, snapshots, `rask db backup`. See **[Choosing a database](databases.md)** for the
-full trade, including the multi-instance rules. SQLite gets you far enough that most single-person products
-never make the switch.
+scale-out or managed HA is a provider + connection-string change you make yourself: the
+[`Rask.Data`](data.md) aggregates, [`Rask.Cqrs`](cqrs.md) handlers and generated slices are
+provider-agnostic, so point EF Core at your own provider and they follow. Rask ships no provider package
+for it — SQLite is the database it wires. What you leave behind is everything on this page that treats the
+database as a *file* — Litestream, snapshots, `rask db backup` — and you are off the framework's happy
+path. See **[Scaling](scaling.md)** for where the wall actually is and what running more than one instance
+costs. SQLite gets you far enough that most single-person products never make the switch.
 
 ## Testing
 

@@ -71,11 +71,10 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("name", 'n', "name", "Project name, if not given positionally.")
             .Option("host", valueHint: "mode", description: "Native template only: where the UI comes from — 'local' runs the components on the device (default), 'server' or 'wasm-hosted' make the app a thin native shell over a Rask app you host.", choices: NativeHosts)
             .MultiOption("platform", valueHint: "name", description: "Native template only: a platform to target, repeatable (default: both). Only the chosen platforms get a TFM, a manifest and a head.", choices: NativePlatforms)
-            .Option("database", valueHint: "name", description: "Database for --data (default: sqlite, one file and no server). Server template only.", choices: DatabaseCatalog.Keys)
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
             .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
-            .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext your features map through (server only). See --database.")
+            .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext your features map through (server only).")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
             .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
@@ -174,28 +173,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail($"Template '{template.Key}' does not support: {rejected}. Supported flags: {supported}.");
         }
 
-        // --database only applies to the server template, which is the only one with a database at all.
-        var databaseKey = parsed.Option("database");
-        if (databaseKey is not null && template.Key != "server")
-        {
-            return Fail(
-                $"Template '{template.Key}' does not support --database. It applies only to the server template, "
-                + "which is the only one that scaffolds a database.");
-        }
-
-        // Declared choices again — the parse rejected any key the catalog doesn't hold.
-        _ = DatabaseCatalog.TryGet(databaseKey ?? DatabaseCatalog.Default.Key, out var database);
-
-        // Snapshots copy the database file, so on a client-server database the battery has no meaning.
-        // Reject rather than drop it: a backup that silently didn't get wired is discovered too late.
-        if (requestedFlags.Contains("snapshots") && !database.IsFileBased)
-        {
-            return Fail(
-                $"--snapshots needs a file-based database, but --database {database.Key} is a server. "
-                + $"Scheduled snapshots (and Litestream continuous backup) copy the SQLite file; on "
-                + $"{database.DisplayName} use your provider's backups instead. Drop --snapshots, or use --database sqlite.");
-        }
-
         // --host only applies to the native template (which mode to scaffold). Reject it elsewhere so a
         // misplaced flag is a clear error rather than silently ignored.
         var host = parsed.Option("host");
@@ -245,7 +222,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version, bootstrap),
                     "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(dir, name, auth, pwa, docker, version, bootstrap),
-                    _ => ProjectGenerator.GenerateServer(dir, name, ToBatteries(requestedFlags, database.Provider, bootstrap), version),
+                    _ => ProjectGenerator.GenerateServer(dir, name, ToBatteries(requestedFlags, bootstrap), version),
                 };
             },
             cancellationToken).ConfigureAwait(false);
@@ -255,16 +232,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// Maps the requested flag names onto the server template's battery set. <c>--all-batteries</c> expands to
     /// every DB-backed pillar, which is what the tutorial and the showcase sample use.
     /// </summary>
-    /// <remarks>
-    /// <paramref name="provider"/> narrows the <c>--all-batteries</c> expansion: snapshots copy a database
-    /// <em>file</em>, so on a client-server database "every battery" simply doesn't include them. That is not
-    /// the same as dropping a battery the user asked for by name — an explicit <c>--snapshots</c> against
-    /// such a provider is rejected in <see cref="ExecuteAsync"/> instead, because silently ignoring a
-    /// requested backup is the kind of thing you discover after losing data.
-    /// </remarks>
     internal static ServerBatteries ToBatteries(
         IReadOnlyCollection<string> flags,
-        DatabaseProvider provider = DatabaseProvider.Sqlite,
         bool bootstrap = true)
     {
         var all = flags.Contains("all-batteries");
@@ -275,28 +244,27 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Pwa = flags.Contains("pwa"),
             Cqrs = flags.Contains("cqrs"),
             Data = flags.Contains("data"),
-            Provider = provider,
             Docker = flags.Contains("docker"),
             Jobs = all || flags.Contains("jobs"),
             Mail = all || flags.Contains("mail"),
             Cache = all || flags.Contains("cache"),
             Outbox = all || flags.Contains("outbox"),
             Push = all || flags.Contains("push"),
-            Snapshots = (all || flags.Contains("snapshots")) && DatabaseCatalog.For(provider).IsFileBased,
+            Snapshots = all || flags.Contains("snapshots"),
             Logs = all || flags.Contains("logs"),
             Ops = all || flags.Contains("ops"),
         };
     }
 
     /// <summary>
-    /// Walk the interactive first-run flow (name → template → batteries → database) and return the
+    /// Walk the interactive first-run flow (name → template → batteries) and return the
     /// equivalent argument list, so the answers flow back through the exact same validation and generation
     /// path as a fully-typed command line. Only reached on a terminal.
     /// <para>
     /// The wizard <b>fills gaps, it does not re-ask</b>: whatever the command line already answered is
     /// kept verbatim and its question is skipped, so <c>rask new --template wasm</c> asks for a name and
-    /// nothing else. Questions are also skipped when they cannot apply — no database question without a
-    /// battery that needs one, no snapshots question for a database that isn't a file.
+    /// nothing else. Questions are also skipped when they cannot apply — no snapshots question on a
+    /// template with no database.
     /// </para>
     /// </summary>
     private IReadOnlyList<string> RunWizard(Prompt prompt, IReadOnlyList<string> args, ParsedArguments parsed)
@@ -368,7 +336,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 }
             }
 
-            WriteWizardSummary(filled, template, database: null);
+            WriteWizardSummary(filled, template);
             return filled;
         }
 
@@ -398,11 +366,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             filled.Add("--docker");
         }
 
-        // Three flags are held back from the list, each for its own reason. `snapshots` only applies to a
-        // file-based database, which isn't known until the question below, and the wizard must never
-        // assemble a combination ExecuteAsync then rejects. `docker` was just asked above. And
-        // `all-batteries` is what a checklist already does — offering "tick everything" as one of the
-        // things to tick invites ticking it *and* its members, which is the same app described twice.
+        // Three flags are held back from the list, each for its own reason. `snapshots` is asked on its
+        // own below, after the battery list, because it is a follow-up to having a database rather than a
+        // battery in its own right. `docker` was just asked above. And `all-batteries` is what a checklist
+        // already does — offering "tick everything" as one of the things to tick invites ticking it *and*
+        // its members, which is the same app described twice.
         var offered = FeatureFlags
             .Where(f => f is not ("snapshots" or "docker" or "all-batteries"))
             .Where(template.SupportedFlags.Contains)
@@ -420,31 +388,16 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             filled.AddRange(chosen.Select(flag => "--" + flag));
         }
 
-        var database = DatabaseCatalog.Default;
-        var databaseKey = parsed.Option("database");
-        if (databaseKey is null && filled.Any(DataImplyingFlags.Contains))
-        {
-            databaseKey = prompt.Select(
-                "Database engine",
-                [.. DatabaseCatalog.All.Select(d => (d.Key, $"[bold]{d.Key}[/] [dim]— {d.DisplayName}[/]"))],
-                DatabaseCatalog.Default.Key);
-
-            filled.Add("--database");
-            filled.Add(databaseKey);
-        }
-
-        _ = DatabaseCatalog.TryGet(databaseKey ?? DatabaseCatalog.Default.Key, out database);
-
         if (!batteriesGiven
-            && database.IsFileBased
             && template.SupportedFlags.Contains("snapshots")
+            && filled.Any(DataImplyingFlags.Contains)
             && !filled.Contains("--all-batteries", StringComparer.Ordinal)
-            && prompt.Confirm($"Back {database.DisplayName} up on a schedule ([bold]--snapshots[/])?", @default: false))
+            && prompt.Confirm("Back SQLite up on a schedule ([bold]--snapshots[/])?", @default: false))
         {
             filled.Add("--snapshots");
         }
 
-        WriteWizardSummary(filled, template, database);
+        WriteWizardSummary(filled, template);
         return filled;
     }
 
@@ -457,7 +410,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// app it had chosen Rask.Bootstrap and declined Docker — two questions that template never asks and
     /// does not support — which is worse than saying nothing, because it reads as confirmation.
     /// </remarks>
-    private void WriteWizardSummary(IReadOnlyList<string> args, TemplateInfo template, DatabaseInfo? database)
+    private void WriteWizardSummary(IReadOnlyList<string> args, TemplateInfo template)
     {
         var batteries = args.Where(a => a.StartsWith("--", StringComparison.Ordinal))
             .Select(a => a[2..])
@@ -495,9 +448,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 Label("🎨", "Styling"),
                 new Text(args.Contains("--no-bootstrap", StringComparer.Ordinal) ? "plain elements" : "Rask.Bootstrap"));
 
-            if (database is not null && batteries.Any(DataImplyingFlags.Select(f => f[2..]).Contains))
+            if (batteries.Any(DataImplyingFlags.Select(f => f[2..]).Contains))
             {
-                grid.AddRow(Label("🗄️", "Database"), new Text(database.DisplayName));
+                grid.AddRow(Label("🗄️", "Database"), new Text("SQLite (one file, no server)"));
             }
 
             grid.AddRow(
@@ -530,8 +483,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     }
 
     /// <summary>
-    /// The flags that pull in a database, so the wizard knows when the <c>--database</c> question is worth
-    /// asking. Mirrors the implications <see cref="ServerBatteries.Normalized"/> applies.
+    /// The flags that pull in a database, so the wizard knows when the snapshots question is worth asking
+    /// and when the summary has a database to report. Mirrors the implications
+    /// <see cref="ServerBatteries.Normalized"/> applies.
     /// </summary>
     private static readonly string[] DataImplyingFlags =
         ["--data", "--jobs", "--mail", "--cache", "--outbox", "--ops", "--all-batteries"];

@@ -10,7 +10,6 @@ namespace Rask.Cli.Scaffolding;
 internal sealed partial class ProjectContext(
     string projectDirectory,
     string rootNamespace,
-    DatabaseProvider provider = DatabaseProvider.Sqlite,
     bool isBrowser = false)
 {
     public string ProjectDirectory { get; } = projectDirectory;
@@ -21,26 +20,13 @@ internal sealed partial class ProjectContext(
     /// Whether this project is a browser (WebAssembly) app rather than a server one.
     /// </summary>
     /// <remarks>
-    /// Detected from the project file, like <see cref="Provider"/>, and for the same reason: the answer
-    /// was already decided by <c>rask new</c>, and asking again is a second thing to get out of sync.
-    /// It changes what scaffolding can honestly tell you to do — a browser app has no design-time
-    /// database for <c>rask db</c> to migrate, and its database needs
-    /// <c>AddRaskBrowserSqlite</c> to survive a reload at all.
+    /// Detected from the project file rather than asked for: the answer was already decided by
+    /// <c>rask new</c>, and asking again is a second thing to get out of sync. It changes what
+    /// scaffolding can honestly tell you to do — a browser app has no design-time database for
+    /// <c>rask db</c> to migrate, and its database needs <c>AddRaskBrowserSqlite</c> to survive a
+    /// reload at all.
     /// </remarks>
     public bool IsBrowser { get; } = isBrowser;
-
-    /// <summary>
-    /// The database this project is wired to, read off its package references rather than asked for again.
-    /// </summary>
-    /// <remarks>
-    /// Detected, not configured: the provider was already decided by <c>rask new --database</c>, and a
-    /// second source of truth is a second thing to get out of sync — a command that
-    /// emitted SQLite wiring into a PostgreSQL app would not fail until runtime.
-    /// </remarks>
-    public DatabaseProvider Provider { get; } = provider;
-
-    /// <summary>The scaffolding facts for <see cref="Provider"/>.</summary>
-    public DatabaseInfo Database => DatabaseCatalog.For(Provider);
 
     /// <summary>The namespace a file in <paramref name="targetDirectory"/> should declare.</summary>
     public string NamespaceFor(string targetDirectory)
@@ -180,12 +166,11 @@ internal static class ProjectLocator
             var projects = fileSystem.ListFiles(directory, "*.csproj");
             if (projects.Count == 1)
             {
-                // One read, two answers — the project file is the source of truth for both.
+                // The project file is the source of truth for whether this is a browser app.
                 var csproj = fileSystem.ReadAllText(projects[0]);
                 return new ProjectContext(
                     directory,
                     ProjectContext.ReadRootNamespace(fileSystem, projects[0]),
-                    DatabaseCatalog.DetectProvider(csproj),
                     ProjectContext.DetectBrowser(csproj));
             }
 

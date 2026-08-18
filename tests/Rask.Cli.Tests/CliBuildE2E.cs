@@ -37,8 +37,6 @@ internal static class CliBuildE2E
         "Rask.SQLite.EntityFrameworkCore",  // server template --data and generated features that own a context (UseRaskSqlite)
         "Rask.SQLite.Litestream",           // --data — continuous backup on the golden path
         "Rask.SQLite.Snapshots",            // --snapshots — AddRaskSqliteSnapshots
-        "Rask.Postgres",                    // --database postgres — UseRaskPostgres
-        "Rask.SqlServer",                   // --database sqlserver — UseRaskSqlServer
         "Rask.WebPush",                     // --push — AddRaskWebPush + the subscription endpoints
         "Rask.Outbox",                      // tutorial ch.7
         "Rask.Jobs",                        // generate job, and tutorial ch4
