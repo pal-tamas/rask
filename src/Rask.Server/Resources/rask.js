@@ -1289,10 +1289,10 @@
             if (freshHead) {
                 morph(document.head, freshHead);
                 const wait = waitForUnappliedHeadCss();
-                if (wait) return wait.then(applyBody);
+                if (wait) return wait.then(() => window.__raskVt.run(applyBody));
             }
         }
-        applyBody();
+        return window.__raskVt.run(applyBody);
     }
 
     // Full-document render application: morph the whole <html> element so head changes
@@ -1363,9 +1363,9 @@
         // timing — when the render mounts no new scoped CSS.
         if (freshHtml) {
             const wait = preloadNewHeadStylesheets(freshHtml);
-            if (wait) return wait.then(commit);
+            if (wait) return wait.then(() => window.__raskVt.run(commit));
         }
-        commit();
+        return window.__raskVt.run(commit);
     }
 
     function maybeDrainPendingInvokes() {

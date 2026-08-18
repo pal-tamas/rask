@@ -7,6 +7,28 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **View Transitions — the browser animates between the old and new DOM.** `IViewTransitions`, and it is
+  the one Web API on this surface an app genuinely could not add for itself: a same-document transition
+  has to **wrap** the DOM mutation, and in Rask the mutation is the framework's morph. There is no point
+  in an app's code that sits around it.
+
+  Enabling routes the live runtime's own commit — the diff apply and the full-document apply, on **both**
+  the Server and WASM hosts — through `document.startViewTransition`. Style it with the standard
+  `::view-transition-*` pseudo-elements; a stable `view-transition-name` makes the browser morph an
+  element between routes rather than cross-fade it, which is what carries a shared header across a
+  navigation.
+
+  **Off by default, and off is byte-for-byte the previous behaviour** — the commit runs synchronously, as
+  it always has. Deferring every app's DOM commit into a transition callback is a timing change, and the
+  render queue chains on that commit, so nobody gets one they did not ask for.
+
+  `prefers-reduced-motion` is honoured in the runtime rather than left to your CSS: what this drives is
+  the browser's own default cross-fade, so there is no stylesheet of ours for the preference to switch
+  off. `IsActiveAsync()` is deliberately separate from what you set — a settings toggle can be on while
+  nothing animates, because the browser lacks the API or the reader asked for less motion, and a UI that
+  conflates the two tells the user their preference was ignored. Part of #695.
+
 ### Changed
 - **`VirtualizeModel<T>(…)` is now `Virtualize.Items<T>(…)`.** It is the one hand-written generic entry
   point on the surface — a chain infers its type argument from the step that opens it, and `T` here

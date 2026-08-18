@@ -60,6 +60,26 @@ text (`SetAsync`/`GetAsync`) or raw bytes (`SetBytesAsync`/`GetBytesAsync`, stor
 
 <!-- demo:browser-page-visibility -->
 
+**`IViewTransitions`** — animate between the old and new DOM instead of the new one just appearing.
+
+The one wrapper here you could not have written yourself. A same-document transition has to *wrap* the
+DOM mutation, and the mutation is the framework's morph — there is no point in your code that sits
+around it. Enabling routes the live runtime's own commit (diff apply and full-document apply, on both
+hosts) through `document.startViewTransition`.
+
+**Off by default**, and off is exactly the previous behaviour: the commit stays synchronous. Style it
+with the standard `::view-transition-*` pseudo-elements; give an element a stable
+`view-transition-name` and the browser morphs it between routes rather than cross-fading it, which is
+what makes a shared header travel. `prefers-reduced-motion` is honoured for you — the animation is the
+browser's own default, so there is no stylesheet of yours for the preference to switch off.
+
+`IsActiveAsync()` is deliberately separate from what you set: a toggle can be on while nothing animates
+because the browser lacks the API or the reader asked for less motion.
+
+```csharp
+await _viewTransitions.SetEnabledAsync(true);
+```
+
 **`IPerformance`** — a high-resolution monotonic clock and page-load (Navigation Timing) metrics.
 
 <!-- demo:browser-performance -->

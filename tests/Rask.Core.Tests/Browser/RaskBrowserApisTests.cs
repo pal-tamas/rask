@@ -42,6 +42,7 @@ public class RaskBrowserApisTests
         (typeof(IPermissions), typeof(Permissions)),
         (typeof(IVibration), typeof(Vibration)),
         (typeof(IPageVisibility), typeof(PageVisibilityInfo)),
+        (typeof(IViewTransitions), typeof(ViewTransitions)),
         (typeof(IWebLocks), typeof(WebLocks)),
         (typeof(IMediaStreams), typeof(MediaStreams)),
         (typeof(ISignaling), typeof(Signaling)),
