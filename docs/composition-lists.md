@@ -6,13 +6,18 @@ Windowed and reorderable lists, transient toast messages, drag-and-drop, and err
 
 ## Virtualize — windowed lists
 
-`VirtualizeModel<T>` is **headless**: *you* render the scroll container and rows from a
+`Virtualize.Items<T>` is **headless**: *you* render the scroll container and rows from a
 `VirtualizationState ctx`, and it tells you which slice is visible. The first argument is
 the body builder; pass **exactly one** of `Items` (positional or named) or `ItemsProvider`,
 plus `ItemSize` (row height in px, required) and optional `OverscanCount`.
 
+It is the one place on the surface that is a **method call rather than a chain**, and for a reason a
+chain cannot work around: a chain infers its type argument from the step that opens it, and `T` here
+comes from the *render delegate*, not from a leading step. `Virtualize` is a global alias for the class
+that holds it, so no `using` is needed.
+
 ```csharp
-VirtualizeModel<Row>(
+Virtualize.Items<Row>(
     ctx => Div.Style("height:400px; overflow:auto;").OnScroll(ctx.OnScroll)[
         Div.Style($"height:{ctx.OffsetBefore}px"),          // top spacer
         Table[Tbody[

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
 using C = Rask.Core.Components.Generated;
 using RaskVirtualize = Rask.Core.Components.VirtualizeModel;
+using Virtualize = Rask.Core.Components.Virtualize;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -48,7 +49,7 @@ internal static partial class VirtualizationScroll
             items[i] = i;
         }
 
-        var virt = C.VirtualizeModel(
+        var virt = Virtualize.Items(
             ctx =>
             {
                 var rows = new List<Component>(ctx.VisibleItems.Count);

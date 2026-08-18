@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **`VirtualizeModel<T>(…)` is now `Virtualize.Items<T>(…)`.** It is the one hand-written generic entry
+  point on the surface — a chain infers its type argument from the step that opens it, and `T` here
+  comes from the *render delegate* — and it was reachable by simple name only because it sat inside the
+  globally-imported `Generated` factory class.
+
+  Moving it out under its own name did not work: `VirtualizeModel` also names the component's chain
+  entry, an inherited member beats a `using static` import in simple-name lookup, and every call site
+  failed with CS1744 as overload resolution landed on the entry instead. Renaming the method removes
+  the collision, so the facade can live in its own class and be imported without the factory class —
+  which is what unblocks dropping the `Generated` static imports.
+
+  `Virtualize` is a global **alias** for that class rather than a static import, deliberately: a static
+  import would put a bare `Items` in scope for every markup host, which is far too general a simple
+  name to hand out, and importing the namespace is what the existing props notes rule out (a type beats
+  a same-named builder entry, CS0119). An alias puts exactly one type in scope. Closes #684.
+
 ### Fixed
 - **The local unit gate went red on changes that touch no server code.**
   `ShutdownDrainTests.Readiness_goes_unhealthy_while_draining_but_capacity_still_reports_capacity`
