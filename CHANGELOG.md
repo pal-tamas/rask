@@ -8,6 +8,24 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Web Animations — `IWebAnimations`.** Run and control an animation on an element from C#, with no
+  stylesheet and no animation library. Keyframes take the API's *object* form
+  (`["opacity"] = ["0", "1"]`), which is what `Element.animate()` accepts natively and which serializes
+  as the `Dictionary<string, string[]>` already in the source-generated JSON context — so nothing new
+  has to be kept trim-safe.
+
+  `StartAsync` hands back an `AnimationId` because an `Animation` object cannot cross interop, the same
+  shape `MediaStreamId` uses for a `MediaStream`. Three choices worth knowing: on a browser without the
+  API the handle is **invalid rather than an error**, so you can animate without feature-testing first;
+  `WaitAsync` returns **`false` on cancel instead of rejecting**, because a cancelled animation is an
+  ordinary outcome and awaiting it should not need a `try`/`catch`; and the handle is dropped once the
+  animation ends, so a page that animates on every render does not grow the map forever.
+
+  Unlike `IViewTransitions`, **reduced motion is the app's call here.** These are the app's own
+  animations and only the app knows what each is for — refusing to run a loading affordance and refusing
+  to run decoration are not the same decision. `IMediaQuery` already reads the preference. Part of #695.
+
+### Added
 - **View Transitions — the browser animates between the old and new DOM.** `IViewTransitions`, and it is
   the one Web API on this surface an app genuinely could not add for itself: a same-document transition
   has to **wrap** the DOM mutation, and in Rask the mutation is the framework's morph. There is no point
