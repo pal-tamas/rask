@@ -4,10 +4,9 @@ using Rask.Core.Routing;
 namespace Rask.Example.Auth.Jwt.Features;
 
 [AllowAnonymous]
-public sealed partial class HomePage : Page
+[Route("/")]
+public sealed partial class HomePage : Component
 {
-    protected override string Route => "/";
-
     protected override Component? Render() =>
         Div.Id("home").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
             Div.Class("card-body")[

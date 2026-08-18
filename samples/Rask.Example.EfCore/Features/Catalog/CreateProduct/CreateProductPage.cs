@@ -9,11 +9,10 @@ namespace Rask.Example.EfCore.Features.Catalog.CreateProduct;
 // the only things it shares are the domain (Product / value objects) and the FieldErrors template.
 // Inline field validators reuse the value objects' Validate methods, so the form and the domain
 // enforce the same rules from a single source.
+[Route("products/new")]
 public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext> dbContextFactory, Navigator navigator)
-    : Page
+    : Component
 {
-    protected override string Route => "products/new";
-
     private readonly CreateProductForm _form = new();
 
     protected override Component? HeadAssets => Title["New product — Rask EF Core"];

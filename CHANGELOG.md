@@ -7,6 +7,38 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING — routes are declared by `[Route]` again; the `Page` base class is gone.** A routable
+  component is any `Component` carrying `[Route("/x")]`, with `[ParentRoute(typeof(Layout))]` for nesting
+  and `[NotFound]` for the catch-all. `Page` and its `Route`/`Parent` overrides are removed, and `Screen`
+  now derives from `Component` — the native `HeaderBar`/`Toolbar`/`TabBar` slots are unchanged.
+
+  This is what makes **one page answer several URLs**: `[Route]` is `AllowMultiple`, so stacking it is the
+  whole feature. The first template declared is canonical — it is what `X.Url(...)` and `Routes.X(...)`
+  format — and the rest are alternates the router matches but nothing generates, so a generated link can
+  never drift onto a path kept only for old bookmarks. A single `Route` property could express exactly one
+  URL, which is what motivated the change.
+
+  Migration is mechanical: delete the `Route` override and put its template in a `[Route]` above the class,
+  delete the `Parent` override in favour of `[ParentRoute(typeof(...))]`, and change the base from `Page`
+  to `Component` (`Screen` subclasses keep `: Screen`).
+
+- **The hero animation types the new declaration.** `ChainAnimation` (and the `assets/rask-chain.svg`
+  baked from it) opens with `[Route("/counter")]` above a plain `Component`, retimed so the attribute and
+  the class line type at the same rate. Two new colour roles came with it: an operator role, so `=>` reads
+  as code rather than as dim punctuation, and an interpolation role, so the `{_count}` hole inside
+  `$"Current count: {_count}"` is coloured instead of disappearing into the string literal.
+
+  Each typed run also measures with `lengthAdjust="spacingAndGlyphs"` rather than `spacing`. `spacing`
+  adjusts only the gaps *between* glyphs, so the last glyph kept its natural advance and its ink could
+  spill past `textLength` — past the cover rectangle that hides the untyped remainder, leaving the tail of
+  a line (the `=>` ending the `Render` line) hanging on screen from the first frame, before the line was
+  typed.
+
+- **RASK047 is retired.** It reported a `Page.Route` override that was not a compile-time constant. A
+  `[Route]` argument is an attribute argument and therefore constant by construction, so the failure it
+  guarded cannot be written. The id is retired, not reused.
+
 ### Added
 - **The portable chrome now has a sample, which is what the repo's own definition of done asks for.** #743
   shipped `AppBar`/`TabStrip` and documented them, but no sample used them — and no sample used `Screen` at

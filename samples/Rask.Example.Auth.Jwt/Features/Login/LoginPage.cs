@@ -6,16 +6,15 @@ using Rask.Server.Authentication;
 namespace Rask.Example.Auth.Jwt.Features;
 
 [AllowAnonymous]
+[Route("login")]
 public sealed partial class LoginPage(
     ICredentialStore creds,
     JwtIssuer issuer,
     JwtValidator validator,
     ProtectedSessionStorage store,
     SessionUserProvider users,
-    Navigator nav) : Page
+    Navigator nav) : Component
 {
-    protected override string Route => "login";
-
     private readonly LoginModel _model = new();
     private string? _error;
 

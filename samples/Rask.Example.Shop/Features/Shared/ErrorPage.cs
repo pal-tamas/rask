@@ -11,10 +11,9 @@ namespace Rask.Example.Shop.Features.Shared;
 // [AllowAnonymous] because an error page that redirects to /login is worse than the error: if you
 // later add a fallback authorization policy, this route must stay reachable.
 [AllowAnonymous]
-public sealed partial class ErrorPage : Page
+[Route("/error")]
+public sealed partial class ErrorPage : Component
 {
-    protected override string Route => "/error";
-
     protected override Component? HeadAssets => [Title["Something went wrong"]];
 
     protected override Component? Render() =>

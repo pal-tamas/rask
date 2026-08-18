@@ -8,12 +8,10 @@ namespace Rask.Example.Wasm.Features;
 ///     WASM-only showcase page for <see cref="UsbDemo" /> (<c>IUsb</c>). Surfaced in the shared sidebar via a
 ///     host-registered <see cref="ShowcaseNavEntry" /> (see Program.cs).
 /// </summary>
-public sealed partial class UsbPage : Page
+[Route("usb")]
+[ParentRoute(typeof(ShowcaseLayout))]
+public sealed partial class UsbPage : Component
 {
-    protected override string Route => "usb";
-
-    protected override Type? Parent => typeof(ShowcaseLayout);
-
     protected override Component? HeadAssets => Title["WebUSB — Rask"];
 
     protected override Component? Render() =>

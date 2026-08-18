@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Chrome;
 using Rask.Core;
 using Rask.Core.Live;
+using Rask.Core.Routing;
 using Rask.Native.Components;
 using Rask.Native.Tests.Infrastructure;
 using static Rask.Core.Components.Generated;
@@ -90,11 +91,11 @@ public class ScreenChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     }
 }
 
+[Route("/screen-chrome")]
 internal sealed partial class ChromeScreenApp : Screen
 {
     private int _added;
 
-    protected override string Route => "/screen-chrome";
     protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
@@ -104,18 +105,17 @@ internal sealed partial class ChromeScreenApp : Screen
     protected override Component? Render() => NativeWebView[P[$"added={_added}"]];
 }
 
+[Route("/screen-chrome-leaf")]
 internal sealed partial class LeafScreen : Screen
 {
-    protected override string Route => "/screen-chrome-leaf";
-
     protected override Component? HeaderBar => NativeHeaderBar.Title("Leaf");
 
     protected override Component? Render() => P["leaf"];
 }
 
+[Route("/screen-chrome-layout")]
 internal sealed partial class LayoutScreenApp : Screen
 {
-    protected override string Route => "/screen-chrome-layout";
     protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 

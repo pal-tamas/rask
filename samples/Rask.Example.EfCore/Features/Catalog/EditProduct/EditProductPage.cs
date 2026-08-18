@@ -8,11 +8,10 @@ namespace Rask.Example.EfCore.Features.Catalog.EditProduct;
 // Vertical slice: edit a product (a command). Loads the current values into its own form, then on
 // submit loads the tracked aggregate and mutates it through Product.Update so the invariants and
 // the same value-object validation rules apply.
+[Route("products/{id:int}/edit")]
 public sealed partial class EditProductPage(IDbContextFactory<CatalogDbContext> dbContextFactory, Navigator navigator)
-    : Page
+    : Component
 {
-    protected override string Route => "products/{id:int}/edit";
-
     private readonly EditProductForm _form = new();
     private bool _loaded;
     private bool _found;

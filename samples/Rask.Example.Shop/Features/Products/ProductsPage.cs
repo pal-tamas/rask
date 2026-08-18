@@ -22,10 +22,9 @@ public sealed class ListProductsQueryHandler(IDbContextFactory<AppDbContext> dbC
     }
 }
 
-public sealed partial class ProductsPage(IDispatcher dispatcher) : Page
+[Route("/products")]
+public sealed partial class ProductsPage(IDispatcher dispatcher) : Component
 {
-    protected override string Route => "/products";
-
     private IReadOnlyList<Product> _items = [];
     private bool _loaded;
     private bool _showDeleted;

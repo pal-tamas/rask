@@ -24,17 +24,14 @@ namespace Rask.Dashboard.Pages;
 /// would quietly disagree with itself for a second at a time.
 /// </para>
 /// </summary>
+[Route("logs")]
+[ParentRoute(typeof(DashboardLayout))]
 public sealed partial class LogsPage(
     DashboardLogBuffer buffer,
     RaskDashboardOptions options,
     TimeProvider timeProvider,
     IServiceProvider services) : PollingPanel, IDisposable
 {
-    protected override string Route => "logs";
-
-    protected override Type? Parent => typeof(DashboardLayout);
-
-
     private readonly ILogStore? _store = services.GetService<ILogStore>();
 
     private bool _subscribed;

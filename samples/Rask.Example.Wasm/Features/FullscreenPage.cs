@@ -8,12 +8,10 @@ namespace Rask.Example.Wasm.Features;
 ///     WASM-only showcase page for <see cref="FullscreenDemo" /> (<c>IFullscreen</c>). Surfaced in the
 ///     shared sidebar via a host-registered <see cref="ShowcaseNavEntry" /> (see Program.cs).
 /// </summary>
-public sealed partial class FullscreenPage : Page
+[Route("fullscreen")]
+[ParentRoute(typeof(ShowcaseLayout))]
+public sealed partial class FullscreenPage : Component
 {
-    protected override string Route => "fullscreen";
-
-    protected override Type? Parent => typeof(ShowcaseLayout);
-
     protected override Component? HeadAssets => Title["Fullscreen — Rask"];
 
     protected override Component? Render() =>
