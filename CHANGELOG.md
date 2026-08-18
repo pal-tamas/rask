@@ -23,6 +23,18 @@ them until tagged releases begin.
   delete the `Parent` override in favour of `[ParentRoute(typeof(...))]`, and change the base from `Page`
   to `Component` (`Screen` subclasses keep `: Screen`).
 
+- **The hero animation types the new declaration.** `ChainAnimation` (and the `assets/rask-chain.svg`
+  baked from it) opens with `[Route("/counter")]` above a plain `Component`, retimed so the attribute and
+  the class line type at the same rate. Two new colour roles came with it: an operator role, so `=>` reads
+  as code rather than as dim punctuation, and an interpolation role, so the `{_count}` hole inside
+  `$"Current count: {_count}"` is coloured instead of disappearing into the string literal.
+
+  Each typed run also measures with `lengthAdjust="spacingAndGlyphs"` rather than `spacing`. `spacing`
+  adjusts only the gaps *between* glyphs, so the last glyph kept its natural advance and its ink could
+  spill past `textLength` — past the cover rectangle that hides the untyped remainder, leaving the tail of
+  a line (the `=>` ending the `Render` line) hanging on screen from the first frame, before the line was
+  typed.
+
 - **RASK047 is retired.** It reported a `Page.Route` override that was not a compile-time constant. A
   `[Route]` argument is an attribute argument and therefore constant by construction, so the failure it
   guarded cannot be written. The id is retired, not reused.
