@@ -487,7 +487,8 @@ copy — the build context ships to the host's daemon over SSH and builds there.
 `Dockerfile` that `rask new --docker` scaffolds (point at another with `--dockerfile`).
 
 **Handed a box that isn't ready, it sets it up** — installs Docker, creates a non-root `deploy` login
-with your keys, configures a firewall, and hardens SSH — after showing you the list and asking once. So
+with your keys, configures a firewall (one that covers Docker's published ports, which ufw does not
+reach on its own), and hardens SSH — after showing you the list and asking once. So
 a fresh VPS goes live without you opening an SSH session. It's idempotent (a ready box is left alone,
 with no prompt), and nothing that could lock you out happens until a fresh connection has proved the new
 login works — with a rollback timer on the box as the backstop. See
@@ -576,7 +577,7 @@ Host setup options — these only matter the first time you deploy to a box:
 | `--no-setup-host` | Never change the host; fail with instructions instead. What the generated CI workflow uses. |
 | `--deploy-user <name>` | The non-root login to create and deploy as when given a root host (default: `deploy`). |
 | `--no-deploy-user` | Keep deploying as the `--host` login instead of creating a non-root one. |
-| `--no-firewall` | Don't configure `ufw` on the host. |
+| `--no-firewall` | Don't configure `ufw` on the host, and don't put Docker's published ports behind it. |
 | `--no-harden-ssh` | Don't disable SSH password login and root login on the host. |
 
 **Prerequisites.** The [Docker CLI](https://docs.docker.com/get-docker/) installed locally (it's the

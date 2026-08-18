@@ -71,6 +71,7 @@ you exactly what it wants to change, and asks once:
   • Start the Docker daemon
   • Create the 'deploy' login and give it Docker access
   • Enable the firewall (allow 22, 80, 443; deny everything else inbound)
+  • Make Docker's published ports obey the firewall (allow 80, 443; deny every other container port)
   • Harden SSH (disable SSH password login and root login)
 
 Set up root@box now? [Y/n]
@@ -83,7 +84,8 @@ Say yes and the box is ready; the deploy then runs normally. What it does:
   copies your `authorized_keys` to it, and adds it to the `docker` group. `.rask/deploy.json` is updated
   to `deploy@box`, so every later deploy uses it — including after root login is switched off.
 - **A firewall.** `ufw` with the ports sshd actually listens on plus 80/443 (or your `--port`) allowed,
-  everything else inbound denied.
+  everything else inbound denied — **including container ports**, which ufw does not cover on its own
+  (see below).
 - **SSH hardening.** Password login off, and root login off — but *only* once a working non-root login
   exists to replace it.
 
@@ -102,10 +104,28 @@ get back in afterwards (or is killed), the host reverts both by itself after ~5 
 something can't be done safely, it's skipped out loud rather than quietly: if sshd's real port can't be
 read, the firewall is not enabled, because a firewall Rask can't prove is safe is worse than none.
 
-> **On ufw and Docker.** Docker publishes container ports by writing its own iptables rules, which
-> bypass ufw. For Rask that's not a hole — the only ports Docker publishes here are the ones meant to be
-> public (Caddy's 80/443, or your `--port`), and ufw's job is everything *else* on the box. But it does
-> mean that if you later run an unrelated container with `-p`, `ufw deny` will not hide it.
+> **On ufw and Docker.** Docker publishes a container port by writing its own iptables rules: a DNAT
+> that is filtered through `FORWARD`, where ufw's `INPUT` rules never see it. On a stock box that makes
+> `ufw deny` meaningless for anything `docker run -p` exposes — `ufw status` reports a port closed while
+> the internet can reach it. Rask closes that gap as part of setting the firewall up, so the deny you
+> were promised is the deny you get.
+>
+> It works through `DOCKER-USER`, the chain Docker consults before its own rules and never writes to
+> itself. Rask points it at ufw's forward rules and then default-denies anything else being forwarded
+> into a Docker bridge, allowing only what this deploy publishes. Three things worth knowing:
+>
+> - **The rules live in `/etc/ufw/after.rules`**, in a block fenced by `###RASK-DOCKER-BEGIN`/`-END`
+>   that is rewritten whenever it goes stale and never touches the rest of the file. That file is where
+>   they belong rather than a live `iptables` call, because raw chains do not survive a reboot.
+> - **To open another container port, use plain ufw**: `sudo ufw route allow proto tcp from any to any
+>   port 5432`. It has to be the port *inside* the container — Docker's DNAT has already rewritten the
+>   destination by the time the firewall sees the packet, so a `-p 15432:5432` maps to `5432` here.
+> - **Rask owns the `DOCKER-USER` chain** on a box it firewalls: the block replaces that chain's
+>   contents so nothing can accept ahead of the default-deny. If you manage `DOCKER-USER` with another
+>   tool, use `--no-firewall`.
+>
+> Only what's forwarded into a Docker bridge is denied, so a box that also routes for something else (a
+> VPN, say) is unaffected — and containers can still reach out and reach each other.
 
 ### Deploying from GitHub Actions
 

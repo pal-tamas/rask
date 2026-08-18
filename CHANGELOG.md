@@ -39,6 +39,32 @@ them until tagged releases begin.
   `RenderedComponent` gained `FilesAsync` on both interaction surfaces (`page.On(selector).FilesAsync(...)`
   and the first-handler shortcut), which builds the metadata payload a real client would send. Closes #737.
 
+### Security
+- **`rask deploy`'s firewall now actually covers Docker's published ports.** Setup enabled `ufw` and
+  reported "deny everything else inbound", which was not true of anything a container publishes: Docker
+  writes its own iptables rules, filtered through `FORWARD`, where ufw's `INPUT` rules never see them. The
+  gap was worse than an unclosed port, because it was invisible — `ufw status` called a port denied while
+  the internet could reach it. Anyone who followed the obvious instinct on a Rask-provisioned box and ran,
+  say, a database with `-p 5432:5432` behind "a firewall" had published it.
+
+  Setup now writes a fenced block into `/etc/ufw/after.rules` that hooks `DOCKER-USER` — the chain Docker
+  consults before its own rules and never writes to itself — jumps to ufw's forward rules, and default-denies
+  anything else being forwarded into a Docker bridge, allowing only the container port this deploy publishes.
+  A box that already runs ufw gets the same treatment without its own allow list being touched, since that
+  box is precisely the one whose owner believes the deny already covers Docker.
+
+  Three details are load-bearing. The rules live in `after.rules` rather than a live `iptables` call because
+  raw chains do not survive a reboot, and ufw reloads that file at boot. The allow is the port *inside* the
+  container, not the published one — DNAT has already rewritten the destination by the time any filter rule
+  runs, so allowing the host's port would deny every packet and take the app offline. And the deny matches
+  the interface traffic is leaving on rather than an RFC1918 destination, so a box that also forwards for
+  something else (a VPN, a router) is unaffected; containers still reach out and reach each other.
+
+  Opening another container port is plain ufw: `sudo ufw route allow proto tcp from any to any port 5432`.
+  Opt out with `--no-firewall`, which now also opts out of this. The block carries a signature of its own
+  rules and ports that the host probe reads back, so a deploy that changes `--port` rewrites it and an
+  unchanged box stays a no-op.
+
 ### Changed
 - **The "no `IBrowserFileBackend`" diagnostic now names the fix.** It reported the silent-empty case (added
   in #736) but could only say "register a backend", because none shipped. It now points at
