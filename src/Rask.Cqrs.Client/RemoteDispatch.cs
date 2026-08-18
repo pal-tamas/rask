@@ -118,7 +118,11 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
 
     private HttpRequestMessage Build(RemoteContract contract, byte[] json, List<RemoteFile> files)
     {
-        var path = options.RoutePrefix + "/" + Uri.EscapeDataString(contract.Name);
+        // PathBase first: a sub-path deploy (a WASM bundle served under /myapp/) reaches its own host
+        // only through that prefix, and the server maps the endpoint pair under the same one. Without it
+        // the request leaves for the site root and 404s — visible only once someone deploys under a path.
+        var path = Rask.Core.Live.LiveOptions.PathBase + options.RoutePrefix
+                   + "/" + Uri.EscapeDataString(contract.Name);
 
         if (files.Count > 0)
         {
