@@ -120,11 +120,14 @@ public sealed class TodosScreen : Screen
 {
     protected override string Route => "/todos";
 
-    protected override Component? HeaderBar => NativeHeaderBar.Title("Todos");
+    protected override Component? HeaderBar => AppBar.Title("Todos");
 
     protected override Component? Render() => Div[/* the HTML body */];
 }
 ```
+
+`AppBar` is a **`Rask.Chrome`** component, so that class names no native type and compiles for every head — see
+[Portable chrome](#portable-chrome-one-screen-every-host) just below.
 
 **Routing works exactly as it does on the web** — this is the part that usually surprises people. A screen is
 addressed by the same path template, matched by the same `Router()`, and gets the same generated
@@ -140,13 +143,84 @@ Three properties are worth knowing:
 - **Chrome merges deepest-wins, per kind.** A layout screen (a [`Parent`](routing.md#nested-routes--parent--outlet))
   supplies the `TabBar` once and each leaf screen supplies its own `HeaderBar`; the leaf's header beats the
   layout's, and both survive.
-- **Server and WASM never read the slots.** Those hosts don't collect chrome, so the overrides aren't even
-  evaluated — one screen class serves web and native with no `IsNative` branch, and a web-only app pays
-  nothing for the base class.
+- **The slots are walked on every host**, and what they render is the bar's own business — no `IsNative`
+  branch in your screen. The portable bars render markup on the web and nothing inside a native shell; the
+  platform-exact `Native*` bars render nothing anywhere, so a native-only screen still emits no HTML. A
+  screen that declares no chrome pays a null check.
 
 The three slots are `HeaderBar`, `Toolbar` and `TabBar`. (`HeaderBar`, not `Header` — `Header` is already the
 HTML `<header>` element on the markup surface.) They're typed as plain `Component?`, so `Rask.Core` takes no
-dependency on the native package; the native host recognizes the bar it's handed.
+dependency on the native package; the native host recognizes whichever bar it's handed.
+
+## Portable chrome: one screen, every host
+
+The slots accept two families, and the choice is the usual portability trade:
+
+| | `Rask.Chrome` — portable | `Rask.Native` — platform-exact |
+| --- | --- | --- |
+| Header | `AppBar` | `NativeHeaderBar` |
+| Tabs | `TabStrip` + `TabItem` | `NativeTabBar` + `NativeTab` |
+| Bar item | `BarButton` | `NativeBarButton`, `NativeBackButton`, `NativeMenuButton` |
+| Icons | `BarIcon` | `NativeIcon` |
+| Toolbar | — | `NativeToolbar` |
+| Compiles for the web heads | **yes** | no |
+| Colour / segmented title / overflow menu | via `NativeTheme` only | per bar |
+
+Reach for the portable set by default. One declaration, three hosts:
+
+```csharp
+public sealed class TodosScreen : Screen
+{
+    protected override string Route => "/todos";
+
+    protected override Component? HeaderBar =>
+        AppBar.Title("Todos")
+            .Trailing([BarButton.Icon(BarIcon.Add).Title("New").OnClick(Add)]);
+
+    protected override Component? TabBar =>
+        TabStrip.Tabs([
+            TabItem.Title("Home").Icon(BarIcon.Home).To(Features.Routes.Home()),
+            TabItem.Title("Todos").Icon(BarIcon.List).To(Features.Routes.Todos()).Badge("3"),
+        ]);
+
+    protected override Component? Render() => Div[/* the HTML body */];
+}
+```
+
+Inside a native shell that is a `UINavigationBar` + `UITabBar` (iOS) / a top + bottom bar (Android), and the
+screen emits no markup for either. On Server and WASM the same declaration renders landmark HTML:
+
+```html
+<div class="rask-header-bar" role="banner">
+  <div class="rask-header-title">Todos</div>
+  <div class="rask-header-trailing">
+    <button class="rask-bar-button" data-rask-icon="add" type="button">New</button>
+  </div>
+</div>
+<!-- the body -->
+<div class="rask-tab-bar" role="navigation">
+  <a class="rask-tab" data-rask-icon="home" href="/">Home</a>
+  <a class="rask-tab rask-tab-active" data-rask-icon="list" aria-current="page" href="/todos">Todos
+    <div class="rask-tab-badge">3</div></a>
+</div>
+```
+
+Three things that are deliberate:
+
+- **Core ships no stylesheet.** The class names above *are* the styling contract, and the icon arrives as
+  `data-rask-icon="add"` rather than a glyph — Core carries no SVG payload and no icon-font dependency, so
+  you attach whatever set you already use with one CSS rule per name.
+- **`role="banner"` / `role="navigation"` rather than `<header>` / `<nav>`.** `Rask.Core` holds only the tags
+  its own engine builds (the HTML family lives in `Rask.Html`), and the ARIA role is what assistive
+  technology reads off those elements anyway. The tab bar renders *after* the body so reading order matches
+  the visual one, and the active tab carries `aria-current="page"` — the active class is a visual cue only.
+- **Which tab is lit is derived once.** Leave `Selected` unset and it follows the route by longest matching
+  tab path, so `/todos/42` keeps the Todos tab lit and `/todos-archive` does not. The web hosts and the
+  native descriptor builder call the same method, so one declaration cannot light different tabs on
+  different heads.
+
+Mix freely: a screen can take the portable `AppBar` and a platform-exact `NativeToolbar` in the same
+declaration. Naming any `Native*` type is what stops that class compiling for a web head.
 
 ## Native header & footer
 

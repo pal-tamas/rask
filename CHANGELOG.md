@@ -63,6 +63,61 @@ them until tagged releases begin.
   import would put a bare `Items` in scope for every markup host, which is far too general a simple
   name to hand out, and importing the namespace is what the existing props notes rule out (a type beats
   a same-named builder entry, CS0119). An alias puts exactly one type in scope. Closes #684.
+- **Portable chrome: one `Screen` class, every host.** `Screen` has always declared its own header/tab bar
+  instead of the app root inspecting the route — but the slots could only be filled with `Rask.Native`
+  components, and were read on the native host alone. So a shared `Screen` forced a web app to reference the
+  native package, and rendered nothing there if it did. The feature was, in practice, native-only.
+
+  A new **`Rask.Chrome`** assembly now owns `Screen` and the portable vocabulary — **`AppBar`**,
+  **`TabStrip`** + **`TabItem`**, **`BarButton`**, **`BarIcon`** — and the slots are walked on every host.
+  One declaration:
+
+  ```csharp
+  protected override Component? HeaderBar =>
+      AppBar.Title("Todos").Trailing([BarButton.Icon(BarIcon.Add).Title("New").OnClick(Add)]);
+
+  protected override Component? TabBar =>
+      TabStrip.Tabs([TabItem.Title("Home").Icon(BarIcon.Home).To(Features.Routes.Home())]);
+  ```
+
+  Inside a native shell that is a `UINavigationBar` + `UITabBar` (iOS) / a top + bottom bar (Android), and
+  the screen emits no markup for either. On Server and WASM the same declaration renders landmark HTML —
+  `role="banner"` / `role="navigation"`, `aria-current="page"` on the active tab, the tab bar after the body
+  so reading order matches the visual one. Core ships no stylesheet: the `rask-header-bar` / `rask-tab-bar` /
+  `rask-bar-button` class names are the styling contract, and an icon arrives as `data-rask-icon="add"`
+  rather than a glyph, so Core carries no SVG payload and no icon-font dependency.
+
+  Which tab is lit is derived **once**: `TabStrip.DeriveSelected` (longest matching tab path, so `/todos/42`
+  keeps the Todos tab lit and `/todos-archive` does not) is called by the web hosts *and* by the native
+  descriptor builder, so one declaration cannot light different tabs on different heads. `NativeIcon`'s
+  curated members now delegate to `BarIcon` for the same reason — two hand-kept copies of the same
+  SF-Symbol/drawable pairs would drift the moment either gained an icon.
+
+  **Why its own assembly.** `Rask.Chrome` is `IsPackable=false` and bundled into the lib/ folder of every
+  host package — the treatment `Rask.Core`, `Rask.Html` and `Rask.Client` already get — so `Rask.Core` stays
+  free of UI chrome and keeps exactly one seam for it (the internal `IScreenChrome` the serializer
+  type-tests). It is deliberately *not* in `Rask.Native`: that is the mobile **host** package
+  (`INativeWebView`, `NativeAppHost`, the platform bridge, iOS/Android TFMs), and putting `Screen` there
+  would force a shared UI project to reference a WebView host from its Server and WASM builds.
+  `Screen` moves from namespace `Rask.Core` to `Rask.Chrome`, so a screen file adds `using Rask.Chrome;`;
+  the bar entries need no using (the assembly declares `RaskFactoryNamespace`).
+
+  The `Rask.Native` family (`NativeHeaderBar`, `NativeTabBar`, `NativeToolbar`, `NativeMenuButton`, per-bar
+  tinting, segmented titles) stays as the platform-exact escape hatch, and the two mix in one screen. Naming
+  any `Native*` type is what stops a class compiling for a web head. See
+  [docs/native-devices.md](docs/native-devices.md#portable-chrome-one-screen-every-host).
+
+### Changed
+- **A `Screen`'s chrome slots are now evaluated on every host, not only on a native head with an
+  `INativeChrome` backend.** That is what lets the portable bars render on the web; it also means a slot's
+  expression now runs where it previously did not. The `Rask.Native` bars render `null` wherever they are
+  read, so a native-only screen still contributes no HTML, and a screen with no chrome pays a null check.
+
+  The serializer's per-user-component walk is the render hot path, so it was measured: the gate already ran
+  a type test there (`component is Screen`), and the change keeps exactly one. **No allocation regression** —
+  `RenderAndBuildPayload` 35.31 KB → 35.31 KB, `RenderOnce` 87.09 KB → 87.09 KB, `RenderTenTimes`
+  157.4 KB → 157.4 KB, `RenderKeyedList100` 100.12 KB → 100.12 KB, `RenderDeep_50UserComponents`
+  82.35 KB → 81.18 KB.
 
 ### Fixed
 - **The local unit gate went red on changes that touch no server code.**

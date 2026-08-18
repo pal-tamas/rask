@@ -30,6 +30,10 @@
     <!-- Rask.Client: the WASM+Native-shared in-process client APIs (IShare). Bundled into lib/ below like
          Rask.Core (PrivateAssets="all" keeps it out of the nuspec dependency list). -->
     <ProjectReference Include="..\Rask.Client\Rask.Client.csproj" PrivateAssets="all"/>
+    <!-- Rask.Chrome: Screen + the portable chrome bars. Bundled into lib/ like Rask.Core so one Screen
+         subclass compiles and renders on every host (PrivateAssets="all" keeps it out of the nuspec
+         dependency list — the DLL is packed directly). -->
+    <ProjectReference Include="..\Rask.Chrome\Rask.Chrome.csproj" PrivateAssets="all"/>
     <!--
       Build-order-only dependency on the MSBuild task project. Rask.Wasm.Tasks compiles
       Rask.Wasm.Tasks.dll and (via its CopyTaskAssemblyToRaskWasmBuild target) drops it into
@@ -213,6 +217,19 @@
                               PackagePath="lib/net10.0/"
                               Condition=" '$(TargetFramework)' == 'net10.0' "/>
       <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.xml"
+                              PackagePath="lib/net10.0-browser1.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
+      <!-- Rask.Chrome.dll/.xml — Screen + the portable chrome bars, on the same terms. -->
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Chrome.dll"
+                              PackagePath="lib/net10.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Chrome.dll"
+                              PackagePath="lib/net10.0-browser1.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Chrome.xml"
+                              PackagePath="lib/net10.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Chrome.xml"
                               PackagePath="lib/net10.0-browser1.0/"
                               Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
       <!-- Rask.Html.dll/.xml — the HTML/SVG element family, bundled on the same terms as Rask.Core. -->

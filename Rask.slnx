@@ -29,6 +29,7 @@
         <Project Path="src/Rask.Bootstrap/Rask.Bootstrap.csproj"/>
         <Project Path="src/Rask.Cache/Rask.Cache.csproj"/>
         <Project Path="src/Rask.Cli/Rask.Cli.csproj"/>
+        <Project Path="src/Rask.Chrome/Rask.Chrome.csproj"/>
         <Project Path="src/Rask.Client/Rask.Client.csproj"/>
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
         <Project Path="src/Rask.Cqrs/Rask.Cqrs.csproj"/>
@@ -64,6 +65,7 @@
         <Project Path="tests/Rask.Bootstrap.Tests/Rask.Bootstrap.Tests.csproj"/>
         <Project Path="tests/Rask.Cache.Tests/Rask.Cache.Tests.csproj"/>
         <Project Path="tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj"/>
+        <Project Path="tests/Rask.Chrome.Tests/Rask.Chrome.Tests.csproj"/>
         <Project Path="tests/Rask.Client.Tests/Rask.Client.Tests.csproj"/>
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Tests/Rask.Cqrs.Tests.csproj"/>
