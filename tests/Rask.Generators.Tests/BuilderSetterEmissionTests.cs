@@ -10,6 +10,11 @@ namespace Rask.Generators.Tests;
 // closure every render would report a change every frame and defeat the render cache outright.
 public class BuilderSetterEmissionTests
 {
+    // Every non-folding CALLBACK setter records that there is a callback to put back, so the eager
+    // reset can skip its ~88-field block on an element that names none. Spelled once here because it
+    // appears in the middle of several expected setter bodies.
+    private const string Mark = "global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); ";
+
     private const string Src = """
                                using System;
                                using Rask.Core;
@@ -196,7 +201,7 @@ public class BuilderSetterEmissionTests
         Assert.Contains(
             "public static global::Rask.Core.Build<T> OnClick<T>(this global::Rask.Core.Build<T> __b, global::System.Action? value) "
             + "where T : global::Rask.Core.Element "
-            + "{ var __c = __b.Value; __c.OnClick = value; return __b; }",
+            + "{ var __c = __b.Value; " + Mark + "__c.OnClick = value; return __b; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -233,7 +238,7 @@ public class BuilderSetterEmissionTests
 
         Assert.Contains(
             "OnPick(this global::Rask.Core.Build<global::Demo.Widget> __b, global::System.Action? value) "
-            + "{ var __c = __b.Value; __c.OnPick = global::Rask.Core.AutoCallback.Wrap(value); "
+            + "{ var __c = __b.Value; " + Mark + "__c.OnPick = global::Rask.Core.AutoCallback.Wrap(value); "
             + "return __b; }",
             output,
             StringComparison.Ordinal);
@@ -360,7 +365,7 @@ public class BuilderSetterEmissionTests
         var output = run.Source("RaskBuilderSetters.g.cs");
         Assert.Contains(
             "Format(this global::Rask.Core.Build<global::Demo.Widget> __b, global::System.Func<int, string>? value) "
-            + "{ var __c = __b.Value; __c.Format = value; return __b; }",
+            + "{ var __c = __b.Value; " + Mark + "__c.Format = value; return __b; }",
             output,
             StringComparison.Ordinal);
 

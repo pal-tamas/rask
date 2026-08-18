@@ -587,27 +587,29 @@ them until tagged releases begin.
   re-render (one entry plus three setter calls per row, 150 setter calls a frame) allocates **19.7 KB
   on both surfaces — Alloc Ratio 1.00**.
 
-  **On wall-clock it currently costs 18%**, and that is a regression inside this branch rather than a
-  property of the surface — the same benchmark had the chain slightly AHEAD earlier (Entry/Factory
-  0.95–0.97):
+  **On wall-clock it is 43% AHEAD** — but only after a regression the surface introduced was found
+  and fixed, so both numbers are worth keeping. Each row is its own run, so read the ratio rather than
+  comparing the two `Factory` means (they differ by run-to-run drift):
 
   ```
-  Factory   21.89 us   19.7 KB   1.00
-  Entry     25.88 us   19.7 KB   1.00   (time ratio 1.18 ± 0.02)
+  before   Factory 22.73 us   Entry 27.74 us   ratio 1.22   19.7 KB both, Alloc Ratio 1.00
+  after    Factory 24.11 us   Entry 13.62 us   ratio 0.57   19.7 KB both, Alloc Ratio 1.00
   ```
 
-  **The cause is not yet known.** `BuilderSurfaceBenchmarks`' own comment predicts one — the deferred
-  reset grew a form where a property whose setter has a BODY is assigned unconditionally rather than
-  skipped when it already reads as its default, and five props on the shared `Element`/`Component`
-  surface take that form (`Draggable`, `Role`, `TabIndex`, `Aria`, `Ref`), so every element pays. That
-  prediction was **measured and disproved**: narrowing the unconditional path to `Router.Routes` alone
-  (the one property that genuinely derives state, resolving `RouteRegistry.BuildTree()` on assignment)
-  moves the ratio from 1.18 to 1.17. It is not where the time goes.
+  What it was: the eager reset runs at the entry, before the chain's setters, and puts every
+  non-folding prop back so a callback named LAST render cannot survive into one that does not name it.
+  On `Element` that is ~88 delegate fields, written unconditionally on every entry-built element on
+  every render — and almost no element carries a callback, so nearly every one of those writes was
+  assigning null over null. A single bit on `Component` (`FlagCallbackAssigned`, in the existing
+  `_flags` byte, so it costs no memory) now records whether there is anything to put back, and the
+  block is skipped when there is not.
 
-  What has not been ruled out is the per-step bookkeeping each setter does (`Track` + `Written`, 150
-  calls a frame here) and the reset's own shape — every prop on the shared surface is a separate mask
-  test per component per render, whether or not the form of the write changes. Tracked in the issue;
-  the number is recorded here rather than left to be rediscovered.
+  Worth recording what it was NOT, because the benchmark's own comment had predicted a different cause
+  and it was wrong: the unconditional reset of the five body-setter props (`Draggable`, `Role`,
+  `TabIndex`, `Aria`, `Ref`). Measured during the original investigation: narrowing that path to
+  `Router.Routes` alone — the one property that genuinely derives state — moved the ratio 1.18 → 1.17,
+  and removing the *whole* pending reset moved it to 1.11. Neither was the cost; the eager block was,
+  and it is not the one the comment named.
 
   The ratio is recorded because dropping the generated factory removes the arm that produces it, so
   this comparison cannot be reproduced afterwards.
