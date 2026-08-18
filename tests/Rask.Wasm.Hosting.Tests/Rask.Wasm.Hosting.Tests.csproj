@@ -35,6 +35,9 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
+    <!-- Dual-host composition: an app that serves a WASM SPA AND mounts the server-rendered
+         dashboard references both hosts. DualHostMountTests pins what that composition must do. -->
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

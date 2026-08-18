@@ -85,4 +85,57 @@
                      Exclude="@(AdditionalFiles);bin\**;obj\**;node_modules\**;wwwroot\**;Resources\**;Browser\**"/>
   </ItemGroup>
 
+  <!--
+    ONE copy of the Rask analyzer payload, however many host packages are referenced.
+
+    Rask.Server, Rask.Wasm and Rask.Native each pack analyzers/dotnet/cs/Rask.Generators.dll (see
+    src\RaskAnalyzerPack.targets) so that referencing any single host package is enough to get the
+    generator. Reference TWO of them and NuGet hands csc both copies, at different package paths —
+    which Roslyn reads as two distinct generators. Both run, both emit RaskBuilderSetters.g.cs and
+    RaskEntries.g.cs, and the build fails with CS0101 "already contains a definition for
+    RaskBuilderSetters&lt;Assembly&gt;" pointing at generated code the author never wrote.
+
+    That composition is real: a wasm-hosted app whose .Server host mounts the operator dashboard
+    references Rask.Wasm.Hosting (which brings Rask.Wasm) and Rask.Server together.
+
+    Deduplicating by file name rather than by path is the point — the paths are what differ. The
+    copies are byte-identical (one build, packed into several packages), so keeping the first is
+    safe whichever package supplied it. Runs BeforeTargets="CoreCompile" so it sees the fully
+    resolved @(Analyzer), after NuGet has contributed every package's payload.
+  -->
+  <Target Name="_RaskDeduplicateAnalyzers" BeforeTargets="CoreCompile"
+          Condition=" '$(RaskDeduplicateAnalyzers)' != 'false' ">
+    <ItemGroup>
+      <!-- SourcePath is captured now because the conditions below batch on %(Filename), and a
+           property assignment cannot reach %(FullPath) and %(Filename) of the same item otherwise. -->
+      <_RaskAnalyzerCopy Include="@(Analyzer)"
+                         Condition=" '%(Filename)' == 'Rask.Generators' Or '%(Filename)' == 'Rask.Generators.CodeFixes' ">
+        <SourcePath>%(FullPath)</SourcePath>
+      </_RaskAnalyzerCopy>
+    </ItemGroup>
+
+    <!--
+      First path wins, per file. MSBuild batches each property over the item's metadata and assigns
+      it once per match, so the "is still empty" condition keeps the first and ignores the rest.
+
+      Not KeepDuplicates="false" on a filename-keyed item, which is the obvious thing to reach for and
+      does not work: MSBuild treats two items as duplicates only when their identity AND all metadata
+      match, and the whole point here is that SourcePath differs. It silently keeps both.
+    -->
+    <PropertyGroup>
+      <_RaskGeneratorPath Condition=" '$(_RaskGeneratorPath)' == '' And '%(_RaskAnalyzerCopy.Filename)' == 'Rask.Generators' ">%(_RaskAnalyzerCopy.SourcePath)</_RaskGeneratorPath>
+      <_RaskCodeFixesPath Condition=" '$(_RaskCodeFixesPath)' == '' And '%(_RaskAnalyzerCopy.Filename)' == 'Rask.Generators.CodeFixes' ">%(_RaskAnalyzerCopy.SourcePath)</_RaskCodeFixesPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Analyzer Remove="@(_RaskAnalyzerCopy)"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Analyzer Include="$(_RaskGeneratorPath)" Condition=" '$(_RaskGeneratorPath)' != '' "/>
+      <Analyzer Include="$(_RaskCodeFixesPath)" Condition=" '$(_RaskCodeFixesPath)' != '' "/>
+    </ItemGroup>
+
+  </Target>
+
 </Project>

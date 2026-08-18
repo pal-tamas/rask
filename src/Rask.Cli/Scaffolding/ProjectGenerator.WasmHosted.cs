@@ -13,8 +13,11 @@ internal static partial class ProjectGenerator
     /// solution (<c>{name}.Client</c> WASM SPA, <c>{name}.Server</c> ASP.NET host, <c>{name}.Shared</c>
     /// contracts). Slim by default (welcome page only); <paramref name="auth"/> adds the cookie login flow.
     /// </summary>
-    public static ScaffoldResult GenerateWasmHosted(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version, bool bootstrap = true)
+    public static ScaffoldResult GenerateWasmHosted(string targetDirectory, string name, ServerBatteries requested, string version)
     {
+        var batteries = requested.Normalized();
+        bool auth = batteries.Auth, pwa = batteries.Pwa, docker = batteries.Docker, bootstrap = batteries.Bootstrap;
+
         var files = new List<(string Path, string Content)>
         {
             // Shared — the class library both the Client and the Server reference.
@@ -30,8 +33,8 @@ internal static partial class ProjectGenerator
             ($"{NameToken}.Client/runtimeconfig.template.json", WasmRuntimeConfig),
 
             // Server — the ASP.NET host that serves the baked WASM bundle.
-            ($"{NameToken}.Server/{NameToken}.Server.csproj", WasmHostedServerCsproj(version)),
-            ($"{NameToken}.Server/Program.cs", WasmHostedServerProgram(auth)),
+            ($"{NameToken}.Server/{NameToken}.Server.csproj", WasmHostedServerCsproj(batteries, version)),
+            ($"{NameToken}.Server/Program.cs", WasmHostedServerProgram(batteries)),
             ($"{NameToken}.Server/Properties/launchSettings.json", WasmHostedServerLaunchSettings),
             ($"{NameToken}.Server/appsettings.json", AppSettings),
             ($"{NameToken}.Server/appsettings.Production.json", AppSettingsProduction),
@@ -48,6 +51,14 @@ internal static partial class ProjectGenerator
         if (pwa)
         {
             files.Add(($"{NameToken}.Client/wwwroot/icon.svg", IconSvg));
+        }
+
+        if (batteries.Data)
+        {
+            // The database lives in the .Server project, not the .Client and not the .Shared: it is the
+            // only one of the three that runs on a machine with a disk. The Client reaches it over the
+            // host's API, exactly as it already does for auth.
+            files.Add(($"{NameToken}.Server/Features/Shared/AppDbContext.cs", WasmHostedServerDbContext(batteries)));
         }
 
         if (docker)
@@ -141,8 +152,9 @@ internal static partial class ProjectGenerator
         return sb.ToString();
     }
 
-    private static string WasmHostedServerProgram(bool auth)
+    private static string WasmHostedServerProgram(ServerBatteries batteries)
     {
+        var auth = batteries.Auth;
         var sb = new StringBuilder();
         if (auth)
         {
@@ -153,16 +165,33 @@ internal static partial class ProjectGenerator
             sb.Append("using Microsoft.AspNetCore.Authentication.Cookies;\n");
         }
 
+        if (batteries.Data)
+        {
+            sb.Append($"using {NameToken}.Server.Features.Shared;\n"); // AppDbContext
+        }
+
         sb.Append("using Microsoft.AspNetCore.DataProtection;\n");
         sb.Append("using Microsoft.AspNetCore.HttpOverrides;\n");
         sb.Append("using Rask.Wasm.Hosting;\n");
+        if (batteries.Ops)
+        {
+            // Rask.Server for AddRaskServer/UseRaskServer; Rask.Dashboard for the shell and the policy name.
+            sb.Append("using Rask.Server;\n");
+        }
+
+        sb.Append(DatabaseAndBatteryUsings(batteries));
 
         sb.Append("""
 
             var builder = WebApplication.CreateBuilder(args);
 
             // Opt into brotli + gzip response compression for the published wwwroot (.wasm / .js / .json).
-            builder.Services.AddRask();
+            // Named AddRaskWasmHost, not AddRask: with the operator dashboard on, this project references
+            // Rask.Server too, and both packages define an AddRask(this IServiceCollection). A bare call
+            // is NOT reported as ambiguous — this one takes no optional parameters, so it wins the
+            // "fewer defaulted arguments" tie-break silently — and the app would start with no live
+            // runtime and fail on the first request. Each call names the host it means.
+            builder.Services.AddRaskWasmHost();
 
             // A liveness/readiness endpoint (mapped below). `rask deploy` probes it to gate the blue-green
             // swap; also useful for any load balancer or orchestrator. Add real checks later, e.g.
@@ -201,9 +230,24 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        // The wasm-hosted scaffold wires no database at all, so there is no WAL checkpoint or Litestream
-        // flush for the budget to cover.
-        sb.Append(ShutdownBudgetBlock(fileBasedDatabase: false));
+        // With --data the host owns a SQLite file, so shutdown has to leave room for the WAL checkpoint
+        // and the Litestream flush — the same budget the server template takes. Without it there is no
+        // file to close and nothing for the budget to cover.
+        sb.Append(ShutdownBudgetBlock(batteries.Data));
+
+        if (batteries.Ops)
+        {
+            Block(sb, """
+                // The live runtime, for the operator dashboard only. This host serves a WASM bundle — the
+                // application's own UI runs in the browser and needs nothing from here — but the dashboard
+                // is server-rendered, so its pages need a session store and the WebSocket its panels
+                // update over. Named AddRaskServer rather than AddRask: see AddRaskWasmHost above.
+                builder.Services.AddRaskServer();
+                """);
+        }
+
+        // The database and every DB-backed battery, byte-for-byte what the server template emits.
+        AppendDatabaseAndBatteries(sb, batteries);
 
         if (auth)
         {
@@ -277,12 +321,28 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
+        if (batteries.Ops)
+        {
+            Block(sb, """
+                // The operator dashboard, server-rendered under its own prefix. This is the one part of a
+                // wasm-hosted app that does NOT run in the browser: it reads the batteries' tables straight
+                // out of the database, which only this host can reach.
+                //
+                // Scoped to "/_rask/{**path}" so it claims the dashboard's routes and nothing else — the
+                // SPA fallback below is a MapFallback, the lowest precedence there is, so every other route
+                // still reaches the client. The framework's own /_rask endpoints (the scoped assets, the
+                // upload and download paths) are literal routes and outrank this catch-all, so they keep
+                // working; don't give a dashboard page a route that collides with one of them.
+                app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");
+                """);
+        }
+
         sb.Append("""
 
             // Serve the baked WASM bundle: UseDefaultFiles + UseStaticFiles (pre-compressed .br/.gz siblings)
             // + a SPA fallback to index.html for client-side routes. Non-generic on purpose — the host serves
             // static files and never runs the components, so it needs no reference to the client's App type.
-            app.UseRask();
+            app.UseRaskWasmHost();
 
             app.Run();
 
@@ -372,14 +432,60 @@ internal static partial class ProjectGenerator
         """;
     }
 
-    private static string WasmHostedServerCsproj(string version) =>
-        $"""
+    /// <summary>
+    /// What the <c>.Server</c> host references. The battery packages are the server template's, unchanged —
+    /// the same <c>AddRaskX&lt;AppDbContext&gt;()</c> calls need the same references — so they come from
+    /// <see cref="ServerPackages"/> rather than from a second list that would fall behind it.
+    /// </summary>
+    private static List<string> WasmHostedServerPackages(ServerBatteries batteries)
+    {
+        // Ops is cleared here and handled below so the two packages it implies are added together and in
+        // one place; Bootstrap belongs to the .Client, which is what renders the application's UI.
+        var packages = ServerPackages(batteries with { Bootstrap = false, Ops = false });
+        packages.Remove("Rask.Server");
+        packages.Insert(0, "Rask.Wasm.Hosting");
+
+        if (batteries.Ops)
+        {
+            // Rask.Server rides along ONLY for the dashboard. It is what supplies UseRaskServer<TApp>, the
+            // live session runtime, and the WebSocket the dashboard's polling panels update over — a
+            // wasm-hosted app without --ops runs no components on the host and has no use for any of it.
+            packages.Add("Rask.Server");
+            packages.Add("Rask.Dashboard");
+        }
+
+        return packages;
+    }
+
+    /// <summary>The app's <c>DbContext</c>, re-homed into the <c>.Server</c> project's namespace.</summary>
+    private static string WasmHostedServerDbContext(ServerBatteries batteries) =>
+        AppDbContextCs(batteries).Replace(
+            $"namespace {NameToken}.Features.Shared;",
+            $"namespace {NameToken}.Server.Features.Shared;",
+            StringComparison.Ordinal);
+
+    private static string WasmHostedServerCsproj(ServerBatteries batteries, string version)
+    {
+        var refs = new StringBuilder();
+        foreach (var package in WasmHostedServerPackages(batteries).Skip(1))
+        {
+            refs.Append($"\n    <PackageReference Include=\"{package}\" Version=\"{version}\"/>");
+        }
+
+        // See ServerCsproj: Litestream's build props fetch a binary from GitHub releases unless told not
+        // to, which breaks an offline build and errors outright on a RID with no published asset.
+        var litestreamProperty = batteries.Data
+            ? "\n    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->"
+              + "\n    <RaskLitestreamDownload>false</RaskLitestreamDownload>"
+            : "";
+
+        return $"""
         <Project Sdk="Microsoft.NET.Sdk.Web">
 
           <PropertyGroup>
             <TargetFramework>net10.0</TargetFramework>
             <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
+            <Nullable>enable</Nullable>{litestreamProperty}
             <!--
               This host serves the published WASM bundle from the publish directory at runtime
               (app.UseRask()), not via the SDK's static-web-assets manifest, so it owns no static web
@@ -392,7 +498,7 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm.Hosting" Version="{version}"/>
+            <PackageReference Include="Rask.Wasm.Hosting" Version="{version}"/>{refs}
             <ProjectReference Include="..\Company.RaskServer.Shared\Company.RaskServer.Shared.csproj"/>
             <!--
               Cross-TFM reference: a net10.0 host pointing at a net10.0-browser WASM client.
@@ -409,6 +515,7 @@ internal static partial class ProjectGenerator
         </Project>
 
         """;
+    }
 
     private const string WasmHostedServerLaunchSettings =
         """

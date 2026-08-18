@@ -56,7 +56,7 @@ internal sealed record ServerBatteries
     /// </summary>
     public bool Logs { get; init; }
 
-    /// <summary>The operator dashboard at <c>/_ops</c> over every battery's table.</summary>
+    /// <summary>The operator dashboard at <c>/_rask</c> over every battery's table.</summary>
     public bool Ops { get; init; }
 
     /// <summary>True when any battery needs a <c>TContext</c> — i.e. a database-backed pillar is on.</summary>

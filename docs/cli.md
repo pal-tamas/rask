@@ -161,7 +161,7 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | `--push` | Server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. Implies `--pwa`. |
 | `--snapshots` | Scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup `--data` already wires. Implies `--data`. |
 | `--logs` | A [durable log store](logging.md) in a SQLite file of its own, so the application log survives a restart — buffered off the request thread, with retention by age and row count. The **only** battery that does *not* imply `--data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
-| `--ops` | An [operator dashboard](dashboard.md) at `/_ops` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
+| `--ops` | An [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
 | `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
 | `--platform` | The `native` template only, repeatable: `ios`, `android`, or both (the default when omitted). Only the platforms you name get a target framework, a manifest and a head — an unselected platform leaves no files behind. |
@@ -187,9 +187,10 @@ useful than a page designed to reveal nothing.
 | `--auth` | ✅ | ✅ | ✅ | — |
 | `--pwa` | ✅ | ✅ | ✅ | — |
 | `--docker` | ✅ | ✅ | ✅ | — |
-| `--cqrs`, `--data` | ✅ | — | — | — |
-| `--jobs`, `--mail`, `--cache`, `--outbox`, `--push`, `--snapshots`, `--logs`, `--ops` | ✅ | — | — | — |
-| `--all-batteries` | ✅ | — | — | — |
+| `--cqrs`, `--data` | ✅ | — | ✅ | — |
+| `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | — |
+| `--push` | ✅ | — | — | — |
+| `--all-batteries` | ✅ | — | ✅ | — |
 | `--host`, `--platform` (see below) | — | — | — | ✅ |
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
@@ -201,14 +202,28 @@ $ rask new X --template wasm --data
 Template 'wasm' does not support: --data. Supported flags: --auth, --docker, --pwa.
 ```
 
-The battery flags are **server-only** — they all ride the app's own database, and only the `server`
-template has one. Each implies what it needs (`--jobs` implies `--data` implies `--cqrs`), so you can ask
-for the pillar you want without also remembering its dependencies:
+The battery flags need an ASP.NET host to put a database in, which the `server` template is and the
+`wasm-hosted` template's `.Server` project is too — a pure browser-WASM SPA has neither. Each implies what
+it needs (`--jobs` implies `--data` implies `--cqrs`), so you can ask for the pillar you want without also
+remembering its dependencies:
 
 ```bash
 rask new Shop --all-batteries --auth --docker    # every pillar, wired in the right order
 rask new Shop --jobs --mail                      # just background work and email
 ```
+
+On `wasm-hosted` the batteries land in the `.Server` project and the client keeps calling the host over
+its API, exactly as it already does for auth. `--ops` additionally mounts the [operator
+dashboard](dashboard.md) there — server-rendered at `/_rask`, with the WASM client still serving every
+other route:
+
+```bash
+rask new Shop --template wasm-hosted --ops       # SPA in the browser, dashboard on the host
+```
+
+`--push` is the one battery `wasm-hosted` does not take. Web Push needs the subscribe endpoints and a
+service worker that posts to them, and in this template those live in two different projects — a real
+feature rather than a wiring gap, so it is left out rather than half-scaffolded.
 
 The generated `Program.cs` composes them in an order that is load-bearing rather than stylistic — the
 outbox registered before the `DbContext` factory (so its interceptor joins the `SaveChanges` pipeline),

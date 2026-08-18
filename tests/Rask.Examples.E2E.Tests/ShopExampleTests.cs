@@ -198,13 +198,13 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public async Task The_built_in_dashboard_is_gated_on_the_operator_policy()
     {
-        // The whole point of the fail-closed design, end to end: /_ops is behind the RaskDashboard policy,
+        // The whole point of the fail-closed design, end to end: /_rask is behind the RaskDashboard policy,
         // so an anonymous deep link never reaches a page that shows job payloads and stored email bodies.
-        await _page.GotoAsync("/_ops");
+        await _page.GotoAsync("/_rask");
         Assert.Contains("/login", _page.Url, StringComparison.Ordinal);
 
         await SignInAsync();
-        await _page.GotoAsync("/_ops");
+        await _page.GotoAsync("/_rask");
 
         // Signed in, the operator sees the panels for the pillars this app actually registered.
         Assert.DoesNotContain("/login", _page.Url, StringComparison.Ordinal);
@@ -218,7 +218,7 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         // The one thing no unit test can show: a real app's real log lines, written by the real
         // ILoggerProvider through the real background writer, coming back out of the store's own file.
         await SignInAsync();
-        await _page.GotoAsync("/_ops/logs?view=history");
+        await _page.GotoAsync("/_rask/logs?view=history");
 
         // History exists at all only because Rask.Logging is registered — without it the page is the
         // in-memory tail and offers no such mode.
