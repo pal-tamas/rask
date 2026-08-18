@@ -7,6 +7,25 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **The local unit gate went red on changes that touch no server code.**
+  `ShutdownDrainTests.Readiness_goes_unhealthy_while_draining_but_capacity_still_reports_capacity`
+  asserted that an empty session store reports `Healthy` — but `RaskLiveHealthCheck` judges **memory
+  load first** and lets it outrank the session count, deliberately, because what a session costs is a
+  property of the page rather than of the number of them. Memory load is a property of the *machine*,
+  so a full-suite run (parallel test hosts, WASM native relinks) pushed the process past
+  `DegradedMemoryLoad` and an empty store reported `Degraded`.
+
+  It passed standalone and failed in the full run, which is the wrong way round — the honest signal
+  was buried under a red gate, on a diff with no `src/Rask.Server` changes in it. Encountered three
+  times in one session, on three unrelated changes.
+
+  The memory reading is now a seam (`MemoryLoadReader`, defaulting to the real one), pinned by the
+  tests that are about the session branch. That also makes `DegradedMemoryLoad` and
+  `UnhealthyMemoryLoad` testable **at all** — both are load-bearing in production and had no coverage,
+  because the only input was whatever the host happened to be doing. Four tests added for them.
+  Closes #732.
+
 ### Added
 - **`Button` gained `command`/`commandfor`, and four elements gained the loading-priority attributes.**
   `command`/`commandfor` generalise what `popovertarget` does for popovers: the button names the element
