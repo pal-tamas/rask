@@ -1770,6 +1770,56 @@ window.__raskRtc = window.__raskRtc || (() => {
     };
 })();
 
+// View Transitions (#695). The one Web API here that a user genuinely cannot bolt on: a same-document
+// transition has to WRAP the DOM mutation, and the mutation is the framework's morph — an app never
+// gets a callback positioned around it. So the runtimes route their commit closure through run()
+// below, and this decides whether that commit happens inside document.startViewTransition.
+//
+// Disabled is the default and is byte-for-byte today's behaviour: run() calls commit synchronously and
+// returns whatever it returned. That matters because both runtimes sometimes chain on the result and
+// the render queue holds the next frame on it — deferring the commit into a microtask when nobody
+// asked for a transition would be a timing change for every app.
+window.__raskVt = window.__raskVt || {
+    enabled: false,
+
+    supported: () => typeof document !== "undefined" && typeof document.startViewTransition === "function",
+
+    // prefers-reduced-motion is honoured HERE rather than left to the app's CSS, because the
+    // animation this drives is the browser's own default cross-fade: there is no stylesheet of ours
+    // for a user's motion preference to switch off. A reader who asked for less motion gets the plain
+    // commit, and the app needs to know nothing about it.
+    reducedMotion: () => typeof window.matchMedia === "function"
+        && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+
+    set(on) {
+        window.__raskVt.enabled = !!on;
+        return window.__raskVt.enabled;
+    },
+
+    active: () => window.__raskVt.enabled && window.__raskVt.supported() && !window.__raskVt.reducedMotion(),
+
+    // Runs one DOM commit, inside a view transition when one is wanted and possible.
+    //
+    // Returns the transition's updateCallbackDone rather than its `finished`: the caller is the render
+    // queue, which needs to know when the DOM is COMMITTED so it can release the next frame — not when
+    // the animation has played out. Holding the queue for the full animation would make a fast
+    // sequence of frames queue up behind their own cross-fades.
+    run(commit) {
+        if (!window.__raskVt.active()) return commit();
+        try {
+            const t = document.startViewTransition(commit);
+            // A failed transition must never swallow the DOM update, so surface nothing and let the
+            // commit stand — startViewTransition has already run it by the time this rejects.
+            if (t.finished && typeof t.finished.catch === "function") t.finished.catch(() => {});
+            return t.updateCallbackDone;
+        } catch {
+            // Any throw from the transition machinery (a nested transition, a detached document) falls
+            // back to the plain commit rather than losing the frame.
+            return commit();
+        }
+    }
+};
+
 
 // Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) spliced from
 // Rask.Core/Resources/rask-pwa.js — the same source the Server client uses.
@@ -4923,10 +4973,10 @@ function applyDiffReply(reply) {
         if (freshHead) {
             morph(document.head, freshHead);
             const wait = waitForUnappliedHeadCss();
-            if (wait) return wait.then(applyBody);
+            if (wait) return wait.then(() => window.__raskVt.run(applyBody));
         }
     }
-    applyBody();
+    return window.__raskVt.run(applyBody);
 }
 
 function applyFullReply(reply) {
@@ -4974,9 +5024,9 @@ function applyFullReply(reply) {
     // no new scoped CSS.
     if (freshHtml) {
         const wait = preloadNewHeadStylesheets(freshHtml);
-        if (wait) return wait.then(applyDom);
+        if (wait) return wait.then(() => window.__raskVt.run(applyDom));
     }
-    applyDom();
+    return window.__raskVt.run(applyDom);
 }
 
 // Cached at module scope: TextEncoder construction is cheap but not free, and a
