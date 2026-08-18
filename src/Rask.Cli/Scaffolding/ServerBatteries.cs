@@ -28,12 +28,6 @@ internal sealed record ServerBatteries
     /// <summary>A database + EF Core: an <c>AppDbContext</c> and the Rask.Data interceptors.</summary>
     public bool Data { get; init; }
 
-    /// <summary>Which database <see cref="Data"/> wires. SQLite unless <c>--database</c> says otherwise.</summary>
-    public DatabaseProvider Provider { get; init; } = DatabaseProvider.Sqlite;
-
-    /// <summary>The scaffolding facts for <see cref="Provider"/> — package, <c>Use…</c> call, defaults.</summary>
-    public DatabaseInfo Database => DatabaseCatalog.For(Provider);
-
     /// <summary>A Dockerfile and .dockerignore.</summary>
     public bool Docker { get; init; }
 
@@ -73,17 +67,13 @@ internal sealed record ServerBatteries
     /// Continuous backup is not in here: <c>--data</c> wires Litestream on the golden path already, so a
     /// battery for it would be a second, competing registration rather than an addition.
     ///
-    /// <para>Gated on the provider because every one of these copies or replicates <em>a file</em>. On a
-    /// client-server database there is no file to copy, so the battery is not "degraded" — it is
-    /// meaningless, which is why <c>rask new</c> rejects the combination outright rather than dropping it.</para>
-    ///
     /// <para>
     /// <c>Logs</c> is not in here either, for a different reason: the log store owns a separate file, so it
     /// neither needs the application database nor should drag <c>--data</c> in behind it — and this
     /// property is one of the things that drives that implication in <see cref="Normalized"/>.
     /// </para>
     /// </remarks>
-    public bool AnySqliteOps => Snapshots && Database.IsFileBased;
+    public bool AnySqliteOps => Snapshots;
 
     /// <summary>
     /// Applies the flags' implications, so a caller can pass just what the user typed.

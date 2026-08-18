@@ -86,9 +86,9 @@ public sealed class PromptTests
     {
         // Pressing enter has to mean the same thing as omitting the flag, whatever order the catalog is in.
         var console = new StringConsole { InputKeys = [ConsoleKey.Enter] };
-        var options = new[] { ("postgres", "PostgreSQL"), ("sqlite", "SQLite"), ("sqlserver", "SQL Server") };
+        var options = new[] { ("wasm", "WebAssembly"), ("server", "Server"), ("native", "Native") };
 
-        Assert.Equal("sqlite", new Prompt(console).Select("Database", options, "sqlite"));
+        Assert.Equal("server", new Prompt(console).Select("Template", options, "server"));
     }
 
     [Fact]

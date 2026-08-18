@@ -12,7 +12,6 @@
         <Project Path="samples/Rask.Example.Auth.WasmJwt/Rask.Example.Auth.WasmJwt.csproj"/>
         <Project Path="samples/Rask.Example.Auth.WasmJwt.Host/Rask.Example.Auth.WasmJwt.Host.csproj"/>
         <Project Path="samples/Rask.Example.EfCore/Rask.Example.EfCore.csproj"/>
-        <Project Path="samples/Rask.Example.Crdt/Rask.Example.Crdt.csproj"/>
         <Project Path="samples/Rask.Example.Playground/Rask.Example.Playground.csproj"/>
         <!-- Rask.Example.Native / .Native.Server multi-target net10.0-ios;net10.0-android (mobile workloads)
              so they are excluded here — the Ubuntu solution build can't restore them. Built by the macOS
@@ -40,26 +39,19 @@
         <Project Path="src/Rask.Jobs.Generators/Rask.Jobs.Generators.csproj"/>
         <Project Path="src/Rask.Logging/Rask.Logging.csproj"/>
         <Project Path="src/Rask.Mail/Rask.Mail.csproj"/>
-        <Project Path="src/Rask.ObjectStore/Rask.ObjectStore.csproj"/>
-        <Project Path="src/Rask.Sync/Rask.Sync.csproj"/>
-        <Project Path="src/Rask.Sync.Client/Rask.Sync.Client.csproj"/>
         <Project Path="src/Rask.Outbox/Rask.Outbox.csproj"/>
         <Project Path="src/Rask.Outbox.Generators/Rask.Outbox.Generators.csproj"/>
         <Project Path="src/Rask.Html/Rask.Html.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
         <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
         <Project Path="src/Rask.Native/Rask.Native.csproj"/>
-        <Project Path="src/Rask.Postgres/Rask.Postgres.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
         <Project Path="src/Rask.Signaling/Rask.Signaling.csproj"/>
-        <Project Path="src/Rask.SqlServer/Rask.SqlServer.csproj"/>
         <Project Path="src/Rask.SQLite/Rask.SQLite.csproj"/>
         <Project Path="src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj"/>
         <Project Path="src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj"/>
         <Project Path="src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj"/>
         <Project Path="src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj"/>
-        <Project Path="src/Rask.SQLite.Crdt/Rask.SQLite.Crdt.csproj"/>
-        <Project Path="src/Rask.SQLite.Crdt.Sync/Rask.SQLite.Crdt.Sync.csproj"/>
         <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj"/>
         <Project Path="src/Rask.Testing/Rask.Testing.csproj"/>
@@ -83,9 +75,6 @@
         <Project Path="tests/Rask.Jobs.Generators.Tests/Rask.Jobs.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Logging.Tests/Rask.Logging.Tests.csproj"/>
         <Project Path="tests/Rask.Mail.Tests/Rask.Mail.Tests.csproj"/>
-        <Project Path="tests/Rask.ObjectStore.Tests/Rask.ObjectStore.Tests.csproj"/>
-        <Project Path="tests/Rask.Sync.Tests/Rask.Sync.Tests.csproj"/>
-        <Project Path="tests/Rask.Sync.Client.Tests/Rask.Sync.Client.Tests.csproj"/>
         <Project Path="tests/Rask.Outbox.Tests/Rask.Outbox.Tests.csproj"/>
         <Project Path="tests/Rask.Outbox.Generators.Tests/Rask.Outbox.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Example.EfCore.Tests/Rask.Example.EfCore.Tests.csproj"/>
@@ -99,20 +88,15 @@
         <Project Path="tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj"/>
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Native.Tests/Rask.Native.Tests.csproj"/>
-        <Project Path="tests/Rask.Postgres.Tests/Rask.Postgres.Tests.csproj"/>
-        <Project Path="tests/Rask.Providers.Tests/Rask.Providers.Tests.csproj"/>
         <Project Path="tests/Rask.Server.HotReload.Tests/Rask.Server.HotReload.Tests.csproj"/>
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
         <Project Path="tests/Rask.Signaling.Tests/Rask.Signaling.Tests.csproj"/>
-        <Project Path="tests/Rask.SqlServer.Tests/Rask.SqlServer.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Tests/Rask.SQLite.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.EntityFrameworkCore.Tests/Rask.SQLite.EntityFrameworkCore.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Limitations.Tests/Rask.SQLite.Limitations.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Litestream.Tests/Rask.SQLite.Litestream.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Snapshots.Tests/Rask.SQLite.Snapshots.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Browser.Tests/Rask.SQLite.Browser.Tests.csproj"/>
-        <Project Path="tests/Rask.SQLite.Crdt.Tests/Rask.SQLite.Crdt.Tests.csproj"/>
-        <Project Path="tests/Rask.SQLite.Crdt.Sync.Tests/Rask.SQLite.Crdt.Sync.Tests.csproj"/>
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
         <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj"/>
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj"/>

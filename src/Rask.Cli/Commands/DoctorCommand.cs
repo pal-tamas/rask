@@ -158,7 +158,6 @@ internal sealed class DoctorCommand(
         }
 
         checks.Add(new DoctorCheck("project", DoctorStatus.Ok, project.ProjectDirectory, null));
-        checks.Add(new DoctorCheck("database", DoctorStatus.Ok, project.Database.ShortName, null));
 
         var target = DevTarget.Detect(_fileSystem, _workingDirectory, null);
         checks.Add(target is null

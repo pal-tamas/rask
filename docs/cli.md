@@ -153,7 +153,6 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | `--auth` | Scaffold a cookie login/session (web templates). |
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
-| `--database <sqlite\|postgres\|sqlserver>` | Which database `--data` wires. Defaults to `sqlite` — one file, no server. `postgres` and `sqlserver` use [`Rask.Postgres` / `Rask.SqlServer`](databases.md) instead, and drop the file-only batteries (Litestream, snapshots, the deploy volume). The `server` template only. |
 | `--data` | Pre-wire a SQLite database: an empty `AppDbContext`, `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory — so your first entity attaches to it and is immediately runnable with `rask db add`/`update`. It also wires **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream)) — inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time (`rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`), and `--docker` puts the replicator binary in the image. Implies `--cqrs` (the `server` template only). |
 | `--jobs` | Durable background jobs on the app's own database: `AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`. Implies `--data`. |
 | `--mail` | Transactional email on the app's own database, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. Implies `--data`. |
@@ -188,7 +187,7 @@ useful than a page designed to reveal nothing.
 | `--auth` | ✅ | ✅ | ✅ | — |
 | `--pwa` | ✅ | ✅ | ✅ | — |
 | `--docker` | ✅ | ✅ | ✅ | — |
-| `--cqrs`, `--data` (+ `--database`) | ✅ | — | — | — |
+| `--cqrs`, `--data` | ✅ | — | — | — |
 | `--jobs`, `--mail`, `--cache`, `--outbox`, `--push`, `--snapshots`, `--logs`, `--ops` | ✅ | — | — | — |
 | `--all-batteries` | ✅ | — | — | — |
 | `--host`, `--platform` (see below) | — | — | — | ✅ |

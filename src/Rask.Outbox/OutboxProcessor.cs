@@ -175,7 +175,7 @@ public sealed class OutboxProcessor<TContext>(
                     ex,
                     "Rask.Outbox added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
                     + "Run: rask db add AddOutboxLeases && rask db update. See docs/{Doc}.",
-                    "databases.md#running-more-than-one-instance");
+                    "scaling.md#running-more-than-one-instance");
                 return;
             }
 

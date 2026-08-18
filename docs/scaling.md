@@ -119,7 +119,73 @@ Cookie-based affinity in the proxy covers all three. Rask does not configure one
 
 **And the pillars assume one writer.** If jobs, the outbox or the cache are enabled and pointed at
 SQLite, more than one host will fight over the same file. Move them to a shared database first, or don't
-run them on more than one host.
+run them on more than one host. What the processors themselves do about several instances is below.
+
+## Running more than one instance
+
+The [jobs](jobs.md), [mail](mail.md) and [outbox](outbox.md) processors **lease** the work they claim, so a
+job runs on one instance and an email is sent by one instance.
+
+Claiming a batch is one `UPDATE` whose predicate re-tests claimability, re-evaluated against the row
+version the winner committed, so the row goes to exactly one instance — no `SKIP LOCKED`, no
+provider-specific SQL. A claim marks the rows with a token and an expiry (`LeaseDuration`, default 5
+minutes); finishing hands them back, and so does a graceful shutdown, so a rolling deploy doesn't park a
+batch.
+
+This is what makes the *claim* safe when several processors race. It is a separate question from where the
+database lives: on SQLite there is one writer to begin with, so the race the lease settles is one you only
+reach by pointing the pillars at a shared client-server database yourself (see [Getting past
+it](#getting-past-it) — that is outside the framework's happy path, and Rask ships no provider package for
+it).
+
+**A processor that dies keeps nothing.** Its lease simply runs out and the work becomes claimable again.
+There is no sweeper to run and nothing to clean up by hand — expiry *is* the recovery mechanism, which is
+why the claim tests the expiry rather than "is this row unclaimed".
+
+### What a lease does not do
+
+> Leases prevent one instance **overwriting another's outcome**. They do not make a side effect happen once.
+
+If an instance overruns its `LeaseDuration`, a second instance may take the row and run the work again
+while the first is still going. The first then finds its lease gone and discards its own result — the
+database stays consistent — but if the work already sent an email, that email is out. At-least-once was
+always the contract; the lease narrows the window from *always, on every instance* to *only when an
+instance overruns its lease*.
+
+So: **set `LeaseDuration` comfortably above your slowest handler**, and make handlers idempotent where the
+side effect matters. When an overrun does happen you get a warning naming the option to raise:
+
+```
+Job 41 lost its lease mid-run on instance …; another instance owns it now.
+Increase JobOptions.LeaseDuration past the time this job takes.
+```
+
+### `Attempts` counts attempts started
+
+The claim increments `Attempts`, not the failure path. A job that takes the whole process down with it —
+an OOM, a pod eviction — never reaches the failure path, so counting only failures would leave it retried
+by every instance forever and `MaxAttempts` would never dead-letter it. A job that succeeds first time
+shows `Attempts = 1`.
+
+### The request path is a separate question
+
+This is about the *background processors*. Serving traffic from several instances is its own problem:
+[live sessions](architecture/live-rendering.md) hold an open WebSocket, a DI scope and a component tree in
+one process, so a reconnect must reach the same instance — see [above](#if-you-run-more-than-one-host-anyway).
+
+### Upgrading an existing app
+
+The lease adds two nullable columns to the jobs, mail and outbox tables. Additive, no backfill — but the
+migration is **not optional**:
+
+```bash
+rask db add AddLeases
+rask db update
+```
+
+Skip it and the processors fail on every poll with `no such column: ClaimedUntil`. That failure is caught
+and logged rather than crashing the app, so it looks healthy while doing nothing — which is why the log
+says exactly these two commands rather than printing a stack trace.
 
 ## Where to look when it's slow
 

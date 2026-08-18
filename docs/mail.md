@@ -126,7 +126,7 @@ letter. `ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`; `Time
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a
   browser/WASM concern.
 - **Running more than one instance is safe.** Each processor *leases* the batch it claims, so an email is
-  sent by exactly one instance. See [running more than one instance](databases.md#running-more-than-one-instance)
+  sent by exactly one instance. See [running more than one instance](scaling.md#running-more-than-one-instance)
   — in particular, the lease bounds but does not eliminate a duplicate send. On SQLite you will still usually
   run one instance for the unrelated reason that it is single-writer; because `SendAsync` writes while the
   processor may also be writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a

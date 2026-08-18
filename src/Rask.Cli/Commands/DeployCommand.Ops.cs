@@ -217,13 +217,9 @@ internal sealed partial class DeployCommand
 
         // persist: false — a rollback changes which image is running, not how the app is configured. Left
         // on, the nulls passed for project/envFile below would erase those keys from .rask/deploy.json.
-        // Same source as a deploy: the provider decides whether a data volume and a SQLite connection
-        // string are injected, and a rollback must run the container the same way the deploy did.
-        var provider = ProjectLocator.Locate(_fileSystem, _workingDirectory)?.Provider ?? DatabaseProvider.Sqlite;
-
         var result = domain is null
-            ? await DeployPortAsync(host, slug, port, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, provider, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false)
-            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, provider, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false);
+            ? await DeployPortAsync(host, slug, port, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false)
+            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false);
 
         if (result != 0)
         {

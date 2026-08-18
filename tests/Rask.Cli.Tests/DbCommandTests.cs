@@ -235,44 +235,6 @@ public sealed class DbCommandTests
         Assert.Contains("--force", console.ErrorText, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("backup", new string[0])]
-    [InlineData("restore", new[] { "out.db" })]
-    public async Task File_copy_subcommands_refuse_a_client_server_database(string subcommand, string[] rest)
-    {
-        // Both copy a database *file*. A "backup" that quietly did nothing is the worst outcome a backup
-        // command has, so this refuses and names the tool that does work instead.
-        var console = new StringConsole();
-        var runner = new FakeProcessRunner();
-        var fileSystem = new FakeFileSystem();
-        fileSystem.Seed(Csproj, "<Project><ItemGroup><PackageReference Include=\"Rask.Postgres\" /></ItemGroup></Project>");
-        var command = new DbCommand(console, fileSystem, runner, ProjectDir);
-
-        var exit = await command.ExecuteAsync([subcommand, .. rest], CancellationToken.None);
-
-        Assert.Equal(1, exit);
-        Assert.Empty(runner.Invocations);
-        Assert.Contains($"`rask db {subcommand}` works on a SQLite file", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("pg_dump", console.ErrorText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Migrations_work_the_same_on_a_client_server_database()
-    {
-        // Migrations forward to `dotnet ef`, which is provider-agnostic — the refusal above must not spread
-        // to the commands that do work everywhere.
-        var console = new StringConsole();
-        var runner = new FakeProcessRunner();
-        var fileSystem = new FakeFileSystem();
-        fileSystem.Seed(Csproj, "<Project><ItemGroup><PackageReference Include=\"Rask.Postgres\" /><PackageReference Include=\"Microsoft.EntityFrameworkCore.Design\" /></ItemGroup></Project>");
-        var command = new DbCommand(console, fileSystem, runner, ProjectDir);
-
-        var exit = await command.ExecuteAsync(["list"], CancellationToken.None);
-
-        Assert.Equal(0, exit);
-        Assert.Equal(["ef", "migrations", "list", "--project", ProjectDir, "--startup-project", ProjectDir], runner.LastRun!.Arguments);
-    }
-
     [Fact]
     public async Task Adds_ef_design_when_the_startup_project_lacks_it()
     {
