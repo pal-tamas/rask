@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <!-- This project opts out of the in-repo consumer implicit usings (see Directory.Build.props): it
+         references neither host nor Bootstrap/validation, so those injected global usings would not
+         resolve. Rask.Core is still needed by hand for `Component` — the markup entries themselves arrive
+         by inheritance from RaskMarkup, not from a using. -->
+    <Using Include="Rask.Core"/>
+    <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <Using Include="Rask.Html.Components.Generated" Static="true"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+  </ItemGroup>
+
+  <!-- The landing app is a browser-WASM project (net10.0-browser), so it cannot be referenced from a
+       net10.0 test project — the hero animation's source is LINKED instead, the same way
+       Rask.Example.Playground.Tests links the playground's compiler. ChainAnimation is deliberately the
+       only file linked: it is pure markup with no IJSRuntime or host dependency, so it compiles and
+       renders here unchanged, and the generator emits its factory into this compilation. -->
+  <ItemGroup>
+    <Compile Include="..\..\samples\Rask.Example.Site\ChainAnimation.cs"
+             LinkBase="Site"/>
+  </ItemGroup>
+
+</Project>

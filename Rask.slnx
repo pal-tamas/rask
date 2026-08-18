@@ -93,6 +93,7 @@
         <Project Path="tests/Rask.Example.Server.Tests/Rask.Example.Server.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Shop.Tests/Rask.Example.Shop.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Shared.Tests/Rask.Example.Shared.Tests.csproj"/>
+        <Project Path="tests/Rask.Example.Site.Tests/Rask.Example.Site.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Wasm.Host.Tests/Rask.Example.Wasm.Host.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Wasm.Tests/Rask.Example.Wasm.Tests.csproj"/>
         <Project Path="tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj"/>
