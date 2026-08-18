@@ -11,16 +11,24 @@ namespace Rask.SQLite;
 public static class SqliteConnectionExtensions
 {
     /// <summary>
-    /// Begins a transaction with <c>BEGIN IMMEDIATE</c> (takes the write lock up front) instead of the
-    /// default deferred <c>BEGIN</c>. Under concurrency a deferred read-then-write transaction can
-    /// dead-lock two upgrading readers into an <b>unretryable</b> <c>SQLITE_BUSY</c> (SQLite never even
-    /// invokes the busy handler); <c>BEGIN IMMEDIATE</c> turns that into a plain, waitable lock wait.
-    /// Prefer this for any transaction that reads and then writes.
+    /// Begins a transaction with <c>BEGIN IMMEDIATE</c>, taking the write lock up front. Under concurrency
+    /// a <i>deferred</i> read-then-write transaction can dead-lock two upgrading readers into an
+    /// <b>unretryable</b> <c>SQLITE_BUSY</c> (SQLite never even invokes the busy handler);
+    /// <c>BEGIN IMMEDIATE</c> turns that into a plain, waitable lock wait.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// This states at the call site what <see cref="SqliteConnection.BeginTransaction()"/> already does by
+    /// default: Microsoft.Data.Sqlite emits <c>BEGIN IMMEDIATE</c> for ADO.NET's default
+    /// <see cref="System.Data.IsolationLevel.Serializable"/> isolation, and defers only for
+    /// <see cref="System.Data.IsolationLevel.ReadUncommitted"/> or an explicit <c>deferred: true</c>. The
+    /// value is that it says so, and so cannot quietly become deferred if an isolation level is passed later.
+    /// </para>
+    /// <para>
     /// This is a synchronous begin: while it waits for the write lock it blocks the calling thread inside
     /// Microsoft.Data.Sqlite. For a genuinely non-blocking write use
     /// <see cref="ExecuteInImmediateTransactionAsync{T}"/>, which yields the thread while it waits.
+    /// </para>
     /// </remarks>
     public static SqliteTransaction BeginImmediate(this SqliteConnection connection)
     {

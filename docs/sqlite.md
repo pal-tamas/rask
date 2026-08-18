@@ -105,7 +105,14 @@ waitable lock wait.
 
 The established fix is to wait on that lock with a busy handler that **yields instead of blocking**,
 retrying at a **constant 1 ms interval** (not exponential backoff, which has far worse tail latency).
-`Rask.SQLite` implements both halves.
+
+On .NET the *mode* half is already handled for you. Microsoft.Data.Sqlite composes its begin statement as
+`IsolationLevel == Serializable && !deferred ? "BEGIN IMMEDIATE;" : "BEGIN;"`, and ADO.NET's default
+isolation is `Serializable` — so a transaction opened through the driver, or through EF Core (which asks
+for `Unspecified`, normalised to `Serializable`), **already takes the write lock up front**. This is
+where the .NET driver differs from Ruby's `sqlite3` gem, which defaults to deferred and needed Rails 8 to
+change it; nothing in Rask has to ask for the mode. What `Rask.SQLite` adds is the other half — the
+*waiting*: a busy handler that frees the thread instead of blocking it.
 
 ### Raw ADO.NET — genuinely non-blocking
 
@@ -136,8 +143,10 @@ builder.Services.AddRaskSqlite($"Data Source={dbPath}",
 ```
 
 For a transaction you drive yourself, `connection.BeginImmediate()` gives you a `SqliteTransaction`
-that took the write lock up front (its wait, though, blocks the thread inside Microsoft.Data.Sqlite —
-use `ExecuteInImmediateTransactionAsync` when you want the non-blocking retry).
+that took the write lock up front. It spells out at the call site what `BeginTransaction()` already does
+by default — the value is that it says so, and cannot quietly become deferred if someone passes an
+isolation level later. Its wait blocks the thread inside Microsoft.Data.Sqlite, so use
+`ExecuteInImmediateTransactionAsync` when you want the non-blocking retry.
 
 Because the lock is taken through the pooled native handle, the path is defensive about connection
 reuse: it clears a leaked transaction before **every** `BEGIN IMMEDIATE` attempt, and never hands a
@@ -182,9 +191,20 @@ Microsoft.Data.Sqlite's own command timeout so the async strategy owns the waiti
 - EF Core issues every command through Microsoft.Data.Sqlite, whose busy-retry is synchronous, so a
   contended attempt can block a thread for up to ~1 s before the fair-interval strategy takes over.
   The raw path above has no such floor.
-- The implicit `SaveChanges` transaction stays `DEFERRED` (a write-only batch already takes the write
-  lock on its first statement). For a **read-then-write** transaction, wrap it in
-  `BeginImmediate` (and, as with any retrying strategy, inside `IExecutionStrategy.ExecuteAsync`).
+- **You do not have to ask for `IMMEDIATE` here.** Every transaction EF Core opens on SQLite is already
+  `BEGIN IMMEDIATE` — the implicit `SaveChanges` one and `Database.BeginTransaction[Async]()` alike (see
+  [above](#transactions-begin-immediate--a-non-blocking-fair-interval-retry)). So the lock-upgrade
+  dead-lock does not arise on the EF path and there is nothing to wrap. The one deferred trapdoor is
+  asking for it: `BeginTransaction(IsolationLevel.ReadUncommitted)`, or Microsoft.Data.Sqlite's
+  `deferred: true` overload. All of this is pinned by `RaskSqliteTransactionModeTests` so a driver change
+  cannot quietly invalidate it.
+
+> **The read-then-write hazard on the EF path is a different one.** The usual pattern reads *outside* any
+> transaction — query, mutate the tracked entity, `SaveChanges` — so there is no read lock to upgrade, but
+> equally no protection against another writer having changed the row in between. That is a **lost
+> update**, not `SQLITE_BUSY`, and the fix is a concurrency token (`IsConcurrencyToken()` / `[Timestamp]`),
+> not a transaction mode. Reading *inside* `Database.BeginTransaction()` closes the window instead, and
+> costs you the write lock for the duration of the read.
 
 ## Load-test numbers
 
