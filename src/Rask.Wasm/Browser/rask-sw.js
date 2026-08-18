@@ -1,8 +1,10 @@
-// Rask default service worker (WASM) — the one SW a Rask WASM PWA needs. It does two jobs:
+// Rask default service worker (WASM) — the one SW a Rask WASM PWA needs. It does three jobs:
 //   1. Offline app shell: a network-first runtime cache (fresh when online, cached when offline),
 //      with navigations falling back to the cached page shell so deep links work offline.
 //   2. Web Push: shows the pushed notification and focuses/opens a window on click (IWebPush) —
 //      shared with the Server SW via the spliced rask-sw-shared.js handlers below.
+//   3. Background Sync: forwards a woken-up sync/periodicsync tag to the open clients (IBackgroundSync).
+//      WASM-only, so it stays here rather than in the shared handlers.
 //
 // This file is generated: Resources/rask-sw.js (this template) has the Core shared handlers spliced
 // in at the marker below, and the assembled result is written to Browser/rask-sw.js (the served,
@@ -47,6 +49,26 @@ self.addEventListener("fetch", (event) => {
         }
     })());
 });
+
+// Background Sync (driven by IBackgroundSync). Deliberately NOT in rask-sw-shared.js: a Server app
+// renders over a WebSocket and has no client-side runtime to hand a woken-up event to, so shipping this
+// handler in the Server SW would advertise a capability that cannot fire there.
+//
+// The browser's guarantee is that "sync" fires once connectivity returns even if the tab is CLOSED. What
+// Rask can offer is narrower, and the gap is the part that matters: the .NET runtime lives in the page,
+// not in this worker, so C# runs only while a client is alive. The handler therefore forwards the tag to
+// every open client and resolves. With no client open the registration is consumed unseen — which is
+// exactly why IBackgroundSync tells you to re-request your tags at boot.
+const raskForwardSync = (event, kind) => event.waitUntil(
+    self.clients.matchAll({type: "window", includeUncontrolled: true}).then((clients) => {
+        for (let i = 0; i < clients.length; i++) {
+            clients[i].postMessage({rask: kind, tag: event.tag});
+        }
+    })
+);
+
+self.addEventListener("sync", (event) => raskForwardSync(event, "sync"));
+self.addEventListener("periodicsync", (event) => raskForwardSync(event, "periodicsync"));
 
 // Shared Rask service-worker handlers, spliced into both the WASM service worker
 // (src/Rask.Wasm/Resources/rask-sw.js) and the Server service worker

@@ -127,6 +127,7 @@ provides — the installed-PWA instance / live document, or a browser-only devic
 | `IUsb` | WebUSB API | Pair with and drive a USB device — open, claim an interface, bulk/interrupt/control transfers | transient activation + secure context |
 | `IHid` | WebHID API | Talk to a HID device (custom gamepads, sim controls, POS) — output/feature reports + pushed input reports | transient activation + secure context |
 | `IBluetooth` | Web Bluetooth API | Pair with a BLE device — connect GATT, read/write characteristics, subscribe to notifications | transient activation + secure context |
+| `IBackgroundSync` | Background Sync + Periodic Background Sync | Ask the browser to wake the app when connectivity returns, or on a schedule, to drain an offline queue | service-worker registration |
 
 PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is
 covered separately in the [Mobile & PWA guide](pwa.md).

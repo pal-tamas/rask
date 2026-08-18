@@ -4,7 +4,7 @@ using Rask.Wasm.Browser;
 namespace Rask.Wasm.Tests.Browser;
 
 // Covers the WASM-only device/handle set (Rask.Wasm). Together with the Core tier (Rask.Core.Tests) and the
-// in-process IShare tier (Rask.Client.Tests) this pins the full 46-wrapper surface and its Singleton lifetime
+// in-process IShare tier (Rask.Client.Tests) this pins the full 47-wrapper surface and its Singleton lifetime
 // on the WASM host.
 public class RaskWasmBrowserApisTests
 {
@@ -21,10 +21,11 @@ public class RaskWasmBrowserApisTests
         (typeof(IUsb), typeof(Usb)),
         (typeof(IHid), typeof(Hid)),
         (typeof(IBluetooth), typeof(Bluetooth)),
+        (typeof(IBackgroundSync), typeof(BackgroundSync)),
     ];
 
     [Fact]
-    public void AddWasmBrowserApis_RegistersTheElevenWasmOnlyWrappers_AsSingletons()
+    public void AddWasmBrowserApis_RegistersTheTwelveWasmOnlyWrappers_AsSingletons()
     {
         var services = new ServiceCollection();
 

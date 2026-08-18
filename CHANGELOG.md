@@ -8,6 +8,29 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Background Sync — `IBackgroundSync`** *(WASM)*. Ask the browser to wake the app when connectivity
+  returns, or on a recurring schedule, so an edit made offline is flushed without the user coming back to
+  the tab and waiting. Wraps both `SyncManager` and `PeriodicSyncManager`; it rides the service worker a
+  `--pwa` app already has, so there is nothing extra to wire.
+
+  **The boundary is the design, so it is stated rather than glossed.** The browser fires the sync even
+  with the tab closed — but the .NET runtime lives in the *page*, not in the service worker, so your C#
+  runs only while a client is open. Rask's worker forwards the woken-up tag to every open client; with
+  none open the registration is consumed unseen. Two things follow, and both are in the docs: re-request
+  your tags at boot rather than treating a registration as durable queue state, and expect the real win
+  on a *backgrounded* tab — still a client, so it wakes and drains the moment the network is back — which
+  is the case most offline-first apps actually hit. Keep the work itself in `IIndexedDb` or OPFS and let
+  the sync be the nudge to drain it, never the store.
+
+  The service-worker handler deliberately stays **out** of the shared `rask-sw-shared.js`: a Server app
+  has no client-side runtime to wake into, so shipping it there would advertise a capability that cannot
+  fire. Registration goes through `getRegistration()` rather than `navigator.serviceWorker.ready`, which
+  never settles when no worker is registered and would otherwise hang every call in an app that skipped
+  the service worker. A sync that lands while the page is still booting is held for the first subscriber
+  instead of being dropped — that is precisely the event an offline-first app most wants to see. Periodic
+  sync has no request API at all (the browser grants it on its own terms), so `GetPeriodicPermissionAsync`
+  is a check, not an ask. Closes #695.
+
 - **Web Animations — `IWebAnimations`.** Run and control an animation on an element from C#, with no
   stylesheet and no animation library. Keyframes take the API's *object* form
   (`["opacity"] = ["0", "1"]`), which is what `Element.animate()` accepts natively and which serializes
@@ -25,7 +48,6 @@ them until tagged releases begin.
   animations and only the app knows what each is for — refusing to run a loading affordance and refusing
   to run decoration are not the same decision. `IMediaQuery` already reads the preference. Part of #695.
 
-### Added
 - **View Transitions — the browser animates between the old and new DOM.** `IViewTransitions`, and it is
   the one Web API on this surface an app genuinely could not add for itself: a same-document transition
   has to **wrap** the DOM mutation, and in Rask the mutation is the framework's morph. There is no point
@@ -65,6 +87,10 @@ them until tagged releases begin.
   a same-named builder entry, CS0119). An alias puts exactly one type in scope. Closes #684.
 
 ### Fixed
+- **`docs/pwa.md` no longer implies WASM had background sync.** The "What you don't get on Server" note
+  listed it beside genuinely WASM-only features when it existed on neither host; both that line and the
+  Server/WASM summary at the top now say plainly that it is WASM-only, which is what shipped. Part of #695.
+
 - **The local unit gate went red on changes that touch no server code.**
   `ShutdownDrainTests.Readiness_goes_unhealthy_while_draining_but_capacity_still_reports_capacity`
   asserted that an empty session store reports `Healthy` — but `RaskLiveHealthCheck` judges **memory
