@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
+using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;
@@ -46,8 +47,12 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     // is the byte baseline for the noop guard (unchanged bars never re-push → no flicker on a counter tick);
     // _chromeTapHandlers maps a bar-button tap id to its OnClick, rebuilt every render so taps hit the latest.
     private readonly INativeChrome? _chrome;
-    private NativeHeaderBar? _pendingHeader;
-    private NativeComponent? _pendingFooter; // a NativeTabBar or NativeToolbar
+    // Either a Rask.Native bar (NativeHeaderBar / NativeTabBar / NativeToolbar — platform-exact) or the
+    // portable Rask.Core one (AppBar / TabStrip), which is what lets a single Screen subclass serve the web
+    // and native heads. Typed as Component because the two families are deliberately unrelated: the
+    // NativeComponent hierarchy is closed so this switch stays finite, and Rask.Core cannot name it.
+    private Component? _pendingHeader;
+    private Component? _pendingFooter;
     private byte[]? _lastPushedChrome;
     private Dictionary<string, Action> _chromeTapHandlers = new(StringComparer.Ordinal);
 
@@ -122,11 +127,11 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     {
         switch (component)
         {
-            case NativeHeaderBar header:
-                _pendingHeader = header;
+            case NativeHeaderBar or AppBar:
+                _pendingHeader = component;
                 break;
-            case NativeTabBar or NativeToolbar:
-                _pendingFooter = (NativeComponent)component;
+            case NativeTabBar or NativeToolbar or TabStrip:
+                _pendingFooter = component;
                 break;
         }
 
@@ -287,9 +292,39 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         (barProp ?? themeProp)?.ToToken();
 
     private static NativeHeaderDescriptor? BuildHeaderDescriptor(
-        NativeHeaderBar? bar, Dictionary<string, Action> handlers, NativeTheme? theme)
+        Component? header, Dictionary<string, Action> handlers, NativeTheme? theme)
     {
-        if (bar is null)
+        // The portable bar carries no appearance of its own — colour and segmented titles are
+        // platform-exact features that stay with NativeHeaderBar — so it takes every style slot from the
+        // app-wide NativeTheme.
+        if (header is AppBar appBar)
+        {
+            var portable = new NativeHeaderDescriptor
+            {
+                Title = appBar.Title,
+                Background = ResolveColor(null, theme?.Background),
+                Tint = ResolveColor(null, theme?.Tint),
+                TitleColor = ResolveColor(null, theme?.TitleColor),
+            };
+            if (appBar.Leading is { } portableLeading)
+            {
+                portable.Leading = BuildItemDescriptor(portableLeading, "h.leading", handlers);
+            }
+
+            if (appBar.Trailing is { Count: > 0 } portableTrailing)
+            {
+                portable.Trailing = new List<NativeBarItemDescriptor>(portableTrailing.Count);
+                for (var i = 0; i < portableTrailing.Count; i++)
+                {
+                    portable.Trailing.Add(
+                        BuildItemDescriptor(portableTrailing[i], "h.trailing." + i, handlers));
+                }
+            }
+
+            return portable;
+        }
+
+        if (header is not NativeHeaderBar bar)
         {
             return null;
         }
@@ -338,10 +373,40 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     }
 
     private static NativeFooterDescriptor? BuildFooterDescriptor(
-        NativeComponent? footer, Dictionary<string, Action> handlers, string currentPath, NativeTheme? theme)
+        Component? footer, Dictionary<string, Action> handlers, string currentPath, NativeTheme? theme)
     {
         switch (footer)
         {
+            // The portable tab bar. Selection is derived by Rask.Core's own TabStrip.DeriveSelected — the
+            // SAME method the web hosts call — so one declaration cannot light a different tab depending on
+            // which head is running it.
+            case TabStrip strip:
+                var stripFooter = new NativeFooterDescriptor
+                {
+                    Kind = "tabbar",
+                    Selected = strip.Selected ?? TabStrip.DeriveSelected(strip.Tabs, currentPath),
+                    Background = ResolveColor(null, theme?.Background),
+                    Tint = ResolveColor(null, theme?.Tint),
+                    UnselectedTint = ResolveColor(null, theme?.UnselectedTint),
+                };
+                if (strip.Tabs is { Count: > 0 } stripTabs)
+                {
+                    stripFooter.Tabs = new List<NativeTabDescriptor>(stripTabs.Count);
+                    foreach (var tab in stripTabs)
+                    {
+                        stripFooter.Tabs.Add(new NativeTabDescriptor
+                        {
+                            Title = tab.Title,
+                            IosIcon = tab.Icon.IosSymbol,
+                            AndroidIcon = tab.Icon.AndroidResource,
+                            Path = tab.To.ToString(),
+                            Badge = string.IsNullOrEmpty(tab.Badge) ? null : tab.Badge,
+                        });
+                    }
+                }
+
+                return stripFooter;
+
             case NativeTabBar tabBar:
                 // Derive the active tab from the current route unless the page pinned Selected explicitly, so
                 // the highlighted tab tracks navigation (a tap, hardware Back, or a deep link) automatically —
@@ -397,10 +462,29 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     }
 
     private static NativeBarItemDescriptor BuildItemDescriptor(
-        NativeBarItem item, string id, Dictionary<string, Action> handlers)
+        Component item, string id, Dictionary<string, Action> handlers)
     {
         switch (item)
         {
+            // The portable bar button: an icon, a title, and an optional tap. Everything past that (a back
+            // affordance, an overflow menu) stays with the Rask.Native family.
+            case BarButton portable:
+                string? portableTapId = null;
+                if (portable.OnClick is { } portableClick)
+                {
+                    handlers[id] = portableClick;
+                    portableTapId = id;
+                }
+
+                return new NativeBarItemDescriptor
+                {
+                    Kind = "button",
+                    Id = portableTapId,
+                    IosIcon = portable.Icon.IosSymbol,
+                    AndroidIcon = portable.Icon.AndroidResource,
+                    Title = portable.Title,
+                };
+
             case NativeBackButton:
                 // The head wires a back item to the platform's own back affordance — no server round-trip.
                 return new NativeBarItemDescriptor { Kind = "back" };

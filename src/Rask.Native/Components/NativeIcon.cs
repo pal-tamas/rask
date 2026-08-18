@@ -1,3 +1,5 @@
+using Rask.Core.Components;
+
 namespace Rask.Native.Components;
 
 /// <summary>
@@ -10,9 +12,14 @@ namespace Rask.Native.Components;
 /// </summary>
 /// <remarks>
 ///     Modelled as a <c>readonly record struct</c> (like <c>RouteUrl</c>) rather than an enum because an enum
-///     cannot carry two per-platform tokens, nor be extended with a raw override. The curated members below are
-///     the single, auditable icon-mapping table (mirroring the Rask.Bootstrap "every emitted string in one
-///     place" convention); the tokens are already resolved, so the platform head does no lookup.
+///     cannot carry two per-platform tokens, nor be extended with a raw override; the tokens are already
+///     resolved, so the platform head does no lookup.
+///     <para>
+///         The curated members below <b>delegate to <see cref="BarIcon" /></b> (Rask.Core), which is the one
+///         auditable icon-mapping table. Two hand-maintained copies of the same SF-Symbol/drawable pairs would
+///         drift the moment either gained an icon, and the portable bars and the native-only ones would then
+///         disagree about what <c>Home</c> looks like on the same screen.
+///     </para>
 /// </remarks>
 public readonly record struct NativeIcon
 {
@@ -31,37 +38,43 @@ public readonly record struct NativeIcon
 
     // --- Curated cross-platform vocabulary (the one auditable mapping table) ---------------------------------
     /// <summary>A home / house icon.</summary>
-    public static NativeIcon Home => new("house", "ic_home");
+    public static NativeIcon Home => From(BarIcon.Home);
 
     /// <summary>A person / profile icon.</summary>
-    public static NativeIcon Person => new("person", "ic_person");
+    public static NativeIcon Person => From(BarIcon.Person);
 
     /// <summary>An add / plus icon.</summary>
-    public static NativeIcon Add => new("plus", "ic_add");
+    public static NativeIcon Add => From(BarIcon.Add);
 
     /// <summary>A search / magnifier icon.</summary>
-    public static NativeIcon Search => new("magnifyingglass", "ic_search");
+    public static NativeIcon Search => From(BarIcon.Search);
 
     /// <summary>A settings / gear icon.</summary>
-    public static NativeIcon Settings => new("gearshape", "ic_settings");
+    public static NativeIcon Settings => From(BarIcon.Settings);
 
     /// <summary>A share icon.</summary>
-    public static NativeIcon Share => new("square.and.arrow.up", "ic_share");
+    public static NativeIcon Share => From(BarIcon.Share);
 
     /// <summary>A back / chevron-left icon.</summary>
-    public static NativeIcon Back => new("chevron.backward", "ic_arrow_back");
+    public static NativeIcon Back => From(BarIcon.Back);
 
     /// <summary>A list / menu icon.</summary>
-    public static NativeIcon List => new("list.bullet", "ic_list");
+    public static NativeIcon List => From(BarIcon.List);
 
     /// <summary>An info icon.</summary>
-    public static NativeIcon Info => new("info.circle", "ic_info");
+    public static NativeIcon Info => From(BarIcon.Info);
 
     /// <summary>A star / favourite icon.</summary>
-    public static NativeIcon Star => new("star", "ic_star");
+    public static NativeIcon Star => From(BarIcon.Star);
 
     /// <summary>An overflow / "more" (ellipsis) icon, for a <see cref="NativeMenuButton" />.</summary>
-    public static NativeIcon More => new("ellipsis", "ic_more");
+    public static NativeIcon More => From(BarIcon.More);
+
+    /// <summary>
+    ///     The native tokens of a portable <see cref="BarIcon" />. This is how the curated members above stay
+    ///     a view onto Core's single table rather than a second copy of it.
+    /// </summary>
+    public static NativeIcon From(BarIcon icon) => new(icon.IosSymbol, icon.AndroidResource);
 
     // --- Escape hatches (named factories, like RouteUrl.External) --------------------------------------------
     /// <summary>An icon with explicit per-platform tokens, for icons outside the curated set.</summary>
