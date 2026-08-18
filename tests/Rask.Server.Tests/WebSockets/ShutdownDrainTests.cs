@@ -202,10 +202,15 @@ public class ShutdownDrainTests
         await host.StopAsync();
 
         Assert.Equal(HealthStatus.Unhealthy, (await readiness.CheckHealthAsync(context)).Status);
+
         // The capacity check keeps its own meaning — an empty store is not "at capacity".
-        Assert.Equal(
-            HealthStatus.Healthy,
-            (await new RaskLiveHealthCheck(host.Store).CheckHealthAsync(context)).Status);
+        //
+        // The memory reading is pinned because it is a property of the MACHINE, not of the store: the
+        // check judges memory FIRST and lets it outrank the session count, by design, so on a host
+        // already past DegradedMemoryLoad an empty store reports Degraded and this assertion failed on
+        // load rather than on anything it meant to test (#732).
+        var capacity = new RaskLiveHealthCheck(host.Store) { MemoryLoadReader = () => 0.0 };
+        Assert.Equal(HealthStatus.Healthy, (await capacity.CheckHealthAsync(context)).Status);
     }
 
     [Fact]
