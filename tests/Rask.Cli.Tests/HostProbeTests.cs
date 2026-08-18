@@ -119,6 +119,25 @@ public class HostFactsParseTests
     }
 
     [Fact]
+    public void The_docker_firewall_signature_is_read_back_verbatim()
+    {
+        // It decides whether the Docker/ufw block on the box is the one we'd write. Absent means
+        // "no block", which is also what an older Rask's probe output looks like to a newer CLI.
+        Assert.Equal("v1:80,443", HostFacts.Parse("dockerfw=v1:80,443\nend=ok").DockerFirewall);
+        Assert.Equal(string.Empty, HostFacts.Parse("dockerfw=\nend=ok").DockerFirewall);
+        Assert.Equal(string.Empty, HostFacts.Parse("end=ok").DockerFirewall);
+    }
+
+    [Fact]
+    public void The_probe_reads_the_docker_firewall_block_without_writing_to_it()
+    {
+        // `sed -n …p` prints; `sed -i` would edit the live firewall config during a read-only probe,
+        // before the user has agreed to anything.
+        Assert.Contains("dockerfw=", HostProbe.ProbeScript, StringComparison.Ordinal);
+        Assert.DoesNotContain("sed -i", HostProbe.ProbeScript, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Tolerates_crlf_and_stray_whitespace()
     {
         // A box whose shell prints \r\n shouldn't read as a box with nothing installed.

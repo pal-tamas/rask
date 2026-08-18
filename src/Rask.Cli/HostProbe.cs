@@ -23,6 +23,7 @@ internal sealed record HostFacts(
     bool HasApt,
     bool UfwInstalled,
     bool UfwActive,
+    string DockerFirewall,
     IReadOnlyList<int> SshPorts,
     bool SshConfigInclude,
     bool SshdReadable,
@@ -56,6 +57,7 @@ internal sealed record HostFacts(
         var uid = -1;
         bool systemd = false, docker = false, dockerOk = false, dockerGroup = false;
         bool sudo = false, apt = false, ufw = false, ufwActive = false, sshInclude = false, complete = false;
+        var dockerFirewall = string.Empty;
         bool sshdRead = false, rootLogin = false, passwordAuth = false, kbdAuth = false;
         var sshPorts = new List<int>();
 
@@ -84,6 +86,11 @@ internal sealed record HostFacts(
                 case "apt": apt = Yes(value); break;
                 case "ufw": ufw = Yes(value); break;
                 case "ufwactive": ufwActive = string.Equals(value, "active", StringComparison.OrdinalIgnoreCase); break;
+
+                // The signature of the Docker/ufw block already on the box, or empty for "none". It
+                // encodes both the rule format and the ports allowed, so changing --port re-plans the
+                // step instead of leaving a stale allow-list that would black-hole the new port.
+                case "dockerfw": dockerFirewall = value; break;
                 case "sshinclude": sshInclude = Yes(value); break;
                 case "sshdread": sshdRead = Yes(value); break;
 
@@ -107,7 +114,7 @@ internal sealed record HostFacts(
         sshPorts.Sort();
         return new HostFacts(
             user, uid == 0, systemd, docker, dockerOk, dockerGroup, sudo, apt, ufw, ufwActive,
-            sshPorts, sshInclude, sshdRead, rootLogin, passwordAuth, kbdAuth, complete);
+            dockerFirewall, sshPorts, sshInclude, sshdRead, rootLogin, passwordAuth, kbdAuth, complete);
 
         static bool Yes(string value) => string.Equals(value, "yes", StringComparison.Ordinal);
     }
@@ -140,6 +147,7 @@ internal static class HostProbe
         if command -v apt-get >/dev/null 2>&1; then printf 'apt=yes\n'; else printf 'apt=no\n'; fi
         if command -v ufw >/dev/null 2>&1; then printf 'ufw=yes\n'; else printf 'ufw=no\n'; fi
         printf 'ufwactive=%s\n' "$( { sudo -n ufw status 2>/dev/null || ufw status 2>/dev/null; } | sed -n 's/^Status: //p' | head -1)"
+        printf 'dockerfw=%s\n' "$( { sudo -n sed -n 's/^###RASK-DOCKER-BEGIN \([^ ]*\).*/\1/p' /etc/ufw/after.rules 2>/dev/null || sed -n 's/^###RASK-DOCKER-BEGIN \([^ ]*\).*/\1/p' /etc/ufw/after.rules 2>/dev/null; } | head -1)"
         if grep -qE '^[[:space:]]*Include[[:space:]]+/etc/ssh/sshd_config\.d/\*\.conf' /etc/ssh/sshd_config 2>/dev/null; then printf 'sshinclude=yes\n'; else printf 'sshinclude=no\n'; fi
         SSHD_T="$( { sudo -n sshd -T 2>/dev/null || sshd -T 2>/dev/null || sudo -n /usr/sbin/sshd -T 2>/dev/null || /usr/sbin/sshd -T 2>/dev/null; } )"
         if [ -n "$SSHD_T" ]; then
