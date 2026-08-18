@@ -39,6 +39,13 @@ them until tagged releases begin.
   `[Route]` argument is an attribute argument and therefore constant by construction, so the failure it
   guarded cannot be written. The id is retired, not reused.
 
+### Fixed
+- **`main` did not compile: `ChromeScreen` still declared its route the old way.** #754 added the portable-chrome
+  showcase screen with `protected override string Route` / `Parent`, and #756 then removed those virtual members
+  in favour of `[Route]` / `[ParentRoute]`. Each was green against its own base, and the two merged without a
+  textual conflict — so the break only appeared once both were on `main` (`CS0115: no suitable method found to
+  override`). Converted to the attributes its sibling pages already use.
+
 ### Added
 - **The portable chrome now has a sample, which is what the repo's own definition of done asks for.** #743
   shipped `AppBar`/`TabStrip` and documented them, but no sample used them — and no sample used `Screen` at
