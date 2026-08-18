@@ -10,7 +10,7 @@
 
     <PackageId>Rask.Dashboard</PackageId>
     <Title>Rask — Batteries Dashboard</Title>
-    <Description>A built-in operator dashboard for the Rask One Person Framework batteries. Mounts at /_ops and shows the outbox, background jobs, queued mail and cache from the application's own database — queue depth, dead letters, the errors behind them, stored email previews, the recurring-job schedule, SQLite pragmas and backup status. A live log tail is built in, and becomes a searchable history when Rask.Logging is installed. Panels appear only for the batteries the app actually registered. Protected by an authorization policy that fails closed outside Development.</Description>
+    <Description>A built-in operator dashboard for the Rask One Person Framework batteries. Mounts at /_rask and shows the outbox, background jobs, queued mail and cache from the application's own database — queue depth, dead letters, the errors behind them, stored email previews, the recurring-job schedule, SQLite pragmas and backup status. A live log tail is built in, and becomes a searchable history when Rask.Logging is installed. Panels appear only for the batteries the app actually registered. Protected by an authorization policy that fails closed outside Development.</Description>
     <PackageTags>web component framework net10 dashboard ops admin observability jobs outbox mail cache sqlite</PackageTags>
   </PropertyGroup>
 

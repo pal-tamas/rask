@@ -1,7 +1,7 @@
 # Rask.Dashboard
 
 An operator dashboard for the [Rask](https://github.com/pal-tamas/rask) One Person Framework batteries.
-Mounts at `/_ops` and reads the outbox, background jobs, queued mail and cache **out of your application's
+Mounts at `/_rask` and reads the outbox, background jobs, queued mail and cache **out of your application's
 own database** — the tables are already there, so there is nothing to run and nothing to export.
 
 - **Dead letters, named as such.** Every queue is split into due / delayed / **failed** / processed, where
@@ -34,7 +34,7 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
 ```
 
-Then browse to `/_ops`.
+Then browse to `/_rask`.
 
 ## Security
 

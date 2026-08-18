@@ -45,10 +45,10 @@ public partial class BsStatTests : global::Rask.Core.RaskMarkup
     // A linked tile must be a link without looking like body text, and must keep the card intact inside it.
     public void Stat_Href_WrapsTheCardInAResetLink()
     {
-        var html = BsStat.Value("2").Label("Jobs").Href("/_ops/queues/jobs").ToHtml();
+        var html = BsStat.Value("2").Label("Jobs").Href("/_rask/queues/jobs").ToHtml();
 
         Assert.StartsWith(
-            "<a class=\"text-decoration-none text-reset d-block h-100\" href=\"/_ops/queues/jobs\">",
+            "<a class=\"text-decoration-none text-reset d-block h-100\" href=\"/_rask/queues/jobs\">",
             html,
             StringComparison.Ordinal);
         Assert.Contains("<div class=\"card h-100\">", html, StringComparison.Ordinal);

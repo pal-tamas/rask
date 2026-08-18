@@ -82,7 +82,7 @@ trim/AOT-safe.
 | `Rask.Mail` | [![Rask.Mail](https://img.shields.io/nuget/v/Rask.Mail.svg?label=%20)](https://www.nuget.org/packages/Rask.Mail) | Durable transactional email over SMTP — bodies are Rask components |
 | `Rask.Cache` | [![Rask.Cache](https://img.shields.io/nuget/v/Rask.Cache.svg?label=%20)](https://www.nuget.org/packages/Rask.Cache) | `IDistributedCache` + a typed `ICache.GetOrCreateAsync`, on the app DB |
 | `Rask.Logging` | [![Rask.Logging](https://img.shields.io/nuget/v/Rask.Logging.svg?label=%20)](https://www.nuget.org/packages/Rask.Logging) | The application log in a database of its own, so it survives a restart — searchable, with retention |
-| `Rask.Dashboard` | [![Rask.Dashboard](https://img.shields.io/nuget/v/Rask.Dashboard.svg?label=%20)](https://www.nuget.org/packages/Rask.Dashboard) | An operator dashboard at `/_ops`: queue depth, dead letters, one-click retry, the log |
+| `Rask.Dashboard` | [![Rask.Dashboard](https://img.shields.io/nuget/v/Rask.Dashboard.svg?label=%20)](https://www.nuget.org/packages/Rask.Dashboard) | An operator dashboard at `/_rask`: queue depth, dead letters, one-click retry, the log |
 | **Production SQLite** | | |
 | `Rask.SQLite` | [![Rask.SQLite](https://img.shields.io/nuget/v/Rask.SQLite.svg?label=%20)](https://www.nuget.org/packages/Rask.SQLite) | WAL, busy-timeout, non-blocking write retries — one file as a real production database |
 | `Rask.SQLite.EntityFrameworkCore` | [![Rask.SQLite.EntityFrameworkCore](https://img.shields.io/nuget/v/Rask.SQLite.EntityFrameworkCore.svg?label=%20)](https://www.nuget.org/packages/Rask.SQLite.EntityFrameworkCore) | Those pragmas (and opt-in busy retry) on a `DbContext` |
@@ -118,7 +118,7 @@ transitively.
 | `Rask.Mail`                        | an EF Core app wanting durable transactional email                | `services.AddRaskMail<Ctx>(o => o.From = ...)` + `modelBuilder.AddRaskMail()` + inject `IMailQueue` |
 | `Rask.Cache`                       | an EF Core app wanting a database-backed cache                    | `services.AddRaskCache<Ctx>()` + `modelBuilder.AddRaskCache()` + inject `ICache` / `IDistributedCache` |
 | `Rask.Logging`                     | any app that wants its log to survive a restart                   | `services.AddRaskLogging("Data Source=logs.db")` — no `TContext`, no migration; inject `ILogStore` to read it back |
-| `Rask.Dashboard`                   | operating an app that uses the DB-backed pillars                  | `services.AddRaskDashboard<Ctx>()` + an `AddAuthorization` policy named `RaskDashboardPolicies.Access`, then browse `/_ops` |
+| `Rask.Dashboard`                   | operating an app that uses the DB-backed pillars                  | `services.AddRaskDashboard<Ctx>()` + an `AddAuthorization` policy named `RaskDashboardPolicies.Access`, then browse `/_rask` |
 | `Rask.SQLite`                      | any .NET app using SQLite (server, mobile, trimmed/AOT)            | `services.AddRaskSqlite(cs)` + inject `IRaskSqliteConnectionFactory` (incl. non-blocking `ExecuteInImmediateTransactionAsync`) |
 | `Rask.SQLite.EntityFrameworkCore`  | an EF Core app that wants the pragmas (+ opt-in busy retry)        | `o.UseRaskSqlite(cs)` on the `DbContextOptionsBuilder`       |
 | `Rask.SQLite.Litestream`           | server-side SQLite app wanting managed backup                      | `services.AddRaskSqliteLitestream(...)` + `RestoreSqliteFromLitestreamAsync()` |

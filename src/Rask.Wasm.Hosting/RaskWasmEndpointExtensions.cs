@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Rask.Core.Live;
+using Rask.Core.ScopedAssets;
 
 namespace Rask.Wasm.Hosting;
 
@@ -74,6 +75,12 @@ public static class RaskWasmEndpointExtensions
     ///         <c>Rask.Server</c> shape.
     ///     </para>
     /// </summary>
+    /// <remarks>
+    ///     In an app that references <b>both</b> hosts, prefer <see cref="UseRaskWasmHost{TApp}" />:
+    ///     <c>Rask.Server</c> declares a <c>UseRask&lt;TApp&gt;</c> too, whose second parameter is a
+    ///     route <em>pattern</em> where this one takes a bundle <em>path</em>. Neither the compiler nor
+    ///     the reader can tell those apart at the call site.
+    /// </remarks>
     public static IEndpointRouteBuilder UseRask<TApp>(
         this IEndpointRouteBuilder endpoints,
         string? bundlePath = null,
@@ -85,6 +92,40 @@ public static class RaskWasmEndpointExtensions
         _ = typeof(TApp);
         return endpoints.UseRask(bundlePath, pathBase);
     }
+
+    /// <summary>
+    ///     <see cref="UseRask{TApp}(IEndpointRouteBuilder, string?, string)" /> under a name only this
+    ///     package defines — for an app that references both hosts.
+    ///     <para>
+    ///         A wasm-hosted app that mounts the operator dashboard calls both: <c>UseRask&lt;Shell&gt;</c>
+    ///         from <c>Rask.Server</c> to serve the server-rendered chain under its prefix, and this to
+    ///         serve the SPA everywhere else. Written as two <c>UseRask</c> calls they differ only in
+    ///         argument types, and one of them silently means a bundle path.
+    ///     </para>
+    /// </summary>
+    /// <typeparam name="TApp">The client's root component, touched to run its module initializers.</typeparam>
+    /// <param name="endpoints">The endpoint route builder.</param>
+    /// <param name="bundlePath">Where the published bundle lives. Defaults to the conventional location.</param>
+    /// <param name="pathBase">Prefix to serve the bundle under. Empty serves it at the root.</param>
+    public static IEndpointRouteBuilder UseRaskWasmHost<TApp>(
+        this IEndpointRouteBuilder endpoints,
+        string? bundlePath = null,
+        string pathBase = "") =>
+        endpoints.UseRask<TApp>(bundlePath, pathBase);
+
+    /// <summary>
+    ///     Non-generic <see cref="UseRaskWasmHost{TApp}" />: serves the bundle without touching the
+    ///     client assembly. Prefer the generic form — see
+    ///     <see cref="UseRask(IEndpointRouteBuilder, string?, string)" /> for why.
+    /// </summary>
+    /// <param name="endpoints">The endpoint route builder.</param>
+    /// <param name="bundlePath">Where the published bundle lives. Defaults to the conventional location.</param>
+    /// <param name="pathBase">Prefix to serve the bundle under. Empty serves it at the root.</param>
+    public static IEndpointRouteBuilder UseRaskWasmHost(
+        this IEndpointRouteBuilder endpoints,
+        string? bundlePath = null,
+        string pathBase = "") =>
+        endpoints.UseRask(bundlePath, pathBase);
 
     /// <summary>
     ///     Serves a published WASM bundle: the runtime files, the scoped CSS/JS assets, and a fallback so
@@ -119,6 +160,12 @@ public static class RaskWasmEndpointExtensions
         var resolved = bundlePath ?? WasmAppBundle.ResolveFromAssembly(Assembly.GetEntryAssembly());
         var bundleDir = string.IsNullOrEmpty(resolved) || !Directory.Exists(resolved) ? null : resolved;
 
+        // Publish the bundle to Core BEFORE anything maps the shared /_rask/a/{hash} route. Rask.Server
+        // reads it from there on a registry miss, so in an app running both hosts (wasm-hosted with the
+        // operator dashboard) either handler resolves the same baked file — which is what makes it safe
+        // for only one of them to own the route, in whichever order the two UseRask calls appear.
+        ScopedAssetBundle.BakedDirectory = bundleDir;
+
         // Dev bundle: serve the client's BUILD output (via its static-web-assets manifest) instead of
         // the published one. Gated on all three of Development, hot reload being supported in this
         // process, and the manifest existing — so a published deployment, a Release run, and a host
@@ -145,7 +192,7 @@ public static class RaskWasmEndpointExtensions
         // subset of the in-WASM-runtime set, so its hash for the single concatenated CSS/JS bundle won't
         // match the browser's request — and because routing matched this endpoint, UseStaticFiles is
         // skipped and can't serve the baked file itself. The baked copy is authoritative.
-        RaskAssetEndpoint.MapRaskAssets(endpoints, pathBaseNormalized, bundleDir);
+        RaskAssetEndpoint.MapRaskAssets(endpoints, pathBaseNormalized);
 
         // `!dev`: with the dev bundle on there is no published directory to find — skipping the nested
         // publish is the point — so the missing-bundle guard must not fire.

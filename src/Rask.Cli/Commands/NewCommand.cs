@@ -87,7 +87,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("push", description: "Server-sent Web Push with subscribe endpoints (implies --pwa).")
             .Flag("snapshots", description: "Scheduled point-in-time SQLite backups (implies --data).")
             .Flag("logs", description: "Keep the application log in a database of its own, so it survives a restart.")
-            .Flag("ops", description: "An operator dashboard at /_ops over every battery's table (implies --data).")
+            .Flag("ops", description: "An operator dashboard at /_rask over every battery's table (implies --data).")
             .Flag("all-batteries", description: "Every battery above — the full One Person Framework stack.")
             .Flag("dry-run", description: "Print the files that would be written without touching disk.");
 
@@ -221,7 +221,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version, bootstrap),
-                    "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(dir, name, auth, pwa, docker, version, bootstrap),
+                    // Push is cleared rather than rejected: an explicit --push on this template already
+                    // fails fast against TemplateCatalog, so the only way to arrive here with it set is
+                    // --all-batteries, and "every battery this template has" is the honest reading of that.
+                    "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(
+                        dir, name, ToBatteries(requestedFlags, bootstrap) with { Push = false }, version),
                     _ => ProjectGenerator.GenerateServer(dir, name, ToBatteries(requestedFlags, bootstrap), version),
                 };
             },
