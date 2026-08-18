@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK048)
+# Rask diagnostics (RASK001–RASK053)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -84,6 +84,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
 | [RASK047](#rask047) | Error | `Page.Route` must be a compile-time constant |
 | [RASK048](#rask048) | Error | HTML nested inside a native screen |
+| [RASK053](#rask053) | Error | Remote message has no wire encoding |
 
 ---
 
@@ -1105,3 +1106,56 @@ protected override Component? Render() => NativeWebView[Div["Hello"]];
 or put the markup inside a `NativeWebView` instead. An app is free to compose both — one route rendering a
 `NativeWebView` and the next a `NativeScreen` is the supported mixed-surface setup; see
 [native](native.md).
+
+---
+
+## RASK053
+
+**Remote message has no wire encoding** · Error
+
+A message reaches a handler in another process by being *encoded*, and Rask generates that encoder at
+compile time rather than discovering it by reflection — which is what lets a remote dispatch publish
+clean under the WASM/AOT trimmer. The cost of that choice is that the set of shapes a message may take
+is fixed, and a shape outside it has to be reported now rather than failing on the wire.
+
+```csharp
+// ✗ RASK053 — an interface names no single concrete type, so the receiver cannot know what to build
+public sealed record Search(IFilter Filter) : IQuery<Hit[]>;
+
+// ✓ a concrete type has one shape, so both sides agree on it
+public sealed record Search(TextFilter Filter) : IQuery<Hit[]>;
+```
+
+**Supported shapes.** `bool`, the numeric types, `char`, `string`, `Guid`, `DateTime`,
+`DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan`, `Uri`, enums (encoded as their number, so
+renaming a member does not break the wire), `byte[]` (base64), `Nullable<T>` of any of those, arrays
+and `List`/`IReadOnlyList`/`IEnumerable`/`ICollection`/`IList` of them, `Dictionary` keyed by `string`,
+and records or classes composed of the same. A composite needs either a public constructor whose
+parameters all match properties — which every positional record has — or a public parameterless
+constructor with settable properties.
+
+**Not supported, and why.** An interface or abstract type names no single thing to construct.
+`object` has no shape at all. An open generic has no single wire shape. A type that refers back to
+itself has no finite encoding. A dictionary keyed by anything but `string` has no key encoding, because
+a JSON object's keys are strings. A `RemoteFile` is allowed only as a *direct* property of the message:
+a file is addressed by its index in the multipart body, written where the property sits in the JSON, so
+one nested inside a list or a sub-object would have nowhere to be addressed from and its bytes would be
+dropped.
+
+**Fix:** give the property a concrete, supported type — or, if the message is never sent anywhere,
+mark it `[LocalOnly]`:
+
+```csharp
+// A job payload, an outbox event, a command only another handler publishes: never on the wire, so
+// never encoded, so free to carry whatever its handler finds convenient.
+[LocalOnly]
+public sealed record RebuildIndex(IComparer<string> Order) : ICommand;
+```
+
+`[LocalOnly]` on an **interface** marks every message implementing it, which is how `Rask.Jobs`'
+`IJob` and `Rask.Outbox`' `IOutboxEvent` keep whole families of in-process messages out of the wire
+vocabulary at once.
+
+> This diagnostic only fires in a project that references a remote transport (`Rask.Cqrs.Client` or
+> `Rask.Cqrs.Server`). An app using `Rask.Cqrs` purely in-process generates no codecs, so none of these
+> constraints apply to its messages.
