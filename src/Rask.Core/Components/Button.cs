@@ -29,6 +29,41 @@ public sealed class Button : Element
     /// <summary>The value submitted alongside <c>Name</c>.</summary>
     public string? Value { get; set; }
 
+    /// <summary>Focus this button when the page loads. At most one control per page may ask.</summary>
+    public bool? Autofocus { get; set; }
+
+    /// <summary>
+    ///     The <c>id</c> of the form this button submits, when the button is not inside it.
+    /// </summary>
+    public string? Form { get; set; }
+
+    /// <summary>
+    ///     Overrides the form's <c>action</c> for this button only — how one form offers "save" and
+    ///     "save and publish" as two submit buttons.
+    /// </summary>
+    public string? FormAction { get; set; }
+
+    /// <summary>Overrides the form's <c>enctype</c> for this button only.</summary>
+    public string? FormEnctype { get; set; }
+
+    /// <summary>Overrides the form's <c>method</c> for this button only.</summary>
+    public string? FormMethod { get; set; }
+
+    /// <summary>Submits without running the form's validation — a "save draft" button.</summary>
+    public bool? FormNovalidate { get; set; }
+
+    /// <summary>Overrides the form's <c>target</c> for this button only.</summary>
+    public string? FormTarget { get; set; }
+
+    /// <summary>
+    ///     The <c>id</c> of the popover this button controls. The other half of the <c>Popover</c> global
+    ///     attribute: the popover declares itself, and this is what opens it without script.
+    /// </summary>
+    public string? PopoverTarget { get; set; }
+
+    /// <summary><c>toggle</c> (the default), <c>show</c> or <c>hide</c> for <see cref="PopoverTarget" />.</summary>
+    public string? PopoverTargetAction { get; set; }
+
     // OnClick / OnClickAsync are inherited from Element (the GlobalEventHandlers surface).
 
     protected override void WriteAttributes(StringBuilder sb)
@@ -52,6 +87,53 @@ public sealed class Button : Element
         if (Value is not null)
         {
             AppendAttr(sb, "value", Value);
+        }
+
+        if (Autofocus is true)
+        {
+            AppendAttr(sb, "autofocus", null);
+        }
+
+        if (Form is not null)
+        {
+            AppendAttr(sb, "form", Form);
+        }
+
+        // Sanitised like every other URL-valued attribute: formaction is a navigation target, so a
+        // `javascript:` value here is script execution on submit.
+        if (FormAction is not null)
+        {
+            AppendUrlAttr(sb, "formaction", FormAction);
+        }
+
+        if (FormEnctype is not null)
+        {
+            AppendAttr(sb, "formenctype", FormEnctype);
+        }
+
+        if (FormMethod is not null)
+        {
+            AppendAttr(sb, "formmethod", FormMethod);
+        }
+
+        if (FormNovalidate is true)
+        {
+            AppendAttr(sb, "formnovalidate", null);
+        }
+
+        if (FormTarget is not null)
+        {
+            AppendAttr(sb, "formtarget", FormTarget);
+        }
+
+        if (PopoverTarget is not null)
+        {
+            AppendAttr(sb, "popovertarget", PopoverTarget);
+        }
+
+        if (PopoverTargetAction is not null)
+        {
+            AppendAttr(sb, "popovertargetaction", PopoverTargetAction);
         }
     }
 }
