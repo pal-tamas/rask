@@ -73,6 +73,10 @@ public partial class App : Component
     private Component Hero() =>
         Section.Class("hero")[
             Div.Class("wrap")[
+                // The page opens on the chain itself, before it says a word about the framework — the same
+                // animation the README leads with, rendered INLINE (not through <img>) so it inherits the
+                // token palette below and follows the theme toggle. See ChainAnimation for why that works.
+                Div.Class("hero-anim")[ChainAnimation],
                 Div.Class("hero-grid")[
                     Div[
                         P.Class("eyebrow")["The .NET One Person Framework"],
@@ -80,8 +84,11 @@ public partial class App : Component
                         P.Class("lede")["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
                         P.Class("sub")["The same components run server-rendered over a WebSocket, fully client-side on WebAssembly, or as a native iOS/Android app — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
                         Div.Class("cta-row")[
-                            A.Class("btn btn-primary").Href("docs/").Target("_blank").Rel("noopener")["▶ Try the live demo"],
-                            A.Class("btn btn-ghost").Href("playground/").Target("_blank").Rel("noopener")["🛝 Playground"]
+                            // Named for what they are. The Pages site is three apps — this landing page at
+                            // the root, the live showcase at docs/, the playground at playground/ — and
+                            // calling docs/ "the live demo" left the docs themselves with no name at all.
+                            A.Class("btn btn-primary").Href("docs/").Target("_blank").Rel("noopener")["Docs"],
+                            A.Class("btn btn-ghost").Href("playground/").Target("_blank").Rel("noopener")["Playground"]
                         ],
                         Div.Class("badges")[
                             Span.Class("badge")[B[".NET 10"]],

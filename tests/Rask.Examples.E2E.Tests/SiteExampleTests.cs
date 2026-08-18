@@ -52,8 +52,18 @@ public sealed class SiteExampleTests
             await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "Native" }).ClickAsync();
             await Expect(page.Locator(".term")).ToContainTextAsync("net10.0-android");
 
-            // The front door links into the nested docs + playground sub-apps.
+            // The page opens on the chain animation, before it says anything about the framework. The
+            // adjacent-sibling selector is the assertion: it only matches if the animation's box comes
+            // immediately before the grid that holds the headline, so a future edit cannot quietly demote
+            // it below the fold. Rendered inline (not through <img>) so it inherits the theme tokens —
+            // which is also why the <svg> element itself is reachable from the DOM at all.
+            await Expect(page.Locator(".hero-anim svg")).ToHaveCountAsync(1);
+            await Expect(page.Locator(".hero-anim + .hero-grid h1")).ToHaveCountAsync(1);
+
+            // The front door links into the nested docs + playground sub-apps, and names them for what
+            // they are — the site is three apps, and calling /docs/ "the live demo" left the docs unnamed.
             await Expect(page.Locator("a.btn-primary").First).ToHaveAttributeAsync("href", "docs/");
+            await Expect(page.Locator("a.btn-primary").First).ToHaveTextAsync("Docs");
 
             // The nav "Docs" entry points at the on-site showcase (/docs/), and the old external
             // GitHub-docs link is gone — no nav link targets the repo's markdown folder anymore.

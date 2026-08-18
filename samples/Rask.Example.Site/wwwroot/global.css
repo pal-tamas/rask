@@ -114,7 +114,16 @@
   .btn-ghost:hover { border-color: var(--accent); text-decoration: none; transform: translateY(-2px); }
 
   /* ---------- hero ---------- */
-  .hero { padding: 78px 0 96px; border-top: none; }
+  .hero { padding: 54px 0 96px; border-top: none; }
+  /* The chain animation opens the page. aspect-ratio holds its box before the SVG lays out, so the
+     headline underneath never jumps; the SVG carries a viewBox and no width/height of its own, which is
+     what lets it scale to the column. Its own rules are namespaced `rc-` inside the file — an SVG <style>
+     inline in HTML is document-scoped, not scoped to the SVG. */
+  .hero-anim { margin: 0 0 56px; }
+  .hero-anim svg {
+    display: block; width: 100%; height: auto; aspect-ratio: 880 / 400;
+    border-radius: var(--radius);
+  }
   .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 54px; align-items: center; }
   .hero h1 { font-size: clamp(2.3rem, 5.4vw, 3.75rem); line-height: 1.04; }
   .hero h1 .lit { color: transparent; background: linear-gradient(120deg, var(--accent-ink), var(--accent)); -webkit-background-clip: text; background-clip: text; }
