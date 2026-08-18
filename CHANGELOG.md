@@ -7,6 +7,35 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **The pre-push gates blamed your branch for your machine.** When the `wasm-tools` workload is momentarily
+  unresolvable every browser-targeting project fails at *evaluation* with `NETSDK1147`, and the CLI gate
+  reported that as *"the code the CLI writes doesn't compile"* — measured at 0 `error CS` against 24
+  `error NETSDK1147`. It sent two people hunting a scaffolder bug that did not exist.
+
+  All four gate arms (browser E2E, CLI build, watch hot-reload, deploy) now run through one `run_gate`
+  helper that keeps the full output and **reads the verdict off the log** instead of asserting one: NETSDK
+  errors with no compiler error at all is reported as an environment failure, naming the usual cause (a
+  concurrent `dotnet workload install` — from any session, any worktree — bumping the shared
+  mono/emscripten manifests for the whole SDK band before the packs are restored) and printing the two
+  commands that confirm it. Anything else keeps the original message, and a log with *both* kinds still
+  blames the code, because a real compiler error is the actionable one. Closes #718.
+- **The CLI build gate deleted packages out of the machine-global NuGet cache.** `EvictFromGlobalCache`
+  removes all 22 packed `Rask.*` packages at the version under test, which is load-bearing — without it a
+  restore reuses a previously-cached nupkg of the same version and the gate silently tests stale bits
+  (#534). But MinVer stamps the *same* version for the same commit in every worktree, so one gate run
+  could delete what another worktree's build was restoring at that moment.
+
+  The gate now restores into a private cache under `artifacts/`, scoped to the test invocation so the
+  repo's own build still uses the normal one. Verified directly: 20 package directories used to land in
+  `~/.nuget/packages` at the packed version and now none do, with the gate still passing 27/27. A test may
+  not reach outside its sandbox to delete shared state.
+
+  This is the prime suspect for #721, but **it is not a reproduction** — the gate ran green 8/8
+  consecutively while investigating. That is consistent with the reported failure having occurred while
+  nine sessions were saturating the machine, and it is why this is justified by the hazard being real in
+  the code rather than by a repro. #721 stays open pending a sighting under load.
+
 ### Added
 - **`<var>`** — the one element MDN lists that Rask had no component for (part of #694). A variable in a
   mathematical or programming context; not emphasis (`em`) and not literal code (`code`).
