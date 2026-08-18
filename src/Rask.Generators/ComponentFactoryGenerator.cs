@@ -567,12 +567,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 sb.AppendLine("        ResetComponentEager(__c0);");
             }
 
-            EmitReceiverCast(sb, receiver, "        ");
-            foreach (var s in props.Where(s => !bits.ContainsKey(s.Name)))
-            {
-                sb.Append("        __c.").Append(EscapeIdentifier(s.Name)).Append(" = ")
-                    .Append(s.DefaultLiteral).AppendLine(";");
-            }
+            EmitEagerResetBody(
+                sb,
+                receiver,
+                props.Where(s => !bits.ContainsKey(s.Name))
+                    .Select(s => (s.Name, s.DefaultLiteral, s.IsDelegate)).ToList(),
+                "        ");
 
             sb.AppendLine("    }");
             sb.AppendLine();
@@ -607,6 +607,65 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderReset.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    /// <summary>
+    ///     The eager reset's body, with the callback writes moved behind a "is there anything to clear"
+    ///     check.
+    /// </summary>
+    /// <remarks>
+    ///     Element carries ~88 callback props. Written unconditionally, that is ~88 stores on every
+    ///     entry-built element on every render, and for the overwhelming majority of elements every one
+    ///     of them assigns null over null — the element never named a callback. The flag is set by the
+    ///     callback setters (see <c>EmitSetter</c>) and read-and-cleared here, so the block runs on
+    ///     exactly the renders that have something to undo.
+    ///     <para>
+    ///         The non-callback props stay unconditional. They are few (Key is the shared one), and
+    ///         gating them behind the same flag would make a Key-only chain pay for the callback block.
+    ///     </para>
+    /// </remarks>
+    private static void EmitEagerResetBody(
+        StringBuilder sb,
+        string receiver,
+        IReadOnlyList<(string Name, string DefaultLiteral, bool IsDelegate)> props,
+        string indent)
+    {
+        var plain = props.Where(static p => !p.IsDelegate).ToList();
+        var callbacks = props.Where(static p => p.IsDelegate).ToList();
+        var cast = false;
+
+        if (plain.Count != 0)
+        {
+            EmitReceiverCast(sb, receiver, indent);
+            cast = true;
+            foreach (var p in plain)
+            {
+                sb.Append(indent).Append("__c.").Append(EscapeIdentifier(p.Name)).Append(" = ")
+                    .Append(p.DefaultLiteral).AppendLine(";");
+            }
+        }
+
+        if (callbacks.Count == 0)
+        {
+            return;
+        }
+
+        sb.Append(indent).AppendLine("if (!global::Rask.Core.BuilderRuntime.HasCallbacks(__c0))");
+        sb.Append(indent).AppendLine("{");
+        sb.Append(indent).AppendLine("    return;");
+        sb.Append(indent).AppendLine("}");
+        sb.AppendLine();
+
+        if (!cast)
+        {
+            EmitReceiverCast(sb, receiver, indent);
+        }
+
+        foreach (var p in callbacks)
+        {
+            sb.Append(indent).Append("__c.").Append(EscapeIdentifier(p.Name)).Append(" = ")
+                .Append(p.DefaultLiteral).AppendLine(";");
+        }
     }
 
     private static void EmitReceiverCast(StringBuilder sb, string receiver, string indent)
@@ -1077,6 +1136,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         if (pendingBit >= 0)
         {
             track += "global::Rask.Core.BuilderRuntime.Written(__c, " + MaskLiteral(new[] { pendingBit }) + "); ";
+        }
+
+        // A callback prop is non-folding, so it carries no pending bit and the eager reset puts it back
+        // unconditionally at the next entry. Record that there IS one to put back: an element that
+        // names no callback — almost every element — then skips a block of ~88 delegate writes on
+        // every render. See Component.FlagCallbackAssigned.
+        if (isDelegate && !fold && pendingBit < 0)
+        {
+            track += "global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); ";
         }
 
         // An `internal` component cannot appear in a `public` signature (CS0050/CS0051), so the

@@ -54,6 +54,28 @@ public static partial class BuilderRuntime
     /// </remarks>
     public static void MarkChanged(Component target) => target.MarkEntryPropsChangedInternal();
 
+    /// <summary>Records that a chain assigned a callback prop on <paramref name="target" />.</summary>
+    /// <remarks>
+    ///     Paired with <see cref="HasCallbacks" />, and emitted by every non-folding callback setter so
+    ///     the eager reset knows whether this component has a callback to put back at all.
+    /// </remarks>
+    public static void MarkCallbacks(Component target) => target.MarkCallbackAssignedInternal();
+
+    /// <summary>
+    ///     Whether <paramref name="target" /> has a callback to put back. Guards the eager reset's
+    ///     callback block: <c>false</c> means every one of them already holds its default and the whole
+    ///     walk is dead work.
+    /// </summary>
+    /// <remarks>
+    ///     A peek. One reset pass runs several of these routines — a component's own eager reset calls
+    ///     the shared <c>Element</c> one first — so they must all see the same answer; the entry clears
+    ///     the record once, after the reset it drove has finished.
+    /// </remarks>
+    public static bool HasCallbacks(Component target) => target.HasCallbackAssignedInternal();
+
+    /// <summary>Clears the callback record, once the eager reset that read it has run.</summary>
+    public static void ClearCallbacks(Component target) => target.ClearCallbackAssignedInternal();
+
     /// <summary>
     ///     The bit a folding prop of the shared <see cref="Element" />/<see cref="Component" /> surface
     ///     may claim. Own (per-component) props are numbered from here up.
@@ -287,6 +309,7 @@ public static partial class BuilderRuntime
 
         var component = ctx.GetOrCreateEntry<T>(static _ => new T(), pendingReset, pending, hasLifecycle);
         reset(component);
+        ClearCallbacks(component);
         return component;
     }
 
@@ -307,6 +330,7 @@ public static partial class BuilderRuntime
                 pending,
                 hasLifecycle);
             reset(component);
+            ClearCallbacks(component);
             return component;
         }
 
@@ -332,6 +356,7 @@ public static partial class BuilderRuntime
         var component = ctx.GetOrCreateEntry<T>(
             static _ => Activator.CreateInstance<T>(), pendingReset, pending, hasLifecycle);
         reset(component);
+        ClearCallbacks(component);
         return component;
     }
 }
