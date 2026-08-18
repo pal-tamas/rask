@@ -7,6 +7,11 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **`ChromeScreen` declares its route the way every other page now does.** It landed with a `Route`
+  override in the same window that removed the `Page` base class, so `main` briefly did not compile —
+  each change was green on its own branch and only their combination was broken.
+
 ### Changed
 - **BREAKING — routes are declared by `[Route]` again; the `Page` base class is gone.** A routable
   component is any `Component` carrying `[Route("/x")]`, with `[ParentRoute(typeof(Layout))]` for nesting

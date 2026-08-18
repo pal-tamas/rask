@@ -4,8 +4,8 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.Shared.Features;
 
-// A Screen is a Page that also declares the chrome AROUND it, instead of the app root inspecting the route to
-// decide what the header should say. This one names no Rask.Native type — only Rask.Chrome — which is the
+// A Screen is a routed component that also declares the chrome AROUND it, instead of the app root inspecting
+// the route to decide what the header should say. This one names no Rask.Native type — only Rask.Chrome — which is the
 // whole point: the same class compiles and renders on all three hosts.
 //
 //   • Server / WASM  — the slots render landmark HTML (role="banner", role="navigation") into the page.
@@ -15,13 +15,11 @@ namespace Rask.Example.Shared.Features;
 // Unlisted in the sidebar, like /table: it exists so the cross-host claim is exercised by a real app that all
 // three showcase hosts compile, not only by unit tests. Its styling comes from ChromeBarsDemo.css via the
 // shared wrapper class — Rask.Core ships no stylesheet for the bars by design.
+[Route("chrome")]
+[ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class ChromeScreen : Screen
 {
     private int _refreshed;
-
-    protected override string Route => "chrome";
-
-    protected override Type? Parent => typeof(ShowcaseLayout);
 
     protected override Component? HeadAssets => Title["Portable chrome — Rask"];
 
