@@ -44,6 +44,13 @@ public sealed partial class Form<TModel> : Element
 
     /// <summary>The form's name, which must be unique in the document.</summary>
     public string? Name { get; set; }
+
+    /// <summary>
+    ///     The relationship of the form's target to the document — <c>noopener</c>, <c>noreferrer</c>,
+    ///     <c>external</c> and the rest of the link-type vocabulary.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#rel">MDN</see>
+    /// </summary>
+    public string? Rel { get; set; }
     /// <summary>
     ///     Called on every submit with the raw posted fields, whether validation passed or not. The
     ///     low-level hook: prefer <see cref="OnValidSubmit" />, which hands you the typed model and only
@@ -264,6 +271,11 @@ public sealed partial class Form<TModel> : Element
         if (Name is not null)
         {
             AppendAttr(sb, "name", Name);
+        }
+
+        if (Rel is not null)
+        {
+            AppendAttr(sb, "rel", Rel);
         }
 
         Delegate? submit;

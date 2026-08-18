@@ -79,8 +79,10 @@ accept children:
 
 ## Universal props
 
-Every tag accepts `Id`, `Class`, `Style`, `Data`, and the accessibility props `Role`, `TabIndex`, and
-`Aria`. They render in that exact order, ahead of any tag-specific attributes.
+Every tag accepts `Id`, `Class`, `Style`, `Title`, `Data`, the accessibility props `Role`, `TabIndex`
+and `Aria`, the rest of HTML's global attributes (`Lang`, `Dir`, `Hidden`, `Inert`, `Popover`,
+`ContentEditable`, `Spellcheck`, `Translate`, `Draggable`), and `Attributes` — the verbatim escape hatch
+for anything not named here. They render in a fixed order, ahead of any tag-specific attributes.
 
 `Id`, `Class`, `Style`:
 
@@ -115,9 +117,63 @@ attributes. See the [accessibility guide](accessibility.md) and the RASK023 img-
 
 <!-- demo:props-aria -->
 
-**Attribute order** is fixed: base props first (`id`, `class`, `style`, `title`, `data-*`, `role`,
-`tabindex`, `aria-*`), then tag-specific. Tests enforce it, so the output is predictable for diffing and
-DOM tooling:
+### The rest of the global attributes
+
+`Lang` and `Dir` are the two that matter most, and they are why this section exists: before them, `lang`
+was reachable on `<html>` only — so the page's language worked and a phrase inside it did not. Marking a
+run of text in another language is [WCAG 3.1.2 *Language of Parts*](https://www.w3.org/WAI/WCAG21/Understanding/language-of-parts),
+and without it a screen reader reads a French quotation with English phonetics:
+
+```csharp
+P["The exhibition is called ", Span.Lang("fr")["Les Demoiselles"], "."]
+Span.Dir("auto")[userSuppliedName]   // "auto" when you don't know the language at render time
+```
+
+`Hidden` hides an element from every presentation *including assistive technology* — prefer it to a
+display-none class, which hides it visually while leaving it in the accessibility tree. `Inert` makes a
+subtree unfocusable and unreachable, which is the correct primitive behind a modal: mark everything
+outside the dialog inert and focus cannot escape it.
+
+`Popover` pairs with `Button.PopoverTarget` for a popover the browser opens, dismisses and focuses with
+no JavaScript on either side. `ContentEditable` is a string rather than a `bool?` because
+`"plaintext-only"` is the value most editors actually want. `Spellcheck` and `Translate` are enumerated
+rather than bare booleans, so `false` renders explicitly (`translate` spells its values `yes`/`no`).
+
+```csharp
+Div.Hidden(true)                     // hidden
+Div.Inert(true)                      // inert
+Div.Popover("auto")                  // popover="auto"
+Div.ContentEditable("plaintext-only")
+Span.Translate(false)                // translate="no" — a product name, a username, a code sample
+```
+
+### `Attributes` — the escape hatch
+
+Anything this surface does not name. Each entry renders `{key}="{value}"` with the key verbatim and the
+value HTML-encoded, exactly like `Data` and `Aria` but with no prefix:
+
+```csharp
+Div.Attributes(new Dictionary<string, string?>
+{
+    ["itemscope"] = "",
+    ["itemtype"] = "https://schema.org/Person",
+})
+```
+
+That covers microdata, `nonce`, `part`/`exportparts`, `accesskey`, `slot`, `inputmode`, and whatever
+HTML adds next. Nothing is validated or de-duplicated: naming an attribute a typed property already
+emits renders it twice and the browser takes the first, so **prefer the typed property whenever one
+exists** — it is the documented, checkable route. `Attributes` renders last of the universal block, after
+every ordered group, precisely because its names are arbitrary.
+
+Adding these cost the common element nothing. `Hidden` and `Inert` are two bits each of the flags byte
+every component already carries; the rest hoist into the lazy live state the accessibility props use, so
+an element naming none allocates nothing for the feature.
+
+**Attribute order** is fixed: `id`, `class`, `style`, `title`, the plain globals (`lang`, `dir`,
+`hidden`, `inert`, `popover`, `contenteditable`, `spellcheck`, `translate`), `data-*`, `role`,
+`tabindex`, `aria-*`, then `Attributes`, then tag-specific. Tests enforce it, so the output is
+predictable for diffing and DOM tooling:
 
 `Title` is the global `title` attribute — the browser's hover tooltip. Reach for it where a cell shows an
 abbreviated value and the exact one belongs behind it (a relative timestamp over the precise instant, a

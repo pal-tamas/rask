@@ -437,7 +437,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // prop added in a later one: the shared Element/Component surface owns bits below OwnPendingBit
     // (emitted by the assembly that declares Element), each component's own props the bits above it. A
     // prop that does not fit falls back to the eager half — correct, just conservative in the fold.
-    private const int OwnPendingBit = 16; // mirrors Rask.Core.BuilderRuntime.OwnPendingBit
+    private const int OwnPendingBit = 32; // mirrors Rask.Core.BuilderRuntime.OwnPendingBit
 
     private static int Bit(Dictionary<string, int> bits, string name) =>
         bits.TryGetValue(name, out var bit) ? bit : -1;

@@ -30,6 +30,26 @@ public sealed partial class Video : HtmlMediaElement
     /// </summary>
     public bool? PlaysInline { get; set; }
 
+    /// <summary>
+    ///     Hides parts of the browser's own control set — space-separated
+    ///     <c>nodownload</c> / <c>nofullscreen</c> / <c>noremoteplayback</c>. A hint, not a guarantee, and
+    ///     it removes affordances rather than adding them, so do not rely on it to protect anything.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#controlslist">MDN</see>
+    /// </summary>
+    public string? ControlsList { get; set; }
+
+    /// <summary>Opts this video out of picture-in-picture.</summary>
+    public bool? DisablePictureInPicture { get; set; }
+
+    /// <summary>Opts this video out of remote playback (Chromecast, AirPlay).</summary>
+    public bool? DisableRemotePlayback { get; set; }
+
+    /// <summary>
+    ///     <c>"lazy"</c> defers loading until the video is near the viewport — the right default for a
+    ///     video below the fold. <c>"eager"</c> loads immediately.
+    /// </summary>
+    public string? Loading { get; set; }
+
     protected override void WriteAttributes(StringBuilder sb)
     {
         // Emits the universal attrs then the shared HtmlMediaElement block (src, controls, …,
@@ -54,6 +74,26 @@ public sealed partial class Video : HtmlMediaElement
         if (PlaysInline is true)
         {
             AppendAttr(sb, "playsinline", null);
+        }
+
+        if (ControlsList is not null)
+        {
+            AppendAttr(sb, "controlslist", ControlsList);
+        }
+
+        if (DisablePictureInPicture is true)
+        {
+            AppendAttr(sb, "disablepictureinpicture", null);
+        }
+
+        if (DisableRemotePlayback is true)
+        {
+            AppendAttr(sb, "disableremoteplayback", null);
+        }
+
+        if (Loading is not null)
+        {
+            AppendAttr(sb, "loading", Loading);
         }
     }
 }

@@ -30,7 +30,7 @@ public class BuilderSetterEmissionTests
         Assert.Contains(
             "Title(this global::Rask.Core.Build<global::Demo.Widget> __b, string? value) "
             + "{ var __c = __b.Value; global::Rask.Core.BuilderRuntime.Track(__c, __c.Title, value); "
-            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x10000UL); __c.Title = value; return __b; }",
+            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x100000000UL); __c.Title = value; return __b; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains("global::Rask.Core.BuilderRuntime.Track(__c, __c.Count, value);", output,
@@ -40,14 +40,14 @@ public class BuilderSetterEmissionTests
     // The reset half. A folding setter also clears its pending bit, because the entry marks every
     // folding prop pending and whatever is still pending when the parent's Render() returns is put
     // back to the factory's default — that is what stops `Widget.Title("x")` on one render and
-    // `Widget` on the next from keeping the title. Own props are numbered from OwnPendingBit (16) up,
+    // `Widget` on the next from keeping the title. Own props are numbered from OwnPendingBit (32) up,
     // above the range the shared Element/Component surface reserves for itself.
     [Fact]
     public void Own_props_claim_pending_bits_above_the_shared_surface()
     {
         var output = Run(Src);
 
-        Assert.Contains("global::Rask.Core.BuilderRuntime.Written(__c, 0x10000UL);", output,
+        Assert.Contains("global::Rask.Core.BuilderRuntime.Written(__c, 0x100000000UL);", output,
             StringComparison.Ordinal);
         Assert.Contains("public static void __RaskResetPending_Demo_Widget(", output, StringComparison.Ordinal);
         Assert.Contains("__c.Title, null))", output, StringComparison.Ordinal);
@@ -56,7 +56,7 @@ public class BuilderSetterEmissionTests
         // re-applies it from the caller's argument every render; a chain that stops naming it has
         // nothing to re-apply, so it claims a bit and resets like any other folding prop, to `default!`.
         var count = output.Split('\n').Single(l => l.Contains(" Count(this ", StringComparison.Ordinal));
-        Assert.Contains("BuilderRuntime.Written(__c, 0x20000UL)", count, StringComparison.Ordinal);
+        Assert.Contains("BuilderRuntime.Written(__c, 0x200000000UL)", count, StringComparison.Ordinal);
         Assert.Contains("__c.Count, default!)", output, StringComparison.Ordinal);
         Assert.Contains("__c.Count = default!;", output, StringComparison.Ordinal);
     }
@@ -410,7 +410,7 @@ public class BuilderSetterEmissionTests
             StringComparison.Ordinal);
     }
 
-    // The pending-bit budget is fixed at 16 and handed out in ORDINAL NAME ORDER, so adding one folding
+    // The pending-bit budget is fixed at 32 and handed out in ORDINAL NAME ORDER, so adding one folding
     // prop to Element does not push itself off the end — it pushes whichever alphabetically-later prop
     // was last. That one falls back to the eager reset, which reports it changed on every render and
     // defeats the render cache for it: no compile error, no failing test, just a slower framework.
@@ -418,7 +418,7 @@ public class BuilderSetterEmissionTests
     public void Overflowing_the_shared_pending_bits_is_reported()
     {
         var props = string.Join("\n    ",
-            Enumerable.Range(0, 17).Select(i => $"public string? P{i:00} {{ get; set; }}"));
+            Enumerable.Range(0, 33).Select(i => $"public string? P{i:00} {{ get; set; }}"));
 
         var run = BuilderGeneratorHarness.Run($$"""
                                                namespace Rask.Core;
@@ -429,20 +429,20 @@ public class BuilderSetterEmissionTests
                                                """);
 
         var reported = Assert.Single(run.WithId("RASK041"));
-        Assert.Contains("17 folding properties but only 16 pending bits", reported.GetMessage(),
+        Assert.Contains("33 folding properties but only 32 pending bits", reported.GetMessage(),
             StringComparison.Ordinal);
-        Assert.Contains("'P16'", reported.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'P32'", reported.GetMessage(), StringComparison.Ordinal);
 
         // …and the prop that fell off is reset eagerly rather than not at all.
-        Assert.Contains("__c.P16 = null;", run.Source("RaskBuilderReset.g.cs"), StringComparison.Ordinal);
+        Assert.Contains("__c.P32 = null;", run.Source("RaskBuilderReset.g.cs"), StringComparison.Ordinal);
     }
 
-    // Sixteen fits exactly, so the guard reports the overflow rather than the last legal prop.
+    // Thirty-two fits exactly, so the guard reports the overflow rather than the last legal prop.
     [Fact]
     public void A_full_but_not_overflowing_shared_surface_is_silent()
     {
         var props = string.Join("\n    ",
-            Enumerable.Range(0, 16).Select(i => $"public string? P{i:00} {{ get; set; }}"));
+            Enumerable.Range(0, 32).Select(i => $"public string? P{i:00} {{ get; set; }}"));
 
         var run = BuilderGeneratorHarness.Run($$"""
                                                namespace Rask.Core;
@@ -453,7 +453,7 @@ public class BuilderSetterEmissionTests
                                                """);
 
         Assert.Empty(run.WithId("RASK041"));
-        Assert.Contains("public const ulong SharedElementPending = 0xFFFFUL;", run.Source("RaskBuilderReset.g.cs"),
+        Assert.Contains("public const ulong SharedElementPending = 0xFFFFFFFFUL;", run.Source("RaskBuilderReset.g.cs"),
             StringComparison.Ordinal);
     }
 

@@ -298,6 +298,92 @@ public abstract partial class Component : RaskMarkup
         }
     }
 
+    // Backing store for the remaining global attributes Element exposes (#693), hoisted for the same
+    // reason as Role/TabIndex/Aria: each is opt-in, so an element that names none keeps `_live` null.
+    internal string? LangInternal
+    {
+        get => _live?.Lang;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.Lang = value;
+            }
+        }
+    }
+
+    internal string? DirInternal
+    {
+        get => _live?.Dir;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.Dir = value;
+            }
+        }
+    }
+
+    internal string? PopoverInternal
+    {
+        get => _live?.Popover;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.Popover = value;
+            }
+        }
+    }
+
+    internal string? ContentEditableInternal
+    {
+        get => _live?.ContentEditable;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.ContentEditable = value;
+            }
+        }
+    }
+
+    internal bool? SpellcheckInternal
+    {
+        get => _live?.Spellcheck;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.Spellcheck = value;
+            }
+        }
+    }
+
+    internal bool? TranslateInternal
+    {
+        get => _live?.Translate;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.Translate = value;
+            }
+        }
+    }
+
+    internal IReadOnlyDictionary<string, string?>? AttributesInternal
+    {
+        get => _live?.Attributes;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.Attributes = value;
+            }
+        }
+    }
+
     /// <summary>
     ///     A <see cref="System.Threading.CancellationToken" /> for this component's cancellable async
     ///     work. It is cancelled when the component is unmounted (navigation away, parent removed, or
@@ -2536,6 +2622,19 @@ public abstract partial class Component : RaskMarkup
         public string? Role;
         public int? TabIndex;
         public IReadOnlyDictionary<string, string?>? Aria;
+
+        // The global attributes that are neither plain-and-always-there (id/class/style/title) nor
+        // cheap enough for a flag bit. Same reasoning as Role/Aria above: every one is opt-in, so an
+        // element that names none keeps `_live` null. Hidden/Inert are NOT here — they are two bits of
+        // the flags byte, because `hidden` is common enough that allocating for it would be a
+        // regression (see Element.FlagHiddenPresent).
+        public string? Lang;
+        public string? Dir;
+        public string? Popover;
+        public string? ContentEditable;
+        public bool? Spellcheck;
+        public bool? Translate;
+        public IReadOnlyDictionary<string, string?>? Attributes;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Action)>? Handlers;

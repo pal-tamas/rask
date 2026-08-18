@@ -29,6 +29,51 @@ public sealed class Button : Element
     /// <summary>The value submitted alongside <c>Name</c>.</summary>
     public string? Value { get; set; }
 
+    /// <summary>
+    ///     The <c>id</c> of the form this button belongs to, when it is not nested inside one.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#form">MDN</see>
+    /// </summary>
+    public string? Form { get; set; }
+
+    // The form-override set. `Input` has had all six since it was written, so until now a submit button
+    // could override the form's action spelled as <input type="submit"> but not as <button> — an
+    // inconsistency rather than a decision (#694). They apply only to a submit button.
+
+    /// <summary>Overrides the form's <c>action</c> when this button submits it.</summary>
+    public string? FormAction { get; set; }
+
+    /// <summary>Overrides the form's <c>enctype</c> when this button submits it.</summary>
+    public string? FormEnctype { get; set; }
+
+    /// <summary>Overrides the form's <c>method</c> when this button submits it.</summary>
+    public string? FormMethod { get; set; }
+
+    /// <summary>Skips validation when this button submits the form — a "save draft" button.</summary>
+    public bool? FormNovalidate { get; set; }
+
+    /// <summary>Overrides the form's <c>target</c> when this button submits it.</summary>
+    public string? FormTarget { get; set; }
+
+    /// <summary>
+    ///     The <c>id</c> of a popover this button controls — the other half of <c>Element.Popover</c>.
+    ///     The browser handles opening, light-dismiss, the top layer and focus, with no JavaScript.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#popovertarget">MDN</see>
+    /// </summary>
+    public string? PopoverTarget { get; set; }
+
+    /// <summary>
+    ///     What <c>PopoverTarget</c> does: <c>"toggle"</c> (the default), <c>"show"</c> or <c>"hide"</c>.
+    /// </summary>
+    public string? PopoverTargetAction { get; set; }
+
+    /// <summary>
+    ///     Focuses this button on page load. At most one control per page may set it, and moving focus on
+    ///     load disorients screen-reader and magnifier users — so reserve it for a page whose entire
+    ///     purpose is the control (a search page), never a general form.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/autofocus">MDN</see>
+    /// </summary>
+    public bool? Autofocus { get; set; }
+
     // OnClick / OnClickAsync are inherited from Element (the GlobalEventHandlers surface).
 
     protected override void WriteAttributes(StringBuilder sb)
@@ -52,6 +97,51 @@ public sealed class Button : Element
         if (Value is not null)
         {
             AppendAttr(sb, "value", Value);
+        }
+
+        if (Form is not null)
+        {
+            AppendAttr(sb, "form", Form);
+        }
+
+        if (FormAction is not null)
+        {
+            AppendUrlAttr(sb, "formaction", FormAction);
+        }
+
+        if (FormEnctype is not null)
+        {
+            AppendAttr(sb, "formenctype", FormEnctype);
+        }
+
+        if (FormMethod is not null)
+        {
+            AppendAttr(sb, "formmethod", FormMethod);
+        }
+
+        if (FormNovalidate is true)
+        {
+            AppendAttr(sb, "formnovalidate", null);
+        }
+
+        if (FormTarget is not null)
+        {
+            AppendAttr(sb, "formtarget", FormTarget);
+        }
+
+        if (PopoverTarget is not null)
+        {
+            AppendAttr(sb, "popovertarget", PopoverTarget);
+        }
+
+        if (PopoverTargetAction is not null)
+        {
+            AppendAttr(sb, "popovertargetaction", PopoverTargetAction);
+        }
+
+        if (Autofocus is true)
+        {
+            AppendAttr(sb, "autofocus", null);
         }
     }
 }

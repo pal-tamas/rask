@@ -40,6 +40,41 @@ public partial class ButtonTests : global::Rask.Core.RaskMarkup
             Button.Name("action").Value("save").ToHtml());
     }
 
+    // The form-override set, plus the popover pair and autofocus (#694). Input has had all six form-*
+    // attributes since it was written, so until now a submit button could override the form's action
+    // spelled as <input type="submit"> but not as <button> — an inconsistency, not a decision.
+    [Fact]
+    public void Render_FormOverrides_EmitsEverySpecAttribute() =>
+        Assert.Equal(
+            "<button type=\"submit\" form=\"checkout\" formaction=\"/pay\" "
+            + "formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate "
+            + "formtarget=\"_blank\"></button>",
+            Button
+                .Type("submit")
+                .Form("checkout")
+                .FormAction("/pay")
+                .FormEnctype("multipart/form-data")
+                .FormMethod("post")
+                .FormNovalidate(true)
+                .FormTarget("_blank")
+                .ToHtml());
+
+    [Fact]
+    public void Render_PopoverTarget_PairsWithTheGlobalPopoverAttribute() =>
+        // The other half of Element.Popover: the browser opens it, handles light-dismiss, the top layer
+        // and focus, with no JavaScript on either side.
+        Assert.Equal(
+            "<button popovertarget=\"menu\" popovertargetaction=\"toggle\"></button>",
+            Button.PopoverTarget("menu").PopoverTargetAction("toggle").ToHtml());
+
+    [Fact]
+    public void Render_BareBooleans_EmitPresenceOnly()
+    {
+        Assert.Equal("<button autofocus></button>", Button.Autofocus(true).ToHtml());
+        Assert.Equal("<button></button>", Button.Autofocus(false).ToHtml());
+        Assert.Equal("<button></button>", Button.FormNovalidate(false).ToHtml());
+    }
+
     [Fact]
     public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder()
     {

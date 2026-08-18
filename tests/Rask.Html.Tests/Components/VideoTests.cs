@@ -35,4 +35,23 @@ public partial class VideoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_StringChild_EncodesText() =>
         Assert.Equal("<video>&lt;x&gt;</video>", Video["<x>"].ToHtml());
+    // The four MDN lists that Rask did not carry (#694).
+    [Fact]
+    public void Render_PlaybackRestrictions_EmitTheSpecAttributes() =>
+        Assert.Equal(
+            "<video controlslist=\"nodownload nofullscreen\" disablepictureinpicture "
+            + "disableremoteplayback loading=\"lazy\"></video>",
+            Video
+                .ControlsList("nodownload nofullscreen")
+                .DisablePictureInPicture(true)
+                .DisableRemotePlayback(true)
+                .Loading("lazy")
+                .ToHtml());
+
+    [Fact]
+    public void Render_PlaybackRestrictions_EmitNothingWhenFalse() =>
+        // Bare boolean attributes: presence is the value, so false must render nothing at all.
+        Assert.Equal("<video></video>",
+            Video.DisablePictureInPicture(false).DisableRemotePlayback(false).ToHtml());
+
 }

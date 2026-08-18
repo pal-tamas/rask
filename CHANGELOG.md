@@ -7,6 +7,47 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Every HTML global attribute is now reachable, and there is an escape hatch for the rest.** `Element`
+  exposed `Id`/`Class`/`Style`/`Title`/`Data`/`Role`/`TabIndex`/`Aria`/`Ref`/`Draggable` and nothing else,
+  so the remainder of MDN's global attributes were not verbose — they were **impossible**.
+
+  The sharpest case was accessibility: `lang` existed on `<html>` only, so a page's language worked and a
+  phrase inside it did not. Marking a run of text in another language is WCAG 3.1.2 *Language of Parts*,
+  and without it a screen reader reads a French quotation with English phonetics. Now `Span.Lang("fr")`.
+
+  Added as typed properties: `Lang`, `Dir`, `Hidden`, `Inert`, `Popover`, `ContentEditable`, `Spellcheck`,
+  `Translate`. Plus **`Attributes`**, a verbatim dictionary shaped exactly like `Data`/`Aria` but with no
+  prefix, which reaches microdata, `nonce`, `part`/`exportparts`, `accesskey`, `slot`, `inputmode` and
+  whatever HTML adds next.
+
+  **It costs the common element nothing.** `Hidden` and `Inert` are two bits each of the flags byte every
+  component already carries (as `Draggable` is); the rest hoist into the lazy live state that
+  `Role`/`TabIndex`/`Aria` use, so an element naming none keeps that state null. Closes #693.
+- **`Button` gained the attributes the spec defines**: the six form-override attributes (`form`,
+  `formaction`, `formenctype`, `formmethod`, `formnovalidate`, `formtarget`), plus `popovertarget`,
+  `popovertargetaction` and `autofocus`. `Input` has had all six form-* since it was written, so until now
+  a submit button could override the form's action spelled as `<input type="submit">` but not as
+  `<button>` — an inconsistency rather than a decision. `popovertarget` is the other half of the new
+  `Popover` global. `Video` gained `controlslist`, `disablepictureinpicture`, `disableremoteplayback` and
+  `loading`; `Form` gained `rel`. Closes #694.
+
+### Changed
+- **Attribute render order now has two more groups**: `id`, `class`, `style`, `title`, the plain globals
+  (`lang`, `dir`, `hidden`, `inert`, `popover`, `contenteditable`, `spellcheck`, `translate`), `data-*`,
+  `role`, `tabindex`, `aria-*`, `Attributes`, then tag-specific. The escape hatch renders last of the
+  universal block precisely because its names are arbitrary — putting it earlier would make the documented
+  order depend on what a caller passed.
+
+  Two attributes moved as a result. `Bdo.Dir` and `Input.Spellcheck` were per-tag properties; they are now
+  the inherited globals, so they render with the plain globals rather than among the tag-specific run
+  (`Html.Lang`/`Html.Dir` likewise). The properties behave identically — same names, same types — but the
+  emitted attribute ORDER changed for those three tags.
+- **`BuilderRuntime.OwnPendingBit` raised 16 → 32.** The shared surface reached 19 folding properties and
+  RASK041 fired, which is exactly what that diagnostic is for. **This is a rebuild-required change**: a
+  component compiled against the old value numbered its own pending bits from 16, which the shared surface
+  now occupies. The constant and the generator's copy of it must move together.
+
 ### Fixed
 - **The pre-push gates blamed your branch for your machine.** When the `wasm-tools` workload is momentarily
   unresolvable every browser-targeting project fails at *evaluation* with `NETSDK1147`, and the CLI gate

@@ -99,4 +99,10 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
             CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
     }
+    [Fact]
+    public void Render_Rel_EmitsTheAttribute() =>
+        // MDN lists `rel` on <form>; `action` and `method` are correctly absent, because Rask submits
+        // in-process and runs OnValidSubmit/OnInvalidSubmit rather than navigating (#694).
+        Assert.Contains("rel=\"noopener\"", Form.Model(Empty).Rel("noopener").ToHtml());
+
 }
