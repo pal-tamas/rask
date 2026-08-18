@@ -8,12 +8,12 @@ namespace Rask.Example.EfCore.Features.Catalog.ListProducts;
 // Vertical slice: list the catalogue (a query) and delete a row (a command). It talks to EF Core
 // directly through the context factory — no repository abstraction — which is the vertical-slice
 // stance: each slice owns its own data access.
-public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Page
+[Route("/products")]
+public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
 {
     // One page, one canonical URL — that is what makes ListProductsPage.Url() unambiguous. This sample
     // also answers "/" so the app root lands on the catalogue; that second template is registered
     // explicitly in Program.cs, which is the escape hatch for the rare page that needs more than one.
-    protected override string Route => "/products";
 
     private IReadOnlyList<Product> _products = [];
     private bool _loaded;

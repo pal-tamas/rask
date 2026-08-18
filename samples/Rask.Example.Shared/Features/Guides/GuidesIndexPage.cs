@@ -7,12 +7,10 @@ namespace Rask.Example.Shared.Features;
 // The site root: the repo's user guides (docs/*.md) rendered on-site, grouped as cards. Guides-first, so
 // this is served at "/" (the old Welcome landing page is gone). Each card links to /guides/{slug}, where
 // GuidePage renders the markdown with Markdig.
-public sealed partial class GuidesIndexPage : Page
+[Route("")]
+[ParentRoute(typeof(ShowcaseLayout))]
+public sealed partial class GuidesIndexPage : Component
 {
-    protected override string Route => "";
-
-    protected override Type? Parent => typeof(ShowcaseLayout);
-
     protected override Component? HeadAssets => Title["Guides — Rask"];
 
     protected override Component? Render() =>

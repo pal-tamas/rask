@@ -579,10 +579,9 @@ internal static partial class ProjectGenerator
         namespace Company.RaskServer.Features.Auth;
 
         [AllowAnonymous]
-        public sealed partial class LoginPage(JwtLoginService login) : Page
+        [Route("login")]
+        public sealed partial class LoginPage(JwtLoginService login) : Component
         {
-            protected override string Route => "login";
-
             private readonly LoginModel _model = new();
             private string? _error;
 
@@ -620,10 +619,9 @@ internal static partial class ProjectGenerator
         namespace Company.RaskServer.Features.Auth;
 
         [AllowAnonymous]
-        public sealed partial class MembersPage : Page
+        [Route("members")]
+        public sealed partial class MembersPage : Component
         {
-            protected override string Route => "members";
-
             protected override Component? Render() =>
                 Div.Style("max-width:32rem;margin:3rem auto;font-family:system-ui")[
                     Authorize

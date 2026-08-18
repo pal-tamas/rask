@@ -5,10 +5,9 @@ using Rask.Core.Routing;
 namespace Rask.Example.Auth.WasmJwt.Features;
 
 [AllowAnonymous]
-public sealed partial class MembersPage : Page
+[Route("members")]
+public sealed partial class MembersPage : Component
 {
-    protected override string Route => "members";
-
     protected override Component? Render() =>
         Div.Id("members").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
             Div.Class("card-body")[

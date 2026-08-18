@@ -8,10 +8,9 @@ namespace Rask.Example.Auth.WasmCookie.Features;
 // principal (hydrated from /api/me). The signed-in view is a child component so it reads the fresh principal
 // when the gate opens after sign-in.
 [AllowAnonymous]
-public sealed partial class MembersPage : Page
+[Route("members")]
+public sealed partial class MembersPage : Component
 {
-    protected override string Route => "members";
-
     protected override Component? Render() =>
         Div.Id("members").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
             Div.Class("card-body")[

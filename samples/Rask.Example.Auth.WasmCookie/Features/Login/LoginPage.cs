@@ -4,10 +4,9 @@ using Rask.Core.Routing;
 namespace Rask.Example.Auth.WasmCookie.Features;
 
 [AllowAnonymous]
-public sealed partial class LoginPage(WasmLoginService login) : Page
+[Route("login")]
+public sealed partial class LoginPage(WasmLoginService login) : Component
 {
-    protected override string Route => "login";
-
     private readonly LoginModel _model = new();
     private string? _error;
 

@@ -14,10 +14,9 @@ no JavaScript to write** — and the *same* component code runs server-rendered 
 updates or fully client-side on WebAssembly.
 
 ```csharp
-public sealed class Counter : Page
+[Route("/counter")]
+public sealed class Counter : Component
 {
-    protected override string Route => "/counter";
-
     private int _count;
 
     protected override Component? Render() =>

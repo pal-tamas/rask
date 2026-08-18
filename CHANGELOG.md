@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING — routes are declared by `[Route]` again; the `Page` base class is gone.** A routable
+  component is any `Component` carrying `[Route("/x")]`, with `[ParentRoute(typeof(Layout))]` for nesting
+  and `[NotFound]` for the catch-all. `Page` and its `Route`/`Parent` overrides are removed, and `Screen`
+  now derives from `Component` — the native `HeaderBar`/`Toolbar`/`TabBar` slots are unchanged.
+
+  This is what makes **one page answer several URLs**: `[Route]` is `AllowMultiple`, so stacking it is the
+  whole feature. The first template declared is canonical — it is what `X.Url(...)` and `Routes.X(...)`
+  format — and the rest are alternates the router matches but nothing generates, so a generated link can
+  never drift onto a path kept only for old bookmarks. A single `Route` property could express exactly one
+  URL, which is what motivated the change.
+
+  Migration is mechanical: delete the `Route` override and put its template in a `[Route]` above the class,
+  delete the `Parent` override in favour of `[ParentRoute(typeof(...))]`, and change the base from `Page`
+  to `Component` (`Screen` subclasses keep `: Screen`).
+
+- **RASK047 is retired.** It reported a `Page.Route` override that was not a compile-time constant. A
+  `[Route]` argument is an attribute argument and therefore constant by construction, so the failure it
+  guarded cannot be written. The id is retired, not reused.
+
 ### Added
 - **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
   shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler

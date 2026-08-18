@@ -106,11 +106,11 @@ public class PortableChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull
 
 // Deliberately free of any Rask.Native type: this is the class that is supposed to compile for the web heads
 // too. It names only Rask.Chrome / Rask.Core components.
+[Route("/portable-chrome")]
 internal sealed partial class PortableChromeApp : Screen
 {
     private int _added;
 
-    protected override string Route => "/portable-chrome";
     protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 

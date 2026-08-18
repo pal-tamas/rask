@@ -7,16 +7,13 @@ namespace Rask.Dashboard.Pages;
 /// What's in the cache. Neither <c>ICache</c> nor <c>IDistributedCache</c> can enumerate keys, so this
 /// reads the table directly — which is the point of a DB-backed cache.
 /// </summary>
+[Route("cache")]
+[ParentRoute(typeof(DashboardLayout))]
 public sealed partial class CachePage(
     ICachePanelReader cache,
     RaskDashboardOptions options,
     TimeProvider timeProvider) : PollingPanel
 {
-    protected override string Route => "cache";
-
-    protected override Type? Parent => typeof(DashboardLayout);
-
-
     private CacheStats _stats;
     private IReadOnlyList<CacheKeyRow> _rows = [];
     private int _total;

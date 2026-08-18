@@ -49,10 +49,9 @@ public partial class ScreenChromeOnWebTests : global::Rask.Core.RaskMarkup
 }
 
 // Names only Rask.Core components — this is the class that is supposed to serve every host.
+[Route("/portable-screen")]
 internal sealed partial class PortableScreen : Screen
 {
-    protected override string Route => "/portable-screen";
-
     protected override Component? HeaderBar => AppBar.Title("Todos");
 
     protected override Component? TabBar =>
@@ -65,9 +64,8 @@ internal sealed partial class PortableScreen : Screen
 }
 
 // A screen that declares no chrome still costs nothing: the slots are null, so walking them adds no markup.
+[Route("/plain-screen")]
 internal sealed partial class PlainScreen : Screen
 {
-    protected override string Route => "/plain-screen";
-
     protected override Component? Render() => P["plain"];
 }

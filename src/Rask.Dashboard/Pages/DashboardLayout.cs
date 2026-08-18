@@ -20,13 +20,13 @@ namespace Rask.Dashboard.Pages;
 /// </para>
 /// </summary>
 [Authorize(Policy = RaskDashboardPolicies.Access)]
+[Route("_ops")]
 public sealed partial class DashboardLayout(
     IEnumerable<IQueuePanel> queues,
     RouteState route,
-    DashboardSecurityState security) : Page
+    DashboardSecurityState security) : Component
 {
     /// <inheritdoc />
-    protected override string Route => "_ops";
 
     /// <inheritdoc />
     protected override Component? HeadAssets =>

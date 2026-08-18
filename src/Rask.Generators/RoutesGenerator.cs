@@ -26,9 +26,6 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     // The routable base class. A page declares its template by overriding Page.Route with a compile-time
     // constant; this generator reads that constant out of the override's syntax, which is why RASK036
     // exists (a non-constant override has nothing to read and would silently never register).
-    private const string PageBaseFullName = "Rask.Core.Page";
-    private const string RoutePropertyName = "Route";
-    private const string ParentPropertyName = "Parent";
 
     private const string FormatterFullName = "global::Rask.Core.Routing.RouteValueFormatter";
 
@@ -188,18 +185,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                      + "well asks it to be both a specific path and the catch-all for every other one.",
         helpLinkUri: DiagnosticHelp.Link("RASK013"));
 
-    private static readonly DiagnosticDescriptor Rask047 = new(
-        "RASK047",
-        "Page.Route must be a compile-time constant",
-        "The 'Route' override on '{0}' is not a compile-time constant — return a string literal or a const "
-        + "so the route can be registered at build time",
-        DiagnosticHelp.Category,
-        DiagnosticSeverity.Error,
-        true,
-        description: "The route table, the typed 'SomePage.Url(...)' formatter and the 'SomePage.Go(...)' "
-                     + "helper are all built at compile time from this value. A route computed at run time "
-                     + "could not contribute to any of them, so the page would silently never be reachable.",
-        helpLinkUri: DiagnosticHelp.Link("RASK047"));
+    // RASK047 ("Page.Route must be a compile-time constant") is retired along with the Page base class:
+    // a route is declared by [Route], whose argument is an attribute argument and therefore constant by
+    // construction. The id stays retired, not reused.
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -340,57 +328,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             }
         }
 
-        // A Page declares its route by overriding Page.Route with a compile-time constant. The override
-        // wins over any [Route] attribute (the attribute is the legacy spelling and is on its way out),
-        // and a Page whose override isn't constant is RASK036 rather than a page that silently vanishes
-        // from the route table.
-        var isPage = InheritsFromPage(symbol);
-        var routePropLocation = (Location?)null;
-        var routePropNotConstant = false;
-        if (isPage)
-        {
-            var declared = TryReadRouteOverride(ctx, symbol, out var template, out routePropLocation);
-            if (declared)
-            {
-                if (template is null)
-                {
-                    routePropNotConstant = true;
-                }
-                else
-                {
-                    templates.Clear();
-                    templates.Add(template);
-                    firstRouteAttrLocation = routePropLocation;
-                }
-            }
-
-            if (TryReadParentOverride(ctx, symbol, out var parentFqn))
-            {
-                parentTypeFqn = parentFqn;
-            }
-        }
-
         var ns = symbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
         var properties = GetPageProperties(symbol);
-
-        if (routePropNotConstant)
-        {
-            // Carry the failure through to Emit so the diagnostic is reported once, from the source-output
-            // stage, rather than from the (cached, possibly re-run) syntax transform.
-            return new Candidate(
-                ns,
-                symbol.Name,
-                symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                new EquatableArray<string>(new List<string>()),
-                parentTypeFqn,
-                new EquatableArray<RoutePropInfo>(properties),
-                new LocationInfo(routePropLocation),
-                false,
-                false,
-                true);
-        }
 
         if (hasNotFound)
         {
@@ -419,10 +360,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             parentTypeFqn,
             new EquatableArray<RoutePropInfo>(properties),
             new LocationInfo(firstRouteAttrLocation),
-            false,
-            true,
-            false,
-            IsPubliclyVisible(symbol));
+            IsNotFound: false,
+            HasRouteAttr: true,
+            IsPubliclyVisible: IsPubliclyVisible(symbol));
     }
 
     /// <summary>
@@ -441,123 +381,6 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             }
         }
 
-        return true;
-    }
-
-    private static bool InheritsFromPage(INamedTypeSymbol symbol)
-    {
-        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
-        {
-            if (t.ToDisplayString() == PageBaseFullName)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    ///     Reads the <c>Route</c> override off <paramref name="symbol" />. Returns <c>false</c> when this type
-    ///     doesn't declare one (an intermediate base in the hierarchy may). Returns <c>true</c> with a null
-    ///     <paramref name="template" /> when the override exists but isn't a compile-time constant — the
-    ///     RASK036 case.
-    /// </summary>
-    private static bool TryReadRouteOverride(GeneratorSyntaxContext ctx, INamedTypeSymbol symbol,
-        out string? template, out Location? location)
-    {
-        template = null;
-        location = null;
-
-        var prop = symbol.GetMembers(RoutePropertyName).OfType<IPropertySymbol>().FirstOrDefault();
-        if (prop is null || !prop.IsOverride)
-        {
-            return false;
-        }
-
-        if (prop.DeclaringSyntaxReferences.Length == 0)
-        {
-            return false;
-        }
-
-        if (prop.DeclaringSyntaxReferences[0].GetSyntax() is not PropertyDeclarationSyntax decl)
-        {
-            return false;
-        }
-
-        location = decl.GetLocation();
-
-        // Accept both spellings: `=> "/x"` and a getter whose body is a single `return "/x";`.
-        var expr = decl.ExpressionBody?.Expression
-                   ?? decl.AccessorList?.Accessors
-                       .FirstOrDefault(a => a.IsKind(SyntaxKind.GetAccessorDeclaration))
-                       ?.ExpressionBody?.Expression
-                   ?? decl.AccessorList?.Accessors
-                       .FirstOrDefault(a => a.IsKind(SyntaxKind.GetAccessorDeclaration))
-                       ?.Body?.Statements.OfType<ReturnStatementSyntax>().FirstOrDefault()?.Expression;
-
-        if (expr is null)
-        {
-            return true;
-        }
-
-        // The property may be declared in a different syntax tree than the one that triggered this
-        // transform (a partial page), so resolve the model for the tree the expression actually lives in.
-        var model = expr.SyntaxTree == ctx.SemanticModel.SyntaxTree
-            ? ctx.SemanticModel
-            : ctx.SemanticModel.Compilation.GetSemanticModel(expr.SyntaxTree);
-
-        var constant = model.GetConstantValue(expr);
-        if (constant is { HasValue: true, Value: string s })
-        {
-            template = s;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    ///     Reads the <c>Parent</c> override — <c>typeof(SomePage)</c> — off <paramref name="symbol" />.
-    /// </summary>
-    private static bool TryReadParentOverride(GeneratorSyntaxContext ctx, INamedTypeSymbol symbol,
-        out string? parentFqn)
-    {
-        parentFqn = null;
-
-        var prop = symbol.GetMembers(ParentPropertyName).OfType<IPropertySymbol>().FirstOrDefault();
-        if (prop is null || !prop.IsOverride || prop.DeclaringSyntaxReferences.Length == 0)
-        {
-            return false;
-        }
-
-        if (prop.DeclaringSyntaxReferences[0].GetSyntax() is not PropertyDeclarationSyntax decl)
-        {
-            return false;
-        }
-
-        var expr = decl.ExpressionBody?.Expression
-                   ?? decl.AccessorList?.Accessors
-                       .FirstOrDefault(a => a.IsKind(SyntaxKind.GetAccessorDeclaration))
-                       ?.ExpressionBody?.Expression
-                   ?? decl.AccessorList?.Accessors
-                       .FirstOrDefault(a => a.IsKind(SyntaxKind.GetAccessorDeclaration))
-                       ?.Body?.Statements.OfType<ReturnStatementSyntax>().FirstOrDefault()?.Expression;
-
-        if (expr is not TypeOfExpressionSyntax typeOf)
-        {
-            return false;
-        }
-
-        var model = expr.SyntaxTree == ctx.SemanticModel.SyntaxTree
-            ? ctx.SemanticModel
-            : ctx.SemanticModel.Compilation.GetSemanticModel(expr.SyntaxTree);
-
-        if (model.GetSymbolInfo(typeOf.Type).Symbol is not INamedTypeSymbol parent)
-        {
-            return false;
-        }
-
-        parentFqn = parent.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         return true;
     }
 
@@ -736,8 +559,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         // A class is a route target if it derives from Page (the current spelling) or carries [Route]
         // (the legacy one). Deriving is enough on its own — the Route override is what supplies the
         // template, and a missing/non-constant one is RASK047's business, not this analyzer's.
-        var isRouteTarget = InheritsFromPage(symbol)
-                            || classAttrs.Any(a => a.AttributeClass?.ToDisplayString() == RouteAttrFullName);
+        var isRouteTarget = classAttrs.Any(a => a.AttributeClass?.ToDisplayString() == RouteAttrFullName);
 
         string? reason = null;
         if (!inheritsComponent)
@@ -878,16 +700,6 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         var filtered = new List<Candidate>(candidates.Length);
         foreach (var c in candidates)
         {
-            // RASK036: a Page whose Route override isn't a compile-time constant. Reported here rather
-            // than in the syntax transform so it surfaces once per build, and the page is dropped —
-            // there is no template to register.
-            if (c.NonConstantRoute)
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask047, c.RouteAttrLocation.ToLocation(),
-                    c.FullyQualifiedName));
-                continue;
-            }
-
             if (c.IsNotFound && c.HasRouteAttr)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(Rask013, c.RouteAttrLocation.ToLocation(),
@@ -1797,7 +1609,6 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         LocationInfo RouteAttrLocation,
         bool IsNotFound,
         bool HasRouteAttr,
-        bool NonConstantRoute = false,
         bool IsPubliclyVisible = true);
 
     private readonly record struct RoutePropInfo(
