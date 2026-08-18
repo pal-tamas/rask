@@ -39,6 +39,23 @@ public sealed class RaskLiveHealthCheck(LiveSessionStore store) : IHealthCheck
     internal const double UnhealthyMemoryLoad = 0.92;
 
     /// <summary>
+    ///     How the memory load is read. Overridden only by tests.
+    /// </summary>
+    /// <remarks>
+    ///     The real reading is a property of the MACHINE, not of the store — which is correct for the
+    ///     product and awkward for a test: a suite that saturates the machine pushes the process past
+    ///     <see cref="DegradedMemoryLoad" />, and an assertion about the SESSION branch then fails on
+    ///     something it never meant to exercise. That is not hypothetical; it made the full local gate
+    ///     go red on changes that touch no server code at all (#732).
+    ///     <para>
+    ///         So the reading is a seam. Pinning it lets a test assert the session branch on its own —
+    ///         and, just as usefully, lets the memory thresholds be asserted at all, which they could
+    ///         not be while the only input was whatever the host happened to be doing.
+    ///     </para>
+    /// </remarks>
+    internal Func<double> MemoryLoadReader { get; init; } = MemoryLoad;
+
+    /// <summary>
     ///     Reports whether this host can still take live sessions: degraded as it fills, unhealthy once a
     ///     new visitor would be refused. Memory is judged first and outranks the session cap in both
     ///     directions — what a session costs depends on the page, not on how many there are — so an
@@ -56,7 +73,7 @@ public sealed class RaskLiveHealthCheck(LiveSessionStore store) : IHealthCheck
         var active = store.LiveCount;
         var max = store.MaxSessions;
         var connected = store.ConnectedCount;
-        var memoryLoad = MemoryLoad();
+        var memoryLoad = MemoryLoadReader();
         var data = new Dictionary<string, object>
         {
             ["activeSessions"] = active,
