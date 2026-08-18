@@ -121,6 +121,20 @@ public class SqliteBulkInsertBenchmarks
     }
 
     [Benchmark]
+    public async Task BulkInsert()
+    {
+        await using var context = NewContext();
+        await context.BulkInsertAsync(_rows);
+    }
+
+    [Benchmark]
+    public async Task BulkInsertSkippingChangeTracking()
+    {
+        await using var context = NewContext();
+        await context.BulkInsertAsync(_rows, o => o.SkipChangeTracking = true);
+    }
+
+    [Benchmark]
     public async Task MultiRowValues()
     {
         var now = DateTime.UtcNow;

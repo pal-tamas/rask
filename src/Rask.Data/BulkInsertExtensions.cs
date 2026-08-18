@@ -21,7 +21,9 @@ namespace Rask.Data;
 /// </para>
 /// <para>
 /// Each batch commits on its own unless <see cref="BulkInsertOptions.SingleTransaction"/> asks otherwise;
-/// see that property for why per-batch is the default on a single-writer database.
+/// see that property for why per-batch is the default on a single-writer database. For the fastest load,
+/// <see cref="BulkInsertOptions.SkipChangeTracking"/> replaces the change tracker with a prepared
+/// <c>INSERT</c> — and, with it, every interceptor; that property documents the trade.
 /// </para>
 /// <para>
 /// The context must have no pending changes: the load clears the change tracker as it goes, so unsaved work
@@ -37,14 +39,16 @@ public static class BulkInsertExtensions
     /// <param name="context">The context to insert through.</param>
     /// <param name="entities">The new entities. Nothing is inserted for an empty sequence.</param>
     /// <param name="configure">
-    /// Overrides for the defaults — <see cref="BulkInsertOptions.BatchSize"/> and
-    /// <see cref="BulkInsertOptions.SingleTransaction"/>.
+    /// Overrides for the defaults — <see cref="BulkInsertOptions.BatchSize"/>,
+    /// <see cref="BulkInsertOptions.SingleTransaction"/> and
+    /// <see cref="BulkInsertOptions.SkipChangeTracking"/>.
     /// </param>
     /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The number of rows written.</returns>
     /// <exception cref="InvalidOperationException">
-    /// The context has unsaved changes, or the load runs inside a transaction while the entities carry
-    /// domain events (which would be published before that transaction commits).
+    /// The context has unsaved changes; the entities carry domain events the chosen mode could not deliver
+    /// honestly; or <see cref="BulkInsertOptions.SkipChangeTracking"/> was asked for on a model its writer
+    /// cannot map faithfully.
     /// </exception>
     public static async Task<int> BulkInsertAsync<TEntity>(
         this DbContext context,
@@ -71,8 +75,11 @@ public static class BulkInsertExtensions
 
         // Inside a transaction every batch's SaveChanges runs before the commit — and DomainEventInterceptor
         // publishes in SavedChanges. A load that failed later would already have announced rows that rolled
-        // back, so refuse the combination rather than ship an event nobody can take back.
-        var enclosed = options.SingleTransaction || context.Database.CurrentTransaction is not null;
+        // back, so refuse the combination rather than ship an event nobody can take back. The raw writer runs
+        // no interceptor at all, so there the events would simply never be delivered — refuse those too.
+        var enclosed = options.SingleTransaction
+            || options.SkipChangeTracking
+            || context.Database.CurrentTransaction is not null;
 
         // A single transaction is one retryable unit, so a retrying strategy re-runs the load from the top
         // and the sequence has to survive a second enumeration. Buffer a lazy one; leave a materialised
@@ -83,15 +90,15 @@ public static class BulkInsertExtensions
 
         if (enclosed)
         {
-            GuardAgainstDomainEvents(source);
+            GuardAgainstDomainEvents(source, options.SkipChangeTracking);
         }
 
         if (!options.SingleTransaction)
         {
-            // No transaction of our own: each batch's SaveChanges is its own unit, and EF applies the
-            // configured execution strategy to it. Wrapping the whole loop instead would replay already
-            // committed batches on a retry.
-            return await InsertBatchesAsync(context, source, options, cancellationToken).ConfigureAwait(false);
+            // No transaction of our own: each batch is its own unit, and EF applies the configured execution
+            // strategy to each SaveChanges. Wrapping the whole loop instead would replay already committed
+            // batches on a retry.
+            return await InsertAsync(context, source, options, cancellationToken).ConfigureAwait(false);
         }
 
         var strategy = context.Database.CreateExecutionStrategy();
@@ -142,7 +149,7 @@ public static class BulkInsertExtensions
 
         try
         {
-            var written = await InsertBatchesAsync(context, entities, options, cancellationToken).ConfigureAwait(false);
+            var written = await InsertAsync(context, entities, options, cancellationToken).ConfigureAwait(false);
 
             if (transaction is not null)
             {
@@ -160,7 +167,7 @@ public static class BulkInsertExtensions
         }
     }
 
-    private static void GuardAgainstDomainEvents<TEntity>(IEnumerable<TEntity> entities)
+    private static void GuardAgainstDomainEvents<TEntity>(IEnumerable<TEntity> entities, bool skipChangeTracking)
         where TEntity : class
     {
         if (!typeof(IHasDomainEvents).IsAssignableFrom(typeof(TEntity)))
@@ -168,16 +175,32 @@ public static class BulkInsertExtensions
             return;
         }
 
-        if (entities.OfType<IHasDomainEvents>().Any(static e => e.DomainEvents.Count > 0))
+        if (!entities.OfType<IHasDomainEvents>().Any(static e => e.DomainEvents.Count > 0))
         {
-            throw new InvalidOperationException(
-                "BulkInsertAsync cannot run inside a transaction while the entities carry domain events: " +
-                "DomainEventInterceptor publishes in SavedChanges, which inside a transaction happens before " +
-                "the commit, so a later failure would leave events published for rows that rolled back. " +
-                "Either drop SingleTransaction (and any enclosing transaction), clear the events, or use " +
-                "Rask.Outbox, whose messages are written in the same transaction and drained after it commits.");
+            return;
         }
+
+        throw new InvalidOperationException(skipChangeTracking
+            ? "BulkInsertAsync cannot skip change tracking while the entities carry domain events: the raw " +
+              "writer runs no ISaveChangesInterceptor, so DomainEventInterceptor would never see them and the " +
+              "events would simply never be delivered. Drop SkipChangeTracking, clear the events, or use " +
+              "Rask.Outbox, whose messages are written in the same transaction and drained after it commits."
+            : "BulkInsertAsync cannot run inside a transaction while the entities carry domain events: " +
+              "DomainEventInterceptor publishes in SavedChanges, which inside a transaction happens before " +
+              "the commit, so a later failure would leave events published for rows that rolled back. " +
+              "Either drop SingleTransaction (and any enclosing transaction), clear the events, or use " +
+              "Rask.Outbox, whose messages are written in the same transaction and drained after it commits.");
     }
+
+    private static Task<int> InsertAsync<TEntity>(
+        DbContext context,
+        IEnumerable<TEntity> entities,
+        BulkInsertOptions options,
+        CancellationToken cancellationToken)
+        where TEntity : class =>
+        options.SkipChangeTracking
+            ? BulkInsertWriter.WriteAsync(context, entities, options, cancellationToken)
+            : InsertBatchesAsync(context, entities, options, cancellationToken);
 
     private static async Task<int> InsertBatchesAsync<TEntity>(
         DbContext context,

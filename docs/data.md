@@ -116,9 +116,12 @@ wrote. Over 100,000 rows on SQLite:
 
 | approach | time | allocated |
 |---|---:|---:|
-| `SaveChanges` per row | 5.20 s | 2.59 GB |
-| `AddRange` + one `SaveChanges` | 1.25 s | 1.37 GB |
-| `BulkInsertAsync` | **942 ms** | **1.16 GB** |
+| `SaveChanges` per row | 5.48 s | 2,472 MB |
+| `AddRange` + one `SaveChanges` | 1.22 s | 1,307 MB |
+| `BulkInsertAsync` | 976 ms | 1,105 MB |
+| `BulkInsertAsync`, `SkipChangeTracking` | **406 ms** | **141 MB** |
+
+The last row is [the fast path](#the-fast-path) below; the rest is what batching alone buys.
 
 ### Where the transaction sits
 
@@ -139,6 +142,28 @@ same reason. `DomainEventInterceptor` publishes in `SavedChanges`, which inside 
 the commit, so a load that failed later would already have announced rows that no longer exist. Clear the
 events, drop the transaction, or use [`Rask.Outbox`](outbox.md): its messages are written in the same
 transaction and drained after it commits, which is exactly the durable-delivery shape this needs.
+
+### The fast path
+
+Most of what is left after the batching is the change tracker itself — materialising an entry per row,
+walking them on save, then throwing them away. `SkipChangeTracking` writes the rows straight to the provider
+instead, with one prepared `INSERT` whose parameters are rebound per row:
+
+```csharp
+await db.BulkInsertAsync(products, o => o.SkipChangeTracking = true);
+```
+
+It is opt-in because of what it skips: **no `ISaveChangesInterceptor` runs** — not Rask.Data's, and not any
+you registered. The writer stamps `CreatedAt`/`UpdatedAt` itself (from the same `TimeProvider` the auditing
+interceptor uses, so a frozen test clock agrees across both paths), but nothing stands in for the rest.
+Entities carrying domain events are **rejected** rather than inserted with their events undelivered, and an
+outbox never sees the load.
+
+Anything the writer cannot map faithfully throws and names the reason rather than writing wrong rows: a
+store-assigned integer key (its value only exists after the insert), a store-computed column, a shadow
+property, a navigation (nothing walks the graph here, so related rows would vanish), or an inheritance
+hierarchy. A client-assigned key — the `Entity<Guid>` shape Rask entities use, where the factory sets `Id` —
+is fine, and left unset it is reported rather than written as `Guid.Empty`.
 
 Two more rules follow from how it works:
 

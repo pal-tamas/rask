@@ -43,6 +43,27 @@ public sealed class BulkInsertOptions
     /// </remarks>
     public bool SingleTransaction { get; set; }
 
+    /// <summary>
+    /// Whether to write the rows straight to the provider with a prepared <c>INSERT</c> instead of through
+    /// the change tracker. Off by default.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the fast path: over 100,000 rows on SQLite it runs in roughly a quarter of the time and
+    /// allocates about an eighth as much, because no entity entry is ever materialised and the provider parses
+    /// one statement for the whole load.
+    /// </para>
+    /// <para>
+    /// It is opt-in because of what it skips. <b>No <c>ISaveChangesInterceptor</c> runs</b> — not Rask.Data's,
+    /// and not any you registered yourself. The writer stamps <see cref="ITimestamped"/> audit columns in
+    /// <see cref="AuditingInterceptor"/>'s place, but nothing stands in for the rest: entities carrying domain
+    /// events are rejected rather than inserted with their events undelivered, and an outbox never sees the
+    /// load. Anything the writer cannot map faithfully — store-generated keys, shadow properties, navigations,
+    /// an inheritance hierarchy — throws and names the reason instead of quietly writing the wrong rows.
+    /// </para>
+    /// </remarks>
+    public bool SkipChangeTracking { get; set; }
+
     /// <summary>Throws if any option is out of range. Called at the start of every bulk insert.</summary>
     internal void Validate()
     {

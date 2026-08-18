@@ -23,9 +23,30 @@ them until tagged releases begin.
   What changes is the shape — batched adds (5,000 by default), change detection off, and the change tracker
   **cleared between batches**.
 
-  The tracker clearing is what makes a large load flat rather than quadratic: measured over 100,000 rows on
-  SQLite, `AddRange` + one `SaveChanges` takes 1.25 s and allocates 1.37 GB where the batched load takes
-  942 ms and allocates 1.16 GB, and the naive save-per-row takes 5.20 s and 2.59 GB.
+  The tracker clearing is what makes a large load flat rather than quadratic. Over 100,000 rows on SQLite:
+
+  | approach | time | allocated |
+  |---|---:|---:|
+  | `SaveChanges` per row | 5.48 s | 2,472 MB |
+  | `AddRange` + one `SaveChanges` | 1.22 s | 1,307 MB |
+  | `BulkInsertAsync` | 976 ms | 1,105 MB |
+  | `BulkInsertAsync`, `SkipChangeTracking` | **406 ms** | **141 MB** |
+
+  `o.SkipChangeTracking = true` is the fast path: one prepared `INSERT` with the parameters rebound per row,
+  no entity entry ever materialised — 2.4x the speed of the batched path and an eighth of its allocation, and
+  13x/17x against the naive loop. It is opt-in because **no `ISaveChangesInterceptor` runs**, not Rask's and
+  not yours. The writer stamps the audit columns itself, from the same `TimeProvider` the interceptor
+  resolves, so a frozen test clock agrees across both paths; everything else it cannot honour it refuses by
+  name rather than writing wrong rows — entities carrying domain events, store-assigned integer keys,
+  store-computed columns, shadow properties, navigations, inheritance hierarchies, and a value-generated key
+  left unset. A client-assigned `Guid` key — the `Entity<Guid>` shape — is fine, which needed care: EF marks
+  those `ValueGenerated.OnAdd` by convention, so the guard has to test for store-supplied values rather than
+  for `OnAdd`.
+
+  The obvious alternative is a trap, and the benchmark records it: a multi-row `INSERT … VALUES (…),(…)`
+  loses at every packing, because each distinct row count is a new statement for SQLite to parse and
+  Microsoft.Data.Sqlite binds parameters by name. Packed to SQLite's 32,766-parameter statement limit it is
+  quadratic in its own parameter count — 192 ms / 7.2 s / 2.07 min for 1k / 10k / 100k rows.
 
   **Each batch commits on its own**, and that is the deliberate default: SQLite has one write lock, so
   wrapping a long import in a single transaction makes every other writer wait for the whole load while the

@@ -49,4 +49,9 @@ To load many rows at once — seeding, an import, a migration — `await db.Bulk
 stays flat. The interceptors above still run for every row. Each batch commits on its own so a long import
 does not hold SQLite's only write lock end to end; `o.SingleTransaction = true` makes it all-or-nothing.
 
+For the fastest load, `o.SkipChangeTracking = true` writes the rows with one prepared `INSERT` and no entity
+entries at all. It is opt-in because it runs **no** `ISaveChangesInterceptor` — the writer stamps the audit
+columns itself, but entities carrying domain events are rejected rather than silently losing them, and
+anything it cannot map faithfully throws and names the reason.
+
 Part of the [Rask](https://github.com/pal-tamas/rask) framework. MIT licensed.

@@ -23,6 +23,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <!-- The SkipChangeTracking writer reads the table/column mapping and the store type mappings off the
+         model to build its INSERT. Every relational provider already brings this in; the reference only makes
+         the dependency this package actually has explicit. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
   </ItemGroup>
 
   <ItemGroup>
