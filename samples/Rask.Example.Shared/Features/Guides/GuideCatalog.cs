@@ -195,6 +195,7 @@ public static class GuideCatalog
         // ---- Browser API reference ----
         new("browser-capabilities", "Capability matrix", "Which browser/device API works on which host.",
             "bi-ui-checks-grid", "Browser API reference"),
+        new("background-sync", "IBackgroundSync", "Typed browser API: IBackgroundSync.", "bi-plug", "Browser API reference", "apis/background-sync.md"),
         new("badge", "IBadge", "Typed browser API: IBadge.", "bi-plug", "Browser API reference", "apis/badge.md"),
         new("battery", "IBattery", "Typed browser API: IBattery.", "bi-plug", "Browser API reference", "apis/battery.md"),
         new("bluetooth", "IBluetooth", "Typed browser API: IBluetooth.", "bi-plug", "Browser API reference", "apis/bluetooth.md"),

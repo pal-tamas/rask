@@ -25,6 +25,7 @@ public static class RaskWasmBrowserApis
         services.AddBrowserApi<IUsb, Usb>(lifetime);
         services.AddBrowserApi<IHid, Hid>(lifetime);
         services.AddBrowserApi<IBluetooth, Bluetooth>(lifetime);
+        services.AddBrowserApi<IBackgroundSync, BackgroundSync>(lifetime);
         return services;
     }
 }

@@ -9,7 +9,7 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 > API. A **Server** app (opt in with `AddRaskPwa`) is **installable + push-capable** — manifest, Web Push
 > subscribe, local notifications, app badge, and wake lock all work — but it is **not an offline app**:
 > it renders over a live WebSocket, so offline navigations show a static offline page, and there is no
-> install-prompt replay (that stays WASM-only). Background Sync is wrapped on **neither** host. See
+> install-prompt replay, and no **background sync** (both stay WASM-only). See
 > [choosing a host template](getting-started.md#1-scaffold-a-project) and
 > [PWA on the Server host](#pwa-on-the-server-host) below.
 
@@ -17,6 +17,7 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 - [Installable — the web app manifest](#installable--the-web-app-manifest)
 - [Custom install button (`IInstallPrompt`)](#custom-install-button-iinstallprompt)
 - [Offline — the service worker](#offline--the-service-worker)
+- [Background sync (`IBackgroundSync`)](#background-sync-ibackgroundsync)
 - [Push notifications (`IWebPush`)](#push-notifications-iwebpush)
 - [PWA on the Server host](#pwa-on-the-server-host)
 - [Device capabilities for mobile](#device-capabilities-for-mobile)
@@ -165,6 +166,85 @@ Bring your own worker (custom caching/routing) by registering a different URL �
 
 ---
 
+## Background sync (`IBackgroundSync`)
+
+Ask the browser to wake the app **when connectivity returns** — so an edit made on a train is flushed
+without the user coming back to the tab and waiting for a spinner. `IBackgroundSync` (in
+`Rask.Wasm.Browser`, injected through the constructor) wraps both the
+[Background Synchronization API](https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API)
+and [Periodic Background Sync](https://developer.mozilla.org/en-US/docs/Web/API/Web_Periodic_Background_Synchronization_API).
+It rides the service worker above, so it is **WASM-only** and needs no extra wiring in a `--pwa` app.
+
+### Know the boundary before you design around it
+
+The browser fires the sync **even with the tab closed**. Rask's guarantee is narrower, and that gap is
+the thing to design around: **the .NET runtime lives in the page, not in the service worker.** Your C#
+runs only while a client is open. Rask's service worker forwards the woken-up tag to every open client;
+with none open, the registration is consumed without your handler seeing it.
+
+So:
+
+- **Re-request your tags at boot.** A registration is best-effort, not durable queue state. Keep the
+  work itself in `IIndexedDb` or OPFS and let the sync be the *nudge* to drain it, never the store.
+- **The realistic win is a backgrounded tab, not a closed one.** A hidden or frozen tab is still a
+  client, so it wakes and drains the moment the network is back — which is the case most offline-first
+  apps actually hit.
+
+Support is Chromium-only at the time of writing. Every call degrades to "unavailable" rather than
+throwing, so a feature check is optional and a fallback is not.
+
+### Draining an offline queue
+
+```csharp
+public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposable
+{
+    private IAsyncDisposable? _subscription;
+
+    public override async Task OnRenderedAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Subscribe BEFORE requesting. A sync that landed while the page was still booting is held for
+        // the first subscriber, so an event that beat your startup code still reaches it.
+        _subscription = await sync.OnSyncAsync(async e =>
+        {
+            if (e.Tag == "flush-drafts") await FlushAsync();
+            StateHasChanged();
+        });
+
+        await sync.RequestSyncAsync("flush-drafts");   // best-effort, and re-requested every boot
+    }
+
+    public async ValueTask DisposeAsync() =>
+        await (_subscription?.DisposeAsync() ?? ValueTask.CompletedTask);
+}
+```
+
+`OnSyncAsync` is a subscription handler, not a chain-set callback, so calling `StateHasChanged()` in it
+is correct and [RASK026](diagnostics.md) does not apply — the same rule as every other pushed API here.
+
+### Periodic sync
+
+Periodic sync is gated on a permission the browser grants on **its** terms (Chromium ties it to the app
+being installed and to site engagement). There is no API to request it, so check, don't ask:
+
+```csharp
+if (await sync.IsPeriodicSupportedAsync() && await sync.GetPeriodicPermissionAsync() == "granted")
+{
+    // A floor, not a schedule: the browser decides the real cadence from engagement and battery, and
+    // in practice fires far less often than you ask.
+    await sync.RequestPeriodicSyncAsync("refresh-feed", TimeSpan.FromHours(12));
+}
+```
+
+`OnSyncAsync` delivers both kinds — check `BackgroundSyncEvent.Periodic` to tell them apart.
+`GetPendingTagsAsync()` / `GetPeriodicTagsAsync()` list what is registered, and
+`UnregisterPeriodicAsync(tag)` removes a recurring one.
+
+Full reference: [`IBackgroundSync`](apis/background-sync.md).
+
+---
+
 ## Push notifications (`IWebPush`)
 
 `IWebPush` (in `Rask.Core.Browser`, injected through the constructor) wraps the Web Push API. It works
@@ -283,9 +363,9 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**. The Serv
 > carries a one-shot session id and is served `no-store`), so offline navigations show `offline.html`
 > rather than a dead cached page. The **install-prompt replay** (`IInstallPrompt`) and the
 > activation-bound imperative device APIs (`IShare`, `IFullscreen`, `IMediaDevices`, …) are not
-> registered on Server. Background Sync is **not wrapped on either host** — it is not a Server
-> limitation, so don't reach for it on WASM either ([#695](https://github.com/pal-tamas/rask/issues/695)).
-> The honest framing: *installable + push + native-feel, not an offline app.* (Sharing still works on Server via the headless `Shareable` in `Rask.Core`,
+> registered on Server, and neither is [**background sync**](#background-sync-ibackgroundsync) — it rides
+> the service-worker registration and needs a client-side runtime to wake into, which a WebSocket-rendered
+> app does not have. The honest framing: *installable + push + native-feel, not an offline app.* (Sharing still works on Server via the headless `Shareable` in `Rask.Core`,
 > which fires `navigator.share` in the click gesture; the imperative `IShare` lives in `Rask.Client`, WASM +
 > Native only.)
 
@@ -334,6 +414,7 @@ can't carry, so neither is registered on Server.
 | **USB device** | `IUsb` *(WASM)* | Pair with and drive a USB device — `RequestDeviceAsync(filters)` → `IUsbDevice?` (open, claim, transfer) |
 | **HID device** | `IHid` *(WASM)* | Talk to a HID device — `RequestDevicesAsync(filters)` → devices (output/feature reports + pushed input reports) |
 | **Bluetooth (BLE)** | `IBluetooth` *(WASM)* | Pair with a BLE device — `RequestDeviceAsync(options)` → connect GATT, read/write/notify characteristics |
+| **Background sync** | `IBackgroundSync` *(WASM)* | Wake the app to drain an offline queue when connectivity returns, or on a schedule |
 
 **App badge.** `IBadge` (`Rask.Core.Browser`) sets a count on the **installed** app's icon —
 `SetAsync(count)` (or `SetAsync()` for a plain dot) and `ClearAsync()`. A silent no-op in a normal
