@@ -10,6 +10,8 @@ A tiny, provider-agnostic data layer for **Entity Framework Core** apps — the 
 - **Three `ISaveChangesInterceptor`s** — auditing timestamps, **transparent soft delete** (a `Remove`
   becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
+- **`BulkInsertAsync`** — the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
+  are out of its scope). Batched, with the change tracker cleared as it goes so memory stays flat.
 
 ## Use
 
@@ -41,5 +43,15 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 `db.Remove(product)` now soft-deletes; deleted rows drop out of queries (use `IgnoreQueryFilters()` to
 restore); a save against a stale `Version` throws `DbUpdateConcurrencyException`; and any
 `INotification` raised on the entity is published after the change commits.
+
+To load many rows at once — seeding, an import, a migration — `await db.BulkInsertAsync(products)` (or
+`db.Products.BulkInsertAsync(...)`) saves them in batches, clearing the change tracker between each so memory
+stays flat. The interceptors above still run for every row. Each batch commits on its own so a long import
+does not hold SQLite's only write lock end to end; `o.SingleTransaction = true` makes it all-or-nothing.
+
+For the fastest load, `o.SkipChangeTracking = true` writes the rows with one prepared `INSERT` and no entity
+entries at all. It is opt-in because it runs **no** `ISaveChangesInterceptor` — the writer stamps the audit
+columns itself, but entities carrying domain events are rejected rather than silently losing them, and
+anything it cannot map faithfully throws and names the reason.
 
 Part of the [Rask](https://github.com/pal-tamas/rask) framework. MIT licensed.

@@ -11,6 +11,8 @@
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
+    <!-- The bulk-import card uses BulkInsertAsync, and its Reading row derives from Entity&lt;Guid&gt;. -->
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

@@ -92,6 +92,90 @@ product.Rename(form.Name);
 await db.SaveChangesAsync(); // throws if someone else changed it since `form.Version`
 ```
 
+## Bulk insert
+
+EF Core answers the bulk *update* and *delete* shapes with `ExecuteUpdate`/`ExecuteDelete`, but [its own
+plan](https://learn.microsoft.com/ef/core/what-is-new/ef-core-7.0/plan) puts bulk **inserts** out of scope —
+so seeding, importing and migrating data is left to every application to hand-roll. `BulkInsertAsync` is that
+code, written once:
+
+```csharp
+await db.BulkInsertAsync(products);                          // on the context
+await db.Products.BulkInsertAsync(products);                 // or the set
+await db.BulkInsertAsync(products, o => o.BatchSize = 10_000);
+```
+
+It runs **through the context**, so nothing above stops being true: `CreatedAt`/`UpdatedAt` are stamped and
+each entity's domain events are published, exactly as for an ordinary save. What changes is the shape of the
+work — the rows are added and saved in batches (5,000 by default), change detection is off for the duration,
+and the change tracker is **cleared between batches**.
+
+That last part is the point. The naive `AddRange` + one `SaveChanges` keeps every entity tracked until the
+end, so a large load's memory grows with the row count and each save re-walks what the previous ones already
+wrote. Over 100,000 rows on SQLite:
+
+| approach | time | allocated |
+|---|---:|---:|
+| `SaveChanges` per row | 5.48 s | 2,472 MB |
+| `AddRange` + one `SaveChanges` | 1.22 s | 1,307 MB |
+| `BulkInsertAsync` | 976 ms | 1,105 MB |
+| `BulkInsertAsync`, `SkipChangeTracking` | **406 ms** | **141 MB** |
+
+The last row is [the fast path](#the-fast-path) below; the rest is what batching alone buys.
+
+### Where the transaction sits
+
+Each batch commits on its own by default. That is deliberate: SQLite has exactly one write lock, so wrapping
+a long import in a single transaction makes every other writer in the application wait for the whole thing,
+and the WAL has to hold every uncommitted page until the end. Committing per batch hands the lock back
+between batches. The cost is that a failure part-way leaves the batches that already committed — for a seed
+or an import, usually the retryable outcome you want.
+
+When the load really must be all-or-nothing, ask for it:
+
+```csharp
+await db.BulkInsertAsync(products, o => o.SingleTransaction = true);
+```
+
+**Entities carrying domain events are rejected in that mode** — and inside an ambient transaction, for the
+same reason. `DomainEventInterceptor` publishes in `SavedChanges`, which inside a transaction runs *before*
+the commit, so a load that failed later would already have announced rows that no longer exist. Clear the
+events, drop the transaction, or use [`Rask.Outbox`](outbox.md): its messages are written in the same
+transaction and drained after it commits, which is exactly the durable-delivery shape this needs.
+
+### The fast path
+
+Most of what is left after the batching is the change tracker itself — materialising an entry per row,
+walking them on save, then throwing them away. `SkipChangeTracking` writes the rows straight to the provider
+instead, with one prepared `INSERT` whose parameters are rebound per row:
+
+```csharp
+await db.BulkInsertAsync(products, o => o.SkipChangeTracking = true);
+```
+
+It is opt-in because of what it skips: **no `ISaveChangesInterceptor` runs** — not Rask.Data's, and not any
+you registered. The writer stamps `CreatedAt`/`UpdatedAt` itself (from the same `TimeProvider` the auditing
+interceptor uses, so a frozen test clock agrees across both paths), but nothing stands in for the rest.
+Entities carrying domain events are **rejected** rather than inserted with their events undelivered, and an
+outbox never sees the load.
+
+Anything the writer cannot map faithfully throws and names the reason rather than writing wrong rows: a
+store-assigned integer key (its value only exists after the insert), a store-computed column, a shadow
+property, a navigation (nothing walks the graph here, so related rows would vanish), or an inheritance
+hierarchy. A client-assigned key — the `Entity<Guid>` shape Rask entities use, where the factory sets `Id` —
+is fine, and left unset it is reported rather than written as `Guid.Empty`.
+
+Two more rules follow from how it works:
+
+- **The context must have no pending changes.** The tracker is cleared as the load runs, so unsaved work
+  would be discarded rather than swept into the first batch. It throws rather than lose it — save first.
+- **An ambient transaction still owns the commit.** Called inside your own `BeginTransaction`, the load joins
+  it and commits nothing itself, so it composes with surrounding work.
+
+Under a retrying execution strategy (`UseRaskSqlite(..., configureRetry: _ => { })`), a `SingleTransaction`
+load is one retryable unit and a lazy sequence is buffered so the retry can re-enumerate it; the default
+per-batch mode lets EF retry each batch on its own, which is both cheaper and free of replay.
+
 ## Notes
 
 - **Server-side.** These interceptors run against a real EF Core provider (SQLite by default in Rask);

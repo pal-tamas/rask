@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet"/>
-    <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +31,10 @@
     <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SQLite\Rask.SQLite.csproj"/>
+    <!-- The bulk-insert arms compare Rask.Data's write paths against raw ADO.NET, so they need the EF Core
+         side of the SQLite story (UseRaskSqlite + the production pragmas) as well as the raw one. -->
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
