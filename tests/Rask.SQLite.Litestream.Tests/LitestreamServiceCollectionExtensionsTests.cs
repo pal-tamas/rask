@@ -25,6 +25,41 @@ public sealed class LitestreamServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public void AddRaskSqliteLitestream_registers_the_verifier_even_with_the_schedule_off()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddRaskSqliteLitestream(o =>
+        {
+            o.DatabasePath = "/data/app.db";
+            o.ReplicaUrl = "s3://bucket/app";
+        });
+
+        using var provider = services.BuildServiceProvider();
+
+        // On-demand verification costs nothing until someone calls it, so it is always available; only the
+        // recurring restore — which spends egress on its own — is gated.
+        Assert.NotNull(provider.GetService<ISqliteBackupVerifier>());
+        Assert.Single(services, d => d.ServiceType == typeof(IHostedService));
+    }
+
+    [Fact]
+    public void AddRaskSqliteLitestream_schedules_verification_only_when_enabled()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddRaskSqliteLitestream(o =>
+        {
+            o.DatabasePath = "/data/app.db";
+            o.ReplicaUrl = "s3://bucket/app";
+            o.Verification.Enabled = true;
+        });
+
+        // Replication plus verification: the schedule is only there when it was asked for.
+        Assert.Equal(2, services.Count(d => d.ServiceType == typeof(IHostedService)));
+    }
+
+    [Fact]
     public void AddRaskSqliteLitestream_is_idempotent()
     {
         var services = new ServiceCollection();
