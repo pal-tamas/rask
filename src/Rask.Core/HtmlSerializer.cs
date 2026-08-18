@@ -508,20 +508,38 @@ internal static class HtmlSerializer
                             liveCtx.HeadAssets.Add(head);
                         }
 
-                        // A Screen's native chrome slots. Walked inside the screen's own scope — so a bar
-                        // button's callback attributes back to the screen and re-renders it like any other
-                        // callback — and BEFORE the body, so the chrome collector's deepest-wins merge lets a
-                        // leaf screen's header beat a layout screen's. Native bars render null, so this
-                        // contributes no HTML. Gated on CollectsNativeChrome: on Server/WASM the overrides are
-                        // never even read, exactly like the sibling-composed bars above.
-                        if (component is Screen screenChrome && liveCtx is { CollectsNativeChrome: true })
+                        // A Screen's chrome slots. Walked inside the screen's own scope — so a bar button's
+                        // callback attributes back to the screen and re-renders it like any other callback.
+                        //
+                        // Walked on EVERY host, not just the native one. The Rask.Native bars render null, so
+                        // a native-only screen still contributes no HTML here; the portable Rask.Core bars
+                        // (HeaderBar / TabBar) render markup on the web hosts and null on native. That is what
+                        // lets one Screen subclass serve web and native — which it could not while these
+                        // overrides were read on the native host alone.
+                        var screenChrome = component as IScreenChrome;
+                        if (screenChrome is not null)
                         {
-                            Serialize(screenChrome.HeaderBarInternal, sb);
-                            Serialize(screenChrome.ToolbarInternal, sb);
-                            Serialize(screenChrome.TabBarInternal, sb);
+                            Serialize(screenChrome.HeaderBarSlot, sb);
+                            Serialize(screenChrome.ToolbarSlot, sb);
+                        }
+
+                        // The tab bar's position differs by host, and for two unrelated reasons. On the web it
+                        // is bottom navigation, so it belongs after the body. On a native head position in the
+                        // markup is meaningless (the bars emit nothing) but ORDER IS THE MERGE RULE: the
+                        // collector takes the last reported bar of each kind, which makes the deepest screen
+                        // win. Emitting it after the body would report a layout screen's tab bar after the
+                        // leaf's — inverting deepest-wins for that one slot.
+                        if (screenChrome is not null && liveCtx is { CollectsNativeChrome: true })
+                        {
+                            Serialize(screenChrome.TabBarSlot, sb);
                         }
 
                         Serialize(rendered, sb);
+
+                        if (screenChrome is not null && liveCtx is not { CollectsNativeChrome: true })
+                        {
+                            Serialize(screenChrome.TabBarSlot, sb);
+                        }
                     }
                     finally
                     {

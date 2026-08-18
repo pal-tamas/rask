@@ -43,6 +43,9 @@
     <!-- Rask.Native references Rask.Client with PrivateAssets="all" (bundled, not flowed), so name it
          directly to exercise IShare registration here. -->
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
+    <!-- Rask.Native references Rask.Chrome with PrivateAssets="all" (its DLL is bundled into the
+         package rather than flowed as a dependency), so name it explicitly here. -->
+    <ProjectReference Include="..\..\src\Rask.Chrome\Rask.Chrome.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"

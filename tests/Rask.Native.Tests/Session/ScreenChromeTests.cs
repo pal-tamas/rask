@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Chrome;
 using Rask.Core;
 using Rask.Core.Live;
 using Rask.Native.Components;
@@ -72,15 +73,20 @@ public class ScreenChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     }
 
     [Fact]
-    public async Task SlotsAreNotReadWithoutAChromeBackend()
+    public async Task SlotsAreEvaluatedEvenWithoutAChromeBackend_ButContributeNoHtml()
     {
-        // No INativeChrome registered → the host does not collect chrome and the overrides are never
-        // evaluated. Same contract the sibling-composed bars have, and what makes one Screen class serve
-        // web and native without an IsNative branch.
-        var (_, _, initial) = await NewSessionAsync<ThrowingChromeScreenApp>(diffMode: DiffMode);
+        // The slots are walked on EVERY host now, not only where chrome is collected. That is what lets the
+        // portable Rask.Core bars (AppBar / TabStrip) render real markup on the web heads from the same
+        // declaration a native head projects to platform bars — they could not, while these overrides were
+        // read on the native host alone.
+        //
+        // The Rask.Native bars keep costing nothing wherever they are read: their Render() returns null.
+        var (_, _, initial) = await NewSessionAsync<ChromeScreenApp>(diffMode: DiffMode);
 
         using var doc = JsonDocument.Parse(initial.AsMemory());
-        Assert.Contains("body-rendered", doc.RootElement.GetProperty("html").GetString()!);
+        var html = doc.RootElement.GetProperty("html").GetString()!;
+        Assert.Contains("added=0", html);
+        Assert.DoesNotContain("Home", html);
     }
 }
 
@@ -118,14 +124,3 @@ internal sealed partial class LayoutScreenApp : Screen
     protected override Component? Render() => NativeWebView[LeafScreen];
 }
 
-internal sealed partial class ThrowingChromeScreenApp : Screen
-{
-    protected override string Route => "/screen-chrome-unread";
-    protected override Component? HeadAssets => Title["t"];
-    protected override string? HtmlLang => null;
-
-    protected override Component? HeaderBar =>
-        throw new InvalidOperationException("chrome slot must not be read without an INativeChrome backend");
-
-    protected override Component? Render() => P["body-rendered"];
-}
