@@ -389,6 +389,7 @@ public static class DemoRegistry
             ["props-id-class-style"] = () => CodeSample(["PropsIdClassStyleDemo.cs"], Result: PropsIdClassStyleDemo()),
             ["props-data"] = () => CodeSample(["PropsDataDemo.cs"], Result: PropsDataDemo()),
             ["props-aria"] = () => CodeSample(["PropsAriaDemo.cs"], Result: PropsAriaDemo()),
+            ["props-attributes"] = () => CodeSample(["PropsAttributesDemo.cs"], Result: PropsAttributesDemo()),
             ["props-attribute-order"] = () => CodeSample(["PropsAttributeOrderDemo.cs"], Result: PropsAttributeOrderDemo()),
             ["svg-shapes"] = () => CodeSample(["SvgShapesDemo.cs"], Result: SvgShapesDemo()),
             ["svg-gradient"] = () => CodeSample(["SvgGradientDemo.cs"], Result: SvgGradientDemo()),

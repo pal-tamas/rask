@@ -99,4 +99,10 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
             CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
     }
+    [Fact]
+    public void Render_Rel_EmitsAfterName() =>
+        Assert.Contains(
+            "name=\"f\" rel=\"noopener\"",
+            Form.Model(Empty).Name("f").Target("_blank").Rel("noopener").ToHtml());
+
 }

@@ -35,4 +35,17 @@ public partial class VideoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_StringChild_EncodesText() =>
         Assert.Equal("<video>&lt;x&gt;</video>", Video["<x>"].ToHtml());
+    [Fact]
+    public void Render_PlaybackRestrictions_EmitThemAfterTheVideoAttrs() =>
+        Assert.Equal(
+            "<video width=\"640\" playsinline controlslist=\"nodownload nofullscreen\" "
+            + "disablepictureinpicture disableremoteplayback loading=\"lazy\"></video>",
+            Video
+                .Width(640)
+                .PlaysInline(true)
+                .ControlsList("nodownload nofullscreen")
+                .DisablePictureInPicture(true)
+                .DisableRemotePlayback(true)
+                .Loading("lazy").ToHtml());
+
 }
