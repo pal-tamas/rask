@@ -88,6 +88,12 @@ jobs:
       - name: Pack Rask.Cqrs
         run: dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Cqrs.Client
+        run: dotnet pack src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Cqrs.Server
+        run: dotnet pack src/Rask.Cqrs.Server/Rask.Cqrs.Server.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.WebPush
         run: dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release --no-build -o ./artifacts
 

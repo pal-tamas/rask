@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Cqrs.Server</PackageId>
+    <Title>Rask.Cqrs.Server — The Remote Dispatch Endpoint</Title>
+    <Description>The server half of Rask.Cqrs remote dispatch. `MapRaskCqrs()` maps one GET and one POST endpoint that resolve a message by name against the generated allow-list, authorize it, and dispatch it to its ordinary handler — no controllers, no DTO plumbing, no per-message routes. Queries answer JSON or a streamed file; commands accept JSON or multipart uploads.</Description>
+    <PackageTags>cqrs mediator rpc remote-dispatch aspnetcore minimal-api endpoint source-generator</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+  </ItemGroup>
+
+  <!-- The dispatch/codec generator, as an analyzer only: consumers get the code generation without a
+       runtime reference, exactly as Rask.Cqrs wires it. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Rask.Cqrs.Generators\bin\$(Configuration)\netstandard2.0\Rask.Cqrs.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+
+</Project>

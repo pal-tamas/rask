@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Cqrs.Client</PackageId>
+    <Title>Rask.Cqrs.Client — Remote Dispatch for Browser and Native Clients</Title>
+    <Description>The client half of Rask.Cqrs remote dispatch. Register it and a message with no local handler is sent to the server through the same `IDispatcher` call — queries as GET, commands as POST, files as multipart — with no HttpClient at the call site. Reflection-free: the wire codecs are source-generated, so it publishes clean under the WASM/AOT trimmer.</Description>
+    <PackageTags>cqrs mediator rpc remote-dispatch wasm blazor source-generator reflection-free aot trimming</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- For the file bridge: RaskFile -> RemoteFile, and Navigator.Download(FileDownload). The transport
+         only ever ships inside a Rask app, so the dependency costs nothing a consumer did not already
+         have — and without it every upload and download call site grows a four-line adapter.
+
+         PrivateAssets="all" — Rask.Core is IsPackable=false; without it the nuspec declares a dependency on
+         a nonexistent "Rask.Core" package and every restore fails with NU1101. Core.dll reaches consumers
+         from the Rask.Wasm / Rask.Server / Rask.Native package this add-on sits alongside, which bundle it
+         into lib/; re-packing it here would ship a duplicate assembly instead. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!-- The dispatch/codec generator, as an analyzer only: consumers get the code generation without a
+       runtime reference, exactly as Rask.Cqrs wires it. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Rask.Cqrs.Generators\bin\$(Configuration)\netstandard2.0\Rask.Cqrs.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+
+</Project>
