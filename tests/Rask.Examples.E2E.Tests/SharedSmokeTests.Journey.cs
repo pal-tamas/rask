@@ -1665,6 +1665,102 @@ public abstract partial class SharedSmokeTests
         await WalkGanttDemoAsync();
     }
 
+    /// <summary>
+    ///     Deliver a forced click and prove the page acted on it, re-aiming and clicking again until it
+    ///     does. For targets that must be clicked with <c>Force</c>, which skips every actionability
+    ///     check Playwright would otherwise run and so cannot report a click that went nowhere.
+    /// </summary>
+    /// <param name="owner">
+    ///     Selector for what the click legitimately belongs to. Anything inside it counts as a hit, because
+    ///     a sibling overlapping within the same interactive group still delivers the event — an SVG bar's
+    ///     own label is exactly that, and is why the click cannot simply drop <c>Force</c>.
+    /// </param>
+    /// <param name="landed">Runs after each click; throws if the page has not yet acted on it.</param>
+    /// <remarks>
+    ///     Two things have to be true, and neither is enough on its own.
+    ///     <para>
+    ///     The click has to be AIMED. ScrollIntoViewIfNeeded — and Playwright's own pre-click scroll — use
+    ///     "nearest" semantics, which are satisfied by a position underneath sticky chrome, here the
+    ///     showcase's <c>sticky-top</c> <c>.app-navbar</c>. Nothing reports a problem: the forced click
+    ///     lands on the navbar and the target never sees it. Clicking again does not help, because the
+    ///     element IS in the viewport and neither Playwright nor <c>scrollIntoView</c> finds anything to
+    ///     correct; the page itself has to be moved, hence the hit-tested <c>window.scrollBy</c>.
+    ///     </para>
+    ///     <para>
+    ///     And the click has to be CONFIRMED, because a hit test only describes the instant it ran. This
+    ///     page is thousands of pixels tall and still settling, so the layout can move between the aim and
+    ///     the click — observed with the aim reporting a clean hit and the chart's own popup never opening,
+    ///     which is proof the library was never sent the event. So: aim, click, check, and on failure
+    ///     re-aim against the layout as it is now. Re-clicking is safe by construction — a click that DID
+    ///     land has already satisfied <paramref name="landed" /> and never reaches the retry.
+    ///     </para>
+    /// </remarks>
+    private async Task ForceClickUntilLandedAsync(ILocator target, string owner, Func<Task> landed)
+    {
+        var probe = $$"""
+            el => {
+                const r = el.getBoundingClientRect();
+                const cx = r.left + (r.width / 2), cy = r.top + (r.height / 2);
+                const inX = cx >= 0 && cx <= window.innerWidth;
+                const inY = cy >= 0 && cy <= window.innerHeight;
+                const hit = inX && inY ? document.elementFromPoint(cx, cy) : null;
+                if (hit && hit.closest({{JsStringLiteral(owner)}})) return '';
+                // Not reachable. Bring it to the middle of the viewport, the furthest point from chrome
+                // stuck to either edge, and let the next round re-measure.
+                window.scrollBy(0, cy - (window.innerHeight / 2));
+                if (hit) return hit.tagName.toLowerCase() + '.' + (hit.getAttribute('class') || '');
+                return inY
+                    ? 'nothing (the centre is off the side of the viewport)'
+                    : 'nothing (the centre is above or below the viewport)';
+            }
+            """;
+
+        var covering = "nothing (the element was never measured)";
+
+        for (var delivery = 0; delivery < 5; delivery++)
+        {
+            for (var aim = 0; aim < 25 && covering.Length != 0; aim++)
+            {
+                covering = await target.EvaluateAsync<string>(probe);
+                if (covering.Length != 0)
+                {
+                    await Page.WaitForTimeoutAsync(100);
+                }
+            }
+
+            if (covering.Length != 0)
+            {
+                break;
+            }
+
+            await target.ClickAsync(new LocatorClickOptions { Force = true });
+
+            try
+            {
+                await landed();
+                return;
+            }
+            catch (PlaywrightException)
+            {
+                // Aimed, clicked, and the page still did not act on it: it moved between the two. Re-aim
+                // against the layout as it is now and deliver the click again.
+                covering = "nothing (the element was never measured)";
+            }
+        }
+
+        Assert.Fail(
+            covering.Length == 0
+                ? "a forced click was aimed at this element and delivered five times over, and the page "
+                  + "never acted on any of them — so the click is arriving somewhere it does not belong, "
+                  + "or what it drives is broken."
+                : $"nothing could be clicked at the centre of this element — <{covering}> is over it. A "
+                  + "forced click there is swallowed silently, so this fails here rather than in whatever "
+                  + "assertion was waiting for the click to arrive.");
+    }
+
+    private static string JsStringLiteral(string value) =>
+        "'" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal) + "'";
+
     // Third-party interop: the Gantt demo wraps frappe-gantt, which builds its own DOM inside a host div
     // the .NET side renders as a leaf. Only a browser can prove any of this — that the vendored library
     // loads and draws, that its events round-trip into C# state, and (the subtle one) that its DOM
@@ -1698,9 +1794,29 @@ public abstract partial class SharedSmokeTests
             "frappe-gantt's stylesheet must be loaded and applied");
 
         // JS -> C#: clicking a bar routes through the static [JSInvokable] into this component's state.
-        await bars.First.Locator(".bar").ClickAsync(new LocatorClickOptions { Force = true });
-        await Expect(demo.Locator(".gantt-log")).ToContainTextAsync("click: Design system",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        //
+        // This click has to be forced, and a forced click is blind — so aim it, and then confirm the
+        // chart actually saw it rather than assuming (#755).
+        //
+        // Force is not optional: the bar's own <text class="bar-label"> covers the <rect class="bar">, so
+        // Playwright's "receives pointer events" check never passes and an unforced click times out every
+        // single time — even though a real click works, because the label is inside the same .bar-wrapper
+        // the library binds its handler to. But Force skips that check for EVERY overlay, including the
+        // showcase's own `.app-navbar`, which is `sticky-top`. When Playwright's scroll-into-view parked
+        // the bar underneath it, the forced click landed on the navbar, the chart never saw it, and the
+        // assertion below sat out its full timeout waiting for a log line that could not arrive. Nothing
+        // in the failure named the navbar, so it read as a flake.
+        //
+        // Plain retries do not fix that on their own (measured: 6/6 still lost) — the bar is inside the
+        // viewport, just covered, so Playwright sees nothing to scroll and repeats the same dead click.
+        // The page has to be MOVED. But aiming alone is not enough either: this guide is thousands of
+        // pixels tall and still settling, so the layout can shift between the hit test and the click, and
+        // a clean aim was seen to miss anyway. So the aim is re-taken until the click demonstrably lands.
+        await ForceClickUntilLandedAsync(
+            bars.First.Locator(".bar"),
+            ".bar-wrapper",
+            () => Expect(demo.Locator(".gantt-log")).ToContainTextAsync("click: Design system",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000 }));
 
         // The full round trip: drag a bar and the C# table below re-renders with the new dates. This is
         // the half of the story a unit test can't reach — real pointer events into the library's own drag
@@ -1710,6 +1826,12 @@ public abstract partial class SharedSmokeTests
         var bar = bars.First.Locator(".bar");
         // Raw mouse events land at viewport coordinates and do NOT auto-scroll the way ClickAsync does —
         // the guide is thousands of pixels tall, so read the box only once the bar is actually on screen.
+        //
+        // Deliberately NOT the click's aiming step: by now the click above has opened the library's popup,
+        // which sits over the bar, so a hit test on the bar's centre is the wrong question here — and
+        // re-centring the page under a drag that is about to be measured in viewport coordinates made this
+        // step fail on the Wasm host. The drag has its own exposure to the same sticky-navbar hazard; it
+        // has never been seen to bite, and widening the fix into it did more harm than good.
         await bar.ScrollIntoViewIfNeededAsync();
         var box = await bar.BoundingBoxAsync();
         Assert.NotNull(box);
