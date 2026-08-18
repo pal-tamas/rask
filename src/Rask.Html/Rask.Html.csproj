@@ -65,13 +65,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Same set Rask.Core compiles against: the element family binds forms (DI abstractions), reads
-         IJSRuntime for the interop-backed components, and Authorize-adjacent components need the
-         authorization abstractions. -->
-    <PackageReference Include="Microsoft.Extensions.Primitives"/>
+    <!--
+      Only what the element family itself compiles against. Forms bind through IServiceProvider, so the DI
+      abstractions are a real dependency; the interop-, authorization- and Primitives-backed types all stayed
+      behind in Rask.Core when the family moved out, and nothing here references them any more.
+
+      Nothing needs re-declaring at a package boundary either: this project is IsPackable=false and every host
+      references it with PrivateAssets="all", so its deps never reach a nuspec. The host packages surface
+      Rask.Core's runtime deps (Microsoft.JSInterop, Primitives, ObjectPool, Authorization) themselves — see
+      the ItemGroup comments in Rask.Wasm and Rask.Native.
+    -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
-    <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
-    <PackageReference Include="Microsoft.JSInterop"/>
   </ItemGroup>
 
   <ItemGroup>
