@@ -50,11 +50,17 @@ public sealed partial class LiveTickerTests : global::Rask.Core.RaskMarkup
     {
         var symbol = new Box<string>("BTC");
         var (page, log, mounted) = BuildHost(symbol, 30);
-        await WaitFor.True(() => log.Contains("OnPropsChangedAsync"), Settle);
+
+        // Settle the MOUNT before switching the symbol. This waited on "OnPropsChangedAsync", which cannot
+        // have fired yet — nothing has changed a prop at this point — so it spent the full budget and, back
+        // when WaitFor swallowed its own timeout, moved on as if it had succeeded. Ten seconds per run,
+        // invisible. The sibling unmount test always had this right.
+        await WaitFor.True(() => log.Contains("OnMountAsync"), Settle, "the ticker never mounted");
 
         symbol.Value = "ETH";
         page.Render();
-        await WaitFor.True(() => log.Contains("Symbol BTC → ETH"), Settle);
+        await WaitFor.True(
+            () => log.Contains("Symbol BTC → ETH"), Settle, "the symbol switch was never observed");
 
         Assert.Contains(log.Snapshot(), l => l.Contains("OnPropsChanged: Symbol BTC → ETH"));
         Assert.Contains(log.Snapshot(), l => l.Contains("OnPropsChangedAsync: switched to ETH"));

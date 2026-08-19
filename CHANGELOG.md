@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`docs/native-devices.md` no longer teaches a `Route` override the framework removed.** The second
+  `TodosScreen` snippet still declared `protected override string Route => "/todos";`, so a reader who
+  copied it got `CS0115: no suitable method found to override` — `Screen` has had no virtual `Route` since
+  routes moved back to `[Route]`. The file contradicted itself, too: the first `TodosScreen` a page earlier
+  already used the attribute. Both now read `[Route("/todos")]`, and the prose calling a `Screen` "a `Page`"
+  no longer names a base class that does not exist.
+
+  The docs had already been broken this way twice in code (`ChromeScreen`), so the fix ships with the guard
+  that closes the loop: `DocsRoutingSyntaxTests` scans every doc for the members a breaking change deleted
+  — the `Route` and `Parent` overrides and the `Page` base list — and names the file, line and replacement.
+  The existing doc gates check that links *resolve*; this checks that the API a snippet names still exists.
+  Verified by reverting the doc and watching the guard fail on `native-devices.md:121`. Closes #767.
 - **`Rask.Wasm` now declares `Microsoft.Extensions.ObjectPool`, which its bundled `Rask.Core` needs at
   runtime.** `Rask.Core.dll` is packed into `lib/` with `PrivateAssets="all"`, which is exactly what keeps
   Core out of the nuspec — and takes Core's own package dependencies with it. The package already
@@ -28,6 +40,18 @@ them until tagged releases begin.
   host's real restore graph rather than a hand-kept list — `Microsoft.Extensions.Primitives` sits in the
   same position and is fine only because `Logging -> Options -> Primitives` brings it in, so the guard has
   to fail if that edge ever disappears. Closes #742.
+- **A test helper that could not report the thing it existed to detect.** `WaitFor.True` threw on timeout
+  only when a caller passed the optional `reason`, and most callers do not — so a wait that gave up returned
+  exactly like a wait that succeeded, handing the test a half-settled world. The failure then surfaced later
+  as a confusing assertion ("expected the body text, got a spinner") instead of at the wait. It now always
+  throws, with `reason` only enriching the message.
+
+  Turning it on immediately found a test that had never worked: `LiveTickerTests.OnPropsChanged_LogsSymbolSwitch`
+  waited for `OnPropsChangedAsync` *before* changing any prop, so it could not fire — the wait burned its full
+  10-second budget on every run and moved on as if it had succeeded (10 s → 722 ms once corrected to wait for
+  the mount, as its sibling unmount test always did). Separately, the three `HttpPageTests` waited for "the
+  request was issued" and then slept a fixed 50 ms before asserting on "the response rendered", which is the
+  race that failed a gate run on an unrelated branch; they now wait on the rendered result itself.
 
 - **The hero animation no longer hangs a character off the end of an untyped line.** `spacingAndGlyphs`
   stopped the last glyph of a line from spilling *well* past `textLength`, but not from reaching the very
@@ -84,13 +108,6 @@ them until tagged releases begin.
 - **RASK047 is retired.** It reported a `Page.Route` override that was not a compile-time constant. A
   `[Route]` argument is an attribute argument and therefore constant by construction, so the failure it
   guarded cannot be written. The id is retired, not reused.
-
-### Fixed
-- **`main` did not compile: `ChromeScreen` still declared its route the old way.** #754 added the portable-chrome
-  showcase screen with `protected override string Route` / `Parent`, and #756 then removed those virtual members
-  in favour of `[Route]` / `[ParentRoute]`. Each was green against its own base, and the two merged without a
-  textual conflict — so the break only appeared once both were on `main` (`CS0115: no suitable method found to
-  override`). Converted to the attributes its sibling pages already use.
 
 ### Added
 
