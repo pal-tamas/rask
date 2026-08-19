@@ -53,6 +53,59 @@ them until tagged releases begin.
   request was issued" and then slept a fixed 50 ms before asserting on "the response rendered", which is the
   race that failed a gate run on an unrelated branch; they now wait on the rendered result itself.
 
+- **A diagnostics capture could be silently unhooked by another test class disposing its own.**
+  `CapturingDiagnostics` (Rask.Testing) saved the previous sink on install and put it back on dispose, and
+  the sink is process-global. xUnit runs test classes in parallel, so two captures were routinely live at
+  once: whichever disposed first restored the sink from before *it* installed, leaving the other one
+  installed but wired to nothing. That capture then recorded no diagnostics at all and its test failed on
+  `Assert.Contains` against an empty collection — on a full-solution run, on a diff that touched none of
+  it, while passing on its own. Installs are now tracked as a set: every live capture receives every
+  diagnostic, and the outer sink is restored only when the last one is disposed, in any order. Reproduced
+  4 runs out of 6 of the loaded gate before the fix, in both directions (each of the two installing
+  classes stealing from the other), and pinned by a test that stages the out-of-order dispose directly.
+
+- **Three unit tests that waited a fixed duration for a thread-pool continuation.** A `Task.Delay` budget
+  is not a synchronisation primitive: on a machine busy enough — which the gate itself makes it, running
+  ~40 test hosts at once — the continuation had not run when the assertion read the result.
+  `AsyncLifecycleErrorBoundaryTests` drained its async-fault path with 50 ms of `Task.Delay` and now waits
+  for the outcome (the boundary's error, the reported fault, and a `TaskCompletionSource` the recording
+  render handle signals). Waiting for the result is *faster* when the pool is idle — the class went from
+  five fixed sleeps per test to 27 ms for all four — and patient when it is not, which is what lets the
+  budget be generous rather than tuned.
+
+  `WaitFor.True` moved from `Rask.Example.Shared.Tests` into `Rask.TestSupport` so every suite polls the
+  same way instead of each growing its own timing helper; the Example projects that shared it by linking
+  the source file now reference it.
+
+- **The Outbox test classes that share a `DbContext` type no longer run in parallel.** EF Core's model
+  cache is per *process* and keyed on the context type, not per `ServiceProvider`: two Outbox test classes
+  building their own provider over their own SQLite file still share one `IModelSource` and one `IModel`
+  instance (verified by reference identity). Their first touch of the model was therefore two threads
+  driving one piece of EF-internal state, and the gate caught it — `SaveChangesAsync` threw *"The model
+  must be finalized and its runtime dependencies must be initialized before 'GetRelationalModel' can be
+  used"* from a test whose diff was a `.svg` file. The five classes that build a context are now one xUnit
+  collection, which removes the concurrency the failure needs; the suite still runs in 3 s.
+
+- **A WASM-hosting test class was outside the collection that keeps hosts off each other.** Two pieces of
+  state a host owns are process-wide statics — `ScopedAssetBundle.BakedDirectory`, which `UseRask` points
+  at the bundle it just resolved, and `LiveOptions.PathBase`. One app serves one bundle, so a single value
+  is right in production; it is the tests that stand up a host per case. Three of the four classes that do
+  were already grouped in the `ScopedAssets` collection for exactly this reason and `UseRaskTests` was not,
+  so it overlapped them: a host starting there re-pointed the bundle directory out from under a request
+  another class was midway through, and the `AssetEndpointParityTests` case covering precompressed-sibling
+  negotiation 404'd on a file it had written itself. Resetting the statics on dispose — which the
+  harness already did — cannot help when the tests overlap rather than follow one another. The property now
+  says so where it is declared.
+
+- **The unit gate collects crash evidence.** When a test host dies below the managed layer the run says
+  only "Test host process crashed", with no exception, no stack, and not even the name of the test in
+  flight — and because the solution runs its assemblies concurrently, the console lines nearest the crash
+  belong to whichever *other* assembly was writing at the time. That is how #769's third report attributed
+  a crash to `Rask.Server.Tests`, which has fewer tests than the crashed host had already passed. The gate
+  now runs with `--blame-crash`, so the next occurrence names the test and leaves a dump under
+  `artifacts/test-blame/` instead of being merely observed. The crash itself did not reproduce here (6
+  full loaded gate runs, plus 5 dedicated `Rask.Server.Tests` runs under load, all green).
+
 - **The hero animation no longer hangs a character off the end of an untyped line.** `spacingAndGlyphs`
   stopped the last glyph of a line from spilling *well* past `textLength`, but not from reaching the very
   edge of its advance box — the `>` of `=>` does — and a cover rectangle that stopped exactly at

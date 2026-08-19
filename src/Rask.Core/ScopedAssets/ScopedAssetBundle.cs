@@ -31,6 +31,14 @@ public static class ScopedAssetBundle
     ///     <see langword="null" /> and the registry stays the only source, exactly as before).
     ///     Set by <c>Rask.Wasm.Hosting</c>'s <c>UseRask</c> once it has resolved the bundle.
     /// </summary>
+    /// <remarks>
+    ///     <b>Process-wide, and last writer wins.</b> An app serves one published bundle, so a single
+    ///     value is right there — a WASM host mounted alongside a server-rendered dashboard still has
+    ///     exactly one bundle to point at. It is <em>tests</em> that stand up a host per case: two of
+    ///     them overlapping re-point this at each other's temp directory mid-request, and the loser
+    ///     404s on a file it wrote itself. A suite that starts more than one host must therefore keep
+    ///     every such class in one xUnit collection, not merely reset this between them.
+    /// </remarks>
     public static string? BakedDirectory { get; set; }
 
     /// <summary>

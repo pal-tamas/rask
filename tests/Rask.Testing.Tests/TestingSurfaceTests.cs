@@ -182,6 +182,26 @@ public class TestingSurfaceTests
     }
 
     [Fact]
+    public async Task CapturingDiagnostics_DisposedOutOfOrder_DoesNotUnhookOneStillInUse()
+    {
+        // xUnit runs test classes in parallel, so two of these are routinely installed at once and are
+        // disposed in whatever order their tests finish. While the sink was a single slot saved and
+        // restored per install, the FIRST to dispose put back the sink from before it was installed —
+        // silently unhooking the other, which then captured nothing and failed on a full-solution run
+        // while passing standalone. That is #769's Rask.Testing.Tests flake, reproduced here without
+        // needing a second class or a loaded machine.
+        var first = CapturingDiagnostics.Install();
+        using var second = CapturingDiagnostics.Install();
+
+        first.Dispose();
+
+        _ = RaskTest.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
+        await WaitForCaptureAsync(second, IsTheSwallowedFault);
+
+        Assert.Contains(second.Captured, IsTheSwallowedFault);
+    }
+
+    [Fact]
     public async Task CapturingDiagnostics_RestoresThePreviousSinkOnDispose()
     {
         var before = CapturingDiagnostics.Install();
@@ -203,14 +223,32 @@ public class TestingSurfaceTests
     // CapturingDiagnostics installs a PROCESS-GLOBAL sink, so a sibling test class running in parallel can
     // drop its own diagnostic in first; a "wait until non-empty" loop then returns before the awaited one
     // has landed and the assertion fails on a full-solution run while passing standalone.
+    //
+    // Throws when it gives up, rather than returning and letting the caller's Assert.Contains report an
+    // empty collection: "the diagnostic never arrived" and "the sink was unhooked underneath us" look
+    // identical in that assertion, and telling them apart cost #769 a full investigation. The budget is
+    // generous because this only ever waits as long as the thread pool actually takes — the gate runs 40+
+    // test hosts at once, and a two-second ceiling is a duration, not a synchronisation primitive.
     private static async Task WaitForCaptureAsync(
         CapturingDiagnostics diagnostics, Func<CapturedDiagnostic, bool>? match = null)
     {
         match ??= _ => true;
 
-        for (var i = 0; i < 200 && !diagnostics.Captured.Any(match); i++)
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30);
+        while (DateTimeOffset.UtcNow < deadline)
         {
-            await Task.Delay(10);
+            if (diagnostics.Captured.Any(match))
+            {
+                return;
+            }
+
+            await Task.Delay(15);
+        }
+
+        if (!diagnostics.Captured.Any(match))
+        {
+            throw new TimeoutException(
+                $"no matching diagnostic was captured within 30s (captured {diagnostics.Captured.Count})");
         }
     }
 }

@@ -6,6 +6,14 @@ using Rask.Wasm.Hosting.Tests.Infrastructure;
 
 namespace Rask.Wasm.Hosting.Tests;
 
+// Every class that stands up a host belongs in this collection, because two of the things a host
+// owns are process-wide statics: ScopedAssetBundle.BakedDirectory (UseRask points it at the bundle it
+// just resolved) and LiveOptions.PathBase. The harness resets both on dispose, which handles one test
+// leaking into the NEXT one but cannot help when two tests OVERLAP — a host starting in one class
+// re-points the bundle directory out from under a request another class is midway through, and the
+// loser 404s on a file it wrote itself. This class was the one that had been left out, which is what
+// failed AssetEndpointParityTests on the loaded gate while investigating #769.
+[Collection("ScopedAssets")]
 public class UseRaskTests
 {
     [Fact]

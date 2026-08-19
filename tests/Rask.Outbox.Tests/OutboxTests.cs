@@ -110,6 +110,7 @@ public sealed class OutboxDbContext(DbContextOptions<OutboxDbContext> options) :
     }
 }
 
+[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-test-{Guid.NewGuid():N}.db");

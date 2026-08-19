@@ -1,4 +1,6 @@
+using System.Text;
 using Rask.Core.Live;
+using Rask.TestSupport;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
@@ -22,10 +24,9 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             _ = boundary.ToHtml();
             child.RaiseLifecycleBeforeRender(true);
             await child.Fault.Task;
-            await DrainContinuations();
+            await WaitFor.True(() => boundary.Error is not null, Budget, "the boundary to trip");
         }
 
-        Assert.NotNull(boundary.Error);
         Assert.Equal("mount-async", boundary.Error!.Message);
     }
 
@@ -42,10 +43,9 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             _ = boundary.ToHtml();
             child.RaiseLifecycleBeforeRender(true);
             await child.Fault.Task;
-            await DrainContinuations();
+            await WaitFor.True(() => boundary.Error is not null, Budget, "the boundary to trip");
         }
 
-        Assert.NotNull(boundary.Error);
         Assert.Equal("props-async", boundary.Error!.Message);
     }
 
@@ -57,7 +57,9 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
         // No boundary — the existing log-and-swallow path should fire.
 
         var origErr = Console.Error;
-        var sw = new StringWriter();
+        // The logging happens on the threadpool continuation while this test reads the buffer, so the
+        // writer has to be safe for a concurrent write + snapshot — StringWriter is not.
+        var sw = new LockedWriter();
         Console.SetError(sw);
         try
         {
@@ -65,7 +67,8 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             {
                 child.RaiseLifecycleBeforeRender(true);
                 await child.Fault.Task;
-                await DrainContinuations();
+                await WaitFor.True(() => sw.Text.Contains("mount-async", StringComparison.Ordinal),
+                    Budget, "the fault to reach Console.Error");
             }
         }
         finally
@@ -73,8 +76,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             Console.SetError(origErr);
         }
 
-        Assert.Contains("mount-async", sw.ToString());
-        Assert.Contains("FaultingComponent", sw.ToString());
+        Assert.Contains("FaultingComponent", sw.Text);
     }
 
     [Fact]
@@ -94,24 +96,20 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             _ = boundary.ToHtml();
             child.RaiseLifecycleBeforeRender(true);
             await child.Fault.Task;
-            await DrainContinuations();
+            await handle.Requested.Task.WaitAsync(Budget);
         }
 
         Assert.True(handle.RequestRenderCount >= 1,
             $"expected boundary trip to request render, got {handle.RequestRenderCount}");
     }
 
-    private static async Task DrainContinuations()
-    {
-        // The async-fault path uses TaskContinuationOptions.ExecuteSynchronously, but the
-        // initial Task.Yield inside FaultingComponent hops onto the threadpool so we need
-        // a small delay to let the continuation observe the fault.
-        for (var i = 0; i < 5; i++)
-        {
-            await Task.Yield();
-            await Task.Delay(10);
-        }
-    }
+    // The async-fault path uses TaskContinuationOptions.ExecuteSynchronously, but the initial
+    // Task.Yield inside FaultingComponent hops onto the threadpool, so the continuation lands
+    // whenever the pool gets to it. These waits used to be a fixed 50ms of Task.Delay, which is not a
+    // synchronisation primitive: on a loaded machine the pool had not run it yet when the assert read
+    // the result, and the gate failed on a diff that could not have caused it (#769). Waiting for the
+    // outcome is fast when the pool is idle and patient when it is not, so the budget can be generous.
+    private static readonly TimeSpan Budget = TimeSpan.FromSeconds(30);
 
     private enum FaultPoint
     {
@@ -157,10 +155,42 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
     {
         public int RequestRenderCount;
 
+        // Signalled on the first render request, so the test awaits the event rather than a duration.
+        public TaskCompletionSource Requested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public Task RequestRenderAsync()
         {
             Interlocked.Increment(ref RequestRenderCount);
+            Requested.TrySetResult();
             return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>A <see cref="TextWriter" /> whose buffer can be read while another thread writes to it.</summary>
+    private sealed class LockedWriter : TextWriter
+    {
+        private readonly StringBuilder _buffer = new();
+
+        public override Encoding Encoding => Encoding.UTF8;
+
+        public string Text
+        {
+            get { lock (_buffer) { return _buffer.ToString(); } }
+        }
+
+        public override void Write(char value)
+        {
+            lock (_buffer) { _buffer.Append(value); }
+        }
+
+        public override void Write(string? value)
+        {
+            lock (_buffer) { _buffer.Append(value); }
+        }
+
+        public override void WriteLine(string? value)
+        {
+            lock (_buffer) { _buffer.AppendLine(value); }
         }
     }
 }

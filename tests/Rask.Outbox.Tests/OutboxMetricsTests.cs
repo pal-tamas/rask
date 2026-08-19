@@ -10,6 +10,7 @@ namespace Rask.Outbox.Tests;
 /// The outbox pillar's metrics, driven through the real processor — instrumentation that isn't wired into
 /// the drain would pass any test that called the meter directly.
 /// </summary>
+[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxMetricsTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-metrics-{Guid.NewGuid():N}.db");

@@ -10,6 +10,7 @@ namespace Rask.Outbox.Tests;
 /// application — every domain event ever raised, payload included, on the same SQLite file the app serves
 /// from (and that Litestream replicates and snapshots copy).
 /// </summary>
+[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxRetentionTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-ret-{Guid.NewGuid():N}.db");
