@@ -45,6 +45,11 @@ them until tagged releases begin.
     reduced to a safe leaf, and `nosniff`. Neither direction buffers: the response is read headers-first,
     a picked file is opened only when the upload reads it, and `AsRemote()` passes the file's own size as
     the read ceiling so a file above `RaskFile`'s 512 KB default uploads whole instead of being truncated.
+  - **A notification publishes once.** A client's own notification handlers still run and the
+    notification still travels — but the invokers are installed once per *process*, not once per
+    `ServiceCollection`. The registry they go into is static, so a second registration (a test, a rebuilt
+    container, a host composing two collections) used to wrap the composed invoker in itself and turn one
+    publish into two sends, then three.
   - **Upload parts are paired by the index they name**, not by sorting the part names as text — which
     mispaired every file after the tenth ("10" sorts before "2") and handed the handler somebody else's
     file without failing. A duplicate, missing or non-numeric part is now a 400 rather than a silent

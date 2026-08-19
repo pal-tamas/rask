@@ -58,6 +58,15 @@ public static class RaskCqrsClientServiceCollectionExtensions
         return services;
     }
 
+    // Installed once per process, not once per ServiceCollection. The marker above already stops a
+    // repeated registration on the SAME collection, but the registry these invokers go into is static and
+    // process-wide, so a second collection — a test, a rebuilt container, a host composing two — would
+    // reach here again. For a request that is merely wasteful: the invoker is replaced by an identical
+    // one. For a notification it is a correctness bug, because the composed invoker captures whatever
+    // was registered before it and would wrap ITSELF, turning one publish into two sends, then three.
+    private static readonly Lock InstallGate = new();
+    private static bool _invokersInstalled;
+
     // Every request contract becomes remote; every notification composes with whatever handles it here.
     //
     // Registered through CqrsRegistry's manual path, which the registry applies last when it rebuilds —
@@ -65,6 +74,16 @@ public static class RaskCqrsClientServiceCollectionExtensions
     // module-initializer order.
     private static void InstallRemoteInvokers()
     {
+        lock (InstallGate)
+        {
+            if (_invokersInstalled)
+            {
+                return;
+            }
+
+            _invokersInstalled = true;
+        }
+
         foreach (var contract in RemoteContractRegistry.All)
         {
             if (contract.Kind == RemoteMessageKind.Notification)
