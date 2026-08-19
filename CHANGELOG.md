@@ -8,6 +8,26 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`Rask.Wasm` now declares `Microsoft.Extensions.ObjectPool`, which its bundled `Rask.Core` needs at
+  runtime.** `Rask.Core.dll` is packed into `lib/` with `PrivateAssets="all"`, which is exactly what keeps
+  Core out of the nuspec — and takes Core's own package dependencies with it. The package already
+  re-declared `Microsoft.JSInterop` and `Microsoft.AspNetCore.Authorization` for that reason, but not
+  ObjectPool, which `RaskStringBuilderPool.Shared` uses on the render path. `Rask.Server` never noticed
+  because `Microsoft.AspNetCore.App` carries ObjectPool; the WASM track has no framework reference to hide
+  behind, so a consumer restoring the published package got a `FileNotFoundException` on the first render.
+
+  Confirmed against the shipped artifact, not only the source: restoring the published
+  `Rask.Wasm 0.20.1-alpha.0.77` into a fresh browser-WASM app resolves **no** ObjectPool on either target
+  framework, while the same restore of the fixed package delivers
+  `lib/net10.0/Microsoft.Extensions.ObjectPool.dll`.
+
+  `PackageDependencyTests` gained the guard that would have caught it and will catch the next one: for
+  every host that packs another project's DLL into its own `lib/` (via `TfmSpecificPackageFile` or
+  `BuildOutputInPackage`), each of that project's package references must be declared by the host,
+  reachable from what it does declare, or covered by a `FrameworkReference`. Reachability is read from the
+  host's real restore graph rather than a hand-kept list — `Microsoft.Extensions.Primitives` sits in the
+  same position and is fine only because `Logging -> Options -> Primitives` brings it in, so the guard has
+  to fail if that edge ever disappears. Closes #742.
 - **`ChromeScreen` declares its route the way every other page now does.** It landed with a `Route`
   override in the same window that removed the `Page` base class, so `main` briefly did not compile —
   each change was green on its own branch and only their combination was broken.
