@@ -76,6 +76,8 @@ trim/AOT-safe.
 | `Rask.Testing` | [![Rask.Testing](https://img.shields.io/nuget/v/Rask.Testing.svg?label=%20)](https://www.nuget.org/packages/Rask.Testing) | Render a component in a unit test and assert on its HTML |
 | **Vertical-slice back end** | | |
 | `Rask.Cqrs` | [![Rask.Cqrs](https://img.shields.io/nuget/v/Rask.Cqrs.svg?label=%20)](https://www.nuget.org/packages/Rask.Cqrs) | Source-generated, reflection-free queries / commands / notifications via `IDispatcher` |
+| `Rask.Cqrs.Client` | [![Rask.Cqrs.Client](https://img.shields.io/nuget/v/Rask.Cqrs.Client.svg?label=%20)](https://www.nuget.org/packages/Rask.Cqrs.Client) | A WASM or native client dispatches to its server through the same `IDispatcher` call — no `HttpClient` |
+| `Rask.Cqrs.Server` | [![Rask.Cqrs.Server](https://img.shields.io/nuget/v/Rask.Cqrs.Server.svg?label=%20)](https://www.nuget.org/packages/Rask.Cqrs.Server) | The endpoint pair those messages arrive on — authenticated by default, no `/api/*` to write |
 | `Rask.Data` | [![Rask.Data](https://img.shields.io/nuget/v/Rask.Data.svg?label=%20)](https://www.nuget.org/packages/Rask.Data) | `Entity<TId>` + EF interceptors: audit stamps, soft delete, optimistic concurrency, domain events — and `BulkInsertAsync`, the bulk insert EF Core leaves out |
 | `Rask.Outbox` | [![Rask.Outbox](https://img.shields.io/nuget/v/Rask.Outbox.svg?label=%20)](https://www.nuget.org/packages/Rask.Outbox) | Crash-safe domain events, committed in the same transaction as your data |
 | `Rask.Jobs` | [![Rask.Jobs](https://img.shields.io/nuget/v/Rask.Jobs.svg?label=%20)](https://www.nuget.org/packages/Rask.Jobs) | Durable enqueued / delayed / recurring background work, with retries |
@@ -112,6 +114,8 @@ transitively.
 | `Rask.Bootstrap`                   | any host with your components                                       | link `BootstrapStyles` in `Head`, then chain the `Bs*` components |
 | `Rask.WebPush`                     | any backend (Server app or a WASM PWA's ASP.NET host)              | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
+| `Rask.Cqrs.Client`                 | a WASM or native app talking to its own server                     | `services.AddRaskCqrsClient()` — the same `IDispatcher`, now remote |
+| `Rask.Cqrs.Server`                 | the ASP.NET host those clients dispatch to                         | `services.AddRaskCqrsServer()` + `app.MapRaskCqrs()`        |
 | `Rask.Data`                        | an EF Core app wanting a DDD base entity + interceptors           | `class X : Entity<Guid>` + `services.AddRaskData()` + `modelBuilder.ApplyRaskConventions()` |
 | `Rask.Outbox`                      | an EF Core app wanting durable domain-event delivery             | `record E(...) : IOutboxEvent` + `services.AddRaskOutbox<Ctx>()` + `modelBuilder.AddRaskOutbox()` |
 | `Rask.Jobs`                        | an EF Core app wanting durable background jobs                    | `record J(...) : IJob` + `ICommandHandler<J>` + `services.AddRaskJobs<Ctx>()` + `modelBuilder.AddRaskJobs()` |

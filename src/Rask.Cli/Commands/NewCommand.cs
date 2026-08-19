@@ -73,7 +73,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .MultiOption("platform", valueHint: "name", description: "Native template only: a platform to target, repeatable (default: both). Only the chosen platforms get a TFM, a manifest and a head.", choices: NativePlatforms)
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
-            .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
+            .Flag("cqrs", description: "Wire up Rask.Cqrs. On 'wasm-hosted' this also makes the client dispatch to the server — no HttpClient, no endpoints to write.")
             .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext your features map through (server only).")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")

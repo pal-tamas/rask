@@ -8,6 +8,7 @@ namespace Rask.Testing.Tests;
 // the container and hands the handler an EMPTY list when there is none, so a test that rendered a file input
 // and raised its event exercised the empty branch and passed on whatever the handler did with nothing. The
 // end-to-end facts below are the ones that matter — the rest guard the seams they lean on.
+[Collection("rask-global-diagnostics")]
 public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
 {
     [Fact]

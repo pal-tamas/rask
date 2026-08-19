@@ -251,6 +251,59 @@ public sealed class ProjectGeneratorBuildE2ETests
 
 
     /// <summary>
+    /// <c>wasm-hosted --cqrs</c>: the browser client dispatching to its own host. Only a real compile proves
+    /// this one, because the claim is about what the two halves each see — the Client compiles the message
+    /// and <c>Rask.Cqrs.Client</c>, the Server compiles the same message plus its handler and
+    /// <c>Rask.Cqrs.Server</c>, and the wire codecs are source-generated in both from that shared record. A
+    /// unit test over the emitted strings cannot tell whether any of that lines up.
+    /// </summary>
+    /// <remarks>
+    /// Both auth states are built because the registration genuinely differs: with <c>--auth</c> the endpoint
+    /// keeps its secure default, and without it the template must turn <c>RequireAuthenticatedUser</c> off or
+    /// every message it ships would answer 401. <c>--pwa</c> is left out of the matrix — it adds a manifest
+    /// and an icon, and touches nothing remote dispatch depends on.
+    /// </remarks>
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Generated_wasm_hosted_cqrs_solution_builds(bool auth)
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var name = auth ? "CQE2EAuth" : "CQE2E";
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var result = ProjectGenerator.GenerateWasmHosted(
+                projectDir, name, new ServerBatteries { Auth = auth, Cqrs = true }, version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            // The Server, for the reason the sibling test explains: building the .sln puts the Client in the
+            // restore graph twice and the two entries race on its obj/. The Server pulls all three anyway.
+            var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -warnaserror -m:1");
+            Assert.True(exit == 0, $"[auth={auth}] generated wasm-hosted --cqrs solution failed to build.{CliBuildE2E.Diagnostics(output)}");
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
+
+
+    /// <summary>
     /// <c>--all-batteries</c>: every One Person Framework pillar wired into one app. Only a real compile
     /// proves the composed <c>Program.cs</c> — a dozen registrations, their usings, the config-gated
     /// Litestream block, the <c>await</c> in top-level statements, the push endpoints — and the

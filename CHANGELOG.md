@@ -163,6 +163,67 @@ them until tagged releases begin.
   guarded cannot be written. The id is retired, not reused.
 
 ### Added
+
+- **Remote CQRS — `Rask.Cqrs.Client` and `Rask.Cqrs.Server`.** A WASM-hosted or native app now reaches
+  its server through the same `IDispatcher` call it already uses in-process, with no `HttpClient` at the
+  call site and no hand-written `/api/*` endpoints. One package and one line per project: the client
+  calls `AddRaskCqrsClient()`, the server calls `AddRaskCqrsServer()` + `MapRaskCqrs()`, and neither
+  references the other half — so a browser bundle cannot compile the endpoint code and the server never
+  carries the browser transport.
+  - **Nothing marks a message as remote.** You write a record and a handler, exactly as for in-process
+    CQRS; where the project sits decides where it runs. A client is a *pure* client — every message it
+    dispatches goes to the server, so a stray client-side handler can never quietly intercept one.
+    Notifications are the deliberate exception: they fan out, so a client's own handlers still run and
+    the notification also travels.
+  - **The wire codec is source-generated**, not reflected: `Utf8JsonWriter`/`Utf8JsonReader` code emitted
+    per contract, so remote dispatch publishes clean under the WASM/AOT trimmer. **RASK053** reports a
+    shape that has no wire encoding. This reaches no existing code — codecs are generated only for a
+    compilation that references one of the two transport packages, so an app using `Rask.Cqrs`
+    in-process is unconstrained.
+  - **`[LocalOnly]`** keeps a message off the wire entirely, and on an *interface* covers a whole family:
+    `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and outbox
+    event would become an internet-reachable endpoint. It is also how a **client** keeps a message
+    in-process — "a pure client" is literal, so a handler sitting in the client project is otherwise
+    bypassed and the server answers 404 for a name it has no handler for.
+  - **Two endpoints, not one per message** — `GET` and `POST` on `/_rask/cqrs/request/{name}`. The verb
+    carries what `IQuery` and `ICommand` already declare, so a command is 405 on GET and cannot be
+    triggered by a URL, a prefetch or a link scanner. A query too long for a URL falls back to POST with
+    an identical result.
+  - **Fails closed.** Authenticated-required by default with `[AllowAnonymous]` as the only way past;
+    `[Authorize]` on the handler supplies a policy *and* roles (both enforced — ignoring `Roles` would
+    leave an author believing it was checked). An anonymous caller gets the same answer for a real
+    message name as for a typo, so the endpoint cannot be used to enumerate an app's messages. Both
+    verbs require the `X-Rask-Cqrs` header, which no cross-site markup can set. Handler exceptions become
+    RFC 9457 `problem+json` with no exception text in production.
+  - **Files are just `RaskFile`.** A message declares `RaskFile` — the same type a file input hands a
+    component — so the file a user picked is passed straight to the handler with nothing to convert:
+    `await dispatcher.DispatchAsync(new AttachReceipt(id, picked))`, identical on a server-rendered app,
+    a WASM-hosted one and a native one. In-process the handler gets the picked file; over the wire the
+    generated codec carries the bytes and hands the handler a `RaskFile` over what arrived. Neither
+    direction buffers — every host reads a `RaskFile` in bounded slices (the browser ones through
+    `Blob.slice`) — and a query returning `FileDownload` streams back with an `attachment` disposition, a
+    filename reduced to a safe leaf, and `nosniff`.
+  - **`rask new --template wasm-hosted --cqrs`** scaffolds the whole arrangement: the messages in
+    `Shared`, the handlers in `Server`, `AddRaskCqrsClient()` in the browser, `AddRaskCqrsServer()` +
+    `MapRaskCqrs()` in the host, and a page that dispatches a query and a command. Each half takes only its
+    own transport package. Without `--auth` the template sets `RequireAuthenticatedUser = false` and says
+    in a comment why — there is no authentication to require, and left on, every message would answer 401;
+    with `--auth` the secure default stands. Both variants are compiled by the CLI build gate.
+  - **The generator no longer ships in three packages at once.** `Rask.Cqrs.Client` and `Rask.Cqrs.Server`
+    each packed their own copy of the codec generator alongside the one in `Rask.Cqrs`, so a project
+    referencing a transport *and* the message library loaded it twice and every generated codec collided
+    with itself (CS0101/CS0111) — remote CQRS could not be consumed as packages at all. Invisible in-repo,
+    because a `ProjectReference` does not flow analyzers the way a package dependency does.
+  - **A notification publishes once.** A client's own notification handlers still run and the
+    notification still travels — but the invokers are installed once per *process*, not once per
+    `ServiceCollection`. The registry they go into is static, so a second registration (a test, a rebuilt
+    container, a host composing two collections) used to wrap the composed invoker in itself and turn one
+    publish into two sends, then three.
+  - **Upload parts are paired by the index they name**, not by sorting the part names as text — which
+    mispaired every file after the tenth ("10" sorts before "2") and handed the handler somebody else's
+    file without failing. A duplicate, missing or non-numeric part is now a 400 rather than a silent
+    shift. `MaxUploadBytes` is applied to the request *before* the body is read, so an oversized upload is
+    aborted mid-stream instead of being spooled to disk and reported afterwards.
 - **The portable chrome now has a sample, which is what the repo's own definition of done asks for.** #743
   shipped `AppBar`/`TabStrip` and documented them, but no sample used them — and no sample used `Screen` at
   all — so the cross-host claim was proven only in unit tests, never in a running app.
