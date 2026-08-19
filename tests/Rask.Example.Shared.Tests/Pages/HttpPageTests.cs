@@ -19,8 +19,10 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // docs/http-and-files.md. Re-rendering the SAME host preserves the demo instance so the
         // awaited fetch's continuation result is observed.
         var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
-        await WaitFor.True(() => fakeHttp.RequestCount >= 1, TimeSpan.FromSeconds(2));
-        await Task.Delay(50);
+        await WaitFor.True(
+            () => page.Render().Contains("the body text", StringComparison.Ordinal),
+            TimeSpan.FromSeconds(5),
+            "the fetched post never rendered");
         var html = page.Render();
 
         Assert.True(fakeHttp.RequestCount >= 1);
@@ -72,8 +74,10 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // text). Re-rendering the SAME host preserves the demo instance, so the retried fetch's
         // continuation result is observed.
         var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
-        await WaitFor.True(() => handler.RequestCount >= 2, TimeSpan.FromSeconds(2));
-        await Task.Delay(50);
+        await WaitFor.True(
+            () => page.Render().Contains("the body text", StringComparison.Ordinal),
+            TimeSpan.FromSeconds(5),
+            "the retried fetch never rendered its body");
         var html = page.Render();
 
         Assert.DoesNotContain("alert-danger", html);
@@ -93,8 +97,10 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // error (set on a continuation) is observed; the loop makes MaxTransientRetries + 1
         // attempts then stops.
         var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
-        await WaitFor.True(() => handler.RequestCount > 3, TimeSpan.FromSeconds(3));
-        await Task.Delay(50);
+        await WaitFor.True(
+            () => page.Render().Contains("alert-danger", StringComparison.Ordinal),
+            TimeSpan.FromSeconds(6),
+            "the exhausted retry loop never surfaced its error banner");
         var html = page.Render();
 
         Assert.Contains("alert-danger", html);
