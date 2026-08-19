@@ -25,13 +25,6 @@ public static class RemoteEndpointDefaults
     public const string MessageQueryParameter = "m";
 
     /// <summary>
-    ///     The query-string parameter carrying a single-use download token, used where a browser must
-    ///     fetch a GET url without being able to set <see cref="RequestHeader" /> — an
-    ///     <c>&lt;a download&gt;</c> element.
-    /// </summary>
-    public const string TokenQueryParameter = "t";
-
-    /// <summary>
     ///     The header every request must carry. Its only job is CSRF: no form, <c>&lt;img&gt;</c> or
     ///     <c>&lt;script&gt;</c> can set a custom header, so neither endpoint is reachable by
     ///     cross-site markup — only by a same-origin <c>fetch</c>. Adding the GET surface therefore
@@ -48,11 +41,4 @@ public static class RemoteEndpointDefaults
     ///     conservative: a query that works in development must not 414 behind a customer's proxy.
     /// </summary>
     public const int MaxQueryUrlLength = 2000;
-
-    /// <summary>
-    ///     The upload size above which a file is sent as a chunked, resumable session rather than a
-    ///     single multipart request. A browser's <c>fetch</c> buffers request bodies, so a single-shot
-    ///     upload costs its own size in browser memory; chunking bounds that to one chunk.
-    /// </summary>
-    public const long ChunkedUploadThreshold = 8L * 1024 * 1024;
 }

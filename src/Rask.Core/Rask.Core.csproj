@@ -57,6 +57,9 @@
     <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
     <InternalsVisibleTo Include="Rask.Native"/>
     <InternalsVisibleTo Include="Rask.Native.Tests"/>
+    <!-- For Navigator.EnterHandler: the remote-dispatch file bridge extends Navigator, so its tests need
+         the same handler scope Rask.Core.Tests uses to exercise Download. -->
+    <InternalsVisibleTo Include="Rask.Cqrs.Client.Tests"/>
     <InternalsVisibleTo Include="Rask.Benchmarks"/>
     <InternalsVisibleTo Include="Rask.Benchmarks.VsBlazor"/>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>

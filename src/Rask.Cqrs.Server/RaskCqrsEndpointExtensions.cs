@@ -1,9 +1,11 @@
 using System.Buffers;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -238,6 +240,16 @@ public static class RaskCqrsEndpointExtensions
         RemoteContract contract,
         RaskCqrsServerOptions options)
     {
+        // The cap has to be applied BEFORE the body is read, not checked after. ReadFormAsync consumes
+        // and spools the entire upload, so a limit enforced on the other side of it has already let a
+        // sender write as much as they liked to the server's disk — the check would report the attack
+        // rather than prevent it. Set here, Kestrel enforces it while reading and aborts mid-stream.
+        var sizeLimit = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (sizeLimit is { IsReadOnly: false })
+        {
+            sizeLimit.MaxRequestBodySize = options.MaxUploadBytes;
+        }
+
         var form = await context.Request.ReadFormAsync(context.RequestAborted).ConfigureAwait(false);
 
         if (form.Files.Count > options.MaxFileCount)
@@ -249,13 +261,33 @@ public static class RaskCqrsEndpointExtensions
         }
 
         long total = 0;
-        var files = new List<RemoteFile>();
 
-        // Ordered by the part name, which is the index the client's JSON wrote in the file's place. That
-        // pairing is what puts each part back on the property it came from, so it must not rely on the
-        // order the parts happen to arrive in.
-        foreach (var file in form.Files.OrderBy(f => f.Name, StringComparer.Ordinal))
+        // Each part goes to the slot its own name declares, rather than to its position in a sort. The
+        // part name is the index the client's JSON wrote where the file's contents would go, and that
+        // pairing is the only thing putting a file back on the property it came from. Sorting the names
+        // as text mispairs them from ten files up — "10" sorts before "2" — which does not fail, it
+        // quietly hands a handler somebody else's file.
+        var slots = new RemoteFile?[form.Files.Count];
+
+        foreach (var file in form.Files)
         {
+            if (!int.TryParse(file.Name, NumberStyles.None, CultureInfo.InvariantCulture, out var index)
+                || index >= slots.Length)
+            {
+                throw new BadRequestException(
+                    StatusCodes.Status400BadRequest,
+                    "Malformed upload",
+                    "Every file part must be named with the index its message reserved for it.");
+            }
+
+            if (slots[index] is not null)
+            {
+                throw new BadRequestException(
+                    StatusCodes.Status400BadRequest,
+                    "Malformed upload",
+                    $"Two file parts claim index {index}.");
+            }
+
             total += file.Length;
             if (total > options.MaxUploadBytes)
             {
@@ -266,11 +298,22 @@ public static class RaskCqrsEndpointExtensions
             }
 
             var captured = file;
-            files.Add(RemoteFile.FromStream(
+            slots[index] = RemoteFile.FromStream(
                 captured.FileName,
                 captured.ContentType,
                 captured.Length,
-                _ => captured.OpenReadStream()));
+                _ => captured.OpenReadStream());
+        }
+
+        // Every reserved index must have arrived. A gap is a truncated or tampered body, and letting it
+        // through would hand the handler a null where the message's own shape says a file must be.
+        var files = new List<RemoteFile>(slots.Length);
+        foreach (var slot in slots)
+        {
+            files.Add(slot ?? throw new BadRequestException(
+                StatusCodes.Status400BadRequest,
+                "Malformed upload",
+                "The multipart body is missing a file part its message declared."));
         }
 
         var json = form["message"].ToString();

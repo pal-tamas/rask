@@ -30,6 +30,10 @@
        taking Rask.Cqrs.Client as a ProjectReference does not inherit its analyzers. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
+    <!-- Rask.Cqrs.Client references Rask.Core with PrivateAssets="all", so it does not flow here. The
+         file bridge's signatures name RaskFile and Navigator, so the tests need Core directly — the same
+         arrangement a real app has, where Core arrives from its Rask.Wasm / Rask.Server host package. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

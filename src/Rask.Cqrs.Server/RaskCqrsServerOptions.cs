@@ -42,8 +42,9 @@ public sealed class RaskCqrsServerOptions
     /// </summary>
     public bool IncludeExceptionDetail { get; set; }
 
-    /// <summary>How long a single-use download token stays valid.</summary>
-    public TimeSpan DownloadTokenLifetime { get; set; } = TimeSpan.FromMinutes(2);
+    // Deliberately absent: a download-token lifetime. A download is fetched by the same authenticated
+    // request that dispatched the query, so there is no token to expire. Naming a lifetime here would
+    // describe a second, tokenized fetch path that does not exist.
 
     internal void Validate()
     {
@@ -67,11 +68,6 @@ public sealed class RaskCqrsServerOptions
         if (MaxFileCount <= 0)
         {
             throw new InvalidOperationException($"{nameof(MaxFileCount)} must be positive.");
-        }
-
-        if (DownloadTokenLifetime <= TimeSpan.Zero)
-        {
-            throw new InvalidOperationException($"{nameof(DownloadTokenLifetime)} must be positive.");
         }
     }
 }

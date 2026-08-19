@@ -76,3 +76,40 @@ public sealed class ExportHandler : IQueryHandler<Export, FileDownload>
     public Task<FileDownload> HandleAsync(Export query, CancellationToken cancellationToken) =>
         Task.FromResult(FileDownload.FromBytes("../../etc/passwd", "text/csv", "id,name\n1,a"u8.ToArray()));
 }
+
+
+// Eleven files deliberately: the part-name pairing is a string until it is parsed, and sorting those
+// strings only starts mispairing at ten ("10" sorts before "2"). A two-file message cannot catch it.
+public sealed record UploadMany(
+    RemoteFile F0,
+    RemoteFile F1,
+    RemoteFile F2,
+    RemoteFile F3,
+    RemoteFile F4,
+    RemoteFile F5,
+    RemoteFile F6,
+    RemoteFile F7,
+    RemoteFile F8,
+    RemoteFile F9,
+    RemoteFile F10) : ICommand<string>;
+
+public sealed class UploadManyHandler : ICommandHandler<UploadMany, string>
+{
+    public async Task<string> HandleAsync(UploadMany command, CancellationToken cancellationToken)
+    {
+        RemoteFile[] files =
+        [
+            command.F0, command.F1, command.F2, command.F3, command.F4, command.F5,
+            command.F6, command.F7, command.F8, command.F9, command.F10,
+        ];
+
+        var contents = new List<string>(files.Length);
+        foreach (var file in files)
+        {
+            using var reader = new StreamReader(file.OpenReadStream(cancellationToken));
+            contents.Add(await reader.ReadToEndAsync(cancellationToken));
+        }
+
+        return string.Join(",", contents);
+    }
+}

@@ -38,9 +38,18 @@ them until tagged releases begin.
     message name as for a typo, so the endpoint cannot be used to enumerate an app's messages. Both
     verbs require the `X-Rask-Cqrs` header, which no cross-site markup can set. Handler exceptions become
     RFC 9457 `problem+json` with no exception text in production.
-  - **Files both directions.** `RemoteFile` on a message uploads as multipart; a query returning
-    `FileDownload` streams back with an `attachment` disposition, a filename reduced to a safe leaf, and
-    `nosniff`. Responses are read headers-first, so a download is never buffered.
+  - **Files both directions, with no adapter at the call site.** `file.AsRemote()` turns the file a user
+    picked into one a message carries, and `Navigator.Download(fileDownload)` saves the file a message
+    answered with — so a full round trip is two calls and no `HttpClient`. `RemoteFile` uploads as
+    multipart; a query returning `FileDownload` streams back with an `attachment` disposition, a filename
+    reduced to a safe leaf, and `nosniff`. Neither direction buffers: the response is read headers-first,
+    a picked file is opened only when the upload reads it, and `AsRemote()` passes the file's own size as
+    the read ceiling so a file above `RaskFile`'s 512 KB default uploads whole instead of being truncated.
+  - **Upload parts are paired by the index they name**, not by sorting the part names as text — which
+    mispaired every file after the tenth ("10" sorts before "2") and handed the handler somebody else's
+    file without failing. A duplicate, missing or non-numeric part is now a 400 rather than a silent
+    shift. `MaxUploadBytes` is applied to the request *before* the body is read, so an oversized upload is
+    aborted mid-stream instead of being spooled to disk and reported afterwards.
 - **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
   shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler
   test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the

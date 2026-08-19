@@ -24,11 +24,9 @@ public sealed class RaskCqrsClientOptions
     /// </summary>
     public int MaxQueryUrlLength { get; set; } = RemoteEndpointDefaults.MaxQueryUrlLength;
 
-    /// <summary>
-    ///     The upload size above which a file is sent as a chunked, resumable session rather than one
-    ///     multipart request — which bounds browser memory to a single chunk.
-    /// </summary>
-    public long ChunkedUploadThreshold { get; set; } = RemoteEndpointDefaults.ChunkedUploadThreshold;
+    // Deliberately absent: a chunked/resumable upload threshold. Files travel as one multipart request,
+    // bounded by the server's MaxUploadBytes. An option that names a behaviour the transport does not
+    // have is worse than no option — it reads as configured protection.
 
     /// <summary>
     ///     Runs before every request, to attach whatever proves who is calling.
@@ -51,8 +49,6 @@ public sealed class RaskCqrsClientOptions
     /// </remarks>
     public Func<HttpRequestMessage, CancellationToken, Task>? ConfigureRequestAsync { get; set; }
 
-    /// <summary>The size of each chunk in a chunked upload.</summary>
-    public long UploadChunkSize { get; set; } = 1024 * 1024;
 
     /// <summary>
     ///     How long to wait for a response before abandoning the request. Applies per attempt, and is
@@ -73,16 +69,6 @@ public sealed class RaskCqrsClientOptions
         if (MaxQueryUrlLength <= 0)
         {
             throw new InvalidOperationException($"{nameof(MaxQueryUrlLength)} must be positive.");
-        }
-
-        if (ChunkedUploadThreshold <= 0)
-        {
-            throw new InvalidOperationException($"{nameof(ChunkedUploadThreshold)} must be positive.");
-        }
-
-        if (UploadChunkSize <= 0)
-        {
-            throw new InvalidOperationException($"{nameof(UploadChunkSize)} must be positive.");
         }
 
         if (Timeout <= TimeSpan.Zero)
