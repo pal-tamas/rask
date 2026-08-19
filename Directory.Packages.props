@@ -71,7 +71,7 @@
       handler. Keep this on the version Microsoft.AspNetCore.Authentication.JwtBearer resolves for
       Rask.Example.Auth.WasmJwt.Host, so the two samples share one IdentityModel graph.
     -->
-    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
