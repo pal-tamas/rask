@@ -30,3 +30,17 @@ public sealed class ThingArchivedReactor : INotificationHandler<ThingArchived>
         return Task.CompletedTask;
     }
 }
+
+// A message a client owns end to end. [LocalOnly] keeps it out of the wire vocabulary entirely, which is
+// the only way a handler in a client project still gets reached - AddRaskCqrsClient replaces the invoker
+// for every message that HAS a contract.
+[LocalOnly]
+public sealed record IncrementLocalCounter(int By) : ICommand<int>;
+
+public sealed class IncrementLocalCounterHandler : ICommandHandler<IncrementLocalCounter, int>
+{
+    private static int _total;
+
+    public Task<int> HandleAsync(IncrementLocalCounter command, CancellationToken cancellationToken) =>
+        Task.FromResult(Interlocked.Add(ref _total, command.By));
+}

@@ -177,6 +177,20 @@ Keeps a message off the wire entirely, and on an **interface** covers a whole fa
 than it looks: `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
 outbox event in the app would become an internet-reachable endpoint.
 
+It is also **how a client keeps a message in-process.** "A client is a pure client" is not a figure of
+speech — `AddRaskCqrsClient()` replaces the invoker for *every* request message it has a contract for, so
+a handler sitting in the client project stops being reached and the message goes to the server instead.
+If a client genuinely owns a message end to end — a browser-local counter, an offline queue, anything the
+server has no handler for — mark it `[LocalOnly]` and it never leaves:
+
+```csharp
+[LocalOnly]                                        // stays in the browser
+public sealed record IncrementLocalCounter(int By) : ICommand<int>;
+```
+
+Without it the dispatch travels, the server answers **404** (it has no handler for that name), and the
+failure looks like a transport problem rather than the design decision it is.
+
 ### Files, both directions
 
 `RemoteFile` on a message uploads as multipart; a query returning `FileDownload` streams back. Neither

@@ -39,6 +39,21 @@ public sealed class NotificationCompositionTests
         Assert.Equal(1, handler.Requests);
     }
 
+    [Fact]
+    public async Task A_LocalOnly_message_still_runs_in_the_client()
+    {
+        // The documented escape hatch, and the only one: a client is otherwise a PURE client, so a handler
+        // sitting beside the call site would be bypassed and the server would answer 404 for a name it has
+        // no handler for - a failure that reads as a transport problem rather than a design decision.
+        var handler = new CountingHandler();
+        var dispatcher = Dispatcher(handler);
+
+        var total = await dispatcher.DispatchAsync(new IncrementLocalCounter(5));
+
+        Assert.True(total >= 5, "the local handler did not run");
+        Assert.Equal(0, handler.Requests);
+    }
+
     private static IDispatcher Dispatcher(CountingHandler handler)
     {
         var services = new ServiceCollection();

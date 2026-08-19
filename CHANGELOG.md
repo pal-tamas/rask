@@ -27,7 +27,9 @@ them until tagged releases begin.
     in-process is unconstrained.
   - **`[LocalOnly]`** keeps a message off the wire entirely, and on an *interface* covers a whole family:
     `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and outbox
-    event would become an internet-reachable endpoint.
+    event would become an internet-reachable endpoint. It is also how a **client** keeps a message
+    in-process — "a pure client" is literal, so a handler sitting in the client project is otherwise
+    bypassed and the server answers 404 for a name it has no handler for.
   - **Two endpoints, not one per message** — `GET` and `POST` on `/_rask/cqrs/request/{name}`. The verb
     carries what `IQuery` and `ICommand` already declare, so a command is 405 on GET and cannot be
     triggered by a URL, a prefetch or a link scanner. A query too long for a URL falls back to POST with
