@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Xml.Linq;
 
 namespace Rask.Generators.Tests;
@@ -226,6 +227,230 @@ public class PackageDependencyTests
             offenders.Count == 0,
             "A bundled DLL must ship its XML docs beside it, or the package's IntelliSense is blank: "
             + string.Join("; ", offenders));
+    }
+
+    // The mirror image of the first invariant, and the half that was missing.
+    //
+    // An unpackable project reaches consumers by having its DLL copied into a host package's lib/ folder.
+    // That copy carries the assembly and nothing else: NuGet never learns what the bundled project itself
+    // depended on, because PrivateAssets="all" is precisely what keeps it out of the nuspec. So every
+    // package the bundled assembly needs at runtime has to be re-declared at the HOST's boundary, or the
+    // consumer restores a package whose code calls into an assembly that was never downloaded.
+    //
+    // The regression: Rask.Wasm bundles Rask.Core.dll and re-declared Microsoft.JSInterop and
+    // Microsoft.AspNetCore.Authorization for exactly this reason, but not Microsoft.Extensions.ObjectPool
+    // — which RaskStringBuilderPool.Shared uses on the render path (Component.cs, Live/LivePayload.cs,
+    // HeadAssets/HeadAssetRegistry.cs). Nothing caught it: an in-repo build resolves everything through the
+    // ProjectReference, so ObjectPool is always present locally and only a restore of the PUBLISHED package
+    // is missing it. Rask.Server is immune because Microsoft.AspNetCore.App carries ObjectPool; the WASM
+    // track has no framework reference to hide behind. That is #742.
+    //
+    // "Declared" deliberately includes reachable-transitively, read from the host's own restore graph
+    // rather than assumed: Microsoft.Extensions.Primitives sits in the same position as ObjectPool and is
+    // fine only because Logging -> Options -> Primitives brings it in. Reading the real graph is what makes
+    // this fail if that edge ever disappears — a hand-maintained "covered transitively" list would not.
+    [Fact]
+    public void A_bundled_projects_package_dependencies_are_declared_at_the_host_boundary()
+    {
+        var projects = SourceProjects();
+        var offenders = new List<string>();
+
+        foreach (var (name, path) in projects.Where(p => IsPackable(p.Value)).OrderBy(p => p.Key, StringComparer.Ordinal))
+        {
+            var document = XDocument.Load(path);
+
+            var bundled = BundledProjects(document, projects);
+            if (bundled.Count == 0)
+            {
+                continue;
+            }
+
+            // A framework reference carries a whole shared framework, which is where Rask.Server gets
+            // ObjectPool, Primitives and JSInterop from. Naming the assemblies inside it would mean
+            // hard-coding a list that ships with the SDK, so the presence of the reference is the answer.
+            if (document.Descendants("FrameworkReference")
+                .Any(e => e.Attribute("Include")?.Value == "Microsoft.AspNetCore.App"))
+            {
+                continue;
+            }
+
+            var declared = PackageReferences(document);
+            var needed = bundled
+                .SelectMany(b => TransitivePackageReferences(b, projects))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(p => !declared.Contains(p))
+                .OrderBy(p => p, StringComparer.Ordinal)
+                .ToList();
+
+            if (needed.Count == 0)
+            {
+                continue;
+            }
+
+            var reachable = ReachablePackagesPerTarget(path, name);
+            foreach (var package in needed)
+            {
+                // Every target framework the host ships gets its own nuspec dependency group, so a package
+                // reachable in one and not another is still a hole in that one.
+                var uncovered = reachable
+                    .Where(target => !target.Value.Contains(package))
+                    .Select(target => target.Key)
+                    .ToList();
+
+                if (uncovered.Count > 0)
+                {
+                    offenders.Add(
+                        $"{name} bundles {string.Join("+", bundled)} which needs {package}, "
+                        + $"unreachable from what {name} declares under: {string.Join(", ", uncovered)}");
+                }
+            }
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "A bundled assembly's package dependencies do not flow to consumers — PrivateAssets=\"all\" is what "
+            + "keeps the bundled project out of the nuspec — so the host must declare them itself. These do not, "
+            + "and a consumer restoring the published package gets a FileNotFoundException at runtime:\n  "
+            + string.Join("\n  ", offenders));
+    }
+
+    // The unpackable projects whose DLL this host packs into its own lib/ folder. Two mechanisms are in use
+    // and both count: TfmSpecificPackageFile with a lib/ PackagePath (Rask.Server, Rask.Wasm) and
+    // BuildOutputInPackage (Rask.Native). A PrivateAssets="all" ProjectReference on its own does NOT count —
+    // the batteries take one to compile against Rask.Core without bundling it, relying on the host package
+    // the consumer already has, so demanding they re-declare Core's dependencies would be noise.
+    private static IReadOnlyList<string> BundledProjects(XDocument document, Dictionary<string, string> projects) =>
+    [
+        .. document
+            .Descendants()
+            .Where(e => e.Name.LocalName is "BuildOutputInPackage"
+                || (e.Name.LocalName == "TfmSpecificPackageFile"
+                    && e.Attribute("PackagePath")?.Value.Replace('\\', '/')
+                        .StartsWith("lib", StringComparison.OrdinalIgnoreCase) == true))
+            .Select(e => e.Attribute("Include")?.Value.Replace('\\', '/'))
+            .Where(v => v is not null && v.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            .Select(v => BundledAssemblyName(v!))
+            .Where(projects.ContainsKey)
+            .Where(n => !IsPackable(projects[n]))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.Ordinal),
+    ];
+
+    // "$(OutputPath)Rask.Core.dll" -> "Rask.Core". The MSBuild property is not a directory, so it carries no
+    // separator and Path.GetFileNameWithoutExtension alone hands back "$(OutputPath)Rask.Core" — which matches
+    // no project, which silently empties the bundled set and makes this whole guard pass on everything. It did.
+    private static string BundledAssemblyName(string include)
+    {
+        var afterProperty = include.LastIndexOf(')') is var close and >= 0 ? include[(close + 1)..] : include;
+        return Path.GetFileNameWithoutExtension(afterProperty);
+    }
+
+    private static HashSet<string> PackageReferences(XDocument document) =>
+        new(
+            document.Descendants("PackageReference")
+                .Select(e => e.Attribute("Include")?.Value)
+                .Where(v => !string.IsNullOrEmpty(v))!,
+            StringComparer.OrdinalIgnoreCase);
+
+    // A bundled project can itself bundle another (Rask.Client and Rask.Html both take Rask.Core), and the
+    // host packs every one of their DLLs, so the whole chain's package references have to surface.
+    private static IEnumerable<string> TransitivePackageReferences(string name, Dictionary<string, string> projects)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pending = new Stack<string>([name]);
+
+        while (pending.Count > 0)
+        {
+            var current = pending.Pop();
+            if (!seen.Add(current) || !projects.TryGetValue(current, out var path))
+            {
+                continue;
+            }
+
+            var document = XDocument.Load(path);
+            foreach (var package in PackageReferences(document))
+            {
+                yield return package;
+            }
+
+            foreach (var reference in document.Descendants("ProjectReference"))
+            {
+                // An analyzer/task reference contributes no runtime assembly, so it drags in no runtime dep.
+                if (string.Equals(reference.Attribute("ReferenceOutputAssembly")?.Value, "false", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (reference.Attribute("Include")?.Value.Replace('\\', '/') is { } include)
+                {
+                    pending.Push(Path.GetFileNameWithoutExtension(include));
+                }
+            }
+        }
+    }
+
+    // What the host's declared package references actually pull in, per target framework, read from the
+    // restore graph rather than guessed. Roots are the host's own PackageReferences — never the bundled
+    // ProjectReferences, which is the whole point: their dependencies are exactly what does not flow.
+    private static Dictionary<string, HashSet<string>> ReachablePackagesPerTarget(string csprojPath, string name)
+    {
+        var assetsPath = Path.Combine(Path.GetDirectoryName(csprojPath)!, "obj", "project.assets.json");
+
+        // Fail rather than skip. Every packable host is in Rask.slnx and the gate builds the whole solution,
+        // so a missing restore graph means this ran somewhere the gate never did — and a packaging guard that
+        // quietly passes when it cannot see anything is worse than no guard.
+        Assert.True(
+            File.Exists(assetsPath),
+            $"{name} has no restore graph at {assetsPath}, so its transitive packages cannot be resolved. "
+            + $"Restore it first: dotnet restore {Path.GetRelativePath(RepoRoot(), csprojPath)}");
+
+        using var stream = File.OpenRead(assetsPath);
+        using var assets = JsonDocument.Parse(stream);
+        var root = assets.RootElement;
+
+        var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var framework in root.GetProperty("project").GetProperty("frameworks").EnumerateObject())
+        {
+            if (framework.Value.TryGetProperty("dependencies", out var dependencies))
+            {
+                foreach (var dependency in dependencies.EnumerateObject())
+                {
+                    roots.Add(dependency.Name);
+                }
+            }
+        }
+
+        var perTarget = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var target in root.GetProperty("targets").EnumerateObject())
+        {
+            // "Microsoft.Extensions.Logging/10.0.11" -> its dependency names.
+            var graph = target.Value.EnumerateObject().ToDictionary(
+                entry => entry.Name.Split('/')[0],
+                entry => entry.Value.TryGetProperty("dependencies", out var d)
+                    ? d.EnumerateObject().Select(x => x.Name).ToArray()
+                    : [],
+                StringComparer.OrdinalIgnoreCase);
+
+            var reached = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pending = new Stack<string>(roots);
+            while (pending.Count > 0)
+            {
+                var current = pending.Pop();
+                if (!reached.Add(current) || !graph.TryGetValue(current, out var next))
+                {
+                    continue;
+                }
+
+                foreach (var dependency in next)
+                {
+                    pending.Push(dependency);
+                }
+            }
+
+            perTarget[target.Name] = reached;
+        }
+
+        return perTarget;
     }
 
     // Mirrors how the repo declares it: an explicit <IsPackable>false</IsPackable>. Everything else in src/

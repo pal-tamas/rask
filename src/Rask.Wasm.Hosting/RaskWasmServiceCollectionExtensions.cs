@@ -22,6 +22,15 @@ public static class RaskWasmServiceCollectionExtensions
     ///         paid once per (file, encoding) pair and then absorbed by Kestrel's response cache.
     ///     </para>
     /// </summary>
+    /// <remarks>
+    ///     In an app that references <b>both</b> hosts — a wasm-hosted app that also mounts the
+    ///     server-rendered operator dashboard — call <see cref="AddRaskWasmHost" /> instead. Both
+    ///     packages define an <c>AddRask(this IServiceCollection)</c>, and with both namespaces imported
+    ///     C# does not report an ambiguity: this overload takes no optional parameters and
+    ///     <c>Rask.Server</c>'s takes two, so the "fewer defaulted arguments" tie-break silently
+    ///     selects this one. The app then compiles, starts without the live runtime registered, and
+    ///     fails on the first request with a missing-service error naming a type the author never used.
+    /// </remarks>
     public static IServiceCollection AddRask(this IServiceCollection services)
     {
         services.AddResponseCompression(options =>
@@ -44,4 +53,17 @@ public static class RaskWasmServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    ///     <see cref="AddRask" /> under a name only this package defines — for an app that references
+    ///     both hosts and therefore cannot say <c>AddRask()</c> and mean it.
+    ///     <para>
+    ///         Identical behaviour; the point is the name. A wasm-hosted app that mounts the operator
+    ///         dashboard registers <c>Rask.Server</c>'s runtime with <c>AddRask(…)</c> and this host's
+    ///         compression with <c>AddRaskWasmHost()</c>, and each call says which host it means
+    ///         instead of depending on an overload-resolution tie-break to guess right.
+    ///     </para>
+    /// </summary>
+    public static IServiceCollection AddRaskWasmHost(this IServiceCollection services) =>
+        services.AddRask();
 }

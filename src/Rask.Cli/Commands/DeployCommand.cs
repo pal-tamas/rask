@@ -313,7 +313,14 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // `docker -H ssh:// version` reachability check rather than adding to it — same one round-trip,
         // but it can tell "Docker isn't installed" from "you're not in the docker group".
         var setup = new HostSetup(Console, _process) { ReadinessDelay = ReadinessDelay, ReadinessAttempts = ReadinessAttempts };
-        var ready = await setup.EnsureReadyAsync(sshTarget, bootstrapOptions with { PublishedPort = domain is null ? port : null }, setupMode, cancellationToken).ConfigureAwait(false);
+        // ContainerPort rides along because the firewall has to allow the port *inside* the container:
+        // Docker's DNAT rewrites the destination before any filter rule sees it. In domain mode nothing
+        // but Caddy publishes a port, so there's none to pass.
+        var ready = await setup.EnsureReadyAsync(
+            sshTarget,
+            bootstrapOptions with { PublishedPort = domain is null ? port : null, ContainerPort = domain is null ? containerPort : null },
+            setupMode,
+            cancellationToken).ConfigureAwait(false);
         if (ready is null)
         {
             return 1;

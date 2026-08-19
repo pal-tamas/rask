@@ -8,12 +8,10 @@ namespace Rask.Example.Wasm.Features;
 ///     WASM-only showcase page for <see cref="BluetoothDemo" /> (<c>IBluetooth</c>). Surfaced in the shared
 ///     sidebar via a host-registered <see cref="ShowcaseNavEntry" /> (see Program.cs).
 /// </summary>
-public sealed partial class BluetoothPage : Page
+[Route("bluetooth")]
+[ParentRoute(typeof(ShowcaseLayout))]
+public sealed partial class BluetoothPage : Component
 {
-    protected override string Route => "bluetooth";
-
-    protected override Type? Parent => typeof(ShowcaseLayout);
-
     protected override Component? HeadAssets => Title["Web Bluetooth — Rask"];
 
     protected override Component? Render() =>

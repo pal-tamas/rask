@@ -3,43 +3,22 @@ using Microsoft.CodeAnalysis;
 namespace Rask.Generators.Tests;
 
 /// <summary>
-///     A page declares its route by overriding <c>Page.Route</c> with a compile-time constant, and gets a
-///     generated <c>SomePage.Url(...)</c> / <c>SomePage.Go(...)</c> pair alongside the legacy
-///     <c>Routes.SomePage(...)</c> factory.
+///     A routed component gets a generated <c>SomePage.Url(...)</c> / <c>SomePage.Go(...)</c> pair alongside
+///     the <c>Routes.SomePage(...)</c> factory. Multi-route pages are covered in
+///     <see cref="RoutesGeneratorTests" /> — these cover the shape of the helpers themselves.
 /// </summary>
-public class PageRouteOverrideTests
+public class RouteNavigationHelperTests
 {
     [Fact]
-    public void RouteOverride_RegistersTheTemplate()
-    {
-        var src = """
-                  using Rask.Core;
-                  namespace Demo;
-                  public sealed partial class HomePage : Page
-                  {
-                      protected override string Route => "/";
-                      public override Component? Render() => this;
-                  }
-                  """;
-
-        var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
-
-        Assert.Contains("public static global::Rask.Core.Routing.RouteUrl HomePage()", output);
-        Assert.Contains("__path = \"/\"", output);
-        Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
-    }
-
-    [Fact]
-    public void RouteOverride_EmitsUrlAndGoExtensions()
+    public void Route_EmitsUrlAndGoExtensions()
     {
         var src = """
                   using Rask.Core;
                   using Rask.Core.Routing;
                   namespace Demo;
-                  public sealed partial class ProductPage : Page
+                  [Route("/products/{id:int}")]
+                  public sealed partial class ProductPage : Component
                   {
-                      protected override string Route => "/products/{id:int}";
                       [RouteParam] public int Id { get; set; }
                       [QueryParam] public string? Sort { get; set; }
                       public override Component? Render() => this;
@@ -69,15 +48,16 @@ public class PageRouteOverrideTests
         // signatures and fail with CS0111. One container per page is what keeps them apart.
         var src = """
                   using Rask.Core;
+                  using Rask.Core.Routing;
                   namespace Demo;
-                  public sealed partial class HomePage : Page
+                  [Route("/")]
+                  public sealed partial class HomePage : Component
                   {
-                      protected override string Route => "/";
                       public override Component? Render() => this;
                   }
-                  public sealed partial class AboutPage : Page
+                  [Route("/about")]
+                  public sealed partial class AboutPage : Component
                   {
-                      protected override string Route => "/about";
                       public override Component? Render() => this;
                   }
                   """;
@@ -90,21 +70,21 @@ public class PageRouteOverrideTests
     }
 
     [Fact]
-    public void ParentOverride_ComposesOntoTheParentTemplate()
+    public void ParentRoute_ComposesOntoTheParentTemplate()
     {
         var src = """
-                  using System;
                   using Rask.Core;
+                  using Rask.Core.Routing;
                   namespace Demo;
-                  public sealed partial class LayoutPage : Page
+                  [Route("/app")]
+                  public sealed partial class LayoutPage : Component
                   {
-                      protected override string Route => "/app";
                       public override Component? Render() => this;
                   }
-                  public sealed partial class SettingsPage : Page
+                  [Route("settings")]
+                  [ParentRoute(typeof(LayoutPage))]
+                  public sealed partial class SettingsPage : Component
                   {
-                      protected override string Route => "settings";
-                      protected override Type? Parent => typeof(LayoutPage);
                       public override Component? Render() => this;
                   }
                   """;
@@ -119,14 +99,16 @@ public class PageRouteOverrideTests
     [Fact]
     public void ConstField_IsAcceptedAsTheTemplate()
     {
-        // GetConstantValue means a const (and constant concatenation) works, not just a literal.
+        // An attribute argument is constant by construction, and a const (or constant concatenation)
+        // satisfies that just as a literal does.
         var src = """
                   using Rask.Core;
+                  using Rask.Core.Routing;
                   namespace Demo;
-                  public sealed partial class DocsPage : Page
+                  [Route(DocsPage.Root + "/index")]
+                  public sealed partial class DocsPage : Component
                   {
-                      private const string Root = "/docs";
-                      protected override string Route => Root + "/index";
+                      public const string Root = "/docs";
                       public override Component? Render() => this;
                   }
                   """;
@@ -139,25 +121,6 @@ public class PageRouteOverrideTests
     }
 
     [Fact]
-    public void NonConstantRoute_ReportsRask047()
-    {
-        var src = """
-                  using Rask.Core;
-                  namespace Demo;
-                  public sealed partial class BadPage : Page
-                  {
-                      private static string Computed() => "/bad";
-                      protected override string Route => Computed();
-                      public override Component? Render() => this;
-                  }
-                  """;
-
-        var run = GeneratorDriverFixture.RunRoutes(src);
-
-        Assert.Contains(run.Diagnostics, d => d.Id == "RASK047" && d.Severity == DiagnosticSeverity.Error);
-    }
-
-    [Fact]
     public void ParamNamedReplace_DropsGosHistoryFlag()
     {
         // The page's own parameter wins; Go loses the convenience flag rather than silently binding
@@ -166,9 +129,9 @@ public class PageRouteOverrideTests
                   using Rask.Core;
                   using Rask.Core.Routing;
                   namespace Demo;
-                  public sealed partial class SwapPage : Page
+                  [Route("/swap/{replace}")]
+                  public sealed partial class SwapPage : Component
                   {
-                      protected override string Route => "/swap/{replace}";
                       [RouteParam] public string Replace { get; set; } = "";
                       public override Component? Render() => this;
                   }
@@ -179,25 +142,5 @@ public class PageRouteOverrideTests
 
         Assert.Contains("public static void Go(string Replace)", output);
         Assert.DoesNotContain("bool replace = false", output);
-    }
-
-    [Fact]
-    public void GetterBodyReturn_IsAcceptedLikeAnExpressionBody()
-    {
-        var src = """
-                  using Rask.Core;
-                  namespace Demo;
-                  public sealed partial class BlockPage : Page
-                  {
-                      protected override string Route { get { return "/block"; } }
-                      public override Component? Render() => this;
-                  }
-                  """;
-
-        var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
-
-        Assert.Contains("\"/block\"", output);
-        Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
     }
 }

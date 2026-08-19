@@ -202,7 +202,7 @@ if (!string.IsNullOrWhiteSpace(vapidPublicKey) && !string.IsNullOrWhiteSpace(vap
 
 builder.Services.AddSingleton<PushSubscriptionStore>();
 
-// An operator dashboard at /_ops over every pillar's table: queue depth, dead letters and the errors
+// An operator dashboard at /_rask over every pillar's table: queue depth, dead letters and the errors
 // behind them, cache contents, the log, and how this database is configured. Its Logs page keeps a live
 // tail in memory and — because Rask.Logging is registered above — also offers a searchable History over
 // the stored log. Features/Ops/OpsPage.cs

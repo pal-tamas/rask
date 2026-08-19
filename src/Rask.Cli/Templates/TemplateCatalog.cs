@@ -19,22 +19,34 @@ internal static class TemplateCatalog
     /// <summary>Feature flags every web template supports.</summary>
     private static readonly string[] WebFlags = ["auth", "pwa", "docker"];
 
+    /// <summary>
+    /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a
+    /// database <em>in</em> — the server template, and the wasm-hosted template's <c>.Server</c> project.
+    /// A pure browser-WASM SPA has no server to run them on.
+    /// </summary>
+    private static readonly string[] DatabaseFlags =
+        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "ops", "all-batteries"];
+
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
-        // The server template is the only one with a database, so every DB-backed battery is server-only.
         new("server", "Rask Server app",
             new HashSet<string>(
-                [
-                    "auth", "pwa", "cqrs", "data", "docker",
-                    "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops", "all-batteries",
-                ],
+                [.. WebFlags, .. DatabaseFlags, "push"],
                 StringComparer.Ordinal)),
         new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
-        // The only non-server template that takes --cqrs: it is the one with a server half to dispatch to.
-        // On 'wasm' there is no host in the solution, so the flag would name a destination that isn't there.
+        // Same batteries as server, minus --push: Web Push needs the subscribe endpoints AND a service
+        // worker that posts to them, and in this template those live in two different projects. It is a
+        // real feature rather than a wiring gap, so it is left out rather than half-scaffolded.
+        //
+        // --cqrs means more here than on the server template: this is the one template with a server half
+        // to dispatch TO, so it wires remote dispatch across both projects rather than only registering the
+        // mediator. On 'wasm' there is no host in the solution, so the flag would name a destination that
+        // isn't there.
         new("wasm-hosted", "Rask WASM + ASP.NET host",
-            new HashSet<string>([.. WebFlags, "cqrs"], StringComparer.Ordinal)),
+            new HashSet<string>(
+                [.. WebFlags, .. DatabaseFlags],
+                StringComparer.Ordinal)),
         new("native", "Rask native mobile app (iOS + Android)",
             new HashSet<string>(StringComparer.Ordinal)),
     ];

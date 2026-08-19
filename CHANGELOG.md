@@ -7,6 +7,91 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **`Rask.Wasm` now declares `Microsoft.Extensions.ObjectPool`, which its bundled `Rask.Core` needs at
+  runtime.** `Rask.Core.dll` is packed into `lib/` with `PrivateAssets="all"`, which is exactly what keeps
+  Core out of the nuspec — and takes Core's own package dependencies with it. The package already
+  re-declared `Microsoft.JSInterop` and `Microsoft.AspNetCore.Authorization` for that reason, but not
+  ObjectPool, which `RaskStringBuilderPool.Shared` uses on the render path. `Rask.Server` never noticed
+  because `Microsoft.AspNetCore.App` carries ObjectPool; the WASM track has no framework reference to hide
+  behind, so a consumer restoring the published package got a `FileNotFoundException` on the first render.
+
+  Confirmed against the shipped artifact, not only the source: restoring the published
+  `Rask.Wasm 0.20.1-alpha.0.77` into a fresh browser-WASM app resolves **no** ObjectPool on either target
+  framework, while the same restore of the fixed package delivers
+  `lib/net10.0/Microsoft.Extensions.ObjectPool.dll`.
+
+  `PackageDependencyTests` gained the guard that would have caught it and will catch the next one: for
+  every host that packs another project's DLL into its own `lib/` (via `TfmSpecificPackageFile` or
+  `BuildOutputInPackage`), each of that project's package references must be declared by the host,
+  reachable from what it does declare, or covered by a `FrameworkReference`. Reachability is read from the
+  host's real restore graph rather than a hand-kept list — `Microsoft.Extensions.Primitives` sits in the
+  same position and is fine only because `Logging -> Options -> Primitives` brings it in, so the guard has
+  to fail if that edge ever disappears. Closes #742.
+
+- **The hero animation no longer hangs a character off the end of an untyped line.** `spacingAndGlyphs`
+  stopped the last glyph of a line from spilling *well* past `textLength`, but not from reaching the very
+  edge of its advance box — the `>` of `=>` does — and a cover rectangle that stopped exactly at
+  `textLength` still left that glyph's antialiased edge showing from the first frame, before its line was
+  typed. The cover now runs `Bleed` px past the text and scales about the **text's** right edge rather
+  than its own, so the overhang is still there at the last step and is exactly zero at `scaleX(0)`. That
+  second half is what makes it safe: a cover with a fixed pad would leave a residue over the segment that
+  follows it on the same line (`Button.` and the rest of line 9), and this one collapses to nothing.
+
+  Regression evidence is a pixel scan of rendered frames rather than a unit test — the artifact is a
+  rasterisation detail no assertion on the markup can see.
+
+- **`ChromeScreen` declares its route the way every other page now does.** It landed with a `Route`
+  override in the same window that removed the `Page` base class, so `main` briefly did not compile —
+  each change was green on its own branch and only their combination was broken.
+
+### Changed
+- **BREAKING — routes are declared by `[Route]` again; the `Page` base class is gone.** A routable
+  component is any `Component` carrying `[Route("/x")]`, with `[ParentRoute(typeof(Layout))]` for nesting
+  and `[NotFound]` for the catch-all. `Page` and its `Route`/`Parent` overrides are removed, and `Screen`
+  now derives from `Component` — the native `HeaderBar`/`Toolbar`/`TabBar` slots are unchanged.
+
+  This is what makes **one page answer several URLs**: `[Route]` is `AllowMultiple`, so stacking it is the
+  whole feature. The first template declared is canonical — it is what `X.Url(...)` and `Routes.X(...)`
+  format — and the rest are alternates the router matches but nothing generates, so a generated link can
+  never drift onto a path kept only for old bookmarks. A single `Route` property could express exactly one
+  URL, which is what motivated the change.
+
+  Migration is mechanical: delete the `Route` override and put its template in a `[Route]` above the class,
+  delete the `Parent` override in favour of `[ParentRoute(typeof(...))]`, and change the base from `Page`
+  to `Component` (`Screen` subclasses keep `: Screen`).
+
+- **The hero animation types the new declaration.** `ChainAnimation` (and the `assets/rask-chain.svg`
+  baked from it) opens with `[Route("/counter")]` above a plain `Component`, retimed so the attribute and
+  the class line type at the same rate. Two new colour roles came with it: an operator role, so `=>` reads
+  as code rather than as dim punctuation, and an interpolation role, so the `{_count}` hole inside
+  `$"Current count: {_count}"` is coloured instead of disappearing into the string literal.
+
+  Each typed run also measures with `lengthAdjust="spacingAndGlyphs"` rather than `spacing`. `spacing`
+  adjusts only the gaps *between* glyphs, so the last glyph kept its natural advance and its ink could
+  spill past `textLength` — past the cover rectangle that hides the untyped remainder, leaving the tail of
+  a line (the `=>` ending the `Render` line) hanging on screen from the first frame, before the line was
+  typed.
+
+- **The hero animation's completion list is bigger, and the whole loop is slower.** The member list is
+  the picture's argument — "press `.` and the chain tells you the rest" — and at 380px wide with 15px
+  names it was the smallest thing on screen. It is now 460px wide on 32px rows, with the names, the types
+  and the doc comment each a size up, and the loop runs 20s instead of 16s so a reader can follow the
+  typing without it feeling like a progress bar. Every keyframe offset is a percentage of the loop, so
+  the duration is one constant; the canvas grew to 880×620 to seat the taller popup, which the landing
+  page's `aspect-ratio` follows.
+
+- **RASK047 is retired.** It reported a `Page.Route` override that was not a compile-time constant. A
+  `[Route]` argument is an attribute argument and therefore constant by construction, so the failure it
+  guarded cannot be written. The id is retired, not reused.
+
+### Fixed
+- **`main` did not compile: `ChromeScreen` still declared its route the old way.** #754 added the portable-chrome
+  showcase screen with `protected override string Route` / `Parent`, and #756 then removed those virtual members
+  in favour of `[Route]` / `[ParentRoute]`. Each was green against its own base, and the two merged without a
+  textual conflict — so the break only appeared once both were on `main` (`CS0115: no suitable method found to
+  override`). Converted to the attributes its sibling pages already use.
+
 ### Added
 
 - **Remote CQRS — `Rask.Cqrs.Client` and `Rask.Cqrs.Server`.** A WASM-hosted or native app now reaches
@@ -68,6 +153,146 @@ them until tagged releases begin.
     file without failing. A duplicate, missing or non-numeric part is now a 400 rather than a silent
     shift. `MaxUploadBytes` is applied to the request *before* the body is read, so an oversized upload is
     aborted mid-stream instead of being spooled to disk and reported afterwards.
+- **The portable chrome now has a sample, which is what the repo's own definition of done asks for.** #743
+  shipped `AppBar`/`TabStrip` and documented them, but no sample used them — and no sample used `Screen` at
+  all — so the cross-host claim was proven only in unit tests, never in a running app.
+
+  - **`/chrome`** in the showcase is a real `Screen`, naming no `Rask.Native` type. All three showcase hosts
+    compile it from the same `Rask.Example.Shared` project: Server and WASM render its slots as landmark
+    HTML, and the native heads project the same declaration to a `UINavigationBar` + `UITabBar`. Unlisted in
+    the sidebar, like `/table`.
+  - **`ChromeBarsDemo`** renders the bars inline with its source, embedded in the native guide at
+    `<!-- demo:chrome-bars -->`, with a ~20-line scoped stylesheet that doubles as the demonstration:
+    `Rask.Core` ships no CSS for the bars and emits `data-rask-icon="add"` rather than a glyph, so the class
+    names *are* the styling contract and one rule per icon token wires up whatever set the app already has.
+
+  Covered by the shared browser journey (so it runs on Server, WASM and standalone WASM): the two landmarks,
+  exactly one `aria-current="page"` tab and that it is the one matching the route, and a bar button's
+  callback re-rendering the screen.
+
+### Fixed
+- **A comment added in #743 described a hazard that isn't one.** It claimed importing a component namespace
+  shadows the chain entries of the same name. Entries are injected into the enclosing partial class, and a
+  member of the enclosing type wins simple-name lookup over a namespace-imported type — which is why the
+  native tests import `Rask.Native.Components` and the new sample imports `Rask.Chrome.Components`, both
+  compiling fine. The real rule, already documented in the host `.props`, is narrower: it is why the
+  framework emits a `global using static` for the entries but never a global namespace import.
+
+### Added
+- **`BulkInsertAsync` — loading many rows is no longer everyone's hand-rolled loop.** EF Core covers the bulk
+  *update* and *delete* shapes with `ExecuteUpdate`/`ExecuteDelete`, and its own plan puts bulk **inserts**
+  out of scope, so every app that seeds, imports or migrates data writes the same loop — usually the one that
+  keeps every entity tracked to the end and commits nothing as a unit.
+
+  ```csharp
+  await db.BulkInsertAsync(products);
+  await db.Products.BulkInsertAsync(products, o => o.BatchSize = 10_000);
+  ```
+
+  It runs through the context, so `Rask.Data`'s guarantees survive: `AuditingInterceptor` stamps
+  `CreatedAt`/`UpdatedAt` and `DomainEventInterceptor` publishes each entity's events, for every batched row.
+  What changes is the shape — batched adds (5,000 by default), change detection off, and the change tracker
+  **cleared between batches**.
+
+  The tracker clearing is what makes a large load flat rather than quadratic. Over 100,000 rows on SQLite:
+
+  | approach | time | allocated |
+  |---|---:|---:|
+  | `SaveChanges` per row | 5.48 s | 2,472 MB |
+  | `AddRange` + one `SaveChanges` | 1.22 s | 1,307 MB |
+  | `BulkInsertAsync` | 976 ms | 1,105 MB |
+  | `BulkInsertAsync`, `SkipChangeTracking` | **406 ms** | **141 MB** |
+
+  `o.SkipChangeTracking = true` is the fast path: one prepared `INSERT` with the parameters rebound per row,
+  no entity entry ever materialised — 2.4x the speed of the batched path and an eighth of its allocation, and
+  13x/17x against the naive loop. It is opt-in because **no `ISaveChangesInterceptor` runs**, not Rask's and
+  not yours. The writer stamps the audit columns itself, from the same `TimeProvider` the interceptor
+  resolves, so a frozen test clock agrees across both paths; everything else it cannot honour it refuses by
+  name rather than writing wrong rows — entities carrying domain events, store-assigned integer keys,
+  store-computed columns, shadow properties, navigations, inheritance hierarchies, and a value-generated key
+  left unset. A client-assigned `Guid` key — the `Entity<Guid>` shape — is fine, which needed care: EF marks
+  those `ValueGenerated.OnAdd` by convention, so the guard has to test for store-supplied values rather than
+  for `OnAdd`.
+
+  `samples/Rask.Example.Sqlite` gains a third card that imports 10,000 rows each way and reports the
+  elapsed time, so the difference is visible rather than only measured. Its `Reading` row derives from
+  `Entity<Guid>`, which is also the shape that matters: the key is assigned on the client, where the
+  sample's existing `WriteLog` has an int key SQLite assigns as the rowid — a shape `SkipChangeTracking`
+  refuses on purpose.
+
+  The obvious alternative is a trap, and the benchmark records it: a multi-row `INSERT … VALUES (…),(…)`
+  loses at every packing, because each distinct row count is a new statement for SQLite to parse and
+  Microsoft.Data.Sqlite binds parameters by name. Packed to SQLite's 32,766-parameter statement limit it is
+  quadratic in its own parameter count — 192 ms / 7.2 s / 2.07 min for 1k / 10k / 100k rows.
+
+  **Each batch commits on its own**, and that is the deliberate default: SQLite has one write lock, so
+  wrapping a long import in a single transaction makes every other writer wait for the whole load while the
+  WAL holds every uncommitted page. `o.SingleTransaction = true` asks for all-or-nothing when a load needs it.
+
+  That mode — and any ambient transaction — **rejects entities carrying domain events**, which is a real trap
+  found while building this rather than a theoretical one: `DomainEventInterceptor` publishes in
+  `SavedChanges`, which inside a transaction runs *before* the commit, so a load that failed at batch 7 had
+  already announced batches 1–6. Rather than ship that, the combination throws and points at `Rask.Outbox`,
+  whose messages are written in the same transaction and drained after it commits.
+
+  Two more consequences are deliberate and enforced: the context must have **no pending changes** (the load
+  clears the tracker, so it refuses rather than silently discard unsaved work), and an **ambient transaction
+  still owns the commit**, so the load composes inside one you opened. Under a retrying execution strategy a
+  `SingleTransaction` load is one retryable unit with the sequence buffered for re-enumeration, while the
+  per-batch default lets EF retry each batch on its own with no replay.
+- **`Rask.SQLite.Litestream` can now prove the backup is *restorable*, not just that the replicator is
+  running.** Every field on `LitestreamStatus.Current` describes the local child process. A replica
+  silently writing to the wrong prefix, a bucket whose credentials were rotated to read-only, a `-config`
+  file naming a database nobody writes to any more — all of them keep `IsReplicating` true and
+  `RestartCount` flat, and all of them are discovered at the one moment that matters, which is the restore.
+
+  ```csharp
+  o.Verification.Enabled = true;                      // off by default — a pass costs a real restore
+  o.Verification.Interval = TimeSpan.FromHours(24);   // a daily audit, not a health poll
+  ```
+
+  Each pass upserts a sentinel row into the live database (through Rask.SQLite's non-blocking
+  busy-retry, so it waits out a busy writer without holding a thread), waits for replication to carry it,
+  restores **to a temp path** that is deleted on every path, and checks the sentinel came back — then
+  publishes `LitestreamStatus.Verification`: `Outcome`, `LastVerifiedAt`, `LastAttemptedAt`,
+  `ReplicationLag`, `LastError`.
+
+  **Three outcomes, not two.** `Inconclusive` means the sentinel had not shipped yet — replication lag, not
+  a broken backup — and stays distinct from `Failed`, because a job that pages someone every time it races
+  the sync interval is a job that gets turned off. Alert on a `LastVerifiedAt` that stops moving.
+  `ISqliteBackupVerifier` is registered whether or not the schedule is on, for a pass on demand.
+
+  `LitestreamCommand.Restore` gained an output path and now emits `-o` in **`-config` mode too**, where it
+  previously emitted none — a verification restore there would have overwritten the live database with a
+  copy of itself. The verification restore also deliberately omits `-if-replica-exists`, which turns "there
+  is no replica at all" into a silent success.
+
+  Verified end to end against a real object store, not just a fake: `scripts/verify-litestream-minio.sh`
+  runs MinIO in Docker, replicates to it, verifies the round trip, and then destroys the replica to
+  demonstrate `IsReplicating` staying `true` while verification reports `Failed`. `Rask.Dashboard`'s Backup
+  card shows the same split — a "Last verified restore" tile beside the replication one, amber for
+  unproven and red only for a genuinely broken restore (`IDashboardBackupProbe.VerificationAsync`, a
+  default interface member, so existing probes keep compiling). Closes #751.
+
+
+- **The operator dashboard runs on the `wasm-hosted` template.** `rask new --template wasm-hosted --ops`
+  (and `--all-batteries`) now scaffolds the database and every DB-backed battery into the `.Server`
+  project and mounts the dashboard there, server-rendered at `/_rask`, while the WASM client keeps every
+  other route. Previously all of that was server-template-only: the `.Server` host had no database and
+  served nothing but static files, so an app whose UI ran in the browser had no way to see its own queues,
+  dead letters or logs.
+
+  The batteries are the server template's, emitted from one shared source rather than a second copy, so
+  the wiring order that matters — the outbox registered before the `DbContext` factory, so its interceptor
+  joins the `SaveChanges` pipeline — cannot drift between the two templates. `--push` is the one battery
+  this template does not take: its subscribe endpoints and the service worker that posts to them live in
+  two different projects, which is a feature rather than a wiring gap, so it is left out rather than
+  half-scaffolded.
+
+  `Rask.Dashboard` ships `RaskDashboardShell` for it — a root component that renders the router and
+  contributes the two document-level head tags the dashboard's layout cannot. A host serving a WASM bundle
+  runs no components of its own, so `UseRaskServer<TApp>` had nothing to name; every such app would
+  otherwise hand-roll the same four lines.
 - **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
   shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler
   test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the
@@ -99,12 +324,107 @@ them until tagged releases begin.
   `RenderedComponent` gained `FilesAsync` on both interaction surfaces (`page.On(selector).FilesAsync(...)`
   and the first-handler shortcut), which builds the metadata payload a real client would send. Closes #737.
 
+### Security
+- **`rask deploy`'s firewall now actually covers Docker's published ports.** Setup enabled `ufw` and
+  reported "deny everything else inbound", which was not true of anything a container publishes: Docker
+  writes its own iptables rules, filtered through `FORWARD`, where ufw's `INPUT` rules never see them. The
+  gap was worse than an unclosed port, because it was invisible — `ufw status` called a port denied while
+  the internet could reach it. Anyone who followed the obvious instinct on a Rask-provisioned box and ran,
+  say, a database with `-p 5432:5432` behind "a firewall" had published it.
+
+  Setup now writes a fenced block into `/etc/ufw/after.rules` that hooks `DOCKER-USER` — the chain Docker
+  consults before its own rules and never writes to itself — jumps to ufw's forward rules, and default-denies
+  anything else being forwarded into a Docker bridge, allowing only the container port this deploy publishes.
+  A box that already runs ufw gets the same treatment without its own allow list being touched, since that
+  box is precisely the one whose owner believes the deny already covers Docker.
+
+  Three details are load-bearing. The rules live in `after.rules` rather than a live `iptables` call because
+  raw chains do not survive a reboot, and ufw reloads that file at boot. The allow is the port *inside* the
+  container, not the published one — DNAT has already rewritten the destination by the time any filter rule
+  runs, so allowing the host's port would deny every packet and take the app offline. And the deny matches
+  the interface traffic is leaving on rather than an RFC1918 destination, so a box that also forwards for
+  something else (a VPN, a router) is unaffected; containers still reach out and reach each other.
+
+  Opening another container port is plain ufw: `sudo ufw route allow proto tcp from any to any port 5432`.
+  Opt out with `--no-firewall`, which now also opts out of this. The block carries a signature of its own
+  rules and ports that the host probe reads back, so a deploy that changes `--port` rewrites it and an
+  unchanged box stays a no-op.
+
 ### Changed
+- **BREAKING: the operator dashboard moved from `/_ops` to `/_rask`.** Rask already reserved `/_rask` for
+  itself — scoped assets are served from `/_rask/a/{hash}.{ext}`, and the live runtime owns
+  `/_rask/auth/redeem`, `/_rask/upload/{sessionId}` and `/_rask/download/{sessionId}/{token}` — so `/_ops`
+  was a second framework-owned prefix carved out of an app's URL space for no reason beyond history. One
+  prefix is now one prefix. Update any bookmark, reverse-proxy rule or IP allow-list that named `/_ops`;
+  nothing else changes, and the pages, policy and panels are identical.
+
+  The dashboard's own routes (`/_rask`, `/_rask/queues/{queue}`, `/_rask/cache`, `/_rask/logs`,
+  `/_rask/system`) resolve through the router's catch-all, and the framework's endpoints are literal
+  routes, so the two coexist by ordinary routing precedence. A page whose first segment collided with one
+  of `a`, `auth`, `upload` or `download` would be shadowed and silently 404 — pinned by a test rather than
+  left to a comment.
+
+- **`Rask.Wasm.Hosting` and `Rask.Server` gained host-specific names for `AddRask`/`UseRask`.**
+  `AddRaskWasmHost()` / `UseRaskWasmHost()` and `AddRaskServer()` / `UseRaskServer<TApp>()` behave exactly
+  like the calls they forward to. They exist because an app referencing **both** hosts — which the
+  wasm-hosted `--ops` scaffold now is — cannot say `AddRask()` and mean anything definite: both packages
+  declare one on `IServiceCollection`, and C# does **not** report an ambiguity. The WASM host's overload
+  takes no optional parameters and the server's takes two, so the "fewer defaulted arguments" tie-break
+  silently selects the WASM one; the app then compiles, starts with no live runtime registered, and fails
+  on its first request with a missing-service error naming a type the author never used.
+  `UseRask<TApp>` resolves the other way, so the two collide in opposite directions in one file. The
+  original names are unchanged and remain correct for an app with a single host.
+
 - **The "no `IBrowserFileBackend`" diagnostic now names the fix.** It reported the silent-empty case (added
   in #736) but could only say "register a backend", because none shipped. It now points at
   `Rask.Testing`'s `TestFileBackend`.
 
 ### Fixed
+- **The browser E2E gate's Gantt step could fail on a click that was never delivered.** The bar has to be
+  clicked with `Force` — the bar's own `<text class="bar-label">` covers the `<rect class="bar">`, so
+  Playwright's "receives pointer events" check never passes and an unforced click times out every time,
+  even though a real click works (the label is inside the same `.bar-wrapper` the library binds to). But
+  `Force` skips that check for *every* overlay, including the showcase's `sticky-top` `.app-navbar`: when
+  the pre-click scroll parked the bar underneath it, the click landed on the navbar, the chart never saw
+  it, and the assertion waited out its timeout for a log line that could not arrive — with nothing in the
+  failure naming the navbar, so it read as a flake and cost a push.
+
+  Plain retries do not fix that (measured: 6/6 still lost) — the bar *is* in the viewport, merely covered,
+  so neither Playwright nor `scrollIntoView` finds anything to correct and every retry repeats the same
+  dead click. The page itself has to be moved, by a hit test that says the bar's centre really belongs to
+  the bar.
+
+  But aiming alone is not enough either, which the gate then demonstrated: a run with a clean hit test
+  still lost the click, and the chart's own `popup-wrapper` was left **empty** — proof the library was
+  never sent the event. A hit test only describes the instant it ran, and this guide is thousands of
+  pixels tall and still settling, so the layout moves between the aim and the click. So the step now aims,
+  clicks, checks that the chart logged it, and re-aims against the current layout if it did not — and
+  fails naming what is over the bar, or that the click keeps arriving nowhere, rather than leaving the
+  next assertion to time out. Re-clicking is safe by construction: a click that landed never reaches the
+  retry. Verified 6/6 on the host that failed, with the network fault that destabilised the layout still
+  present.
+
+- **Referencing two Rask host packages made the build fail in generated code.** `Rask.Server`, `Rask.Wasm`
+  and `Rask.Native` each pack their own copy of `analyzers/dotnet/cs/Rask.Generators.dll`, so referencing
+  any one of them is enough to get the generator. Reference **two** and NuGet hands csc both copies at
+  different package paths, which Roslyn reads as two distinct generators: both run, both emit
+  `RaskBuilderSetters.g.cs`, and the build dies with `CS0101 ... already contains a definition for
+  RaskBuilderSetters<Assembly>` pointing at a file the author never wrote. The shared core targets now
+  deduplicate the analyzer payload by file name (the paths are what differ; the copies are byte-identical)
+  before the compiler reads `@(Analyzer)`.
+
+  Nothing hit this before because no supported composition referenced two host packages. The wasm-hosted
+  `--ops` scaffold is the first, pulling in `Rask.Wasm.Hosting` (and with it `Rask.Wasm`) alongside
+  `Rask.Server`.
+
+- **Two hosts in one app fought over the scoped-asset endpoint.** `Rask.Server` and `Rask.Wasm.Hosting`
+  both map `/_rask/a/{hash}.css` and `.js`. Two endpoints with an identical route template and identical
+  precedence are accepted at startup and then throw `AmbiguousMatchException` on the first request for a
+  scoped stylesheet — an app that boots clean and serves an unstyled 500. It is now mapped at most once
+  per app, and the two handlers were made interchangeable first: both resolve a registry miss through the
+  published bundle's baked files, so whichever host maps it serves the same bytes and the order of the two
+  `UseRask` calls stops being load-bearing.
+
 - **The SQLite docs said EF Core's `SaveChanges` transaction was `DEFERRED`. It never was.**
   `docs/sqlite.md` told you to wrap read-then-write EF work in `BeginImmediate` (nested inside
   `IExecutionStrategy.ExecuteAsync`) to avoid an unretryable lock-upgrade dead-lock. That ceremony

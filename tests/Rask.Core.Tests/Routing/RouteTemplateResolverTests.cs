@@ -53,9 +53,8 @@ public sealed partial class RouteTemplateResolverUnannotatedPage : Component
     protected override Component? Render() => Span;
 }
 
-public sealed partial class RouteTemplateResolverPage : Page
+[Route("/__resolver-test/page")]
+public sealed partial class RouteTemplateResolverPage : Component
 {
-    protected override string Route => "/__resolver-test/page";
-
     protected override Component? Render() => Span;
 }

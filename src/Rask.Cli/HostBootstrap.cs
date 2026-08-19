@@ -10,7 +10,13 @@ namespace Rask.Cli;
 /// allowed through the firewall on top of whatever <c>sshd -T</c> reports — those differ when sshd is
 /// socket-activated, and the port we're using is the one we cannot afford to close.
 /// </param>
-internal sealed record BootstrapOptions(string? DeployUser, bool Firewall, bool HardenSsh, int? PublishedPort, int? ConnectPort = null)
+/// <param name="ContainerPort">
+/// The port <em>inside</em> the app container that <see cref="PublishedPort"/> maps to. Needed on top
+/// of the published port because Docker's DNAT happens in <c>nat/PREROUTING</c>, <em>before</em> the
+/// filter rules run: by the time a packet reaches <c>DOCKER-USER</c> its destination port is already
+/// the container's, so that — not the host's — is the number the firewall has to allow.
+/// </param>
+internal sealed record BootstrapOptions(string? DeployUser, bool Firewall, bool HardenSsh, int? PublishedPort, int? ConnectPort = null, int? ContainerPort = null)
 {
     /// <summary>The default non-root login <c>rask deploy</c> creates on a box it's handed as root.</summary>
     public const string DefaultDeployUser = "deploy";
@@ -68,6 +74,31 @@ internal static class HostBootstrap
 
     /// <summary>How long the guard waits before assuming we're locked out and reverting.</summary>
     internal const string GuardDelay = "5min";
+
+    /// <summary>
+    /// ufw's own tail rules file. Our container rules go here rather than into a live <c>iptables</c>
+    /// call because ufw reloads this file at boot — a raw chain would silently vanish on the first
+    /// reboot and quietly hand back the exposure.
+    /// </summary>
+    internal const string AfterRules = "/etc/ufw/after.rules";
+
+    /// <summary>The chain holding the container default-deny. Ours alone, so it's rewritten wholesale.</summary>
+    internal const string DockerChain = "RASK-DOCKER";
+
+    /// <summary>
+    /// Fences for the block we own inside <see cref="AfterRules"/>, so re-running rewrites our rules
+    /// and never the user's. Deliberately free of spaces and quotes: they're spliced into an unquoted
+    /// <c>sed</c> address inside the guard's own <c>sh -c '…'</c>.
+    /// </summary>
+    internal const string BlockBegin = "###RASK-DOCKER-BEGIN";
+
+    internal const string BlockEnd = "###RASK-DOCKER-END";
+
+    /// <summary>
+    /// Bumped whenever the rules inside the block change, so an existing block is recognised as stale
+    /// even when it allows the same ports. It's the first half of the signature the probe reads back.
+    /// </summary>
+    internal const string RulesVersion = "v1";
 
     /// <summary>
     /// Build the plan. Order within <see cref="BootstrapPlan.Preparation"/> and
@@ -136,10 +167,13 @@ internal static class HostBootstrap
 
     private static void AddFirewall(HostFacts facts, BootstrapOptions options, List<BootstrapStep> risky, List<string> warnings)
     {
-        // Already firewalled — the box's own rules are the user's business. Checked first so a ready
-        // host stays a silent no-op rather than warning about ports we no longer need to know.
+        // Already firewalled — the box's own rules are the user's business, so we don't touch its allow
+        // list. What we do still fix is that ufw isn't actually in the path of a published container
+        // port (see AddDockerFirewall): a box with an active ufw is precisely the one whose owner
+        // believes "deny incoming" already covers Docker.
         if (facts.UfwActive)
         {
+            AddDockerFirewall(facts, options, risky, warnings);
             return;
         }
 
@@ -197,6 +231,81 @@ internal static class HostBootstrap
             Privileged(string.Join('\n', script), facts.IsRoot),
             // ufw was inactive before this step, so disabling it restores exactly the prior state.
             Undo: "ufw --force disable;"));
+
+        AddDockerFirewall(facts, options, risky, warnings);
+    }
+
+    /// <summary>
+    /// Make the firewall apply to container ports too — the step that turns "deny everything else
+    /// inbound" from a claim into a fact.
+    ///
+    /// <para>Docker publishes a port by writing its own iptables rules: a DNAT in
+    /// <c>nat/PREROUTING</c> and an accept reached through <c>filter/FORWARD</c>. ufw's rules live on
+    /// <c>INPUT</c>, which forwarded traffic never touches, so <c>ufw deny</c> has no bearing on
+    /// anything <c>docker run -p</c> exposes. Enabling ufw next to Docker and saying nothing therefore
+    /// buys a false sense of security: <c>ufw status</c> reports a port closed while the internet can
+    /// reach it.</para>
+    ///
+    /// <para>The fix is Docker's own supported hook, <c>DOCKER-USER</c> — the chain it consults first
+    /// and never writes to itself. We give it a default-deny for traffic arriving from off the box and
+    /// RETURN only what this deploy actually publishes. Three properties matter and each is why a line
+    /// is shaped the way it is:</para>
+    /// <list type="bullet">
+    /// <item>It lives in <c>/etc/ufw/after.rules</c>, not in a one-off <c>iptables</c> call, because
+    /// raw chains do not survive a reboot — ufw reloads that file at boot, so the rules come back.</item>
+    /// <item>It denies on the <em>outbound</em> interface (into a Docker bridge) rather than on
+    /// destination address. Matching RFC1918 destinations — the widespread recipe — would also drop a
+    /// box's unrelated forwarding, breaking a VPN or router that happens to run on the same host.</item>
+    /// <item><c>DOCKER-USER</c> jumps to ufw's own <c>ufw-user-forward</c> first, so opening a
+    /// container port later is plain ufw (<c>ufw route allow</c>) rather than a Rask-specific ritual.</item>
+    /// </list>
+    /// </summary>
+    private static void AddDockerFirewall(HostFacts facts, BootstrapOptions options, List<BootstrapStep> risky, List<string> warnings)
+    {
+        // The ports to allow are the CONTAINER's, not the host's — DNAT has already rewritten the
+        // destination by the time DOCKER-USER sees the packet. In domain mode the only published
+        // container is Caddy (80:80 and 443:443, so the numbers coincide); in port mode it's the app,
+        // whose --port maps to --container-port.
+        int[] allowed;
+        if (options.PublishedPort is null)
+        {
+            allowed = [80, 443];
+        }
+        else if (options.ContainerPort is { } containerPort)
+        {
+            allowed = [containerPort];
+        }
+        else
+        {
+            // We know a port is published but not what it maps to inside the container, so we can't
+            // tell which port to keep open. Denying by default here would take the app off the
+            // internet — refuse the step instead of guessing at the cost of the thing being deployed.
+            warnings.Add("Docker's published ports are left outside the firewall — Rask couldn't tell which container port this app's --port maps to, and a default-deny it can't aim would take the app offline.");
+            return;
+        }
+
+        // What the block on the box would have to say to be the one we want. It carries the rule format
+        // as well as the ports, so a Rask that changes the rules refreshes an old block rather than
+        // trusting a port list that happens to match.
+        var signature = $"{RulesVersion}:{string.Join(',', allowed.Select(p => p.ToString(CultureInfo.InvariantCulture)))}";
+        if (string.Equals(facts.DockerFirewall, signature, StringComparison.Ordinal))
+        {
+            return; // already exactly this — the second and every later deploy stays a no-op
+        }
+
+        var rules = string.Join('\n', allowed.Select(p =>
+            $"-A {DockerChain} -p tcp -m tcp --dport {p.ToString(CultureInfo.InvariantCulture)} -j RETURN"));
+        var opened = string.Join(", ", allowed.Select(p => p.ToString(CultureInfo.InvariantCulture)));
+
+        risky.Add(new BootstrapStep(
+            $"Make Docker's published ports obey the firewall (allow {opened}; deny every other container port)",
+            Privileged(DockerFirewallScript(signature, rules), facts.IsRoot),
+            // Strip our block and reload, then tear the chain down in the live ruleset too — a reload
+            // alone leaves the already-loaded rules in place. No single quotes anywhere: this string is
+            // spliced into the guard's own `sh -c '…'` (see ArmGuardScript).
+            Undo: $"sed -i /{BlockBegin}/,/{BlockEnd}/d {AfterRules}; ufw reload >/dev/null 2>&1 || true; "
+                + $"iptables -D DOCKER-USER -j {DockerChain} 2>/dev/null || true; iptables -D DOCKER-USER -j ufw-user-forward 2>/dev/null || true; "
+                + $"iptables -F {DockerChain} 2>/dev/null || true; iptables -X {DockerChain} 2>/dev/null || true;"));
     }
 
     // ── SSH hardening ───────────────────────────────────────────────────────────────────────────────
@@ -297,6 +406,62 @@ internal static class HostBootstrap
         curl -fsSL https://get.docker.com -o /tmp/rask-get-docker.sh
         sh /tmp/rask-get-docker.sh
         rm -f /tmp/rask-get-docker.sh
+        """;
+
+    /// <summary>
+    /// Install (or refresh) the <c>DOCKER-USER</c> block in <see cref="AfterRules"/> and load it the
+    /// way ufw does. The whole block is regenerated every time and fenced by markers, so a re-deploy
+    /// replaces it exactly rather than appending — and the <c>-F</c> lines make loading it twice
+    /// produce the same ruleset as loading it once (ufw restores with <c>--noflush</c>, so a chain we
+    /// only appended to would grow a duplicate set on every reload).
+    ///
+    /// <para>A copy is kept until ufw has accepted the file. A rules file ufw rejects fails the reload
+    /// and would leave the box with no firewall at all, so the failure path puts the original back and
+    /// reloads again before reporting — never a half-applied firewall.</para>
+    /// </summary>
+    private static string DockerFirewallScript(string signature, string portRules) => $$"""
+        set -e
+        [ -f {{AfterRules}} ] || { echo "rask: {{AfterRules}} is missing, so there is no ufw to put Docker's published ports behind" >&2; exit 1; }
+        cp {{AfterRules}} {{AfterRules}}.rask-bak
+        awk '/^{{BlockBegin}}/{skip=1} skip!=1{print} /^{{BlockEnd}}/{skip=0}' {{AfterRules}}.rask-bak > {{AfterRules}}.rask-new
+        cat >> {{AfterRules}}.rask-new <<'RASK_RULES'
+        {{BlockBegin}} {{signature}} managed by rask deploy; this block is rewritten whenever it goes stale
+        # Docker publishes a port with its own iptables rules, which are reached through FORWARD and so
+        # never meet ufw's INPUT rules. DOCKER-USER is the hook Docker consults first and never writes
+        # to itself: default-deny here is what makes `ufw deny` true for containers as well.
+        *filter
+        :DOCKER-USER - [0:0]
+        :{{DockerChain}} - [0:0]
+        -F DOCKER-USER
+        -F {{DockerChain}}
+        # ufw's own forward rules first, so `ufw route allow ...` is how you open another container port.
+        -A DOCKER-USER -j ufw-user-forward
+        -A DOCKER-USER -j {{DockerChain}}
+        # Replies to connections a container opened stay allowed, or nothing could reach out.
+        -A {{DockerChain}} -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN
+        # Traffic already inside the box (host, container-to-container) isn't "incoming".
+        -A {{DockerChain}} -i lo -j RETURN
+        -A {{DockerChain}} -i docker0 -j RETURN
+        -A {{DockerChain}} -i br-+ -j RETURN
+        # What this deploy publishes, on the CONTAINER port: PREROUTING has already rewritten it.
+        {{portRules}}
+        # Everything else being forwarded INTO a Docker bridge. Matching the outgoing interface rather
+        # than an RFC1918 destination keeps this off a box's unrelated forwarding (a VPN, a router).
+        -A {{DockerChain}} -o docker0 -j DROP
+        -A {{DockerChain}} -o br-+ -j DROP
+        COMMIT
+        {{BlockEnd}}
+        RASK_RULES
+        chmod 640 {{AfterRules}}.rask-new
+        mv {{AfterRules}}.rask-new {{AfterRules}}
+        if ! ufw reload >/dev/null 2>&1; then
+          mv {{AfterRules}}.rask-bak {{AfterRules}}
+          ufw reload >/dev/null 2>&1 || true
+          echo "rask: ufw wouldn't load the Docker rules — {{AfterRules}} has been put back as it was" >&2
+          exit 1
+        fi
+        rm -f {{AfterRules}}.rask-bak
+        iptables -C DOCKER-USER -j {{DockerChain}} 2>/dev/null || { echo "rask: the Docker firewall rules didn't take effect" >&2; exit 1; }
         """;
 
     private const string EnsureUfwInstalled = """

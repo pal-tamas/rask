@@ -10,10 +10,9 @@ namespace Rask.Example.Shop.Features.Auth;
 // in its own component that injects IUserProvider, so it reads the freshly-authenticated principal — no
 // manual Changed subscription.
 [Authorize]
-public sealed partial class MembersPage : Page
+[Route("members")]
+public sealed partial class MembersPage : Component
 {
-    protected override string Route => "members";
-
     protected override Component? Render() =>
         Div.Class("welcome-card")[
             Authorize

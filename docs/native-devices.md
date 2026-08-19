@@ -116,10 +116,9 @@ A **`Screen`** is a `Page` that also declares the native chrome around it. Inste
 the current path to decide what the header should say, each screen names its own bars:
 
 ```csharp
+[Route("/todos")]
 public sealed class TodosScreen : Screen
 {
-    protected override string Route => "/todos";
-
     protected override Component? HeaderBar => AppBar.Title("Todos");
 
     protected override Component? Render() => Div[/* the HTML body */];
@@ -140,7 +139,7 @@ Three properties are worth knowing:
 - **The slots are hoisted, not rendered inline.** They're walked inside the screen's own scope — so a bar
   button's `OnClick` attributes back to the screen and re-renders it like any callback — but a native bar
   emits no HTML, so nothing leaks into the WebView markup.
-- **Chrome merges deepest-wins, per kind.** A layout screen (a [`Parent`](routing.md#nested-routes--parent--outlet))
+- **Chrome merges deepest-wins, per kind.** A layout screen (a [`[ParentRoute]`](routing.md#nested-routes--parentroute--outlet))
   supplies the `TabBar` once and each leaf screen supplies its own `HeaderBar`; the leaf's header beats the
   layout's, and both survive.
 - **The slots are walked on every host**, and what they render is the bar's own business — no `IsNative`
@@ -204,6 +203,8 @@ screen emits no markup for either. On Server and WASM the same declaration rende
     <div class="rask-tab-badge">3</div></a>
 </div>
 ```
+
+<!-- demo:chrome-bars -->
 
 Three things that are deliberate:
 

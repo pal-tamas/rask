@@ -238,8 +238,8 @@ public sealed class ProjectGeneratorTests
 
         // The welcome page is its own Features/Home slice, Bootstrap-styled (no scoped .css to pair with).
         var home = files["Features/Home/HomePage.cs"];
-        Assert.Contains("protected override string Route => \"/\";", home, StringComparison.Ordinal);
-        Assert.Contains("public sealed partial class HomePage : Page", home, StringComparison.Ordinal);
+        Assert.Contains("[Route(\"/\")]", home, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class HomePage : Component", home, StringComparison.Ordinal);
         Assert.Contains("BsCard", home, StringComparison.Ordinal);
         // The welcome copy points at the file it actually lives in.
         Assert.Contains("Code[\"HomePage.cs\"]", home, StringComparison.Ordinal);
@@ -526,7 +526,7 @@ public sealed class ProjectGeneratorTests
             Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{docker}] missing {expected}");
         }
 
-        Assert.Contains("public sealed partial class HomePage : Page", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class HomePage : Component", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
 
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
         Assert.Equal(auth, files.ContainsKey("Features/Auth/Auth.cs"));
@@ -723,8 +723,8 @@ public sealed class ProjectGeneratorTests
 
         // The welcome page is its own Features/Home slice; the shell hosts the native chrome + Router.
         var home = local["Features/Home/HomePage.cs"];
-        Assert.Contains("protected override string Route => \"/\";", home, StringComparison.Ordinal);
-        Assert.Contains("public sealed partial class HomePage : Page", home, StringComparison.Ordinal);
+        Assert.Contains("[Route(\"/\")]", home, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class HomePage : Component", home, StringComparison.Ordinal);
 
         // The tab bar linked Counter, which is gone. It may survive as a commented-out suggestion, but
         // nothing may still render it — an unresolved Counter() reference would not compile.
@@ -782,13 +782,17 @@ public sealed class ProjectGeneratorTests
         "App.Server/appsettings.json", "App.Server/appsettings.Production.json",
     ];
 
-    private static Dictionary<string, string> GenerateWasmHosted(bool auth = false, bool pwa = false, bool docker = false) =>
-        Index(ProjectGenerator.GenerateWasmHosted(Root, "App", auth, pwa, docker, Version));
+    private static Dictionary<string, string> GenerateWasmHosted(
+        bool auth = false, bool pwa = false, bool docker = false, ServerBatteries? batteries = null) =>
+        Index(ProjectGenerator.GenerateWasmHosted(
+            Root, "App",
+            (batteries ?? new ServerBatteries()) with { Auth = auth, Pwa = pwa, Docker = docker },
+            Version));
 
     [Fact]
     public void WasmHosted_base_emits_the_three_projects_and_restores_the_solution()
     {
-        var result = ProjectGenerator.GenerateWasmHosted(Root, "App", auth: false, pwa: false, docker: false, Version);
+        var result = ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version);
         var files = Index(result);
 
         Assert.Equal(WithHygiene(WasmHostedAlwaysPresent).Order(), files.Keys.Order());
@@ -814,7 +818,7 @@ public sealed class ProjectGeneratorTests
 
         // Each project owns its Client/Server/Shared namespace; the shell + welcome page are the shared ones, re-homed.
         Assert.Contains("namespace App.Client.Features.Shared;", files["App.Client/Features/Shared/App.cs"], StringComparison.Ordinal);
-        Assert.Contains("public sealed partial class HomePage : Page", files["App.Client/Features/Home/HomePage.cs"], StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class HomePage : Component", files["App.Client/Features/Home/HomePage.cs"], StringComparison.Ordinal);
         Assert.Contains("namespace App.Client.Features.Home;", files["App.Client/Features/Home/HomePage.cs"], StringComparison.Ordinal);
         Assert.Contains("namespace App.Shared;", files["App.Shared/Contracts.cs"], StringComparison.Ordinal);
 
@@ -828,8 +832,10 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("App.Client\\App.Client.csproj", server, StringComparison.Ordinal);
         Assert.Contains("ReferenceOutputAssembly=\"false\"", server, StringComparison.Ordinal);
         Assert.Contains("<StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>", server, StringComparison.Ordinal);
-        // The static-file host serves the bundle without running components — non-generic UseRask.
-        Assert.Contains("app.UseRask();", files["App.Server/Program.cs"], StringComparison.Ordinal);
+        // The static-file host serves the bundle without running components — the non-generic call.
+        // Spelled UseRaskWasmHost, not UseRask: with --ops this project also references Rask.Server,
+        // which declares its own UseRask, and the two differ only in what their string argument means.
+        Assert.Contains("app.UseRaskWasmHost();", files["App.Server/Program.cs"], StringComparison.Ordinal);
 
         // The solution lists all three projects, in the .slnx format the SDK reads directly.
         var solution = files["App.slnx"];
@@ -865,8 +871,7 @@ public sealed class ProjectGeneratorTests
     }
 
     private static Dictionary<string, string> GenerateWasmHostedCqrs(bool auth = false) =>
-        Index(ProjectGenerator.GenerateWasmHosted(
-            Root, "App", auth, pwa: false, docker: false, Version, bootstrap: true, cqrs: true));
+        GenerateWasmHosted(auth, batteries: new ServerBatteries { Cqrs = true });
 
     [Fact]
     public void WasmHosted_cqrs_puts_the_messages_in_shared_and_the_handlers_in_the_server()
@@ -913,11 +918,17 @@ public sealed class ProjectGeneratorTests
         var server = files["App.Server/Program.cs"];
         Assert.Contains("AddRaskCqrsServer", server, StringComparison.Ordinal);
 
-        // Mapped BEFORE UseRask, or the SPA fallback answers every message with index.html.
+        // Mapped BEFORE the WASM host, or its SPA fallback answers every message with index.html.
+        //
+        // Both markers are asserted to EXIST before they are ordered. Comparing two IndexOf results
+        // directly is how this test previously passed a rename: `app.UseRask()` became
+        // `app.UseRaskWasmHost()`, IndexOf returned -1, and `mapIndex < -1` fails — which happened to be
+        // the right answer for the wrong reason, and would have read as a real ordering break.
         var mapIndex = server.IndexOf("MapRaskCqrs", StringComparison.Ordinal);
-        var useRaskIndex = server.IndexOf("app.UseRask()", StringComparison.Ordinal);
-        Assert.True(mapIndex > 0, "MapRaskCqrs is missing from the generated host.");
-        Assert.True(mapIndex < useRaskIndex, "MapRaskCqrs must be mapped before UseRask's SPA fallback.");
+        var hostIndex = server.IndexOf("app.UseRaskWasmHost()", StringComparison.Ordinal);
+        Assert.True(mapIndex >= 0, "MapRaskCqrs is missing from the generated host.");
+        Assert.True(hostIndex >= 0, "app.UseRaskWasmHost() is missing — this test's ordering marker moved.");
+        Assert.True(mapIndex < hostIndex, "MapRaskCqrs must be mapped before the WASM host's SPA fallback.");
     }
 
     [Fact]

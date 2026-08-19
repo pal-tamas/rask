@@ -34,16 +34,14 @@ public sealed class PageBaselineTests
     [InlineData(typeof(TodosPage))]
     public void Page_IsRoutableOrTheNotFoundPage(Type pageType)
     {
-        // A routable component derives from Page and names its URL in a Route override. The template
-        // itself is deliberately NOT reflectable — it is read at compile time into the route registry —
-        // so what is checked here is routability, not the presence of an attribute. TodosPage still
-        // carries [Route] because it answers three templates; both spellings count.
-        var isPage = typeof(Page).IsAssignableFrom(pageType);
+        // A routable component carries [Route] — repeated once per URL it answers — or is the [NotFound]
+        // catch-all. The templates are read at compile time into the route registry, so what is checked
+        // here is that the class is declared routable at all.
         var hasRouteAttribute = pageType.GetCustomAttributes<RouteAttribute>().Any();
         var hasNotFound = pageType.GetCustomAttributes<NotFoundAttribute>().Any();
 
-        Assert.True(isPage || hasRouteAttribute || hasNotFound,
-            $"{pageType.Name} should derive from Page or be the [NotFound] page");
+        Assert.True(hasRouteAttribute || hasNotFound,
+            $"{pageType.Name} should carry [Route] or be the [NotFound] page");
     }
 
     [Fact]

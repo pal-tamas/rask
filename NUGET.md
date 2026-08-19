@@ -14,10 +14,9 @@ no JavaScript to write** — and the *same* component code runs server-rendered 
 updates or fully client-side on WebAssembly.
 
 ```csharp
-public sealed class Counter : Page
+[Route("/counter")]
+public sealed class Counter : Component
 {
-    protected override string Route => "/counter";
-
     private int _count;
 
     protected override Component? Render() =>
@@ -65,7 +64,7 @@ dotnet add package Rask.Mail              # transactional email queue
 dotnet add package Rask.Cache             # read-through cache
 dotnet add package Rask.Outbox            # transactional outbox for domain events
 dotnet add package Rask.Logging           # durable log store (its own SQLite file)
-dotnet add package Rask.Dashboard         # the /_ops operator dashboard over every pillar
+dotnet add package Rask.Dashboard         # the /_rask operator dashboard over every pillar
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 ```

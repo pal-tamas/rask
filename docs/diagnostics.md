@@ -82,7 +82,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
-| [RASK047](#rask047) | Error | `Page.Route` must be a compile-time constant |
+| RASK047 | — | *retired* — routes are `[Route]` attribute arguments, constant by construction |
 | [RASK048](#rask048) | Error | HTML nested inside a native screen |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 
@@ -1047,38 +1047,9 @@ and the reconciliation note in [the live-rendering codec](architecture/live-rend
 ---
 
 ## RASK047
-**`Page.Route` must be a compile-time constant** · Error
-
-A routable component is a `Page`, and it declares the URL it answers by overriding `Route`:
-
-```csharp
-public sealed class ProductPage : Page
-{
-    protected override string Route => "/products/{id:int}";   // ✓
-}
-```
-
-That value is read **at compile time**. It is what builds the route table, the typed
-`ProductPage.Url(42)` formatter, and the `ProductPage.Go(42)` navigation helper — none of which can be
-generated from a string the compiler cannot see. So a computed override is an error rather than a page
-that silently never registers:
-
-```csharp
-protected override string Route => BuildRoute();          // ✗ RASK047
-protected override string Route => _settings.BasePath;    // ✗ RASK047
-```
-
-Constant *expressions* are fine — the check is constancy, not literalness, so a `const` and constant
-concatenation both work:
-
-```csharp
-private const string Root = "/products";
-protected override string Route => Root + "/{id:int}";    // ✓
-```
-
-**Fix:** return a string literal or a `const`. If the route genuinely has to vary at run time, it isn't a
-route — register it yourself with `RouteRegistry.Add(new RouteRegistration(typeof(MyPage), template, null))`,
-which is also the escape hatch for giving one page more than one URL.
+*Retired.* It reported a `Page.Route` override that was not a compile-time constant. Routes are declared with
+`[Route("...")]`, whose argument is an attribute argument and therefore constant by construction, so the failure
+it guarded can no longer be written. The id is retired, not reused.
 
 ## RASK048
 **HTML nested inside a native screen** · Error

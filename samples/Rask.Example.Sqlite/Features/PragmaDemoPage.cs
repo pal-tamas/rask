@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Rask.Core.Routing;
+using Rask.Data;
 using Rask.Example.Sqlite.Data;
 using Rask.SQLite;
 
@@ -11,13 +13,14 @@ namespace Rask.Example.Sqlite.Features;
 // then let the visitor fire a burst of concurrent writers and watch every one commit — the payoff of
 // WAL + busy_timeout that a stock `UseSqlite` would turn into "database is locked". The second demo fires
 // the same burst through the raw factory's BEGIN IMMEDIATE + non-blocking fair-interval retry.
+[Route("/")]
 public sealed partial class PragmaDemoPage(
     IDbContextFactory<DemoDbContext> dbContextFactory,
-    IRaskSqliteConnectionFactory connectionFactory) : Page
+    IRaskSqliteConnectionFactory connectionFactory) : Component
 {
-    protected override string Route => "/";
-
     private const int Workers = 25;
+
+    private const int ImportRows = 10_000;
 
     // The wiring this sample is about — shown above the live result (code-above-result).
     private const string WiringSnippet =
@@ -43,6 +46,16 @@ public sealed partial class PragmaDemoPage(
         // (thread-free) until it frees — no "database is locked", no blocked thread.
         """;
 
+    // The bulk import this sample's third card is about — shown above its live result.
+    private const string BulkSnippet =
+        """
+        // Batched through the change tracker: the interceptors still stamp and publish per row.
+        await db.BulkInsertAsync(readings);
+
+        // Or straight to the provider — one prepared INSERT, no entity entries, no interceptors.
+        await db.BulkInsertAsync(readings, o => o.SkipChangeTracking = true);
+        """;
+
     private IReadOnlyList<(string Name, string Value)> _pragmas = [];
     private int _rowCount;
     private bool _loaded;
@@ -52,6 +65,9 @@ public sealed partial class PragmaDemoPage(
     private int _immediateAttempted;
     private int _immediateSucceeded;
     private bool _immediateHasRun;
+    private long _trackedMs;
+    private long _rawMs;
+    private int _readingCount;
 
     protected override Component? HeadAssets => Title["SQLite pragmas — Rask"];
 
@@ -74,6 +90,7 @@ public sealed partial class PragmaDemoPage(
             ("journal_size_limit", ReadPragma(connection, "journal_size_limit")),
         ];
         _rowCount = await db.WriteLogs.CountAsync(CancellationToken);
+        _readingCount = await db.Readings.CountAsync(CancellationToken);
 
         await db.Database.CloseConnectionAsync();
         _loaded = true;
@@ -138,6 +155,33 @@ public sealed partial class PragmaDemoPage(
         _immediateAttempted = Workers;
         _immediateSucceeded = results.Count(succeeded => succeeded);
         _immediateHasRun = true;
+
+        await LoadAsync();
+    }
+
+    // Import the same rows both ways and time each. The tracked path materialises an entry per row and
+    // runs every interceptor; the raw path binds one prepared INSERT per row and runs none — which is what
+    // the elapsed times are there to make concrete.
+    private async Task ImportAsync(bool skipChangeTracking)
+    {
+        var readings = Enumerable.Range(0, ImportRows)
+            .Select(i => Reading.Create($"sensor-{i % 16}", i * 0.5))
+            .ToArray();
+
+        await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
+
+        var stopwatch = Stopwatch.StartNew();
+        await db.BulkInsertAsync(readings, o => o.SkipChangeTracking = skipChangeTracking, CancellationToken);
+        stopwatch.Stop();
+
+        if (skipChangeTracking)
+        {
+            _rawMs = stopwatch.ElapsedMilliseconds;
+        }
+        else
+        {
+            _trackedMs = stopwatch.ElapsedMilliseconds;
+        }
 
         await LoadAsync();
     }
@@ -221,6 +265,61 @@ public sealed partial class PragmaDemoPage(
                     ],
                     Pre.Class("mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
                         Code[ImmediateSnippet]
+                    ]
+                ],
+
+                // Third demo: loading many rows at once — the bulk insert EF Core leaves out.
+                Div.Class("card shadow-sm mb-4 mt-4")[
+                    Div.Class("card-header bg-dark text-light py-2")[
+                        I.Class("bi bi-code-slash me-2"), "Bulk import"
+                    ],
+                    Pre.Class("mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
+                        Code[BulkSnippet]
+                    ]
+                ],
+
+                Div.Class("card shadow-sm")[
+                    Div.Class("card-body")[
+                        H2.Class("h5")["Bulk import"],
+                        P.Class("text-secondary")[
+                            "EF Core has ", Code["ExecuteUpdate"], " and ", Code["ExecuteDelete"],
+                            " but no bulk insert, so ", Code["BulkInsertAsync"], " is Rask's. Import ",
+                            ImportRows.ToString("N0", CultureInfo.InvariantCulture),
+                            " readings each way and compare: the batched path keeps every interceptor running, ",
+                            "while ", Code["SkipChangeTracking"],
+                            " writes them with one prepared INSERT and no entity entries at all."
+                        ],
+                        Div.Class("d-flex gap-2 flex-wrap")[
+                            Button.Type("button").Id("import-tracked").Class("btn btn-outline-primary")
+                                .OnClickAsync(() => ImportAsync(skipChangeTracking: false))[
+                                I.Class("bi bi-database-add me-1"), "Import through the change tracker"
+                            ],
+                            Button.Type("button").Id("import-raw").Class("btn btn-primary")
+                                .OnClickAsync(() => ImportAsync(skipChangeTracking: true))[
+                                I.Class("bi bi-lightning-charge me-1"), "Import with SkipChangeTracking"
+                            ]
+                        ],
+                        Div.Id("import-result").Class("mt-3 mb-0 text-secondary")[
+                            _trackedMs == 0 && _rawMs == 0
+                                ? $"Rows imported so far: {_readingCount.ToString("N0", CultureInfo.InvariantCulture)}."
+                                : (Component)Div[
+                                    _trackedMs == 0
+                                        ? null
+                                        : (Component)Div[
+                                            "Change tracker: ",
+                                            Strong[$"{_trackedMs.ToString("N0", CultureInfo.InvariantCulture)} ms"]
+                                        ],
+                                    _rawMs == 0
+                                        ? null
+                                        : (Component)Div[
+                                            "SkipChangeTracking: ",
+                                            Strong[$"{_rawMs.ToString("N0", CultureInfo.InvariantCulture)} ms"]
+                                        ],
+                                    Div.Class("mt-1")[
+                                        $"Rows imported so far: {_readingCount.ToString("N0", CultureInfo.InvariantCulture)}."
+                                    ]
+                                ]
+                        ]
                     ]
                 ],
 

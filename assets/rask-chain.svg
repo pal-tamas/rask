@@ -1,4 +1,4 @@
-<svg class="rc-svg" role="img" viewBox="0 0 880 580" xmlns="http://www.w3.org/2000/svg"><title>The Counter component being typed, with the IDE&#x27;s completion list and doc comment</title><desc>An editor types a Rask Counter page character by character. As H1[ is written a tooltip explains the indexer; when the caret stops after Button. a completion list opens showing Class, Id, OnClick and Style with each member&#x27;s XML doc summary, then the line finishes as Button.OnClick(() =&gt; _count&#x2B;&#x2B;)[&quot;Click me&quot;].</desc><style>.rc-win { fill: var(--panel, #14141f); }
+<svg class="rc-svg" role="img" viewBox="0 0 880 620" xmlns="http://www.w3.org/2000/svg"><title>The Counter component being typed, with the IDE&#x27;s completion list and doc comment</title><desc>An editor types a Rask Counter page character by character, starting with its [Route(&quot;/counter&quot;)] attribute. As H1[ is written a tooltip explains the indexer; when the caret stops after Button. a completion list opens showing Class, Id, OnClick and Style with each member&#x27;s XML doc summary, then the line finishes as Button.OnClick(() =&gt; _count&#x2B;&#x2B;)[&quot;Click me&quot;].</desc><style>.rc-win { fill: var(--panel, #14141f); }
 .rc-bar { fill: var(--panel-2, #1b1b2a); }
 .rc-edge { fill: none; stroke: var(--line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
 .rc-rule { stroke: var(--line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
@@ -8,20 +8,25 @@
   font-size: 18px;
   fill: var(--ink, #e9e9f2);
 }
+.rc-md { font-size: 17px; }
 .rc-sm { font-size: 15px; }
-.rc-xs { font-size: 13px; }
-.rc-xxs { font-size: 12px; }
+.rc-xs { font-size: 14px; }
+.rc-xxs { font-size: 13px; }
 .rc-mut { fill: var(--muted, #8a8aa4); }
 .rc-soft { fill: var(--ink-soft, #c3c2d6); }
 .rc-kw { fill: var(--accent-ink, #c4b5fd); }
 .rc-ent { fill: var(--accent, #8b5cf6); }
 .rc-mem { fill: var(--ink, #e9e9f2); }
 .rc-str { fill: var(--signal, #34d399); }
+.rc-op { fill: var(--ink-soft, #c3c2d6); }
+.rc-interp { fill: var(--accent-ink, #c4b5fd); }
 .rc-chip { fill: var(--accent, #8b5cf6); opacity: 0.35; }
 /* fill-opacity, not opacity: .rc-hl on the same element has its opacity driven by keyframes,
    and two opacity declarations would let the animation paint a solid block over the row. */
 .rc-hlbar { fill: var(--accent, #8b5cf6); fill-opacity: 0.18; }
-.rc-cv { transform-box: fill-box; transform-origin: 100% 50%; }
+/* transform-origin is per segment — the text's right edge, not the cover's. See the note on
+   the cover's Bleed at the top of the file. */
+.rc-cv { transform-box: fill-box; }
 .rc-ct { fill: var(--accent, #8b5cf6); }
 
 /* Base state == the final frame: everything typed, every hint dismissed. */
@@ -32,83 +37,83 @@
 .rc-hl { opacity: 0; }
 .rc-doc { opacity: 0; }
 .rc-end { opacity: 1; }
-.rc-cv0 { animation: rc-cv0 16s steps(42, end) infinite; }
-@keyframes rc-cv0 { 0%, 1.5% { transform: scaleX(1); } 8.5%, 100% { transform: scaleX(0); } }
-.rc-ct0 { animation: rc-ct0 16s steps(42, end) infinite; }
-@keyframes rc-ct0 { 0%, 1.5% { transform: translateX(0); opacity: 0; } 1.7% { opacity: 1; } 8.5% { transform: translateX(453.6px); opacity: 1; } 8.9%, 100% { opacity: 0; } }
-.rc-cv1 { animation: rc-cv1 16s steps(1, end) infinite; }
-@keyframes rc-cv1 { 0%, 8.5% { transform: scaleX(1); } 9%, 100% { transform: scaleX(0); } }
-.rc-ct1 { animation: rc-ct1 16s steps(1, end) infinite; }
-@keyframes rc-ct1 { 0%, 8.5% { transform: translateX(0); opacity: 0; } 8.7% { opacity: 1; } 9% { transform: translateX(10.8px); opacity: 1; } 9.4%, 100% { opacity: 0; } }
-.rc-cv2 { animation: rc-cv2 16s steps(46, end) infinite; }
-@keyframes rc-cv2 { 0%, 9.5% { transform: scaleX(1); } 17.5%, 100% { transform: scaleX(0); } }
-.rc-ct2 { animation: rc-ct2 16s steps(46, end) infinite; }
-@keyframes rc-ct2 { 0%, 9.5% { transform: translateX(0); opacity: 0; } 9.7% { opacity: 1; } 17.5% { transform: translateX(496.8px); opacity: 1; } 17.9%, 100% { opacity: 0; } }
-.rc-cv3 { animation: rc-cv3 16s steps(19, end) infinite; }
-@keyframes rc-cv3 { 0%, 18% { transform: scaleX(1); } 22%, 100% { transform: scaleX(0); } }
-.rc-ct3 { animation: rc-ct3 16s steps(19, end) infinite; }
-@keyframes rc-ct3 { 0%, 18% { transform: translateX(0); opacity: 0; } 18.2% { opacity: 1; } 22% { transform: translateX(205.2px); opacity: 1; } 22.4%, 100% { opacity: 0; } }
-.rc-cv4 { animation: rc-cv4 16s steps(41, end) infinite; }
+.rc-cv0 { transform-origin: 205.2px 50%; animation: rc-cv0 20s steps(19, end) infinite; }
+@keyframes rc-cv0 { 0%, 1.5% { transform: scaleX(1); } 5.7%, 100% { transform: scaleX(0); } }
+.rc-ct0 { animation: rc-ct0 20s steps(19, end) infinite; }
+@keyframes rc-ct0 { 0%, 1.5% { transform: translateX(0); opacity: 0; } 1.7% { opacity: 1; } 5.7% { transform: translateX(205.2px); opacity: 1; } 6.1%, 100% { opacity: 0; } }
+.rc-cv1 { transform-origin: 507.6px 50%; animation: rc-cv1 20s steps(47, end) infinite; }
+@keyframes rc-cv1 { 0%, 6.2% { transform: scaleX(1); } 16.6%, 100% { transform: scaleX(0); } }
+.rc-ct1 { animation: rc-ct1 20s steps(47, end) infinite; }
+@keyframes rc-ct1 { 0%, 6.2% { transform: translateX(0); opacity: 0; } 6.4% { opacity: 1; } 16.6% { transform: translateX(507.6px); opacity: 1; } 17%, 100% { opacity: 0; } }
+.rc-cv2 { transform-origin: 10.8px 50%; animation: rc-cv2 20s steps(1, end) infinite; }
+@keyframes rc-cv2 { 0%, 17.1% { transform: scaleX(1); } 17.4%, 100% { transform: scaleX(0); } }
+.rc-ct2 { animation: rc-ct2 20s steps(1, end) infinite; }
+@keyframes rc-ct2 { 0%, 17.1% { transform: translateX(0); opacity: 0; } 17.3% { opacity: 1; } 17.4% { transform: translateX(10.8px); opacity: 1; } 17.8%, 100% { opacity: 0; } }
+.rc-cv3 { transform-origin: 205.2px 50%; animation: rc-cv3 20s steps(19, end) infinite; }
+@keyframes rc-cv3 { 0%, 17.8% { transform: scaleX(1); } 22%, 100% { transform: scaleX(0); } }
+.rc-ct3 { animation: rc-ct3 20s steps(19, end) infinite; }
+@keyframes rc-ct3 { 0%, 17.8% { transform: translateX(0); opacity: 0; } 18% { opacity: 1; } 22% { transform: translateX(205.2px); opacity: 1; } 22.4%, 100% { opacity: 0; } }
+.rc-cv4 { transform-origin: 442.8px 50%; animation: rc-cv4 20s steps(41, end) infinite; }
 @keyframes rc-cv4 { 0%, 22.5% { transform: scaleX(1); } 30%, 100% { transform: scaleX(0); } }
-.rc-ct4 { animation: rc-ct4 16s steps(41, end) infinite; }
+.rc-ct4 { animation: rc-ct4 20s steps(41, end) infinite; }
 @keyframes rc-ct4 { 0%, 22.5% { transform: translateX(0); opacity: 0; } 22.7% { opacity: 1; } 30% { transform: translateX(442.8px); opacity: 1; } 30.4%, 100% { opacity: 0; } }
-.rc-cv5 { animation: rc-cv5 16s steps(1, end) infinite; }
+.rc-cv5 { transform-origin: 10.8px 50%; animation: rc-cv5 20s steps(1, end) infinite; }
 @keyframes rc-cv5 { 0%, 30% { transform: scaleX(1); } 31%, 100% { transform: scaleX(0); } }
-.rc-ct5 { animation: rc-ct5 16s steps(1, end) infinite; }
+.rc-ct5 { animation: rc-ct5 20s steps(1, end) infinite; }
 @keyframes rc-ct5 { 0%, 30% { transform: translateX(0); opacity: 0; } 30.2% { opacity: 1; } 31% { transform: translateX(10.8px); opacity: 1; } 31.4%, 100% { opacity: 0; } }
-.rc-cv6 { animation: rc-cv6 16s steps(14, end) infinite; }
+.rc-cv6 { transform-origin: 151.2px 50%; animation: rc-cv6 20s steps(14, end) infinite; }
 @keyframes rc-cv6 { 0%, 31.5% { transform: scaleX(1); } 35.5%, 100% { transform: scaleX(0); } }
-.rc-ct6 { animation: rc-ct6 16s steps(14, end) infinite; }
+.rc-ct6 { animation: rc-ct6 20s steps(14, end) infinite; }
 @keyframes rc-ct6 { 0%, 31.5% { transform: translateX(0); opacity: 0; } 31.7% { opacity: 1; } 35.5% { transform: translateX(151.2px); opacity: 1; } 35.9%, 100% { opacity: 0; } }
-.rc-cv7 { animation: rc-cv7 16s steps(30, end) infinite; }
+.rc-cv7 { transform-origin: 324px 50%; animation: rc-cv7 20s steps(30, end) infinite; }
 @keyframes rc-cv7 { 0%, 42.5% { transform: scaleX(1); } 49%, 100% { transform: scaleX(0); } }
-.rc-ct7 { animation: rc-ct7 16s steps(30, end) infinite; }
+.rc-ct7 { animation: rc-ct7 20s steps(30, end) infinite; }
 @keyframes rc-ct7 { 0%, 42.5% { transform: translateX(0); opacity: 0; } 42.7% { opacity: 1; } 49% { transform: translateX(324px); opacity: 1; } 49.4%, 100% { opacity: 0; } }
-.rc-cv8 { animation: rc-cv8 16s steps(7, end) infinite; }
+.rc-cv8 { transform-origin: 75.6px 50%; animation: rc-cv8 20s steps(7, end) infinite; }
 @keyframes rc-cv8 { 0%, 49.5% { transform: scaleX(1); } 53%, 100% { transform: scaleX(0); } }
-.rc-ct8 { animation: rc-ct8 16s steps(7, end) infinite; }
+.rc-ct8 { animation: rc-ct8 20s steps(7, end) infinite; }
 @keyframes rc-ct8 { 0%, 49.5% { transform: translateX(0); opacity: 0; } 49.7% { opacity: 1; } 53% { transform: translateX(75.6px); opacity: 1; } 53.4%, 100% { opacity: 0; } }
-.rc-cv9 { animation: rc-cv9 16s steps(35, end) infinite; }
+.rc-cv9 { transform-origin: 378px 50%; animation: rc-cv9 20s steps(35, end) infinite; }
 @keyframes rc-cv9 { 0%, 71.5% { transform: scaleX(1); } 77.5%, 100% { transform: scaleX(0); } }
-.rc-ct9 { animation: rc-ct9 16s steps(35, end) infinite; }
+.rc-ct9 { animation: rc-ct9 20s steps(35, end) infinite; }
 @keyframes rc-ct9 { 0%, 71.5% { transform: translateX(0); opacity: 0; } 71.7% { opacity: 1; } 77.5% { transform: translateX(378px); opacity: 1; } 77.9%, 100% { opacity: 0; } }
-.rc-cv10 { animation: rc-cv10 16s steps(2, end) infinite; }
+.rc-cv10 { transform-origin: 21.6px 50%; animation: rc-cv10 20s steps(2, end) infinite; }
 @keyframes rc-cv10 { 0%, 78% { transform: scaleX(1); } 79%, 100% { transform: scaleX(0); } }
-.rc-ct10 { animation: rc-ct10 16s steps(2, end) infinite; }
+.rc-ct10 { animation: rc-ct10 20s steps(2, end) infinite; }
 @keyframes rc-ct10 { 0%, 78% { transform: translateX(0); opacity: 0; } 78.2% { opacity: 1; } 79% { transform: translateX(21.6px); opacity: 1; } 79.4%, 100% { opacity: 0; } }
-.rc-cv11 { animation: rc-cv11 16s steps(1, end) infinite; }
+.rc-cv11 { transform-origin: 10.8px 50%; animation: rc-cv11 20s steps(1, end) infinite; }
 @keyframes rc-cv11 { 0%, 79.5% { transform: scaleX(1); } 80%, 100% { transform: scaleX(0); } }
-.rc-ct11 { animation: rc-ct11 16s steps(1, end) infinite; }
+.rc-ct11 { animation: rc-ct11 20s steps(1, end) infinite; }
 @keyframes rc-ct11 { 0%, 79.5% { transform: translateX(0); opacity: 0; } 79.7% { opacity: 1; } 80% { transform: translateX(10.8px); opacity: 1; } 80.4%, 100% { opacity: 0; } }
-.rc-hint { animation: rc-hint 16s infinite; }
+.rc-hint { animation: rc-hint 20s infinite; }
 @keyframes rc-hint { 0%, 36% { opacity: 0; } 37.5%, 41.5% { opacity: 1; } 42.5%, 100% { opacity: 0; } }
 
-.rc-pop { animation: rc-pop 16s infinite; }
+.rc-pop { animation: rc-pop 20s infinite; }
 @keyframes rc-pop {
   0%, 53.5% { opacity: 0; transform: translateY(-6px); }
   55%, 70% { opacity: 1; transform: none; }
   71.5%, 100% { opacity: 0; transform: translateY(-6px); }
 }
 
-.rc-hl { animation: rc-hl 16s infinite; }
+.rc-hl { animation: rc-hl 20s infinite; }
 @keyframes rc-hl {
   0%, 54.5% { opacity: 0; transform: translateY(0); }
   56%, 59% { opacity: 1; transform: translateY(0); }
-  61%, 63% { opacity: 1; transform: translateY(28px); }
-  65%, 70% { opacity: 1; transform: translateY(56px); }
-  71.5%, 100% { opacity: 0; transform: translateY(56px); }
+  61%, 63% { opacity: 1; transform: translateY(32px); }
+  65%, 70% { opacity: 1; transform: translateY(64px); }
+  71.5%, 100% { opacity: 0; transform: translateY(64px); }
 }
 
-.rc-doc0 { animation: rc-doc0 16s infinite; }
+.rc-doc0 { animation: rc-doc0 20s infinite; }
 @keyframes rc-doc0 { 0%, 55% { opacity: 0; } 56.5%, 59% { opacity: 1; } 60.5%, 100% { opacity: 0; } }
-.rc-doc1 { animation: rc-doc1 16s infinite; }
+.rc-doc1 { animation: rc-doc1 20s infinite; }
 @keyframes rc-doc1 { 0%, 60.5% { opacity: 0; } 61.5%, 63% { opacity: 1; } 64.5%, 100% { opacity: 0; } }
-.rc-doc2 { animation: rc-doc2 16s infinite; }
+.rc-doc2 { animation: rc-doc2 20s infinite; }
 @keyframes rc-doc2 { 0%, 64.5% { opacity: 0; } 65.5%, 70% { opacity: 1; } 71.5%, 100% { opacity: 0; } }
 
-.rc-end { animation: rc-end 16s infinite; }
+.rc-end { animation: rc-end 20s infinite; }
 @keyframes rc-end { 0%, 81% { opacity: 0; } 84%, 100% { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
   .rc-cv, .rc-ct, .rc-hint, .rc-pop, .rc-hl, .rc-doc, .rc-end { animation: none; }
-}</style><g><rect class="rc-win" x="0.5" y="0.5" width="879" height="579" rx="16"></rect><rect class="rc-bar" x="0.5" y="0.5" width="879" height="44" rx="16"></rect><rect class="rc-bar" x="0.5" y="28" width="879" height="17"></rect><line class="rc-rule" x1="0" y1="44.5" x2="880" y2="44.5"></line><rect class="rc-edge" x="0.5" y="0.5" width="879" height="579" rx="16"></rect><circle class="rc-dot" cx="28" cy="22" r="5"></circle><circle class="rc-dot" cx="48" cy="22" r="5"></circle><circle class="rc-dot" cx="68" cy="22" r="5"></circle><text class="rc-t rc-xs rc-mut" x="92" y="27">Counter.cs</text><text class="rc-t rc-xs rc-mut" x="856" y="27" text-anchor="end">no .razor &#xB7; no JavaScript &#xB7; press . and the chain tells you the rest</text></g><g data-rask-key="seg0"><text class="rc-t" x="44" y="86" lengthAdjust="spacing" textLength="453.6"><tspan class="rc-kw">public</tspan><tspan> </tspan><tspan class="rc-kw">sealed</tspan><tspan> </tspan><tspan class="rc-kw">partial</tspan><tspan> </tspan><tspan class="rc-kw">class</tspan><tspan> </tspan><tspan>Counter</tspan><tspan class="rc-mut"> : </tspan><tspan>Page</tspan></text><rect class="rc-win rc-cv rc-cv0" x="44" y="66" width="453.6" height="26"></rect><rect class="rc-ct rc-ct0" x="44" y="67" width="2" height="24"></rect></g><g data-rask-key="seg1"><text class="rc-t" x="44" y="114" lengthAdjust="spacing" textLength="10.8"><tspan class="rc-mut">{</tspan></text><rect class="rc-win rc-cv rc-cv1" x="44" y="94" width="10.8" height="26"></rect><rect class="rc-ct rc-ct1" x="44" y="95" width="2" height="24"></rect></g><g data-rask-key="seg2"><text class="rc-t" x="87.2" y="142" lengthAdjust="spacing" textLength="496.8"><tspan class="rc-kw">protected</tspan><tspan> </tspan><tspan class="rc-kw">override</tspan><tspan> </tspan><tspan class="rc-kw">string</tspan><tspan> </tspan><tspan class="rc-mem">Route</tspan><tspan> </tspan><tspan class="rc-mut">=&gt;</tspan><tspan> </tspan><tspan class="rc-str">&quot;/counter&quot;</tspan><tspan class="rc-mut">;</tspan></text><rect class="rc-win rc-cv rc-cv2" x="87.2" y="122" width="496.8" height="26"></rect><rect class="rc-ct rc-ct2" x="87.2" y="123" width="2" height="24"></rect></g><g data-rask-key="seg3"><text class="rc-t" x="87.2" y="170" lengthAdjust="spacing" textLength="205.2"><tspan class="rc-kw">private</tspan><tspan> </tspan><tspan class="rc-kw">int</tspan><tspan> </tspan><tspan>_count</tspan><tspan class="rc-mut">;</tspan></text><rect class="rc-win rc-cv rc-cv3" x="87.2" y="150" width="205.2" height="26"></rect><rect class="rc-ct rc-ct3" x="87.2" y="151" width="2" height="24"></rect></g><g data-rask-key="seg4"><text class="rc-t" x="87.2" y="226" lengthAdjust="spacing" textLength="442.8"><tspan class="rc-kw">protected</tspan><tspan> </tspan><tspan class="rc-kw">override</tspan><tspan> </tspan><tspan>Component?</tspan><tspan> </tspan><tspan class="rc-mem">Render</tspan><tspan class="rc-mut">()</tspan><tspan> </tspan><tspan class="rc-mut">=&gt;</tspan></text><rect class="rc-win rc-cv rc-cv4" x="87.2" y="206" width="442.8" height="26"></rect><rect class="rc-ct rc-ct4" x="87.2" y="207" width="2" height="24"></rect></g><g data-rask-key="seg5"><text class="rc-t" x="87.2" y="254" lengthAdjust="spacing" textLength="10.8"><tspan class="rc-mut">[</tspan></text><rect class="rc-win rc-cv rc-cv5" x="87.2" y="234" width="10.8" height="26"></rect><rect class="rc-ct rc-ct5" x="87.2" y="235" width="2" height="24"></rect></g><g data-rask-key="seg6"><text class="rc-t" x="130.4" y="282" lengthAdjust="spacing" textLength="151.2"><tspan class="rc-ent">H1</tspan><tspan class="rc-mut">[</tspan><tspan class="rc-str">&quot;Counter&quot;</tspan><tspan class="rc-mut">]</tspan><tspan class="rc-mut">,</tspan></text><rect class="rc-win rc-cv rc-cv6" x="130.4" y="262" width="151.2" height="26"></rect><rect class="rc-ct rc-ct6" x="130.4" y="263" width="2" height="24"></rect></g><g data-rask-key="seg7"><text class="rc-t" x="130.4" y="310" lengthAdjust="spacing" textLength="324"><tspan class="rc-ent">P</tspan><tspan class="rc-mut">[</tspan><tspan class="rc-str">$&quot;Current count: {_count}&quot;</tspan><tspan class="rc-mut">]</tspan><tspan class="rc-mut">,</tspan></text><rect class="rc-win rc-cv rc-cv7" x="130.4" y="290" width="324" height="26"></rect><rect class="rc-ct rc-ct7" x="130.4" y="291" width="2" height="24"></rect></g><g data-rask-key="seg8"><text class="rc-t" x="130.4" y="338" lengthAdjust="spacing" textLength="75.6"><tspan class="rc-ent">Button</tspan><tspan class="rc-mut">.</tspan></text><rect class="rc-win rc-cv rc-cv8" x="130.4" y="318" width="75.6" height="26"></rect><rect class="rc-ct rc-ct8" x="130.4" y="319" width="2" height="24"></rect></g><g data-rask-key="seg9"><text class="rc-t" x="206" y="338" lengthAdjust="spacing" textLength="378"><tspan class="rc-mem">OnClick</tspan><tspan class="rc-mut">(()</tspan><tspan> </tspan><tspan class="rc-mut">=&gt;</tspan><tspan> </tspan><tspan>_count</tspan><tspan class="rc-mut">&#x2B;&#x2B;)</tspan><tspan class="rc-mut">[</tspan><tspan class="rc-str">&quot;Click me&quot;</tspan><tspan class="rc-mut">]</tspan></text><rect class="rc-win rc-cv rc-cv9" x="206" y="318" width="378" height="26"></rect><rect class="rc-ct rc-ct9" x="206" y="319" width="2" height="24"></rect></g><g data-rask-key="seg10"><text class="rc-t" x="87.2" y="366" lengthAdjust="spacing" textLength="21.6"><tspan class="rc-mut">];</tspan></text><rect class="rc-win rc-cv rc-cv10" x="87.2" y="346" width="21.6" height="26"></rect><rect class="rc-ct rc-ct10" x="87.2" y="347" width="2" height="24"></rect></g><g data-rask-key="seg11"><text class="rc-t" x="44" y="394" lengthAdjust="spacing" textLength="10.8"><tspan class="rc-mut">}</tspan></text><rect class="rc-win rc-cv rc-cv11" x="44" y="374" width="10.8" height="26"></rect><rect class="rc-ct rc-ct11" x="44" y="375" width="2" height="24"></rect></g><g class="rc-end"><line class="rc-rule" x1="44" y1="460.5" x2="836" y2="460.5"></line><text class="rc-t rc-sm rc-soft" x="44" y="492"><tspan class="rc-mut">/// </tspan><tspan>every step is a property, and its summary follows it onto the generated factory</tspan></text></g><g class="rc-hint"><rect class="rc-bar" x="163" y="292" width="376" height="36" rx="8"></rect><rect class="rc-edge" x="163" y="292" width="376" height="36" rx="8"></rect><text class="rc-t rc-sm rc-soft" x="179" y="315"><tspan class="rc-mut">[ &#x2026; ]</tspan><tspan> is the indexer &#x2014; children go here</tspan></text></g><g class="rc-pop"><rect class="rc-bar" x="206" y="352" width="380" height="206" rx="10"></rect><rect class="rc-edge" x="206" y="352" width="380" height="206" rx="10"></rect><rect class="rc-hlbar rc-hl" x="210" y="360" width="372" height="28" rx="6"></rect><rect class="rc-chip" data-rask-key="chipClass" x="216" y="368" width="12" height="12" rx="3"></rect><text class="rc-t rc-sm" data-rask-key="nameClass" x="238" y="379">Class</text><text class="rc-t rc-xs rc-mut" data-rask-key="typeClass" x="572" y="379" text-anchor="end">string?</text><rect class="rc-chip" data-rask-key="chipId" x="216" y="396" width="12" height="12" rx="3"></rect><text class="rc-t rc-sm" data-rask-key="nameId" x="238" y="407">Id</text><text class="rc-t rc-xs rc-mut" data-rask-key="typeId" x="572" y="407" text-anchor="end">string?</text><rect class="rc-chip" data-rask-key="chipOnClick" x="216" y="424" width="12" height="12" rx="3"></rect><text class="rc-t rc-sm" data-rask-key="nameOnClick" x="238" y="435">OnClick</text><text class="rc-t rc-xs rc-mut" data-rask-key="typeOnClick" x="572" y="435" text-anchor="end">Action?</text><rect class="rc-chip" data-rask-key="chipStyle" x="216" y="452" width="12" height="12" rx="3"></rect><text class="rc-t rc-sm" data-rask-key="nameStyle" x="238" y="463">Style</text><text class="rc-t rc-xs rc-mut" data-rask-key="typeStyle" x="572" y="463" text-anchor="end">string?</text><line class="rc-rule" x1="216" y1="478.5" x2="576" y2="478.5"></line><g class="rc-doc rc-doc0" data-rask-key="doc0"><text class="rc-t rc-xs rc-mut" x="220" y="496">/// &lt;summary&gt;</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc0-0" x="220" y="510">The global class attribute &#x2014; a space-separated</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc0-1" x="220" y="526">list of class names, the usual hook for CSS</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc0-2" x="220" y="542">and for finding an element from script.</text></g><g class="rc-doc rc-doc1" data-rask-key="doc1"><text class="rc-t rc-xs rc-mut" x="220" y="496">/// &lt;summary&gt;</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc1-0" x="220" y="510">The global id attribute &#x2014; this element&#x27;s</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc1-1" x="220" y="526">unique identifier in the document.</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc1-2" x="220" y="542"></text></g><g class="rc-doc rc-doc2" data-rask-key="doc2"><text class="rc-t rc-xs rc-mut" x="220" y="496">/// &lt;summary&gt;</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc2-0" x="220" y="510">Click. Parameterless (modifier/coordinate-free)</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc2-1" x="220" y="526">for source compatibility &#x2014; use the mouse</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc2-2" x="220" y="542">events below for geometry.</text></g></g></svg>
+}</style><g><rect class="rc-win" x="0.5" y="0.5" width="879" height="619" rx="16"></rect><rect class="rc-bar" x="0.5" y="0.5" width="879" height="44" rx="16"></rect><rect class="rc-bar" x="0.5" y="28" width="879" height="17"></rect><line class="rc-rule" x1="0" y1="44.5" x2="880" y2="44.5"></line><rect class="rc-edge" x="0.5" y="0.5" width="879" height="619" rx="16"></rect><circle class="rc-dot" cx="28" cy="22" r="5"></circle><circle class="rc-dot" cx="48" cy="22" r="5"></circle><circle class="rc-dot" cx="68" cy="22" r="5"></circle><text class="rc-t rc-xs rc-mut" x="92" y="27">Counter.cs</text><text class="rc-t rc-xs rc-mut" x="856" y="27" text-anchor="end">no .razor &#xB7; no JavaScript &#xB7; press . and the chain tells you the rest</text></g><g data-rask-key="seg0"><text class="rc-t" x="44" y="86" lengthAdjust="spacingAndGlyphs" textLength="205.2"><tspan class="rc-mut">[</tspan><tspan class="rc-ent">Route</tspan><tspan class="rc-mut">(</tspan><tspan class="rc-str">&quot;/counter&quot;</tspan><tspan class="rc-mut">)]</tspan></text><rect class="rc-win rc-cv rc-cv0" x="44" y="66" width="243.2" height="26"></rect><rect class="rc-ct rc-ct0" x="44" y="67" width="2" height="24"></rect></g><g data-rask-key="seg1"><text class="rc-t" x="44" y="114" lengthAdjust="spacingAndGlyphs" textLength="507.6"><tspan class="rc-kw">public</tspan><tspan> </tspan><tspan class="rc-kw">sealed</tspan><tspan> </tspan><tspan class="rc-kw">partial</tspan><tspan> </tspan><tspan class="rc-kw">class</tspan><tspan> </tspan><tspan>Counter</tspan><tspan class="rc-mut"> : </tspan><tspan>Component</tspan></text><rect class="rc-win rc-cv rc-cv1" x="44" y="94" width="601.6" height="26"></rect><rect class="rc-ct rc-ct1" x="44" y="95" width="2" height="24"></rect></g><g data-rask-key="seg2"><text class="rc-t" x="44" y="142" lengthAdjust="spacingAndGlyphs" textLength="10.8"><tspan class="rc-mut">{</tspan></text><rect class="rc-win rc-cv rc-cv2" x="44" y="122" width="12.8" height="26"></rect><rect class="rc-ct rc-ct2" x="44" y="123" width="2" height="24"></rect></g><g data-rask-key="seg3"><text class="rc-t" x="87.2" y="170" lengthAdjust="spacingAndGlyphs" textLength="205.2"><tspan class="rc-kw">private</tspan><tspan> </tspan><tspan class="rc-kw">int</tspan><tspan> </tspan><tspan>_count</tspan><tspan class="rc-mut">;</tspan></text><rect class="rc-win rc-cv rc-cv3" x="87.2" y="150" width="243.2" height="26"></rect><rect class="rc-ct rc-ct3" x="87.2" y="151" width="2" height="24"></rect></g><g data-rask-key="seg4"><text class="rc-t" x="87.2" y="226" lengthAdjust="spacingAndGlyphs" textLength="442.8"><tspan class="rc-kw">protected</tspan><tspan> </tspan><tspan class="rc-kw">override</tspan><tspan> </tspan><tspan>Component?</tspan><tspan> </tspan><tspan class="rc-mem">Render</tspan><tspan class="rc-mut">()</tspan><tspan> </tspan><tspan class="rc-op">=&gt;</tspan></text><rect class="rc-win rc-cv rc-cv4" x="87.2" y="206" width="524.8" height="26"></rect><rect class="rc-ct rc-ct4" x="87.2" y="207" width="2" height="24"></rect></g><g data-rask-key="seg5"><text class="rc-t" x="87.2" y="254" lengthAdjust="spacingAndGlyphs" textLength="10.8"><tspan class="rc-mut">[</tspan></text><rect class="rc-win rc-cv rc-cv5" x="87.2" y="234" width="12.8" height="26"></rect><rect class="rc-ct rc-ct5" x="87.2" y="235" width="2" height="24"></rect></g><g data-rask-key="seg6"><text class="rc-t" x="130.4" y="282" lengthAdjust="spacingAndGlyphs" textLength="151.2"><tspan class="rc-ent">H1</tspan><tspan class="rc-mut">[</tspan><tspan class="rc-str">&quot;Counter&quot;</tspan><tspan class="rc-mut">]</tspan><tspan class="rc-mut">,</tspan></text><rect class="rc-win rc-cv rc-cv6" x="130.4" y="262" width="179.2" height="26"></rect><rect class="rc-ct rc-ct6" x="130.4" y="263" width="2" height="24"></rect></g><g data-rask-key="seg7"><text class="rc-t" x="130.4" y="310" lengthAdjust="spacingAndGlyphs" textLength="324"><tspan class="rc-ent">P</tspan><tspan class="rc-mut">[</tspan><tspan class="rc-str">$&quot;Current count: </tspan><tspan class="rc-interp">{_count}</tspan><tspan class="rc-str">&quot;</tspan><tspan class="rc-mut">]</tspan><tspan class="rc-mut">,</tspan></text><rect class="rc-win rc-cv rc-cv7" x="130.4" y="290" width="384" height="26"></rect><rect class="rc-ct rc-ct7" x="130.4" y="291" width="2" height="24"></rect></g><g data-rask-key="seg8"><text class="rc-t" x="130.4" y="338" lengthAdjust="spacingAndGlyphs" textLength="75.6"><tspan class="rc-ent">Button</tspan><tspan class="rc-mut">.</tspan></text><rect class="rc-win rc-cv rc-cv8" x="130.4" y="318" width="89.6" height="26"></rect><rect class="rc-ct rc-ct8" x="130.4" y="319" width="2" height="24"></rect></g><g data-rask-key="seg9"><text class="rc-t" x="206" y="338" lengthAdjust="spacingAndGlyphs" textLength="378"><tspan class="rc-mem">OnClick</tspan><tspan class="rc-mut">(()</tspan><tspan> </tspan><tspan class="rc-op">=&gt;</tspan><tspan> </tspan><tspan>_count</tspan><tspan class="rc-mut">&#x2B;&#x2B;)</tspan><tspan class="rc-mut">[</tspan><tspan class="rc-str">&quot;Click me&quot;</tspan><tspan class="rc-mut">]</tspan></text><rect class="rc-win rc-cv rc-cv9" x="206" y="318" width="448" height="26"></rect><rect class="rc-ct rc-ct9" x="206" y="319" width="2" height="24"></rect></g><g data-rask-key="seg10"><text class="rc-t" x="87.2" y="366" lengthAdjust="spacingAndGlyphs" textLength="21.6"><tspan class="rc-mut">];</tspan></text><rect class="rc-win rc-cv rc-cv10" x="87.2" y="346" width="25.6" height="26"></rect><rect class="rc-ct rc-ct10" x="87.2" y="347" width="2" height="24"></rect></g><g data-rask-key="seg11"><text class="rc-t" x="44" y="394" lengthAdjust="spacingAndGlyphs" textLength="10.8"><tspan class="rc-mut">}</tspan></text><rect class="rc-win rc-cv rc-cv11" x="44" y="374" width="12.8" height="26"></rect><rect class="rc-ct rc-ct11" x="44" y="375" width="2" height="24"></rect></g><g class="rc-end"><line class="rc-rule" x1="44" y1="508.5" x2="836" y2="508.5"></line><text class="rc-t rc-sm rc-soft" x="44" y="540"><tspan class="rc-mut">/// </tspan><tspan>every step is a property, and its summary follows it onto the generated factory</tspan></text></g><g class="rc-hint"><rect class="rc-bar" x="163" y="292" width="376" height="36" rx="8"></rect><rect class="rc-edge" x="163" y="292" width="376" height="36" rx="8"></rect><text class="rc-t rc-sm rc-soft" x="179" y="315"><tspan class="rc-mut">[ &#x2026; ]</tspan><tspan> is the indexer &#x2014; children go here</tspan></text></g><g class="rc-pop"><rect class="rc-bar" x="206" y="352" width="460" height="240" rx="10"></rect><rect class="rc-edge" x="206" y="352" width="460" height="240" rx="10"></rect><rect class="rc-hlbar rc-hl" x="210" y="360" width="452" height="32" rx="6"></rect><rect class="rc-chip" data-rask-key="chipClass" x="218" y="370" width="12" height="12" rx="3"></rect><text class="rc-t rc-md" data-rask-key="nameClass" x="242" y="382">Class</text><text class="rc-t rc-xs rc-mut" data-rask-key="typeClass" x="650" y="382" text-anchor="end">string?</text><rect class="rc-chip" data-rask-key="chipId" x="218" y="402" width="12" height="12" rx="3"></rect><text class="rc-t rc-md" data-rask-key="nameId" x="242" y="414">Id</text><text class="rc-t rc-xs rc-mut" data-rask-key="typeId" x="650" y="414" text-anchor="end">string?</text><rect class="rc-chip" data-rask-key="chipOnClick" x="218" y="434" width="12" height="12" rx="3"></rect><text class="rc-t rc-md" data-rask-key="nameOnClick" x="242" y="446">OnClick</text><text class="rc-t rc-xs rc-mut" data-rask-key="typeOnClick" x="650" y="446" text-anchor="end">Action?</text><rect class="rc-chip" data-rask-key="chipStyle" x="218" y="466" width="12" height="12" rx="3"></rect><text class="rc-t rc-md" data-rask-key="nameStyle" x="242" y="478">Style</text><text class="rc-t rc-xs rc-mut" data-rask-key="typeStyle" x="650" y="478" text-anchor="end">string?</text><line class="rc-rule" x1="218" y1="500.5" x2="654" y2="500.5"></line><g class="rc-doc rc-doc0" data-rask-key="doc0"><text class="rc-t rc-xs rc-mut" x="222" y="522">/// &lt;summary&gt;</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc0-0" x="222" y="540">The global class attribute &#x2014; a space-separated</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc0-1" x="222" y="558">list of class names, the usual hook for CSS</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc0-2" x="222" y="576">and for finding an element from script.</text></g><g class="rc-doc rc-doc1" data-rask-key="doc1"><text class="rc-t rc-xs rc-mut" x="222" y="522">/// &lt;summary&gt;</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc1-0" x="222" y="540">The global id attribute &#x2014; this element&#x27;s</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc1-1" x="222" y="558">unique identifier in the document.</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc1-2" x="222" y="576"></text></g><g class="rc-doc rc-doc2" data-rask-key="doc2"><text class="rc-t rc-xs rc-mut" x="222" y="522">/// &lt;summary&gt;</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc2-0" x="222" y="540">Click. Parameterless (modifier/coordinate-free)</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc2-1" x="222" y="558">for source compatibility &#x2014; use the mouse</text><text class="rc-t rc-xxs rc-soft" data-rask-key="doc2-2" x="222" y="576">events below for geometry.</text></g></g></svg>

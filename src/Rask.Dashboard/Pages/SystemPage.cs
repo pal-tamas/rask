@@ -8,19 +8,17 @@ namespace Rask.Dashboard.Pages;
 /// happening. Everything here is read-only and cheap — it is the page you screenshot when someone asks
 /// "is production set up correctly?".
 /// </summary>
+[Route("system")]
+[ParentRoute(typeof(DashboardLayout))]
 public sealed partial class SystemPage(
     ISystemPanelReader system,
     RaskDashboardOptions options,
     TimeProvider timeProvider) : PollingPanel
 {
-    protected override string Route => "system";
-
-    protected override Type? Parent => typeof(DashboardLayout);
-
-
     private DatabaseInfo? _database;
     private IReadOnlyList<RecurringJobRow> _recurring = [];
     private BackupReplicationInfo? _replication;
+    private BackupVerificationInfo? _verification;
     private IReadOnlyList<BackupSnapshotInfo> _snapshots = [];
 
     /// <inheritdoc />
@@ -32,11 +30,13 @@ public sealed partial class SystemPage(
         _database = await system.DatabaseAsync(cancellationToken).ConfigureAwait(false);
         _recurring = await system.RecurringJobsAsync(cancellationToken).ConfigureAwait(false);
         _replication = await system.ReplicationAsync(cancellationToken).ConfigureAwait(false);
+        _verification = await system.VerificationAsync(cancellationToken).ConfigureAwait(false);
         _snapshots = await system.SnapshotsAsync(cancellationToken).ConfigureAwait(false);
 
         return string.Join('|',
             [$"{_database?.SizeBytes}:{_database?.JournalMode}:{_database?.ForeignKeys}",
              $"{_replication?.IsReplicating}:{_replication?.RestartCount}:{_replication?.LastError}",
+             $"{_verification?.Outcome}:{_verification?.LastVerifiedAt?.Ticks ?? 0}:{_verification?.LastError}",
              $"{_snapshots.Count}:{_snapshots.FirstOrDefault()?.Name}",
              .. _recurring.Select(r => $"{r.Name}:{r.LastEnqueuedAt?.Ticks ?? 0}")]);
     }
@@ -125,6 +125,27 @@ public sealed partial class SystemPage(
                             .Tone(r.RestartCount > 0 ? BsColor.Warning : null)
                             .Caption(r.LastError ?? "no failures recorded")
                             .Icon(BsIconName.ExclamationTriangle)]
+                    ]
+                    : null,
+                // Restorability is its own row, and its own fact: "the replicator is running" above says
+                // nothing about whether what it wrote can be read back.
+                _verification is { } v
+                    ? BsRow.Class("g-3 mb-3")[
+                        BsCol.Sm(6).Lg(4)[BsStat
+                            .Value(v.Level == BackupVerificationLevel.Verified ? "restorable" : v.Outcome.ToLowerInvariant())
+                            .Label("Last verified restore")
+                            .Tone(v.Level switch
+                            {
+                                BackupVerificationLevel.Verified => BsColor.Success,
+                                BackupVerificationLevel.Broken => BsColor.Danger,
+                                _ => BsColor.Warning,
+                            })
+                            .Caption(v.LastVerifiedAt is { } verified
+                                ? $"verified {DashboardParts.Ago(verified.UtcDateTime, now)}"
+                                : v.LastError ?? "never verified")
+                            .Icon(v.Level == BackupVerificationLevel.Broken
+                                ? BsIconName.ShieldExclamation
+                                : BsIconName.ShieldCheck)]
                     ]
                     : null,
                 SnapshotList(now)

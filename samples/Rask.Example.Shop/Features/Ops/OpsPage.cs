@@ -21,11 +21,10 @@ namespace Rask.Example.Shop.Features.Ops;
 /// single write lock, so an unbounded 1 Hz poll per session is a real cost, not a free convenience.
 /// </para>
 /// </remarks>
+[Route("ops")]
 public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJobQueue jobs, PopularProducts popular, IConfiguration config)
-    : Page, IDisposable
+    : Component, IDisposable
 {
-    protected override string Route => "ops";
-
     private const int MaxTicks = 120; // ~4 minutes of watching, then it stops on its own.
 
     private readonly CancellationTokenSource _stopped = new();

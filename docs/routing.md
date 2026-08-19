@@ -1,7 +1,7 @@
 # Routing
 
-Rask routing is declaration-driven and source-generated. A routable component is a `Page` and names its URL in a
-`Route` override; a module initializer (emitted by the `RoutesGenerator`) registers it at startup, and the `Router()` in your `App` tree matches
+Rask routing is declaration-driven and source-generated. A routable component carries a `[Route]` attribute
+naming the URL it answers; a module initializer (emitted by the `RoutesGenerator`) registers it at startup, and the `Router()` in your `App` tree matches
 the current URL against the registry and renders the matching page. The same generator also emits a **type-safe URL
 builder** for every route, so links and navigation never carry stringly-typed paths that rot.
 
@@ -16,22 +16,40 @@ auth gating, and [diagnostics.md](diagnostics.md) for the routing analyzers (RAS
 
 ## Registering routes
 
-Derive from `Page` and override `Route`. That's the whole registration:
+Put `[Route]` on a component. That's the whole registration:
 
 ```csharp
-public sealed partial class AboutPage : Page
+[Route("/about")]
+public sealed partial class AboutPage : Component
 {
-    protected override string Route => "/about";
-
     protected override Component? Render() => H1["About"];
 }
 ```
 
-`Route` is read **at compile time** — it builds the route table and the typed URL helpers below, so it has to
-be a constant. A literal, a `const`, or constant concatenation all work; anything computed is
-[RASK047](diagnostics.md#rask047) rather than a page that silently never registers. Deriving from `Page` is
-also what makes a class a valid target for `[RouteParam]`/`[QueryParam]`
-([RASK009](diagnostics.md#rask009)/[RASK010](diagnostics.md#rask010)).
+The template is read **at compile time** — it builds the route table and the typed URL helpers below. Being an
+attribute argument, it is constant by construction: a literal, a `const`, or constant concatenation all work, and
+nothing computed can be written there at all. Carrying `[Route]` is also what makes a class a valid target for
+`[RouteParam]`/`[QueryParam]` ([RASK009](diagnostics.md#rask009)/[RASK010](diagnostics.md#rask010)).
+
+### One page, several URLs
+
+`[Route]` is repeatable, which is how a page answers more than one URL — an old path kept alive after a rename, or
+one screen whose sub-states are their own links:
+
+```csharp
+[Route("/todos")]
+[Route("/todos/new")]
+[Route("/todos/{id:guid}/edit")]
+public sealed partial class TodosPage : Component
+{
+}
+```
+
+Every template is matched by the router and renders the same page. The **first one declared is canonical**: it is
+what `TodosPage.Url(...)` and `Routes.TodosPage(...)` format, so a generated link can never drift onto a path you
+meant to keep only for old bookmarks. Read the current URL from `RouteState` to tell the states apart. Under a
+`[ParentRoute]`, each template composes onto the parent's first template rather than every combination of the
+two.
 
 Routes use Blazor-style `{param}` placeholders, support optional segments (`{name?}`), and accept type constraints
 (`{id:int}`). The generator validates the template at compile time:
@@ -60,17 +78,16 @@ Each page gets two generated helpers, on the page type itself. `Url(...)` builds
 navigates to it. Their parameters mirror the route's bound properties:
 
 ```csharp
-public sealed partial class HomePage : Page
+[Route("/")]
+public sealed partial class HomePage : Component
 {
-    protected override string Route => "/";
 }
 // → HomePage.Url()   returns a RouteUrl for "/"
 // → HomePage.Go()    navigates there
 
-public sealed partial class UserPage : Page
+[Route("/users/{id:int}")]
+public sealed partial class UserPage : Component
 {
-    protected override string Route => "/users/{id:int}";
-
     [RouteParam] public int Id { get; set; }
 }
 // → UserPage.Url(int Id) / UserPage.Go(int Id)  — the path param is a required argument
@@ -134,10 +151,9 @@ Two attributes bind URL pieces to properties on the page:
 - `[QueryParam]` — binds a **query-string** value to a property.
 
 ```csharp
-public sealed partial class UserPage : Page
+[Route("/users/{id}")]
+public sealed partial class UserPage : Component
 {
-    protected override string Route => "/users/{id}";
-
     [RouteParam] public int Id { get; set; }       // /users/42  → Id = 42
     [QueryParam] public string? Tab { get; set; }   // ?tab=profile → Tab = "profile"
 
@@ -158,7 +174,7 @@ Other binding-related analyzers worth knowing:
 - [RASK006](diagnostics.md#rask006) — `[QueryParam]` placed on a property that's actually a path segment.
 - [RASK008](diagnostics.md#rask008) — `[RouteParam]` with no matching path segment in the template.
 - [RASK009](diagnostics.md#rask009) / [RASK010](diagnostics.md#rask010) — `[RouteParam]` / `[QueryParam]` on a class
-  that isn't a routed page (doesn't derive from `Page`).
+  that isn't a routed page (carries no `[Route]`).
 
 Route/query binding feeds the lifecycle: `OnPropsChanged*` fires on first render and whenever a bound param actually
 changes value. See [lifecycle.md](lifecycle.md).
@@ -170,16 +186,15 @@ shareable and bookmarkable, and browser back/forward replay it for free. The sou
 
 <!-- demo:routing-querytable -->
 
-## Nested routes — `Parent` + `Outlet()`
+## Nested routes — `[ParentRoute]` + `Outlet()`
 
-A page can declare a parent layout by overriding `Parent`. The child's template is joined onto the
+A page can declare a parent layout with `[ParentRoute]`. The child's template is joined onto the
 parent's, and the parent renders the matched child wherever it places an `Outlet()`:
 
 ```csharp
-public sealed partial class Layout : Page
+[Route("/")]
+public sealed partial class Layout : Component
 {
-    protected override string Route => "/";
-
     protected override Component? Render() =>
         Div[
             Nav[ /* sidebar */ ],
@@ -187,23 +202,22 @@ public sealed partial class Layout : Page
         ];
 }
 
-public sealed partial class AboutPage : Page
+[Route("about")]
+[ParentRoute(typeof(Layout))]
+public sealed partial class AboutPage : Component
 {
-    protected override string Route => "about";
-    protected override Type? Parent => typeof(Layout);
-
     protected override Component? Render() => H1["About"];
 }
 
 // /about now matches Layout → AboutPage, with AboutPage rendered into Layout's Outlet.
 ```
 
-An empty child template (`Route => ""`) means "the default child for this layout". The showcase app is built this
-way: every page declares `Parent => typeof(ShowcaseLayout)` and the layout hosts the `Outlet()`.
+An empty child template (`[Route("")]`) means "the default child for this layout". The showcase app is built this
+way: every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout hosts the `Outlet()`.
 
 <!-- demo:routing-nested-layout -->
 
-`Outlet()` must be called inside a `Router()` render tree (it throws otherwise). A `Parent` cycle raises
+`Outlet()` must be called inside a `Router()` render tree (it throws otherwise). A `[ParentRoute]` cycle raises
 [RASK007](diagnostics.md#rask007).
 
 ## Programmatic navigation — `Navigator`

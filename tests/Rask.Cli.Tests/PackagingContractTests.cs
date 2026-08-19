@@ -129,4 +129,71 @@ public sealed class PackagingContractTests
         Assert.Contains("RaskScopedJsAutoInclude", visible);
         Assert.Contains("RaskFactoryNavigation", visible);
     }
+
+    /// <summary>
+    ///     Every host package ships its own copy of the analyzer payload, so an app that references two
+    ///     of them hands csc the generator twice — from two package paths, which Roslyn reads as two
+    ///     distinct generators. Both run, both emit <c>RaskBuilderSetters.g.cs</c>, and the build dies on
+    ///     <c>CS0101 ... already contains a definition for RaskBuilderSetters&lt;Assembly&gt;</c>, pointing
+    ///     at generated code the author never wrote.
+    ///     <para>
+    ///         Referencing two hosts is not hypothetical: a wasm-hosted app whose <c>.Server</c> mounts the
+    ///         operator dashboard pulls in Rask.Wasm.Hosting (and with it Rask.Wasm) alongside Rask.Server.
+    ///         <c>_RaskDeduplicateAnalyzers</c> in the shared core targets is what keeps that buildable.
+    ///     </para>
+    ///     <para>
+    ///         Structural, and cheap, for the same reason as everything else here: the behavioural proof is
+    ///         <c>Generated_all_batteries_wasm_hosted_solution_builds</c>, which only runs behind
+    ///         <c>RASK_CLI_BUILD_E2E=1</c>.
+    ///     </para>
+    /// </summary>
+    [Fact]
+    public void The_core_build_integration_deduplicates_the_analyzer_payload()
+    {
+        var targets = XDocument.Load(Path.Combine(_repoRoot, "src", "Rask.Core", "build", "Rask.Core.targets"));
+
+        var target = Assert.Single(
+            targets.Descendants("Target"),
+            e => e.Attribute("Name")?.Value == "_RaskDeduplicateAnalyzers");
+
+        // Must run before the compiler reads @(Analyzer), and after NuGet has contributed every
+        // package's payload — BeforeTargets="CoreCompile" is the only point that is both.
+        Assert.Equal("CoreCompile", target.Attribute("BeforeTargets")?.Value);
+
+        // Both halves have to be there. Removing without re-adding would strip the generator entirely
+        // and every factory would silently vanish; re-adding without removing is the bug itself.
+        Assert.Contains(target.Descendants("Analyzer"), e => e.Attribute("Remove") is not null);
+        Assert.Contains(target.Descendants("Analyzer"), e => e.Attribute("Include") is not null);
+    }
+
+    /// <summary>
+    ///     The other arm of the same guard: the dedupe above names the two analyzer assemblies literally,
+    ///     so renaming or adding one silently leaves it duplicated again. Asserted against the pack
+    ///     fragment that decides what actually ships.
+    /// </summary>
+    [Fact]
+    public void The_dedupe_covers_every_analyzer_assembly_the_host_packages_ship()
+    {
+        var pack = XDocument.Load(Path.Combine(_repoRoot, "src", "RaskAnalyzerPack.targets"));
+        var packed = pack.Descendants("None")
+            .Select(e => e.Attribute("Include")?.Value)
+            .Where(v => v is not null && v.Contains(".dll", StringComparison.Ordinal))
+            // The MSBuild paths use backslashes, which are not separators on Unix — so split on the
+            // literal rather than asking Path, which would hand back the whole string here and make
+            // every assertion below trivially compare against a path that contains the name anyway.
+            .Select(v => Path.GetFileNameWithoutExtension(v!.Replace('\\', '/')))
+            .ToList();
+
+        Assert.NotEmpty(packed);
+
+        var targets = File.ReadAllText(Path.Combine(_repoRoot, "src", "Rask.Core", "build", "Rask.Core.targets"));
+        foreach (var assembly in packed)
+        {
+            Assert.True(
+                targets.Contains($"'{assembly}'", StringComparison.Ordinal),
+                $"{assembly}.dll is packed into analyzers/dotnet/cs/ by every host package, but "
+                + "_RaskDeduplicateAnalyzers in Rask.Core.targets does not name it — an app referencing "
+                + "two host packages will load it twice and fail to compile with CS0101.");
+        }
+    }
 }

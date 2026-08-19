@@ -4,16 +4,15 @@ using Rask.Core;
 namespace Rask.Chrome;
 
 /// <summary>
-///     A <see cref="Page" /> that also declares the chrome around it — the header bar, toolbar and tab bar.
+///     A routed component that also declares the chrome around it — the header bar, toolbar and tab bar.
 ///     Fill the slots with the portable bars (<see cref="AppBar" /> /
 ///     <see cref="TabStrip" />) and one screen class serves every host: the web hosts render
 ///     landmark markup, and a native host projects the same declaration to real platform widgets (a
 ///     <c>UINavigationBar</c>/<c>UITabBar</c> on iOS, a top/bottom bar on Android).
 ///     <code>
+/// [Route("/todos")]
 /// public sealed class TodosScreen : Screen
 /// {
-///     protected override string Route => "/todos";
-///
 ///     protected override Component? HeaderBar => AppBar.Title("Todos");
 ///
 ///     protected override Component? Render() => Div[/* the HTML body */];
@@ -33,7 +32,7 @@ namespace Rask.Chrome;
 ///     </para>
 ///     <para>
 ///         Chrome merges by kind, deepest-wins, so composition falls out of the route chain: a layout screen
-///         (a <see cref="Page.Parent" />) supplies the <see cref="TabBar" /> once and each leaf screen supplies
+///         (a <c>[ParentRoute]</c> layout) supplies the <see cref="TabBar" /> once and each leaf screen supplies
 ///         its own <see cref="HeaderBar" />.
 ///     </para>
 ///     <para>
@@ -50,7 +49,7 @@ namespace Rask.Chrome;
 ///         heads; the portable bars are the subset that does.
 ///     </para>
 /// </summary>
-public abstract partial class Screen : Page, IScreenChrome
+public abstract partial class Screen : Component, IScreenChrome
 {
     /// <summary>
     ///     The header bar for this screen, e.g. <c>AppBar.Title("Todos")</c>, or <c>null</c> for none. Typed as

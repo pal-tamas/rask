@@ -35,9 +35,18 @@ public sealed record LitestreamReplicationStatus(
 public sealed class LitestreamStatus
 {
     private LitestreamReplicationStatus _current = new(false, null, null, 0, null, null);
+    private LitestreamVerificationStatus? _verification;
 
     /// <summary>The latest snapshot. Never <c>null</c>; before the supervisor starts it reports not replicating.</summary>
     public LitestreamReplicationStatus Current => Volatile.Read(ref _current);
+
+    /// <summary>
+    /// The most recent restore-verification pass, or <c>null</c> if none has run — which is the default,
+    /// since verification is opt-in (<see cref="LitestreamVerificationOptions.Enabled"/>). <c>null</c>
+    /// means "nobody has checked", <b>not</b> "the backup is fine": <see cref="Current"/> being healthy
+    /// says only that the replicator is running.
+    /// </summary>
+    public LitestreamVerificationStatus? Verification => Volatile.Read(ref _verification);
 
     // The supervisor is the single writer, so read-modify-write needs no CAS; the volatile write is what makes
     // the new snapshot visible to reader threads.
@@ -67,5 +76,26 @@ public sealed class LitestreamStatus
     internal void MarkStopped(DateTimeOffset at) =>
         Publish(_current with { IsReplicating = false, LastExitedAt = at });
 
+    // The verifier is the single writer of the verification half, exactly as the supervisor is of the
+    // replication half, so these need no CAS either. LastVerifiedAt is carried forward across a
+    // non-verifying pass on purpose: it reports the age of the last proven round trip, which is the thing
+    // worth alerting on, and an inconclusive attempt is not evidence that the backup went bad.
+    internal LitestreamVerificationStatus MarkVerified(DateTimeOffset at, TimeSpan replicationLag) =>
+        PublishVerification(new LitestreamVerificationStatus(
+            LitestreamVerificationOutcome.Verified, at, at, replicationLag, null));
+
+    internal LitestreamVerificationStatus MarkVerification(
+        LitestreamVerificationOutcome outcome,
+        DateTimeOffset at,
+        string? error) =>
+        PublishVerification(new LitestreamVerificationStatus(
+            outcome, at, _verification?.LastVerifiedAt, _verification?.ReplicationLag, error));
+
     private void Publish(LitestreamReplicationStatus next) => Volatile.Write(ref _current, next);
+
+    private LitestreamVerificationStatus PublishVerification(LitestreamVerificationStatus next)
+    {
+        Volatile.Write(ref _verification, next);
+        return next;
+    }
 }

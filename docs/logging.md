@@ -162,7 +162,7 @@ replication cheap. If you need the log archived, copy the file like any other ar
 
 ## In the dashboard
 
-With `Rask.Dashboard` installed, `/_ops/logs` gains a **History** mode beside the existing **Live** tail:
+With `Rask.Dashboard` installed, `/_rask/logs` gains a **History** mode beside the existing **Live** tail:
 paged, filterable by level and category, with a full-text search over the message and the exception. Live
 stays the default and still reads nothing from disk.
 

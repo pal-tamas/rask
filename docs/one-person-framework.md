@@ -70,7 +70,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[`Rask.Cache`](cache.md)** | A database-backed cache: the standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync` and absolute/sliding expiry. |
 | **[`Rask.Logging`](logging.md)** | A durable log store in a SQLite file of its own — the `ILogger` pipeline kept across restarts, buffered off the request thread, with retention by age and row count. |
 | **[`Rask.Outbox`](outbox.md)** | Transactional outbox — domain events captured in the same transaction and relayed at-least-once, no external broker. |
-| **[`Rask.Dashboard`](dashboard.md)** | An operator dashboard at `/_ops` over the pillars above: queue depth, dead letters and the error behind each, one-click retry, and the log. |
+| **[`Rask.Dashboard`](dashboard.md)** | An operator dashboard at `/_rask` over the pillars above: queue depth, dead letters and the error behind each, one-click retry, and the log. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
 | **[Auth](authentication.md)** | Cookie & JWT sessions, claims and authorization. The **user store is yours** — `--auth` scaffolds a demo one; see the [roadmap](roadmap.md#not-shipped). |
 | **[PWA & native](pwa.md)** | Installable offline apps and real iOS/Android from the same components. |
