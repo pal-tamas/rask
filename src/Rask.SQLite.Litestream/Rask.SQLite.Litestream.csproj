@@ -8,7 +8,7 @@
 
     <PackageId>Rask.SQLite.Litestream</PackageId>
     <Title>Rask.SQLite.Litestream — managed Litestream backup for SQLite</Title>
-    <Description>Supervises the Litestream sidecar from inside your .NET app: restores the SQLite database from its replica on startup (if the local file is missing) and continuously streams the write-ahead log to S3/GCS/Azure/file storage for the life of the process, via a hosted background service. Pairs with Rask.SQLite's WAL default, which Litestream requires. Register with `services.AddRaskSqliteLitestream(...)` and call `RestoreSqliteFromLitestreamAsync()` before opening the database. Requires the `litestream` binary on the host (or a path you configure). Standalone: depends only on the Microsoft.Extensions hosting/DI abstractions.</Description>
+    <Description>Supervises the Litestream sidecar from inside your .NET app: restores the SQLite database from its replica on startup (if the local file is missing) and continuously streams the write-ahead log to S3/GCS/Azure/file storage for the life of the process, via a hosted background service. Also verifies, on an opt-in schedule, that what has been replicated is actually restorable — a sentinel written locally, restored back out of the replica and checked — so you learn a backup has stopped working before the day you need it. Pairs with Rask.SQLite's WAL default, which Litestream requires. Register with `services.AddRaskSqliteLitestream(...)` and call `RestoreSqliteFromLitestreamAsync()` before opening the database. Requires the `litestream` binary on the host (or a path you configure).</Description>
     <!-- Override the framework default tags (web/component/wasm) — this is a standalone, host-agnostic
          backup supervisor with no web/UI coupling. -->
     <PackageTags>sqlite litestream backup replication wal disaster-recovery s3 hosted-service dotnet net10</PackageTags>
@@ -23,6 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Restore verification writes a sentinel into the live database, which means taking its write lock.
+         Rask.SQLite owns the non-blocking, fair-interval busy-retry that does that by yielding the thread
+         instead of blocking one inside native SQLite (ExecuteInImmediateTransactionAsync), and brings the
+         Microsoft.Data.Sqlite + patched SQLitePCLRaw bundle the probe needs to read the restored copy
+         back. A packable project, so it flows to consumers as an ordinary NuGet dependency. -->
+    <ProjectReference Include="..\Rask.SQLite\Rask.SQLite.csproj"/>
     <PackageReference Include="CliWrap"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>

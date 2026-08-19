@@ -22,6 +22,14 @@ public interface IDashboardBackupProbe
 
     /// <summary>Stored snapshots, newest first. Empty when the app takes none.</summary>
     Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Restore-verification state, or <c>null</c> when nothing has verified the backup — which is the
+    /// default, since verification is opt-in and costs a real restore. The default implementation returns
+    /// <c>null</c>, so an existing probe keeps compiling and simply shows no restorability tile.
+    /// </summary>
+    Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<BackupVerificationInfo?>(null);
 }
 
 /// <summary>Continuous-backup liveness, as the dashboard displays it.</summary>
@@ -31,6 +39,44 @@ public interface IDashboardBackupProbe
 /// <param name="LastError">The most recent failure, if any.</param>
 public sealed record BackupReplicationInfo(
     bool IsReplicating, DateTimeOffset? LastStartedAt, int RestartCount, string? LastError);
+
+/// <summary>
+/// Whether the backup has been proven <b>restorable</b>, which is a different fact from whether the
+/// replicator is running — a replica written to the wrong prefix keeps replication looking healthy and is
+/// only ever caught by restoring it.
+/// </summary>
+/// <param name="Outcome">
+/// The verdict, as free text so the dashboard stays provider-agnostic (it never references the backup
+/// packages). "Verified" is the good one; "Inconclusive" means the check raced replication lag.
+/// </param>
+/// <param name="Level">
+/// How the outcome should read. Supplied by the probe rather than inferred here, because only the probe
+/// knows which of its own outcome names are failures.
+/// </param>
+/// <param name="LastVerifiedAt">
+/// When the backup was last proven restorable — the field worth alerting on, since it survives a pass
+/// that merely raced replication.
+/// </param>
+/// <param name="LastError">Why the most recent pass was inconclusive or failed.</param>
+public sealed record BackupVerificationInfo(
+    string Outcome, BackupVerificationLevel Level, DateTimeOffset? LastVerifiedAt, string? LastError);
+
+/// <summary>
+/// How a verification outcome reads on the dashboard. Three states, not two: "the check raced replication
+/// lag" and "the restore did not contain what it should" are different, and showing the first one in red
+/// is how an operator learns to ignore the tile.
+/// </summary>
+public enum BackupVerificationLevel
+{
+    /// <summary>Proven restorable.</summary>
+    Verified,
+
+    /// <summary>Nothing was proven either way — lag, or a pass that had nothing to check.</summary>
+    Unknown,
+
+    /// <summary>The backup could not be restored. This is the one worth waking someone for.</summary>
+    Broken,
+}
 
 /// <summary>One stored snapshot.</summary>
 /// <param name="Name">The snapshot's name.</param>
@@ -70,6 +116,9 @@ public interface ISystemPanelReader
 
     /// <summary>Stored snapshots, newest first.</summary>
     Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken);
+
+    /// <summary>Restore-verification state, or <c>null</c> when nothing has verified the backup.</summary>
+    Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>Host-level facts: how the database is configured, what is scheduled, and whether backups run.</summary>
@@ -149,6 +198,9 @@ internal sealed class SystemPanel<TContext>(
 
     public Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken) =>
         _backup?.SnapshotsAsync(cancellationToken) ?? Task.FromResult<IReadOnlyList<BackupSnapshotInfo>>([]);
+
+    public Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken) =>
+        _backup?.VerificationAsync(cancellationToken) ?? Task.FromResult<BackupVerificationInfo?>(null);
 
     private static async Task<string?> ScalarAsync(DbConnection connection, string sql, CancellationToken cancellationToken)
     {

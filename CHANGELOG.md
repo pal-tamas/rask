@@ -139,6 +139,39 @@ them until tagged releases begin.
   still owns the commit**, so the load composes inside one you opened. Under a retrying execution strategy a
   `SingleTransaction` load is one retryable unit with the sequence buffered for re-enumeration, while the
   per-batch default lets EF retry each batch on its own with no replay.
+- **`Rask.SQLite.Litestream` can now prove the backup is *restorable*, not just that the replicator is
+  running.** Every field on `LitestreamStatus.Current` describes the local child process. A replica
+  silently writing to the wrong prefix, a bucket whose credentials were rotated to read-only, a `-config`
+  file naming a database nobody writes to any more — all of them keep `IsReplicating` true and
+  `RestartCount` flat, and all of them are discovered at the one moment that matters, which is the restore.
+
+  ```csharp
+  o.Verification.Enabled = true;                      // off by default — a pass costs a real restore
+  o.Verification.Interval = TimeSpan.FromHours(24);   // a daily audit, not a health poll
+  ```
+
+  Each pass upserts a sentinel row into the live database (through Rask.SQLite's non-blocking
+  busy-retry, so it waits out a busy writer without holding a thread), waits for replication to carry it,
+  restores **to a temp path** that is deleted on every path, and checks the sentinel came back — then
+  publishes `LitestreamStatus.Verification`: `Outcome`, `LastVerifiedAt`, `LastAttemptedAt`,
+  `ReplicationLag`, `LastError`.
+
+  **Three outcomes, not two.** `Inconclusive` means the sentinel had not shipped yet — replication lag, not
+  a broken backup — and stays distinct from `Failed`, because a job that pages someone every time it races
+  the sync interval is a job that gets turned off. Alert on a `LastVerifiedAt` that stops moving.
+  `ISqliteBackupVerifier` is registered whether or not the schedule is on, for a pass on demand.
+
+  `LitestreamCommand.Restore` gained an output path and now emits `-o` in **`-config` mode too**, where it
+  previously emitted none — a verification restore there would have overwritten the live database with a
+  copy of itself. The verification restore also deliberately omits `-if-replica-exists`, which turns "there
+  is no replica at all" into a silent success.
+
+  Verified end to end against a real object store, not just a fake: `scripts/verify-litestream-minio.sh`
+  runs MinIO in Docker, replicates to it, verifies the round trip, and then destroys the replica to
+  demonstrate `IsReplicating` staying `true` while verification reports `Failed`. `Rask.Dashboard`'s Backup
+  card shows the same split — a "Last verified restore" tile beside the replication one, amber for
+  unproven and red only for a genuinely broken restore (`IDashboardBackupProbe.VerificationAsync`, a
+  default interface member, so existing probes keep compiling). Closes #751.
 - **`TestFileBackend` + `TestServiceProvider` — an `OnFiles` handler can finally be unit-tested.** `Rask.Testing`
   shipped a `TestDownloadSink` but no file backend, and the gap was worse than a missing helper: a handler
   test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the

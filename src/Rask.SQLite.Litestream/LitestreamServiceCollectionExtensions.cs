@@ -43,6 +43,15 @@ public static class LitestreamServiceCollectionExtensions
         services.TryAddSingleton<LitestreamRestorer>();
         services.AddHostedService<LitestreamReplicationService>();
 
+        // Registered whether or not the schedule runs, so an operator endpoint can verify on demand
+        // without opting into a recurring restore. Only the *schedule* is gated on Enabled, because only
+        // the schedule spends egress on its own.
+        services.TryAddSingleton<ISqliteBackupVerifier, LitestreamVerifier>();
+        if (options.Verification.Enabled)
+        {
+            services.AddHostedService<LitestreamVerificationService>();
+        }
+
         return services;
     }
 
