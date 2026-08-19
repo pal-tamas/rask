@@ -88,13 +88,28 @@ public static class NativeOriginAssets
     {
         ".css" => "text/css",
         ".js" => "text/javascript",
+        ".mjs" => "text/javascript",
         ".json" => "application/json",
+        // A .NET WASM bundle is mostly .wasm (assemblies ship as Webcil-in-Wasm), and the runtime checks
+        // this content type explicitly: served as anything else, Mono logs "WebAssembly resource does not
+        // have the expected content type "application/wasm", so falling back to slower ArrayBuffer
+        // instantiation" and gives up streaming compilation for every assembly. It still boots — which is
+        // why this was invisible — it just boots slower. Verified in a WKWebView on a simulator (#775).
+        ".wasm" => "application/wasm",
         ".svg" => "image/svg+xml",
         ".woff2" => "font/woff2",
         ".woff" => "font/woff",
         ".vtt" => "text/vtt",
         ".html" => "text/html",
         ".png" => "image/png",
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".webp" => "image/webp",
+        ".gif" => "image/gif",
+        ".ico" => "image/x-icon",
+        ".webmanifest" => "application/manifest+json",
+        ".txt" => "text/plain",
+        ".xml" => "text/xml",
+        ".map" => "application/json",
         _ => "application/octet-stream"
     };
 }

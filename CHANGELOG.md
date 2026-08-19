@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`NativeOriginAssets` served `.wasm` as `application/octet-stream`, quietly costing the WASM runtime its
+  streaming compilation.** The content-type table had no `.wasm` entry, so every assembly in a .NET WASM
+  bundle fell through to the `application/octet-stream` default. The runtime checks that type by name and
+  says so out loud — `MONO_WASM: WebAssembly resource does not have the expected content type
+  "application/wasm", so falling back to slower ArrayBuffer instantiation` — then boots anyway, which is
+  precisely why it went unnoticed: nothing fails, the app just gives up streaming compilation for all 59
+  assemblies.
+
+  Observed directly, by booting a published Rask WASM client inside a `WKWebView` on an iPhone 17 Pro
+  simulator, served from the app bundle over the `raskapp://local/` origin, and reading the page's console
+  from the native side. After the fix the same run serves `application/wasm` and the warning is gone.
+  `.mjs`, `.jpg`/`.jpeg`, `.webp`, `.gif`, `.ico`, `.webmanifest`, `.txt`, `.xml` and `.map` were missing
+  from the same table and are mapped too.
 - **`samples/Rask.Example.Native` could not use Rask's own markup syntax, because it never referenced the
   generator.** Every other sample references `Rask.Generators` as an analyzer; the native showcase
   referenced `Rask.Example.Shared` instead and assumed it would inherit one. A `ProjectReference` does not
