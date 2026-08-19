@@ -235,6 +235,30 @@ them until tagged releases begin.
   `Rask.Testing`'s `TestFileBackend`.
 
 ### Fixed
+- **The browser E2E gate's Gantt step could fail on a click that was never delivered.** The bar has to be
+  clicked with `Force` — the bar's own `<text class="bar-label">` covers the `<rect class="bar">`, so
+  Playwright's "receives pointer events" check never passes and an unforced click times out every time,
+  even though a real click works (the label is inside the same `.bar-wrapper` the library binds to). But
+  `Force` skips that check for *every* overlay, including the showcase's `sticky-top` `.app-navbar`: when
+  the pre-click scroll parked the bar underneath it, the click landed on the navbar, the chart never saw
+  it, and the assertion waited out its timeout for a log line that could not arrive — with nothing in the
+  failure naming the navbar, so it read as a flake and cost a push.
+
+  Plain retries do not fix that (measured: 6/6 still lost) — the bar *is* in the viewport, merely covered,
+  so neither Playwright nor `scrollIntoView` finds anything to correct and every retry repeats the same
+  dead click. The page itself has to be moved, by a hit test that says the bar's centre really belongs to
+  the bar.
+
+  But aiming alone is not enough either, which the gate then demonstrated: a run with a clean hit test
+  still lost the click, and the chart's own `popup-wrapper` was left **empty** — proof the library was
+  never sent the event. A hit test only describes the instant it ran, and this guide is thousands of
+  pixels tall and still settling, so the layout moves between the aim and the click. So the step now aims,
+  clicks, checks that the chart logged it, and re-aims against the current layout if it did not — and
+  fails naming what is over the bar, or that the click keeps arriving nowhere, rather than leaving the
+  next assertion to time out. Re-clicking is safe by construction: a click that landed never reaches the
+  retry. Verified 6/6 on the host that failed, with the network fault that destabilised the layout still
+  present.
+
 - **The SQLite docs said EF Core's `SaveChanges` transaction was `DEFERRED`. It never was.**
   `docs/sqlite.md` told you to wrap read-then-write EF work in `BeginImmediate` (nested inside
   `IExecutionStrategy.ExecuteAsync`) to avoid an unretryable lock-upgrade dead-lock. That ceremony
