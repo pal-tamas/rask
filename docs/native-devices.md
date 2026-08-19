@@ -112,8 +112,8 @@ backends behind the *same* interfaces (biometrics, native push via APNs/FCM) are
 
 ## Screens — a page that owns its chrome
 
-A **`Screen`** is a `Page` that also declares the native chrome around it. Instead of the app root inspecting
-the current path to decide what the header should say, each screen names its own bars:
+A **`Screen`** is a routed component that also declares the native chrome around it. Instead of the app root
+inspecting the current path to decide what the header should say, each screen names its own bars:
 
 ```csharp
 [Route("/todos")]
@@ -168,10 +168,9 @@ The slots accept two families, and the choice is the usual portability trade:
 Reach for the portable set by default. One declaration, three hosts:
 
 ```csharp
+[Route("/todos")]
 public sealed class TodosScreen : Screen
 {
-    protected override string Route => "/todos";
-
     protected override Component? HeaderBar =>
         AppBar.Title("Todos")
             .Trailing([BarButton.Icon(BarIcon.Add).Title("New").OnClick(Add)]);
