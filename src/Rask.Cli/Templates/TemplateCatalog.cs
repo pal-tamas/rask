@@ -38,6 +38,11 @@ internal static class TemplateCatalog
         // Same batteries as server, minus --push: Web Push needs the subscribe endpoints AND a service
         // worker that posts to them, and in this template those live in two different projects. It is a
         // real feature rather than a wiring gap, so it is left out rather than half-scaffolded.
+        //
+        // --cqrs means more here than on the server template: this is the one template with a server half
+        // to dispatch TO, so it wires remote dispatch across both projects rather than only registering the
+        // mediator. On 'wasm' there is no host in the solution, so the flag would name a destination that
+        // isn't there.
         new("wasm-hosted", "Rask WASM + ASP.NET host",
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags],
