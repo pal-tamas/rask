@@ -28,6 +28,8 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Testing"/>
+    <!-- WaitFor lives in the shared helper library now, so every suite polls the same way (#769). -->
+    <Using Include="Rask.TestSupport"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +39,7 @@
          app author would. -->
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+    <ProjectReference Include="..\..\tests\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

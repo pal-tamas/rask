@@ -20,10 +20,17 @@ namespace Rask.Testing;
 ///         on the framework — and a public seam is an irreversible commitment where this is not.
 ///     </para>
 ///     <para>
-///         <b>The sink is process-global</b>, so this serializes on a lock and restores the previous sink
-///         on <see cref="Dispose" />. Two of these live at once in parallel tests would still interleave —
-///         if a test asserts on a <em>count</em>, filter to the events it provoked (<see cref="OfCategory" />)
-///         rather than asserting over everything captured.
+///         <b>The sink is process-global</b>, so installs are tracked as a set rather than as a single
+///         slot: every capture that is currently installed receives every event, and the sink that was
+///         there before is restored when the last one is disposed. That is what makes this safe under
+///         xUnit's default parallelism — with a save/restore slot, two test classes installing at once
+///         meant the first to dispose silently unhooked the second, which then captured nothing and
+///         failed on a full-solution run while passing standalone (#769).
+///     </para>
+///     <para>
+///         Concurrent captures therefore see each other's events. A test asserting on a <em>count</em>
+///         should filter to the events it provoked (<see cref="OfCategory" />) rather than assert over
+///         everything captured.
 ///     </para>
 ///     <code>
 ///     using var diagnostics = CapturingDiagnostics.Install();
@@ -35,24 +42,57 @@ public sealed class CapturingDiagnostics : IDisposable
 {
     private static readonly Lock InstallGate = new();
 
+    // Every capture currently installed. Guarded by InstallGate for mutation; readers take a snapshot
+    // under the same lock, because a diagnostic can be reported from any thread at any time.
+    private static readonly List<CapturingDiagnostics> Installed = [];
+
+    // The sink that was in place before the FIRST capture installed — restored when the last one goes.
+    private static Action<RaskDiagnosticEvent>? _outerSink;
+
     private readonly Lock _gate = new();
     private readonly List<CapturedDiagnostic> _captured = [];
-    private readonly Action<RaskDiagnosticEvent>? _previous;
     private bool _disposed;
 
     private CapturingDiagnostics()
     {
-        _previous = RaskDiagnostics.Sink;
-        RaskDiagnostics.ResetReportOnceForTests();
-        RaskDiagnostics.Sink = Capture;
     }
 
-    /// <summary>Installs a capturing sink. Dispose to restore the previous one.</summary>
+    /// <summary>
+    ///     Installs a capturing sink. Dispose to remove it; the sink that was in place before the first
+    ///     install is restored once the last capture is disposed, in whatever order they are disposed.
+    /// </summary>
     public static CapturingDiagnostics Install()
     {
+        var capture = new CapturingDiagnostics();
+
         lock (InstallGate)
         {
-            return new CapturingDiagnostics();
+            if (Installed.Count == 0)
+            {
+                _outerSink = RaskDiagnostics.Sink;
+                RaskDiagnostics.Sink = Fanout;
+            }
+
+            Installed.Add(capture);
+            RaskDiagnostics.ResetReportOnceForTests();
+        }
+
+        return capture;
+    }
+
+    // One sink, fanned out to every installed capture. Snapshotting under the lock keeps a Dispose that
+    // races a report from mutating the list mid-iteration; the captures' own Capture takes its own lock.
+    private static void Fanout(RaskDiagnosticEvent e)
+    {
+        CapturingDiagnostics[] targets;
+        lock (InstallGate)
+        {
+            targets = Installed.ToArray();
+        }
+
+        foreach (var target in targets)
+        {
+            target.Capture(e);
         }
     }
 
@@ -76,7 +116,10 @@ public sealed class CapturingDiagnostics : IDisposable
     public IReadOnlyList<CapturedDiagnostic> OfCategory(string category) =>
         Captured.Where(e => string.Equals(e.Category, category, StringComparison.Ordinal)).ToArray();
 
-    /// <summary>Restores the sink that was installed before this one.</summary>
+    /// <summary>
+    ///     Removes this capture. The sink that was in place before the first install is restored once the
+    ///     last capture is disposed — a capture still in use by another test is never unhooked.
+    /// </summary>
     public void Dispose()
     {
         lock (InstallGate)
@@ -87,7 +130,14 @@ public sealed class CapturingDiagnostics : IDisposable
             }
 
             _disposed = true;
-            RaskDiagnostics.Sink = _previous;
+            Installed.Remove(this);
+
+            if (Installed.Count == 0)
+            {
+                RaskDiagnostics.Sink = _outerSink;
+                _outerSink = null;
+            }
+
             RaskDiagnostics.ResetReportOnceForTests();
         }
     }

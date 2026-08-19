@@ -12,6 +12,7 @@ namespace Rask.Outbox.Tests;
 /// stripped <c>ProcessedAt</c> from every message already published in that batch — so they were all published
 /// again on the next poll. Duplicate delivery is the exact failure the outbox exists to prevent.
 /// </summary>
+[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxConcurrencyTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-conc-{Guid.NewGuid():N}.db");

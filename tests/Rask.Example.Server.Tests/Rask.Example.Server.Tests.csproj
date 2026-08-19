@@ -28,12 +28,15 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
+    <Using Include="Rask.TestSupport"/>
   </ItemGroup>
 
   <!--
-    Share FakeHttp / FakeJsRuntime / LiveHost / TestServices / WaitFor with
+    Share FakeHttp / FakeJsRuntime / LiveHost / TestServices with
     Rask.Example.Shared.Tests via linked files. Avoids duplicating the same fakes
     across every Example test project and keeps them in lockstep when one changes.
+    WaitFor is no longer among them: it moved to Rask.TestSupport (referenced below),
+    because suites outside the Example family need it too (#769).
   -->
   <ItemGroup>
     <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\FakeHttp.cs"
@@ -44,8 +47,6 @@
              Link="Infrastructure\RecordingHandle.cs"/>
     <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\LifecycleLog.cs"
              Link="Infrastructure\LifecycleLog.cs"/>
-    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\WaitFor.cs"
-             Link="Infrastructure\WaitFor.cs"/>
     <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\LiveHost.cs"
              Link="Infrastructure\LiveHost.cs"/>
     <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\TestServices.cs"
@@ -66,6 +67,7 @@
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Server\Rask.Example.Server.csproj"/>
+    <ProjectReference Include="..\..\tests\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

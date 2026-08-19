@@ -54,8 +54,17 @@ echo "==> Formatting check (dotnet format --verify-no-changes: whitespace + styl
 dotnet format Rask.slnx --verify-no-changes --no-restore
 
 echo "==> Unit & integration tests (excludes the browser E2E)"
+# --blame-crash: when a test host dies below the managed layer, the run reports "Test host process
+# crashed" with no exception, no stack and not even the name of the test that was running — and since
+# the solution runs ~40 assemblies at once, the last lines of console output belong to whichever OTHER
+# assembly happened to be writing, which is how #769 spent an investigation on Rask.Server.Tests over a
+# crash in an assembly that reported more tests than Rask.Server.Tests has. Blame writes a per-host
+# sequence file naming the test in flight and collects a dump, so the next occurrence is diagnosable
+# instead of merely observed. It costs nothing on a green run.
 dotnet test Rask.slnx -c Release --no-build \
   --filter "FullyQualifiedName!~Rask.Examples.E2E" \
+  --blame-crash \
+  --results-directory "$root/artifacts/test-blame" \
   --logger "console;verbosity=normal"
 
 echo "==> Format + unit gate passed."

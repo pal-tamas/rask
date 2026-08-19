@@ -1,6 +1,12 @@
-namespace Rask.Example.Shared.Tests.Infrastructure;
+namespace Rask.TestSupport;
 
-internal static class WaitFor
+/// <summary>
+/// The one polling wait shared by every suite. Lives here rather than in any single test project so a
+/// test that needs to wait for a thread-pool continuation reaches for this instead of a fixed
+/// <c>Task.Delay</c> budget — a duration is not a synchronisation primitive, and on a loaded machine the
+/// gate failed on diffs that could not have caused it (#769).
+/// </summary>
+public static class WaitFor
 {
     /// <summary>
     /// Polls <paramref name="condition"/> until it holds, and <b>throws</b> if it never does within

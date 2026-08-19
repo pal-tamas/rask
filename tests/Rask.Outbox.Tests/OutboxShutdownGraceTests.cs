@@ -32,6 +32,7 @@ public sealed class GatedEventHandler(OutboxGate gate) : INotificationHandler<Ga
 ///     Before <c>ShutdownGracePeriod</c>, the host's stopping token went straight into the handler, so
 ///     <c>SIGTERM</c> cancelled a publish mid-call.
 /// </summary>
+[Collection(OutboxDbCollection.Name)]
 public sealed class OutboxShutdownGraceTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-grace-{Guid.NewGuid():N}.db");
