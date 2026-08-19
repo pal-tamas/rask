@@ -45,6 +45,17 @@ them until tagged releases begin.
     reduced to a safe leaf, and `nosniff`. Neither direction buffers: the response is read headers-first,
     a picked file is opened only when the upload reads it, and `AsRemote()` passes the file's own size as
     the read ceiling so a file above `RaskFile`'s 512 KB default uploads whole instead of being truncated.
+  - **`rask new --template wasm-hosted --cqrs`** scaffolds the whole arrangement: the messages in
+    `Shared`, the handlers in `Server`, `AddRaskCqrsClient()` in the browser, `AddRaskCqrsServer()` +
+    `MapRaskCqrs()` in the host, and a page that dispatches a query and a command. Each half takes only its
+    own transport package. Without `--auth` the template sets `RequireAuthenticatedUser = false` and says
+    in a comment why — there is no authentication to require, and left on, every message would answer 401;
+    with `--auth` the secure default stands. Both variants are compiled by the CLI build gate.
+  - **The generator no longer ships in three packages at once.** `Rask.Cqrs.Client` and `Rask.Cqrs.Server`
+    each packed their own copy of the codec generator alongside the one in `Rask.Cqrs`, so a project
+    referencing a transport *and* the message library loaded it twice and every generated codec collided
+    with itself (CS0101/CS0111) — remote CQRS could not be consumed as packages at all. Invisible in-repo,
+    because a `ProjectReference` does not flow analyzers the way a package dependency does.
   - **A notification publishes once.** A client's own notification handlers still run and the
     notification still travels — but the invokers are installed once per *process*, not once per
     `ServiceCollection`. The registry they go into is static, so a second registration (a test, a rebuilt

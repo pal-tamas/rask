@@ -864,6 +864,86 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain("AddAuthentication", off["App.Server/Program.cs"], StringComparison.Ordinal);
     }
 
+    private static Dictionary<string, string> GenerateWasmHostedCqrs(bool auth = false) =>
+        Index(ProjectGenerator.GenerateWasmHosted(
+            Root, "App", auth, pwa: false, docker: false, Version, bootstrap: true, cqrs: true));
+
+    [Fact]
+    public void WasmHosted_cqrs_puts_the_messages_in_shared_and_the_handlers_in_the_server()
+    {
+        var files = GenerateWasmHostedCqrs();
+
+        // The placement IS the design: both halves compile the same record, and only the server compiles
+        // the handler — which is what keeps a handler's internals out of a download anybody can read.
+        Assert.True(files.ContainsKey("App.Shared/Messages.cs"));
+        Assert.True(files.ContainsKey("App.Server/Features/Hello/HelloHandlers.cs"));
+        Assert.True(files.ContainsKey("App.Client/Features/Hello/HelloPage.cs"));
+
+        Assert.Contains("IQuery<Greeting>", files["App.Shared/Messages.cs"], StringComparison.Ordinal);
+        Assert.Contains("IQueryHandler<GetGreeting, Greeting>", files["App.Server/Features/Hello/HelloHandlers.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("IQueryHandler", files["App.Client/Features/Hello/HelloPage.cs"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WasmHosted_cqrs_gives_each_half_only_its_own_transport()
+    {
+        var files = GenerateWasmHostedCqrs();
+
+        // A browser bundle must not be able to compile the endpoint code, and the host must not carry the
+        // browser transport. Referencing both would make that boundary a convention instead of a fact.
+        var client = files["App.Client/App.Client.csproj"];
+        Assert.Contains("Rask.Cqrs.Client", client, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs.Server", client, StringComparison.Ordinal);
+
+        var server = files["App.Server/App.Server.csproj"];
+        Assert.Contains("Rask.Cqrs.Server", server, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs.Client", server, StringComparison.Ordinal);
+
+        // The message library carries the message package, so the record compiles on both sides.
+        Assert.Contains("Rask.Cqrs", files["App.Shared/App.Shared.csproj"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WasmHosted_cqrs_registers_both_halves_and_maps_the_endpoints()
+    {
+        var files = GenerateWasmHostedCqrs();
+
+        Assert.Contains("AddRaskCqrsClient()", files["App.Client/Program.cs"], StringComparison.Ordinal);
+
+        var server = files["App.Server/Program.cs"];
+        Assert.Contains("AddRaskCqrsServer", server, StringComparison.Ordinal);
+
+        // Mapped BEFORE UseRask, or the SPA fallback answers every message with index.html.
+        var mapIndex = server.IndexOf("MapRaskCqrs", StringComparison.Ordinal);
+        var useRaskIndex = server.IndexOf("app.UseRask()", StringComparison.Ordinal);
+        Assert.True(mapIndex > 0, "MapRaskCqrs is missing from the generated host.");
+        Assert.True(mapIndex < useRaskIndex, "MapRaskCqrs must be mapped before UseRask's SPA fallback.");
+    }
+
+    [Fact]
+    public void WasmHosted_cqrs_without_auth_turns_the_authenticated_requirement_off_explicitly()
+    {
+        // Without --auth there is nobody to authenticate, so the secure default would 401 every message the
+        // template ships — a scaffold that cannot run its own sample. With --auth it must stay on.
+        var withoutAuth = GenerateWasmHostedCqrs()["App.Server/Program.cs"];
+        Assert.Contains("RequireAuthenticatedUser = false", withoutAuth, StringComparison.Ordinal);
+
+        var withAuth = GenerateWasmHostedCqrs(auth: true)["App.Server/Program.cs"];
+        Assert.DoesNotContain("RequireAuthenticatedUser = false", withAuth, StringComparison.Ordinal);
+        Assert.Contains("AddRaskCqrsServer();", withAuth, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WasmHosted_without_cqrs_carries_no_trace_of_it()
+    {
+        var files = GenerateWasmHosted();
+
+        Assert.DoesNotContain("App.Shared/Messages.cs", files.Keys);
+        Assert.DoesNotContain("Rask.Cqrs", files["App.Shared/App.Shared.csproj"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs", files["App.Client/App.Client.csproj"], StringComparison.Ordinal);
+        Assert.DoesNotContain("MapRaskCqrs", files["App.Server/Program.cs"], StringComparison.Ordinal);
+    }
+
     // The hosted Server also ships /health before UseHttpsRedirection — same deploy-probe contract as server.
     [Fact]
     public void WasmHosted_server_wires_health_before_https_redirection()

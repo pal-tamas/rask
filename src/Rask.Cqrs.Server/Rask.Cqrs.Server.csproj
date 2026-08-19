@@ -28,9 +28,10 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\Rask.Cqrs.Generators\bin\$(Configuration)\netstandard2.0\Rask.Cqrs.Generators.dll"
-          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
-  </ItemGroup>
+  <!--
+    Not packed here: Rask.Cqrs already ships the generator, and analyzer assets flow through a package
+    dependency. A second copy loads it twice in the consumer's compilation and every codec collides with
+    itself (CS0101/CS0111). See the same note in Rask.Cqrs.Client.csproj.
+  -->
 
 </Project>

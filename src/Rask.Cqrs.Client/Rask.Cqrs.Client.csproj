@@ -33,9 +33,15 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\Rask.Cqrs.Generators\bin\$(Configuration)\netstandard2.0\Rask.Cqrs.Generators.dll"
-          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
-  </ItemGroup>
+  <!--
+    The generator is deliberately NOT packed here. This package depends on Rask.Cqrs, which already ships
+    it under analyzers/dotnet/cs/, and analyzer assets DO flow through a package dependency. Packing a
+    second copy loads the generator twice in one compilation — two instances, each emitting
+    __RaskCqrsCodecs.g.cs under its own path — and the consumer gets CS0101/CS0111 on every codec.
+
+    In-repo this is invisible: a ProjectReference does not flow analyzers, so the test projects that name
+    the generator explicitly only ever load one. It appears solely when the packages are consumed as
+    packages, which is what the CLI build gate exercises and what found it.
+  -->
 
 </Project>

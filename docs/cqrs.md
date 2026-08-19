@@ -117,6 +117,89 @@ watch the pipeline log build up.
 
 <!-- demo:cqrs-counter -->
 
+## Remote dispatch — a client and a server (`Rask.Cqrs.Client` / `Rask.Cqrs.Server`)
+
+A WASM-hosted or native app reaches its server through the **same `IDispatcher` call** it already makes
+in-process. There is no `HttpClient` at the call site, no `/api/*` endpoint to write, and nothing on a
+message marks it as remote — you write a record and a handler exactly as above, and *where the project
+sits* decides where it runs.
+
+One package and one line per project. Neither half references the other, so a browser bundle cannot
+compile the endpoint code and the server never carries the browser transport:
+
+```csharp
+// The client (a WASM app, or a native one). Every message it dispatches goes to the server.
+host.Services.AddRaskCqrsClient();
+
+// The server.
+builder.Services.AddRaskCqrsServer();
+...
+app.MapRaskCqrs();
+```
+
+Put the message records in a project both halves reference, and the handlers in the server project only
+— which is what keeps a connection string, a table name or a pricing rule out of a download anybody can
+read. `rask new --template wasm-hosted --cqrs` scaffolds exactly this shape.
+
+**A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
+can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a
+client's own handlers still run *and* the notification travels.
+
+### Two endpoints, not one per message
+
+`GET` and `POST` on `/_rask/cqrs/request/{name}`. The verb carries what `IQuery` and `ICommand` already
+declare in C#: a query is safe and idempotent so it is a GET and can be cached; anything that mutates is
+a POST. So a command is **405 on GET** and cannot be triggered by a URL, a prefetch or a link scanner. A
+query too long for a URL falls back to POST automatically, with an identical result.
+
+Because the name is a route segment, logs, metrics and rate-limit partitions get it for free.
+`MapRaskCqrs()` returns the endpoint group, so `.RequireRateLimiting(...)`, CORS or output caching is a
+one-line addition.
+
+### It fails closed
+
+- **Authenticated by default.** `[AllowAnonymous]` on the handler is the only way past;
+  `[Authorize]` supplies a policy *and* roles, both enforced.
+- **An anonymous caller cannot enumerate your messages.** A real name and a typo get the same answer, so
+  the endpoint can't be walked to discover what the app has.
+- **Both verbs require the `X-Rask-Cqrs` header**, which no cross-site markup can set — adding the GET
+  surface adds no cross-site trigger.
+- **Handler exceptions become RFC 9457 `problem+json`** with no exception text unless you opt in
+  (`IncludeExceptionDetail`): an exception message is written for an operator, not a browser, and
+  routinely names tables, paths and credentials.
+
+Failure to *arrive* is the one thing remote dispatch adds to the in-process call, and it is a
+`RemoteDispatchException` — a null `StatusCode` means the request never reached the server.
+
+### `[LocalOnly]`
+
+Keeps a message off the wire entirely, and on an **interface** covers a whole family. This matters more
+than it looks: `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
+outbox event in the app would become an internet-reachable endpoint.
+
+### Files, both directions
+
+`RemoteFile` on a message uploads as multipart; a query returning `FileDownload` streams back. Neither
+direction buffers, and neither needs an adapter at the call site:
+
+```csharp
+// Upload: the file the user picked, as a message property.
+await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked.AsRemote()));
+
+// Download: the file the handler returned, saved by the browser.
+navigator.Download(await dispatcher.DispatchAsync(new ExportOrders(year)));
+```
+
+Bounded by the server's `MaxUploadBytes` and `MaxFileCount`. Chunked, resumable upload is not
+implemented — see [#764](https://github.com/pal-tamas/rask/issues/764).
+
+### Wire codecs, and RASK053
+
+The codecs are **source-generated** `Utf8JsonWriter`/`Utf8JsonReader` code, not reflection, so remote
+dispatch publishes clean under the WASM/AOT trimmer. **RASK053** reports a message or result shape that
+has no wire encoding. It reaches no existing code: codecs are generated only for a compilation that
+references one of the two transport packages, so an app using `Rask.Cqrs` in-process is unconstrained.
+
 ## Diagnostics
 
 The generator validates your handlers at compile time:

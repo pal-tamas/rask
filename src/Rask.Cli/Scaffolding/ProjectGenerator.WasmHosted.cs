@@ -11,31 +11,43 @@ internal static partial class ProjectGenerator
     /// <summary>
     /// Generates the <c>wasm-hosted</c> template into <paramref name="targetDirectory"/>: a three-project
     /// solution (<c>{name}.Client</c> WASM SPA, <c>{name}.Server</c> ASP.NET host, <c>{name}.Shared</c>
-    /// contracts). Slim by default (welcome page only); <paramref name="auth"/> adds the cookie login flow.
+    /// contracts). Slim by default (welcome page only); <paramref name="auth"/> adds the cookie login flow,
+    /// and <paramref name="cqrs"/> wires remote CQRS so the client reaches the server through
+    /// <c>IDispatcher</c> instead of a hand-written endpoint and an <c>HttpClient</c>.
     /// </summary>
-    public static ScaffoldResult GenerateWasmHosted(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version, bool bootstrap = true)
+    public static ScaffoldResult GenerateWasmHosted(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version, bool bootstrap = true, bool cqrs = false)
     {
         var files = new List<(string Path, string Content)>
         {
             // Shared — the class library both the Client and the Server reference.
-            ($"{NameToken}.Shared/{NameToken}.Shared.csproj", SharedCsproj),
+            ($"{NameToken}.Shared/{NameToken}.Shared.csproj", SharedCsproj(cqrs, version)),
             ($"{NameToken}.Shared/Contracts.cs", auth ? WasmHostedSharedContractsAuth : WasmHostedSharedContracts),
 
             // Client — the browser-WASM SPA (shell in Features/Shared, welcome page in Features/Home).
-            ($"{NameToken}.Client/{NameToken}.Client.csproj", WasmHostedClientCsproj(bootstrap, version)),
-            ($"{NameToken}.Client/Program.cs", WasmHostedClientProgram(auth, pwa)),
+            ($"{NameToken}.Client/{NameToken}.Client.csproj", WasmHostedClientCsproj(bootstrap, version, cqrs)),
+            ($"{NameToken}.Client/Program.cs", WasmHostedClientProgram(auth, pwa, cqrs)),
             ($"{NameToken}.Client/Features/Shared/App.cs", WasmHostedClientAppShell(bootstrap)),
             ($"{NameToken}.Client/Features/Home/HomePage.cs", WasmHostedClientHomePage(bootstrap)),
             ($"{NameToken}.Client/wwwroot/index.html", WasmIndexHtml(pwa)),
             ($"{NameToken}.Client/runtimeconfig.template.json", WasmRuntimeConfig),
 
             // Server — the ASP.NET host that serves the baked WASM bundle.
-            ($"{NameToken}.Server/{NameToken}.Server.csproj", WasmHostedServerCsproj(version)),
-            ($"{NameToken}.Server/Program.cs", WasmHostedServerProgram(auth)),
+            ($"{NameToken}.Server/{NameToken}.Server.csproj", WasmHostedServerCsproj(version, cqrs)),
+            ($"{NameToken}.Server/Program.cs", WasmHostedServerProgram(auth, cqrs)),
             ($"{NameToken}.Server/Properties/launchSettings.json", WasmHostedServerLaunchSettings),
             ($"{NameToken}.Server/appsettings.json", AppSettings),
             ($"{NameToken}.Server/appsettings.Production.json", AppSettingsProduction),
         };
+
+        if (cqrs)
+        {
+            // The messages go in Shared because both halves must see the same record: the client dispatches
+            // it, the server handles it, and one definition is the whole point. The handler goes in Server
+            // and is never compiled into the browser bundle.
+            files.Add(($"{NameToken}.Shared/Messages.cs", WasmHostedSharedMessages));
+            files.Add(($"{NameToken}.Server/Features/Hello/HelloHandlers.cs", WasmHostedServerHandlers));
+            files.Add(($"{NameToken}.Client/Features/Hello/HelloPage.cs", WasmHostedClientHelloPage));
+        }
 
         if (auth)
         {
@@ -79,12 +91,17 @@ internal static partial class ProjectGenerator
     private static string WasmHostedClientHomePage(bool bootstrap) =>
         HomePageCs(bootstrap).Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
 
-    private static string WasmHostedClientProgram(bool auth, bool pwa)
+    private static string WasmHostedClientProgram(bool auth, bool pwa, bool cqrs)
     {
         var sb = new StringBuilder();
         sb.Append($"using {NameToken}.Client.Features.Shared;\n"); // App lives in the client's Features/Shared bucket.
         sb.Append("using Microsoft.Extensions.DependencyInjection;\n");
         sb.Append("using Rask.Wasm;\n");
+        if (cqrs)
+        {
+            sb.Append("using Rask.Cqrs.Client;\n");
+        }
+
         if (auth)
         {
             sb.Append($"using {NameToken}.Client.Features.Auth;\n");
@@ -106,6 +123,19 @@ internal static partial class ProjectGenerator
             host.Services.AddSingleton(_ => new HttpClient { BaseAddress = new Uri(WasmHostBuilder.BaseAddress) });
 
             """.TrimStart('\n'));
+
+        if (cqrs)
+        {
+            sb.Append("""
+
+                // Remote CQRS: this project becomes a pure client. Dispatching a message defined in Shared
+                // sends it to the server and returns the handler's answer — the same IDispatcher call an
+                // in-process app makes, with no HttpClient at the call site and no endpoint to write. The
+                // request is same-origin, so the auth cookie rides it. See docs/cqrs.md.
+                host.Services.AddRaskCqrsClient();
+
+                """.TrimStart('\n'));
+        }
 
         if (pwa)
         {
@@ -141,7 +171,7 @@ internal static partial class ProjectGenerator
         return sb.ToString();
     }
 
-    private static string WasmHostedServerProgram(bool auth)
+    private static string WasmHostedServerProgram(bool auth, bool cqrs)
     {
         var sb = new StringBuilder();
         if (auth)
@@ -156,6 +186,12 @@ internal static partial class ProjectGenerator
         sb.Append("using Microsoft.AspNetCore.DataProtection;\n");
         sb.Append("using Microsoft.AspNetCore.HttpOverrides;\n");
         sb.Append("using Rask.Wasm.Hosting;\n");
+        if (cqrs)
+        {
+            sb.Append("using Rask.Cqrs;\n");
+            sb.Append("using Rask.Cqrs.Server;\n");
+        }
+
 
         sb.Append("""
 
@@ -224,6 +260,37 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
+        if (cqrs)
+        {
+            // Two registrations, one flag. With --auth there is a real user, so the secure default stands:
+            // every message needs an authenticated caller unless its handler says [AllowAnonymous]. Without
+            // --auth there is nobody to authenticate, and leaving the default on would 401 every message the
+            // app has — a template that cannot run its own sample. So it is turned off explicitly, where the
+            // comment can say what turning it back on requires.
+            sb.Append(auth
+                ? """
+
+                    // Remote CQRS: AddRaskCqrsServer also calls AddRaskCqrs, so this registers the mediator AND
+                    // the endpoint options in one line. It fails closed — a message is reachable only by an
+                    // authenticated caller, unless its handler carries [AllowAnonymous]; [Authorize] on a
+                    // handler supplies the policy and the roles. See docs/cqrs.md.
+                    builder.Services.AddRaskCqrsServer();
+
+                    """.TrimStart('\n')
+                : """
+
+                    // Remote CQRS: AddRaskCqrsServer also calls AddRaskCqrs, so this registers the mediator AND
+                    // the endpoint options in one line.
+                    //
+                    // RequireAuthenticatedUser is OFF because this template has no authentication to require —
+                    // left on, every message would answer 401 and nothing would work. Scaffold with --auth (or
+                    // add your own cookie/JWT scheme) and DELETE this line: the default is on for a reason, and
+                    // a message reachable by anyone is a decision worth making per app rather than inheriting.
+                    builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
+
+                    """.TrimStart('\n'));
+        }
+
         sb.Append("""
 
             var app = builder.Build();
@@ -277,6 +344,19 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
+        if (cqrs)
+        {
+            sb.Append("""
+
+                // The endpoint pair every remotely dispatched message arrives on: GET for queries, POST for
+                // commands, both under /_rask/cqrs/request/{name}. Two routes however many messages the app
+                // grows. Mapped before UseRask so the SPA fallback doesn't swallow them. Returns the endpoint
+                // group, so .RequireRateLimiting(...) or a CORS policy is a one-line addition here.
+                app.MapRaskCqrs();
+
+                """.TrimStart('\n'));
+        }
+
         sb.Append("""
 
             // Serve the baked WASM bundle: UseDefaultFiles + UseStaticFiles (pre-compressed .br/.gz siblings)
@@ -307,17 +387,77 @@ internal static partial class ProjectGenerator
 
     // ---- wasm-hosted template files ----
 
-    private const string SharedCsproj =
-        """
+    // Rask.Cqrs lands HERE rather than in either half, and that placement is the design: a message is a
+    // contract, so both sides must compile the same record. The Client adds Rask.Cqrs.Client and the Server
+    // adds Rask.Cqrs.Server on top — neither references the other's transport, so the browser bundle cannot
+    // compile the endpoint code and the host never carries the browser transport.
+    private static string SharedCsproj(bool cqrs, string version)
+    {
+        var cqrsRef = cqrs
+            ? $"\n\n  <ItemGroup>\n    <PackageReference Include=\"Rask.Cqrs\" Version=\"{version}\"/>\n  </ItemGroup>"
+            : "";
+
+        return $"""
         <Project Sdk="Microsoft.NET.Sdk">
 
           <PropertyGroup>
             <TargetFramework>net10.0</TargetFramework>
             <ImplicitUsings>enable</ImplicitUsings>
             <Nullable>enable</Nullable>
-          </PropertyGroup>
+          </PropertyGroup>{cqrsRef}
 
         </Project>
+
+        """;
+    }
+
+    // The messages. Nothing here says "remote": these are the same records an in-process app writes, and
+    // where the project sits decides where they run. That is the whole DX claim — a feature moves between
+    // in-process and client/server without its call sites changing.
+    private const string WasmHostedSharedMessages =
+        """
+        using Rask.Cqrs;
+
+        namespace Company.RaskServer.Shared;
+
+        // A query: safe and idempotent, so it travels as a GET and can be cached.
+        public sealed record GetGreeting(string Name) : IQuery<Greeting>;
+
+        public sealed record Greeting(string Message, DateTimeOffset ServerTime);
+
+        // A command: it mutates, so it travels as a POST and can never be triggered by a URL, a prefetch or
+        // a link scanner. The transport enforces that from the type alone — GET answers 405.
+        public sealed record RecordVisit(string Name) : ICommand<int>;
+
+        """;
+
+    // Handlers live in the SERVER project and are never compiled into the browser bundle. The client
+    // references the message, not the handler — which is what keeps a connection string, a table name or a
+    // pricing rule out of a download anybody can read.
+    private const string WasmHostedServerHandlers =
+        """
+        using Company.RaskServer.Shared;
+        using Rask.Cqrs;
+
+        namespace Company.RaskServer.Server.Features.Hello;
+
+        // An ordinary handler. It has no idea the call arrived over HTTP: the same class serves an
+        // in-process dispatch unchanged, which is why a feature can start local and become remote later.
+        public sealed class GetGreetingHandler : IQueryHandler<GetGreeting, Greeting>
+        {
+            public Task<Greeting> HandleAsync(GetGreeting query, CancellationToken cancellationToken) =>
+                Task.FromResult(new Greeting($"Hello, {query.Name}, from the server.", DateTimeOffset.UtcNow));
+        }
+
+        // Counts in memory so the template needs no database. Swap the field for a DbSet when you add one —
+        // inject the context through the constructor exactly as you would in-process.
+        public sealed class RecordVisitHandler : ICommandHandler<RecordVisit, int>
+        {
+            private static int _visits;
+
+            public Task<int> HandleAsync(RecordVisit command, CancellationToken cancellationToken) =>
+                Task.FromResult(Interlocked.Increment(ref _visits));
+        }
 
         """;
 
@@ -351,10 +491,15 @@ internal static partial class ProjectGenerator
     // Shares the WebAssembly SDK property block with the standalone `wasm` template (WasmSdkPropertyGroup in
     // ProjectGenerator.Wasm.cs) so the two can't drift. The hosted client differs only in referencing the
     // Shared project (and never the --auth JSInterop/Authorization refs — hosted auth is cookie-based).
-    private static string WasmHostedClientCsproj(bool bootstrap, string version)
+    private static string WasmHostedClientCsproj(bool bootstrap, string version, bool cqrs)
     {
         var bootstrapRef = bootstrap
             ? $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>"
+            : "";
+
+        // The client half only. It has no idea an endpoint exists — it turns a dispatch into a request.
+        var cqrsRef = cqrs
+            ? $"\n    <PackageReference Include=\"Rask.Cqrs.Client\" Version=\"{version}\"/>"
             : "";
 
         return $"""
@@ -363,7 +508,7 @@ internal static partial class ProjectGenerator
         {WasmSdkPropertyGroup}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>{bootstrapRef}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{bootstrapRef}{cqrsRef}
             <ProjectReference Include="..\Company.RaskServer.Shared\Company.RaskServer.Shared.csproj"/>
           </ItemGroup>
 
@@ -372,8 +517,15 @@ internal static partial class ProjectGenerator
         """;
     }
 
-    private static string WasmHostedServerCsproj(string version) =>
-        $"""
+    private static string WasmHostedServerCsproj(string version, bool cqrs)
+    {
+        // The server half only. It receives messages and dispatches them locally; it never builds a
+        // request, so it has no use for — and no reference to — the client transport.
+        var cqrsRef = cqrs
+            ? $"\n    <PackageReference Include=\"Rask.Cqrs.Server\" Version=\"{version}\"/>"
+            : "";
+
+        return $"""
         <Project Sdk="Microsoft.NET.Sdk.Web">
 
           <PropertyGroup>
@@ -392,7 +544,7 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm.Hosting" Version="{version}"/>
+            <PackageReference Include="Rask.Wasm.Hosting" Version="{version}"/>{cqrsRef}
             <ProjectReference Include="..\Company.RaskServer.Shared\Company.RaskServer.Shared.csproj"/>
             <!--
               Cross-TFM reference: a net10.0 host pointing at a net10.0-browser WASM client.
@@ -409,6 +561,7 @@ internal static partial class ProjectGenerator
         </Project>
 
         """;
+    }
 
     private const string WasmHostedServerLaunchSettings =
         """
@@ -621,6 +774,72 @@ internal static partial class ProjectGenerator
                         Div.Style("color:#7a5c00")["🔑 You have admin access."]],
                     Button.Id("logout").OnClickAsync(login.LogoutAsync)["Sign out"]
                 ];
+        }
+
+        """;
+
+    // The page that makes the claim concrete: no HttpClient, no endpoint written for it, no serializer
+    // registered. IDispatcher is the same interface an in-process app injects — AddRaskCqrsClient is what
+    // decides the message leaves the browser.
+    private const string WasmHostedClientHelloPage =
+        """
+        using Company.RaskServer.Shared;
+        using Rask.Core.Components;
+        using Rask.Core.Routing;
+        using Rask.Cqrs;
+
+        namespace Company.RaskServer.Client.Features.Hello;
+
+        public sealed partial class HelloPage(IDispatcher dispatcher) : Page
+        {
+            protected override string Route => "hello";
+
+            private readonly HelloModel _model = new();
+            private Greeting? _greeting;
+            private int? _visits;
+            private string? _error;
+
+            protected override Component? Render() =>
+                Div.Style("max-width:32rem;margin:3rem auto;font-family:system-ui")[
+                    H1["Remote CQRS"],
+                    P["The button below dispatches a query and a command. Both handlers run on the server."],
+                    _error is null ? null : Div.Id("hello-error").Style("color:#b00020")[_error],
+                    Form.Model(_model).OnValidSubmitAsync(AskAsync)[
+                        Div[Label.For("name")["Your name"], Input.Bind(() => _model.Name).Id("name")],
+                        Button("submit", Id: "hello-submit")["Ask the server"]
+                    ],
+                    _greeting is null ? null : P.Id("hello-greeting")[_greeting.Message],
+                    _visits is null ? null : P.Id("hello-visits")[$"Visits recorded: {_visits}"]
+                ];
+
+            private async Task AskAsync(HelloModel m)
+            {
+                try
+                {
+                    // A query. It is safe and idempotent, so it travels as a GET — cacheable, and incapable
+                    // of changing anything. The result type comes from the message, so this is Greeting
+                    // without a cast and without a serializer to register.
+                    _greeting = await dispatcher.DispatchAsync(new GetGreeting(m.Name));
+
+                    // A command. It mutates, so it travels as a POST — and the transport will not send it any
+                    // other way, which is what stops a URL, a prefetch or a link scanner from triggering it.
+                    _visits = await dispatcher.DispatchAsync(new RecordVisit(m.Name));
+                    _error = null;
+                }
+                catch (RemoteDispatchException ex)
+                {
+                    // The one thing remote dispatch adds to the in-process call: it can fail to arrive. A null
+                    // StatusCode means the request never reached the server at all.
+                    _error = ex.StatusCode is null
+                        ? "Could not reach the server."
+                        : $"The server refused the request ({ex.StatusCode}).";
+                }
+            }
+        }
+
+        public sealed class HelloModel
+        {
+            public string Name { get; set; } = "world";
         }
 
         """;

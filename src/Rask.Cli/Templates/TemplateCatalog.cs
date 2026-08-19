@@ -31,8 +31,10 @@ internal static class TemplateCatalog
                 StringComparer.Ordinal)),
         new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
+        // The only non-server template that takes --cqrs: it is the one with a server half to dispatch to.
+        // On 'wasm' there is no host in the solution, so the flag would name a destination that isn't there.
         new("wasm-hosted", "Rask WASM + ASP.NET host",
-            new HashSet<string>(WebFlags, StringComparer.Ordinal)),
+            new HashSet<string>([.. WebFlags, "cqrs"], StringComparer.Ordinal)),
         new("native", "Rask native mobile app (iOS + Android)",
             new HashSet<string>(StringComparer.Ordinal)),
     ];
