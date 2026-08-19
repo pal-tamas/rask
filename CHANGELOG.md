@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`docs/native-devices.md` no longer teaches a `Route` override the framework removed.** The second
+  `TodosScreen` snippet still declared `protected override string Route => "/todos";`, so a reader who
+  copied it got `CS0115: no suitable method found to override` — `Screen` has had no virtual `Route` since
+  routes moved back to `[Route]`. The file contradicted itself, too: the first `TodosScreen` a page earlier
+  already used the attribute. Both now read `[Route("/todos")]`, and the prose calling a `Screen` "a `Page`"
+  no longer names a base class that does not exist.
+
+  The docs had already been broken this way twice in code (`ChromeScreen`), so the fix ships with the guard
+  that closes the loop: `DocsRoutingSyntaxTests` scans every doc for the members a breaking change deleted
+  — the `Route` and `Parent` overrides and the `Page` base list — and names the file, line and replacement.
+  The existing doc gates check that links *resolve*; this checks that the API a snippet names still exists.
+  Verified by reverting the doc and watching the guard fail on `native-devices.md:121`. Closes #767.
 - **`Rask.Wasm` now declares `Microsoft.Extensions.ObjectPool`, which its bundled `Rask.Core` needs at
   runtime.** `Rask.Core.dll` is packed into `lib/` with `PrivateAssets="all"`, which is exactly what keeps
   Core out of the nuspec — and takes Core's own package dependencies with it. The package already
