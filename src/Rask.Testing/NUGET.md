@@ -108,7 +108,11 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
 - **`CapturingDiagnostics.Install()`** — captures the framework diagnostics raised while it is installed,
   so you can assert that a swallowed fault happened (or that none did). Swallow-and-log is the framework's
   designed behaviour for navigate faults, JS dispatch faults and faulted async lifecycle hooks, and
-  without this there is no supported way to see them.
+  without this there is no supported way to see them. Safe under xUnit's default parallelism: several
+  captures can be installed at once, every one of them sees every diagnostic, and disposing one never
+  unhooks another — so they may be disposed in any order. Because concurrent captures share the events,
+  a test asserting on a *count* should filter to what it provoked (`OfCategory(...)`) rather than assert
+  over everything captured.
 - **`.TryInvokeAsync(handlerId, json?)`** — dispatch only if the id is still live; returns `false` rather
   than throwing, so you can assert a handler is gone.
 - **`.Instance`** — the component object you passed in, for asserting its state directly.
