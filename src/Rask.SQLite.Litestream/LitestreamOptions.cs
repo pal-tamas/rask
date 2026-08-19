@@ -53,9 +53,19 @@ public sealed class LitestreamOptions
     /// </summary>
     public TimeSpan RestartDelay { get; set; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// The opt-in restore-verification pass: proves the replica can be read back, rather than only that
+    /// the replicator is running. Off by default — every pass costs a real restore, and a real egress
+    /// bill on S3/GCS/Azure. See <see cref="LitestreamVerificationOptions"/>.
+    /// </summary>
+    public LitestreamVerificationOptions Verification { get; set; } = new();
+
     /// <summary>Throws <see cref="InvalidOperationException"/> if the options are incomplete.</summary>
     internal void Validate()
     {
+        ArgumentNullException.ThrowIfNull(Verification);
+        Verification.Validate();
+
         if (string.IsNullOrWhiteSpace(ExecutablePath))
         {
             throw new InvalidOperationException($"{nameof(ExecutablePath)} must not be empty.");

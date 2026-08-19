@@ -418,13 +418,13 @@ driven through [CliWrap](https://github.com/Tyrrrz/CliWrap); a backup failure is
 but never crashes the app it protects. Point `ConfigPath` at a full `litestream.yml` for multiple
 databases or custom retention.
 
-### Checking that backups are running
+### Checking that backups are running — and that they restore
 
 A `Critical` log line tells you when replication broke; nothing tells you it's *healthy*. Resolve the
 `LitestreamStatus` singleton to read that directly:
 
 ```csharp
-app.MapGet("/health/backup", (LitestreamStatus status) => status.Current);
+app.MapGet("/health/backup", (LitestreamStatus status) => new { status.Current, status.Verification });
 ```
 
 | Property | Meaning |
@@ -436,6 +436,62 @@ app.MapGet("/health/backup", (LitestreamStatus status) => status.Current);
 | `LastError` | Why the most recent run failed to launch, if it did. |
 
 A clean shutdown isn't a failure: it clears `IsReplicating` without counting a restart.
+
+#### "Running" is not "restorable"
+
+Every field in that table is a fact about the **local child process**. A replica silently writing to the
+wrong prefix, a bucket whose credentials were rotated to read-only, a `-config` file pointing at a
+database nobody writes to any more — all of them keep `IsReplicating` true and `RestartCount` flat, and
+all of them are discovered at the one moment that matters, which is the restore.
+
+Verification proves the round trip instead of assuming it: write a sentinel into the live database, wait
+for replication to carry it, restore the replica **to a temporary path**, and check the sentinel came
+back.
+
+```csharp
+builder.Services.AddRaskSqliteLitestream(o =>
+{
+    o.DatabasePath = dbPath;
+    o.ReplicaUrl = "s3://my-bucket/app";
+
+    o.Verification.Enabled = true;                      // off by default — see the cost note
+    o.Verification.Interval = TimeSpan.FromHours(24);   // a daily audit, not a health poll
+});
+```
+
+`status.Verification` is `null` until a pass has run — which means *nobody has checked*, not *the backup
+is fine* — and then reports:
+
+| Property | Meaning |
+| --- | --- |
+| `Outcome` | `Verified`, `Inconclusive`, `Failed`, or `Skipped`. |
+| `LastVerifiedAt` | When the backup was last **proven restorable**. **This is the field to alert on.** |
+| `LastAttemptedAt` | When the most recent pass finished, whatever it concluded. |
+| `ReplicationLag` | How long the sentinel took to reach the replica on the last good pass. Creeping towards `Timeout` is your early warning. |
+| `LastError` | Why the last pass was inconclusive or failed. |
+
+Three outcomes, not two, and the distinction is the whole point: **`Inconclusive` means the sentinel had
+not shipped yet** — replication lag, not a broken backup. Paging on that is how a verification job gets
+switched off, so alert on a `LastVerifiedAt` that stops moving instead. `Failed` is the real alert: the
+restore itself failed, or it came back without the sentinel.
+
+> **A verification pass costs a restore.** On S3/GCS/Azure that is a real download and a real egress
+> bill, which is why it is opt-in, defaults to daily, and must not be wired to an endpoint anything can
+> poll. `ISqliteBackupVerifier` is registered whether or not the schedule is on, so you can also trigger
+> a pass by hand — from an admin action, or after a deploy that changed the replica configuration.
+
+The sentinel is one upserted row in a `__rask_backup_probe` table (the same row every time, so a database
+probed daily for a year is one row heavier), written through the non-blocking busy-retry so it waits out
+a busy writer without holding a thread. The restored copy goes to a temp directory that is deleted on
+every path, never beside the live database, so a stray `-wal`/`-shm` can't be mistaken for the real thing.
+
+In `-config` mode with several databases there is no single one to probe: set `DatabasePath` to pick one,
+or verification reports `Skipped` — the same choice `RestoreSqliteFromLitestreamAsync` already makes.
+
+There is an end-to-end check of all of this against a real object store in
+[`scripts/verify-litestream-minio.sh`](../scripts/verify-litestream-minio.sh): it runs MinIO in Docker,
+replicates to it, verifies, and then destroys the replica to demonstrate `IsReplicating` staying `true`
+while verification reports `Failed`.
 
 ### The litestream binary is fetched for you
 
