@@ -68,6 +68,17 @@
       the dep was never declared for consumers to restore.
     -->
     <PackageReference Include="Microsoft.JSInterop"/>
+    <!--
+      Same reasoning again, and the one that was missed: Rask.Core pools its StringBuilders through
+      Microsoft.Extensions.ObjectPool (RaskStringBuilderPool.Shared, on the render path in Component,
+      Live/LivePayload and HeadAssetRegistry). Core is bundled into lib/ with PrivateAssets="all", so its
+      package dependencies never reach the nuspec, and nothing else this package declares brings ObjectPool
+      in transitively — Rask.Server is only immune because Microsoft.AspNetCore.App carries it, and the WASM
+      track has no framework reference. Without this line a consumer restoring the published package boots
+      and then dies with a FileNotFoundException on the first render. See #742; pinned by
+      PackageDependencyTests.
+    -->
+    <PackageReference Include="Microsoft.Extensions.ObjectPool"/>
   </ItemGroup>
 
   <ItemGroup>
