@@ -1108,7 +1108,7 @@ constructor with settable properties.
 **Not supported, and why.** An interface or abstract type names no single thing to construct.
 `object` has no shape at all. An open generic has no single wire shape. A type that refers back to
 itself has no finite encoding. A dictionary keyed by anything but `string` has no key encoding, because
-a JSON object's keys are strings. A `RemoteFile` is allowed only as a *direct* property of the message:
+a JSON object's keys are strings. A `RaskFile` is allowed only as a *direct* property of the message:
 a file is addressed by its index in the multipart body, written where the property sits in the JSON, so
 one nested inside a list or a sub-object would have nowhere to be addressed from and its bytes would be
 dropped.

@@ -42,6 +42,19 @@ public sealed class RaskCqrsServerOptions
     /// </summary>
     public bool IncludeExceptionDetail { get; set; }
 
+    /// <summary>
+    ///     How long an opened chunked-upload session survives without a chunk before its parts are
+    ///     discarded. It bounds an abandoned upload's disk, not a user's patience: every arriving chunk
+    ///     refreshes it, so a slow connection is not a deadline.
+    /// </summary>
+    public TimeSpan UploadSessionLifetime { get; set; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    ///     The largest single chunk the upload endpoint will accept. A chunked upload exists to bound
+    ///     memory, so the chunk itself has to be bounded or the mechanism defeats its own purpose.
+    /// </summary>
+    public long MaxUploadChunkBytes { get; set; } = 4L * 1024 * 1024;
+
     // Deliberately absent: a download-token lifetime. A download is fetched by the same authenticated
     // request that dispatched the query, so there is no token to expire. Naming a lifetime here would
     // describe a second, tokenized fetch path that does not exist.
@@ -68,6 +81,16 @@ public sealed class RaskCqrsServerOptions
         if (MaxFileCount <= 0)
         {
             throw new InvalidOperationException($"{nameof(MaxFileCount)} must be positive.");
+        }
+
+        if (UploadSessionLifetime <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException($"{nameof(UploadSessionLifetime)} must be positive.");
+        }
+
+        if (MaxUploadChunkBytes <= 0)
+        {
+            throw new InvalidOperationException($"{nameof(MaxUploadChunkBytes)} must be positive.");
         }
     }
 }

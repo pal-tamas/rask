@@ -78,7 +78,7 @@ public sealed class RemoteDispatchTests
     public async Task A_message_carrying_a_file_is_sent_as_multipart()
     {
         var handler = Handler(Json("\"ok\""));
-        var file = RemoteFile.FromBytes("a.png", "image/png", [1, 2, 3]);
+        var file = new PickedFile("a.png", "image/png", [1, 2, 3]);
 
         await Dispatcher(handler).DispatchAsync(new AttachToThing(7, file));
 
@@ -189,6 +189,25 @@ public sealed class RemoteDispatchTests
     {
         Content = new StringContent(body, Encoding.UTF8, "application/json"),
     };
+
+    /// <summary>What a file input hands a component — the type a message declares, on every host.</summary>
+    private sealed class PickedFile(string name, string contentType, byte[] bytes) : RaskFile
+    {
+        public override string Name => name;
+
+        public override long Size => bytes.Length;
+
+        public override string ContentType => contentType;
+
+        public override DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+
+        public override Stream OpenReadStream(
+            long maxAllowedSize = 512 * 1024,
+            CancellationToken cancellationToken = default) =>
+            bytes.Length > maxAllowedSize
+                ? throw new IOException($"'{name}' is {bytes.Length} bytes, over the {maxAllowedSize} ceiling.")
+                : new MemoryStream(bytes, writable: false);
+    }
 
     private sealed class FakeHandler(HttpResponseMessage? response, Exception? failure) : HttpMessageHandler
     {

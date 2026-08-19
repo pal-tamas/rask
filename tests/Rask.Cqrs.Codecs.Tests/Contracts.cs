@@ -43,7 +43,7 @@ public sealed record AddTodo(string Title, Priority Priority) : ICommand<int>;
 
 public sealed record TodoArchived(int Id, DateTimeOffset At) : INotification;
 
-public sealed record UploadAttachment(int TodoId, RemoteFile File, RemoteFile? Extra) : ICommand<string>;
+public sealed record UploadAttachment(int TodoId, RaskFile File, RaskFile? Extra) : ICommand<string>;
 
 public sealed record ExportTodos(bool Done) : IQuery<FileDownload>;
 

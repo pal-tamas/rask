@@ -169,7 +169,7 @@ internal static class WireShape
                 ? new WireType { Kind = WireKind.File, Fqn = Fqn(type) }
                 : Unsupported(
                     type,
-                    "a RemoteFile is only allowed as a direct property of the message — nested inside a "
+                    "a RaskFile is only allowed as a direct property of the message — nested inside a "
                     + "collection or another object there is no part of the multipart body that could carry it");
         }
 
@@ -446,8 +446,14 @@ internal static class WireShape
         return char.ToLowerInvariant(name[0]) + name.Substring(1);
     }
 
+    // The file type a MESSAGE declares is Rask.Core's RaskFile - the same one a file input hands a
+    // component, on every host. Matched by name because a generator reads symbols: recognising it here
+    // costs Rask.Cqrs no reference to Rask.Core, and keeps the mediator standalone.
+    //
+    // RemoteFile is not part of this. It is the wire-side carrier the transports pass around, and the
+    // conversion between the two is emitted into the consumer's own compilation, which sees both.
     private static bool IsRemoteFile(ITypeSymbol type) =>
-        type.Name == "RemoteFile" && type.ContainingNamespace?.ToDisplayString() == CqrsNamespace;
+        type.Name == "RaskFile" && type.ContainingNamespace?.ToDisplayString() == "Rask.Core.Forms";
 
     private static WireType Scalar(ITypeSymbol type, string read, string write) => new()
     {

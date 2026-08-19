@@ -193,19 +193,38 @@ failure looks like a transport problem rather than the design decision it is.
 
 ### Files, both directions
 
-`RemoteFile` on a message uploads as multipart; a query returning `FileDownload` streams back. Neither
-direction buffers, and neither needs an adapter at the call site:
+**A message declares its file as a `RaskFile`** — the same type a file input hands a component. So the
+file a user picked is passed straight to the handler, with nothing to convert and nothing to learn:
 
 ```csharp
-// Upload: the file the user picked, as a message property.
-await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked.AsRemote()));
+public sealed record AttachReceipt(int OrderId, RaskFile File) : ICommand;
+
+// The call site. Identical on a server-rendered app, a WASM-hosted one and a native one.
+await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked));
 
 // Download: the file the handler returned, saved by the browser.
 navigator.Download(await dispatcher.DispatchAsync(new ExportOrders(year)));
 ```
 
-Bounded by the server's `MaxUploadBytes` and `MaxFileCount`. Chunked, resumable upload is not
-implemented — see [#764](https://github.com/pal-tamas/rask/issues/764).
+The handler receives a `RaskFile` too, and reads it exactly as it would in-process:
+
+```csharp
+public sealed class AttachReceiptHandler : ICommandHandler<AttachReceipt>
+{
+    public async Task HandleAsync(AttachReceipt command, CancellationToken cancellationToken)
+    {
+        await using var stream = command.File.OpenReadStream(command.File.Size, cancellationToken);
+        // ...
+    }
+}
+```
+
+Where the message runs in-process the handler simply gets the picked file. Where it travels, the
+generated codec carries the bytes and hands the handler a `RaskFile` over what arrived — so the *host*
+changes and the code does not. Neither direction buffers: every host reads a `RaskFile` in bounded
+slices (the browser ones through `Blob.slice`), and a download is streamed back headers-first.
+
+Bounded by the server's `MaxUploadBytes` and `MaxFileCount`.
 
 ### Wire codecs, and RASK053
 

@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -74,7 +75,18 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
         var files = new List<RemoteFile>();
         var json = Encode(contract, message, files);
 
-        using var request = Build(contract, json, files);
+        // Anything large goes up in bounded pieces BEFORE the message does. A browser's fetch reads a
+        // request body into memory before sending it, so a single-shot upload of a 500 MB file costs
+        // 500 MB in the tab — the file is read in slices either way (that is what RaskFile does on every
+        // host), but only chunking keeps the REQUEST small too.
+        var uploadId = await UploadLargeFilesAsync(files, cancellationToken).ConfigureAwait(false);
+
+        using var request = Build(contract, json, files, uploadId);
+        if (uploadId is not null)
+        {
+            request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.UploadHeader, uploadId);
+        }
+
         request.Headers.TryAddWithoutValidation(
             RemoteEndpointDefaults.RequestHeader,
             RemoteEndpointDefaults.RequestHeaderValue);
@@ -116,7 +128,11 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
         return response;
     }
 
-    private HttpRequestMessage Build(RemoteContract contract, byte[] json, List<RemoteFile> files)
+    private HttpRequestMessage Build(
+        RemoteContract contract,
+        byte[] json,
+        List<RemoteFile> files,
+        string? uploadId = null)
     {
         // PathBase first: a sub-path deploy (a WASM bundle served under /myapp/) reaches its own host
         // only through that prefix, and the server maps the endpoint pair under the same one. Without it
@@ -124,9 +140,22 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
         var path = Rask.Core.Live.LiveOptions.PathBase + options.RoutePrefix
                    + "/" + Uri.EscapeDataString(contract.Name);
 
-        if (files.Count > 0)
+        // With an upload session the bytes are already on the server, so the message travels as plain
+        // JSON and carries only the session id. Without one, the files ride along as multipart.
+        if (files.Count > 0 && uploadId is null)
         {
             return new HttpRequestMessage(HttpMethod.Post, path) { Content = Multipart(json, files) };
+        }
+
+        if (uploadId is not null)
+        {
+            return new HttpRequestMessage(HttpMethod.Post, path)
+            {
+                Content = new ByteArrayContent(json)
+                {
+                    Headers = { ContentType = new MediaTypeHeaderValue("application/json") },
+                },
+            };
         }
 
         if (contract.Kind == RemoteMessageKind.Query)
@@ -147,6 +176,113 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
                 Headers = { ContentType = new MediaTypeHeaderValue("application/json") },
             },
         };
+    }
+
+    /// <summary>
+    ///     Sends every file in bounded chunks and returns the session id the message will spend, or null
+    ///     when nothing is large enough to be worth it.
+    /// </summary>
+    /// <remarks>
+    ///     All-or-nothing per message: once one file needs chunking they all go that way, because the
+    ///     server resolves a message's files from ONE source. Mixing would mean pairing half the indices
+    ///     against a multipart body and half against a session, which is a way to hand a handler the wrong
+    ///     file — the failure this transport already goes out of its way to make impossible.
+    /// </remarks>
+    private async Task<string?> UploadLargeFilesAsync(
+        List<RemoteFile> files,
+        CancellationToken cancellationToken)
+    {
+        if (files.Count == 0 || !files.Any(f => f.Size < 0 || f.Size > options.ChunkedUploadThreshold))
+        {
+            return null;
+        }
+
+        var uploadId = Guid.NewGuid().ToString("N");
+        var buffer = new byte[options.UploadChunkSize];
+
+        for (var index = 0; index < files.Count; index++)
+        {
+            // Opened once and read forward. A RaskFile reads in slices on every host — Blob.slice in the
+            // browser, the same ref protocol on native, a FileStream on the server — so the file is never
+            // materialised whole on either side of this loop.
+            await using var source = files[index].OpenReadStream(cancellationToken);
+
+            long offset = 0;
+            int read;
+            while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                await SendChunkAsync(uploadId, index, offset, files[index], buffer, read, cancellationToken)
+                    .ConfigureAwait(false);
+                offset += read;
+            }
+        }
+
+        return uploadId;
+    }
+
+    private async Task SendChunkAsync(
+        string uploadId,
+        int index,
+        long offset,
+        RemoteFile file,
+        byte[] buffer,
+        int count,
+        CancellationToken cancellationToken)
+    {
+        var path = Rask.Core.Live.LiveOptions.PathBase + options.RoutePrefix
+                   + "/" + RemoteEndpointDefaults.UploadSegment;
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            // A copy, because the buffer is reused for the next chunk while this content is still owned
+            // by the request — and because a retry has to be able to send the same bytes again.
+            Content = new ByteArrayContent(buffer, 0, count),
+        };
+
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
+        request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.UploadHeader, uploadId);
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.UploadFileHeader, index.ToString(CultureInfo.InvariantCulture));
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.UploadOffsetHeader, offset.ToString(CultureInfo.InvariantCulture));
+
+        // Url-encoded: a filename is user input, and a raw one can carry CR/LF or non-ASCII, neither of
+        // which belongs in a header value.
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.UploadNameHeader, Uri.EscapeDataString(file.Name));
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.UploadTypeHeader, Uri.EscapeDataString(file.ContentType));
+
+        if (options.ConfigureRequestAsync is { } configure)
+        {
+            await configure(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException &&
+                                   !cancellationToken.IsCancellationRequested)
+        {
+            throw new RemoteDispatchException("The upload could not reach the server.", ex);
+        }
+
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            throw new RemoteDispatchException(
+                $"The server refused a chunk of the upload ({(int)response.StatusCode}).")
+            {
+                StatusCode = (int)response.StatusCode,
+            };
+        }
     }
 
     private static MultipartFormDataContent Multipart(byte[] json, List<RemoteFile> files)

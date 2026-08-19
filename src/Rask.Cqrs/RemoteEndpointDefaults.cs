@@ -41,4 +41,39 @@ public static class RemoteEndpointDefaults
     ///     conservative: a query that works in development must not 414 behind a customer's proxy.
     /// </summary>
     public const int MaxQueryUrlLength = 2000;
+
+    /// <summary>
+    ///     The path segment appended to <see cref="RoutePrefix" /> for chunked uploads, so a large file
+    ///     arrives in bounded pieces before the message that carries it is sent.
+    /// </summary>
+    public const string UploadSegment = "upload";
+
+    /// <summary>The header naming the upload session a chunk belongs to, and that a message spends.</summary>
+    public const string UploadHeader = "X-Rask-Upload";
+
+    /// <summary>The header carrying which of a message's files a chunk belongs to (its wire index).</summary>
+    public const string UploadFileHeader = "X-Rask-Upload-File";
+
+    /// <summary>The header carrying the byte offset a chunk starts at.</summary>
+    public const string UploadOffsetHeader = "X-Rask-Upload-Offset";
+
+    /// <summary>
+    ///     The header carrying the file's name, url-encoded. Sent with every chunk and kept from the
+    ///     first, so the handler is handed a file named the way the sender named it rather than a temp
+    ///     path — and so the message itself needs no sidecar describing what it uploaded.
+    /// </summary>
+    public const string UploadNameHeader = "X-Rask-Upload-Name";
+
+    /// <summary>The header carrying the file's content type, url-encoded.</summary>
+    public const string UploadTypeHeader = "X-Rask-Upload-Type";
+
+    /// <summary>
+    ///     The upload size above which a file is sent as a chunked session rather than one multipart
+    ///     request. A browser's <c>fetch</c> reads a request body into memory before sending it, so a
+    ///     single-shot upload costs its own size in the tab; chunking bounds that to one chunk.
+    /// </summary>
+    public const long ChunkedUploadThreshold = 4L * 1024 * 1024;
+
+    /// <summary>The default size of each chunk in a chunked upload.</summary>
+    public const long UploadChunkSize = 1024 * 1024;
 }

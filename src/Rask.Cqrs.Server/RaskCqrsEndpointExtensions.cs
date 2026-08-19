@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Globalization;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
@@ -51,10 +52,165 @@ public static class RaskCqrsEndpointExtensions
         // this package free of Rask.Core is what lets it serve a plain ASP.NET app too.
         var pattern = options.RoutePrefix + "/{name}";
 
+        var uploads = endpoints.ServiceProvider.GetService<UploadSessionStore>()
+                      ?? throw new InvalidOperationException(
+                          "MapRaskCqrs() needs AddRaskCqrsServer() to have run during startup.");
+
         var group = endpoints.MapGroup(string.Empty);
         group.MapGet(pattern, (RequestDelegate)(context => HandleAsync(context, options, fromQuery: true)));
         group.MapPost(pattern, (RequestDelegate)(context => HandleAsync(context, options, fromQuery: false)));
+
+        // A third route, and only for bytes: a chunk of a file too large to ride in one request. It is a
+        // literal segment under the same prefix, so it is covered by the same authorization and the same
+        // CSRF header as the pair, and an app attaching a rate limit to the group gets it here too.
+        group.MapPost(
+            options.RoutePrefix + "/" + RemoteEndpointDefaults.UploadSegment,
+            (RequestDelegate)(context => UploadChunkAsync(context, options, uploads)));
+
         return group;
+    }
+
+    /// <summary>Receives one chunk of a file and appends it to the session it names.</summary>
+    /// <remarks>
+    ///     Authenticated on exactly the same terms as a message, and never anonymously: an upload endpoint
+    ///     open to the world is a free disk-filling service. Chunks carry no message name, so there is no
+    ///     per-message [AllowAnonymous] to consult — a chunk always needs a caller.
+    /// </remarks>
+    private static async Task UploadChunkAsync(
+        HttpContext context,
+        RaskCqrsServerOptions options,
+        UploadSessionStore uploads)
+    {
+        if (!context.Request.Headers.ContainsKey(RemoteEndpointDefaults.RequestHeader))
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Not a Rask.Cqrs request",
+                $"The {RemoteEndpointDefaults.RequestHeader} header is required.").ConfigureAwait(false);
+            return;
+        }
+
+        var owner = Owner(context, options);
+        if (owner is null)
+        {
+            await ProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", null).ConfigureAwait(false);
+            return;
+        }
+
+        if (owner.Length == 0)
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "No stable user identity",
+                "A chunked upload is scoped to the caller who opened it, so the signed-in principal needs a "
+                + "name or a subject claim to scope it to.").ConfigureAwait(false);
+            return;
+        }
+
+        var uploadId = context.Request.Headers[RemoteEndpointDefaults.UploadHeader].ToString();
+        if (string.IsNullOrEmpty(uploadId) || uploadId.Length > 64)
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed upload",
+                $"The {RemoteEndpointDefaults.UploadHeader} header is required.").ConfigureAwait(false);
+            return;
+        }
+
+        if (!int.TryParse(
+                context.Request.Headers[RemoteEndpointDefaults.UploadFileHeader].ToString(),
+                NumberStyles.None, CultureInfo.InvariantCulture, out var fileIndex)
+            || !long.TryParse(
+                context.Request.Headers[RemoteEndpointDefaults.UploadOffsetHeader].ToString(),
+                NumberStyles.None, CultureInfo.InvariantCulture, out var offset))
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed upload",
+                "A chunk must name its file index and its offset.").ConfigureAwait(false);
+            return;
+        }
+
+        // The chunk itself is capped before it is read. Chunking exists to bound memory and disk growth,
+        // so an unbounded "chunk" would defeat the mechanism it is part of.
+        var sizeLimit = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (sizeLimit is { IsReadOnly: false })
+        {
+            sizeLimit.MaxRequestBodySize = options.MaxUploadChunkBytes;
+        }
+
+        try
+        {
+            var name = Decode(context.Request.Headers[RemoteEndpointDefaults.UploadNameHeader].ToString());
+            var contentType = Decode(context.Request.Headers[RemoteEndpointDefaults.UploadTypeHeader].ToString());
+
+            var held = await uploads.AppendAsync(
+                owner, uploadId, fileIndex, offset,
+                string.IsNullOrEmpty(name) ? "file" : name, string.IsNullOrEmpty(contentType) ? null : contentType,
+                context.Request.Body, options, context.RequestAborted)
+                .ConfigureAwait(false);
+
+            // The client's next chunk starts here. Echoed on success as well as on mismatch, so a resume
+            // never has to guess.
+            context.Response.Headers[RemoteEndpointDefaults.UploadOffsetHeader] =
+                held.ToString(CultureInfo.InvariantCulture);
+            context.Response.StatusCode = StatusCodes.Status204NoContent;
+        }
+        catch (UploadOffsetException ex)
+        {
+            // 409, not 400: the request is well-formed, it just does not follow on from what the server
+            // holds. The offset it DOES hold rides along, which is what makes a resume possible.
+            context.Response.Headers[RemoteEndpointDefaults.UploadOffsetHeader] =
+                ex.Expected.ToString(CultureInfo.InvariantCulture);
+            await ProblemAsync(context, StatusCodes.Status409Conflict, "Offset mismatch",
+                $"The server holds {ex.Expected} bytes for this file.").ConfigureAwait(false);
+        }
+        catch (BadRequestException ex)
+        {
+            await ProblemAsync(context, ex.Status, ex.Title, ex.Detail).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            // The client went away mid-chunk. The session keeps what arrived, so a retry resumes.
+        }
+    }
+
+    /// <summary>
+    ///     Who owns an upload session. Null when the caller is anonymous and the app requires a user.
+    /// </summary>
+    /// <remarks>
+    ///     An upload id is not a capability: it is scoped to the caller who opened it, so guessing one
+    ///     cannot inject bytes into another user's message or read back what they sent. Where the app has
+    ///     turned authentication off entirely, every caller is the same anonymous owner — which is the
+    ///     honest consequence of that setting rather than a hole this endpoint opens.
+    /// </remarks>
+    // A header carries a filename url-encoded: a raw one can hold CR/LF or non-ASCII, neither of which
+    // belongs in a header value.
+    private static string Decode(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        catch (UriFormatException)
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string? Owner(HttpContext context, RaskCqrsServerOptions options)
+    {
+        if (context.User.Identity?.IsAuthenticated == true)
+        {
+            // A STABLE per-user key, or nothing. Falling back to a shared bucket for a principal with no
+            // identifier would let one signed-in user spend another's upload, which is the exact thing
+            // scoping the session to its owner exists to prevent — so that case is refused, loudly.
+            return context.User.Identity.Name
+                   ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                   ?? context.User.FindFirst("sub")?.Value
+                   ?? string.Empty;
+        }
+
+        // One shared anonymous owner, reachable only where the app has turned the authentication
+        // requirement off. That is the honest consequence of that setting, not a hole opened here.
+        return options.RequireAuthenticatedUser ? null : "anonymous";
     }
 
     private static async Task HandleAsync(HttpContext context, RaskCqrsServerOptions options, bool fromQuery)
@@ -229,6 +385,29 @@ public static class RaskCqrsEndpointExtensions
 
         var payload = await ReadCappedAsync(context.Request.Body, options.MaxRequestBytes, context.RequestAborted)
             .ConfigureAwait(false);
+
+        // A message whose files arrived ahead of it spends its session here. The JSON is identical either
+        // way - a file is an index - so the only thing that changes is where the indices resolve from.
+        var uploadId = context.Request.Headers[RemoteEndpointDefaults.UploadHeader].ToString();
+        if (!string.IsNullOrEmpty(uploadId))
+        {
+            var owner = Owner(context, options);
+            if (string.IsNullOrEmpty(owner))
+            {
+                throw new BadRequestException(StatusCodes.Status401Unauthorized, "Unauthorized", null);
+            }
+
+            var uploads = context.RequestServices.GetRequiredService<UploadSessionStore>();
+            var assembled = uploads.Take(owner, uploadId)
+                            ?? throw new BadRequestException(
+                                StatusCodes.Status400BadRequest, "Unknown upload",
+                                "That upload session has expired, was already spent, or belongs to "
+                                + "somebody else.");
+
+            var sessionReader = new Utf8JsonReader(payload);
+            sessionReader.Read();
+            return contract.ReadMessage(ref sessionReader, assembled);
+        }
 
         var reader = new Utf8JsonReader(payload);
         reader.Read();
@@ -443,12 +622,17 @@ public static class RaskCqrsEndpointExtensions
         await context.Response.Body.WriteAsync(buffer.WrittenMemory, context.RequestAborted).ConfigureAwait(false);
     }
 
-    private sealed class BadRequestException(int status, string title, string? detail) : Exception(title)
-    {
-        public int Status { get; } = status;
+}
 
-        public string Title { get; } = title;
+/// <summary>
+///     A rejection with the problem document it should become. Thrown from decode so the endpoint can
+///     answer with the status the failure actually deserves rather than a blanket 400.
+/// </summary>
+internal sealed class BadRequestException(int status, string title, string? detail) : Exception(title)
+{
+    public int Status { get; } = status;
 
-        public string? Detail { get; } = detail;
-    }
+    public string Title { get; } = title;
+
+    public string? Detail { get; } = detail;
 }

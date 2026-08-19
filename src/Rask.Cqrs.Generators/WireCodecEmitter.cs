@@ -92,12 +92,25 @@ internal sealed class WireCodecEmitter
             case WireKind.File:
                 // The file itself leaves the JSON entirely; what stays behind is its index in the multipart
                 // body, and -1 for "there wasn't one".
+                // A RaskFile in, a RaskFile out - the message never mentions the wire type. The conversion
+                // is emitted HERE, in the consumer's compilation, because this is the one place that sees
+                // both Rask.Core and Rask.Cqrs; neither package has to reference the other for it.
+                //
+                // The file's own Size is passed as the read ceiling. RaskFile.OpenReadStream defaults to
+                // 512 KB to stop an unbounded read of a browser-supplied file, but the size is already
+                // known here, so the ceiling can be the file itself rather than a guess that truncates
+                // anything larger.
                 write.AppendLine("        if (value is null) { writer.WriteNumberValue(-1); return; }");
-                write.AppendLine("        files.Add(value);");
+                write.AppendLine(
+                    "        files.Add(global::Rask.Cqrs.RemoteFile.FromStream("
+                    + "value.Name, value.ContentType, value.Size, "
+                    + "__ct => value.OpenReadStream(value.Size, __ct), "
+                    + "value.LastModified));");
                 write.AppendLine("        writer.WriteNumberValue(files.Count - 1);");
                 read.AppendLine(
-                    "        return global::Rask.Cqrs.WireJson.ResolveFile("
+                    "        var __wire = global::Rask.Cqrs.WireJson.ResolveFile("
                     + "files, global::Rask.Cqrs.WireJson.ReadInt32(ref reader, property), property);");
+                read.AppendLine("        return __wire is null ? null : new __RaskCqrsUploadedFile(__wire);");
                 break;
 
             case WireKind.Nullable:

@@ -29,6 +29,13 @@ public static class RaskCqrsServerServiceCollectionExtensions
 
         services.TryAddSingleton(options);
 
+        // The half of a chunked upload that outlives a single request: parts land here until the message
+        // that carries them arrives. Singleton because a session spans requests by definition, and
+        // disposable because its parts are files on disk.
+        services.TryAddSingleton(sp => new UploadSessionStore(
+            sp.GetRequiredService<RaskCqrsServerOptions>(),
+            sp.GetService<TimeProvider>()));
+
         return services;
     }
 }

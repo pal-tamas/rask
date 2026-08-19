@@ -23,6 +23,7 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Cqrs"/>
+    <Using Include="Rask.Core.Forms"/>
   </ItemGroup>
 
   <!--
@@ -34,6 +35,7 @@
     consumer that gets Rask.Cqrs.Client as a ProjectReference does not inherit its analyzers.
   -->
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
                       OutputItemType="Analyzer"

@@ -24,9 +24,20 @@ public sealed class RaskCqrsClientOptions
     /// </summary>
     public int MaxQueryUrlLength { get; set; } = RemoteEndpointDefaults.MaxQueryUrlLength;
 
-    // Deliberately absent: a chunked/resumable upload threshold. Files travel as one multipart request,
-    // bounded by the server's MaxUploadBytes. An option that names a behaviour the transport does not
-    // have is worse than no option — it reads as configured protection.
+    /// <summary>
+    ///     The file size above which a message's files are uploaded in chunks before the message is sent,
+    ///     rather than riding along as one multipart body.
+    /// </summary>
+    /// <remarks>
+    ///     A browser's <c>fetch</c> reads a request body into memory before sending it, so a single-shot
+    ///     upload costs its own size in the tab. Chunking bounds that to one chunk. A file whose size is
+    ///     unknown (<see cref="RemoteFile.UnknownSize" />) is always chunked — an unknown size cannot be
+    ///     compared against a threshold, and guessing "small" is the expensive way to be wrong.
+    /// </remarks>
+    public long ChunkedUploadThreshold { get; set; } = RemoteEndpointDefaults.ChunkedUploadThreshold;
+
+    /// <summary>The size of each chunk. Bounds what the client holds and what one request carries.</summary>
+    public long UploadChunkSize { get; set; } = RemoteEndpointDefaults.UploadChunkSize;
 
     /// <summary>
     ///     Runs before every request, to attach whatever proves who is calling.
@@ -74,6 +85,17 @@ public sealed class RaskCqrsClientOptions
         if (Timeout <= TimeSpan.Zero)
         {
             throw new InvalidOperationException($"{nameof(Timeout)} must be positive.");
+        }
+
+        if (ChunkedUploadThreshold <= 0)
+        {
+            throw new InvalidOperationException($"{nameof(ChunkedUploadThreshold)} must be positive.");
+        }
+
+        if (UploadChunkSize is <= 0 or > int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(UploadChunkSize)} must be positive and fit in a single buffer.");
         }
     }
 }

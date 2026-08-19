@@ -14,7 +14,7 @@ public sealed record MembersOnly : ICommand;
 
 public sealed record Explodes : IQuery<int>;
 
-public sealed record Uploaded(string Note, RemoteFile File) : ICommand<string>;
+public sealed record Uploaded(string Note, RaskFile File) : ICommand<string>;
 
 public sealed record Export : IQuery<FileDownload>;
 
@@ -66,7 +66,7 @@ public sealed class UploadedHandler : ICommandHandler<Uploaded, string>
 {
     public async Task<string> HandleAsync(Uploaded command, CancellationToken cancellationToken)
     {
-        using var reader = new StreamReader(command.File.OpenReadStream(cancellationToken));
+        using var reader = new StreamReader(command.File.OpenReadStream(command.File.Size, cancellationToken));
         return $"{command.Note}:{await reader.ReadToEndAsync(cancellationToken)}";
     }
 }
@@ -81,23 +81,23 @@ public sealed class ExportHandler : IQueryHandler<Export, FileDownload>
 // Eleven files deliberately: the part-name pairing is a string until it is parsed, and sorting those
 // strings only starts mispairing at ten ("10" sorts before "2"). A two-file message cannot catch it.
 public sealed record UploadMany(
-    RemoteFile F0,
-    RemoteFile F1,
-    RemoteFile F2,
-    RemoteFile F3,
-    RemoteFile F4,
-    RemoteFile F5,
-    RemoteFile F6,
-    RemoteFile F7,
-    RemoteFile F8,
-    RemoteFile F9,
-    RemoteFile F10) : ICommand<string>;
+    RaskFile F0,
+    RaskFile F1,
+    RaskFile F2,
+    RaskFile F3,
+    RaskFile F4,
+    RaskFile F5,
+    RaskFile F6,
+    RaskFile F7,
+    RaskFile F8,
+    RaskFile F9,
+    RaskFile F10) : ICommand<string>;
 
 public sealed class UploadManyHandler : ICommandHandler<UploadMany, string>
 {
     public async Task<string> HandleAsync(UploadMany command, CancellationToken cancellationToken)
     {
-        RemoteFile[] files =
+        RaskFile[] files =
         [
             command.F0, command.F1, command.F2, command.F3, command.F4, command.F5,
             command.F6, command.F7, command.F8, command.F9, command.F10,
@@ -106,7 +106,7 @@ public sealed class UploadManyHandler : ICommandHandler<UploadMany, string>
         var contents = new List<string>(files.Length);
         foreach (var file in files)
         {
-            using var reader = new StreamReader(file.OpenReadStream(cancellationToken));
+            using var reader = new StreamReader(file.OpenReadStream(file.Size, cancellationToken));
             contents.Add(await reader.ReadToEndAsync(cancellationToken));
         }
 

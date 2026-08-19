@@ -7,10 +7,25 @@ using Rask.Core.Routing;
 namespace Rask.Testing.Tests;
 
 /// <summary>
+///     Groups every class that installs the process-wide diagnostics sink, so no two of them run at the
+///     same time.
+/// </summary>
+/// <remarks>
+///     xUnit parallelises across CLASSES, and <c>CapturingDiagnostics.Install()</c> swaps a global. Two
+///     classes overlapping means one test's captures land in the other's list and the first sees an empty
+///     collection — which is what <c>CapturingDiagnostics_SeesAFaultTheFrameworkSwallowed</c> did under a
+///     loaded full-suite run while passing every time on its own. Waiting longer cannot fix it: the
+///     diagnostic was never going to arrive in that list.
+/// </remarks>
+[CollectionDefinition("rask-global-diagnostics", DisableParallelization = true)]
+public sealed class GlobalDiagnosticsCollection;
+
+/// <summary>
 ///     The four ergonomic gaps #610 listed alongside the structural one: targeting a handler by what it
 ///     says rather than where it sits, a download sink, route/query seeding, and a JS runtime that fails
 ///     loudly on a type mismatch.
 /// </summary>
+[Collection("rask-global-diagnostics")]
 public class TestingSurfaceTests
 {
     // ---- targeting a handler by what it is, not by its position ----

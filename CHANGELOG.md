@@ -125,13 +125,14 @@ them until tagged releases begin.
     message name as for a typo, so the endpoint cannot be used to enumerate an app's messages. Both
     verbs require the `X-Rask-Cqrs` header, which no cross-site markup can set. Handler exceptions become
     RFC 9457 `problem+json` with no exception text in production.
-  - **Files both directions, with no adapter at the call site.** `file.AsRemote()` turns the file a user
-    picked into one a message carries, and `Navigator.Download(fileDownload)` saves the file a message
-    answered with — so a full round trip is two calls and no `HttpClient`. `RemoteFile` uploads as
-    multipart; a query returning `FileDownload` streams back with an `attachment` disposition, a filename
-    reduced to a safe leaf, and `nosniff`. Neither direction buffers: the response is read headers-first,
-    a picked file is opened only when the upload reads it, and `AsRemote()` passes the file's own size as
-    the read ceiling so a file above `RaskFile`'s 512 KB default uploads whole instead of being truncated.
+  - **Files are just `RaskFile`.** A message declares `RaskFile` — the same type a file input hands a
+    component — so the file a user picked is passed straight to the handler with nothing to convert:
+    `await dispatcher.DispatchAsync(new AttachReceipt(id, picked))`, identical on a server-rendered app,
+    a WASM-hosted one and a native one. In-process the handler gets the picked file; over the wire the
+    generated codec carries the bytes and hands the handler a `RaskFile` over what arrived. Neither
+    direction buffers — every host reads a `RaskFile` in bounded slices (the browser ones through
+    `Blob.slice`) — and a query returning `FileDownload` streams back with an `attachment` disposition, a
+    filename reduced to a safe leaf, and `nosniff`.
   - **`rask new --template wasm-hosted --cqrs`** scaffolds the whole arrangement: the messages in
     `Shared`, the handlers in `Server`, `AddRaskCqrsClient()` in the browser, `AddRaskCqrsServer()` +
     `MapRaskCqrs()` in the host, and a page that dispatches a query and a command. Each half takes only its

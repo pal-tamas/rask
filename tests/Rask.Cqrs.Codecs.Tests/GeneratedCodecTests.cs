@@ -102,19 +102,30 @@ public sealed class GeneratedCodecTests
     [Fact]
     public void A_file_leaves_the_json_and_is_replaced_by_its_index_in_the_body()
     {
-        var file = RemoteFile.FromBytes("a.png", "image/png", [1, 2]);
+        // The message speaks RaskFile - the same type a file input hands a component, on every host. The
+        // wire's RemoteFile never appears in it; the conversion both ways is generated.
+        var file = new FakeRaskFile("a.png", "image/png", [1, 2]);
         var files = new List<RemoteFile>();
         var json = Write(new UploadAttachment(7, file, null), files);
 
         Assert.Contains("\"file\":0", json, StringComparison.Ordinal);
         Assert.Contains("\"extra\":-1", json, StringComparison.Ordinal);
         Assert.Single(files);
-        Assert.Same(file, files[0]);
+        Assert.Equal("a.png", files[0].Name);
+        Assert.Equal("image/png", files[0].ContentType);
+        Assert.Equal(2, files[0].Size);
 
         var round = (UploadAttachment)Read(Contract<UploadAttachment>(), json, files);
-        Assert.Same(file, round.File);
         Assert.Null(round.Extra);
         Assert.Equal(7, round.TodoId);
+
+        // A handler receives a RaskFile it can read exactly as it would in-process.
+        Assert.Equal("a.png", round.File.Name);
+        Assert.Equal(2, round.File.Size);
+        using var stream = round.File.OpenReadStream();
+        using var copy = new MemoryStream();
+        stream.CopyTo(copy);
+        Assert.Equal(new byte[] { 1, 2 }, copy.ToArray());
     }
 
     [Fact]
@@ -221,6 +232,25 @@ public sealed class GeneratedCodecTests
         Assert.True(RemoteContractRegistry.TryGet(typeof(TMessage), out var contract),
             $"No contract was generated for {typeof(TMessage)}.");
         return contract!;
+    }
+
+    /// <summary>A RaskFile over bytes already in memory — what a picked file looks like to a message.</summary>
+    private sealed class FakeRaskFile(string name, string contentType, byte[] bytes) : RaskFile
+    {
+        public override string Name => name;
+
+        public override long Size => bytes.Length;
+
+        public override string ContentType => contentType;
+
+        public override DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+
+        public override Stream OpenReadStream(
+            long maxAllowedSize = 512 * 1024,
+            CancellationToken cancellationToken = default) =>
+            bytes.Length > maxAllowedSize
+                ? throw new IOException($"'{name}' is {bytes.Length} bytes, over the {maxAllowedSize} ceiling.")
+                : new MemoryStream(bytes, writable: false);
     }
 
     private static string Write<TMessage>(TMessage message, List<RemoteFile>? files = null)

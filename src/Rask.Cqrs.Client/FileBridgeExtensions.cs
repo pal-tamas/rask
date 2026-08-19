@@ -1,51 +1,28 @@
-using Rask.Core.Forms;
 using Rask.Core.Routing;
 
 namespace Rask.Cqrs.Client;
 
 /// <summary>
-///     The two conversions that keep <c>HttpClient</c> out of a file's round trip: the file a user
-///     picked becomes a message property, and the file a message answered with reaches the user's disk.
+///     The download half of a file's round trip: the file a message answered with, saved to disk.
 /// </summary>
 /// <remarks>
-///     Both directions already worked — <see cref="RemoteFile" /> travels as multipart and
-///     <see cref="Navigator.Download(string, Stream, string?)" /> saves a stream on every host. What was
-///     missing was the join, and without it each call site grew the same four-line adapter: exactly the
-///     hand-rolled plumbing this package exists to delete.
+///     <para>
+///         There is deliberately no upload counterpart. A message declares its file as
+///         <see cref="Rask.Core.Forms.RaskFile" /> — the same type a file input hands a component — so the
+///         file a user picked is passed straight to the handler with no conversion at the call site:
+///     </para>
+///     <code>
+///         await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked));
+///     </code>
+///     <para>
+///         That is identical on a server-rendered app, a WASM-hosted one and a native one. Where it runs
+///         in-process the handler simply receives the picked file; where it travels, the generated codec
+///         carries the bytes and hands the handler a <c>RaskFile</c> over what arrived. An adapter method
+///         here would be a step the developer had to know about on some hosts and not others.
+///     </para>
 /// </remarks>
 public static class FileBridgeExtensions
 {
-    /// <summary>
-    ///     Presents a file the user picked as one a message can carry.
-    /// </summary>
-    /// <param name="file">The picked file, from a file input's callback.</param>
-    /// <returns>A <see cref="RemoteFile" /> to assign to a message property.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="file" /> is null.</exception>
-    /// <remarks>
-    ///     <para>
-    ///         The stream is opened when the upload reads it, not here, so a picked file costs nothing
-    ///         until it is actually sent — and a message built but never dispatched never touches it.
-    ///     </para>
-    ///     <para>
-    ///         <see cref="RaskFile.OpenReadStream" /> defaults to a 512 KB ceiling, which exists to stop
-    ///         an unbounded read of a browser-supplied file. Here the file's own <see cref="RaskFile.Size" />
-    ///         is passed instead: the size is already known, so the ceiling can be exactly the file rather
-    ///         than a guess that silently truncates anything larger. What bounds an upload is the server's
-    ///         <c>MaxUploadBytes</c> — the side that has to store it.
-    ///     </para>
-    /// </remarks>
-    public static RemoteFile AsRemote(this RaskFile file)
-    {
-        ArgumentNullException.ThrowIfNull(file);
-
-        return RemoteFile.FromStream(
-            file.Name,
-            file.ContentType,
-            file.Size,
-            cancellationToken => file.OpenReadStream(file.Size, cancellationToken),
-            file.LastModified);
-    }
-
     /// <summary>
     ///     Saves a file a message answered with to the user's disk.
     /// </summary>
