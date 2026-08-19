@@ -50,35 +50,36 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
     }
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
                 !_supported
-                    ? Div(Class: "small text-secondary fst-italic", Id: "rtc-state")[
+                    ? Div.Class("small text-secondary fst-italic").Id("rtc-state")[
                         "This browser has no WebRTC support."]
-                    : Div()[
-                        Div(Class: "d-flex gap-2 mb-2")[
-                            BsButton(
-                                Color: BsColor.Primary, Size: BsSize.Sm, Id: "rtc-connect",
-                                Disabled: _connecting, OnClickAsync: ConnectAsync)["Connect the two peers"],
-                            BsButton(
-                                // Gated on having connected at least once, not on having a channel: the
-                                // channel handle exists long before the peers connect, and sending on it
-                                // before then throws. Latched rather than live, because a connection may
-                                // briefly report "disconnected" while ICE re-checks without the channel
-                                // going away.
-                                Color: BsColor.Secondary, Size: BsSize.Sm, Id: "rtc-send",
-                                Disabled: !_everConnected, OnClickAsync: SendAsync)["Send a message"]
+                    : Div[
+                        Div.Class("d-flex gap-2 mb-2")[
+                            BsButton
+                                .Color(BsColor.Primary)
+                                .Size(BsSize.Sm)
+                                .Id("rtc-connect")
+                                .Disabled(_connecting)
+                                .OnClickAsync(ConnectAsync)["Connect the two peers"],
+                            BsButton
+                                .Color(BsColor.Secondary)
+                                .Size(BsSize.Sm)
+                                .Id("rtc-send")
+                                .Disabled(!_everConnected)
+                                .OnClickAsync(SendAsync)["Send a message"]
                         ],
-                        Div(Class: "small text-secondary mb-1")[
-                            "Connection state: ", Span(Id: "rtc-state")[_state]],
-                        Div(Class: "small text-secondary mb-1")[
+                        Div.Class("small text-secondary mb-1")[
+                            "Connection state: ", Span.Id("rtc-state")[_state]],
+                        Div.Class("small text-secondary mb-1")[
                             "Local ICE candidates gathered: ",
-                            Span(Id: "rtc-candidates")[_localCandidates.ToString()]],
-                        Div(Class: "small text-secondary mb-1")["Received by the other peer:"],
+                            Span.Id("rtc-candidates")[_localCandidates.ToString()]],
+                        Div.Class("small text-secondary mb-1")["Received by the other peer:"],
                         _log.Count == 0
-                            ? Div(Class: "small text-secondary fst-italic", Id: "rtc-log")["(nothing yet)"]
-                            : Ul(Class: "small mb-0", Id: "rtc-log")[
-                                _log.Select(m => Li(Key: m)[m])
+                            ? Div.Class("small text-secondary fst-italic").Id("rtc-log")["(nothing yet)"]
+                            : Ul.Class("small mb-0").Id("rtc-log")[
+                                _log.Select(m => Li.Key(m)[m])
                             ]
                     ]
             ]

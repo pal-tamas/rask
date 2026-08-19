@@ -14,6 +14,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     Validates that keyed matching composes through nesting — same scenario class
 ///     a typical data table (rows of expandable groups) renders into.
 /// </summary>
+[global::Rask.Core.RaskMarkup]
 internal static partial class NestedKeyedList
 {
     public const int OuterCardCount = 20;
@@ -28,22 +29,22 @@ internal static partial class NestedKeyedList
             var rows = new List<Component>(InnerRowCount);
             for (var r = 0; r < InnerRowCount; r++)
             {
-                rows.Add(CH.Li(
-                    Class: "row",
-                    Data: new Dictionary<string, string?> { ["rask-key"] = $"{cardKey}.{r}" })[
-                    CH.Span()[$"Card {cardKey} · row {r}"]
+                rows.Add(Li
+                    .Class("row")
+                    .Data(new Dictionary<string, string?> { ["rask-key"] = $"{cardKey}.{r}" })[
+                    Span[$"Card {cardKey} · row {r}"]
                 ]);
             }
 
-            cards.Add(C.Div(
-                Class: "card",
-                Data: new Dictionary<string, string?> { ["rask-key"] = cardKey.ToString() })[
-                CH.H3()[$"Card {cardKey}"],
-                CH.Ul()[rows]
+            cards.Add(Div
+                .Class("card")
+                .Data(new Dictionary<string, string?> { ["rask-key"] = cardKey.ToString() })[
+                H3[$"Card {cardKey}"],
+                Ul[rows]
             ]);
         }
 
-        return C.Div(Class: "deck")[cards];
+        return Div.Class("deck")[cards];
     }
 
     // Stateful counterpart used by the live-diff harness. Caches each card (with its

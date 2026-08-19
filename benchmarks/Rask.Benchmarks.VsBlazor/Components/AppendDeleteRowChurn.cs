@@ -13,6 +13,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     diff op kinds — the cases the live-diff gate explicitly checks for before
 ///     deciding to ship a diff vs full-HTML payload.
 /// </summary>
+[global::Rask.Core.RaskMarkup]
 internal static partial class AppendDeleteRowChurn
 {
     public const int InitialRowCount = 100;
@@ -28,14 +29,14 @@ internal static partial class AppendDeleteRowChurn
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];
-            rows.Add(C.Div(
-                Class: "row",
-                Data: new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
-                CH.Span()[$"Item {idx}"]
+            rows.Add(Div
+                .Class("row")
+                .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
+                Span[$"Item {idx}"]
             ]);
         }
 
-        return C.Div(Class: "list")[rows];
+        return Div.Class("list")[rows];
     }
 
     // Stateful counterpart for the LiveDiff harness — caches row Component wrappers by

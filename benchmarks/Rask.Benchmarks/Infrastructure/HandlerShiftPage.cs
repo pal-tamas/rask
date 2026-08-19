@@ -30,21 +30,21 @@ public sealed partial class HandlerShiftPage : Component
         var rows = new List<Component>(RowCount);
         for (var i = 0; i < RowCount; i++)
         {
-            rows.Add(BI.FootprintRow(Index: i, Key: i));
+            rows.Add(FootprintRow.Index(i).Key(i));
         }
 
         return
         [
-            CH.Doctype(),
-            C.Html()[
-                C.Head(),
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        C.Div(Class: "toolbar")[
-                            CH.Span()["Rows"],
-                            ShowToolbarAction ? C.Button(OnClick: () => { })["clear"] : null
+            Doctype,
+            Html[
+                Head,
+                Body[
+                    Div.Class("container").Id("root")[
+                        Div.Class("toolbar")[
+                            Span["Rows"],
+                            ShowToolbarAction ? Button.OnClick(() => { })["clear"] : null
                         ],
-                        CH.Table(Class: "table")[CH.Tbody()[rows]]
+                        Table.Class("table")[Tbody[rows]]
                     ]
                 ]
             ]

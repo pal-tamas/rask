@@ -102,42 +102,42 @@ public sealed partial class JobsDemo : Component
     }
 
     protected override Component? Render() =>
-        Div()[
+        Div[
             // Only once the election has settled: `null` means "still deciding", and showing this during
             // a normal boot would be a scary banner for a non-problem.
             _ownership.IsOwner == false
                 ? _canTakeOver
-                    ? Div(Class: "notice ready", Data: new Dictionary<string, string?> { ["testid"] = "can-take-over" })[
-                        Strong()["Your data is ready."],
+                    ? Div.Class("notice ready").Data(new Dictionary<string, string?> { ["testid"] = "can-take-over" })[
+                        Strong["Your data is ready."],
                         " The other tab has closed. Reload to use the database here — reloading is what "
                         + "takes it over, because this tab already opened an empty one at boot."]
-                    : Div(Class: "notice", Data: new Dictionary<string, string?> { ["testid"] = "not-owner" })[
-                        Strong()["Another tab has this database open."],
+                    : Div.Class("notice").Data(new Dictionary<string, string?> { ["testid"] = "not-owner" })[
+                        Strong["Another tab has this database open."],
                         " Your data is safe — it just isn't reachable from here, because only one tab may "
                         + "own the file. Close the other tab and this will say so."]
                 : null,
-            Div(Class: "row")[
+            Div.Class("row")[
                 Input(
                     Type: InputType.Text,
                     Value: _name,
                     Placeholder: "a name to greet",
                     Data: new Dictionary<string, string?> { ["testid"] = "name" },
                     OnInput: v => _name = v),
-                Button(
-                    Type: "button",
-                    Data: new Dictionary<string, string?> { ["testid"] = "enqueue" },
-                    OnClick: async () => await EnqueueAsync())["Queue a job"]
+                Button
+                    .Type("button")
+                    .Data(new Dictionary<string, string?> { ["testid"] = "enqueue" })
+                    .OnClick(async () => await EnqueueAsync())["Queue a job"]
             ],
-            P(Class: "status", Data: new Dictionary<string, string?> { ["testid"] = "status" })[_status],
-            H2()["Greetings written by the job processor"],
+            P.Class("status").Data(new Dictionary<string, string?> { ["testid"] = "status" })[_status],
+            H2["Greetings written by the job processor"],
             _greetings.Count == 0
-                ? P(Class: "empty", Data: new Dictionary<string, string?> { ["testid"] = "empty" })[
+                ? P.Class("empty").Data(new Dictionary<string, string?> { ["testid"] = "empty" })[
                     "Nothing yet — queue a job."]
-                : Ul(Data: new Dictionary<string, string?> { ["testid"] = "greetings" })[
+                : Ul.Data(new Dictionary<string, string?> { ["testid"] = "greetings" })[
                     _greetings.Select(g =>
-                        Li(Key: g.Id.ToString(System.Globalization.CultureInfo.InvariantCulture))[
-                            Span()[g.Text],
-                            Time()[g.CreatedAt.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)]
+                        Li.Key(g.Id.ToString(System.Globalization.CultureInfo.InvariantCulture))[
+                            Span[g.Text],
+                            Time[g.CreatedAt.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)]
                         ])]
         ];
 }

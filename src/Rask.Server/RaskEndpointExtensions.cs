@@ -52,7 +52,8 @@ namespace Rask.Server;
 ///     The endpoints that make an ASP.NET Core app a Rask app: the page routes, the live WebSocket the
 ///     diff runtime talks over, and the client runtime script. Wired up by <c>UseRask&lt;TApp&gt;()</c>.
 /// </summary>
-public static class RaskEndpointExtensions
+[global::Rask.Core.RaskMarkup]
+public static partial class RaskEndpointExtensions
 {
     private const string RuntimePath = "/rask/rask.js";
     private const string WebSocketPath = "/rask/ws";

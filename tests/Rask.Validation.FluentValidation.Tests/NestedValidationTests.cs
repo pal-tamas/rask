@@ -146,8 +146,8 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
-            FluentValidationValidator(new PersonValidator()),
+        var page = RaskTest.Render(() => Form.Model(p)[
+            FluentValidationValidator.Validator(new PersonValidator()),
             Input.Bind(() => p.Address!.Street),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);

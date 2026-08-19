@@ -19,7 +19,7 @@ public sealed partial class LoginPage(WasmLoginService login) : Component
                 _error is null
                     ? null
                     : Div.Id("login-error").Class("alert alert-danger py-2")[_error],
-                Form(_model, OnValidSubmitAsync: SubmitAsync)[
+                Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
                     Div.Class("mb-3")[
                         Label.For("username").Class("form-label")["Username"],
                         Input.Bind(() => _model.Username).Id("username").Class("form-control")

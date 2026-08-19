@@ -242,8 +242,8 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
-            DataAnnotationsValidator(),
+        var page = RaskTest.Render(() => Form.Model(p)[
+            DataAnnotationsValidator,
             Input.Bind(() => p.Address!.Street),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
@@ -267,11 +267,11 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         // misses by reading the EditContext directly instead of going through the renderer.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var page = RaskTest.Render(() => Form(p)[
-            DataAnnotationsValidator(),
+        var page = RaskTest.Render(() => Form.Model(p)[
+            DataAnnotationsValidator,
             Input.Bind(() => p.Address!.Street),
-            ValidationMessage(() => p.Address!.Street,
-                msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
+            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+                .For(() => p.Address!.Street)
         ]);
 
         var initial = page.Html;
