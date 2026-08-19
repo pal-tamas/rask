@@ -41,6 +41,18 @@ them until tagged releases begin.
   request was issued" and then slept a fixed 50 ms before asserting on "the response rendered", which is the
   race that failed a gate run on an unrelated branch; they now wait on the rendered result itself.
 
+- **The hero animation no longer hangs a character off the end of an untyped line.** `spacingAndGlyphs`
+  stopped the last glyph of a line from spilling *well* past `textLength`, but not from reaching the very
+  edge of its advance box — the `>` of `=>` does — and a cover rectangle that stopped exactly at
+  `textLength` still left that glyph's antialiased edge showing from the first frame, before its line was
+  typed. The cover now runs `Bleed` px past the text and scales about the **text's** right edge rather
+  than its own, so the overhang is still there at the last step and is exactly zero at `scaleX(0)`. That
+  second half is what makes it safe: a cover with a fixed pad would leave a residue over the segment that
+  follows it on the same line (`Button.` and the rest of line 9), and this one collapses to nothing.
+
+  Regression evidence is a pixel scan of rendered frames rather than a unit test — the artifact is a
+  rasterisation detail no assertion on the markup can see.
+
 - **`ChromeScreen` declares its route the way every other page now does.** It landed with a `Route`
   override in the same window that removed the `Page` base class, so `main` briefly did not compile —
   each change was green on its own branch and only their combination was broken.
@@ -72,6 +84,14 @@ them until tagged releases begin.
   spill past `textLength` — past the cover rectangle that hides the untyped remainder, leaving the tail of
   a line (the `=>` ending the `Render` line) hanging on screen from the first frame, before the line was
   typed.
+
+- **The hero animation's completion list is bigger, and the whole loop is slower.** The member list is
+  the picture's argument — "press `.` and the chain tells you the rest" — and at 380px wide with 15px
+  names it was the smallest thing on screen. It is now 460px wide on 32px rows, with the names, the types
+  and the doc comment each a size up, and the loop runs 20s instead of 16s so a reader can follow the
+  typing without it feeling like a progress bar. Every keyframe offset is a percentage of the loop, so
+  the duration is one constant; the canvas grew to 880×620 to seat the taller popup, which the landing
+  page's `aspect-ratio` follows.
 
 - **RASK047 is retired.** It reported a `Page.Route` override that was not a compile-time constant. A
   `[Route]` argument is an attribute argument and therefore constant by construction, so the failure it
