@@ -178,14 +178,20 @@ them until tagged releases begin.
   `BaseForegroundColor` are what you see; `UiKitViewOps` wrote `view.BackgroundColor` and
   `SetTitleColor`, which sit behind the configuration and are never seen. `ApplyButtonStyle` also
   assigned a **fresh** configuration on every `Style` write, so even a correct colour was discarded
-  whenever `Style` arrived last. On Android the same ordering bug in plainer form: `ApplyButtonStyle`
-  called `SetBackgroundColor` / `SetTextColor` unconditionally, wiping whatever came before it. The
-  props were order-dependent in a way nothing in the component surface hints at.
+  whenever `Style` arrived last.
+
+  Android's half of this was described wrongly here and is corrected: **the first render was fine.**
+  `NativeButton.WriteSurfaceProps` emits `Style` *before* `Color` and `Background`, so on a full node
+  build the colours are applied after the style and win. What was broken is the **incremental** path —
+  `NativeTreeDiffer.DiffProps` carries only the props that actually changed, so on a later frame where
+  `Style` changes and the colours do not, Android received `Style` alone and `ApplyButtonStyle` rewrote
+  both colours over values it was never sent. The fix below is right for that; only the account of when
+  it bites was wrong.
 
   Both backends now hold the three props together in a `NativeButtonAppearance` and repaint the whole
   of it on any write — the style first, then the explicit colours over it — so an explicit
-  `Background` / `Color` wins whatever order the patch delivers them in, which is the precedence
-  `NativeButton` already documented. Verified on an iPhone 17 Pro simulator: the pure-native showcase
+  `Background` / `Color` wins whether the patch carries all three or only one of them, which is the
+  precedence `NativeButton` already documented. Verified on an iPhone 17 Pro simulator: the pure-native showcase
   button went from system blue to the declared `#4C1D95` with white text.
 
   Two things found alongside it and fixed here. An **unstyled** `NativeButton` rendered Filled on iOS
