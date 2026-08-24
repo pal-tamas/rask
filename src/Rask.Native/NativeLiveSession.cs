@@ -34,7 +34,11 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     // — stays sequential (each acquires a free lock). Lock order is always _lock (if any) then _renderLock;
     // RenderInScopeCoreAsync takes only _renderLock, so there's no inversion.
     private readonly SemaphoreSlim _renderLock = new(1, 1);
-    private readonly INativeWebView _webView;
+    // Optional since #777. A pure-native app (RunNativeAsync) boots with an INativeSurface and NO WebView
+    // at all, and never reaches the two places this is used: SendFrameAsync is gated behind IsNativeFrame,
+    // which is false only when the frame carries HTML, and GoBackAsync falls back to this session's own
+    // history. Both raise a named error rather than an NRE if an app does reach them without one.
+    private readonly INativeWebView? _webView;
     private readonly IUserProvider? _userProvider;
 
     // Set by BuildPayloadAsync when the frame it built carries queued IJSRuntime calls. The
@@ -64,25 +68,54 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     // view it is not showing — see INativeSurface. That is what makes switching between a web route and a
     // native route free: neither side re-mounts, and coming back to a web page does not reload it.
     private readonly INativeSurface? _surface;
+
+    // Back history for the pure-native model. With a WebView, back is window.history.back() and the page's
+    // own history is the single source of truth; with no WebView there is no page and no history, so the
+    // session keeps its own. Entries are full urls (path + query), oldest first, current LAST — the same
+    // thing the WebView would have held. Only maintained when _webView is null, so the hybrid model keeps
+    // exactly one history rather than two that can disagree.
+    private readonly List<string> _nativeHistory = [];
     private readonly NativeTreeBuilder _treeBuilder = new();
     private NativeNode? _surfaceTree;
     private IReadOnlyDictionary<int, Func<string?, Task>> _surfaceHandlers =
         new Dictionary<int, Func<string?, Task>>();
 
-    public NativeLiveSession(Component view, IServiceProvider services, INativeWebView webView, LiveDiffMode diffMode)
+    public NativeLiveSession(Component view, IServiceProvider services, INativeWebView? webView, LiveDiffMode diffMode)
         : base(view, services, diffMode)
     {
         _webView = webView;
         _chrome = services.GetService<INativeChrome>();
         _surface = services.GetService<INativeSurface>();
 
-        // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
+        if (webView is null && _surface is null)
+        {
+            throw new InvalidOperationException(
+                "A native session needs somewhere to paint: pass an INativeWebView (NativeAppHost."
+                + "RunLocalAsync, the WebView-hybrid model) or register an INativeSurface and use "
+                + "RunNativeAsync (the pure-native model). It was given neither.");
+        }
+
+        if (webView is null && services.GetService<RouteState>() is { } bootRoute)
+        {
+            // The boot route is history entry zero. Without it the first navigation would be the only
+            // entry, and back from the second screen would have nowhere to go.
+            _nativeHistory.Add(QueryString.Build(bootRoute.Path, bootRoute.Query));
+        }
+
+        // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes. Attached even with
+        // no WebView, so a pure-native app that calls IJSRuntime is told THAT — see
+        // NativeJSRuntime.CurrentHost — rather than "not in a session scope", which would send somebody
+        // looking for a lifecycle-hook problem they do not have.
         services.GetService<NativeJSRuntime>()?.AttachHost(this, webView);
 
         // The base ctor already registered this session for hot-reload repaints; this only points the
         // "applied" indicator at the same WebView. No-op on a device build, where MetadataUpdater is
-        // unsupported and no delta can arrive anyway (#565).
-        HotReload.NativeHotReloadBridge.Attach(webView);
+        // unsupported and no delta can arrive anyway (#565), and skipped outright with no WebView to
+        // indicate on.
+        if (webView is not null)
+        {
+            HotReload.NativeHotReloadBridge.Attach(webView);
+        }
 
         if (services.GetService<IUserProvider>() is { } userProvider)
         {
@@ -572,7 +605,87 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     ///     then sends a <c>navigate</c> to the now-current (previous) route, which re-enters the router — so back
     ///     reuses the existing history plumbing rather than a parallel server-side stack.
     /// </summary>
-    public ValueTask GoBackAsync() => _webView.EvaluateJavaScriptAsync("window.history.back()");
+    public ValueTask GoBackAsync() =>
+        _webView is { } webView
+            ? webView.EvaluateJavaScriptAsync("window.history.back()")
+            : GoBackNativeAsync();
+
+    /// <summary>
+    ///     Back with no WebView: pop this session's own history and re-enter the router at the entry
+    ///     underneath, which is what <c>popstate</c> would otherwise have done for us.
+    /// </summary>
+    /// <remarks>
+    ///     At the first entry there is nothing to go back to, and this does nothing — deliberately. On
+    ///     Android that lets the hardware Back button fall through to the activity and close the app, which
+    ///     is the platform behaviour a user expects at the root of a task; swallowing it would trap them.
+    /// </remarks>
+    private async ValueTask GoBackNativeAsync()
+    {
+        string previous;
+        lock (_nativeHistory)
+        {
+            if (_nativeHistory.Count < 2)
+            {
+                return;
+            }
+
+            _nativeHistory.RemoveAt(_nativeHistory.Count - 1);
+            previous = _nativeHistory[^1];
+        }
+
+        // Replace, not push: this IS the pop, so re-recording it would make back a no-op that alternates
+        // between two entries for ever.
+        var (path, query) = SplitUrl(previous);
+        await HandleNavigateAsync(path, query, replace: true).ConfigureAwait(false);
+    }
+
+    /// <summary>Whether this session owns its back history — true exactly when there is no WebView.</summary>
+    internal bool OwnsBackHistory => _webView is null;
+
+    /// <summary>This session's back history, current entry last. Empty unless it owns one.</summary>
+    internal IReadOnlyList<string> BackHistory
+    {
+        get
+        {
+            lock (_nativeHistory)
+            {
+                return _nativeHistory.ToArray();
+            }
+        }
+    }
+
+    private void RecordNativeHistory(string fullUrl, bool replace)
+    {
+        if (_webView is not null)
+        {
+            return;
+        }
+
+        lock (_nativeHistory)
+        {
+            if (replace && _nativeHistory.Count > 0)
+            {
+                _nativeHistory[^1] = fullUrl;
+                return;
+            }
+
+            // A navigate to where we already are is not a history entry — otherwise back would have to be
+            // pressed twice to move once.
+            if (_nativeHistory.Count > 0
+                && string.Equals(_nativeHistory[^1], fullUrl, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _nativeHistory.Add(fullUrl);
+        }
+    }
+
+    private static (string Path, string Query) SplitUrl(string url)
+    {
+        var mark = url.IndexOf('?', StringComparison.Ordinal);
+        return mark < 0 ? (url, string.Empty) : (url[..mark], url[mark..]);
+    }
 
     /// <summary>
     ///     Handle an interaction on a pure-native view — a button tap, a text field's edit, a switch toggle.
@@ -645,7 +758,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     ///     Handle a bar-button tap (<c>{"type":"nativeTap","id":"…"}</c>): look up the button's <c>OnClick</c>,
     ///     invoke it (its factory wrapper re-renders the owner), then render + emit + push exactly like
     ///     <see cref="DispatchAsync" />. Returns the sent frame bytes (the test seam). A tab tap arrives as a
-    ///     <c>navigate</c> message and flows through <see cref="HandleNavigateAsync" /> instead.
+    ///     <c>navigate</c> message and flows through <see cref="HandleNavigateAsync(JsonElement)" /> instead.
     /// </summary>
     public async Task<byte[]> DispatchNativeTapAsync(byte[] json)
     {
@@ -733,7 +846,39 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     // whose window.__raskNative.applyRender consumes it (applyDiff / morph). The memory is valid until the
     // returned ValueTask completes (the base awaits SendFrameAsync before swapping buffers), so a UI-thread
     // hop inside the platform implementation is safe.
-    protected override ValueTask SendFrameAsync(ReadOnlyMemory<byte> frame) => _webView.ApplyRenderAsync(frame);
+    protected override ValueTask SendFrameAsync(ReadOnlyMemory<byte> frame)
+    {
+        if (_webView is { } webView)
+        {
+            return webView.ApplyRenderAsync(frame);
+        }
+
+        // Pure-native, and the frame carries HTML — there is nothing to paint it into. This RECORDS and
+        // drops rather than throwing, deliberately: SendFrameAsync runs inside the render pipeline beneath
+        // the root error boundary, which answers an exception by rendering an error page. That page is
+        // more HTML, which lands here again, and the app spins for ever instead of reporting anything.
+        //
+        // So the frame is dropped, the fact is reported, and RunNativeAsync turns the first occurrence
+        // into a thrown, named error once the render has safely unwound — see RenderedHtmlWithNoWebView.
+        RenderedHtmlWithNoWebView = true;
+        RaskDiagnostics.Report(
+            RaskLogLevel.Error,
+            "Rask.Native",
+            HtmlWithoutWebViewMessage);
+        return default;
+    }
+
+    /// <summary>
+    ///     Whether a frame carrying HTML was dropped because this session has no WebView to paint it into.
+    /// </summary>
+    internal bool RenderedHtmlWithNoWebView { get; private set; }
+
+    /// <summary>What to tell somebody whose pure-native app rendered HTML.</summary>
+    internal const string HtmlWithoutWebViewMessage =
+        "This app is running pure-native (NativeAppHost.RunNativeAsync) and rendered HTML, which needs a "
+        + "WebView to display, so the frame was dropped. Either make the route's content a NativeScreen "
+        + "tree, or host a NativeWebView on it and boot with RunLocalAsync so there is a WebView to paint "
+        + "into.";
 
     protected override async Task RenderInScopeCoreAsync()
     {
@@ -916,14 +1061,14 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         }
     }
 
-    private async Task<byte[]> HandleNavigateAsync(JsonElement root)
+    private Task<byte[]> HandleNavigateAsync(JsonElement root)
     {
         var navPath = root.TryGetProperty("path", out var p) && p.ValueKind == JsonValueKind.String
             ? p.GetString()
             : null;
         if (string.IsNullOrEmpty(navPath))
         {
-            return Array.Empty<byte>();
+            return Task.FromResult(Array.Empty<byte>());
         }
 
         var navQueryString = root.TryGetProperty("query", out var q) && q.ValueKind == JsonValueKind.String
@@ -931,6 +1076,13 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             : string.Empty;
         var replace = root.TryGetProperty("replace", out var rEl) && rEl.ValueKind == JsonValueKind.True;
 
+        return HandleNavigateAsync(navPath, navQueryString, replace);
+    }
+
+    // The navigation itself, with the message already parsed. Split out so pure-native back navigation can
+    // re-enter the router directly (GoBackNativeAsync) instead of synthesising a JSON message to parse.
+    private async Task<byte[]> HandleNavigateAsync(string navPath, string navQueryString, bool replace)
+    {
         var fullUrl = string.IsNullOrEmpty(navQueryString)
             ? navPath
             : navQueryString.StartsWith("?", StringComparison.Ordinal)
@@ -944,6 +1096,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             var routeState = Services.GetRequiredService<RouteState>();
             routeState.Path = navPath;
             routeState.Query = QueryString.Parse(navQueryString);
+            RecordNativeHistory(fullUrl, replace);
 
             await _renderLock.WaitAsync().ConfigureAwait(false);
             try

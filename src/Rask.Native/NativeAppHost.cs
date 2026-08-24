@@ -152,12 +152,76 @@ public sealed class NativeAppHost
     ///     The root <see cref="Component" />. It renders into <c>&lt;body&gt;</c>; Rask composes the
     ///     document around it (RASK021 flags a root that builds the shell itself).
     /// </typeparam>
-    public async Task<NativeApp> RunLocalAsync<
+    public Task<NativeApp> RunLocalAsync<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         INativeWebView webView, string initialPath = "/")
         where TApp : Component
     {
         ArgumentNullException.ThrowIfNull(webView);
+        return RunAsync<TApp>(webView, initialPath);
+    }
+
+    /// <summary>
+    ///     <b>Native + Pure-native</b> — boots the app with <b>no WebView at all</b>. The component tree
+    ///     paints as real platform views through <paramref name="surface" />, and nothing HTML is
+    ///     instantiated.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The counterpart to <see cref="RunLocalAsync{TApp}" />, which drives a WebView and can mix
+    ///         native screens into it. Use this when the app has no HTML at all: there is no WebView to
+    ///         create, so nothing pays for one, and the first frame is a view tree rather than a document.
+    ///     </para>
+    ///     <para>
+    ///         Two things behave differently and are not hidden. <c>IJSRuntime</c> has no engine to dispatch
+    ///         into and says so if called, and rendering HTML raises a named error from
+    ///         <c>NativeLiveSession.SendFrameAsync</c> rather than failing silently — see #777. Back
+    ///         navigation moves to the session's own history, so Android's hardware Back button works with
+    ///         no page history to pop.
+    ///     </para>
+    ///     <para>
+    ///         There is also no <c>ready</c> handshake: a WebView client posts that once its document has
+    ///         loaded, and with no document this host performs the first render itself before returning, so
+    ///         the caller gets an app that is already on screen.
+    ///     </para>
+    /// </remarks>
+    /// <typeparam name="TApp">The root component.</typeparam>
+    /// <param name="surface">The platform surface backend that paints the view tree.</param>
+    /// <param name="initialPath">The route to boot on.</param>
+    public async Task<NativeApp> RunNativeAsync<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+        INativeSurface surface, string initialPath = "/")
+        where TApp : Component
+    {
+        ArgumentNullException.ThrowIfNull(surface);
+
+        // Registered before the provider is built so the session resolves the same instance the caller
+        // owns, exactly as a platform head's UsePlatform registration would.
+        Services.AddSingleton(surface);
+
+        var app = await RunAsync<TApp>(webView: null, initialPath).ConfigureAwait(false);
+
+        // No client to post `ready`, so the first frame is this host's job.
+        await app.Session.InitialRenderAsync().ConfigureAwait(false);
+
+        // …and if that frame turned out to be HTML, say so HERE rather than from inside the render. The
+        // session drops such a frame and records it, because throwing mid-render reaches the root error
+        // boundary, whose answer is to render an error page — more HTML, dropped again, for ever. By this
+        // point the render has unwound, so the error is just an error.
+        if (app.Session.RenderedHtmlWithNoWebView)
+        {
+            await app.DisposeAsync().ConfigureAwait(false);
+            throw new InvalidOperationException(NativeLiveSession.HtmlWithoutWebViewMessage);
+        }
+
+        return app;
+    }
+
+    private async Task<NativeApp> RunAsync<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+        INativeWebView? webView, string initialPath)
+        where TApp : Component
+    {
 
         // Native-first wiring: the platform's native backends first, then the JS-backed fallbacks via TryAdd,
         // so a natively-backed interface wins and everything else resolves to the WebView's JS engine. The
@@ -196,7 +260,11 @@ public sealed class NativeAppHost
         // The WebView drives everything through this single message channel: the initial-render handshake
         // (ready), IJSRuntime results (jsResult), JS-initiated [JSInvokable] (dotNetInvoke), and component
         // events (everything else → the session). Mirrors how the WASM host multiplexes its JSExports.
-        webView.OnMessage = json => RouteMessageAsync(nativeApp, json);
+        // Absent in the pure-native model, where the surface's own event channel below is the only input.
+        if (webView is not null)
+        {
+            webView.OnMessage = json => RouteMessageAsync(nativeApp, json);
+        }
 
         // If a native-chrome backend is registered, route its bar interactions through the SAME dispatcher —
         // a button tap ({type:"nativeTap"}) and a tab tap ({type:"navigate"}) re-enter the router exactly like

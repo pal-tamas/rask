@@ -43,25 +43,58 @@ internal sealed class NativeJSRuntime : RaskJSRuntimeBase
         }
     }
 
+    internal const string NoJavaScriptEngineMessage =
+        "This app is running pure-native (NativeAppHost.RunNativeAsync), so there is no WebView and no "
+        + "JavaScript engine for IJSRuntime to call into. Use a native capability instead (IShare, "
+        + "IGeolocation, …), or boot with RunLocalAsync and host a NativeWebView on the route that needs JS.";
+
     /// <summary>Bind the session (for render-time queuing) and the WebView (for out-of-render dispatch).</summary>
-    public void AttachHost(ILiveJsHost host, INativeWebView webView)
+    /// <remarks>
+    ///     <paramref name="webView" /> is <see langword="null" /> in the pure-native model
+    ///     (<c>NativeAppHost.RunNativeAsync</c>), where there is no JS engine at all. The session still
+    ///     attaches so that a call gets the accurate error below rather than "not in a session scope",
+    ///     which would send somebody looking for a lifecycle-hook problem they do not have (#777).
+    /// </remarks>
+    public void AttachHost(ILiveJsHost host, INativeWebView? webView)
     {
         _host = host;
         _webView = webView;
     }
 
-    protected override ILiveJsHost CurrentHost =>
-        _host ?? throw new InvalidOperationException(
-            "IJSRuntime can only be used within a Rask session scope. " +
-            "Inject it through a Component ctor (DI) and call it from a lifecycle hook " +
-            "(OnMountAsync, OnRenderedAsync) or event handler.");
+    protected override ILiveJsHost CurrentHost
+    {
+        get
+        {
+            if (_host is null)
+            {
+                throw new InvalidOperationException(
+                    "IJSRuntime can only be used within a Rask session scope. " +
+                    "Inject it through a Component ctor (DI) and call it from a lifecycle hook " +
+                    "(OnMountAsync, OnRenderedAsync) or event handler.");
+            }
+
+            if (_webView is null)
+            {
+                throw new InvalidOperationException(NoJavaScriptEngineMessage);
+            }
+
+            return _host;
+        }
+    }
 
     // Outside a render, evaluate the invoke immediately in the WebView. window.__raskNative.beginInvokeJS
     // mirrors the WASM bridge's dispatchJsInvoke: it runs the identified function against argsJson and posts
     // a {type:'jsResult', ...} message back, which NativeAppHost feeds to DotNetDispatcher.EndInvokeJS. taskId
     // / targetInstanceId travel as strings (JS numbers can't hold the full range), matching the WASM host.
-    protected override void DispatchOutsideRender(PendingJsInvoke invoke) =>
-        _ = _webView?.EvaluateJavaScriptAsync(
+    protected override void DispatchOutsideRender(PendingJsInvoke invoke)
+    {
+        if (_webView is null)
+        {
+            // Dropping this would leave the caller's await pending for ever. Throwing reaches them.
+            throw new InvalidOperationException(NoJavaScriptEngineMessage);
+        }
+
+        _ = _webView.EvaluateJavaScriptAsync(
             "window.__raskNative.beginInvokeJS(" +
             invoke.TaskId.ToString() + "," +
             Quote(invoke.Identifier) + "," +
@@ -72,6 +105,7 @@ internal sealed class NativeJSRuntime : RaskJSRuntimeBase
             (invoke.ArgsJson is null ? "null" : Quote(invoke.ArgsJson)) + "," +
             (int)invoke.ResultType + "," +
             Quote(invoke.TargetInstanceId.ToString()) + ")");
+    }
 
     protected override void EndInvokeDotNet(DotNetInvocationInfo invocationInfo, in DotNetInvocationResult invocationResult)
     {
