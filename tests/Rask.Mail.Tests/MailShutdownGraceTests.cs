@@ -6,6 +6,7 @@ namespace Rask.Mail.Tests;
 ///     transaction, so a send cancelled mid-conversation may already have been accepted by the server while
 ///     the row still reads unsent — and the next boot sends it again.
 /// </summary>
+[Collection(MailDbCollection.Name)]
 public sealed class MailShutdownGraceTests
 {
     [Fact]

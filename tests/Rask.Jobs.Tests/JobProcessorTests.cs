@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Jobs.Tests;
 
+[Collection(JobsDbCollection.Name)]
 public sealed class JobProcessorTests
 {
     [Fact]

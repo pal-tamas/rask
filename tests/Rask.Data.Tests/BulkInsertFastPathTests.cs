@@ -8,6 +8,7 @@ namespace Rask.Data.Tests;
 // reproduce by hand what the change tracker did for free. These pin the parts that could silently diverge:
 // the values that reach the columns, the audit stamps AuditingInterceptor is no longer there to write, the
 // transaction boundary, and every case the writer must refuse rather than write wrong rows.
+[Collection(DataDbCollection.Name)]
 public sealed class BulkInsertFastPathTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-bulk-fast-{Guid.NewGuid():N}.db");

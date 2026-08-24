@@ -67,6 +67,28 @@ them until tagged releases begin.
   (the factory excluded it on name *and* type; the indexer owns the word).
 
 ### Fixed
+- **Four more test suites shared one `DbContext` across classes xUnit ran in parallel.** The shape that
+  made `Rask.Outbox.Tests` fail the gate in #769 was still present in `Rask.Jobs.Tests`,
+  `Rask.Cache.Tests`, `Rask.Mail.Tests` and `Rask.Data.Tests`: EF Core's model cache is **per process,
+  keyed on the context type** — not per `ServiceProvider` — so classes that each build their own
+  provider over their own SQLite file still share one `IModelSource` and one `IModel`, and the first
+  test in each racing to first-touch it drives one piece of EF-internal state from two threads. The
+  DB-touching classes in each suite now sit in one `[CollectionDefinition]`, as the Outbox ones do. It
+  costs nothing measurable — each suite still runs in 1–3 s, because these tests are bounded by their
+  own waits rather than by CPU.
+
+  `Rask.Dashboard.Tests` was on the same list and needed no change: it already disables parallelisation
+  assembly-wide. `OutboxSerializerRegistryReplaceTests` was flagged as "same family" and is not — the
+  registry rebuilds under a lock and installs its lookup in a single volatile store, so a reader
+  observes either the whole old map or the whole new one. Concurrent use is its design.
+
+  A shared `DbCollectionGuard` (linked into all five suites, Outbox included) now fails if a test class
+  is neither in the collection nor named as one that never builds a context. It asks the question the
+  safe way round on purpose: these suites build their contexts in a **local**, which no reflection over
+  fields and signatures can see, so a guard that tried to detect "does this class use the context?"
+  would pass every class for the wrong reason. Defaulting to *collected* means a new test class cannot
+  join the suite silently, and every exception is a name somebody wrote down with a reason.
+
 - **An `internal` component's chain entry did not cross an `InternalsVisibleTo` boundary.** A friend
   assembly could see the component and could see its entry, and was told about neither: the scan that
   reads a referenced assembly's `RaskEntries{Assembly}` class took **public** members only, and an
