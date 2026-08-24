@@ -432,8 +432,8 @@ internal static partial class ProjectGenerator
         """
         using Rask.Core.Routing;
 
-        // NativeHeaderBar / NativeWebView factories come from a global using the generator emits automatically
-        // for any project referencing Rask.Native — no `using static` needed here.
+        // NativeHeaderBar / NativeWebView are chain entries the generator emits into this markup host
+        // (hence `partial`) for any project referencing Rask.Native — no import needed here.
 
         namespace Company.RaskServer.Features.Shared;
 
@@ -452,7 +452,7 @@ internal static partial class ProjectGenerator
             // viewport-fit=cover). head is the framework's <head> — place it, or the page loses every head
             // asset.
             protected override Component Shell(Component head, Component body) =>
-                Html("en")[
+                Html.Lang("en")[
                     head,
                     Body.Style("margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
                                 "env(safe-area-inset-bottom) env(safe-area-inset-left)")[body]

@@ -831,7 +831,7 @@ internal static partial class ProjectGenerator
                     _error is null ? null : Div.Id("hello-error").Style("color:#b00020")[_error],
                     Form.Model(_model).OnValidSubmitAsync(AskAsync)[
                         Div[Label.For("name")["Your name"], Input.Bind(() => _model.Name).Id("name")],
-                        Button("submit", Id: "hello-submit")["Ask the server"]
+                        Button.Type("submit").Id("hello-submit")["Ask the server"]
                     ],
                     _greeting is null ? null : P.Id("hello-greeting")[_greeting.Message],
                     _visits is null ? null : P.Id("hello-visits")[$"Visits recorded: {_visits}"]

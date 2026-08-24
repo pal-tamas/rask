@@ -36,12 +36,12 @@ public sealed class PlaygroundCompilerTests
     }
 
     [Fact]
-    public async Task Runs_the_Rask_generator_so_user_component_factories_resolve()
+    public async Task Runs_the_Rask_generator_so_user_component_entries_resolve()
     {
         // `Badge.Label(...)` is the chain entry for the user's OWN component — it exists only if the Rask
-        // source generator ran during this in-browser compile (the generator also emits the
-        // `global using static Demo.Generated;` that brings the factory into scope). Without the generator
-        // this is CS0103. Components live in a namespace, exactly as in a real Rask project.
+        // source generator ran during this in-browser compile, because the generator emits that entry into
+        // the markup host. Without the generator this is CS0103. Components live in a namespace, exactly as
+        // in a real Rask project.
         var result = await NewCompiler().CompileAsync("""
             using Rask.Core;
 

@@ -94,10 +94,10 @@ public sealed class PlaygroundWorkspaceTests
     }
 
     [Fact]
-    public async Task CompleteAsync_offers_generated_Rask_factories_in_scope()
+    public async Task CompleteAsync_offers_generated_Rask_entries_in_scope()
     {
-        // `Div` resolves only because the generator emitted `global using static Rask.Core.Components.Generated;`
-        // and the workspace compiles the user document alongside those generated trees — the whole point of the
+        // `Div` resolves only because the generator emitted the chain entries into this markup host and the
+        // workspace compiles the user document alongside those generated trees — the whole point of the
         // shared PlaygroundCompilation. So IntelliSense must offer `Div` at an expression position.
         const string source = """
             using Rask.Core;
