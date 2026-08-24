@@ -122,11 +122,13 @@ internal sealed class AndroidViewOps(Context context, Action<NativeSurfaceEvent>
                 linesText.SetMaxLines(lines <= 0 ? int.MaxValue : lines);
                 break;
 
-            // Ahead of the generic colour cases on purpose. ApplyButtonStyle writes the style's own fill
-            // and title colour unconditionally, so a Style arriving after a Background or Color used to
-            // throw them away — the props were order-dependent in a way nothing in the component surface
-            // hints at (#785). Routing all three through the retained appearance and repainting the whole
-            // of it removes the ordering from the answer. Every button Create() makes is a RaskButton.
+            // Ahead of the generic colour cases on purpose. A FULL node build was always fine here —
+            // WriteSurfaceProps emits Style before Color and Background, so the colours land after the
+            // style and win. The INCREMENTAL path was not: NativeTreeDiffer.DiffProps carries only the
+            // props that actually changed, so a frame that changes Style alone arrived as Style alone,
+            // and ApplyButtonStyle rewrote both colours over values it was never sent (#785). Holding
+            // all three on the view and repainting the whole appearance is what makes a partial patch
+            // land the same as a full one. Every button Create() makes is a RaskButton.
             case NativePropId.Color or NativePropId.Background or NativePropId.Style
                 when view is RaskButton appearanceButton:
                 if (appearanceButton.ButtonAppearance.Write(id, value, unset))
@@ -367,8 +369,8 @@ internal sealed class AndroidViewOps(Context context, Action<NativeSurfaceEvent>
     }
 
     // The WHOLE appearance, re-derived from scratch on every write to any of its three props: the style
-    // first, then the explicit colours over it, so an explicit Background or Color wins whichever order
-    // the patch delivered them in. NativeButton documents exactly that precedence.
+    // first, then the explicit colours over it, so an explicit Background or Color wins whether the
+    // patch carried all three or only one. NativeButton documents exactly that precedence.
     private void ApplyButtonAppearance(RaskButton button)
     {
         var appearance = button.ButtonAppearance;
