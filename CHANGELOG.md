@@ -7,6 +7,29 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **`rask new --template native` says what each hosting model actually costs you** (#776, the four-models
+  epic). The chooser used to say only where the UI comes from. The epic's rule is that exactly three
+  things legitimately differ between the models — **where your code runs, what works offline, what an
+  edit costs** — and that each is printed rather than left to be discovered, because the way this bites
+  is someone waiting on a reload that was never coming.
+
+  The wizard and the post-scaffold summary now state all three per model:
+
+  ```
+  Created MyApp (Rask native iOS app, UI from the device (works offline)).
+    runs in the app · offline: everything · reload: restart the app
+  ```
+
+  They come from one place. `NativeHostSummary` existed **twice**, letter-for-letter, in `NewCommand`
+  and in `ProjectGenerator.Native`; the `--host` choice list, the help text, the "does not support
+  --host" error and the generator's model switch each spelled the axis out again. All of it now reads
+  from `NativeModels`, so a model is described once and #780 has a single place to add `wasm`.
+
+  `docs/cli.md` documented the `--host` default as **`local`** — a value #790 removed, so the one row
+  the docs give this flag named something the CLI rejects. It also still described the remote models as
+  scaffolding "a thin native shell", which stopped being true when they began scaffolding both halves.
+
 ### Added
 - **The last Phase 0 evidence gap is closed: a published WASM client boots inside the Android WebView too**
   (#775, the four-models epic). `samples/WasmInWebViewSpike` grows an Android head, so both platforms now

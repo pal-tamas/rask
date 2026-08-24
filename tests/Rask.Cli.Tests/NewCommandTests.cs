@@ -1,4 +1,5 @@
 using Rask.Cli.Commands;
+using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
 
@@ -512,6 +513,72 @@ public sealed class NewCommandTests
         var program = fs.ReadAllText("/proj/MyApp/Program.cs");
         Assert.Contains("UseRaskSqlite", program, StringComparison.Ordinal);
         Assert.Contains("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The epic's rule is that exactly three things differ between the hosting models — where the code
+    /// runs, what works offline, what an edit costs — and that each is <b>printed, not hidden</b>. This
+    /// pins that every model actually carries all three, so a fourth model cannot join the axis with a
+    /// blank column and quietly say nothing about itself.
+    /// </summary>
+    [Fact]
+    public void Every_native_model_states_where_it_runs_what_works_offline_and_what_reload_costs()
+    {
+        Assert.NotEmpty(NativeModels.All);
+
+        foreach (var model in NativeModels.All)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(model.Where), $"{model.Id} does not say where the code runs");
+            Assert.False(string.IsNullOrWhiteSpace(model.Offline), $"{model.Id} does not say what works offline");
+            Assert.False(string.IsNullOrWhiteSpace(model.Reload), $"{model.Id} does not say what reload costs");
+            Assert.False(string.IsNullOrWhiteSpace(model.Summary), $"{model.Id} has no post-scaffold summary");
+            Assert.Contains("offline:", model.TradeOff, StringComparison.Ordinal);
+            Assert.Contains("reload:", model.TradeOff, StringComparison.Ordinal);
+        }
+
+        // Exactly one model runs the components on the device; the rest are a shell over an app you host.
+        Assert.Single(NativeModels.All, m => m.RunsInProcess);
+        Assert.Equal(NativeModels.InProcess, NativeModels.All[0].Id);
+
+        // The ids are the schema's choice list, so the axis is described and validated from one place.
+        Assert.Equal(NativeModels.All.Select(m => m.Id).ToArray(), NativeModels.Ids.ToArray());
+        Assert.Equal(string.Join('|', NativeModels.Ids), NativeModels.IdList);
+    }
+
+    /// <summary>
+    /// An unknown <c>--host</c> cannot reach the generator — the schema rejects it against the choice list
+    /// first — so <see cref="NativeModels.For" /> answers with the in-process model rather than throwing.
+    /// </summary>
+    [Theory]
+    [InlineData("native", "native")]
+    [InlineData("server", "server")]
+    [InlineData("wasm-hosted", "wasm-hosted")]
+    [InlineData(null, "native")]
+    [InlineData("local", "native")]   // the renamed value, and anything else unrecognised
+    public void An_unknown_host_falls_back_to_the_in_process_model(string? host, string expected) =>
+        Assert.Equal(expected, NativeModels.For(host).Id);
+
+    /// <summary>
+    /// Scaffolding prints the model's trade-off, so nobody waits on a reload that was never coming. Ran for
+    /// every model, because the one that gets this wrong is whichever one nobody checked.
+    /// </summary>
+    [Theory]
+    [InlineData("native")]
+    [InlineData("server")]
+    [InlineData("wasm-hosted")]
+    public async Task Scaffolding_a_native_app_prints_what_differs_about_its_model(string host)
+    {
+        var (console, _, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(
+            ["MyApp", "--template", "native", "--host", host, "--platform", "ios", "--no-restore", "--no-git"],
+            CancellationToken.None);
+
+        Assert.Equal(0, exit);
+
+        var model = NativeModels.For(host);
+        Assert.Contains(model.Summary, console.OutText, StringComparison.Ordinal);
+        Assert.Contains(model.TradeOff, console.OutText, StringComparison.Ordinal);
     }
 
     private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()
