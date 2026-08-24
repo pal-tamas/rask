@@ -67,6 +67,42 @@ them until tagged releases begin.
   (the factory excluded it on name *and* type; the indexer owns the word).
 
 ### Fixed
+- **The bound-control numbers were measured against the wrong model, and a bound control is now
+  benchmarked at all.** Adding the benchmark #802 asked for turned up the answer to #793.
+
+  Every probe in `BuilderEntryAllocationPinTests` bound `BoundForm`, a test fixture that derives
+  `RaskMarkup`. Constructing an `Expression<Func<T>>` resolves a member token on the terminal
+  property's **declaring type**, and that cost scales with how many members the type has — measured at
+  312 B for a one-property class, 1912 B for a 200-property one, and 2312 B for a `RaskMarkup`
+  subclass, which carries the whole chain surface as members. So the probes were paying ~1970 B/render
+  for a shape no guide recommends.
+
+  That is what #793 was looking at. It recorded 3555 B/render on 2026-08-08 against 5163 B when next
+  measured and concluded Rask's bind path had regressed 45%. It had not: the representative probe costs
+  **3041 B today, below the number it was compared against**, and the difference was the fixture. The
+  claim that ~46% of the cost was unavoidable compiler work went the same way — against a plain model
+  the expression tree is 320 B, about 10%. Rask's own share, 1505 B, was measured correctly and is
+  unchanged; it remains the part worth attacking.
+
+  | | B/render |
+  | --- | --- |
+  | `Div[Input.Value(…)]` — controlled | 1216 |
+  | `Div[Input.Bind(hoisted)]` — bound, expression built once | 2721 |
+  | `Div[Input.Bind(() => …)]` — bound | 3041 |
+  | …the same, against a model deriving `RaskMarkup` | 5011 |
+
+  The probes now bind a plain model, the aggregate ceiling drops from 5600 B to **3300 B**, and the
+  expensive shape gets a pin of its own instead of being averaged into the representative one — it is
+  not contrived, since `Component : RaskMarkup` means `Input.Bind(() => Draft)` against a component's
+  own property lands there.
+
+  `BoundControlRenderBenchmarks` closes the coverage gap that surfaced all this: nothing in
+  `benchmarks/` rendered a bound control. `ExpressionAccessorBenchmarks` covers `Parse` alone with a
+  hoisted expression, and `LiveDiffPayload_InputTypingBurstBenchmarks` reads like form coverage but its
+  inputs are `Input.Value(…)`, i.e. controlled. The new benchmark runs the three arms the pins now pin,
+  so the suite and the gate describe the same decomposition: controlled 6.77 KB, bound-hoisted 9.39 KB,
+  bound 10.38 KB per three-field form.
+
 - **The WASM-hosting tests raced each other over two process-wide statics.** `UseRask` sets
   `ScopedAssetBundle.BakedDirectory` and `LiveOptions.PathBase`, which are **per process**, not per
   server. Three classes in `Rask.Wasm.Hosting.Tests` stand hosts up and xUnit runs classes in
@@ -102,16 +138,16 @@ them until tagged releases begin.
   | `Div[Input.Bind(hoisted)]` — bound, expression built once | 2723 |
   | `Div[Input.Bind(() => …)]` — bound | 5034 |
 
-  **2311 B — 46% of the total — is the C# compiler building an `Expression<Func<T>>` at the call site
-  on every render.** That is not Rask code and nothing here can make it cheaper; only the shape of the
-  public `Bind` API could. So this probe cannot go below roughly 3500 B however good the bind path
-  gets — which is already above the 3555 B the old comment recorded, so that number cannot have been
-  measuring this shape and is not a baseline to chase. Rask's own share is the remaining 1507 B.
+  > **Corrected below (see "the bound-control numbers were measured against the wrong model").** This
+  > entry originally read that 2311 B — 46% of the total — was the C# compiler building an
+  > `Expression<Func<T>>`, and that the probe could therefore never go below ~3500 B. Both were
+  > artefacts of the probe binding a model that derives `RaskMarkup`. Against a representative model
+  > the tree is 320 B and the probe costs 3041 B. Rask's own share, 1505 B, was right.
 
-  Those three layers are now three **absolute** pins rather than one. A relative pin is what let the
+  Those layers are now **absolute** pins rather than one aggregate. A relative pin is what let the
   original regression hide, so they decompose the cost without reintroducing that: a regression in the
   shared element path trips the controlled pin, one in the bind path trips the hoisted pin, and either
-  trips the aggregate — whose ceiling drops from 5600 B to 5300 B.
+  trips the aggregate.
 
 - **No `rask new` template can reach a user uncompiled any more.** `CliBuildE2E` packs this commit's
   packages to a local feed and runs a real `dotnet build -warnaserror` over what the CLI writes, and it
