@@ -69,7 +69,7 @@ internal sealed partial class RaskPwaHeadContribution(RaskPwaState state) : glob
     {
         var children = new List<Component>
         {
-            ComponentsH.Link(Rel: "manifest", Href: LiveOptions.PathBase + RaskEndpointExtensions.ManifestPath)
+            Link.Rel("manifest").Href(LiveOptions.PathBase + RaskEndpointExtensions.ManifestPath)
         };
 
         if (state.Manifest.ThemeColor is { } themeColor)
@@ -80,7 +80,7 @@ internal sealed partial class RaskPwaHeadContribution(RaskPwaState state) : glob
         // PathBase is framework-controlled (no untrusted input), so it's safe to inline. register() is
         // idempotent — a re-insert during a head morph just resolves the existing registration.
         var swUrl = LiveOptions.PathBase + RaskEndpointExtensions.ServiceWorkerPath;
-        children.Add(ComponentsH.Script()[Raw
+        children.Add(Script[Raw
             .Value("if(\"serviceWorker\" in navigator){navigator.serviceWorker.register(\""
             + swUrl + "\").catch(function(){});}")]);
 

@@ -130,11 +130,10 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         // its original vocabulary — the id is an addition, not a replacement.
         MediaStreamId? stream = null;
         string? result = null;
-        var html = MediaCaptureTrigger(
-            For: ElementRef.New(),
-            OnStream: id => { stream = id; return Task.CompletedTask; },
-            OnResult: value => { result = value; return Task.CompletedTask; },
-            Template: g => Button.Type("button").Data(g)["Start camera"]).ToHtml();
+        var html = MediaCaptureTrigger.For(ElementRef.New())
+            .OnStream(id => { stream = id; return Task.CompletedTask; })
+            .OnResult(value => { result = value; return Task.CompletedTask; })
+            .Template(g => Button.Type("button").Data(g)["Start camera"]).ToHtml();
 
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
         await GestureResultInterop.Result(rid, "12");
@@ -148,11 +147,10 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         var streamed = false;
         string? result = null;
-        var html = MediaCaptureTrigger(
-            For: ElementRef.New(),
-            OnStream: _ => { streamed = true; return Task.CompletedTask; },
-            OnResult: value => { result = value; return Task.CompletedTask; },
-            Template: g => Button.Type("button").Data(g)["Start camera"]).ToHtml();
+        var html = MediaCaptureTrigger.For(ElementRef.New())
+            .OnStream(_ => { streamed = true; return Task.CompletedTask; })
+            .OnResult(value => { result = value; return Task.CompletedTask; })
+            .Template(g => Button.Type("button").Data(g)["Start camera"]).ToHtml();
 
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
         await GestureResultInterop.Result(rid, "denied");

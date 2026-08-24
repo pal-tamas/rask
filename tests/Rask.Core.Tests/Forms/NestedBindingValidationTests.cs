@@ -185,8 +185,8 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
         var page = RaskTest.Render(() => Form.Model(m)[
-            Input(() => m.Address.PostalCode,
-                async (v, ct) =>
+            Input.Bind(() => m.Address.PostalCode)
+                .ValidateAsync(async (v, ct) =>
                 {
                     if (string.IsNullOrWhiteSpace(v))
                     {
@@ -235,8 +235,8 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
         var page = RaskTest.Render(() => Form.Model(m)[
-            Input(() => m.Address.PostalCode,
-                async (v, ct) =>
+            Input.Bind(() => m.Address.PostalCode)
+                .ValidateAsync(async (v, ct) =>
                 {
                     if (string.IsNullOrWhiteSpace(v))
                     {
@@ -286,8 +286,8 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var page = RaskTest.Render(() => Form.Model(m).OnValidSubmit(mm => submitted = $"Charged to {mm.CustomerName}")[
             Input.Bind(() => m.CustomerName)
                 .Validate(v => string.IsNullOrWhiteSpace(v) ? new[] { "Name required" } : Array.Empty<string>()),
-            Input(() => m.Address.PostalCode,
-                async (v, ct) =>
+            Input.Bind(() => m.Address.PostalCode)
+                .ValidateAsync(async (v, ct) =>
                 {
                     if (string.IsNullOrWhiteSpace(v))
                     {

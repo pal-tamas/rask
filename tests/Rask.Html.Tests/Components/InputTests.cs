@@ -6,7 +6,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_ReturnsSelfClosingTag() =>
-        Assert.Equal("<input />", Input<string>().ToHtml());
+        Assert.Equal("<input />", Input.Of<string>().ToHtml());
 
     [Fact]
     public void Render_DecimalBinding_EmitsStepAnyBetweenMaxAndPattern()
@@ -50,10 +50,13 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     {
         Assert.Equal(
             "<input id=\"i\" class=\"c\" style=\"s\" spellcheck=\"false\" data-k=\"v\" type=\"text\" name=\"n\" value=\"v\" placeholder=\"p\" required disabled readonly checked min=\"1\" max=\"10\" step=\"1\" pattern=\"[a-z]&#x2B;\" size=\"20\" maxlength=\"100\" minlength=\"1\" multiple accept=\".png\" capture=\"user\" alt=\"alt\" autocomplete=\"off\" inputmode=\"numeric\" enterkeyhint=\"done\" dirname=\"d\" autofocus form=\"f\" formaction=\"/a\" formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate formtarget=\"_blank\" list=\"l\" src=\"/s\" width=\"80\" height=\"40\" />",
-            Input<string>(InputType.Text, "n", "v", "p", true, true, true, true, "1", "10", "1", "[a-z]+", 20, 100, 1, true, ".png",
-                "alt", "off", true, "f", "/a", "multipart/form-data", "post", true, "_blank", "l", "/s", 80, 40,
-                InputMode: "numeric", EnterKeyHint: "done", Spellcheck: false, Capture: "user", Dirname: "d",
-                Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Input.Value("v").Type(InputType.Text).Name("n").Placeholder("p").Required(true).Disabled(true)
+                .ReadOnly(true).Checked(true).Min("1").Max("10").Step("1").Pattern("[a-z]+").Size(20)
+                .MaxLength(100).MinLength(1).Multiple(true).Accept(".png").Alt("alt").Autocomplete("off")
+                .Autofocus(true).Form("f").FormAction("/a").FormEnctype("multipart/form-data").FormMethod("post")
+                .FormNovalidate(true).FormTarget("_blank").List("l").Src("/s").Width(80).Height(40)
+                .InputMode("numeric").EnterKeyHint("done").Spellcheck(false).Capture("user").Dirname("d")
+                .Id("i").Class("c").Style("s").Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Theory]
@@ -71,7 +74,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     [InlineData(InputType.Radio, "radio")]
     [InlineData(InputType.DatetimeLocal, "datetime-local")]
     public void Render_ExplicitType_EmitsTypeAttribute(InputType type, string html) =>
-        Assert.Equal($"<input type=\"{html}\" />", Input<string>(type).ToHtml());
+        Assert.Equal($"<input type=\"{html}\" />", Input.Of<string>().Type(type).ToHtml());
 
     [Fact]
     public void Render_HonorsCallerAriaRoleAndTabIndex() =>
@@ -79,33 +82,33 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
         // the tag-specific `type` — a caller can wire an accessible name / role onto a bare input.
         Assert.Equal(
             "<input role=\"switch\" tabindex=\"0\" aria-label=\"volume\" type=\"range\" />",
-            Input<string>(InputType.Range, Role: "switch", TabIndex: 0,
-                Aria: new Dictionary<string, string?> { ["label"] = "volume" }).ToHtml());
+            Input.Of<string>().Type(InputType.Range).Role("switch").TabIndex(0)
+                .Aria(new Dictionary<string, string?> { ["label"] = "volume" }).ToHtml());
 
     [Fact]
     public void Render_SpellcheckFalse_EmitsEnumeratedValue() =>
         // spellcheck is an enumerated attribute, not a boolean-presence one — false must render explicitly.
-        Assert.Equal("<input spellcheck=\"false\" />", Input<string>(Spellcheck: false).ToHtml());
+        Assert.Equal("<input spellcheck=\"false\" />", Input.Of<string>().Spellcheck(false).ToHtml());
 
     [Fact]
     public void Render_FileCaptureAndKeyboardHints_EmitInDeclaredOrder() =>
         Assert.Equal(
             "<input type=\"file\" capture=\"environment\" inputmode=\"none\" enterkeyhint=\"send\" dirname=\"d\" />",
-            Input<string>(InputType.File, Capture: "environment", InputMode: "none", EnterKeyHint: "send",
-                Dirname: "d").ToHtml());
+            Input.Of<string>().Type(InputType.File).Capture("environment").InputMode("none").EnterKeyHint("send")
+                .Dirname("d").ToHtml());
 
     [Fact]
     public void Render_OnInputOutsideLiveContext_OmitsHandlerAttribute()
     {
         Assert.Equal(
             "<input />",
-            Input<string>(OnInput: _ => { }).ToHtml());
+            Input.Of<string>().OnInput(_ => { }).ToHtml());
     }
 
     [Fact]
     public void Render_OnInputAndOnChangeInsideLiveContext_EmitSequentialIds()
     {
-        var view = new StubComponent(() => Input<string>(OnInput: _ => { }, OnChange: _ => { }));
+        var view = new StubComponent(() => Input.Of<string>().OnInput(_ => { }).OnChange(_ => { }));
         Assert.Equal(
             "<input data-rask-on-input=\"h0\" data-rask-on-change=\"h1\" />",
             view.RenderAsLiveRoot());
@@ -114,8 +117,8 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnInputAsyncAndOnChangeAsyncInsideLiveContext_EmitSequentialIds()
     {
-        var view = new StubComponent(() => Input<string>(OnInputAsync: async _ => { await Task.Yield(); },
-            OnChangeAsync: async _ => { await Task.Yield(); }));
+        var view = new StubComponent(() => Input.Of<string>().OnInputAsync(async _ => { await Task.Yield(); })
+            .OnChangeAsync(async _ => { await Task.Yield(); }));
         Assert.Equal(
             "<input data-rask-on-input=\"h0\" data-rask-on-change=\"h1\" />",
             view.RenderAsLiveRoot());

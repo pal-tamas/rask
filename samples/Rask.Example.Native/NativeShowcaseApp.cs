@@ -2,7 +2,6 @@ using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Example.Shared;
 using Rask.Native.Components;
-using static Rask.Native.Components.Generated;
 using NativeColor = Rask.Native.Components.NativeColor;
 using NativeIcon = Rask.Native.Components.NativeIcon;
 using NativeFontWeight = Rask.Native.Components.NativeFontWeight;

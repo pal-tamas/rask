@@ -13,14 +13,6 @@ using Rask.Example.Shop.Features.Products;
 using Rask.Example.Shop.Features.Shared;
 using Rask.SQLite;
 using Rask.Testing;
-// One `Generated` per feature namespace, and `Rask.Bootstrap.Generated` is globally imported here too,
-// so the bare name is ambiguous. Aliases rather than fully-qualified call sites: this file names 14
-// components and the qualification would be most of each line.
-using AuthGen = Rask.Example.Shop.Features.Auth.Generated;
-using HomeGen = Rask.Example.Shop.Features.Home.Generated;
-using OrdersGen = Rask.Example.Shop.Features.Orders.Generated;
-using ProductsGen = Rask.Example.Shop.Features.Products.Generated;
-using SharedGen = Rask.Example.Shop.Features.Shared.Generated;
 
 namespace Rask.Example.Shop.Tests;
 
@@ -119,36 +111,36 @@ public sealed partial class ShopRenderGoldenTests : global::Rask.Core.RaskMarkup
     {
         var actual = new StringBuilder();
 
-        Append(actual, "HomePage", Render(() => HomeGen.HomePage()));
-        Append(actual, "ErrorPage", Render(() => SharedGen.ErrorPage()));
+        Append(actual, "HomePage", Render(() => HomePage));
+        Append(actual, "ErrorPage", Render(() => ErrorPage));
         Append(actual, "OrderConfirmation",
-            Render(() => OrdersGen.OrderConfirmation(Customer: "Ada Lovelace", Total: 19.99m)));
-        Append(actual, "LoginPage", Render(() => AuthGen.LoginPage()));
-        Append(actual, "MembersPage", Render(() => AuthGen.MembersPage()));
-        Append(actual, "CreateProduct", Render(() => ProductsGen.CreateProduct()));
-        Append(actual, "CreateOrder", Render(() => OrdersGen.CreateOrder()));
+            Render(() => OrderConfirmation.Customer("Ada Lovelace").Total(19.99m)));
+        Append(actual, "LoginPage", Render(() => LoginPage));
+        Append(actual, "MembersPage", Render(() => MembersPage));
+        Append(actual, "CreateProduct", Render(() => CreateProduct));
+        Append(actual, "CreateOrder", Render(() => CreateOrder));
 
         // The pages that load through OnMountAsync / OnPropsChangedAsync. ProductsPage is rendered twice
         // over: the placeholder is markup too, and it is the branch a factory-to-chain rewrite is most
         // likely to drop, since it sits in a different `return` from the one carrying all the props.
-        Append(actual, "ProductsPage (loading)", Render(() => ProductsGen.ProductsPage()));
+        Append(actual, "ProductsPage (loading)", Render(() => ProductsPage));
         Append(actual, "ProductsPage (loaded)",
-            await RenderLoadedAsync(() => ProductsGen.ProductsPage(), "Espresso beans"));
+            await RenderLoadedAsync(() => ProductsPage, "Espresso beans"));
         Append(actual, "OrdersPage (loaded)",
-            await RenderLoadedAsync(() => OrdersGen.OrdersPage(), "Ada Lovelace"));
+            await RenderLoadedAsync(() => OrdersPage, "Ada Lovelace"));
         Append(actual, "UpdateProduct (loaded)",
-            await RenderLoadedAsync(() => ProductsGen.UpdateProduct(Id: _productId), "Edit Product"));
+            await RenderLoadedAsync(() => UpdateProduct.Id(_productId), "Edit Product"));
         Append(actual, "UpdateProduct (not found)",
-            await RenderLoadedAsync(() => ProductsGen.UpdateProduct(Id: Guid.Empty), "not found"));
+            await RenderLoadedAsync(() => UpdateProduct.Id(Guid.Empty), "not found"));
         Append(actual, "UpdateOrder (loaded)",
-            await RenderLoadedAsync(() => OrdersGen.UpdateOrder(Id: _orderId), "Edit Order"));
+            await RenderLoadedAsync(() => UpdateOrder.Id(_orderId), "Edit Order"));
         Append(actual, "UpdateOrder (not found)",
-            await RenderLoadedAsync(() => OrdersGen.UpdateOrder(Id: Guid.Empty), "not found"));
+            await RenderLoadedAsync(() => UpdateOrder.Id(Guid.Empty), "not found"));
 
         Append(actual, "OpsPage", RenderOps());
 
         // The document, not a component: App's Head override and the shell Rask composes around it.
-        Append(actual, "App (document at /)", RaskTest.RenderDocument(SharedGen.App(), _provider).Html);
+        Append(actual, "App (document at /)", RaskTest.RenderDocument(App, _provider).Html);
 
         var text = actual.ToString();
         var path = Path.Combine(AppContext.BaseDirectory, GoldenFile);
@@ -171,7 +163,7 @@ public sealed partial class ShopRenderGoldenTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Submitting_the_scaffolded_form_still_runs_its_command()
     {
-        var page = RaskTest.Render(() => ProductsGen.CreateProduct(), _provider);
+        var page = RaskTest.Render(() => CreateProduct, _provider);
         await page.On("#name").InputAsync("Latte cups");
         await page.On("form").SubmitAsync();
 

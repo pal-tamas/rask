@@ -117,12 +117,11 @@ public sealed partial class JobsDemo : Component
                         + "own the file. Close the other tab and this will say so."]
                 : null,
             Div.Class("row")[
-                Input(
-                    Type: InputType.Text,
-                    Value: _name,
-                    Placeholder: "a name to greet",
-                    Data: new Dictionary<string, string?> { ["testid"] = "name" },
-                    OnInput: v => _name = v),
+                Input.Value(_name)
+                    .Type(InputType.Text)
+                    .Placeholder("a name to greet")
+                    .Data(new Dictionary<string, string?> { ["testid"] = "name" })
+                    .OnInput(v => _name = v),
                 Button
                     .Type("button")
                     .Data(new Dictionary<string, string?> { ["testid"] = "enqueue" })

@@ -162,5 +162,7 @@ public sealed partial class DeepNode : Component
     protected override Component? Render() =>
         Depth <= 0
             ? Div.Class("leaf").Id("leaf")[Span["leaf"]]
-            : Div.Class("node").Id($"n{Depth}")[Bench.DeepNode(Depth - 1)];
+            // Through the assembly entry host rather than the bare name: a component gets no entry of
+            // its own name inside its own body — that member would collide with the enclosing type.
+            : Div.Class("node").Id($"n{Depth}")[global::RaskEntriesRask_Benchmarks.DeepNode.Depth(Depth - 1)];
 }

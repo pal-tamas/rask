@@ -2133,9 +2133,9 @@ public static partial class RaskEndpointExtensions
         }
     }
 
-    private sealed class ServerRuntimeScript : IRaskRuntimeScript
+    private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => ComponentsH.Script(LiveOptions.PathBase + RuntimePath);
+        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath);
     }
 
     internal sealed class RaskLiveMarker
