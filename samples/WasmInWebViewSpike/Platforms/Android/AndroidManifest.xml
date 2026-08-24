@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- The spike serves everything from the app's own bundled assets over https://appassets.rask/, so it
+	     needs no network permission to boot. INTERNET is declared only so a failure to reach the network is
+	     a real 404 from the interceptor rather than a permission denial that would look like one. -->
+	<uses-permission android:name="android.permission.INTERNET"/>
+	<application android:label="Rask WASM Spike" android:allowBackup="false" android:supportsRtl="true"/>
+</manifest>

@@ -61,13 +61,14 @@ and turns WebView events back into handler/navigate dispatches — structurally 
 
 ## Pure-native screens (no WebView)
 
-> **Status — both backends ship; neither has been run on a device.** The component family, the render →
-> view-tree → diff → patch pipeline, the surface/event contract and the mixed-surface switching all ship,
-> covered by unit tests against a test-double backend. The **iOS** (`RaskWkWebView`, UIKit) and **Android**
-> (`RaskAndroidWebView`, framework widgets) `INativeSurface` backends both ship and both compile against
-> their real platform SDKs — but neither has yet been run on a simulator, emulator or device, so treat the
-> on-screen result as unverified. Register no `INativeSurface` and your app keeps rendering through the
-> WebView exactly as before.
+> **Status — both backends ship, and both have now been run on a device.** The component family, the
+> render → view-tree → diff → patch pipeline, the surface/event contract and the mixed-surface switching
+> all ship, covered by unit tests against a test-double backend. The **iOS** (`RaskWkWebView`, UIKit) and
+> **Android** (`RaskAndroidWebView`, framework widgets) `INativeSurface` backends were both exercised on
+> real platforms by the #775 spike: iOS on an iPhone 17 Pro simulator and Android on an API 36 emulator,
+> each painting a real platform view tree inside the native chrome with no WebView showing, with route →
+> surface selection and tab tracking both working. Register no `INativeSurface` and your app keeps
+> rendering through the WebView exactly as before.
 
 `NativeScreen` is the pure-native counterpart of `NativeWebView`, and sits in the same slot — a sibling of
 the native bars. Everything inside it is a real platform view: no WebView, no HTML, no JavaScript.
