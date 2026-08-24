@@ -65,6 +65,8 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <!-- Each platform head compiles only for its own TFM. -->

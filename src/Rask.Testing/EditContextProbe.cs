@@ -13,7 +13,7 @@ namespace Rask.Testing;
 //
 // It captures during Render, not at construction, because the context is ambient only while the form's
 // subtree is rendering — which is also why it must sit INSIDE the form's children to see anything.
-internal sealed class EditContextProbe(Action<EditContext> capture) : Component
+internal sealed partial class EditContextProbe(Action<EditContext> capture) : Component
 {
     protected override Component? Render()
     {

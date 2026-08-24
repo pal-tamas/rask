@@ -38,6 +38,8 @@
     <!-- Dual-host composition: an app that serves a WASM SPA AND mounts the server-rendered
          dashboard references both hosts. DualHostMountTests pins what that composition must do. -->
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <ItemGroup>

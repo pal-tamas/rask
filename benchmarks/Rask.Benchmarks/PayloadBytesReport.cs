@@ -65,8 +65,10 @@ internal static partial class PayloadBytesReport
             // so the ideal diff touches the toolbar and nothing else. This is the one scenario rendered
             // through the LIVE root (the others serialize without a live context, which registers no
             // handlers at all), because handler ids only exist on that path.
-            ReportLive("HandlerShiftAboveList100", writer,
-                BI.HandlerShiftPage(RowCount: 100),
+            // The type argument is stated because a chain hands back Build<HandlerShiftPage>: inference
+            // would pick that over the component it converts to, and Build<T> is no Component.
+            ReportLive<HandlerShiftPage>("HandlerShiftAboveList100", writer,
+                HandlerShiftPage.RowCount(100),
                 page => page.ShowToolbarAction = true)
         };
 

@@ -408,8 +408,13 @@ public static partial class RaskEndpointExtensions
         // anywhere in the user's tree renders a styled fallback page instead of an HTTP 500. Declared in
         // this generic method so TApp's DynamicallyAccessedMembers annotation flows into the closure —
         // EnsureRuntimeMapped is deliberately non-generic (its double-map guard is per host, not per TApp).
+        // A chain carries properties and DI services; the app instance is a runtime constructor argument,
+        // and this is the root, so there is no parent render context whose GetOrCreate a chain would route
+        // through. RASK014's reason to exist is absent here.
+#pragma warning disable RASK014
         Func<IServiceProvider, Component> appFactory =
             sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp));
+#pragma warning restore RASK014
 
         EnsureRuntimeMapped(endpoints, pathBaseNormalized, appFactory);
 

@@ -23,6 +23,8 @@
     <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
     <!-- Rask.Chrome: Screen + the portable chrome bars, bundled into lib/ like Rask.Core/Rask.Html. -->
     <ProjectReference Include="..\Rask.Chrome\Rask.Chrome.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <!--
