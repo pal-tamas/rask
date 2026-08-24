@@ -8,6 +8,20 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`samples/Rask.Example.Native` could not use Rask's own markup syntax, because it never referenced the
+  generator.** Every other sample references `Rask.Generators` as an analyzer; the native showcase
+  referenced `Rask.Example.Shared` instead and assumed it would inherit one. A `ProjectReference` does not
+  flow analyzers, so the native sample compiled with **no Rask source generator at all**: no builder-chain
+  entries, and no `Generated.{Type}()` factory for any component the sample itself declared. The visible
+  symptom was that the showcase had to be written entirely in factory-call style
+  (`NativeHeaderBar(Title: "Rask", ...)`) while `CLAUDE.md` and every doc say markup is a chain — and
+  writing the documented form failed with `CS0119: 'Generated.NativeHeaderBar(...)' is a method`, because
+  the name fell through to the factory the *referenced* assembly publishes.
+
+  The sample now references the generator like its siblings and is written in the chain
+  (`NativeHeaderBar.Title("Rask").Background(Brand)`), which also means its markup host declares `partial`
+  as RASK036 requires. Nothing about the framework changed — this was one missing `OutputItemType="Analyzer"`
+  reference hiding the whole builder surface from the one sample that showcases the native host.
 - **`docs/native-devices.md` no longer teaches a `Route` override the framework removed.** The second
   `TodosScreen` snippet still declared `protected override string Route => "/todos";`, so a reader who
   copied it got `CS0115: no suitable method found to override` — `Screen` has had no virtual `Route` since
