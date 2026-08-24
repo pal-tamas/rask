@@ -11,13 +11,26 @@ namespace Rask.Generators.Tests;
 // emission, the entry emission and the diagnostics all read the same run.
 internal static class BuilderGeneratorHarness
 {
-    internal static BuilderRun Run(string source)
+    internal static BuilderRun Run(string source) => Run(source, null);
+
+    /// <summary>
+    ///     The same run with extra references — an emitted library compilation, for the cross-assembly
+    ///     entry scan. The assembly name stays <c>TestAssembly</c>, which is what a library's
+    ///     <c>InternalsVisibleTo</c> has to name for the friend path to be exercised.
+    /// </summary>
+    internal static BuilderRun Run(string source, IEnumerable<MetadataReference>? extraReferences)
     {
+        var references = GeneratorDriverFixture.BuildReferences();
+        if (extraReferences is not null)
+        {
+            references = references.AddRange(extraReferences);
+        }
+
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
             new[] { syntaxTree },
-            GeneratorDriverFixture.BuildReferences(),
+            references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 

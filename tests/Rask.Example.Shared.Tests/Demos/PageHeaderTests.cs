@@ -10,7 +10,7 @@ public sealed partial class PageHeaderTests : global::Rask.Core.RaskMarkup
     public void Render_EmitsTitle_AsH2_AndLead_AsP()
     {
         var html = new LiveHost(
-            () => global::RaskEntriesRask_Example_Shared.PageHeader
+            () => PageHeader
                 .Title("Greetings").Lead("A welcoming subtitle."),
             TestServices.Default()).RenderAsLiveRoot();
         // PageHeader uses H1 with bootstrap class "h2" (visual sizing, not HTML tag).
@@ -22,7 +22,7 @@ public sealed partial class PageHeaderTests : global::Rask.Core.RaskMarkup
     public void Render_HtmlEncodesContent()
     {
         var html = new LiveHost(
-            () => global::RaskEntriesRask_Example_Shared.PageHeader.Title("<a>").Lead("&amp;"),
+            () => PageHeader.Title("<a>").Lead("&amp;"),
             TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("&lt;a&gt;", html);
     }
