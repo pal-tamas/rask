@@ -8,6 +8,7 @@ namespace Rask.Data.Tests;
 // batches, so the questions worth pinning are: does everything land, do the interceptors still run over
 // entities that only exist in the tracker for one batch, where does the transaction boundary sit, and does
 // the domain-event guard hold — inside a transaction the interceptor would publish before the commit.
+[Collection(DataDbCollection.Name)]
 public sealed class BulkInsertTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-bulk-test-{Guid.NewGuid():N}.db");

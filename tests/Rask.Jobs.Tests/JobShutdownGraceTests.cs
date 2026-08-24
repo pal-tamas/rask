@@ -8,6 +8,7 @@ namespace Rask.Jobs.Tests;
 ///     <c>SIGTERM</c> cancelled a handler mid-call — a job halfway through a <c>SaveChangesAsync</c> was
 ///     simply torn in two and re-run whole on the next boot.
 /// </summary>
+[Collection(JobsDbCollection.Name)]
 public sealed class JobShutdownGraceTests
 {
     [Fact]

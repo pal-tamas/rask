@@ -2,6 +2,7 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace Rask.Cache.Tests;
 
+[Collection(CacheDbCollection.Name)]
 public sealed class TypedCacheTests
 {
     public sealed record Widget(int Id, string Name);

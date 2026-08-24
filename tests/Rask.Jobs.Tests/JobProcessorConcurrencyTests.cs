@@ -9,6 +9,7 @@ namespace Rask.Jobs.Tests;
 /// stripped <c>ProcessedAt</c> from every job in the batch that had already run — so they all ran again, every
 /// poll, forever.
 /// </summary>
+[Collection(JobsDbCollection.Name)]
 public sealed class JobProcessorConcurrencyTests
 {
     [Fact]

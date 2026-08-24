@@ -6,6 +6,7 @@ namespace Rask.Data.Tests;
 
 // End-to-end against a real SQLite file: the interceptors + conventions drive auditing, transparent soft
 // delete, optimistic concurrency, and after-commit domain-event publication.
+[Collection(DataDbCollection.Name)]
 public sealed class RaskDataTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-data-test-{Guid.NewGuid():N}.db");

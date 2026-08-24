@@ -8,6 +8,7 @@ namespace Rask.Jobs.Tests;
 /// actually running work, not from a unit poking the meter) and that a listener is what makes the
 /// queue-depth gauges cost anything at all.
 /// </summary>
+[Collection(JobsDbCollection.Name)]
 public sealed class JobMetricsTests
 {
     [Fact]
