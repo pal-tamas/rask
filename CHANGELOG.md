@@ -67,6 +67,24 @@ them until tagged releases begin.
   (the factory excluded it on name *and* type; the indexer owns the word).
 
 ### Fixed
+- **The WASM-hosting tests raced each other over two process-wide statics.** `UseRask` sets
+  `ScopedAssetBundle.BakedDirectory` and `LiveOptions.PathBase`, which are **per process**, not per
+  server. Three classes in `Rask.Wasm.Hosting.Tests` stand hosts up and xUnit runs classes in
+  parallel, so a second host took the first one's state away from it — and disposal made it worse
+  rather than better, since it resets the statics, letting a host that merely *finished* break one
+  still serving. That is the
+  `RegistryMiss_BakedBundleFile_NegotiatesPrecompressedSibling — Expected: OK, Actual: NotFound`
+  the local gate reported on a diff that touched none of it (#789).
+
+  The assembly now disables test parallelisation, as `Rask.Dashboard.Tests` and `Rask.SQLite.Tests`
+  already do for their own process-wide state — assembly-wide rather than a per-class collection
+  precisely because a new class cannot forget to join it, which is how this arose. The suite still
+  runs in 2 s. `ProcessWideHostStateTests` demonstrates the overlap directly, standing two hosts up
+  and watching the second take the first's bundle directory and path base, so the reason for the
+  serialisation is verifiable instead of merely asserted.
+
+  The statics themselves are not a bug: a real deployment has one host per process, which is why
+  `UseRask` can set them at all. Only a test process holds two, so the fix belongs to the tests.
 - **A bound form control allocated less, and the pin that guards it now says which layer moved.**
   `ExpressionAccessor.Accessor` carried a `Func<object?> Getter` and an `Action<object?> Setter` that
   closed over the same `Target` and `Property` the record already held. They were rebuilt on every
