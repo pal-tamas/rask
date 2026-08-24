@@ -116,16 +116,26 @@ internal sealed class UiKitViewOps(Action<NativeSurfaceEvent> raise) : INativeVi
                 linesLabel.Lines = unset ? 0 : (nint)value.Number;
                 break;
 
+            // Ahead of the generic colour cases on purpose. A UIButton driven by a UIButtonConfiguration
+            // takes its fill from BaseBackgroundColor and its title colour from BaseForegroundColor;
+            // BackgroundColor and SetTitleColor sit BEHIND those and are never seen, so routing a button
+            // here is what makes Background and Color do anything at all (#785). Every button Create()
+            // makes is a RaskButton.
+            case NativePropId.Color or NativePropId.Background or NativePropId.Style
+                when view is RaskButton appearanceButton:
+                if (appearanceButton.ButtonAppearance.Write(id, value, unset))
+                {
+                    ApplyButtonAppearance(appearanceButton);
+                }
+
+                break;
+
             case NativePropId.Color:
                 ApplyForeground(view, unset ? null : RaskChromeContainerView.ResolveUIColor(value.Text));
                 break;
 
             case NativePropId.Background:
                 view.BackgroundColor = unset ? null : RaskChromeContainerView.ResolveUIColor(value.Text);
-                break;
-
-            case NativePropId.Style when view is UIButton styleButton:
-                ApplyButtonStyle(styleButton, unset ? NativeButtonStyle.Filled : (NativeButtonStyle)(int)value.Number);
                 break;
 
             case NativePropId.Source when view is UIImageView imageView:
@@ -243,7 +253,7 @@ internal sealed class UiKitViewOps(Action<NativeSurfaceEvent> raise) : INativeVi
     private UIButton NewButton()
     {
         var button = new RaskButton { TranslatesAutoresizingMaskIntoConstraints = false };
-        ApplyButtonStyle(button, NativeButtonStyle.Filled);
+        ApplyButtonAppearance(button);
         button.TouchUpInside += (s, _) =>
         {
             if (s is RaskButton { TapId: >= 0 } b)
@@ -418,18 +428,32 @@ internal sealed class UiKitViewOps(Action<NativeSurfaceEvent> raise) : INativeVi
         typed.Font = UIFont.SystemFontOfSize(typed.FontSize, weight);
     }
 
-    private static void ApplyButtonStyle(UIButton button, NativeButtonStyle style)
+    // The WHOLE appearance, re-derived from scratch on every write to any of its three props. Assigning a
+    // fresh UIButtonConfiguration is what a style change needs and is also what used to discard the
+    // colours: applying the explicit ones AFTER the style is what makes them win no matter which order
+    // the patch delivered them in.
+    private static void ApplyButtonAppearance(RaskButton button)
     {
-        var configuration = style switch
+        var appearance = button.ButtonAppearance;
+        var configuration = appearance.Style switch
         {
             NativeButtonStyle.Tinted => UIButtonConfiguration.TintedButtonConfiguration,
             NativeButtonStyle.Plain => UIButtonConfiguration.PlainButtonConfiguration,
-            NativeButtonStyle.Destructive => UIButtonConfiguration.FilledButtonConfiguration,
             _ => UIButtonConfiguration.FilledButtonConfiguration,
         };
-        if (style == NativeButtonStyle.Destructive)
+        if (appearance.Style == NativeButtonStyle.Destructive)
         {
             configuration.BaseBackgroundColor = UIColor.SystemRed;
+        }
+
+        if (RaskChromeContainerView.ResolveUIColor(appearance.Background) is { } background)
+        {
+            configuration.BaseBackgroundColor = background;
+        }
+
+        if (RaskChromeContainerView.ResolveUIColor(appearance.Foreground) is { } foreground)
+        {
+            configuration.BaseForegroundColor = foreground;
         }
 
         button.Configuration = configuration;
@@ -469,6 +493,10 @@ internal sealed class UiKitViewOps(Action<NativeSurfaceEvent> raise) : INativeVi
 internal sealed class RaskButton : UIButton
 {
     public int TapId { get; set; } = -1;
+
+    // Style, Background and Color decide one painted result together, so the button holds all three and
+    // repaints from the set — see NativeButtonAppearance.
+    public NativeButtonAppearance ButtonAppearance { get; } = new();
 }
 
 // Remembers the two halves of its font, which UIFont does not let you read back cleanly.
