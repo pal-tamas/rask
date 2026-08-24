@@ -416,8 +416,15 @@ internal sealed class AndroidViewOps(Context context, Action<NativeSurfaceEvent>
 
 // LinearLayout has no per-child spacing and no cross-axis "stretch", so the stack owns both and re-applies
 // them to its children whenever either the setting or the child list changes.
-internal sealed class RaskStack(Context context) : LinearLayout(context)
+internal sealed class RaskStack : LinearLayout
 {
+    // LinearLayout's own default orientation is HORIZONTAL, but iOS creates its stacks vertical
+    // (UiKitViewOps: NewStack(UILayoutConstraintAxis.Vertical)) — so leaving the platform default in place
+    // made an unset NativeStack/NativeScreen Orientation mean two different things per platform. On Android
+    // the row filled the width and every child past it was silently invisible, which is the shape of the
+    // example in docs/native.md. Vertical is the shared default; an explicit Orientation still wins.
+    public RaskStack(Context context) : base(context) => Orientation = AndroidOrientation.Vertical;
+
     public int SpacingPx { get; set; }
 
     public NativeAlignment CrossAlignment { get; set; } = NativeAlignment.Stretch;

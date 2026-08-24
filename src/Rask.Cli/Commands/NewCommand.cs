@@ -19,13 +19,13 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly string _workingDirectory = workingDirectory;
 
     /// <summary>
-    /// Where a native app's UI comes from (<c>--host</c>). <c>local</c> runs the components on the device;
+    /// Where a native app's UI comes from (<c>--host</c>). <c>native</c> runs the components on the device;
     /// the other two point a native shell at a Rask app you host. Both remote modes scaffold the same
     /// shell — the WebView is handed a trusted origin and does not care what serves it — and differ only
     /// in the guidance they carry, because pointing at a live server and pointing at a published WASM
     /// bundle are different enough operationally to be worth saying out loud.
     /// </summary>
-    private static readonly string[] NativeHosts = ["local", "server", "wasm-hosted"];
+    private static readonly string[] NativeHosts = ["native", "server", "wasm-hosted"];
 
     /// <summary>
     /// The platforms the native template can target (<c>--platform</c>, repeatable). Omitting it targets
@@ -69,7 +69,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
-            .Option("host", valueHint: "mode", description: "Native template only: where the UI comes from — 'local' runs the components on the device (default), 'server' or 'wasm-hosted' make the app a thin native shell over a Rask app you host.", choices: NativeHosts)
+            .Option("host", valueHint: "mode", description: "Native template only: where the UI comes from — 'native' runs the components on the device (default), 'server' or 'wasm-hosted' make the app a thin native shell over a Rask app you host.", choices: NativeHosts)
             .MultiOption("platform", valueHint: "name", description: "Native template only: a platform to target, repeatable (default: both). Only the chosen platforms get a TFM, a manifest and a head.", choices: NativePlatforms)
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
@@ -178,7 +178,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var host = parsed.Option("host");
         if (host is not null && template.Key != "native")
         {
-            return Fail($"Template '{template.Key}' does not support --host. It applies only to the native template (--host local|server|wasm-hosted).");
+            return Fail($"Template '{template.Key}' does not support --host. It applies only to the native template (--host native|server|wasm-hosted).");
         }
 
         var platforms = parsed.MultiOption("platform");
@@ -191,7 +191,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // single package, and no feature flags. The values are declared choices, so they are already valid.
         if (template.Key == "native")
         {
-            host ??= "local";
+            host ??= "native";
 
             // Naming neither is the default (both); naming one narrows to it. The parse normalises the
             // spelling, so an ordinal comparison is enough here.
@@ -314,11 +314,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 filled.Add(prompt.Select(
                     "Where the app's UI comes from",
                     [
-                        ("local", "[bold]The device[/] [dim]— components run in the app itself, works offline[/]"),
+                        ("native", "[bold]The device[/] [dim]— components run in the app itself, works offline[/]"),
                         ("server", "[bold]A Rask server[/] [dim]— a thin native shell over a live server you run[/]"),
                         ("wasm-hosted", "[bold]A wasm-hosted app[/] [dim]— a thin native shell over a published WASM bundle[/]"),
                     ],
-                    "local"));
+                    "native"));
             }
 
             if (parsed.MultiOption("platform").Count == 0)
@@ -432,7 +432,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             var host = args
                 .SkipWhile(a => !a.Equals("--host", StringComparison.Ordinal))
                 .Skip(1)
-                .FirstOrDefault() ?? "local";
+                .FirstOrDefault() ?? "native";
 
             grid.AddRow(Label("📱", "UI from"), new Text(NativeHostSummary(host)));
 

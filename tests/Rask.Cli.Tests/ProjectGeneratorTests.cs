@@ -555,12 +555,24 @@ public sealed class ProjectGeneratorTests
 
     // ---- native template ----
 
-    // Files both native hosts always emit.
+    // Files every native model emits, relative to the project that carries the heads. The on-device model is
+    // a single project so that is the root; a remote model scaffolds the app it points at beside the heads,
+    // so its heads live under {name}.Mobile/ — see MobilePrefix.
     private static readonly string[] NativeShared =
     [
-        "App.csproj", "Platforms/Android/AndroidManifest.xml", "Platforms/iOS/Info.plist",
+        "{P}.csproj", "Platforms/Android/AndroidManifest.xml", "Platforms/iOS/Info.plist",
         "Platforms/iOS/Main.cs",
     ];
+
+    /// <summary>Where a model's platform heads live, and what the project carrying them is called.</summary>
+    private static (string Dir, string Project) MobileHome(string host) =>
+        string.Equals(host, "native", StringComparison.Ordinal) ? ("", "App") : ("App.Mobile/", "App.Mobile");
+
+    private static IEnumerable<string> HeadPaths(string host, IEnumerable<string> paths)
+    {
+        var (dir, project) = MobileHome(host);
+        return paths.Select(path => dir + path.Replace("{P}", project, StringComparison.Ordinal));
+    }
 
     // The local-only component code + in-process platform heads.
     private static readonly string[] NativeLocalOnly =
@@ -579,12 +591,12 @@ public sealed class ProjectGeneratorTests
         Index(ProjectGenerator.GenerateNative(Root, "App", host, Version));
 
     [Fact]
-    public void Native_local_emits_the_shared_and_local_files_and_the_native_package()
+    public void Native_on_device_emits_the_shared_and_local_files_and_the_native_package()
     {
-        var result = ProjectGenerator.GenerateNative(Root, "App", "local", Version);
+        var result = ProjectGenerator.GenerateNative(Root, "App", "native", Version);
         var files = Index(result);
 
-        foreach (var expected in NativeShared.Concat(NativeLocalOnly))
+        foreach (var expected in HeadPaths("native", NativeShared.Concat(NativeLocalOnly)))
         {
             Assert.True(files.ContainsKey(expected), $"expected {expected} to be generated");
         }
@@ -605,37 +617,64 @@ public sealed class ProjectGeneratorTests
     {
         var files = GenerateNative("server");
 
-        foreach (var expected in NativeShared.Concat(NativeServerOnly))
+        foreach (var expected in HeadPaths("server", NativeShared.Concat(NativeServerOnly)))
         {
             Assert.True(files.ContainsKey(expected), $"expected {expected} to be generated");
         }
 
-        // None of the local-only component code / heads leak into the thin server shell.
-        foreach (var localOnly in NativeLocalOnly)
+        // None of the in-process component code / heads leak into the thin server shell.
+        foreach (var localOnly in HeadPaths("server", NativeLocalOnly))
         {
             Assert.DoesNotContain(localOnly, files.Keys);
         }
+
+        // The app half the shell points at is scaffolded beside it, as one solution.
+        Assert.Contains("App.Server/App.Server.csproj", files.Keys);
+        Assert.Contains("App.Server/Program.cs", files.Keys);
+        Assert.Contains("App.slnx", files.Keys);
+        Assert.Contains("App.Server/App.Server.csproj", files["App.slnx"], StringComparison.Ordinal);
+        Assert.Contains("App.Mobile/App.Mobile.csproj", files["App.slnx"], StringComparison.Ordinal);
+
+        // One .gitignore/.editorconfig for the solution, not one per half.
+        Assert.Contains(".gitignore", files.Keys);
+        Assert.DoesNotContain("App.Server/.gitignore", files.Keys);
+        Assert.DoesNotContain("App.Server/App.Server.slnx", files.Keys);
     }
 
     [Fact]
     public void Native_wasm_hosted_is_the_same_shell_named_for_what_it_points_at()
     {
-        // Both remote modes scaffold the same heads — RaskServerWebView takes a trusted origin and never
-        // asks what serves it — so what must differ is only the guidance someone reads when they replace
-        // the placeholder URL. If the file lists diverged, one of the two modes would be scaffolding
-        // something that was never tested.
+        // Both remote models scaffold the same HEADS — RaskServerWebView takes a trusted origin and never
+        // asks what serves it — so what differs between them is the app half they point at, and the wording
+        // of the comment above the origin. If the head file lists diverged, one of the two models would be
+        // scaffolding something that was never tested.
         var server = GenerateNative("server");
         var wasmHosted = GenerateNative("wasm-hosted");
 
-        Assert.Equal(server.Keys.Order(), wasmHosted.Keys.Order());
+        Assert.Equal(
+            server.Keys.Where(IsMobile).Order(),
+            wasmHosted.Keys.Where(IsMobile).Order());
 
-        foreach (var head in NativeServerOnly)
+        foreach (var head in HeadPaths("server", NativeServerOnly))
         {
             Assert.Contains("Rask Server", server[head], StringComparison.Ordinal);
             Assert.Contains("wasm-hosted Rask app", wasmHosted[head], StringComparison.Ordinal);
             Assert.DoesNotContain("{{", wasmHosted[head], StringComparison.Ordinal);
             Assert.DoesNotContain("{{", server[head], StringComparison.Ordinal);
         }
+
+        // The app halves are what differ: one ASP.NET project, versus the wasm-hosted trio.
+        Assert.Contains("App.Server/Program.cs", server.Keys);
+        Assert.DoesNotContain("App.Client/App.Client.csproj", server.Keys);
+        Assert.Contains("App.Client/App.Client.csproj", wasmHosted.Keys);
+        Assert.Contains("App.Shared/App.Shared.csproj", wasmHosted.Keys);
+
+        // …and each solution lists every project it scaffolded, heads included.
+        Assert.Contains("App.Mobile/App.Mobile.csproj", server["App.slnx"], StringComparison.Ordinal);
+        Assert.Contains("App.Mobile/App.Mobile.csproj", wasmHosted["App.slnx"], StringComparison.Ordinal);
+        Assert.Contains("App.Client/App.Client.csproj", wasmHosted["App.slnx"], StringComparison.Ordinal);
+
+        static bool IsMobile(string path) => path.StartsWith("App.Mobile/", StringComparison.Ordinal);
     }
 
     [Theory]
@@ -647,7 +686,7 @@ public sealed class ProjectGeneratorTests
         // An unselected platform must leave no trace: no TFM, no head, no manifest, and no MSBuild group
         // conditioned on a target framework the project does not build. Files that never compile are the
         // kind of thing that survives for years because nobody is sure whether they matter.
-        var result = ProjectGenerator.GenerateNative(Root, "App", "local", Version, ios, android);
+        var result = ProjectGenerator.GenerateNative(Root, "App", "native", Version, ios, android);
         var files = Index(result);
         var csproj = files["App.csproj"];
 
@@ -668,7 +707,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_targets_both_platforms_by_default()
     {
-        var files = GenerateNative("local");
+        var files = GenerateNative("native");
         var csproj = files["App.csproj"];
 
         Assert.Contains("<TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>", csproj, StringComparison.Ordinal);
@@ -684,7 +723,7 @@ public sealed class ProjectGeneratorTests
         // leaves one behind when it is omitted — or doubles up when it isn't.
         foreach (var (ios, android) in new[] { (true, true), (true, false), (false, true) })
         {
-            var csproj = Index(ProjectGenerator.GenerateNative(Root, "App", "local", Version, ios, android))["App.csproj"];
+            var csproj = Index(ProjectGenerator.GenerateNative(Root, "App", "native", Version, ios, android))["App.csproj"];
             Assert.DoesNotContain("\n\n\n", csproj.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
         }
     }
@@ -695,7 +734,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_local_carries_no_geolocation_backend_permission_or_registration()
     {
-        var local = GenerateNative("local");
+        var local = GenerateNative("native");
 
         Assert.DoesNotContain("Platforms/iOS/NativeGeolocation.cs", local.Keys);
         Assert.DoesNotContain("Platforms/Android/NativeGeolocation.cs", local.Keys);
@@ -711,13 +750,13 @@ public sealed class ProjectGeneratorTests
 
         // The notification backend is still registered inline by the heads, so its permission stays.
         Assert.Contains("POST_NOTIFICATIONS", local["Platforms/Android/AndroidManifest.xml"], StringComparison.Ordinal);
-        Assert.DoesNotContain("POST_NOTIFICATIONS", GenerateNative("server")["Platforms/Android/AndroidManifest.xml"], StringComparison.Ordinal);
+        Assert.DoesNotContain("POST_NOTIFICATIONS", GenerateNative("server")["App.Mobile/Platforms/Android/AndroidManifest.xml"], StringComparison.Ordinal);
     }
 
     [Fact]
     public void Native_local_welcome_page_is_a_feature_slice_and_scaffolds_no_demo_pages()
     {
-        var local = GenerateNative("local");
+        var local = GenerateNative("native");
 
         Assert.DoesNotContain("Counter.cs", local.Keys);
 
@@ -739,7 +778,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_conditional_markers_are_resolved_away_in_both_hosts()
     {
-        foreach (var host in new[] { "local", "server" })
+        foreach (var host in new[] { "native", "server" })
         {
             var files = GenerateNative(host);
             foreach (var (path, content) in files)
@@ -755,7 +794,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_replaces_the_placeholder_namespace_everywhere_for_both_hosts()
     {
-        foreach (var host in new[] { "local", "server" })
+        foreach (var host in new[] { "native", "server" })
         {
             var files = GenerateNative(host);
             foreach (var (path, content) in files)

@@ -15,8 +15,8 @@
     (the Ubuntu CI has neither). Building it must pass -p:RaskNativeHeads=true so Rask.Native builds its
     platform heads. The on-device Appium E2E (tests/Rask.Native.Appium.Tests) drives this app. Run it:
 
-      dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android -p:RaskNativeHeads=true
-      dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-ios -p:RaskNativeHeads=true
+      dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj "-t:Build;Run" -f net10.0-android -p:RaskNativeHeads=true
+      dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj "-t:Build;Run" -f net10.0-ios -p:RaskNativeHeads=true
   -->
   <PropertyGroup>
     <TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>

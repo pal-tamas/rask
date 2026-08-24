@@ -192,21 +192,38 @@ Scaffold a native app from the template, then run it on an emulator/simulator:
 
 ```bash
 dotnet tool install -g Rask.Cli              # one-time: install the rask CLI
-rask new MyApp --template native             # --host local (default) | --host server
+rask new MyApp --template native             # --host native (default) | --host server
 cd MyApp
 
 dotnet workload install ios android          # the iOS/Android SDK workloads (one-time)
-dotnet build -t:Run -f net10.0-android       # Android emulator
-dotnet build -t:Run -f net10.0-ios           # iOS simulator (macOS + Xcode)
+dotnet build "-t:Build;Run" -f net10.0-android   # Android emulator
+dotnet build "-t:Build;Run" -f net10.0-ios       # iOS simulator (macOS + Xcode)
 ```
 
-The **`--host`** parameter picks the mode (see [Two modes](native-bridge.md#two-modes-local-and-server)):
-`--host local` (default) scaffolds the in-process app below; `--host server` scaffolds a thin shell over a
-remote Rask Server with the [native capability bridge](native-bridge.md#native-device-apis-from-a-server-app-the-capability-bridge)
-(its heads are `Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`, and there are no `App.cs`
-components — the server renders them).
+The **`--host`** parameter picks which of Rask's app models supplies the UI (see
+[Two modes](native-bridge.md#two-modes-local-and-server)). `--host native` (default) scaffolds the
+in-process app below — one project, everything on the device.
 
-`rask new MyApp --template native --host local` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
+`--host server` and `--host wasm-hosted` scaffold **both halves as one solution**: the app you host, and a
+`.Mobile` project carrying the thin-shell heads that point at it, with the
+[native capability bridge](native-bridge.md#native-device-apis-from-a-server-app-the-capability-bridge)
+wired in. A shell with nothing behind it is not a runnable app, so the template does not leave you to
+supply the other half:
+
+```
+MyApp/
+  MyApp.slnx
+  MyApp.Server/      # the Rask app the shell points at (wasm-hosted also gets .Client and .Shared)
+  MyApp.Mobile/      # iOS + Android heads — Platforms/{iOS/ServerAppDelegate,Android/ServerActivity}.cs
+```
+
+The heads point at the app half's own dev URL out of the box — `http://localhost:5000` on the iOS
+simulator, `http://10.0.2.2:5000` on the Android emulator, which is that VM's alias for your machine — so a
+fresh solution connects with nothing to edit. The scaffold allows cleartext for exactly that
+(`usesCleartextTraffic` on Android, `NSAllowsLocalNetworking` on iOS); swap in your deployed `https://` URL
+and drop both. There is no `App.cs` in `.Mobile` — the app half renders the components.
+
+`rask new MyApp --template native --host native` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
 
 ```
 MyApp.csproj                  # multi-targets net10.0-ios;net10.0-android; refs Rask.Native
@@ -226,7 +243,7 @@ calls `RunLocalAsync<App>(webView)`, and provides the WebView bridge.
 > thin shell over a running `Rask.Example.Server` — the peer of the Server sample). They multi-target
 > `net10.0-ios;net10.0-android` (so they sit outside `Rask.slnx`). Build/run either directly — the
 > `-p:RaskNativeHeads=true` makes `Rask.Native` build its platform heads from source:
-> `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android -p:RaskNativeHeads=true`
+> `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj "-t:Build;Run" -f net10.0-android -p:RaskNativeHeads=true`
 > (or `-f net10.0-ios`). The Local one shows how [a full app's assets](native-bridge.md#serving-a-full-apps-assets) are
 > served on-device. (Template users don't need the flag — the published package already carries the heads.)
 

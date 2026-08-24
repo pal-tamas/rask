@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    SPIKE (#775, epic #774) — "does a published Rask WASM client boot inside a WKWebView, served from the
+    app's own custom-scheme origin?" That is the one unknown behind the `wasm` hosting model (#780), so it
+    is answered here before any of that model's design depends on it.
+
+    Deliberately NOT in Rask.slnx: it is throwaway evidence, it needs a WASM publish on disk to build, and
+    nothing in the default gates should depend on either.
+
+    Build it by pointing RaskSpikeWasmBundle at a published Rask WASM app's wwwroot:
+
+        dotnet publish samples/Rask.Example.Wasm -c Release -o /tmp/wasmpub
+        dotnet build samples/WasmInWebViewSpike -f net10.0-ios -p:RaskNativeHeads=ios \
+          -p:RaskSpikeWasmBundle=/tmp/wasmpub/wwwroot
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-ios</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Rask.Example.Native.WasmSpike</RootNamespace>
+    <RaskGlobalUsings>false</RaskGlobalUsings>
+    <IsPackable>false</IsPackable>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <ApplicationTitle>Rask WASM Spike</ApplicationTitle>
+    <ApplicationId>com.rask.example.wasmspike</ApplicationId>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <MtouchLink>None</MtouchLink>
+    <NoWarn>$(NoWarn);CA1422</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Platforms/iOS/Info.plist"/>
+    <None Include="Platforms/iOS/Info.plist" Link="Info.plist"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
+  </ItemGroup>
+
+  <!--
+    The published WASM client, bundled at the app-bundle wwwroot ROOT rather than a sub-folder: the shell's
+    <base href="/"> resolves main.js and _framework/* from the origin root regardless of the document path,
+    so the bundle only works at the root. The .br/.gz siblings are excluded — there is no HTTP content
+    negotiation behind a custom scheme handler, so they would be ~8 MB of dead weight in the IPA.
+  -->
+  <ItemGroup Condition="'$(RaskSpikeWasmBundle)' != ''">
+    <BundleResource Include="$(RaskSpikeWasmBundle)\**\*"
+                    Exclude="$(RaskSpikeWasmBundle)\**\*.br;$(RaskSpikeWasmBundle)\**\*.gz"
+                    Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)"/>
+  </ItemGroup>
+
+</Project>

@@ -77,6 +77,19 @@ public sealed class NativeOriginAssetsTests
     [InlineData("x.woff2", "font/woff2")]
     [InlineData("x.json", "application/json")]
     [InlineData("x.unknownext", "application/octet-stream")]
+    [InlineData("x.jpg", "image/jpeg")]
+    [InlineData("x.ico", "image/x-icon")]
+    [InlineData("x.webmanifest", "application/manifest+json")]
     public void ContentTypeFor_maps_by_extension(string path, string expected) =>
         Assert.Equal(expected, NativeOriginAssets.ContentTypeFor(path));
+
+    [Theory]
+    [InlineData("_framework/dotnet.native.nqbfkc0cke.wasm")]
+    [InlineData("x.wasm")]
+    public void Wasm_is_served_as_application_wasm_so_the_runtime_can_stream_compile(string path) =>
+        // The .NET WASM runtime checks this content type by name. Served as anything else it logs
+        // "WebAssembly resource does not have the expected content type "application/wasm", so falling back
+        // to slower ArrayBuffer instantiation" and stops streaming every assembly — it still boots, which is
+        // exactly why the wrong type went unnoticed. Observed in a WKWebView on a simulator (#775).
+        Assert.Equal("application/wasm", NativeOriginAssets.ContentTypeFor(path));
 }

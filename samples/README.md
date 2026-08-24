@@ -31,8 +31,8 @@ Server/WASM pairing, both mounting the same `Rask.Example.Shared.App`:
 
 | Project | What it is | Run |
 |---------|------------|-----|
-| [`Rask.Example.Native`](Rask.Example.Native) | **Native + Local** — the showcase runs in-process on the device (the native peer of the WASM sample). | `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android` |
-| [`Rask.Example.Native.Server`](Rask.Example.Native.Server) | **Native + Server** — a thin native shell over a running `Rask.Example.Server` (the native peer of the Server sample). | `dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj -t:Run -f net10.0-android` |
+| [`Rask.Example.Native`](Rask.Example.Native) | **Native + Local** — the showcase runs in-process on the device (the native peer of the WASM sample). | `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj "-t:Build;Run" -f net10.0-android` |
+| [`Rask.Example.Native.Server`](Rask.Example.Native.Server) | **Native + Server** — a thin native shell over a running `Rask.Example.Server` (the native peer of the Server sample). | `dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj "-t:Build;Run" -f net10.0-android` |
 
 Both multi-target `net10.0-ios;net10.0-android` (use `-f net10.0-ios` on macOS), so they need the mobile
 workloads (`dotnet workload install ios android`) and sit **outside `Rask.slnx`** — the Ubuntu CI can't
