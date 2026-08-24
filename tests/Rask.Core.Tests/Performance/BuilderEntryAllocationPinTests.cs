@@ -25,13 +25,25 @@ internal sealed partial class AllocEntryProbe : Component
         ];
 }
 
+// A PLAIN model, which is what these probes bind. It matters more than it looks: constructing an
+// Expression<Func<T>> resolves a member token on the terminal property's DECLARING type, and that cost
+// scales with how many members that type has. Measured here — 1 property 312 B, 200 properties 1912 B,
+// a RaskMarkup subclass 2312 B. These probes used to bind `BoundForm`, which derives RaskMarkup, and
+// that alone accounted for ~2000 B of the number #793 was opened about.
+internal sealed class PlainBoundModel
+{
+    public string Name { get; set; } = "Ada";
+
+    public int Age { get; set; } = 36;
+}
+
 // The generic form control's entry is a static METHOD, so its reset arguments are method groups of a
 // GENERIC method. Those are cached per instantiation in a generic `<>O` holder — but only if the
 // compiler can; a per-call delegate here would be a silent per-render allocation on every bound input
 // in an app.
 internal sealed partial class AllocBoundEntryProbe : Component
 {
-    internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
+    internal readonly PlainBoundModel Model = new();
 
     protected override Component? Render() => Div[Input.Bind(() => Model.Name).Id("name")];
 }
@@ -40,24 +52,37 @@ internal sealed partial class AllocBoundEntryProbe : Component
 // probe costs over this one is the binding, and a regression in the shared element path moves both.
 internal sealed partial class AllocControlledInputProbe : Component
 {
-    internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
+    internal readonly PlainBoundModel Model = new();
 
     protected override Component? Render() => Div[Input.Value(Model.Name).Id("name")];
 }
 
 // The bound control with the bind expression HOISTED into a field, so it is built once instead of on
-// every render. This is the pin that actually guards Rask's own bind path: the difference between this
-// and AllocBoundEntryProbe is the C# compiler constructing an Expression<Func<T>> at the call site,
-// which is not code this repo can make cheaper.
+// every render. The difference between this and AllocBoundEntryProbe is the C# compiler constructing
+// the Expression<Func<T>> at the call site — not code this repo can make cheaper, but see
+// AllocBoundToMarkupHostProbe for how much the SHAPE of the model changes that price.
 internal sealed partial class AllocHoistedBoundEntryProbe : Component
 {
-    internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
+    internal readonly PlainBoundModel Model = new();
 
     private readonly System.Linq.Expressions.Expression<Func<string>> _bind;
 
     public AllocHoistedBoundEntryProbe() => _bind = () => Model.Name;
 
     protected override Component? Render() => Div[Input.Bind(_bind).Id("name")];
+}
+
+// The SAME bind against a property declared on a type that derives RaskMarkup. This is not a contrived
+// shape: `Component : RaskMarkup`, so `Input.Bind(() => Draft)` — binding a component's own property,
+// which the guides do — lands here, and so does binding any model that happens to be a component. The
+// chain surface arrives as members on RaskMarkup, and resolving a member token on a type that large is
+// what costs. Pinned separately so the expensive shape is visible and guarded rather than averaged into
+// the representative one.
+internal sealed partial class AllocBoundToMarkupHostProbe : Component
+{
+    internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
+
+    protected override Component? Render() => Div[Input.Bind(() => Model.Name).Id("name")];
 }
 
 // The event surface: every one of Element's ~88 handler pairs is a
@@ -248,32 +273,37 @@ public class BuilderEntryAllocationPinTests
         AssertCosts(cost, 1800);
     }
 
-    // The bound control, decomposed. One aggregate ceiling could say a number had moved but never which
-    // layer moved it, and #793 was opened on exactly that: 3555 B/render recorded 2026-08-08, 5163 B/render
-    // when it was next looked at, with nothing in between able to say where it went.
+    // The bound control, decomposed — and a correction to what #793 concluded.
     //
-    // Measured 2026-08-24, after removing the Accessor's redundant getter/setter delegates:
+    // Measured 2026-08-24:
     //
-    //     bare Div                                   1088
-    //     Div[Input.Of<string>().Id]                 1192
-    //     Div[Input.Value(...).Id]      controlled   1216
-    //     Div[Input.Bind(hoisted).Id]   bound        2723
-    //     Div[Input.Bind(() => ...).Id] bound        5034
+    //     Div[Input.Value(...).Id]            controlled          1216
+    //     Div[Input.Bind(hoisted).Id]         bound               2721
+    //     Div[Input.Bind(() => ...).Id]       bound               3041
+    //     …the same, model deriving RaskMarkup                    5011
     //
-    // Two things fall straight out of that, and both are why 3555 is not a baseline to chase:
+    // The first three bind a PLAIN model. The fourth binds `BoundForm`, which derives RaskMarkup — and
+    // that single difference is worth 1970 B/render. Constructing an Expression<Func<T>> resolves a
+    // member token on the terminal property's DECLARING type, and the cost scales with that type's
+    // member count: 312 B for a one-property class, 1912 B for a 200-property one, 2312 B for a
+    // RaskMarkup subclass, which carries the whole chain surface as members.
     //
-    //   * 2311 B — 46% of the total — is the C# compiler building an Expression<Func<T>> at the CALL SITE
-    //     on every render. It is not Rask code and no change here can make it cheaper; the only lever is
-    //     the shape of the public Bind API. So this probe cannot go below ~3500 B however good the bind
-    //     path gets, which is already above the 3555 the comment recorded — the old number cannot have
-    //     been measuring this same shape.
-    //   * 1507 B is Rask's own bind path (bound-hoisted minus controlled): parsing the expression, the
-    //     auto-created EditContext, two registered handlers and the validator registration.
+    // Every one of these probes used to bind BoundForm. That is what #793 was actually looking at: it
+    // recorded 3555 B/render on 2026-08-08 and 5163 B when next measured, and concluded Rask's bind
+    // path had regressed 45%. It had not. The representative probe costs 3041 B today — BELOW the
+    // number it was compared against — and the gap was the fixture, not the framework. The earlier
+    // claim that ~46% of the cost was unavoidable compiler work was wrong for the same reason: against
+    // a plain model the expression tree is 320 B, about 10%.
     //
-    // All three ceilings are ABSOLUTE. A relative pin is what let the regression hide in the first place
-    // (the factory arm grew alongside the entry arm and the difference stayed inside its slack), so these
-    // decompose the cost without reintroducing that: a regression in the shared element path trips the
-    // controlled pin, one in the bind path trips the hoisted pin, and one in either trips the aggregate.
+    // Rask's own share is the remaining 1505 B (bound-hoisted minus controlled): parsing the
+    // expression, the auto-created EditContext, two registered handlers and the validator registration.
+    // That figure did not move, and it is the one to attack.
+    //
+    // All four ceilings are ABSOLUTE. A relative pin is what let a real regression hide once already
+    // (the factory arm grew alongside the entry arm and the difference stayed inside its slack), so
+    // these decompose the cost without reintroducing that: the shared element path trips the controlled
+    // pin, the bind path trips the hoisted pin, and the model-shape penalty has a pin of its own rather
+    // than being averaged into the representative number.
     [Fact]
     public void A_controlled_input_costs_what_it_costs()
     {
@@ -288,8 +318,8 @@ public class BuilderEntryAllocationPinTests
     {
         var cost = Measure(static () => new AllocHoistedBoundEntryProbe());
 
-        // 2723 B/render measured 2026-08-24; pinned at 3000 B. This is the one to watch — it is the only
-        // one of the three that moves when Rask's bind path changes.
+        // 2721 B/render measured 2026-08-24; pinned at 3000 B. This is the one to watch — it is the
+        // only one of these that moves when Rask's bind path changes.
         AssertCosts(cost, 3000);
     }
 
@@ -298,7 +328,27 @@ public class BuilderEntryAllocationPinTests
     {
         var cost = Measure(static () => new AllocBoundEntryProbe());
 
-        // 5034 B/render measured 2026-08-24; pinned at 5300 B, down from the 5600 #793 recorded.
+        // 3041 B/render measured 2026-08-24; pinned at 3300 B, down from 5600 — the drop is the probe
+        // binding a representative model rather than a RaskMarkup subclass, not a change in the code.
+        AssertCosts(cost, 3300);
+    }
+
+    /// <summary>
+    ///     Binding a property declared on a <c>RaskMarkup</c> subclass, which
+    ///     <c>Input.Bind(() =&gt; Draft)</c> on a component's own property is.
+    /// </summary>
+    /// <remarks>
+    ///     Pinned as its own number because it is a real shape with a real price — 1970 B/render over
+    ///     the same bind against a plain model — and averaging it into the representative pin would
+    ///     hide both. If the chain surface on <c>RaskMarkup</c> ever shrinks, this is the pin that
+    ///     should move.
+    /// </remarks>
+    [Fact]
+    public void Binding_a_property_declared_on_a_markup_host_costs_what_it_costs()
+    {
+        var cost = Measure(static () => new AllocBoundToMarkupHostProbe());
+
+        // 5011 B/render measured 2026-08-24; pinned at 5300 B.
         AssertCosts(cost, 5300);
     }
 
