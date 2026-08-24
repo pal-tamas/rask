@@ -13,6 +13,7 @@ namespace Rask.Jobs.Tests;
 /// these fail every time if the claim is wrong. The one genuine race lives in
 /// <see cref="JobProcessorConcurrencyTests"/>.
 /// </remarks>
+[Collection(JobsDbCollection.Name)]
 public sealed class JobLeaseTests
 {
     private static readonly DateTimeOffset Start = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);

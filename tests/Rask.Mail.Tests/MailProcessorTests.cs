@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Mail.Tests;
 
+[Collection(MailDbCollection.Name)]
 public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
 {
     private static Email SampleEmail() =>

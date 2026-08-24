@@ -7,6 +7,7 @@ namespace Rask.Jobs.Tests;
 /// would otherwise be silent: the exception is swallowed by the cycle's catch, so the app looks healthy
 /// while logging the same error every poll and never processing a job again.
 /// </summary>
+[Collection(JobsDbCollection.Name)]
 public sealed class MissingLeaseColumnTests
 {
     [Fact]
