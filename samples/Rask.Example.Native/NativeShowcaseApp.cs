@@ -1,9 +1,12 @@
 using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Example.Shared;
+using Rask.Native.Components;
 using static Rask.Native.Components.Generated;
 using NativeColor = Rask.Native.Components.NativeColor;
 using NativeIcon = Rask.Native.Components.NativeIcon;
+using NativeFontWeight = Rask.Native.Components.NativeFontWeight;
+using NativeButtonStyle = Rask.Native.Components.NativeButtonStyle;
 using AppRoutes = Rask.Example.Shared.Features.Routes;
 
 namespace Rask.Example.Native;
@@ -17,7 +20,7 @@ namespace Rask.Example.Native;
 ///     <c>IsNative</c> gate in <c>ShowcaseLayout</c>. No <c>IsNative</c> guard is needed here — this type is only
 ///     ever mounted by the native heads.
 /// </summary>
-public sealed class NativeShowcaseApp(RouteState route) : App
+public sealed partial class NativeShowcaseApp(RouteState route) : App
 {
     // Brand palette — kept in one place and deliberately aligned with the web theme's accent so the native bars
     // and the WebView content read as one app. NativeColor mirrors NativeIcon: one authored value the platform
@@ -32,46 +35,90 @@ public sealed class NativeShowcaseApp(RouteState route) : App
     private int _filter;
     private bool _todosRead; // toggled from the overflow menu — hides the Todos badge
 
+    // SPIKE (#775): pure-native screen state. A plain string literal is used for the route below because a
+    // native-only surface is not a routed Page — the app root swaps surfaces on the path, which is the
+    // documented mixed-surface model, so there is no generated Routes.* entry to be type-safe against.
+    private const string NativeDemoPath = "/native-demo";
+    private string _note = string.Empty;
+    private bool _notify = true;
+    private int _taps;
+
     private bool OnTodos => route.Path.StartsWith("/todos", StringComparison.OrdinalIgnoreCase);
 
     // A guide detail page (/guides/{slug}) is a drill-down from the Guides index, so its header gets a native
     // back button that pops history back to the index (like hardware Back).
     private bool OnGuideDetail => route.Path.StartsWith("/guides/", StringComparison.OrdinalIgnoreCase);
 
+    private bool OnNativeDemo => route.Path.StartsWith(NativeDemoPath, StringComparison.OrdinalIgnoreCase);
+
+    // SPIKE (#775): the pure-native content — a real UIView / android.view.View tree, no WebView, no HTML.
+    // Every control below carries an AccessibilityId so Appium can assert on the NATIVE_APP context rather
+    // than a WEBVIEW one, which is the only way to prove the surface backend actually painted.
+    private Component NativeDemoScreen() =>
+        NativeScreen.Padding(20)[
+            NativeStack.Spacing(14)[
+                NativeLabel.FontSize(22).FontWeight(NativeFontWeight.Bold).AccessibilityId("spike-title")[
+                    "Pure-native screen"],
+                NativeLabel
+                    .Color(NativeColor.Adaptive(NativeColor.Hex("#4B5563"), NativeColor.Hex("#9CA3AF")))
+                    .Lines(0).AccessibilityId("spike-subtitle")[
+                    "No WebView is showing. This tree is UILabel / UITextField / UISwitch / UIButton."],
+                NativeDivider,
+                NativeTextField.Value(_note).Placeholder("Type a note").AccessibilityId("spike-note")
+                    .OnInput(v => _note = v),
+                NativeLabel.AccessibilityId("spike-echo")[
+                    _note.Length == 0 ? "note: (empty)" : $"note: {_note}"],
+                NativeSwitch.On(_notify).AccessibilityId("spike-switch").OnChanged(v => _notify = v),
+                NativeLabel.AccessibilityId("spike-switch-state")[$"notify: {(_notify ? "on" : "off")}"],
+                NativeButton.Style(NativeButtonStyle.Filled).Background(Brand).Color(OnBrand)
+                    .AccessibilityId("spike-tap").OnClick(() => _taps++)["Tap me"],
+                NativeLabel.AccessibilityId("spike-taps")[$"taps: {_taps}"],
+                NativeActivityIndicator,
+                NativeSpacer]];
+
     protected override Component? Render()
     {
         // An overflow menu of secondary actions (shown on every page's header). Selecting an entry re-renders,
-        // demonstrating a native pull-down menu (iOS UIMenu / Android PopupMenu) driving native state.
-        var overflow = NativeMenuButton(Items:
-        [
-            NativeMenuItem(Title: "Mark Todos read", Icon: NativeIcon.List, OnClick: () => _todosRead = true),
-            NativeMenuItem(Title: "Mark Todos unread", Icon: NativeIcon.Star, OnClick: () => _todosRead = false),
+        // demonstrating a native pull-down menu (iOS UIMenu / Android PopupMenu) driving native state. Typed as
+        // the concrete component, not `var`: the chain's receiver is Build<NativeMenuButton>, and the bar slots
+        // below take IReadOnlyList<NativeBarItem> — the implicit conversion needs a target to land on.
+        NativeMenuButton overflow = NativeMenuButton.Items([
+            NativeMenuItem.Title("Mark Todos read").Icon(NativeIcon.List).OnClick(() => _todosRead = true),
+            NativeMenuItem.Title("Mark Todos unread").Icon(NativeIcon.Star).OnClick(() => _todosRead = false),
         ]);
+
+        // Same reason: a `cond ? chain : null` needs a target type, and here that target is the slot's type.
+        NativeBarItem? back = OnGuideDetail ? NativeBackButton : null;
 
         return
         [
             // On Todos, the header shows the segmented filter in place of the title; elsewhere, the brand title
             // (with a back button when on a drill-down guide page). Both carry the overflow menu as a trailing item.
             OnTodos
-                ? NativeHeaderBar(
-                    Background: Brand, Tint: OnBrand, TitleColor: OnBrand,
-                    Segments: Filters, SelectedSegment: _filter, OnSegmentChanged: i => _filter = i,
-                    Trailing: [overflow])
-                : NativeHeaderBar(Title: "Rask", Background: Brand, Tint: OnBrand, TitleColor: OnBrand,
-                    Leading: OnGuideDetail ? NativeBackButton() : null,
-                    Trailing: [overflow]),
-            NativeWebView()[base.Render()],
-            NativeTabBar(
+                ? NativeHeaderBar
+                    .Background(Brand).Tint(OnBrand).TitleColor(OnBrand)
+                    .Segments(Filters).SelectedSegment(_filter).OnSegmentChanged(i => _filter = i)
+                    .Trailing([overflow])
+                : NativeHeaderBar
+                    .Title("Rask").Background(Brand).Tint(OnBrand).TitleColor(OnBrand)
+                    .Leading(back)
+                    .Trailing([overflow]),
+            // SPIKE (#775): one route paints natively, the rest paint as HTML. The host keeps BOTH content
+            // views alive and only toggles which is visible, so switching back does not reload the page.
+            OnNativeDemo ? NativeDemoScreen() : NativeWebView[base.Render()],
+            NativeTabBar
                 // Selected tab picks up the brand accent; the rest stay muted (adaptive so dark mode reads well).
-                Tint: Brand,
-                UnselectedTint: NativeColor.Adaptive(NativeColor.Hex("#6B7280"), NativeColor.Hex("#9CA3AF")),
-                Tabs:
-                [
+                .Tint(Brand)
+                .UnselectedTint(NativeColor.Adaptive(NativeColor.Hex("#6B7280"), NativeColor.Hex("#9CA3AF")))
+                .Tabs([
                     // Guides is the site root ("/") now that the Welcome landing page is gone.
-                    NativeTab(Title: "Guides", Icon: NativeIcon.Home, To: AppRoutes.GuidesIndexPage()),
+                    NativeTab.Title("Guides").Icon(NativeIcon.Home).To(AppRoutes.GuidesIndexPage()),
                     // The badge tracks the segmented filter on Todos, and the overflow menu can clear it.
-                    NativeTab(Title: "Todos", Icon: NativeIcon.Custom("checklist", "ic_todo"),
-                        To: AppRoutes.TodosPage(), Badge: _todosRead ? null : OnTodos ? Badges[_filter] : "2"),
+                    NativeTab.Title("Todos").Icon(NativeIcon.Custom("checklist", "ic_todo"))
+                        .To(AppRoutes.TodosPage())
+                        .Badge(_todosRead ? null : OnTodos ? Badges[_filter] : "2"),
+                    // SPIKE (#775): the pure-native tab.
+                    NativeTab.Title("Native").Icon(NativeIcon.Star).To(NativeDemoPath),
                 ])
             // Selected is omitted — the framework highlights the tab matching the current route.
         ];

@@ -4,6 +4,7 @@ using Rask.Example.Native.Data;
 using Rask.Example.Shared;
 using Rask.Example.Shared.Features;
 using Rask.Native;
+using Rask.Native.Surface;
 using Rask.SQLite;
 using UIKit;
 
@@ -57,6 +58,11 @@ public class AppDelegate : UIApplicationDelegate
         // Native header/footer chrome: the same RaskWkWebView instance is the INativeChrome backend, so the
         // NativeShowcaseApp's NativeHeader/NativeFooter drive its UINavigationBar/UITabBar.
         host.Services.AddSingleton<INativeChrome>(webView);
+
+        // SPIKE (#775): the same RaskWkWebView is also the INativeSurface backend, so a route composing a
+        // NativeScreen paints a real UIView tree instead of HTML. With this line absent the native family is
+        // inert and every frame goes through the WebView, which is why nothing had exercised it before.
+        host.Services.AddSingleton<INativeSurface>(webView);
 
         // Serve the demo HttpClient's data/*.json fetches from the app's bundled assets (offline). This
         // AddSingleton overrides the plain-network HttpClient AddExampleServices registered.

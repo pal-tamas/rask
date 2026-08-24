@@ -77,6 +77,13 @@
     <!-- On-device SQLite for the Todos screen (raw Microsoft.Data.Sqlite path — reflection-free/AOT-safe;
          brings the native e_sqlite3 for ios/android via SQLitePCLRaw). -->
     <ProjectReference Include="..\..\src\Rask.SQLite\Rask.SQLite.csproj"/>
+    <!-- The Rask factory/builder generator. A ProjectReference does NOT flow analyzers transitively, so
+         referencing Rask.Example.Shared (which has it) is not enough: without this the native sample gets no
+         Generated.{Type}() factories for its OWN components and no builder-chain entries at all, which is why
+         it had to be written in factory-call style while every other sample uses the chain. -->
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <!-- Each platform head compiles only for its own TFM. -->
