@@ -67,6 +67,21 @@ them until tagged releases begin.
   (the factory excluded it on name *and* type; the indexer owns the word).
 
 ### Fixed
+- **An `internal` component's chain entry did not cross an `InternalsVisibleTo` boundary.** A friend
+  assembly could see the component and could see its entry, and was told about neither: the scan that
+  reads a referenced assembly's `RaskEntries{Assembly}` class took **public** members only, and an
+  internal component publishes its entry `internal static`. The friend assembly's only remaining
+  spelling was the fully-qualified entry host — `global::RaskEntriesRask_Example_Shared.PageHeader
+  .Title(…)` — because with the factory gone there is no second way to reach the component at all.
+
+  The scan now asks `IAssemblySymbol.GivesAccessTo(compilation.Assembly)`, which is the same question
+  the compiler asks of `InternalsVisibleTo`, and admits internal entries when the answer is yes. They
+  are injected as `private static` forwarders like every other one, so an internal type never leaks
+  past the host that receives it. `PageHeaderTests` now reads `PageHeader.Title("Greetings")`
+  unqualified, and a cross-assembly generator test pins both halves — the grant, and a negative
+  control with the grant naming somebody else, where the public entry still arrives and the internal
+  one does not.
+
 - **An unset `NativeStack` / `NativeScreen` `Orientation` meant vertical on iOS and horizontal on Android.**
   iOS creates both with an explicit vertical axis; Android created a bare `LinearLayout`, whose platform
   default is HORIZONTAL, and nothing set one. So the same tree laid out in a column on one platform and a row
