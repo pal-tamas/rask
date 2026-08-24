@@ -67,6 +67,27 @@ them until tagged releases begin.
   (the factory excluded it on name *and* type; the indexer owns the word).
 
 ### Fixed
+- **No `rask new` template can reach a user uncompiled any more.** `CliBuildE2E` packs this commit's
+  packages to a local feed and runs a real `dotnet build -warnaserror` over what the CLI writes, and it
+  covered the server, wasm and wasm-hosted templates. It could not cover the **native** one: building
+  that needs the iOS and Android workloads the Ubuntu runner does not have. The templates are raw
+  strings, so no in-repo build compiles them either — which left the native template verified by
+  nothing at all.
+
+  That gap was not theoretical. Dropping the factory turned every factory call in a template into
+  `CS1955`; the packaged gate caught the one in the `--auth` LoginPage exactly as designed and could
+  not see the one in the native App shell, so `rask new --template native` would have shipped a project
+  that does not compile — the template a beginner is least able to debug.
+
+  `NativeTemplateCompileTests` now takes the cheaper half of the job and runs it **always**, with no
+  workloads, no packing and no network: a Roslyn compilation over the template's own component code
+  against this commit's assemblies, with the real generators running, over each platform selection.
+  Its global usings are read from the props `Rask.Native` ships rather than restated, so the gate keeps
+  tracking what a scaffolded project actually gets. Proven by reintroducing the shipped break: the gate
+  reports `App.cs(23,9): error CS1955: Non-invocable member 'RaskMarkup.Html' cannot be used like a
+  method` — the exact diagnostic that went unseen. A negative control pins that the harness really
+  binds the chain, so a gate that quietly compiled nothing could not pass for a gate that compiles
+  everything.
 - **`NativeButton.Background` and `Color` were ignored on iOS and thrown away by `Style` on Android.**
   A button declared `NativeButton.Style(Filled).Background(Brand).Color(OnBrand)` painted iOS system
   blue. No error, no warning — the props simply did nothing.
