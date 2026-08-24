@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Primitives;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Features.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 

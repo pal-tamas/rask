@@ -40,8 +40,6 @@ using Rask.Server.Authentication;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
-using Components = Rask.Core.Components.Generated;
-using ComponentsH = Rask.Html.Components.Generated;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
 using QueryString = Rask.Core.Routing.QueryString;
@@ -52,7 +50,8 @@ namespace Rask.Server;
 ///     The endpoints that make an ASP.NET Core app a Rask app: the page routes, the live WebSocket the
 ///     diff runtime talks over, and the client runtime script. Wired up by <c>UseRask&lt;TApp&gt;()</c>.
 /// </summary>
-public static class RaskEndpointExtensions
+[global::Rask.Core.RaskMarkup]
+public static partial class RaskEndpointExtensions
 {
     private const string RuntimePath = "/rask/rask.js";
     private const string WebSocketPath = "/rask/ws";
@@ -407,8 +406,13 @@ public static class RaskEndpointExtensions
         // anywhere in the user's tree renders a styled fallback page instead of an HTTP 500. Declared in
         // this generic method so TApp's DynamicallyAccessedMembers annotation flows into the closure —
         // EnsureRuntimeMapped is deliberately non-generic (its double-map guard is per host, not per TApp).
+        // A chain carries properties and DI services; the app instance is a runtime constructor argument,
+        // and this is the root, so there is no parent render context whose GetOrCreate a chain would route
+        // through. RASK014's reason to exist is absent here.
+#pragma warning disable RASK014
         Func<IServiceProvider, Component> appFactory =
             sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp));
+#pragma warning restore RASK014
 
         EnsureRuntimeMapped(endpoints, pathBaseNormalized, appFactory);
 
@@ -2127,9 +2131,9 @@ public static class RaskEndpointExtensions
         }
     }
 
-    private sealed class ServerRuntimeScript : IRaskRuntimeScript
+    private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => ComponentsH.Script(LiveOptions.PathBase + RuntimePath);
+        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath);
     }
 
     internal sealed class RaskLiveMarker

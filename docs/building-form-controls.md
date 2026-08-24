@@ -249,7 +249,7 @@ for state the control *itself* owns.
    `InvokeAfterBindAsync`; controlled → `InvokeOnChangeAsync`.
 4. Surface messages with `ValidationMessage(Bind, …)` (bound mode).
 5. Unit-test both modes (drive the handler, assert the bound model / the emitted `OnChange` value); add an
-   E2E if it has a showcase page. Construct via the generated factory, never `new` (RASK014).
+   E2E if it has a showcase page. Construct via the chain, never `new` (RASK014).
 
 Worked examples: the `BsRadioGroup`/`BsCheckboxGroup`/`BsMultiSelect` controls in the **Rask.Bootstrap**
 package (`src/Rask.Bootstrap/Bs{RadioGroup,CheckboxGroup,MultiSelect}.cs`).

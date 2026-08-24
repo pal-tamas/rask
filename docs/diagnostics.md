@@ -37,7 +37,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | ID | Severity | Summary |
 |----|----------|---------|
 | [RASK001](#rask001) | Hidden | Property is treated as a required factory parameter |
-| [RASK002](#rask002) | Warning | `required` property cannot be honored by the generated factory |
+| [RASK002](#rask002) | Warning | `required` property cannot be honored by the chain |
 | [RASK003](#rask003) | Error | Malformed route template |
 | [RASK004](#rask004) | Error | Route segment has no matching property |
 | [RASK005](#rask005) | Error | Property type does not match the route constraint |
@@ -65,7 +65,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK027](#rask027) | Error | Both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
-| [RASK030](#rask030) | Hidden | Prefer named arguments on a factory call with 3+ positional args |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
 | [RASK032](#rask032) | Error | Native component nested in the HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
@@ -78,7 +77,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK040](#rask040) | Warning | Two components share a simple name, so neither can have a builder entry |
 | [RASK041](#rask041) | Warning | The builder surface's shared pending-bit budget is exhausted |
 | [RASK042](#rask042) | — | *Retired* — delegate-typed property cannot receive a builder setter |
-| [RASK043](#rask043) | Warning | Component factory is not imported in a type that has no builder entries |
+| [RASK043](#rask043) | Warning | A component name is used in a type that has no builder entries |
 | [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
@@ -89,11 +88,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 ---
 
 ## RASK001
-**Property is treated as a required factory parameter** · Hidden
+**Property is treated as a required chain step** · Hidden
 
-A non-nullable reference-type property with no initializer becomes a **required** parameter on the
-generated factory. This is informational: the generator already enforces it positionally, but the
-property isn't marked `required` at the language level.
+A non-nullable reference-type property with no initializer becomes a **required step** — one the chain
+must take before it produces a component at all. This is informational: the generator already enforces
+it through the chain's type, but the property isn't marked `required` at the language level.
 
 ```csharp
 public sealed partial class Badge : Component
@@ -108,17 +107,17 @@ lightbulb inserts it), or make the property nullable
 to stay ergonomic. See [what becomes a step](getting-started.md#6-why-homepage-already-chains-the-generated-surface).
 
 ## RASK002
-**`required` property cannot be honored by the generated factory** · Warning
+**`required` property cannot be honored by the chain** · Warning
 
-A property is marked `required`, but the generated factory can't set it. This fires in exactly one
+A property is marked `required`, but the chain can't set it. This fires in exactly one
 shape: the component has **both** a dependency-injected constructor **and** a parameterless
-constructor, **and** the `required` property carries a member initializer. The factory then builds
-the component with `new C() { … }`, but an initializer-carrying property is excluded from the factory
-parameters, so the object initializer never assigns it and the consumer build fails with `CS9035`.
+constructor, **and** the `required` property carries a member initializer. The entry then builds
+the component with `new C()`, but an initializer-carrying property is not one the steps can
+set, so nothing ever assigns it and the consumer build fails with `CS9035`.
 
-> A DI constructor with **no** parameterless constructor is fine: the factory builds the component
+> A DI constructor with **no** parameterless constructor is fine: the entry builds the component
 > with `ActivatorUtilities.CreateInstance` (which runs your DI constructor, so injected services are
-> set) and then post-assigns each factory param — so a `required` property with no member initializer
+> set) and the steps assign afterwards — so a `required` property with no member initializer
 > is honored. RASK002 does **not** fire in that case.
 
 **Fix:** remove the member initializer so the `required` property becomes a plain factory parameter,
@@ -311,9 +310,9 @@ and emits untrusted structural diffs on insert/remove/move — and for a compone
 decides which instance is reused, so the row's own state follows the slot rather than the item
 (see [RASK046](#rask046)).
 
-Both spellings are recognised: a chain (`Li[…]`, `Li.Class("c")[…]`) and, while it still exists, a
-generated factory call. The chain form went unreported until #704 — the check matched a method named
-after the component, and a chain has none.
+Both chain spellings are recognised — `Li[…]` and `Li.Class("c")[…]`. The chain went unreported until
+#704, when the only surface this checked was a factory call: the check matched a method named after the
+component, and a chain has none.
 
 ```csharp
 // ✗ items.Select(i => Li[ i.Name ])
@@ -330,10 +329,10 @@ for why identity beats position.
 An `Img` is built without naming `Alt`. Without a text alternative, screen readers fall back to
 announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/WAI/WCAG21/Understanding/non-text-content).
 
-Both spellings are recognised: a chain (`Img.Src("/x")`, or the bare `Img`) and, while it still exists,
-a generated factory call. **The chain form went unreported until #704** — the check matched a static
-method named `Img`, and on a chain the outermost call is the `Src` setter, so an accessibility check
-that the docs' own examples should have tripped never fired at all.
+Both chain spellings are recognised — `Img.Src("/x")` and the bare `Img`. **The chain went unreported
+until #704**, when the only surface this checked was a factory call: it matched a static method named
+`Img`, and on a chain the outermost call is the `Src` setter — so an accessibility check that the docs'
+own examples should have tripped never fired at all.
 
 ```csharp
 // ✗ Img.Src("/logo.png")
@@ -481,23 +480,10 @@ accessibility to at least `internal` and move it out of a `file`-local declarati
 `InvalidOperationException` when dispatched.
 
 ## RASK030
-**Prefer named arguments on Rask factories** · Hidden
-
-A Rask factory call passes **three or more leading positional arguments**. Beyond one or two, positional
-calls both read poorly and are fragile: Rask orders generated factory parameters by inheritance depth,
-then by file ordinal + span, so a later edit — adding a property to a base class, renaming a partial
-file — can reorder parameters and silently rebind such a call. The first one or two positional arguments
-(the primary content — `A(href)`, `Div(id, class)`) are left alone as idiomatic.
-
-```csharp
-// ✗ Div("main", "container", "color:red")                 // three positional — order-fragile, hard to read
-// ✓ Div.Id("main").Class("container").Style("color:red") // explicit, refactor-proof
-```
-
-**Fix:** name the arguments (`Prop: value`). Hidden by default (no build output, no effect on the
-warnings-as-errors build) — the IDE surfaces it as a suggestion. Suppress per call with
-`#pragma warning disable RASK030`, or globally in `.editorconfig`
-(`dotnet_diagnostic.RASK030.severity = none`) if you prefer a positional style.
+**Retired.** It asked you to name the arguments of a factory call once three or more were positional,
+because the generated parameter order could shift under an unrelated edit and silently rebind them.
+A chain has no positional arguments — every step names its property — so there is nothing left to
+misbind. The id is not reused.
 
 ## RASK031
 **Two pages resolve to the same route** · Warning
@@ -695,7 +681,7 @@ public static partial class Demos                    //     to spend, or there i
 ```
 
 For a host that **derives** from `RaskMarkup`, nothing else is lost: the component still renders, still
-gets its own entry *elsewhere*, and its generated factory is unaffected — `Generated.SalesCard(…)` keeps
+gets its own entry *elsewhere*, and the type itself is unaffected — `new SalesCard()` inside Rask.Core keeps
 working from anywhere. An **`[RaskMarkup]`** host loses more, and the message says so: the generated
 `partial` is where its base — or, when the base slot is already spent, the framework tags themselves —
 would have come from, so without `partial` it gets no builder surface at all.
@@ -756,11 +742,11 @@ the alias is only ever used outside a component body.
 ## RASK038
 **Builder chain does not set a required property** · Error
 
-A non-nullable property with no member initializer is **required** — see [RASK001](#rask001), which
-describes the same rule for the generated factory, where the language enforces it as a missing
-argument. A builder chain has no arguments: the property is set by a setter somewhere along the
-chain, so leaving it out compiles cleanly and the component renders with a `null` it was never
-supposed to hold. This analyzer walks the chain and reports what it never named.
+A non-nullable property with no member initializer is **required** — see [RASK001](#rask001). Most
+required properties are enforced by the chain's own type: they are steps the component does not exist
+until you take. This analyzer covers what that cannot reach — a chain the compiler cannot follow end to
+end (see [RASK039](#rask039)), where the property is set by a setter somewhere along the way and leaving
+it out compiles cleanly, rendering with a `null` it was never supposed to hold.
 
 ```csharp
 public sealed partial class Card : Component
@@ -814,8 +800,7 @@ Suppress with `#pragma warning disable RASK039` / `.editorconfig`
 ## RASK040
 **Two components share a simple name, so neither can have a builder entry** · Warning
 
-A factory is keyed by *namespace* — it lives in a per-namespace `Generated` class, so
-`Features.Products.Generated.Card(…)` and `Features.Orders.Generated.Card(…)` coexist happily. An
+A member name has no namespace, so the two do not separate the way the types themselves do. An
 entry is keyed by **simple name**: it is a single member named after its type, and one name can only
 stand for one type.
 
@@ -830,7 +815,7 @@ compiling — you just cannot write `Card` bare.
 
 **Fix:** rename one of them (`ProductCard` / `OrderCard`). Suppress with
 `#pragma warning disable RASK040` / `.editorconfig` (`dotnet_diagnostic.RASK040.severity = none`) if
-you are happy to reach both through `Generated.Card(…)`.
+you are happy to build both with `new` from inside Rask.Core.
 
 ## RASK041
 **The builder surface's shared pending-bit budget is exhausted** · Warning
@@ -867,18 +852,16 @@ caused this cannot happen, and a callback property is an ordinary `Action` / `Fu
 reused.
 
 ## RASK043
-**Component factory is not imported here** · Warning
+**A component name is used in a type that has no builder entries** · Warning
 
-The builder surface is reachable only from **inside a type that has the entries**. They are *inherited
-members* — that is the whole design, because a static-imported property loses to a same-named type
-(CS0119) while a member of the enclosing type wins. A component is such a type; so is anything
-deriving from **`Rask.Core.RaskMarkup`**, which is `Component`'s own base and carries the framework
-entries and nothing else; and so is anything marked **`[RaskMarkup]`**, which is the same opt-in for a
-type that has no base slot to spend. Code that is none of those reaches components through the generated **factory**,
-which is a *method* and so may share its component's name under C#'s invocable-member rule. That is
-exactly why the factory works in these positions and an entry cannot.
+The chain is reachable only from **inside a type that has the entries**. They are *inherited members* —
+that is the whole design, because a static-imported property loses to a same-named type (CS0119) while
+a member of the enclosing type wins. A component is such a type; so is anything deriving from
+**`Rask.Core.RaskMarkup`**, which is `Component`'s own base and carries the framework entries and
+nothing else; and so is anything marked **`[RaskMarkup]`**, which is the same opt-in for a type that
+has no base slot to spend.
 
-Leave the `using static` out and the simple name binds to the component **type** instead:
+In a type that is none of those, the simple name binds to the component **type** instead:
 
 ```csharp
 using Rask.Core.Components;
@@ -902,25 +885,14 @@ internal static partial class Parts
 }
 ```
 
-```csharp
-using Rask.Core.Components;
-using static Rask.Core.Components.Generated;                          // ✓ the factory is a method
-
-internal static class Parts
-{
-    public static Component Loading() => Div.Class("spinner")["…"];
-}
-```
-
 The compiler's own report is **CS0119** ("'Div' is a type, which is not valid in the given context"),
 often with a **CS0021** on the `[…]` that would have carried the children, or a **CS0120** in a static
-context — none of which mentions Rask, the factory, or the one line that fixes it.
+context — none of which mentions Rask or the one line that fixes it.
 
-**Fix:** derive the enclosing type from `Rask.Core.RaskMarkup` (a `static class` cannot derive from
-anything — make it a sealed class with a private constructor, or nest it inside a host, since
-simple-name lookup walks out through enclosing types) — or, if it was really a component all along,
-make it one. The `using static …Generated;` the message names is the third option, and the one that
-disappears when the factory does. Suppress with
+**Fix:** derive the enclosing type from `Rask.Core.RaskMarkup`, or mark it `[RaskMarkup]` when its base
+slot is taken or it is a `static class` — or, if it was really a component all along, make it one. A
+`static class` cannot derive from anything, so the attribute is the way in there; nesting it inside a
+host works too, since simple-name lookup walks out through enclosing types. Suppress with
 `#pragma warning disable RASK043` / `.editorconfig`
 (`dotnet_diagnostic.RASK043.severity = none`).
 

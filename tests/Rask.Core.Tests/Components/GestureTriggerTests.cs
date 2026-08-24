@@ -130,11 +130,11 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         // its original vocabulary — the id is an addition, not a replacement.
         MediaStreamId? stream = null;
         string? result = null;
-        var html = MediaCaptureTrigger(
-            For: ElementRef.New(),
-            OnStream: id => { stream = id; return Task.CompletedTask; },
-            OnResult: value => { result = value; return Task.CompletedTask; },
-            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+        var html = MediaCaptureTrigger
+            .For(ElementRef.New())
+            .Template(g => Button.Type("button").Data(g)["Start camera"])
+            .OnStream(id => { stream = id; return Task.CompletedTask; })
+            .OnResult(value => { result = value; return Task.CompletedTask; }).ToHtml();
 
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
         await GestureResultInterop.Result(rid, "12");
@@ -148,11 +148,11 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         var streamed = false;
         string? result = null;
-        var html = MediaCaptureTrigger(
-            For: ElementRef.New(),
-            OnStream: _ => { streamed = true; return Task.CompletedTask; },
-            OnResult: value => { result = value; return Task.CompletedTask; },
-            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+        var html = MediaCaptureTrigger
+            .For(ElementRef.New())
+            .Template(g => Button.Type("button").Data(g)["Start camera"])
+            .OnStream(_ => { streamed = true; return Task.CompletedTask; })
+            .OnResult(value => { result = value; return Task.CompletedTask; }).ToHtml();
 
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
         await GestureResultInterop.Result(rid, "denied");
@@ -166,9 +166,9 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         // No callback means no result to route, so no id should be registered — otherwise every render
         // leaks an entry into the process-wide gesture registry for nobody to consume.
-        var html = MediaCaptureTrigger(
-            For: ElementRef.New(),
-            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+        var html = MediaCaptureTrigger
+            .For(ElementRef.New())
+            .Template(g => Button.Type("button").Data(g)["Start camera"]).ToHtml();
 
         Assert.Contains("&quot;rid&quot;:null", html);
     }

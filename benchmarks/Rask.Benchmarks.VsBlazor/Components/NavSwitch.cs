@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Generated;
 
-using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
@@ -14,6 +12,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     fallback. The pinned benchmark therefore measures the FULL render cost as that's
 ///     what production ships for this pattern.
 /// </summary>
+[global::Rask.Core.RaskMarkup]
 internal static partial class NavSwitch
 {
     public const int TabCount = 5;
@@ -25,23 +24,23 @@ internal static partial class NavSwitch
         for (var t = 0; t < TabCount; t++)
         {
             var isActive = t == activeTab;
-            tabs.Add(CH.Li(Class: isActive ? "tab active" : "tab")[
-                C.A($"#t{t}")[$"Tab {t}"]
+            tabs.Add(Li.Class(isActive ? "tab active" : "tab")[
+                A.Href($"#t{t}")[$"Tab {t}"]
             ]);
         }
 
         var contentRows = new List<Component>(RowsPerTab);
         for (var i = 0; i < RowsPerTab; i++)
         {
-            contentRows.Add(C.Div(Class: "row")[
-                CH.Span(Class: "label")[$"Tab {activeTab} row {i}"],
-                C.A($"/tab/{activeTab}/{i}")[$"open {i}"]
+            contentRows.Add(Div.Class("row")[
+                Span.Class("label")[$"Tab {activeTab} row {i}"],
+                A.Href($"/tab/{activeTab}/{i}")[$"open {i}"]
             ]);
         }
 
-        return C.Div(Class: "nav-shell")[
-            CH.Nav()[CH.Ul()[tabs]],
-            CH.Main($"tab-{activeTab}")[contentRows]
+        return Div.Class("nav-shell")[
+            Nav[Ul[tabs]],
+            Main.Id($"tab-{activeTab}")[contentRows]
         ];
     }
 

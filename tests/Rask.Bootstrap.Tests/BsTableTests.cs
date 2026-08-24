@@ -111,26 +111,31 @@ public partial class BsTableTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void EveryParameter_IsOptional_AndTheNewOnesAreAppended()
+    public void EveryPropertyStaysOptional_SoNoChainStepBecomesMandatory()
     {
-        // BsTable ships in a published package: a renamed, reordered or newly-required parameter silently
-        // re-binds every positional caller. Two generator rules make that easy to trip over
-        // (ComponentFactoryGenerator.Sort): parameters are ordered by inheritance depth with the DERIVED
-        // class first — so BsTable's own toggles lead and Id/Class arrive behind them from BsBlock, not in
-        // front — and within a level, by declaration order. So "append" means at the end of BsTable's own
-        // block, above the inherited pass-throughs. A required parameter (a non-nullable property with no
-        // initializer, RASK001) would also be hoisted ahead of everything, which is why the new trio is
-        // nullable.
-        // Fully qualified: this assembly declares components of its own now, so the generator emits a
-        // `Rask.Bootstrap.Tests.Generated` too — and a bare `Generated` binds to that nearer one.
-        var names = typeof(Rask.Bootstrap.Generated).GetMethods().Single(m => m.Name == "BsTable")
-            .GetParameters();
+        // BsTable ships in a published package. Ordering no longer matters — a chain names every step it
+        // takes — but a property turning non-nullable with no member initializer (RASK001) does: it becomes
+        // a step every existing caller must now take, which is a source break in a minor release.
+        //
+        // Read from the published attribute rather than from the property types, because that is the only
+        // place the answer survives metadata: a member initializer compiles into the constructor, so
+        // `string Color` and `string Color = ""` are the same symbol from here.
+        var published = typeof(BsTable).Assembly
+            .GetCustomAttributes(typeof(RaskRequiredPropertiesAttribute), false)
+            .Cast<RaskRequiredPropertiesAttribute>()
+            .Where(a => a.Component == "Rask.Bootstrap.BsTable")
+            .SelectMany(a => a.Properties)
+            .ToList();
 
+        Assert.Empty(published);
+
+        // The surface itself, so a rename or a removal is still caught.
         Assert.Equal(
-            ["Color", "Striped", "StripedColumns", "Bordered", "Borderless", "Hover", "Small", "Responsive"],
-            names.Take(8).Select(p => p.Name));
-
-        Assert.Equal(["Aria", "MaxHeight", "StickyHeader"], names.Skip(8).Take(3).Select(p => p.Name));
-        Assert.All(names, p => Assert.True(p.IsOptional, $"{p.Name} must stay optional"));
+            ["Aria", "Bordered", "Borderless", "Class", "Color", "Hover", "Id", "MaxHeight", "Responsive",
+             "Small", "StickyHeader", "Striped", "StripedColumns"],
+            typeof(BsTable).GetProperties()
+                .Where(p => p.GetIndexParameters().Length == 0 && p.DeclaringType != typeof(Component))
+                .Select(p => p.Name)
+                .OrderBy(n => n, StringComparer.Ordinal));
     }
 }

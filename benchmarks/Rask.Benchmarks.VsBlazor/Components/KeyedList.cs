@@ -1,15 +1,14 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Generated;
 
-using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
 ///     100 keyed rows. Re-renders shuffle two entries; the diff should encode the move
 ///     rather than the whole list. Rask uses data-rask-key; Blazor uses SetKey().
 /// </summary>
+[global::Rask.Core.RaskMarkup]
 internal static partial class KeyedList
 {
     public static Component BuildRask(int[] order)
@@ -18,14 +17,14 @@ internal static partial class KeyedList
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];
-            rows.Add(C.Div(
-                Class: "row",
-                Data: new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
-                CH.Span()[$"Item {idx}"]
+            rows.Add(Div
+                .Class("row")
+                .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
+                Span[$"Item {idx}"]
             ]);
         }
 
-        return C.Div(Class: "list")[rows];
+        return Div.Class("list")[rows];
     }
 
     // Stateful counterpart used by the live-diff payload benchmark. Mirrors the design

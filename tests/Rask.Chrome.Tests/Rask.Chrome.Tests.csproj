@@ -31,8 +31,6 @@
          test writes AppBar.Title(...) the way an app does. -->
     <Using Include="Rask.Core.Components"/>
     <Using Include="Rask.Chrome.Components"/>
-    <Using Include="Rask.Core.Components.Generated" Static="true"/>
-    <Using Include="Rask.Chrome.Components.Generated" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

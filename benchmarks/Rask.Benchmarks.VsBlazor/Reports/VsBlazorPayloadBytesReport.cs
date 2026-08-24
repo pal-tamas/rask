@@ -4,7 +4,6 @@ using Rask.Benchmarks.VsBlazor.Benchmarks;
 using Rask.Benchmarks.VsBlazor.Components;
 using Rask.Benchmarks.VsBlazor.Infrastructure;
 using Rask.Core;
-using Generated = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Reports;
 

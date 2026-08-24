@@ -8,9 +8,12 @@ using Rask.Html.Components;
 namespace Rask.Mail.Tests;
 
 /// <summary>A tiny email body component, to prove a Rask component renders to the HTML body.</summary>
-public sealed class GreetingEmail(string name) : Component
+public sealed partial class GreetingEmail : Component
 {
-    protected override Component? Render() => new Text($"Hello, {name}!");
+    /// <summary>Who the greeting addresses. Required, so it is the step that opens the chain.</summary>
+    public required string Name { get; set; }
+
+    protected override Component? Render() => Text.Value($"Hello, {Name}!");
 }
 
 /// <summary>

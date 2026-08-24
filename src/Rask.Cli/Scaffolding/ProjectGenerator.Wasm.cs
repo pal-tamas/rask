@@ -594,7 +594,7 @@ internal static partial class ProjectGenerator
                     Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
                         Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
                         Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
-                        Button("submit", Id: "login-submit")["Sign in"]
+                        Button.Type("submit").Id("login-submit")["Sign in"]
                     ]
                 ];
 

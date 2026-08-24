@@ -1,6 +1,5 @@
 <Project>
   <ItemGroup>
     <Using Include="Rask.Validation.FluentValidation"/>
-    <Using Include="Rask.Validation.FluentValidation.Generated" Static="true"/>
   </ItemGroup>
 </Project>

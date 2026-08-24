@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Components;
 // the browser — which never pass through a generated factory's GetOrCreate and so are never adopted. The
 // symptom of not adopting them is silent: they render, but no lifecycle hook ever fires, so anything that
 // loads in OnMountAsync sits on its placeholder with nothing reported.
-public sealed class MountTests
+public sealed partial class MountTests : global::Rask.Core.RaskMarkup
 {
     private sealed class Loader : Component
     {
@@ -21,7 +21,7 @@ public sealed class MountTests
             State = "loaded";
         }
 
-        protected override Component? Render() => Div(Class: "loader")[State];
+        protected override Component? Render() => Div.Class("loader")[State];
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class MountTests
         // The behaviour Mount exists to fix, pinned so the fix can't be mistaken for something that always
         // worked: handed straight over as a child, the instance renders and nothing else happens.
         var loader = NewLoader();
-        var page = RaskTest.Render(() => Div(Class: "host")[loader]);
+        var page = RaskTest.Render(() => Div.Class("host")[loader]);
 
         Assert.Contains("loader", page.Html, StringComparison.Ordinal);
         Assert.False(loader.Mounted);
@@ -40,7 +40,7 @@ public sealed class MountTests
     public async Task Mount_runs_the_sync_and_async_lifecycle_of_an_instance_it_did_not_build()
     {
         var loader = NewLoader();
-        var page = RaskTest.Render(() => Div()[Mount(Child: loader)]);
+        var page = RaskTest.Render(() => Div[Mount.Child(loader)]);
 
         Assert.True(loader.Mounted);
 
@@ -52,7 +52,7 @@ public sealed class MountTests
     [Fact]
     public void Mount_adds_no_markup_of_its_own()
     {
-        var page = RaskTest.Render(() => Div(Class: "host")[Mount(Child: Span(Class: "child")["hi"])]);
+        var page = RaskTest.Render(() => Div.Class("host")[Mount.Child(Span.Class("child")["hi"])]);
 
         Assert.Contains("<div class=\"host\"><span class=\"child\">hi</span></div>", page.Html,
             StringComparison.Ordinal);
@@ -61,7 +61,7 @@ public sealed class MountTests
     [Fact]
     public void A_null_child_renders_nothing()
     {
-        var page = RaskTest.Render(() => Div(Class: "host")[Mount(Child: null)]);
+        var page = RaskTest.Render(() => Div.Class("host")[Mount.Child(null)]);
 
         Assert.Contains("<div class=\"host\"></div>", page.Html, StringComparison.Ordinal);
     }
@@ -71,7 +71,7 @@ public sealed class MountTests
     [Fact]
     public void Wrapping_a_factory_built_child_is_harmless()
     {
-        var page = RaskTest.Render(() => Div()[Mount(Child: Span(Class: "a")["x"])]);
+        var page = RaskTest.Render(() => Div[Mount.Child(Span.Class("a")["x"])]);
 
         Assert.Contains("<span class=\"a\">x</span>", page.Html, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(page.Html, "<span"));

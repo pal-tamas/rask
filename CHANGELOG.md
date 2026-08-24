@@ -32,6 +32,40 @@ them until tagged releases begin.
   drop both when the origin becomes `https://`. The next-steps text now starts the app half first and runs
   the head from its own project, because "cd, build, run" would have built the wrong thing.
 
+### Removed
+- **The generated `Generated.X(...)` factory is gone; the chain is the only way to write markup.**
+  `Div.Class("card")[Span["hi"]]` was already the documented surface — the factory was the one it
+  replaced, kept alongside it so a migration could land project by project. Every call site in the repo
+  is converted (the deterministic rewriter in `tools/RaskBuilderRewrite` did all but six of them, and
+  trial-compiled each rewrite before accepting it), so what goes now is the second way to say the same
+  thing.
+
+  Gone with it: the per-namespace `Generated` class, the `global using static …Generated;` lines that
+  made it reachable, `[assembly: RaskFactoryNamespace]` (which existed only to carry a satellite factory
+  family across an assembly boundary), and the `RaskBuilderSurface` / `RaskGlobalUsings` /
+  `RaskFactoryNavigation` MSBuild switches. There is no switch for the chain: turning it off would leave
+  a project unable to build a component at all.
+
+  **`RASK030` is retired.** It asked you to name a factory call's arguments once three or more were
+  positional, because the generated parameter order could shift under an unrelated edit and silently
+  rebind them. A chain has no positional arguments — every step names its property — so there is nothing
+  left to misbind. The id is not reused.
+
+  **`RASK043` stays**, and keeps its diagnosis: a bare component name in a type that is not a markup host
+  is still `CS0119`, and the analyzer still says so in terms that name Rask. What it lost is the third
+  fix it used to offer ("or add `using static …Generated;`"). Derive from `Rask.Core.RaskMarkup`, or
+  mark the type `[RaskMarkup]`.
+
+  **`Route<T>(...)` is now `Route.To<T>(...)`.** A route table is not markup, so those helpers were only
+  living in the `Generated` class to ride the factory's static import. On the record itself they need no
+  import at all.
+
+  Two rules the chain has that the factory did not, surfaced while migrating the tests and now pinned in
+  `ChainPropertySelectionTests`: an **init-only property gets no chain step** (a step assigns after the
+  component exists, and `init` is callable only from an object initializer — the factory could set one
+  because it constructed with `new T { … }`), and the name **`Children` is reserved whatever its type**
+  (the factory excluded it on name *and* type; the indexer owns the word).
+
 ### Fixed
 - **An unset `NativeStack` / `NativeScreen` `Orientation` meant vertical on iOS and horizontal on Android.**
   iOS creates both with an explicit vertical axis; Android created a bare `LinearLayout`, whose platform

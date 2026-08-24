@@ -1,4 +1,3 @@
-using static Rask.Core.Tests.Generated;
 
 namespace Rask.Core.Tests;
 

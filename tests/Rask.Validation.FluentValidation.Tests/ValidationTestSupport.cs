@@ -15,13 +15,14 @@ namespace Rask.Validation.FluentValidation.Tests;
 ///     was a path no consumer could reach. Going through <c>Form</c> is what an app author actually
 ///     does, so it covers the real registration path instead of an approximation of it.
 /// </remarks>
-internal static class ValidationTestSupport
+[global::Rask.Core.RaskMarkup]
+internal static partial class ValidationTestSupport
 {
     public static EditContext RegisterValidator<T>(T model, IValidator validator) where T : class
     {
         EditContext? ctx = null;
-        RaskTest.Render(() => Form(model)[
-            FluentValidationValidator(validator),
+        RaskTest.Render(() => Form.Model(model)[
+            FluentValidationValidator.Validator(validator),
             RaskTest.EditContextProbe(c => ctx = c)
         ]);
 

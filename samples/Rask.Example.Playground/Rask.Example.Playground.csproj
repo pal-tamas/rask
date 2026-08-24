@@ -52,7 +52,6 @@
   <ItemGroup>
     <!-- Bring the generated Bs* factories into scope unqualified (BsButton()/BsLink()/BsBadge()/BsIcon()/
          BootstrapStyles()/RaskTokens()), matching how the other samples consume Rask.Bootstrap. -->
-    <Using Include="Rask.Bootstrap.Generated" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

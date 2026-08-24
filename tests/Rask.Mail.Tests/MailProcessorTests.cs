@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Mail.Tests;
 
-public sealed class MailProcessorTests
+public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
 {
     private static Email SampleEmail() =>
         Email.To("ada@example.com", "Ada").Subject("Welcome").Body("<p>hi</p>");
@@ -42,7 +42,7 @@ public sealed class MailProcessorTests
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await harness.Queue.SendAsync(Email.To("ada@example.com").Subject("Hi").Body(new GreetingEmail("Ada")));
+            await harness.Queue.SendAsync(Email.To("ada@example.com").Subject("Hi").Body(GreetingEmail.Name("Ada")));
             await harness.WaitUntilAsync(async () => harness.Sender.Sent.Count == 1);
 
             var sent = Assert.Single(harness.Sender.Sent);

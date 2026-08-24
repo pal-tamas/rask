@@ -62,7 +62,7 @@ Add a migration for the new table before running — `rask db add AddMail && ras
 await mail.SendAsync(Email
     .To(user.Email, user.Name)
     .Subject("Welcome")
-    .Body(WelcomeEmail(Name: user.Name)));                     // the generated factory, not new (RASK014)
+    .Body(WelcomeEmail.Name(user.Name)));                      // the chain, not new (RASK014)
 
 await mail.ScheduleAsync(reminder, delay: TimeSpan.FromHours(24));  // send later
 ```

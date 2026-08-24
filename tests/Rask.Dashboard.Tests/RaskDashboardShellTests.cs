@@ -13,12 +13,12 @@ namespace Rask.Dashboard.Tests;
 ///         dashboard would serve a blank or unscaled page with nothing failing anywhere else.
 ///     </para>
 /// </summary>
-public class RaskDashboardShellTests
+public partial class RaskDashboardShellTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Shell_EmitsADocument_WithTheDocumentLevelHeadTags()
     {
-        var page = RaskTest.RenderDocument(new RaskDashboardShell()).Html;
+        var page = RaskTest.RenderDocument(RaskDashboardShell).Html;
 
         // Matched on the rendered tag rather than the source text: the head block keys its tags, so the
         // attribute is what survives into the document a browser receives.
@@ -34,7 +34,7 @@ public class RaskDashboardShellTests
     [Fact]
     public void Shell_DoesNotDuplicate_WhatTheLayoutOwns()
     {
-        var page = RaskTest.RenderDocument(new RaskDashboardShell()).Html;
+        var page = RaskTest.RenderDocument(RaskDashboardShell).Html;
 
         Assert.DoesNotContain("noindex", page, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("stylesheet", page, StringComparison.OrdinalIgnoreCase);

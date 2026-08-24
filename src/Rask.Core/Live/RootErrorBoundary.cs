@@ -1,5 +1,4 @@
 using Rask.Core.Components;
-using F = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Live;
 

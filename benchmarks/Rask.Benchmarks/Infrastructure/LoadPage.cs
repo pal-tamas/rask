@@ -1,6 +1,4 @@
 using Rask.Core;
-using Bench = Rask.Benchmarks.Infrastructure.Generated;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.Infrastructure;
 

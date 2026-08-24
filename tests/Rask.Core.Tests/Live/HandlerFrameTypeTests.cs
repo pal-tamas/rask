@@ -36,7 +36,7 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
         // The mirror image, and the reason the check is not just "a data frame needs a data handler":
         // a click carries nothing, so feeding it to a value handler would silently set an empty string.
         var captured = "untouched";
-        var view = new StubComponent(() => Input<string>(OnInput: v => captured = v));
+        var view = new StubComponent(() => Input.Of<string>().OnInput(v => captured = v));
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", Frame("""{"id":"h0","type":"click"}"""));
@@ -92,7 +92,7 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
         // input and change both feed a string handler — the client sends `change` for a select and a
         // committed text edit, `input` for the coalesced keystroke.
         var captured = string.Empty;
-        var view = new StubComponent(() => Input<string>(OnInput: v => captured = v));
+        var view = new StubComponent(() => Input.Of<string>().OnInput(v => captured = v));
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync(
@@ -192,7 +192,7 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
     {
         // Both carry data, so neither is parameterless — the shapes still have to match.
         var captured = "untouched";
-        var view = new StubComponent(() => Input<string>(OnInput: v => captured = v));
+        var view = new StubComponent(() => Input.Of<string>().OnInput(v => captured = v));
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync(

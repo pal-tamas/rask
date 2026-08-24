@@ -1,17 +1,12 @@
-// rask-rewrite: keep the factory — this file holds BOTH surfaces on purpose and asserts they agree.
-// Converting the factory half would leave a test comparing a chain to itself: still green, proving
-// nothing. tools/RaskBuilderRewrite skips any file carrying this marker.
-
-using static Rask.Core.Tests.Generated;
-
 namespace Rask.Core.Tests;
 
-// PROTOTYPE — proves the builder surface is faithful: the same tree written in the entry-property /
-// setter syntax must serialize byte-identically to the generated-factory syntax, including attribute
-// order (which the framework asserts elsewhere and must not change).
+// The chain, end to end, in one tree: attributes, children, a keyed list and a component that is not a
+// plain tag. What it pins is the SERIALIZED result, attribute order included — that order is a
+// documented invariant (id, class, style, title, the plain globals, data-*, role, tabindex, aria-*,
+// Attributes, then tag-specific) and a chain must not be the thing that reorders it.
 //
-// Note the probes are components: the entry properties are `protected static` members of Component,
-// so they are only in scope inside a component body. That is deliberate — it is what lets them be
+// Note the probe is a component: the entry properties are `protected static` members of Component, so
+// they are only in scope inside a component body. That is deliberate — it is what lets them be
 // inherited rather than imported, which is what removes the global usings.
 internal sealed partial class BuilderProbe : Component
 {
@@ -31,44 +26,18 @@ internal sealed partial class BuilderProbe : Component
         ];
 }
 
-internal sealed partial class FactoryProbe : Component
-{
-    protected override Component? Render() =>
-        Div(Id: "root", Class: "card")[
-            H1(Class: "title")["Products"],
-            Table()[
-                Thead()[
-                    Tr()[Th()["#"], Th()["Name"]]
-                ],
-                Tbody()[
-                    Tr(Key: 1)[Td()["1"], Td()["Widget"]],
-                    Tr(Key: 2)[Td()["2"], Td()["Gadget"]]
-                ]
-            ],
-            NavLink(Class: "btn")["New Product"]
-        ];
-}
-
-// Both surfaces are valid in the same expression — this is what makes migration incremental.
-internal sealed partial class MixedProbe : Component
-{
-    protected override Component? Render() => Div()[Span()["a"], P["b"]];
-}
-
-public class BuilderSurfaceTests
+public partial class BuilderSurfaceTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Builder_surface_renders_identically_to_the_factory() =>
-        Assert.Equal(FactoryProbe().ToHtml(), BuilderProbe().ToHtml());
+    public void The_chain_serializes_the_whole_tree() =>
+        Assert.Equal(
+            "<div id=\"root\" class=\"card\"><h1 class=\"title\">Products</h1><table><thead><tr><th>#</th><th>Name</th></tr></thead><tbody><tr data-rask-key=\"1\"><td>1</td><td>Widget</td></tr><tr data-rask-key=\"2\"><td>2</td><td>Gadget</td></tr></tbody></table><a class=\"btn\" data-rask-nav>New Product</a></div>",
+            BuilderProbe.Value.ToHtml());
 
     [Fact]
-    public void Builder_surface_preserves_attribute_order() =>
+    public void The_chain_preserves_attribute_order() =>
         Assert.Contains(
             "<div id=\"root\" class=\"card\">",
-            BuilderProbe().ToHtml(),
+            BuilderProbe.Value.ToHtml(),
             StringComparison.Ordinal);
-
-    [Fact]
-    public void Both_surfaces_compose_in_one_tree() =>
-        Assert.Equal("<div><span>a</span><p>b</p></div>", MixedProbe().ToHtml());
 }

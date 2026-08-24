@@ -1,20 +1,15 @@
-// rask-rewrite: keep the factory — this file holds BOTH surfaces on purpose and asserts they agree.
-// Converting the factory half would leave a test comparing a chain to itself: still green, proving
-// nothing. tools/RaskBuilderRewrite skips any file carrying this marker.
-
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // the tests need the very instance they hand to the render context
 
 namespace Rask.Core.Tests;
 
-// PROTOTYPE — a builder entry must leave its component in the state the FACTORY would have left it,
-// including for the props the call site did NOT mention.
+// A builder entry must leave its component in the state a call site that never mentioned a prop would
+// expect: at the prop's default, not at whatever the previous render left there.
 //
-// A generated factory assigns every parameter each render, so `Div(Id: "x")` on one render and `Div()`
-// on the next puts Id back to null. A setter chain writes only what it names and the entry hands back
-// the same instance, so without a reset the id survives — silently wrong HTML at every conditional call
-// site, not merely a missed callback. The reset is split in two (see BuilderRuntime): the non-folding
+// A setter chain writes only what it names and the entry hands back the same instance, so without a
+// reset `Div.Id("x")` on one render and `Div` on the next keeps the id — silently wrong HTML at every
+// conditional call site, not merely a missed callback. The reset is split in two (see BuilderRuntime): the non-folding
 // props are defaulted when the entry is created, the folding ones only at the end of the parent's
 // Render(), so `Track` still compares against last render's value rather than a freshly blanked one.
 internal sealed partial class ResetLeaf : Component
@@ -46,19 +41,6 @@ internal sealed partial class ResetBuilderHost : Component
         Div[Leaf = Full ? ResetLeaf.Word("w").Note("L").Count(3).OnPing(() => { }).Value : ResetLeaf];
 }
 
-internal sealed partial class ResetFactoryHost : Component
-{
-    internal bool Full = true;
-    internal ResetLeaf? Leaf;
-
-    protected override Component? Render() =>
-        Div()[
-            Leaf = Full
-                ? Generated.ResetLeaf(Word: "w", Note: "L", Count: 3, OnPing: () => { })
-                : Generated.ResetLeaf()
-        ];
-}
-
 // The element half: attributes AND the DOM-event surface, which is where the omitted-prop bug is
 // loudest — every conditional `Div.Class(...)` call site in a real app hits it.
 internal sealed partial class ResetElementBuilderHost : Component
@@ -67,14 +49,6 @@ internal sealed partial class ResetElementBuilderHost : Component
 
     protected override Component? Render() =>
         Full ? Div.Id("x").Class("c").Title("t").OnClick(() => { }) : Div;
-}
-
-internal sealed partial class ResetElementFactoryHost : Component
-{
-    internal bool Full = true;
-
-    protected override Component? Render() =>
-        Full ? Div(Id: "x", Class: "c", Title: "t", OnClick: () => { }) : Div();
 }
 
 // The shape the Shop migration pilot broke on, reduced to its bones: a property whose SETTER DERIVES
@@ -105,24 +79,6 @@ internal sealed partial class DerivedSetterBuilderHost : Component
     protected override Component? Render() => Div[DerivedSetterLeaf];
 }
 
-internal sealed partial class DerivedSetterFactoryHost : Component
-{
-    protected override Component? Render() => Div()[Generated.DerivedSetterLeaf()];
-}
-
-// Both surfaces in one tree: a factory-built component must not be touched by the entry machinery —
-// it re-assigns every parameter itself, and a stray reset would fight it.
-internal sealed partial class ResetMixedHost : Component
-{
-    internal bool Full = true;
-
-    protected override Component? Render() =>
-        Div[
-            Full ? Span.Id("keep") : Span.Id("keep"),
-            Full ? Rask.Core.Components.Generated.P(Id: "factory") : Rask.Core.Components.Generated.P()
-        ];
-}
-
 public class BuilderResetTests
 {
     // One live render, driven the way a parent whose own props moved would drive it, so the host
@@ -140,15 +96,11 @@ public class BuilderResetTests
     {
         var sp = RenderHarness.EmptyServices();
         var builder = new ResetElementBuilderHost();
-        var factory = new ResetElementFactoryHost();
 
-        Assert.Equal(Render(factory, sp), Render(builder, sp));
+        Assert.Contains("id=\"x\"", Render(builder, sp), StringComparison.Ordinal);
         builder.Full = false;
-        factory.Full = false;
 
-        var expected = Render(factory, sp);
-        Assert.Equal("<div></div>", expected);
-        Assert.Equal(expected, Render(builder, sp));
+        Assert.Equal("<div></div>", Render(builder, sp));
     }
 
     [Fact]
@@ -156,15 +108,12 @@ public class BuilderResetTests
     {
         var sp = RenderHarness.EmptyServices();
         var builder = new ResetBuilderHost();
-        var factory = new ResetFactoryHost();
 
-        Assert.Equal(Render(factory, sp), Render(builder, sp));
+        Assert.Equal("<div><span>w|L|3|on</span></div>", Render(builder, sp));
         builder.Full = false;
-        factory.Full = false;
 
-        var expected = Render(factory, sp);
-        Assert.Equal("<div><span>-|n/a|7|off</span></div>", expected);
-        Assert.Equal(expected, Render(builder, sp));
+        // Note goes back to "n/a" and Count to 7 — the member initializers, not null and not zero.
+        Assert.Equal("<div><span>-|n/a|7|off</span></div>", Render(builder, sp));
     }
 
     // The regression the migration pilot found, at the size it can be reasoned about. A bare entry has
@@ -175,41 +124,28 @@ public class BuilderResetTests
     {
         var sp = RenderHarness.EmptyServices();
         var builder = new DerivedSetterBuilderHost();
-        var factory = new DerivedSetterFactoryHost();
 
-        var expected = Render(factory, sp);
-        Assert.Equal("<div><span>built</span></div>", expected);
-        Assert.Equal(expected, Render(builder, sp));
+        Assert.Equal("<div><span>built</span></div>", Render(builder, sp));
 
         // And again: the second render is the one where the value is already there, so it is where an
         // unconditional write has to stay a write and must not start reporting a prop change for it.
-        // (The FACTORY does report one here — it folds last render's derived value against the null it
-        // passes, which never compare equal — so this is the one place the entry is deliberately better
-        // than what it replaces rather than identical to it. `Router()` has been marking itself
-        // prop-changed on every render since it was written; it is invisible only because Router opts
-        // out of the render cache.)
-        Assert.Equal(expected, Render(factory, sp));
-        Assert.Equal(expected, Render(builder, sp));
+        Assert.Equal("<div><span>built</span></div>", Render(builder, sp));
     }
 
     // Dropping a prop IS a prop change — the entry-built child must be marked dirty for it, or the
     // render cache would serve the subtree it produced while the prop was still set.
     [Fact]
-    public void Dropping_a_prop_reports_the_same_prop_change_the_factory_does()
+    public void Dropping_a_prop_reports_a_prop_change()
     {
         var sp = RenderHarness.EmptyServices();
         var builder = new ResetBuilderHost();
-        var factory = new ResetFactoryHost();
 
         Render(builder, sp);
-        Render(factory, sp);
         builder.Full = false;
-        factory.Full = false;
         Render(builder, sp);
-        Render(factory, sp);
 
-        Assert.Equal(factory.Leaf!.PropsChanges, builder.Leaf!.PropsChanges);
-        Assert.Equal(2, builder.Leaf.PropsChanges);
+        // Two: the first render supplying them, the second taking them away.
+        Assert.Equal(2, builder.Leaf!.PropsChanges);
     }
 
     // The other half of the fold, and the reason the folding props are reset at the END of the render
@@ -221,27 +157,13 @@ public class BuilderResetTests
     {
         var sp = RenderHarness.EmptyServices();
         var builder = new ResetBuilderHost();
-        var factory = new ResetFactoryHost();
 
         for (var i = 0; i < 3; i++)
         {
             Render(builder, sp);
-            Render(factory, sp);
         }
 
-        Assert.Equal(factory.Leaf!.PropsChanges, builder.Leaf!.PropsChanges);
-        Assert.Equal(1, builder.Leaf.PropsChanges);
-    }
-
-    [Fact]
-    public void A_factory_built_sibling_keeps_its_own_props()
-    {
-        var sp = RenderHarness.EmptyServices();
-        var host = new ResetMixedHost();
-
-        Assert.Equal("<div><span id=\"keep\"></span><p id=\"factory\"></p></div>", Render(host, sp));
-        host.Full = false;
-        Assert.Equal("<div><span id=\"keep\"></span><p></p></div>", Render(host, sp));
+        Assert.Equal(1, builder.Leaf!.PropsChanges);
     }
 
     // A nested ToHtml() mid-Render must not strand either of the surrounding entries' pending resets —
@@ -311,11 +233,9 @@ internal sealed partial class KeyedResetHost : Component
     protected override Component? Render() => Div[Leaf = Keyed ? ResetLeaf.Key(7).Value : ResetLeaf];
 }
 
-// A RASK001-required prop: non-nullable, no member initializer. The generated factory makes it a
-// required ARGUMENT and re-applies it every render, so it can never go stale there — which is why the
-// generator used to withhold the entry from any component that had one, and why nothing had to reset
-// it. Now that those components DO get an entry, the reset is what stands in for the argument: a chain
-// that stops naming the prop has nothing to re-apply, and the entry hands back the same instance.
+// A RASK001-required prop: non-nullable, no member initializer. A chain makes it a STEP rather than a
+// stored argument, so a chain that stops naming it has nothing to re-apply and the entry hands back the
+// same instance — the reset is what stands in for the argument.
 //
 // RASK038 reports the omission at the call site, but only for a chain it can read end to end. This is
 // the shape it explicitly cannot (RASK039) — and the whole reason the two halves are separate.
@@ -357,7 +277,7 @@ internal sealed partial class NestedRenderResetHost : Component
     protected override Component? Render() =>
         Div[
             Full ? Span.Id("first") : Span,
-            Raw(new NestedRenderInner().ToHtml()),
+            Raw.Value(new NestedRenderInner().ToHtml()),
             Full ? Em.Id("last") : Em
         ];
 }

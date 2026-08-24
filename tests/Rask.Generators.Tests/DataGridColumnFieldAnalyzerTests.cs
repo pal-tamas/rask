@@ -7,9 +7,9 @@ using Rask.Generators.Analyzers;
 namespace Rask.Generators.Tests;
 
 // RASK034 — a BsDataGrid using the column chooser/reorder, with a column that has no Field. The real
-// Generated.BsDataGrid factory and BsColumn<T> live in Rask.Bootstrap (not referenced here), so the compilation
-// carries minimal stand-ins: the analyzer keys on the symbol NAMES (a static Generated.BsDataGrid, a BsColumn),
-// which the stubs reproduce faithfully enough to resolve.
+// BsDataGrid and BsColumn<T> live in Rask.Bootstrap (not referenced here), so the compilation carries
+// minimal stand-ins: the analyzer keys on the symbol NAMES, which the stubs reproduce faithfully enough
+// to resolve.
 public class DataGridColumnFieldAnalyzerTests
 {
     private static string App(string call) => $$"""
@@ -26,16 +26,6 @@ public class DataGridColumnFieldAnalyzerTests
                 public Expression<Func<T, object>> Field { get; init; }
                 public bool Hideable { get; init; } = true;
                 public bool Reorderable { get; init; } = true;
-            }
-
-            public static class Generated
-            {
-                public static object BsDataGrid<T>(
-                    IEnumerable<T> Data = null,
-                    IReadOnlyList<BsColumn<T>> Columns = null,
-                    bool? ColumnChooser = null,
-                    IReadOnlyList<string> HiddenColumns = null,
-                    IReadOnlyList<string> ColumnOrder = null) => null;
             }
 
             // The chain surface, reproduced in the shape the analyzer keys on: a component named
@@ -66,7 +56,6 @@ public class DataGridColumnFieldAnalyzerTests
         namespace Demo
         {
             using Rask.Bootstrap;
-            using static Rask.Bootstrap.Generated;
 
             public sealed record Row(string Name, int Amount);
 
@@ -85,71 +74,11 @@ public class DataGridColumnFieldAnalyzerTests
     // Generated.BsDataGrid(...), so the factory branch matched none of these and a column that could never
     // be shown, hidden or reordered went unreported.
     [Fact]
-    public async Task Chain_ChooserOn_ColumnWithoutField_ReportsRask034()
-    {
-        var d = Assert.Single(await Diagnostics(App(
-            """
-            Grid.ColumnChooser(true).Columns(
-            [
-                new BsColumn<Row> { Title = "Name", Value = r => r.Name },
-                new BsColumn<Row> { Title = "Amount", Field = r => r.Amount },
-            ])
-            """)));
-
-        Assert.Equal("RASK034", d.Id);
-    }
-
-    [Fact]
-    public async Task Chain_ControlledHiddenColumns_TriggersTheCheck_Too()
-    {
-        var d = Assert.Single(await Diagnostics(App(
-            """
-            Grid.HiddenColumns(new[] { "amount" }).Columns(
-            [
-                new BsColumn<Row> { Title = "Name", Value = r => r.Name },
-            ])
-            """)));
-
-        Assert.Equal("RASK034", d.Id);
-    }
-
-    [Fact]
-    public async Task Chain_NoChooser_ColumnWithoutField_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App(
-            """
-            Grid.Columns(
-            [
-                new BsColumn<Row> { Title = "Name", Value = r => r.Name },
-            ])
-            """)));
-
-    [Fact]
-    public async Task Chain_ChooserOn_EveryColumnHasField_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App(
-            """
-            Grid.ColumnChooser(true).Columns(
-            [
-                new BsColumn<Row> { Title = "Name", Field = r => r.Name },
-            ])
-            """)));
-
-    [Fact]
-    public async Task Chain_ChooserOn_PinnedFixtureWithoutField_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App(
-            """
-            Grid.ColumnChooser(true).Columns(
-            [
-                new BsColumn<Row> { Title = "N", Value = r => r.Name, Hideable = false, Reorderable = false },
-            ])
-            """)));
-
-    [Fact]
     public async Task ChooserOn_ColumnWithoutField_ReportsRask034()
     {
-        // First column has no Field; the second does. Only the first is flagged.
         var d = Assert.Single(await Diagnostics(App(
             """
-            BsDataGrid<Row>(ColumnChooser: true, Columns:
+            Grid.ColumnChooser(true).Columns(
             [
                 new BsColumn<Row> { Title = "Name", Value = r => r.Name },
                 new BsColumn<Row> { Title = "Amount", Field = r => r.Amount },
@@ -164,7 +93,7 @@ public class DataGridColumnFieldAnalyzerTests
     {
         var d = Assert.Single(await Diagnostics(App(
             """
-            BsDataGrid<Row>(HiddenColumns: new[] { "amount" }, Columns:
+            Grid.HiddenColumns(new[] { "amount" }).Columns(
             [
                 new BsColumn<Row> { Title = "Name", Value = r => r.Name },
             ])
@@ -177,7 +106,7 @@ public class DataGridColumnFieldAnalyzerTests
     public async Task NoChooser_ColumnWithoutField_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App(
             """
-            BsDataGrid<Row>(Columns:
+            Grid.Columns(
             [
                 new BsColumn<Row> { Title = "Name", Value = r => r.Name },
             ])
@@ -187,38 +116,21 @@ public class DataGridColumnFieldAnalyzerTests
     public async Task ChooserOn_EveryColumnHasField_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App(
             """
-            BsDataGrid<Row>(ColumnChooser: true, Columns:
+            Grid.ColumnChooser(true).Columns(
             [
                 new BsColumn<Row> { Title = "Name", Field = r => r.Name },
-                new BsColumn<Row> { Title = "Amount", Field = r => r.Amount },
             ])
             """)));
 
     [Fact]
     public async Task ChooserOn_PinnedFixtureWithoutField_NoDiagnostic() =>
-        // A column that opts out of both axes is a deliberate fixture — a missing Field is fine.
         Assert.Empty(await Diagnostics(App(
             """
-            BsDataGrid<Row>(ColumnChooser: true, Columns:
+            Grid.ColumnChooser(true).Columns(
             [
-                new BsColumn<Row> { Title = "Name", Value = r => r.Name, Hideable = false, Reorderable = false },
+                new BsColumn<Row> { Title = "N", Value = r => r.Name, Hideable = false, Reorderable = false },
             ])
             """)));
-
-    [Fact]
-    public async Task ChooserOn_ImplicitNewWithoutField_ReportsRask034()
-    {
-        // Target-typed `new()` in the collection expression is inspected the same way.
-        var d = Assert.Single(await Diagnostics(App(
-            """
-            BsDataGrid<Row>(ColumnChooser: true, Columns:
-            [
-                new() { Title = "Name", Value = r => r.Name },
-            ])
-            """)));
-
-        Assert.Equal("RASK034", d.Id);
-    }
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {

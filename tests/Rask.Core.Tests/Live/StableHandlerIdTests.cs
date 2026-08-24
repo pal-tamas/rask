@@ -14,7 +14,7 @@ namespace Rask.Core.Tests.Live;
 //
 // Each case asserts the id AND that dispatch still lands on the right delegate, because a stable id
 // that resolves to the wrong handler is worse than an unstable one.
-public class StableHandlerIdTests
+public partial class StableHandlerIdTests : global::Rask.Core.RaskMarkup
 {
     private static JsonElement EmptyPayload => JsonDocument.Parse("{}").RootElement;
 
@@ -45,11 +45,11 @@ public class StableHandlerIdTests
         }
 
         protected override Component? Render() => _expanded
-            ? Div(Class: "t-wrap")[
-                Div(Class: "t-extra", OnClick: () => ExtraClicks++)["extra"],
-                Div(Class: "t-own", OnClick: () => OwnClicks++)["own"]
+            ? Div.Class("t-wrap")[
+                Div.Class("t-extra").OnClick(() => ExtraClicks++)["extra"],
+                Div.Class("t-own").OnClick(() => OwnClicks++)["own"]
             ]
-            : Div(Class: "t-wrap")[Div(Class: "t-own", OnClick: () => OwnClicks++)["own"]];
+            : Div.Class("t-wrap")[Div.Class("t-own").OnClick(() => OwnClicks++)["own"]];
     }
 
     private sealed class Steady : Component
@@ -57,7 +57,7 @@ public class StableHandlerIdTests
         public int Clicks;
 
         protected override Component? Render() =>
-            Div(Class: "steady", OnClick: () => Clicks++)["steady"];
+            Div.Class("steady").OnClick(() => Clicks++)["steady"];
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class StableHandlerIdTests
     {
         var toggler = new Toggler();
         var steady = new Steady();
-        var root = new StubComponent(() => Div(Class: "page")[toggler, steady]);
+        var root = new StubComponent(() => Div.Class("page")[toggler, steady]);
 
         var before = root.RenderAsLiveRoot();
         var steadyId = IdOn(before, "steady");
@@ -103,10 +103,10 @@ public class StableHandlerIdTests
         }
 
         protected override Component? Render() =>
-            Div(Class: "three")[
-                Div(Class: "h-a", OnClick: () => CountA++)[$"a{Version}"],
-                Div(Class: "h-b", OnClick: () => CountB++)["b"],
-                Div(Class: "h-c", OnClick: () => CountC++)["c"]
+            Div.Class("three")[
+                Div.Class("h-a").OnClick(() => CountA++)[$"a{Version}"],
+                Div.Class("h-b").OnClick(() => CountB++)["b"],
+                Div.Class("h-c").OnClick(() => CountC++)["c"]
             ];
     }
 
@@ -114,7 +114,7 @@ public class StableHandlerIdTests
     public async Task MultiHandlerComponent_KeepsEverySlotId_AcrossRenders_AndEachStillDispatches()
     {
         var three = new ThreeHandlers();
-        var root = new StubComponent(() => Div(Class: "page")[three]);
+        var root = new StubComponent(() => Div.Class("page")[three]);
 
         var before = root.RenderAsLiveRoot();
         var (a, b, c) = (IdOn(before, "h-a"), IdOn(before, "h-b"), IdOn(before, "h-c"));
@@ -145,7 +145,7 @@ public class StableHandlerIdTests
         public void OnExternal() => External++;
 
         protected override Component? Render() =>
-            Div(Class: "callee", OnClick: () => Own++)["callee"];
+            Div.Class("callee").OnClick(() => Own++)["callee"];
     }
 
     private sealed class Caller : Component
@@ -160,11 +160,11 @@ public class StableHandlerIdTests
         }
 
         protected override Component? Render() => _wired
-            ? Div(Class: "caller-wrap")[
-                Div(Class: "to-callee", OnClick: Target!.OnExternal)["call out"],
-                Div(Class: "caller", OnClick: () => { })["caller"]
+            ? Div.Class("caller-wrap")[
+                Div.Class("to-callee").OnClick(Target!.OnExternal)["call out"],
+                Div.Class("caller").OnClick(() => { })["caller"]
             ]
-            : Div(Class: "caller-wrap")[Div(Class: "caller", OnClick: () => { })["caller"]];
+            : Div.Class("caller-wrap")[Div.Class("caller").OnClick(() => { })["caller"]];
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class StableHandlerIdTests
         // the component it was passed from.
         var callee = new Callee();
         var caller = new Caller { Target = callee };
-        var root = new StubComponent(() => Div(Class: "page")[caller, callee]);
+        var root = new StubComponent(() => Div.Class("page")[caller, callee]);
 
         var before = root.RenderAsLiveRoot();
         var calleeId = IdOn(before, "callee");
@@ -205,14 +205,14 @@ public class StableHandlerIdTests
     {
         public int Clicks;
 
-        protected override Component? Render() => Div(Class: "leaf-a", OnClick: () => Clicks++)["a"];
+        protected override Component? Render() => Div.Class("leaf-a").OnClick(() => Clicks++)["a"];
     }
 
     private sealed class LeafB : Component
     {
         public int Clicks;
 
-        protected override Component? Render() => Div(Class: "leaf-b", OnClick: () => Clicks++)["b"];
+        protected override Component? Render() => Div.Class("leaf-b").OnClick(() => Clicks++)["b"];
     }
 
     [Fact]
@@ -225,8 +225,8 @@ public class StableHandlerIdTests
         var leafA = new LeafA();
         var leafB = new LeafB();
         var root = new StubComponent(() => showA
-            ? Div(Class: "page")[leafA]
-            : Div(Class: "page")[leafB]);
+            ? Div.Class("page")[leafA]
+            : Div.Class("page")[leafB]);
 
         var before = root.RenderAsLiveRoot();
         var idA = IdOn(before, "leaf-a");
@@ -250,7 +250,7 @@ public class StableHandlerIdTests
         public int Index;
 
         protected override Component? Render() =>
-            Div(Class: $"row-{Index}", OnClick: () => Clicks++)[$"row {Index}"];
+            Div.Class($"row-{Index}").OnClick(() => Clicks++)[$"row {Index}"];
     }
 
     [Fact]
@@ -263,7 +263,7 @@ public class StableHandlerIdTests
         // instance for a given list position — constructing fresh rows every render would instead be
         // testing a page that remounts its whole list, which has no ids to keep.
         var rows = new List<Component>();
-        var root = new StubComponent(() => Div(Class: "page")[rows]);
+        var root = new StubComponent(() => Div.Class("page")[rows]);
 
         var settled = new Dictionary<int, string>();
         var issued = new HashSet<int>();
@@ -303,14 +303,14 @@ public class StableHandlerIdTests
         // second Render of the same instance builds a fresh root. So a component that changes root
         // re-mints its slots from the new root's sequence.
         var shared = new Steady();
-        var firstRoot = new StubComponent(() => Div(Class: "page")[shared]);
+        var firstRoot = new StubComponent(() => Div.Class("page")[shared]);
         var firstHtml = firstRoot.RenderAsLiveRoot();
         var idUnderFirst = IdOn(firstHtml, "steady");
 
         // The second root renders a handler of its own BEFORE the shared component, so if the shared
         // one keeps its old id the two collide on the number the new root issues first.
         var native = new Steady();
-        var secondRoot = new StubComponent(() => Div(Class: "page")[native, shared]);
+        var secondRoot = new StubComponent(() => Div.Class("page")[native, shared]);
         var secondHtml = secondRoot.RenderAsLiveRoot();
 
         var nativeId = IdOn(secondHtml, "steady");
@@ -335,10 +335,10 @@ public class StableHandlerIdTests
         // them in walk order — so an initial page is byte-identical to what the positional counter
         // produced. This is what keeps the change invisible to the client and to every existing
         // expected-HTML test.
-        var root = new StubComponent(() => Div(Class: "page")[
-            Div(Class: "one", OnClick: () => { })["1"],
-            Div(Class: "two", OnClick: () => { })["2"],
-            Div(Class: "three", OnClick: () => { })["3"]
+        var root = new StubComponent(() => Div.Class("page")[
+            Div.Class("one").OnClick(() => { })["1"],
+            Div.Class("two").OnClick(() => { })["2"],
+            Div.Class("three").OnClick(() => { })["3"]
         ]);
 
         var html = root.RenderAsLiveRoot();

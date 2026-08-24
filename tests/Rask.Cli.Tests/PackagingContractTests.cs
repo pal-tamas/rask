@@ -125,9 +125,8 @@ public sealed class PackagingContractTests
             .Select(e => e.Attribute("Include")?.Value)
             .ToList();
 
-        Assert.Contains("RaskGlobalUsings", visible);
         Assert.Contains("RaskScopedJsAutoInclude", visible);
-        Assert.Contains("RaskFactoryNavigation", visible);
+        Assert.Contains("RaskBuilderEntryInjection", visible);
     }
 
     /// <summary>

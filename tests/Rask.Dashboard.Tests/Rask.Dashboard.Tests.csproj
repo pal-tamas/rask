@@ -46,6 +46,8 @@
     <!-- The Logs page grows a store-backed History mode; these render it without a browser. -->
     <ProjectReference Include="..\..\src\Rask.Logging\Rask.Logging.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>

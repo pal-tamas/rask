@@ -66,11 +66,10 @@ internal readonly record struct PlaygroundCompilation(
     }
 
     /// <summary>
-    ///     Turns the builder surface on for the in-browser compile. In a real project the MSBuild property
-    ///     <c>RaskBuilderSurface</c> (defaulted to <c>true</c> by <c>Rask.Core.targets</c>) reaches the
-    ///     generator as a <c>CompilerVisibleProperty</c>; here there is no MSBuild, and an absent value reads
-    ///     as <c>false</c> — which emits no builder entries at all, so a chain over a component the visitor
-    ///     just wrote would not compile. Hand-built drivers have to say it themselves.
+    ///     The generator's MSBuild inputs for the in-browser compile. There is no MSBuild here, so every
+    ///     value is absent — which is what this stands in for. Absent is the right answer for all of them
+    ///     now (the chain is emitted unconditionally, and entry injection defaults on), so this exists to
+    ///     hand the driver a provider rather than to change an answer; a future opt-out would be stated here.
     /// </summary>
     private sealed class BuilderSurfaceOptions : AnalyzerConfigOptionsProvider
     {

@@ -5,7 +5,6 @@ using Rask.Core.Authentication;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Wasm.Files;
-using static Rask.Core.Components.Generated;
 
 #pragma warning disable RASK014 // test-defined Component subclass has no generated factory
 #pragma warning disable RASK019 // test-infra app predates framework-managed <head>

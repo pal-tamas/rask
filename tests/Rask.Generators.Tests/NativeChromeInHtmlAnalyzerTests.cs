@@ -14,13 +14,10 @@ public class NativeChromeInHtmlAnalyzerTests
     {
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Html.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
-                      protected override Component? Render() => Div()[NativeHeaderBar()];
+                      protected override Component? Render() => Div[NativeHeaderBar];
                   }
                   """;
 
@@ -44,12 +41,11 @@ public class NativeChromeInHtmlAnalyzerTests
     {
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
                   using Rask.Native.Components;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
-                      protected override Component? Render() => Div()[default(Build<NativeHeaderBar>)];
+                      protected override Component? Render() => Div[default(Build<NativeHeaderBar>)];
                   }
                   """;
 
@@ -62,16 +58,13 @@ public class NativeChromeInHtmlAnalyzerTests
     public async Task NativeComponentInsideNativeWebViewContent_ReportsRask032()
     {
         // The HTML that NativeWebView hosts must not contain native chrome — a bar there is the same mistake as
-        // a bar inside any other element (the NativeWebView()[...] children indexer is what's flagged).
+        // a bar inside any other element (the NativeWebView[...] children indexer is what's flagged).
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Html.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
-                      protected override Component? Render() => NativeWebView()[NativeHeaderBar()];
+                      protected override Component? Render() => NativeWebView[NativeHeaderBar];
                   }
                   """;
 
@@ -89,16 +82,13 @@ public class NativeChromeInHtmlAnalyzerTests
         // element-children indexer, so returning native chrome from Render() is legal.
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Html.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
                       protected override Component? Render() =>
                       [
                           NativeHeaderBar(),
-                          NativeWebView()[Div()[Span()]],
+                          NativeWebView[Div[Span]],
                           NativeTabBar()
                       ];
                   }
@@ -114,12 +104,10 @@ public class NativeChromeInHtmlAnalyzerTests
     {
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Html.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
-                      protected override Component? Render() => Div()[Span()];
+                      protected override Component? Render() => Div[Span];
                   }
                   """;
 
@@ -135,13 +123,10 @@ public class NativeChromeInHtmlAnalyzerTests
         // element-child placement that flags in a consumer is skipped there.
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Html.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
-                      protected override Component? Render() => Div()[NativeHeaderBar()];
+                      protected override Component? Render() => Div[NativeHeaderBar];
                   }
                   """;
 
@@ -157,12 +142,10 @@ public class NativeChromeInHtmlAnalyzerTests
         // unrecognized type and the rule went quiet — green on the syntax the docs actually teach.
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
-                      protected override Component? Render() => Div[NativeHeaderBar()];
+                      protected override Component? Render() => Div[NativeHeaderBar];
                   }
                   """;
 
@@ -179,12 +162,10 @@ public class NativeChromeInHtmlAnalyzerTests
         // A pure-native screen has no WebView behind it, so a Div there renders nothing at all.
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
-                      protected override Component? Render() => NativeScreen()[Div];
+                      protected override Component? Render() => NativeScreen[Div];
                   }
                   """;
 
@@ -200,12 +181,10 @@ public class NativeChromeInHtmlAnalyzerTests
     {
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
-                      protected override Component? Render() => NativeScreen()[NativeStack()[Span()]];
+                      protected override Component? Render() => NativeScreen[NativeStack[Span]];
                   }
                   """;
 
@@ -221,13 +200,11 @@ public class NativeChromeInHtmlAnalyzerTests
         // mistaken for "a native component in the HTML tree".
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
                       protected override Component? Render() =>
-                          NativeScreen()[NativeStack()[NativeLabel()["hi"], NativeButton()["go"]]];
+                          NativeScreen[NativeStack[NativeLabel["hi"], NativeButton["go"]]];
                   }
                   """;
 
@@ -242,14 +219,12 @@ public class NativeChromeInHtmlAnalyzerTests
         // One app, two surfaces — markup inside the WebView, native views inside the screen.
         var src = """
                   using Rask.Core;
-                  using static Rask.Core.Components.Generated;
-                  using static Rask.Native.Components.Generated;
                   namespace Demo;
-                  public sealed class Page : Component
+                  public sealed partial class Page : Component
                   {
                       public bool Native { get; set; }
                       protected override Component? Render() =>
-                          Native ? NativeScreen()[NativeLabel()["hi"]] : NativeWebView()[Div()[Span()]];
+                          Native ? NativeScreen[NativeLabel["hi"]] : NativeWebView[Div[Span]];
                   }
                   """;
 

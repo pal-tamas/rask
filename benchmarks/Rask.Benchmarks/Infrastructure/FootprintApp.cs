@@ -1,8 +1,5 @@
 using Rask.Core;
-using BI = Rask.Benchmarks.Infrastructure.Generated;
-using C = Rask.Core.Components.Generated;
 
-using CH = Rask.Html.Components.Generated;
 namespace Rask.Benchmarks.Infrastructure;
 
 /// <summary>
@@ -42,7 +39,7 @@ public sealed partial class FootprintApp : Component
     // emits it; the reports build the page via BI.FootprintApp(RowCount: n).
     public int RowCount { get; set; }
 
-    protected override Component? HeadAssets => C.Title()["rask session footprint"];
+    protected override Component? HeadAssets => Title["rask session footprint"];
 
     /// <summary>
     ///     Change the rendered HTML so the next render survives the session's dedup.
@@ -67,21 +64,21 @@ public sealed partial class FootprintApp : Component
         var rows = new List<Component>(RowCount);
         for (var i = 0; i < RowCount; i++)
         {
-            rows.Add(BI.FootprintRow(Index: i, Key: i));
+            rows.Add(FootprintRow.Index(i).Key(i));
         }
 
         return
         [
-            CH.Doctype(),
-            C.Html()[
-                C.Head(),
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        C.Div(Class: "header")[
-                            CH.Span()[$"rows={RowCount} counter={Counter}"],
-                            ShowExtraAction ? C.Button(OnClick: () => { })["extra"] : null
+            Doctype,
+            Html[
+                Head,
+                Body[
+                    Div.Class("container").Id("root")[
+                        Div.Class("header")[
+                            Span[$"rows={RowCount} counter={Counter}"],
+                            ShowExtraAction ? Button.OnClick(() => { })["extra"] : null
                         ],
-                        CH.Table(Class: "table")[CH.Tbody()[rows]]
+                        Table.Class("table")[Tbody[rows]]
                     ]
                 ]
             ]
@@ -95,10 +92,10 @@ public sealed partial class FootprintRow : Component
     public int Index { get; set; }
 
     protected override Component? Render() =>
-        CH.Tr(Class: "row")[
-            CH.Td()[$"#{Index}"],
-            CH.Td()[$"Item {Index}"],
-            CH.Td()[$"{Index * 37 % 1000} units"],
-            CH.Td()[C.Button(OnClick: () => { })["select"]]
+        Tr.Class("row")[
+            Td[$"#{Index}"],
+            Td[$"Item {Index}"],
+            Td[$"{Index * 37 % 1000} units"],
+            Td[Button.OnClick(() => { })["select"]]
         ];
 }

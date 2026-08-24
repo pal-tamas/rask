@@ -25,7 +25,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Router_MatchedTopLevel_RendersPage()
     {
-        var (view, state, sp) = BuildView(new[] { Route<HomePage>("/") });
+        var (view, state, sp) = BuildView(new[] { Route.To<HomePage>("/") });
         state.Path = "/";
 
         var html = Render(view, sp);
@@ -36,7 +36,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Router_NoMatch_RendersEmptyFragment()
     {
-        var (view, state, sp) = BuildView(new[] { Route<HomePage>("/") });
+        var (view, state, sp) = BuildView(new[] { Route.To<HomePage>("/") });
         state.Path = "/missing";
 
         var html = Render(view, sp);
@@ -47,7 +47,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Router_BindsRouteValueOntoPageProperty()
     {
-        var (view, state, sp) = BuildView(new[] { Route<UserPage>("/users/{id}") });
+        var (view, state, sp) = BuildView(new[] { Route.To<UserPage>("/users/{id}") });
         state.Path = "/users/42";
 
         var html = Render(view, sp);
@@ -58,7 +58,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Router_BindsQueryString_OntoPageProperty()
     {
-        var (view, state, sp) = BuildView(new[] { Route<CounterPage>("/c") });
+        var (view, state, sp) = BuildView(new[] { Route.To<CounterPage>("/c") });
         state.Path = "/c";
         state.Query = new QueryCollection(new Dictionary<string, StringValues> { ["label"] = "tag" });
 
@@ -70,7 +70,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Router_SameType_DifferentParams_PreservesInstanceState()
     {
-        var (view, state, sp) = BuildView(new[] { Route<CounterPage>("/c/{label}") });
+        var (view, state, sp) = BuildView(new[] { Route.To<CounterPage>("/c/{label}") });
         state.Path = "/c/one";
         var first = Render(view, sp);
 
@@ -89,7 +89,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         // = false on the second navigation, so the render cache would hand back the prior
         // result and OnPropsChanged would never refire. RouteChainRenderer's per-instance
         // path snapshot is what forces both the cache invalidation and the lifecycle hook.
-        var routes = new[] { Route<MultiUrlPage>("/m/a"), Route<MultiUrlPage>("/m/b") };
+        var routes = new[] { Route.To<MultiUrlPage>("/m/a"), Route.To<MultiUrlPage>("/m/b") };
         var (view, state, sp) = BuildView(routes);
 
         state.Path = "/m/a";
@@ -111,7 +111,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Router_TypeSwap_DiscardsPreviousInstance()
     {
-        var routes = new[] { Route<CounterPage>("/c/{label}"), Route<HomePage>("/h") };
+        var routes = new[] { Route.To<CounterPage>("/c/{label}"), Route.To<HomePage>("/h") };
         var (view, state, sp) = BuildView(routes);
 
         state.Path = "/c/x";
@@ -136,8 +136,8 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     {
         var routes = new[]
         {
-            Route<DashboardPage>("/dashboard",
-                new[] { Route<DashOverview>("overview"), Route<DashSettings>("settings/{tab}") })
+            Route.To<DashboardPage>("/dashboard",
+                new[] { Route.To<DashOverview>("overview"), Route.To<DashSettings>("settings/{tab}") })
         };
         var (view, state, sp) = BuildView(routes);
 
@@ -198,7 +198,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         services.AddSingleton(state);
         services.AddSingleton(gate);
         var sp = services.BuildServiceProvider();
-        var view = new StubComponent(() => Router.Routes(new[] { Route<SyncInitPage>("/sync") }));
+        var view = new StubComponent(() => Router.Routes(new[] { Route.To<SyncInitPage>("/sync") }));
         state.Path = "/sync";
 
         var html = view.RenderAsLiveRoot(sp);
@@ -216,7 +216,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         services.AddSingleton(gate);
         var sp = services.BuildServiceProvider();
         var handle = new RecordingRenderHandle();
-        var view = new StubComponent(() => Router.Routes(new[] { Route<AsyncInitPage>("/async") })) { RenderHandle = handle };
+        var view = new StubComponent(() => Router.Routes(new[] { Route.To<AsyncInitPage>("/async") })) { RenderHandle = handle };
         state.Path = "/async";
 
         var initial = view.RenderAsLiveRoot(sp);

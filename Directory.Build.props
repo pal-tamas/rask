@@ -145,27 +145,6 @@
     <_RaskExampleOpfUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleOpfUsings>
   </PropertyGroup>
 
-  <!--
-    Mirrors the framework-vs-consumer split above for the global static usings
-    the source generator emits (Rask.Core.Components.Components +
-    Rask.Core.Routing.Components + per-namespace Components). Framework and
-    in-repo test projects opt out — they reference the Component classes by
-    type and would see method/type ambiguity if the factory namespaces were
-    globally imported. Rask.Example.* and downstream NuGet consumers get the
-    default (true), so writing Div(...)/Counter(...) in the render tree just
-    works.
-  -->
-  <PropertyGroup>
-    <RaskGlobalUsings Condition=" '$(RaskGlobalUsings)' == '' AND $(MSBuildProjectName.StartsWith('Rask.')) AND !$(MSBuildProjectName.StartsWith('Rask.Example.')) ">false</RaskGlobalUsings>
-    <!--
-      The builder surface (`Div[...]`) is now THE markup surface, not a spike, and its default lives
-      in the shipped src/Rask.Core/build/Rask.Core.targets so a consumer gets it too. This line is
-      kept only so an in-repo build is explicit about it; both resolve to the same value.
-      Only the assembly declaring Rask.Core.Component emits the entries, so this is effectively a
-      Rask.Core switch.
-    -->
-    <RaskBuilderSurface Condition=" '$(RaskBuilderSurface)' == '' ">true</RaskBuilderSurface>
-  </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props"

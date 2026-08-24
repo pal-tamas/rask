@@ -1,11 +1,6 @@
-// rask-rewrite: keep the factory — this file holds BOTH surfaces on purpose and asserts they agree.
-// Converting the factory half would leave a test comparing a chain to itself: still green, proving
-// nothing. tools/RaskBuilderRewrite skips any file carrying this marker.
-
 using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Html.Components;
-using static Rask.Core.Tests.Generated;
 
 namespace Rask.Core.Tests;
 
@@ -32,40 +27,21 @@ internal sealed partial class BoundBuilderProbe : Component
             Input.Bind(() => Model.Name).Validate(NonEmpty).Id("name").Class("field"),
             Input.Bind(() => Model.Age).Id("age"),
             Textarea.Bind(() => Model.Name).Id("bio"),
-            Select.Bind(() => Model.Name).Id("pick")[Option("Ada")["Ada"]]
+            Select.Bind(() => Model.Name).Id("pick")[Option.Value("Ada")["Ada"]]
         ];
 
     internal static IEnumerable<string> NonEmpty(string value) =>
         value.Length > 0 ? Array.Empty<string>() : new[] { "required" };
 }
 
-[global::Rask.Core.RaskMarkup]
-internal sealed partial class BoundFactoryProbe : Component
-{
-    internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
-
-    protected override Component? Render() =>
-        Div()[
-            Rask.Html.Components.Generated.Input(() => Model.Name, Validate: global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty,
-                Id: "name", Class: "field"),
-            Rask.Html.Components.Generated.Input(() => Model.Age, Id: "age"),
-            Rask.Html.Components.Generated.Textarea(() => Model.Name, Id: "bio"),
-            Rask.Html.Components.Generated.Select(() => Model.Name, Id: "pick")[Option("Ada")["Ada"]]
-        ];
-}
-
 public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
 {
-    [Fact]
-    public void The_bound_entry_renders_identically_to_the_bound_factory() =>
-        Assert.Equal(BoundFactoryProbe().ToHtml(), BoundBuilderProbe().ToHtml());
-
     // The point of the entry: T comes from the bind expression, so `int` picks type="number" while the
     // string field stays text — without the caller ever writing a type argument.
     [Fact]
     public void The_entry_infers_the_value_type_from_the_bind_expression()
     {
-        var html = BoundBuilderProbe().ToHtml();
+        var html = BoundBuilderProbe.Value.ToHtml();
         Assert.Contains("<input id=\"age\" type=\"number\" name=\"Age\" value=\"36\"", html, StringComparison.Ordinal);
         Assert.Contains("<input id=\"name\" class=\"field\" type=\"text\" name=\"Name\" value=\"Ada\"", html,
             StringComparison.Ordinal);
@@ -95,7 +71,7 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_bound_setters_never_auto_wrap()
     {
-        var probe = BoundBuilderProbe();
+        var probe = BoundBuilderProbe.Value;
         Action<string> hook = probe.Note;
 
         // Through Bind, not Of: AfterBind is a BOUND step, so it exists only on a chain that opened in
@@ -106,12 +82,12 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
         Assert.Same(hook, control.AfterBind);
     }
 
-    // Plain assignment must still work.
+    // Plain assignment must still work — a component built by a chain is an ordinary object afterwards.
     [Fact]
     public void A_bound_member_takes_a_plain_assignment()
     {
         Validate<string> rule = global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty;
-        var control = Rask.Html.Components.Generated.Input<string>();
+        var control = Input.Of<string>().Value;
         control.Validate = rule;
 
         Assert.Same(rule, control.Validate);

@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
-using Bench = Rask.Benchmarks.Generated;
 
 namespace Rask.Benchmarks;
 

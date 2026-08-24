@@ -6,8 +6,6 @@ using Rask.Core.Routing;
 using Rask.Native.Components;
 using Rask.Native.Surface;
 using Rask.Native.Tests.Infrastructure;
-using static Rask.Core.Components.Generated;
-using static Rask.Native.Components.Generated;
 
 #pragma warning disable RASK019 // test apps predate framework-managed <head>
 

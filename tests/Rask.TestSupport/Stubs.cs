@@ -9,7 +9,7 @@ namespace Rask.TestSupport;
 ///     Renders whatever component a test supplies. Useful as a live-render root that
 ///     forwards to the component under test (which often can't itself be a root).
 /// </summary>
-public sealed class StubComponent : Component
+public sealed partial class StubComponent : Component
 {
     private readonly Func<Component> _factory;
 
@@ -23,7 +23,7 @@ public sealed class StubComponent : Component
 ///     Captures the ambient <see cref="EditContext" /> during render so a test can assert
 ///     against the context a form/validator pushed onto <see cref="EditContextScope" />.
 /// </summary>
-public sealed class ContextCapture(Action<EditContext> capture) : Component
+public sealed partial class ContextCapture(Action<EditContext> capture) : Component
 {
     protected override Component? Render()
     {

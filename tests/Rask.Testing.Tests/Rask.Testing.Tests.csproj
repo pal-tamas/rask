@@ -28,8 +28,6 @@
     <Using Include="Xunit"/>
     <Using Include="Rask.Core"/>
     <Using Include="Rask.Testing"/>
-    <Using Include="Rask.Core.Components.Generated" Static="true"/>
-    <Using Include="Rask.Html.Components.Generated" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

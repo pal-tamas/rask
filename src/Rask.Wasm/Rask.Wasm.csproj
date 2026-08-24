@@ -79,6 +79,8 @@
       PackageDependencyTests.
     -->
     <PackageReference Include="Microsoft.Extensions.ObjectPool"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <ItemGroup>
