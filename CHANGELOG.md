@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **An unset `NativeStack` / `NativeScreen` `Orientation` meant vertical on iOS and horizontal on Android.**
+  iOS creates both with an explicit vertical axis; Android created a bare `LinearLayout`, whose platform
+  default is HORIZONTAL, and nothing set one. So the same tree laid out in a column on one platform and a row
+  on the other — and on Android the row filled the width and every child past it was simply not drawn, with
+  no error and nothing in the log. The example in `docs/native.md` is exactly this shape, so the documented
+  snippet rendered wrong on Android.
+
+  `RaskStack` now sets `Vertical` in its constructor, matching iOS; an explicit `Orientation` still wins.
+  Verified on an API 36 emulator: the pure-native demo screen went from two labels side by side with
+  everything after them invisible, to the full column — divider, text field, switch, button, spinner — as it
+  already rendered on an iPhone 17 Pro simulator. The cross-axis default was checked at the same time and
+  already agrees (iOS `Fill` ≡ Android `Stretch`).
+
 ### Changed
 - **BREAKING — `rask new --template native --host local` is now `--host native`.** The `--host` axis names
   which of Rask's app models supplies the UI, and the on-device model is the *native* one; `local` described
