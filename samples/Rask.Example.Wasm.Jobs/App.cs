@@ -12,25 +12,25 @@ public partial class App : Component
 {
     protected override Component? HeadAssets =>
     [
-        Title()["Rask — background jobs in the browser"],
-        Meta("utf-8"),
-        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-        Style()[Css]
+        Title["Rask — background jobs in the browser"],
+        Meta.Charset("utf-8"),
+        Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+        Style[Css]
     ];
 
     protected override Component? Render() =>
-        Main()[
-            H1()["Background jobs, in the browser"],
-            P(Class: "lede")[
+        Main[
+            H1["Background jobs, in the browser"],
+            P.Class("lede")[
                 "This page queues a job into a real SQLite database running inside WebAssembly. ",
-                "A ", Code()["BackgroundService"], " picks it up, runs the handler, and writes a row. ",
+                "A ", Code["BackgroundService"], " picks it up, runs the handler, and writes a row. ",
                 "Nothing here talks to a server — and the code is the same as it would be on one."
             ],
             // The generated factory, not `new` and not DI: it is what resolves JobsDemo's
             // constructor services through ActivatorUtilities and gives the framework a
             // component it owns — and therefore mounts. An instance injected into this
             // constructor would render, but never receive a lifecycle callback.
-            JobsDemo()
+            JobsDemo
         ];
 
     private const string Css = """

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -22,6 +21,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///         round-trip suite (no Blazor counterpart there yet).
 ///     </para>
 /// </summary>
+[global::Rask.Core.RaskMarkup]
 internal static partial class LifecycleChurn
 {
     public const int MaxActiveCount = 100;
@@ -36,7 +36,7 @@ internal static partial class LifecycleChurn
 #pragma warning restore RASK014
         }
 
-        return C.Div(Class: "host")[children];
+        return Div.Class("host")[children];
     }
 
 #pragma warning disable RASK014

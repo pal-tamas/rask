@@ -7,8 +7,6 @@ public class CodeFixProviderTests
 {
     private static string App(string body) => $$"""
         using Rask.Core;
-        using static Rask.Core.Components.Generated;
-        using static Rask.Html.Components.Generated;
         namespace Demo;
         public sealed partial class App : Component
         {
@@ -23,35 +21,7 @@ public class CodeFixProviderTests
 
     // ---- RASK023: Img missing Alt -> insert Alt: "" ----
 
-    [Fact]
-    public async Task Rask023_InsertsEmptyAlt_AfterNamedSrc()
-    {
-        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
-            new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
-            App("return Img(Src: \"/a.png\");"));
-        Assert.Contains("Img(Src: \"/a.png\", Alt: \"\")", fixhed);
-    }
-
-    [Fact]
-    public async Task Rask023_InsertsAlt_WhenNoArguments()
-    {
-        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
-            new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
-            App("return Img();"));
-        Assert.Contains("Img(Alt: \"\")", fixhed);
-    }
-
-    [Fact]
-    public async Task Rask023_InsertsAlt_AfterPositionalSrc()
-    {
-        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
-            new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
-            App("return Img(\"/a.png\");"));
-        Assert.Contains("Img(\"/a.png\", Alt: \"\")", fixhed);
-    }
-
-    // A chain takes a `.Alt("")` STEP, not a named argument — appending `Alt: ""` into whichever step
-    // happened to be nearest would not even compile.
+    // A chain takes a `.Alt("")` STEP, not a named argument.
     [Fact]
     public async Task Rask023_AppendsAltStep_ToAChain()
     {
@@ -239,14 +209,12 @@ public class CodeFixProviderTests
     {
         var source = """
             using Rask.Core;
-            using static Rask.Core.Components.Generated;
-            using static Rask.Html.Components.Generated;
             namespace Demo;
-            public sealed class App : Component
+            public sealed partial class App : Component
             {
                 private int _n;
                 protected override Component? Render() =>
-                    Button(OnClick: () =>
+                    Button.OnClick(() =>
                     {
                         _n++;
                         StateHasChanged();
@@ -264,30 +232,7 @@ public class CodeFixProviderTests
 
     // ---- RASK027: both OnX and OnXAsync passed -> drop the async one ----
 
-    [Fact]
-    public async Task Rask027_RemovesTheAsyncArgument_AndKeepsTheSyncOne()
-    {
-        var source = """
-            using System.Threading.Tasks;
-            using Rask.Core;
-            using static Rask.Core.Components.Generated;
-            using static Rask.Html.Components.Generated;
-            namespace Demo;
-            public sealed class App : Component
-            {
-                protected override Component? Render() =>
-                    Button(OnClick: () => {}, OnClickAsync: async () => await Task.Yield())["x"];
-            }
-            """;
-
-        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
-            new SyncAsyncHandlerAnalyzer(), new SyncAsyncHandlerCodeFixProvider(), "RASK027", source);
-
-        Assert.DoesNotContain("OnClickAsync", fixhed);
-        Assert.Contains("OnClick: () => {}", fixhed);
-    }
-
-    // On a chain the async handler is a STEP, so the fix splices it out rather than deleting an argument.
+    // The async handler is a STEP, so the fix splices it out of the chain.
     [Fact]
     public async Task Rask027_RemovesTheAsyncStep_FromAChain()
     {

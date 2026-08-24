@@ -5,8 +5,6 @@ using Rask.Core;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Native.Tests.Infrastructure;
-using static Rask.Chrome.Components.Generated;
-using static Rask.Core.Components.Generated;
 // An alias rather than a namespace import, but not because the import breaks: entries are injected into
 // this partial class, and a member of the enclosing type wins simple-name lookup over a namespace-imported
 // type, so `using Rask.Chrome.Components;` compiles here too (the sibling ScreenChromeTests imports

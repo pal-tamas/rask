@@ -1,7 +1,3 @@
-// rask-rewrite: keep the factory — the parity test below compares the two surfaces and needs the factory
-// half to stay a factory. Converting it leaves two identical hosts and a test that proves nothing.
-// tools/RaskBuilderRewrite skips any file carrying this marker.
-
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
@@ -12,8 +8,8 @@ using Rask.Html.Components;
 
 namespace Rask.Core.Tests;
 
-// The deferred commit stands in for the factory's inline NotifyParameters — it is what runs OnMount for
-// a component an ENTRY built. These pin the case it used to miss.
+// The deferred commit is what runs OnMount for a component an entry built. These pin the case it used
+// to miss.
 //
 // A chain writes only what it names, and only a FOLDING prop goes through BuilderRuntime.Track. So a
 // chain that sets nothing, or sets only a callback, or only Children, never marks the
@@ -46,14 +42,6 @@ internal sealed partial class BareEntryHost : Component
     internal CommitProbe? Probe;
 
     protected override Component? Render() => Div[Probe = CommitProbe];
-}
-
-// The same tree through the factory, which reaches the lifecycle inline and always did.
-internal sealed partial class BareFactoryHost : Component
-{
-    internal CommitProbe? Probe;
-
-    protected override Component? Render() => Div()[Probe = Generated.CommitProbe()];
 }
 
 // A chain that names only a CALLBACK. Callbacks are deliberately outside the fold — a fresh
@@ -119,18 +107,16 @@ public class BuilderCommitTests
         Assert.Equal(1, host.Probe!.Mounts);
     }
 
-    // Parity with the factory is the actual bar: the same tree, the same lifecycle, on both surfaces.
+    // Mounting is only half of it: the child has to be in the output too. A commit that ran the
+    // lifecycle on a child nothing rendered would satisfy every assertion above.
     [Fact]
-    public void The_two_surfaces_mount_a_propless_child_the_same_way()
+    public void An_entry_that_names_no_prop_renders_its_child()
     {
         var entry = new BareEntryHost();
-        var factory = new BareFactoryHost();
 
-        var expected = factory.RenderAsLiveRoot(RenderHarness.EmptyServices());
-
-        Assert.Equal(expected, entry.RenderAsLiveRoot(RenderHarness.EmptyServices()));
-        Assert.Equal(factory.Probe!.Mounts, entry.Probe!.Mounts);
-        Assert.Equal(factory.Probe.PropsChanges, entry.Probe.PropsChanges);
+        Assert.Equal(
+            "<div><span>ok</span></div>",
+            entry.RenderAsLiveRoot(RenderHarness.EmptyServices()));
     }
 
     // Mounting once is half of it: a second render must not mount again, which is what the commit's

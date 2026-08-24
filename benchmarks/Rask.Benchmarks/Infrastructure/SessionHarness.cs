@@ -3,7 +3,6 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Server;
-using Bench = Rask.Benchmarks.Infrastructure.Generated;
 
 namespace Rask.Benchmarks.Infrastructure;
 

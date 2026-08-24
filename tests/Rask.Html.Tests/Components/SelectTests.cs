@@ -208,31 +208,32 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<select></select>", Select<string>().ToHtml());
+        Assert.Equal("<select></select>", Select.Of<string>().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal(
             "<select id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"n\" multiple required disabled size=\"5\" form=\"f\" autofocus autocomplete=\"off\"></select>",
-            Select<string>("n", true, true, true, 5, "f", true, "off", Id: "i", Class: "c", Style: "s",
-                Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Select.Of<string>().Name("n").Multiple(true).Required(true).Disabled(true).Size(5).Form("f")
+                .Autofocus(true).Autocomplete("off").Id("i").Class("c").Style("s")
+                .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<select>&lt;x&gt;</select>", Select<string>()["<x>"].ToHtml());
+        Assert.Equal("<select>&lt;x&gt;</select>", Select.Of<string>()["<x>"].ToHtml());
 
     [Fact]
     public void Render_OnChangeOutsideLiveContext_OmitsHandlerAttribute() =>
         Assert.Equal(
             "<select></select>",
-            Select<string>(OnChange: _ => { }).ToHtml());
+            Select.Of<string>().OnChange(_ => { }).ToHtml());
 
     [Fact]
     public void Render_OnChangeInsideLiveContext_EmitsDataRaskOnChange()
     {
-        var view = new StubComponent(() => Select<string>(OnChange: _ => { }));
+        var view = new StubComponent(() => Select.Of<string>().OnChange(_ => { }));
         Assert.Equal(
             "<select data-rask-on-change=\"h0\"></select>",
             view.RenderAsLiveRoot());
@@ -241,7 +242,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnChangeAsyncInsideLiveContext_EmitsDataRaskOnChange()
     {
-        var view = new StubComponent(() => Select<string>(OnChangeAsync: async _ => { await Task.Yield(); }));
+        var view = new StubComponent(() => Select.Of<string>().OnChangeAsync(async _ => { await Task.Yield(); }));
         Assert.Equal(
             "<select data-rask-on-change=\"h0\"></select>",
             view.RenderAsLiveRoot());

@@ -33,8 +33,8 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor Rask043 = new(
         "RASK043",
-        "Component factory is not imported here",
-        "'{0}' names the component TYPE here, not a call, so this does not compile (CS0119). '{0}' is only a builder entry inside a component or a markup host — entries are members of the enclosing type — and '{1}' is neither. Derive '{1}' from 'Rask.Core.RaskMarkup', or mark it '[Rask.Core.RaskMarkup]' when its base is already taken or it is a 'static class', to reach the entry; or add 'using static {2};' to reach the factory.",
+        "A component name is used in a type that has no builder entries",
+        "'{0}' names the component TYPE here, not a call, so this does not compile (CS0119). '{0}' is only a builder entry inside a component or a markup host — entries are members of the enclosing type — and '{1}' is neither. Derive '{1}' from 'Rask.Core.RaskMarkup', or mark it '[Rask.Core.RaskMarkup]' when its base is already taken or it is a 'static class'.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,

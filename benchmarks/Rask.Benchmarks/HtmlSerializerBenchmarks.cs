@@ -1,8 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
 using Rask.Core.ScopedAssets;
-using Bench = Rask.Benchmarks.Generated;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks;
 

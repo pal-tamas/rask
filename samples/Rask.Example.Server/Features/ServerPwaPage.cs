@@ -1,6 +1,5 @@
 using Rask.Core.Routing;
 using Rask.Example.Shared;
-using static Rask.Example.Shared.Generated; // the CodeSample(...) factory (defined in the shared assembly)
 
 namespace Rask.Example.Server.Features;
 

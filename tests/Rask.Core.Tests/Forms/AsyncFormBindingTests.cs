@@ -148,7 +148,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         services.AddSingleton(state);
         var sp = services.BuildServiceProvider();
 
-        var view = new StubComponent(() => Router.Routes(new[] { Route<RouterOutletFormPage>("/form") }));
+        var view = new StubComponent(() => Router.Routes(new[] { Route.To<RouterOutletFormPage>("/form") }));
         var handle = new RenderingHandle(view);
         view.RenderHandle = handle;
 

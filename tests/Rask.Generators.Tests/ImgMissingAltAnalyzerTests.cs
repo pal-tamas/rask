@@ -13,8 +13,6 @@ public class ImgMissingAltAnalyzerTests
     private static string App(string body) => $$"""
                                                 using System.Collections.Generic;
                                                 using Rask.Core;
-                                                using static Rask.Core.Components.Generated;
-                                                using static Rask.Html.Components.Generated;
                                                 namespace Demo;
                                                 public sealed partial class App : Component
                                                 {
@@ -25,25 +23,6 @@ public class ImgMissingAltAnalyzerTests
                                                 }
                                                 """;
 
-    [Fact]
-    public async Task Img_NoAlt_ReportsRask023()
-    {
-        var d = Assert.Single(await Diagnostics(App("return Img(Src: \"/a.png\");")));
-        Assert.Equal("RASK023", d.Id);
-        Assert.Contains("Alt", d.GetMessage());
-    }
-
-    [Fact]
-    public async Task Img_NoArguments_ReportsRask023() =>
-        Assert.Equal("RASK023", Assert.Single(await Diagnostics(App("return Img();"))).Id);
-
-    [Fact]
-    public async Task Img_AltByName_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App("return Img(Src: \"/a.png\", Alt: \"A logo\");")));
-
-    [Fact]
-    public async Task Img_EmptyAltForDecorative_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App("return Img(Src: \"/a.png\", Alt: \"\");")));
 
     [Fact]
     public async Task Img_AltPositionally_NoDiagnostic() =>

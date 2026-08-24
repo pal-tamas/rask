@@ -21,7 +21,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         var p = new Person { Name = "", Age = 0 };
         Person? captured = null;
         var page = RaskTest.Render(() => Form.Model(p).OnValidSubmit((Action<Person>)(m => captured = m))[
-            DataAnnotationsValidator(),
+            DataAnnotationsValidator,
             Input.Bind(() => p.Name),
             Input.Bind(() => p.Age)
         ]);
@@ -192,9 +192,9 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         // Two separate component instances each Render under the same context: AddValidator's
         // type-dedup should prevent double-registration. If duplicated, "Name is required"
         // would appear twice in the messages list.
-        RaskTest.Render(() => Form(p)[
-            DataAnnotationsValidator(),
-            DataAnnotationsValidator(),
+        RaskTest.Render(() => Form.Model(p)[
+            DataAnnotationsValidator,
+            DataAnnotationsValidator,
             RaskTest.EditContextProbe(c => captured = c)
         ]);
         var ctx = captured!;

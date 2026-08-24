@@ -26,7 +26,7 @@ public class RouteTemplateResolverTests
     public void GetLocalTemplate_PageWithRouteOverride_ResolvesFromTheRegistry()
     {
         // A Page carries no [Route] to reflect over — its template is read at compile time into the
-        // registry. This is what keeps the no-template Route<T>() overload working for a Page.
+        // registry. This is what keeps the no-template Route.To<T>() overload working for a Page.
         Assert.Equal(
             "/__resolver-test/page",
             RouteTemplateResolver.GetLocalTemplate(typeof(RouteTemplateResolverPage)));

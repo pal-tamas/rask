@@ -74,11 +74,10 @@
     <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
          so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
     <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
-    <!-- Run the Rask factory generator over THIS assembly too (not just pack it for consumers), so the
-         concrete Native* chrome components get their Generated.{Name}(...) factories emitted into
-         Rask.Native.dll's Rask.Native.Components.Generated. The [assembly: RaskFactoryNamespace] marker in
-         NativeFactoryNamespace.cs then tells a consuming app's own generator to surface that namespace via a
-         global using. Analyzer is netstandard2.0/TFM-agnostic, so it applies to the base + head TFMs alike. -->
+    <!-- Run the Rask generator over THIS assembly too (not just pack it for consumers), so the concrete
+         Native* chrome components publish their chain entries in Rask.Native.dll's RaskEntriesRask_Native
+         for a consuming app's own generator to find. Analyzer is netstandard2.0/TFM-agnostic, so it applies
+         to the base + head TFMs alike. -->
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

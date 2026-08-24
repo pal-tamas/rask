@@ -1,10 +1,5 @@
-// rask-rewrite: keep the factory — this file holds BOTH surfaces on purpose and asserts they agree.
-// Converting the factory half would leave a test comparing a chain to itself: still green, proving
-// nothing. tools/RaskBuilderRewrite skips any file carrying this marker.
-
 using System.Reflection;
 using Rask.Core.DragAndDrop;
-using static Rask.Core.Tests.Generated;
 
 namespace Rask.Core.Tests;
 
@@ -42,14 +37,14 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Prop_and_setter_share_a_name() =>
-        Assert.Equal("<div><button>Pick me</button></div>", CardHost().ToHtml());
+        Assert.Equal("<div><button>Pick me</button></div>", CardHost.Value.ToHtml());
 
-    // A handler owned by a component is replaced by a re-rendering delegate, exactly as the generated
-    // factory does.
+    // A handler owned by a component is replaced by a re-rendering delegate, so mutating the owner's
+    // state from it repaints.
     [Fact]
     public void Setter_wraps_an_owned_handler_so_it_re_renders()
     {
-        var host = CardHost();
+        var host = CardHost.Value;
         var raw = (Action)host.Choose;
 
         var card = BuilderCard.OnSelect(raw).Value;
@@ -84,7 +79,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_typed_element_event_setter_wires_the_dom_slot()
     {
-        var view = BuilderEventProbe();
+        var view = BuilderEventProbe.Value;
 
         Assert.Equal(
             "<div data-rask-on-click=\"h0\" data-rask-on-mousedown=\"h1\" "
@@ -98,7 +93,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_element_event_setter_does_not_auto_wrap()
     {
-        var host = CardHost();
+        var host = CardHost.Value;
         var raw = (Action)host.Choose;
 
         var div = Div.OnClick(raw).Value;
@@ -123,32 +118,29 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     // the consumer whose state the handler mutates. Input<T> is Element-derived, so its OnChange is
     // forwarded RAW to the DOM, where handler-owner resolution already re-renders and a wrapper would
     // cost a closure per handler per render. Getting either backwards is silent — the markup is
-    // byte-identical either way — so both surfaces are pinned, and so is the factory they must agree with.
+    // byte-identical either way — which is why it is pinned here rather than left to a render assertion.
     [Fact]
     public void A_component_callback_is_wrapped_where_an_element_controls_is_not()
     {
-        var host = CardHost();
+        var host = CardHost.Value;
         var dropped = (Action<DragDropMove>)host.Dropped;
         var changed = (Action<string>)host.Named;
 
-        Assert.NotSame(dropped, DragDrop(_ => Div(), OnDrop: dropped).OnDrop);
-        Assert.NotSame(dropped, DragDrop.Body(_ => Div()).OnDrop(dropped).Value.OnDrop);
+        Assert.NotSame(dropped, DragDrop.Body(_ => Div).OnDrop(dropped).Value.OnDrop);
 
-        Assert.Same(changed, Input<string>(OnChange: changed).OnChange);
         Assert.Same(changed, Input.Of<string>().OnChange(changed).Value.OnChange);
     }
 
-    // A null argument reads back as null on both surfaces — which every `is not null` a component asks
-    // about its own callback depends on (BsToast's auto-hide timer, BsDataGrid's controlled-mode gates).
-    // It took a `From` helper on every assignment to hold while callbacks were carriers; now it is what
-    // assigning a delegate does.
+    // A null argument reads back as null — which every `is not null` a component asks about its own
+    // callback depends on (BsToast's auto-hide timer, BsDataGrid's controlled-mode gates). It took a
+    // `From` helper on every assignment to hold while callbacks were carriers; now it is what assigning
+    // a delegate does.
     [Fact]
     public void A_null_callback_argument_reads_back_as_unset()
     {
         Action? maybe = null;
 
-        Assert.Null(BuilderCard().OnSelect);
-        Assert.Null(BuilderCard(OnSelect: maybe).OnSelect);
+        Assert.Null(BuilderCard.Value.OnSelect);
         Assert.Null(BuilderCard.OnSelect(maybe).Value.OnSelect);
     }
 
@@ -185,8 +177,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     {
         Func<System.Security.Claims.ClaimsPrincipal, Component>? none = null;
 
-        Assert.Null(Authorize().Authorized);
-        Assert.Null(Authorize(Authorized: none).Authorized);
+        Assert.Null(Authorize.Value.Authorized);
         Assert.Null(Authorize.Authorized(none).Value.Authorized);
     }
 
@@ -222,7 +213,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_callback_setter_keeps_the_propertys_name()
     {
-        var host = CardHost();
+        var host = CardHost.Value;
         var raw = (Action)host.Choose;
 
         var card = BuilderCard.OnSelect(raw).Value;

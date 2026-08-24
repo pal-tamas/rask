@@ -272,14 +272,16 @@ public class BuilderSetterEmissionTests
                   }
                   """;
 
-        var factory = Run(src, "Demo.Generated.g.cs");
+        var setters = Run(src, "RaskBuilderSetters.g.cs");
 
-        Assert.Contains("global::System.Action? OnPick = null", factory, StringComparison.Ordinal);
+        // The setter takes the delegate itself and wraps it — nothing carries it, so a null argument
+        // reads back as null rather than as a non-null carrier around one.
+        Assert.Contains("global::System.Action? value", setters, StringComparison.Ordinal);
         Assert.Contains(
-            "__c.OnPick = global::Rask.Core.AutoCallback.Wrap(OnPick);",
-            factory,
+            "__c.OnPick = global::Rask.Core.AutoCallback.Wrap(value);",
+            setters,
             StringComparison.Ordinal);
-        Assert.DoesNotContain(".From(", factory, StringComparison.Ordinal);
+        Assert.DoesNotContain(".From(", setters, StringComparison.Ordinal);
     }
 
     // A prop inherited from an INTERMEDIATE base (HtmlMediaElement, BsBlock, BsFormControl<T>, a

@@ -12,12 +12,12 @@ namespace Rask.Generators.Tests;
 public class WasmCompatibilityTests
 {
     [Fact]
-    public void EmittedFactory_ContainsNoAspNetCoreTypes()
+    public void EmittedChain_ContainsNoAspNetCoreTypes()
     {
         var src = """
                   using Rask.Core;
                   namespace Demo;
-                  public sealed class Widget : Component
+                  public sealed partial class Widget : Component
                   {
                       public string Name { get; set; }
                       public string? Subtitle { get; set; }
@@ -26,7 +26,7 @@ public class WasmCompatibilityTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Generated.g.cs");
+        var output = run.GeneratedSource("RaskBuilderSetters.g.cs");
 
         Assert.DoesNotContain("Microsoft.AspNetCore", output);
         Assert.DoesNotContain("HttpContext", output);
@@ -34,7 +34,7 @@ public class WasmCompatibilityTests
     }
 
     [Fact]
-    public void EmittedFactory_CompilesAgainstWasmReferenceSet()
+    public void EmittedChain_CompilesAgainstWasmReferenceSet()
     {
         var src = """
                   using Rask.Core;

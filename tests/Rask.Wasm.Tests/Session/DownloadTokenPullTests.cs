@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Wasm.Files;
-using static Rask.Core.Components.Generated;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
 

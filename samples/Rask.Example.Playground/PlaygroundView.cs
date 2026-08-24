@@ -178,42 +178,64 @@ public sealed partial class PlaygroundView : Component
     }
 
     protected override Component? Render() =>
-        Div(Class: "pg")[
-            Header(Class: "pg-bar")[
-                Div(Class: "pg-brand")[
-                    Raw(BoltSvg),
-                    Span(Class: "pg-title")["Rask Playground"],
+        Div.Class("pg")[
+            Header.Class("pg-bar")[
+                Div.Class("pg-brand")[
+                    Raw.Value(BoltSvg),
+                    Span.Class("pg-title")["Rask Playground"],
                     IdeBadge()
                 ],
-                Div(Class: "pg-actions")[
-                    Span(Class: "pg-phase")[_phase],
+                Div.Class("pg-actions")[
+                    Span.Class("pg-phase")[_phase],
                     // Reset / Run — the same Bs* button language as the docs; the pg-run class stays a hook
                     // for the Ctrl/Cmd+Enter shortcut (PlaygroundView.js) and the E2E.
-                    BsButton(Class: "pg-reset", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        Disabled: !CanInteract, OnClickAsync: ResetAsync)["Reset"],
-                    BsButton(Class: "pg-run", Color: BsColor.Primary, Size: BsSize.Sm,
-                        Disabled: !CanInteract || IsActiveChapterLocked,
-                        OnClickAsync: RunAsync)[_busy ? "Running…" : "Run ▸"],
+                    BsButton
+                        .Class("pg-reset")
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Disabled(!CanInteract)
+                        .OnClickAsync(ResetAsync)["Reset"],
+                    BsButton
+                        .Class("pg-run")
+                        .Color(BsColor.Primary)
+                        .Size(BsSize.Sm)
+                        .Disabled(!CanInteract || IsActiveChapterLocked)
+                        .OnClickAsync(RunAsync)[_busy ? "Running…" : "Run ▸"],
                     // Cross-app links back to the docs + repo, and the shared light/dark toggle.
-                    BsLink(Href: "https://pal-tamas.github.io/rask/docs/", Target: "_blank", Rel: "noopener",
-                        Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm)[
-                        BsIcon(Name: BsIconName.Book, Class: "me-1"), "Docs"],
-                    BsLink(Href: "https://github.com/pal-tamas/rask", Target: "_blank", Rel: "noopener",
-                        Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm)[
-                        BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"],
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        OnClickAsync: ToggleThemeAsync, Aria: ThemeToggleAria)[BsIcon(Name: BsIconName.CircleHalf)]
+                    BsLink
+                        .Href("https://pal-tamas.github.io/rask/docs/")
+                        .Target("_blank")
+                        .Rel("noopener")
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)[
+                        BsIcon.Name(BsIconName.Book).Class("me-1"), "Docs"],
+                    BsLink
+                        .Href("https://github.com/pal-tamas/rask")
+                        .Target("_blank")
+                        .Rel("noopener")
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)[
+                        BsIcon.Name(BsIconName.Github).Class("me-1"), "GitHub"],
+                    BsButton
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .OnClickAsync(ToggleThemeAsync)
+                        .Aria(ThemeToggleAria)[BsIcon.Name(BsIconName.CircleHalf)]
                 ]
             ],
-            Div(Class: "pg-body")[
-                Aside(Class: "pg-examples")[
-                    Div(Class: "pg-tabs")[
+            Div.Class("pg-body")[
+                Aside.Class("pg-examples")[
+                    Div.Class("pg-tabs")[
                         TabButton(PlaygroundTab.Tutorial, "Tutorial"),
                         TabButton(PlaygroundTab.Examples, "Examples")
                     ],
                     _tab == PlaygroundTab.Tutorial ? ChapterList() : SampleList()
                 ],
-                Section(Class: "pg-editor")[
+                Section.Class("pg-editor")[
                     // The brief is ALWAYS rendered, empty when the gallery is showing (CSS hides an empty
                     // one). That is load-bearing, not laziness: it keeps the editor host at a fixed child
                     // slot. Rendering the brief conditionally would shift the host's position on every tab
@@ -228,24 +250,24 @@ public sealed partial class PlaygroundView : Component
                     // compares live children against the rendered ones and would strip Monaco's DOM. mountEditor
                     // tags the nodes Monaco creates with data-rask-managed, which takes them out of the live-side
                     // comparison; the marker belongs on those library-created children, never on this host.
-                    Div(Ref: _editorHost, Class: "pg-code-host")
+                    Div.Ref(_editorHost).Class("pg-code-host")
                 ],
-                Section(Class: "pg-output")[
-                    Div(Class: "pg-preview-head")["Preview"],
-                    Div(Class: "pg-preview", Key: _runId)[PreviewBody()],
+                Section.Class("pg-output")[
+                    Div.Class("pg-preview-head")["Preview"],
+                    Div.Class("pg-preview").Key(_runId)[PreviewBody()],
                     Diagnostics()
                 ]
             ]
         ];
 
     private Component TabButton(PlaygroundTab tab, string label) =>
-        Button(
-            Id: TutorialPaneState.TabId(tab),
-            Class: _tab == tab
+        Button
+            .Id(TutorialPaneState.TabId(tab))
+            .Class(_tab == tab
                 ? $"{TutorialPaneState.TabClass} {TutorialPaneState.Active}"
-                : TutorialPaneState.TabClass,
-            Disabled: !CanInteract,
-            OnClickAsync: () => SwitchTabAsync(tab))[label];
+                : TutorialPaneState.TabClass)
+            .Disabled(!CanInteract)
+            .OnClickAsync(() => SwitchTabAsync(tab))[label];
 
     // Switching tabs loads what that tab is pointing at, so the editor always holds the thing the pane
     // highlights. Without this the brief could describe chapter 3 while the editor held a gallery sample —
@@ -263,32 +285,30 @@ public sealed partial class PlaygroundView : Component
     }
 
     private Component SampleList() =>
-        Nav(Class: "pg-example-list")[
+        Nav.Class("pg-example-list")[
             PlaygroundSamples.All.Select(s =>
-                Button(
-                    Key: s.Id,
-                    Class: s.Id == _activeSampleId ? "pg-example is-active" : "pg-example",
-                    Disabled: !CanInteract,
-                    OnClickAsync: () => SelectSampleAsync(s))[
-                    Span(Class: "pg-example-title")[s.Title],
-                    Span(Class: "pg-example-blurb")[s.Blurb]
+                Button
+                    .Key(s.Id)
+                    .Class(s.Id == _activeSampleId ? "pg-example is-active" : "pg-example")
+                    .Disabled(!CanInteract)
+                    .OnClickAsync(() => SelectSampleAsync(s))[
+                    Span.Class("pg-example-title")[s.Title],
+                    Span.Class("pg-example-blurb")[s.Blurb]
                 ])
         ];
 
     private Component ChapterList() =>
-        Nav(Class: "pg-chapter-list")[
+        Nav.Class("pg-chapter-list")[
             TutorialChapters.All.Select(c =>
-                Button(
-                    Key: c.Id,
-                    Id: TutorialPaneState.ChapterId(c.Number),
-                    Class: TutorialPaneState.ClassesFor(StateOf(c), _completedChapters.Contains(c.Id)),
-                    // A locked chapter still opens — the code is worth reading even where it can't run.
-                    // Run is what gets disabled for it (see IsActiveChapterLocked).
-                    Disabled: !CanInteract,
-                    OnClickAsync: () => SelectChapterAsync(c))[
-                    Span(Class: "pg-chapter-no")[c.Number.ToString(CultureInfo.InvariantCulture)],
-                    Span(Class: "pg-chapter-title")[c.Title],
-                    Span(Class: "pg-chapter-goal")[c.Goal]
+                Button
+                    .Key(c.Id)
+                    .Id(TutorialPaneState.ChapterId(c.Number))
+                    .Class(TutorialPaneState.ClassesFor(StateOf(c), _completedChapters.Contains(c.Id)))
+                    .Disabled(!CanInteract)
+                    .OnClickAsync(() => SelectChapterAsync(c))[
+                    Span.Class("pg-chapter-no")[c.Number.ToString(CultureInfo.InvariantCulture)],
+                    Span.Class("pg-chapter-title")[c.Title],
+                    Span.Class("pg-chapter-goal")[c.Goal]
                 ])
         ];
 
@@ -330,35 +350,43 @@ public sealed partial class PlaygroundView : Component
     {
         if (_tab != PlaygroundTab.Tutorial)
         {
-            return Div(Class: "pg-brief");
+            return Div.Class("pg-brief");
         }
 
         var chapter = ActiveChapter;
         var locked = chapter.NeedsDatabase && !DataChaptersAvailable;
 
-        return Div(Class: "pg-brief")[
-            Div(Class: "pg-brief-head")[
-                Span(Class: "pg-brief-title")[
+        return Div.Class("pg-brief")[
+            Div.Class("pg-brief-head")[
+                Span.Class("pg-brief-title")[
                     $"Chapter {chapter.Number.ToString(CultureInfo.InvariantCulture)} — {chapter.Title}"
                 ],
-                Div(Class: "pg-brief-nav")[
-                    BsButton(Class: "pg-prev", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        Disabled: !CanInteract || chapter.Number == 1,
-                        OnClickAsync: () => StepAsync(-1))["← Back"],
-                    BsButton(Class: "pg-next", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        Disabled: !CanInteract || chapter.Number == TutorialChapters.All.Count,
-                        OnClickAsync: () => StepAsync(1))["Next →"]
+                Div.Class("pg-brief-nav")[
+                    BsButton
+                        .Class("pg-prev")
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Disabled(!CanInteract || chapter.Number == 1)
+                        .OnClickAsync(() => StepAsync(-1))["← Back"],
+                    BsButton
+                        .Class("pg-next")
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Disabled(!CanInteract || chapter.Number == TutorialChapters.All.Count)
+                        .OnClickAsync(() => StepAsync(1))["Next →"]
                 ]
             ],
-            P(Class: "pg-brief-goal")[chapter.Goal],
+            P.Class("pg-brief-goal")[chapter.Goal],
             locked
-                ? P(Class: "pg-brief-locked")[
+                ? P.Class("pg-brief-locked")[
                     "This build ships without the EF Core + SQLite reference set, so this chapter can be "
                     + "read but not run. The deployed playground has it."
                 ]
                 : null,
-            Ul(Class: "pg-brief-steps")[
-                chapter.Steps.Select((s, i) => Li(Key: i)[s])
+            Ul.Class("pg-brief-steps")[
+                chapter.Steps.Select((s, i) => Li.Key(i)[s])
             ]
         ];
     }
@@ -379,7 +407,7 @@ public sealed partial class PlaygroundView : Component
         // the workspace has its references, and a colour is not a thing a locator can wait for. See
         // IdeBadgeState — the mapping is pinned by a unit test precisely because losing it fails as a
         // three-minute Playwright timeout rather than as anything that names the cause (#593).
-        return BsBadge(Color: color, Pill: true, Class: $"pg-ide {IdeBadgeState.ClassFor(_ide)}")[text];
+        return BsBadge.Color(color).Pill(true).Class($"pg-ide {IdeBadgeState.ClassFor(_ide)}")[text];
     }
 
     private Component PreviewBody()
@@ -393,10 +421,10 @@ public sealed partial class PlaygroundView : Component
             // factory, so nothing has adopted it: handed straight to the boundary it renders fine but never
             // receives OnMount/OnMountAsync, which is silent and looks exactly like code that doesn't work —
             // a component that loads in OnMountAsync just sits on its placeholder.
-            return ErrorBoundary(Fallback: RenderPreviewError)[Mount(Child: component)];
+            return ErrorBoundary.Fallback(RenderPreviewError)[Mount.Child(component)];
         }
 
-        return Div(Class: "pg-preview-empty")[
+        return Div.Class("pg-preview-empty")[
             _result is null
                 ? "Your component renders here."
                 : "Fix the errors below to see the preview."
@@ -404,13 +432,13 @@ public sealed partial class PlaygroundView : Component
     }
 
     private static Component RenderPreviewError(Exception error, Action recover) =>
-        Div(Class: "pg-preview-error")[
-            Strong()["The component threw while rendering:"],
+        Div.Class("pg-preview-error")[
+            Strong["The component threw while rendering:"],
             // The whole chain, not just the outermost message. The ones that matter most here say the least
             // on their own: EF Core's "An error occurred while saving the entity changes. See the inner
             // exception for details." is a pointer to the message the reader actually needs.
-            Pre()[ExceptionChain(error)],
-            Button(Class: "pg-retry", OnClick: recover)["Retry"]
+            Pre[ExceptionChain(error)],
+            Button.Class("pg-retry").OnClick(recover)["Retry"]
         ];
 
     private static string ExceptionChain(Exception error)
@@ -437,12 +465,12 @@ public sealed partial class PlaygroundView : Component
             return null;
         }
 
-        return Div(Class: "pg-diagnostics")[
+        return Div.Class("pg-diagnostics")[
             _result.Diagnostics.Select((d, i) =>
-                Div(Key: i, Class: $"pg-diag pg-diag-{Severity(d.Severity)}")[
-                    Span(Class: "pg-diag-id")[d.Id],
-                    Span(Class: "pg-diag-loc")[$"({d.StartLine},{d.StartColumn})"],
-                    Span(Class: "pg-diag-msg")[d.Message]
+                Div.Key(i).Class($"pg-diag pg-diag-{Severity(d.Severity)}")[
+                    Span.Class("pg-diag-id")[d.Id],
+                    Span.Class("pg-diag-loc")[$"({d.StartLine},{d.StartColumn})"],
+                    Span.Class("pg-diag-msg")[d.Message]
                 ])
         ];
     }

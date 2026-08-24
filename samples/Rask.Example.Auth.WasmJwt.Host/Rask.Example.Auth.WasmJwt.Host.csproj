@@ -28,6 +28,8 @@
     <ProjectReference Include="..\Rask.Example.Auth.WasmJwt\Rask.Example.Auth.WasmJwt.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">

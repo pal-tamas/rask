@@ -1,8 +1,6 @@
 using System.Text.Json;
 using Rask.Example.Shared;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Core.Components.Generated;
-using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 

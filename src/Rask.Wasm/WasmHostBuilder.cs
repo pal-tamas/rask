@@ -192,7 +192,12 @@ public sealed class WasmHostBuilder
         // Wrap the App in an implicit RootErrorBoundary so an uncaught render / lifecycle /
         // event-handler exception anywhere in the user's tree renders a styled fallback
         // page instead of leaving the browser on a blank screen.
+        // A chain carries properties and DI services; `app` is neither, and this is the root, so there is
+        // no parent render context whose GetOrCreate a chain would route through. RASK014's reason to
+        // exist is absent here.
+#pragma warning disable RASK014
         var root = new RootErrorBoundary(app);
+#pragma warning restore RASK014
 
         var routeState = provider.GetRequiredService<RouteState>();
         RouteSeeder.Seed(JSInterop.GetLocation(), routeState);

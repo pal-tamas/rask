@@ -91,15 +91,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask040 = new(
         "RASK040",
         "Two components share a simple name, so neither can have a builder entry",
-        "Components '{1}' share the simple name '{0}', so neither receives a builder entry: an entry is a single member of 'Rask.Core.Component' (or of each consuming component) named after its type, and one name can only stand for one type. The generated factories are unaffected — they live in a per-namespace 'Generated' class — so both components stay reachable through 'Generated.{0}(...)'. Rename one of them to give both an entry.",
+        "Components '{1}' share the simple name '{0}', so neither receives a builder entry: an entry is a single member of 'Rask.Core.Component' (or of each consuming component) named after its type, and one name can only stand for one type. Neither is reachable from a chain until you rename one of them.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "An entry is keyed by SIMPLE name — it is one member named after its type — while a factory is "
-                     + "keyed by namespace, because factories live in a per-namespace 'Generated' class. Two "
-                     + "components with the same simple name therefore have two factories and can have at most one "
-                     + "entry, and picking a winner would be the generator guessing which type the name means. "
-                     + "Neither gets one until you rename.",
+        description: "An entry is keyed by SIMPLE name — it is one member named after its type — so two components "
+                     + "sharing a simple name can have at most one entry between them, and picking a winner would be "
+                     + "the generator guessing which type the name means. Neither gets one until you rename. Their "
+                     + "namespaces do not separate them here the way they separate the types themselves: a member "
+                     + "name has no namespace.",
         helpLinkUri: DiagnosticHelp.Link("RASK040"));
 
     private static readonly DiagnosticDescriptor Rask041 = new(
@@ -151,36 +151,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Select(static (h, _) => h!.Value)
             .Collect();
 
-        // RaskFactoryNavigation (default true) gates the per-factory `<see cref>` doc breadcrumb
-        // that links each generated factory to its component type (Quick-Doc / hover navigation;
-        // F12 still resolves to the generated method — Roslyn/ReSharper navigate generated symbols
-        // to the generated file, so use "Navigate to Type of Symbol" for a one-action jump to the
-        // component). `[DebuggerStepThrough]` is emitted unconditionally so the debugger always
-        // steps over the factory into user code.
-        var navigationEnabled = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
-            !p.GlobalOptions.TryGetValue("build_property.RaskFactoryNavigation", out var v)
-            || !string.Equals(v, "false", StringComparison.OrdinalIgnoreCase));
+        // RASK001 / RASK002 are reported here rather than beside an emission, because what they are
+        // about — which properties a chain MUST name — is a property of the component, not of anything
+        // generated from it.
+        context.RegisterSourceOutput(grouped, static (spc, c) => ReportPropertyDiagnostics(spc, c));
 
-        context.RegisterSourceOutput(grouped.Combine(navigationEnabled),
-            static (spc, t) => Emit(spc, t.Left, t.Right));
-
-        var globalUsingsEnabled = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
-            !p.GlobalOptions.TryGetValue("build_property.RaskGlobalUsings", out var v)
-            || !string.Equals(v, "false", StringComparison.OrdinalIgnoreCase));
-
-        // Satellite factory families (e.g. Rask.Native.Components) live in referenced assemblies, so their
-        // components never appear in this compilation's syntax candidates. Scan the reference graph for the
-        // [assembly: RaskFactoryNamespace(...)] marker and surface each hit as a global using too. Wrapped in
-        // an EquatableArray so this only re-runs the emit when the marker SET changes, not on every keystroke
-        // (CompilationProvider yields a fresh Compilation per edit).
-        var factoryMarkerNamespaces = context.CompilationProvider.Select(
-            static (c, _) => new EquatableArray<string>(ScanFactoryMarkerNamespaces(c)));
-
-        var globalUsingsInput = grouped.Combine(globalUsingsEnabled).Combine(factoryMarkerNamespaces);
-        context.RegisterSourceOutput(globalUsingsInput,
-            static (spc, t) => EmitGlobalUsings(spc, t.Left.Left, t.Left.Right, t.Right));
-
-        // Builder surface (opt-in, RaskBuilderSurface). Only the assembly that DECLARES
+        // Only the assembly that DECLARES
         // Rask.Core.Component can add entry members to its hierarchy, so this emission is scoped to that
         // compilation; a consumer's own components are handled separately (they are injected into
         // the consumer's own partial class, since a generator cannot add members to a type in a
@@ -191,7 +167,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // NOT a component (a test class, a fixture, a demo factory) reach the surface, by deriving from
         // the half of Component that is only the markup. Emitting them a second time onto a separate
         // markup base was the alternative, and two emissions of one surface are two things free to drift.
-        // RaskBuilderEntryInjection is the second, finer switch, and it is opt-OUT (absent means on).
+        // RaskBuilderEntryInjection is the one switch here, and it is opt-OUT (absent means on).
         // It turns off only the half of the consumer path that injects a forwarder per entry into every
         // local host partial, while still publishing this assembly's `RaskEntries{Assembly}` class so a
         // REFERENCING compilation keeps seeing the entries. A component LIBRARY wants exactly that split:
@@ -199,17 +175,19 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // generated members whose names collide with the props those hosts inherit from Element
         // (`Style`, `Data`, `Title`, `Cite`, …) — CS0108 with nothing able to hide it, because the entries
         // land ABOVE Element rather than below it the way Rask.Core's do on RaskMarkup.
+        //
+        // There is no switch for the surface itself. There used to be, back when a generated factory was
+        // the other way to write markup; turning the chain off now would leave a project with no way to
+        // build a component at all.
         var builderEnabled = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
             new BuilderOptions(
-                p.GlobalOptions.TryGetValue("build_property.RaskBuilderSurface", out var v)
-                && string.Equals(v, "true", StringComparison.OrdinalIgnoreCase),
                 !p.GlobalOptions.TryGetValue("build_property.RaskBuilderEntryInjection", out var inject)
                 || !string.Equals(inject, "false", StringComparison.OrdinalIgnoreCase)));
 
         var componentHost = context.CompilationProvider.Select(static (c, _) => GetComponentHost(c));
 
-        context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(componentHost),
-            static (spc, t) => EmitBuilderEntries(spc, t.Left.Left, t.Left.Right.Surface, t.Right));
+        context.RegisterSourceOutput(grouped.Combine(componentHost),
+            static (spc, t) => EmitBuilderEntries(spc, t.Left, t.Right));
 
         // Components in REFERENCED assemblies (Rask.Bootstrap's Bs*, any third-party component library)
         // are in neither of the two paths above: they are not Rask.Core's, so they cannot ride on
@@ -223,8 +201,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             grouped.Combine(builderEnabled).Combine(componentHost).Combine(externalEntries)
                 .Combine(extraHosts),
             static (spc, t) =>
-                EmitConsumerEntries(spc, t.Left.Left.Left.Left, t.Left.Left.Left.Right.Surface,
-                    t.Left.Left.Left.Right.InjectEntries, t.Left.Left.Right, t.Left.Right, t.Right));
+                EmitConsumerEntries(spc, t.Left.Left.Left.Left, t.Left.Left.Left.Right.InjectEntries,
+                    t.Left.Left.Right, t.Left.Right, t.Right));
 
         // Which of each component's properties a builder chain MUST set. Published as assembly attributes
         // because it is the one thing about a component that metadata destroys: a member initializer
@@ -232,8 +210,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // `string Title = ""` are the same symbol and RASK038 cannot tell an optional property from a
         // required one. This compilation can — it is the same rule RASK001 applies right here — so
         // it publishes the answer rather than leaving a consumer to re-derive one it cannot reach.
-        context.RegisterSourceOutput(grouped.Combine(builderEnabled),
-            static (spc, t) => EmitPublishedRequiredProperties(spc, t.Left, t.Right.Surface));
+        context.RegisterSourceOutput(grouped,
+            static (spc, c) => EmitPublishedRequiredProperties(spc, c));
 
         // Setters. Emitted into the GLOBAL namespace: an extension method is only found when its
         // containing namespace is in scope, and the global namespace encloses every namespace — so
@@ -243,7 +221,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(setterHost),
             static (spc, t) => EmitBuilderSetters(
-                spc, t.Left.Left, t.Left.Right.Surface, t.Left.Right.InjectEntries, t.Right));
+                spc, t.Left.Left, t.Left.Right.InjectEntries, t.Right));
     }
 
     // The universal surface (Component.Key plus Element's attributes and its ~88 GlobalEventHandlers)
@@ -307,15 +285,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitBuilderSetters(
         SourceProductionContext spc,
         ImmutableArray<Candidate> candidates,
-        bool enabled,
         bool emitSharedSurface,
         SetterHost host)
     {
-        if (!enabled)
-        {
-            return;
-        }
-
         var sb = new StringBuilder();
         EmitGeneratedFileHeader(sb);
         sb.AppendLine();
@@ -1472,10 +1444,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitBuilderEntries(
         SourceProductionContext spc,
         ImmutableArray<Candidate> candidates,
-        bool enabled,
         ComponentHost host)
     {
-        if (!enabled || !host.DeclaresComponent || candidates.IsDefaultOrEmpty)
+        if (!host.DeclaresComponent || candidates.IsDefaultOrEmpty)
         {
             return;
         }
@@ -2845,7 +2816,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitConsumerEntries(
         SourceProductionContext spc,
         ImmutableArray<Candidate> candidates,
-        bool enabled,
         bool injectEntries,
         ComponentHost host,
         ExternalEntrySet external,
@@ -2854,7 +2824,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // A test project is the shape that needs the second half of this condition: it may declare no
         // component of its own at all and still have markup hosts that need the component library it is
         // testing injected into them.
-        if (!enabled || host.DeclaresComponent || (candidates.IsDefaultOrEmpty && extraHosts.IsDefaultOrEmpty))
+        if (host.DeclaresComponent || (candidates.IsDefaultOrEmpty && extraHosts.IsDefaultOrEmpty))
         {
             return;
         }
@@ -2865,8 +2835,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // Publishing the entry host above is unconditional; injecting them into this assembly's own hosts
         // is not. A component LIBRARY opts the injection out (RaskBuilderEntryInjection=false) and keeps
         // the publication, so its consumers are unaffected — they still read `RaskEntries{Assembly}` and
-        // still write `Div.Class("x")`. Inside the library itself the chain is simply not offered, and the
-        // `Generated.X(...)` factories (a separate emission, ungated) are how it builds its own markup.
+        // still write `Div.Class("x")`. Inside the library itself the chain's own entries are simply not
+        // offered — a tag component composes nothing, it renders itself from TagName and WriteAttributes.
         if (!injectEntries)
         {
             return;
@@ -3092,9 +3062,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // richer source would be a second copy free to drift. `required` props are skipped: metadata keeps
     // those, and the consumer reads them straight off the symbol.
     private static void EmitPublishedRequiredProperties(
-        SourceProductionContext spc, ImmutableArray<Candidate> candidates, bool enabled)
+        SourceProductionContext spc, ImmutableArray<Candidate> candidates)
     {
-        if (!enabled || candidates.IsDefaultOrEmpty)
+        if (candidates.IsDefaultOrEmpty)
         {
             return;
         }
@@ -3278,10 +3248,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // diagnostics reported — by the compilation that owns it. Re-asking it here from metadata would be a
     // second, silently divergent copy of CanHaveEntry.
     //
-    // [assembly: RaskFactoryNamespace] is deliberately NOT the hook: it names a NAMESPACE so the
-    // `using static` emission can surface a satellite factory family, which is exactly the mechanism the
-    // builder surface exists to remove. It says nothing about which types in that namespace are
-    // entry-eligible, and a library that never declared it (Rask.Bootstrap) would stay invisible.
     // Rask.Core's own entries come back in a SEPARATE list, because almost nothing wants them: a
     // component, and any host that derives from RaskMarkup, already has them by inheritance, and
     // forwarding to them as well would hide the inherited member (CS0108). Only a `[RaskMarkup]` host
@@ -3699,13 +3665,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string AssemblyName,
         EquatableArray<string> MemberNames);
 
-    /// <param name="Surface">RaskBuilderSurface — whether the builder surface is emitted at all.</param>
     /// <param name="InjectEntries">
     ///     RaskBuilderEntryInjection — whether this compilation's own entries are also injected into its own
     ///     host partials, and whether it re-emits the universal setter surface. Off for a component library,
     ///     which publishes both for consumers but does not hand them to itself a second time.
     /// </param>
-    private readonly record struct BuilderOptions(bool Surface, bool InjectEntries);
+    private readonly record struct BuilderOptions(bool InjectEntries);
 
     // One canonical entry, as a forwarder needs to restate it. Covers both shapes: a property
     // (TypeParameters/Parameters/Arguments all empty) and a generic form control's method overload
@@ -3719,38 +3684,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string Constraints,
         string Parameters,
         string Arguments);
-
-    // Collect the distinct, ordered factory namespaces declared by [assembly: RaskFactoryNamespace(ns)] on
-    // this compilation's own assembly and every referenced assembly. Ordered for deterministic output.
-    private static ImmutableArray<string> ScanFactoryMarkerNamespaces(Compilation compilation)
-    {
-        var result = new SortedSet<string>(StringComparer.Ordinal);
-        CollectFactoryMarkers(compilation.Assembly, result);
-        foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
-        {
-            CollectFactoryMarkers(reference, result);
-        }
-
-        return result.Count == 0 ? ImmutableArray<string>.Empty : result.ToImmutableArray();
-    }
-
-    private static void CollectFactoryMarkers(IAssemblySymbol assembly, SortedSet<string> into)
-    {
-        foreach (var attr in assembly.GetAttributes())
-        {
-            if (attr.AttributeClass?.ToDisplayString() != "Rask.Core.RaskFactoryNamespaceAttribute")
-            {
-                continue;
-            }
-
-            if (attr.ConstructorArguments.Length > 0
-                && attr.ConstructorArguments[0].Value is string ns
-                && !string.IsNullOrEmpty(ns))
-            {
-                into.Add(ns);
-            }
-        }
-    }
 
     private static Candidate? GetCandidate(GeneratorSyntaxContext ctx)
     {
@@ -4656,26 +4589,26 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         };
     }
 
-    private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates, bool emitNavigation)
+    private static void ReportPropertyDiagnostics(
+        SourceProductionContext spc, ImmutableArray<Candidate> candidates)
     {
         if (candidates.IsDefaultOrEmpty)
         {
             return;
         }
 
-        // Report per-property diagnostics first.
         foreach (var c in candidates)
         {
             foreach (var p in c.Properties)
             {
                 var location = MakeLocation(p);
-                // RASK002 only fires when the generated factory genuinely cannot honor `required`.
-                // A DI ctor alone is fine: with no parameterless ctor the factory builds via
-                // ActivatorUtilities.CreateInstance (reflection bypasses the CS9035 check) and then
-                // post-assigns every factory param, so a required no-initializer prop IS set. The one
-                // broken shape is a parameterless ctor present *and* a required prop carrying a member
-                // initializer: the factory then emits `new T() { … }` whose object initializer excludes
-                // the initializer-carrying prop (IsParamProperty), so the consumer build hits CS9035.
+                // RASK002 only fires when the chain genuinely cannot honor `required`. A DI ctor alone
+                // is fine: with no parameterless ctor the entry builds via
+                // ActivatorUtilities.CreateInstance (reflection bypasses the CS9035 check) and the steps
+                // assign afterwards, so a required no-initializer prop IS set. The one broken shape is a
+                // parameterless ctor present *and* a required prop carrying a member initializer: the
+                // entry then constructs with `new T()` and the prop is excluded from what the steps can
+                // set (IsParamProperty), so the consumer build hits CS9035.
                 if (p.UserMarkedRequired && c.HasDIConstructor && c.HasParameterlessCtor && p.HasInitializer)
                 {
                     spc.ReportDiagnostic(Diagnostic.Create(Rask002, location, c.FullyQualifiedName, p.Name));
@@ -4686,75 +4619,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 }
             }
         }
-
-        var byNamespace = candidates
-            .GroupBy(c => c.Namespace)
-            .OrderBy(g => g.Key, StringComparer.Ordinal);
-
-        foreach (var group in byNamespace)
-        {
-            var sb = new StringBuilder();
-            EmitGeneratedFileHeader(sb);
-            sb.AppendLine();
-
-            var hasNs = !string.IsNullOrEmpty(group.Key);
-            if (hasNs)
-            {
-                sb.Append("namespace ").Append(group.Key).AppendLine(";");
-                sb.AppendLine();
-            }
-
-            sb.AppendLine("/// <summary>");
-            sb.AppendLine("///     Factory methods for this namespace's components — one per component, with a parameter for");
-            sb.AppendLine("///     each of its public properties. Markup is normally written as a chain");
-            sb.AppendLine("///     (<c>Div.Class(\"card\")[…]</c>); these are the same components reached by call instead.");
-            sb.AppendLine("/// </summary>");
-            sb.AppendLine("public static partial class Generated");
-            sb.AppendLine("{");
-
-            // Dedupe by name AND type-parameter list, so same-named generic overloads of different arity
-            // (e.g. BsSelect<TItem> and BsSelect<TValue, TItem>) each get a factory instead of the second
-            // being dropped — while genuine duplicates (a partial class seen twice) still collapse.
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var c in group.OrderBy(c => c.TypeName + c.TypeParameters, StringComparer.Ordinal))
-            {
-                if (!seen.Add(c.TypeName + c.TypeParameters))
-                {
-                    continue;
-                }
-
-                EmitFactory(sb, c, emitNavigation);
-                sb.AppendLine();
-
-                if (c.FormControl is { } fc)
-                {
-                    EmitBoundFactory(sb, c, fc, emitNavigation);
-                    sb.AppendLine();
-                }
-
-                if (c.GenericFactory is { } gf)
-                {
-                    EmitGenericFactoryOverload(sb, c, gf, emitNavigation);
-                    sb.AppendLine();
-                }
-
-                foreach (var f in c.Forwarders)
-                {
-                    EmitForwarderFactory(sb, c, f, emitNavigation);
-                    sb.AppendLine();
-                }
-            }
-
-            sb.AppendLine("}");
-
-            var hint = hasNs ? $"{group.Key}.Generated.g.cs" : "Generated.g.cs";
-            spc.AddSource(hint, SourceText.From(sb.ToString(), Encoding.UTF8));
-        }
     }
 
-    // Children is delivered via the `Component this[params Component[]]` indexer on Component
-    // itself — the factory has no Children parameter. This helper exists only to recognize
-    // the standard Children collection shapes while filtering them out in GetFactoryProperties.
     private static bool IsChildCollectionType(string typeFqn)
     {
         // Strip ALL nullable annotations (the outer collection `?` and the inner `Component?`
@@ -4781,875 +4647,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // A property with a constant member initializer is an optional param defaulting to that value;
         // a non-constant initializer (InitializerDefault == null) is still excluded entirely.
         !p.HasInitializer || p.InitializerDefault is not null;
-
-    // Emits the per-factory header trivia: the doc comment, and an always-on
-    // `[DebuggerStepThrough]` so the debugger steps over the factory into user code. F12 still
-    // lands on the generated method — stock Roslyn/ReSharper navigate a generated symbol to its
-    // generated document; "Navigate to Type of Symbol" jumps to the component.
-    //
-    // The doc comment is the whole point of documenting a component: a factory call is what a user
-    // WRITES, so `Video(` must show what `<video>` is (and, for an HTML tag, link MDN) without
-    // anyone navigating to the type first. The component's own `<summary>` becomes the factory's,
-    // and each documented property's becomes a `<param>` on the matching factory parameter.
-    // Without this the tooltip at the call site is blank however well the component is documented.
-    //
-    // `docParams` must be the parameters this overload actually emits, in any order: a `<param>`
-    // for a parameter that isn't there is CS1572. The reverse (a parameter with no `<param>`) is
-    // CS1573, disabled once per generated file — most props carry no summary, and documenting a
-    // few must not be what makes a consumer's warnings-as-errors build fail.
-    private static void EmitMethodHeader(
-        StringBuilder sb, Candidate c, bool emitNavigation, IReadOnlyList<PropInfo>? docParams = null)
-    {
-        // cref uses `{T}` (not `<T>`) for generic arity — the doc-comment cref syntax — so it
-        // resolves to the component type and renders as a navigable link.
-        var cref = c.FullyQualifiedName.Replace('<', '{').Replace('>', '}');
-        if (c.Summary.Length > 0)
-        {
-            sb.Append("    /// <summary>").Append(c.Summary).AppendLine("</summary>");
-            if (emitNavigation)
-            {
-                // The breadcrumb survives as `<seealso>` — the summary is the component's own, so
-                // the link to the type belongs beside it rather than instead of it.
-                sb.Append("    /// <seealso cref=\"").Append(cref).AppendLine("\"/>");
-            }
-        }
-        else if (emitNavigation)
-        {
-            sb.Append("    /// <summary>Factory for the <see cref=\"").Append(cref)
-                .AppendLine("\"/> component.</summary>");
-        }
-
-        if (docParams is not null)
-        {
-            foreach (var p in docParams)
-            {
-                if (p.Summary.Length == 0)
-                {
-                    continue;
-                }
-
-                // Name, not Escaped: `<param name="class">` matches the parameter `@class`, while
-                // `name="@class"` matches nothing (CS1572).
-                sb.Append("    /// <param name=\"").Append(p.Name).Append("\">")
-                    .Append(p.Summary).AppendLine("</param>");
-            }
-        }
-
-        sb.AppendLine("    [global::System.Diagnostics.DebuggerStepThrough]");
-    }
-
-    private static void EmitFactory(StringBuilder sb, Candidate c, bool emitNavigation)
-    {
-        var visibility = c.IsPublic ? "public" : "internal";
-        // Bound-mode IFormControl members are excluded from the controlled factory — they appear on the
-        // synthesized bound factory (EmitBoundFactory) instead.
-        var paramProps = c.Properties.Where(p => IsParamProperty(p) && !p.IsBoundInterfaceProp).ToList();
-        var requiredProps = paramProps.Where(IsRequiredFactoryParam).ToList();
-        var optionalProps = paramProps.Where(p => !IsRequiredFactoryParam(p)).ToList();
-
-        // Key (Component-level, Blazor @key parity) is a reconciliation IDENTITY, not a reactive
-        // prop: it's a factory param and is assigned to the instance, but it's excluded from the
-        // propsChanged diff. That keeps a propertyless component on the `propsChanged: false` fast
-        // path, and means a Key change never fires OnPropsChanged (a different key is a different
-        // logical item, which mounts fresh rather than re-rendering the old instance).
-        var hasKeyProp = paramProps.Any(IsKeyProp);
-
-        // nonKeyProps need re-assignment every render (drives the full-vs-fast path choice).
-        // foldProps is the subset that participates in the propsChanged diff: it also excludes
-        // auto-wrapped event-callback delegates, which are a fresh wrapper closure every render
-        // (never meaningfully equal — diffing them is pure noise that would defeat the
-        // `propsChanged: false` fast path for any callback-receiving component). They are still
-        // assigned each render, just not folded.
-        var nonKeyProps = paramProps.Where(p => !IsKeyProp(p)).ToList();
-        var foldProps = nonKeyProps
-            .Where(p => !p.IsAutoRerenderDelegate && !p.IsDelegate).ToList();
-
-        // Prefer the parameterless ctor + object-initializer path whenever it's available.
-        // Even if the component declares additional ctors that take services (DI) or
-        // primitives (Text/Raw's string-arg ctor), the generated factory only needs the
-        // parameterless one and then assigns properties — no ActivatorUtilities required.
-        var canUseObjectInit = c.HasParameterlessCtor || !c.HasDIConstructor;
-
-        // Signature. The parameters are exactly requiredProps then optionalProps, so that pair is
-        // also the complete `<param>` set — see EmitMethodHeader.
-        EmitMethodHeader(sb, c, emitNavigation, [.. requiredProps, .. optionalProps]);
-        sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
-            .Append(c.TypeName).Append(c.TypeParameters).Append('(');
-        var first = true;
-        foreach (var p in requiredProps)
-        {
-            if (!first)
-            {
-                sb.Append(", ");
-            }
-
-            first = false;
-            sb.Append(ParamType(p)).Append(' ').Append(p.Escaped);
-        }
-
-        foreach (var p in optionalProps)
-        {
-            if (!first)
-            {
-                sb.Append(", ");
-            }
-
-            first = false;
-            sb.Append(ParamType(p)).Append(' ').Append(p.Escaped).Append(" = ")
-                .Append(DefaultLiteralFor(p));
-        }
-
-        sb.Append(')').AppendLine(c.TypeParameterConstraints);
-        sb.AppendLine("    {");
-
-        if (nonKeyProps.Count == 0)
-        {
-            // Legacy parameterless factory shape preserved (Key, if present, is assigned but not
-            // diffed — so this fast path still emits propsChanged: false).
-            sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
-            sb.AppendLine("        {");
-            sb.Append("            var __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
-            if (canUseObjectInit)
-            {
-                // Prefer the parameterless ctor: a context with no service provider (tests
-                // calling RenderAsLiveRoot() without a ServiceProvider) would otherwise NRE
-                // inside ActivatorUtilities. The DI-ctor branch below stays as a fallback for
-                // components whose only constructors take injected services.
-                sb.Append("                static _ => new ").Append(c.FullyQualifiedName).AppendLine("());");
-            }
-            else
-            {
-                sb.Append(
-                        "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
-                    .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
-            }
-
-            if (hasKeyProp)
-            {
-                sb.AppendLine("            __c.Key = Key;");
-            }
-
-            sb.AppendLine("            __ctx.NotifyParameters(__c, propsChanged: false);");
-            sb.AppendLine("            return __c;");
-            sb.AppendLine("        }");
-            if (c.HasParameterlessCtor)
-            {
-                if (hasKeyProp)
-                {
-                    sb.Append("        var __cf = new ").Append(c.FullyQualifiedName).AppendLine("();");
-                    sb.AppendLine("        __cf.Key = Key;");
-                    sb.AppendLine("        return __cf;");
-                }
-                else
-                {
-                    sb.Append("        return new ").Append(c.FullyQualifiedName).AppendLine("();");
-                }
-            }
-            else
-            {
-                sb.Append("        throw new global::System.InvalidOperationException(\"Component '")
-                    .Append(c.FullyQualifiedName)
-                    .AppendLine(
-                        "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
-            }
-
-            sb.AppendLine("    }");
-            return;
-        }
-
-        // Has factory-param properties. Construct, then re-apply props every render so cached instances get fresh values.
-        var hasRequired = requiredProps.Count > 0;
-        sb.Append("        ").Append(c.FullyQualifiedName).AppendLine(" __c;");
-        sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
-        if (canUseObjectInit && hasRequired)
-        {
-            // Has `required` members: they MUST be set at construction, so capture the args in an object
-            // initializer. This closure allocates a display class per render, but `required` is rare.
-            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
-            sb.Append("                __sp => new ").Append(c.FullyQualifiedName).Append("()");
-            EmitInitializerBody(sb, paramProps);
-            sb.AppendLine(");");
-        }
-        else if (canUseObjectInit)
-        {
-            // No `required` members → a STATIC, capture-free factory. Every prop is re-applied by the
-            // assignment pass below (which runs each render for cache reuse anyway), so seeding them in
-            // the lambda would be redundant — and capturing the args would allocate a display-class
-            // closure per render that scales with the parameter count. With the universal
-            // GlobalEventHandlers surface adding ~50 delegate params to every element factory, that
-            // closure dominated the render-hotpath allocation; a static lambda removes it entirely.
-            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
-            sb.Append("                static __sp => new ").Append(c.FullyQualifiedName).AppendLine("());");
-        }
-        else
-        {
-            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
-            sb.Append(
-                    "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
-                .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
-        }
-
-        sb.AppendLine("        else");
-        if (canUseObjectInit && hasRequired)
-        {
-            sb.Append("            __c = new ").Append(c.FullyQualifiedName).Append("()");
-            EmitInitializerBody(sb, paramProps);
-            sb.AppendLine(";");
-        }
-        else if (canUseObjectInit)
-        {
-            // No-context fallback: bare construct; the assignment pass below applies every prop.
-            sb.Append("            __c = new ").Append(c.FullyQualifiedName).AppendLine("();");
-        }
-        else
-        {
-            sb.Append("            throw new global::System.InvalidOperationException(\"Component '")
-                .Append(c.FullyQualifiedName)
-                .AppendLine(
-                    "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
-        }
-
-        EmitSnapshotsAndAssignments(sb, paramProps, foldProps);
-        sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx2)");
-        sb.AppendLine("            __ctx2.NotifyParameters(__c, __propsChanged);");
-        sb.AppendLine("        return __c;");
-        sb.AppendLine("    }");
-    }
-
-    // For an IFormControl<T> component, synthesizes the Bind-first bound factory in none/sync/async
-    // validator flavors. It builds the instance through the same GetOrCreate/NotifyParameters path as the
-    // controlled factory and sets the bound-mode members (Bind/Validate/ValidateAsync/AfterBind/
-    // AfterBindAsync); the controlled members (Value/OnChange/OnChangeAsync) are left at their defaults
-    // (= bound mode). This replaces the hand-written `[GenerateForwarderFactory(Validator="Validate")] Bound`.
-    private static void EmitBoundFactory(StringBuilder sb, Candidate c, FormControlInfo fc, bool emitNavigation)
-    {
-        EmitBoundOverload(sb, c, fc, emitNavigation, ValidatorShape.None);
-        sb.AppendLine();
-        EmitBoundOverload(sb, c, fc, emitNavigation, ValidatorShape.Sync);
-        sb.AppendLine();
-        EmitBoundOverload(sb, c, fc, emitNavigation, ValidatorShape.Async);
-    }
-
-    private static void EmitBoundOverload(
-        StringBuilder sb, Candidate c, FormControlInfo fc, bool emitNavigation, ValidatorShape shape)
-    {
-        var visibility = c.IsPublic ? "public" : "internal";
-        var canUseObjectInit = c.HasParameterlessCtor || !c.HasDIConstructor;
-
-        PropInfo Member(string name) => c.Properties.First(p => p.Name == name);
-        var bind = Member("Bind");
-        var afterBind = Member("AfterBind");
-        var afterBindAsync = Member("AfterBindAsync");
-
-        // Shared/display props: everything that's a factory param and not a mode member either way.
-        var shared = c.Properties
-            .Where(p => IsParamProperty(p) && !p.IsBoundInterfaceProp
-                        && Array.IndexOf(ControlledMembers, p.Name) < 0)
-            .ToList();
-        var sharedRequired = shared.Where(IsRequiredFactoryParam).ToList();
-        var sharedOptional = shared.Where(p => !IsRequiredFactoryParam(p)).ToList();
-
-        var validatorType = shape == ValidatorShape.Sync
-            ? "global::Rask.Core.Forms.Validate<" + fc.ValueTypeFqn + ">"
-            : "global::Rask.Core.Forms.ValidateAsync<" + fc.ValueTypeFqn + ">";
-
-        // Signature: Bind (required) → shared required (e.g. Options) → validator (sync/async, required) →
-        // AfterBind/AfterBindAsync (optional) → shared optional (display).
-        EmitMethodHeader(sb, c, emitNavigation);
-        sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
-            .Append(c.TypeName).Append(c.TypeParameters).Append('(');
-        sb.Append(StripNullable(bind.TypeFqn)).Append(" Bind");
-        foreach (var p in sharedRequired)
-        {
-            sb.Append(", ").Append(ParamType(p)).Append(' ').Append(p.Escaped);
-        }
-
-        if (shape != ValidatorShape.None)
-        {
-            sb.Append(", ").Append(validatorType).Append(" Validate");
-        }
-
-        sb.Append(", ").Append(ParamType(afterBind)).Append(' ').Append(afterBind.Escaped).Append(" = null");
-        sb.Append(", ").Append(ParamType(afterBindAsync)).Append(' ').Append(afterBindAsync.Escaped)
-            .Append(" = null");
-        foreach (var p in sharedOptional)
-        {
-            sb.Append(", ").Append(ParamType(p)).Append(' ').Append(p.Escaped).Append(" = ")
-                .Append(DefaultLiteralFor(p));
-        }
-
-        sb.Append(')').AppendLine(c.TypeParameterConstraints);
-        sb.AppendLine("    {");
-
-        // Bound-mode member assignments (raw — never auto-wrapped; AfterBind is a post-bind hook, not an
-        // event callback). The validator param (named Validate either way) sets Validate for the sync
-        // overload and ValidateAsync for the async overload.
-        var validate = Member("Validate");
-        var validateAsync = Member("ValidateAsync");
-        var validateExpr = shape == ValidatorShape.Sync ? "Validate" : "null";
-        var validateAsyncExpr = shape == ValidatorShape.Async ? "Validate" : "null";
-        var assigns = new List<(string Esc, string Expr)>
-        {
-            ("Bind", "Bind"),
-            ("Validate", validateExpr),
-            ("ValidateAsync", validateAsyncExpr),
-            (afterBind.Escaped, afterBind.Escaped),
-            (afterBindAsync.Escaped, afterBindAsync.Escaped),
-        };
-        foreach (var p in shared)
-        {
-            assigns.Add((p.Escaped, p.Escaped));
-        }
-
-        // Fold (propsChanged): only the shared value props participate — the bound members are fresh
-        // expressions/delegates each render (folding them would force propsChanged: true every frame).
-        var foldProps = shared
-            .Where(p => !IsKeyProp(p) && !p.IsAutoRerenderDelegate && !p.IsDelegate)
-            .ToList();
-
-        void EmitInit(string indent)
-        {
-            sb.AppendLine();
-            sb.Append(indent).AppendLine("{");
-            for (var i = 0; i < assigns.Count; i++)
-            {
-                sb.Append(indent).Append("    ").Append(assigns[i].Esc).Append(" = ").Append(assigns[i].Expr);
-                sb.AppendLine(i < assigns.Count - 1 ? "," : string.Empty);
-            }
-
-            sb.Append(indent).Append('}');
-        }
-
-        sb.Append("        ").Append(c.FullyQualifiedName).AppendLine(" __c;");
-        sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
-        if (canUseObjectInit)
-        {
-            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
-            sb.Append("                __sp => new ").Append(c.FullyQualifiedName).Append("()");
-            EmitInit("                ");
-            sb.AppendLine(");");
-            sb.AppendLine("        else");
-            sb.Append("            __c = new ").Append(c.FullyQualifiedName).Append("()");
-            EmitInit("            ");
-            sb.AppendLine(";");
-        }
-        else
-        {
-            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
-            sb.Append(
-                    "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
-                .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
-            sb.AppendLine("        else");
-            sb.Append("            throw new global::System.InvalidOperationException(\"Component '")
-                .Append(c.FullyQualifiedName)
-                .AppendLine(
-                    "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
-        }
-
-        foreach (var p in foldProps)
-        {
-            sb.Append("        var __old_").Append(p.Name).Append(" = __c.").Append(p.Escaped).AppendLine(";");
-        }
-
-        foreach (var (esc, expr) in assigns)
-        {
-            sb.Append("        __c.").Append(esc).Append(" = ").Append(expr).AppendLine(";");
-        }
-
-        if (foldProps.Count == 0)
-        {
-            sb.AppendLine("        var __propsChanged = false;");
-        }
-        else if (foldProps.Count == 1)
-        {
-            var p = foldProps[0];
-            sb.Append("        var __propsChanged = !global::System.Collections.Generic.EqualityComparer<")
-                .Append(p.TypeFqn).Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Escaped)
-                .AppendLine(");");
-        }
-        else
-        {
-            sb.AppendLine("        var __propsChanged =");
-            for (var i = 0; i < foldProps.Count; i++)
-            {
-                var p = foldProps[i];
-                sb.Append("            !global::System.Collections.Generic.EqualityComparer<").Append(p.TypeFqn)
-                    .Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Escaped).Append(')');
-                sb.AppendLine(i < foldProps.Count - 1 ? " ||" : ";");
-            }
-        }
-
-        sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx2)");
-        sb.AppendLine("            __ctx2.NotifyParameters(__c, __propsChanged);");
-        sb.AppendLine("        return __c;");
-        sb.AppendLine("    }");
-    }
-
-    private static void EmitForwarderFactory(StringBuilder sb, Candidate c, ForwarderInfo f, bool emitNavigation)
-    {
-        // No validator configured → one verbatim forwarder (the original behavior).
-        if (f.ValidatorParam is null)
-        {
-            EmitForwarderOverload(sb, c, f, emitNavigation, ValidatorShape.None, fanOut: false);
-            return;
-        }
-
-        // Validator configured → fan into none/sync/async, exactly like the [FactoryGeneric] validator
-        // fan-out, but forwarding to the hand-written source method instead of building the component.
-        EmitForwarderOverload(sb, c, f, emitNavigation, ValidatorShape.None, fanOut: true);
-        EmitForwarderOverload(sb, c, f, emitNavigation, ValidatorShape.Sync, fanOut: true);
-        EmitForwarderOverload(sb, c, f, emitNavigation, ValidatorShape.Async, fanOut: true);
-    }
-
-    private static void EmitForwarderOverload(
-        StringBuilder sb, Candidate c, ForwarderInfo f, bool emitNavigation, ValidatorShape shape, bool fanOut)
-    {
-        var visibility = c.IsPublic ? "public" : "internal";
-
-        // The generated factory method carries BOTH the component's and the method's type parameters: a
-        // generic method on a non-generic component (Input.Bound<TProp>) contributes the method's; a
-        // non-generic method on a generic component (MultiSelect<TItem>.Bound) contributes the component's.
-        // The call receiver is c.FullyQualifiedName (already constructed with the component's args), and the
-        // method is invoked with only its own type args (f.TypeParameters) — so both shapes forward right.
-        var factoryTypeParams = MergeTypeParams(c.TypeParameters, f.TypeParameters);
-        var factoryConstraints = (c.TypeParameterConstraints + f.TypeParameterConstraints);
-
-        // Signature: `public static {Component} {ComponentName}<...>(<params>) <constraints>`
-        EmitMethodHeader(sb, c, emitNavigation);
-        sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
-            .Append(c.TypeName).Append(factoryTypeParams).Append('(');
-        var first = true;
-        for (var i = 0; i < f.Parameters.Count; i++)
-        {
-            var p = f.Parameters[i];
-            var isValidator = fanOut && p.Name == f.ValidatorParam;
-
-            // The None overload drops the validator parameter entirely (it's forwarded as null below).
-            if (isValidator && shape == ValidatorShape.None)
-            {
-                continue;
-            }
-
-            if (!first)
-            {
-                sb.Append(", ");
-            }
-
-            first = false;
-            if (p.IsParams)
-            {
-                sb.Append("params ");
-            }
-
-            if (isValidator && shape == ValidatorShape.Sync)
-            {
-                sb.Append("global::Rask.Core.Forms.Validate<").Append(f.ValidatorTypeArg).Append("> ").Append(p.Name);
-            }
-            else if (isValidator && shape == ValidatorShape.Async)
-            {
-                sb.Append("global::Rask.Core.Forms.ValidateAsync<").Append(f.ValidatorTypeArg).Append("> ")
-                    .Append(p.Name);
-            }
-            else
-            {
-                sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
-                if (p.DefaultLiteral.Length > 0)
-                {
-                    sb.Append(" = ").Append(p.DefaultLiteral);
-                }
-            }
-        }
-
-        sb.Append(')').AppendLine(factoryConstraints);
-
-        // Body forwards to the source method. Non-fan-out keeps positional forwarding (verbatim shape);
-        // fan-out forwards by name so the omitted validator can be passed as null at its real position.
-        sb.Append("        => ").Append(c.FullyQualifiedName).Append('.').Append(f.MethodName)
-            .Append(f.TypeParameters).Append('(');
-        for (var i = 0; i < f.Parameters.Count; i++)
-        {
-            if (i > 0)
-            {
-                sb.Append(", ");
-            }
-
-            var p = f.Parameters[i];
-            if (!fanOut)
-            {
-                sb.Append(p.Name);
-            }
-            else if (p.Name == f.ValidatorParam && shape == ValidatorShape.None)
-            {
-                sb.Append(p.Name).Append(": null");
-            }
-            else
-            {
-                sb.Append(p.Name).Append(": ").Append(p.Name);
-            }
-        }
-
-        sb.AppendLine(");");
-    }
-
-    private static void EmitGenericFactoryOverload(StringBuilder sb, Candidate c, GenericFactoryConfig gf,
-        bool emitNavigation)
-    {
-        var visibility = c.IsPublic ? "public" : "internal";
-        var typedSet = new HashSet<string>(StringComparer.Ordinal);
-        var typedDelegates = new List<string>();
-        foreach (var name in gf.TypedDelegateProperties)
-        {
-            if (string.IsNullOrEmpty(name) || !typedSet.Add(name))
-            {
-                continue;
-            }
-
-            typedDelegates.Add(name);
-        }
-
-        var typedValidators = new List<string>();
-        var validatorSet = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var name in gf.TypedValidatorProperties)
-        {
-            if (string.IsNullOrEmpty(name) || !typedSet.Add(name))
-            {
-                continue;
-            }
-
-            typedValidators.Add(name);
-            validatorSet.Add(name);
-        }
-
-        var modelProperty = gf.ModelProperty;
-        var paramProps = c.Properties.Where(IsParamProperty).ToList();
-
-        if (typedValidators.Count == 0)
-        {
-            EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
-                modelProperty, paramProps, ValidatorShape.None, emitNavigation);
-            return;
-        }
-
-        // Fan out into three overloads. Overload resolution at the call site disambiguates:
-        //   - no `Validate:` arg          → None overload (Validate forwarded as null)
-        //   - one-arg lambda `v => …`     → Sync overload (typed Validate<T>)
-        //   - two-arg lambda `(v, ct) => …` → Async overload (typed ValidateAsync<T>)
-        // Both Sync and Async overloads make the validator parameter required so the No
-        // overload remains the unambiguous match when the caller passes neither.
-        EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
-            modelProperty, paramProps, ValidatorShape.None, emitNavigation);
-        EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
-            modelProperty, paramProps, ValidatorShape.Sync, emitNavigation);
-        EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
-            modelProperty, paramProps, ValidatorShape.Async, emitNavigation);
-    }
-
-    private static void EmitOneOverload(
-        StringBuilder sb,
-        Candidate c,
-        GenericFactoryConfig gf,
-        string visibility,
-        HashSet<string> typedSet,
-        List<string> typedDelegates,
-        List<string> typedValidators,
-        HashSet<string> validatorSet,
-        string modelProperty,
-        List<PropInfo> paramProps,
-        ValidatorShape validatorShape,
-        bool emitNavigation)
-    {
-        EmitMethodHeader(sb, c, emitNavigation);
-        sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
-            .Append(c.TypeName).Append('<').Append(gf.TypeParameter).Append(">(");
-
-        var first = true;
-
-        // Required: TModel Model — replaces ModelProperty's optional position with a typed,
-        // mandatory parameter. The non-generic factory's `object? Model = null` accepts the
-        // TModel value via implicit reference conversion (the `class` constraint ensures it).
-        if (modelProperty.Length > 0)
-        {
-            first = false;
-            sb.Append(gf.TypeParameter).Append(' ').Append(modelProperty);
-        }
-
-        // Typed validator parameter — required, no default. Position is right after Model so
-        // it stays prominent in IntelliSense. Sync vs async is fixed per overload; the body
-        // forwards the lambda into the non-generic factory's `Delegate?` slot.
-        if (validatorShape == ValidatorShape.Sync)
-        {
-            foreach (var vp in typedValidators)
-            {
-                if (!first)
-                {
-                    sb.Append(", ");
-                }
-
-                first = false;
-                sb.Append("global::Rask.Core.Forms.Validate<").Append(gf.TypeParameter).Append("> ").Append(vp);
-            }
-        }
-        else if (validatorShape == ValidatorShape.Async)
-        {
-            foreach (var vp in typedValidators)
-            {
-                if (!first)
-                {
-                    sb.Append(", ");
-                }
-
-                first = false;
-                sb.Append("global::Rask.Core.Forms.ValidateAsync<").Append(gf.TypeParameter).Append("> ").Append(vp);
-            }
-        }
-
-        // Typed delegates: `Action<TModel>? X = null` then `Func<TModel, Task>? XAsync = null`,
-        // grouped by side (sync first then async) for readability.
-        foreach (var dp in typedDelegates)
-        {
-            if (!first)
-            {
-                sb.Append(", ");
-            }
-
-            first = false;
-            sb.Append("global::System.Action<").Append(gf.TypeParameter).Append(">? ").Append(dp).Append(" = null");
-        }
-
-        foreach (var dp in typedDelegates)
-        {
-            if (!first)
-            {
-                sb.Append(", ");
-            }
-
-            first = false;
-            sb.Append("global::System.Func<").Append(gf.TypeParameter).Append(", global::System.Threading.Tasks.Task")
-                .Append(">? ").Append(dp).Append("Async = null");
-        }
-
-        // Remaining props in declaration order, skipping the Model and typed-delegate names
-        // already covered above. Children is excluded by GetFactoryProperties.
-        foreach (var p in paramProps)
-        {
-            if (p.Name == modelProperty || typedSet.Contains(p.Name))
-            {
-                continue;
-            }
-
-            if (!first)
-            {
-                sb.Append(", ");
-            }
-
-            first = false;
-            // ParamType, so the pass-through is typed exactly as the factory it forwards to.
-            sb.Append(ParamType(p)).Append(' ').Append(p.Name);
-            if (!IsRequiredFactoryParam(p))
-            {
-                sb.Append(" = ").Append(DefaultLiteralFor(p));
-            }
-        }
-
-        sb.Append(") where ").Append(gf.TypeParameter).Append(" : ").AppendLine(gf.Constraint);
-        sb.AppendLine("    {");
-
-        foreach (var dp in typedDelegates)
-        {
-            // Wrap the typed sync/async delegates so invoking them re-renders the providing component
-            // (parent→child callback parity). The base factory's prop is `Delegate?`, which isn't
-            // auto-wrapped, so the wrapping must happen here on the concrete Action<T>/Func<T,Task>.
-            sb.Append("        var __").Append(dp)
-                .Append(" = (global::System.Delegate?)global::Rask.Core.AutoCallback.Wrap(").Append(dp)
-                .Append(") ?? global::Rask.Core.AutoCallback.Wrap(").Append(dp).AppendLine("Async);");
-        }
-
-        sb.Append("        return ").Append(c.TypeName).AppendLine("(");
-        var argLines = new List<string>();
-        foreach (var p in paramProps)
-        {
-            string forward;
-            if (p.Name == modelProperty)
-            {
-                forward = $"{p.Name}: {modelProperty}";
-            }
-            else if (validatorSet.Contains(p.Name))
-            {
-                forward = validatorShape == ValidatorShape.None
-                    ? $"{p.Name}: null"
-                    : $"{p.Name}: {p.Name}";
-            }
-            else if (typedSet.Contains(p.Name))
-            {
-                forward = $"{p.Name}: __{p.Name}";
-            }
-            else
-            {
-                forward = $"{p.Name}: {p.Name}";
-            }
-
-            argLines.Add(forward);
-        }
-
-        for (var i = 0; i < argLines.Count; i++)
-        {
-            sb.Append("            ").Append(argLines[i]);
-            if (i < argLines.Count - 1)
-            {
-                sb.Append(',');
-            }
-
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("        );");
-        sb.AppendLine("    }");
-    }
-
-    private static void EmitInitializerBody(StringBuilder sb, IEnumerable<PropInfo> props)
-    {
-        sb.AppendLine();
-        sb.AppendLine("            {");
-        var entries = props.ToList();
-        for (var i = 0; i < entries.Count; i++)
-        {
-            var p = entries[i];
-            sb.Append("                ").Append(p.Escaped).Append(" = ").Append(p.Escaped);
-            if (i < entries.Count - 1)
-            {
-                sb.Append(',');
-            }
-
-            sb.AppendLine();
-        }
-
-        sb.Append("            }");
-    }
-
-    // assignProps: every factory param re-applied to the (possibly cached) instance each render —
-    // includes Key and auto-wrapped delegates. foldProps: the subset that participates in the
-    // propsChanged diff — excludes Key (a reconciliation identity) and auto-wrapped delegates
-    // (a fresh wrapper closure each render).
-    private static void EmitSnapshotsAndAssignments(StringBuilder sb,
-        IReadOnlyList<PropInfo> assignProps, IReadOnlyList<PropInfo> foldProps)
-    {
-        // Snapshot prior values of the diff-participating props (typed via the property's FQN so
-        // nullable annotations round-trip).
-        foreach (var p in foldProps)
-        {
-            // __old_<Name> is a fresh local (raw Name is a valid identifier even when Name is a
-            // keyword); the property access __c.<Name> must be '@'-escaped.
-            sb.Append("        var __old_").Append(p.Name).Append(" = __c.").Append(p.Escaped).AppendLine(";");
-        }
-
-        // Re-apply ALL params (including Key) so cached instances see fresh values. Event-callback
-        // delegates are wrapped so invoking them re-renders the owning component (see AutoCallback).
-        foreach (var p in assignProps)
-        {
-            string value;
-            if (p.IsAutoRerenderDelegate)
-            {
-                // Wrap returns a nullable delegate (null in → null out); a non-nullable prop never
-                // passes null, so the null-forgiving `!` is safe and silences CS8601.
-                value = "global::Rask.Core.AutoCallback.Wrap(" + p.Escaped + ")";
-                if (!p.IsNullable)
-                {
-                    value += "!";
-                }
-            }
-            else
-            {
-                value = p.Escaped;
-            }
-
-            sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(value).AppendLine(";");
-        }
-
-        if (foldProps.Count == 0)
-        {
-            sb.AppendLine("        var __propsChanged = false;");
-            return;
-        }
-
-        // Fold per-prop equality into a single __propsChanged bool. EqualityComparer<T>.Default
-        // gives ref-equality for ref types unless the type overrides Equals, and structural for
-        // primitives — same semantics Blazor uses for [Parameter] equality.
-        if (foldProps.Count == 1)
-        {
-            var p = foldProps[0];
-            sb.Append("        var __propsChanged = !global::System.Collections.Generic.EqualityComparer<")
-                .Append(p.TypeFqn).Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Escaped)
-                .AppendLine(");");
-            return;
-        }
-
-        sb.AppendLine("        var __propsChanged =");
-        for (var i = 0; i < foldProps.Count; i++)
-        {
-            var p = foldProps[i];
-            sb.Append("            !global::System.Collections.Generic.EqualityComparer<").Append(p.TypeFqn)
-                .Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Escaped).Append(')');
-            sb.AppendLine(i < foldProps.Count - 1 ? " ||" : ";");
-        }
-    }
-
-    private static bool IsKeyProp(PropInfo p) => string.Equals(p.Name, "Key", StringComparison.Ordinal);
-
-    private static void EmitGlobalUsings(
-        SourceProductionContext spc,
-        ImmutableArray<Candidate> candidates,
-        bool enabled,
-        EquatableArray<string> markerNamespaces)
-    {
-        if (!enabled)
-        {
-            return;
-        }
-
-        var namespaces = candidates.IsDefaultOrEmpty
-            ? Array.Empty<string>()
-            : candidates
-                .Select(c => c.Namespace)
-                .Where(ns => !string.IsNullOrEmpty(ns))
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(ns => ns, StringComparer.Ordinal)
-                .ToArray();
-
-        var emitted = new HashSet<string>(StringComparer.Ordinal)
-        {
-            // The framework's own factory namespaces — always emitted (below), so skip them everywhere else.
-            "Rask.Core.Components",
-            "Rask.Core.Routing",
-        };
-
-        var sb = new StringBuilder();
-        sb.AppendLine("// <auto-generated />");
-        // The framework's own factory namespaces — always make them globally visible to
-        // consumers, even if this assembly defines no user components of its own (and so
-        // `namespaces` is empty).
-        sb.AppendLine("global using static global::Rask.Core.Components.Generated;");
-        sb.AppendLine("global using static global::Rask.Core.Routing.Generated;");
-        foreach (var ns in namespaces)
-        {
-            if (emitted.Add(ns))
-            {
-                sb.Append("global using static global::").Append(ns).AppendLine(".Generated;");
-            }
-        }
-
-        // Satellite factory families from referenced assemblies marked with [assembly: RaskFactoryNamespace].
-        // Emission is conditional on the marker being present in the reference graph, so a pure-Core / Server /
-        // Wasm consumer gets no dangling `using` while a consumer that references Rask.Native gets its factories.
-        foreach (var ns in markerNamespaces)
-        {
-            if (!string.IsNullOrEmpty(ns) && emitted.Add(ns))
-            {
-                sb.Append("global using static global::").Append(ns).AppendLine(".Generated;");
-            }
-        }
-
-        spc.AddSource("RaskGlobalUsings.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
-    }
 
     private static Location MakeLocation(PropInfo p)
     {

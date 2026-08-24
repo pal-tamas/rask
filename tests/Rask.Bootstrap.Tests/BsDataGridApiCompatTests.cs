@@ -113,28 +113,31 @@ public partial class BsDataGridApiCompatTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NewParameters_AreAppended_SoPositionalCallersDoNotShift()
+    public void NoPropertyIsRequired_SoNoChainStepBecomesMandatory()
     {
-        // The generator orders same-depth parameters by declaration order, and hoists REQUIRED ones (a
-        // non-nullable property with no initializer, RASK001) ahead of everything. Either mistake silently
-        // re-binds existing positional arguments. Pin the original ten, in order, at the front.
-        var factory = typeof(Rask.Bootstrap.Generated)
-            .GetMethods()
-            .Single(m => m.Name == "BsDataGrid" && m.IsGenericMethodDefinition);
+        // BsDataGrid ships in a published package. A property that becomes non-nullable with no member
+        // initializer (RASK001) becomes a chain step every caller must now take — a source break in a
+        // minor release, and one nothing else here would catch: the grid still compiles inside this repo
+        // because every in-repo call site would be updated in the same commit.
+        //
+        // The answer is read from the attribute the owning compilation publishes, because that is the only
+        // place it survives: a member initializer compiles into the constructor, so from metadata alone
+        // `string Title` and `string Title = ""` are the same symbol.
+        var published = typeof(BsDataGrid<>).Assembly
+            .GetCustomAttributes(typeof(RaskRequiredPropertiesAttribute), false)
+            .Cast<RaskRequiredPropertiesAttribute>()
+            .Where(a => a.Component.StartsWith("Rask.Bootstrap.BsDataGrid", StringComparison.Ordinal))
+            .SelectMany(a => a.Properties)
+            .ToList();
 
-        Assert.Equal(
-            [
-                "Data", "Columns", "PageSize", "Striped", "Hover", "Small", "Responsive", "RowKey", "Empty",
-                "ExpandedContent",
-            ],
-            factory.GetParameters().Take(10).Select(p => p.Name));
-
-        // ...and every one of them stays optional.
-        Assert.All(factory.GetParameters(), p => Assert.True(p.IsOptional, $"{p.Name} must stay optional"));
+        Assert.Empty(published);
 
         // Data takes IEnumerable<T> so an IQueryable (a DbSet) binds to it directly. Narrowing this back to
         // IReadOnlyList<T> would silently stop every store-side grid from compiling.
-        Assert.StartsWith("IEnumerable`1", factory.GetParameters()[0].ParameterType.Name);
+        Assert.StartsWith(
+            "IEnumerable`1",
+            typeof(BsDataGrid<>).GetProperty("Data")!.PropertyType.Name,
+            StringComparison.Ordinal);
     }
 
     [Fact]

@@ -24,6 +24,8 @@
     <ProjectReference Include="..\Rask.Example.Auth.WasmCookie\Rask.Example.Auth.WasmCookie.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">

@@ -44,6 +44,8 @@
     <!-- The Online Backup API snapshotter, its options, and the ISqliteSnapshotStore seam this package
          implements over IndexedDB. A real package dependency: consumers resolve it from NuGet. -->
     <ProjectReference Include="..\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <ItemGroup>

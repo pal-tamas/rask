@@ -50,7 +50,7 @@ public class FactoryNotImportedAnalyzerTests
         Assert.Equal("RASK043", d.Id);
         Assert.Contains("'Card'", d.GetMessage(), StringComparison.Ordinal);
         Assert.Contains("Demo.Parts", d.GetMessage(), StringComparison.Ordinal);
-        Assert.Contains("using static Demo.Ui.Generated;", d.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("Rask.Core.RaskMarkup", d.GetMessage(), StringComparison.Ordinal);
         Assert.Contains("CS0119", d.GetMessage(), StringComparison.Ordinal);
     }
 
@@ -73,16 +73,17 @@ public class FactoryNotImportedAnalyzerTests
     // The fix, and the reason the two-tier surface works at all: a factory is a METHOD, so C#'s
     // invocable-member rule lets it share its component's name where an entry property cannot.
     [Fact]
-    public async Task The_using_static_silences_it() =>
+    public async Task Becoming_a_markup_host_silences_it() =>
+        // The one fix left. The `using static …Generated;` that used to be the other went with the factory.
         Assert.Empty(await Diagnostics("""
             using Demo.Ui;
-            using static Demo.Ui.Generated;
 
             namespace Demo
             {
-                public static class Parts
+                [Rask.Core.RaskMarkup]
+                public static partial class Parts
                 {
-                    public static object Build() => Card();
+                    public static object Build() => Card;
                 }
             }
             """));
@@ -150,11 +151,13 @@ public class FactoryNotImportedAnalyzerTests
 
         var d = Assert.Single(await Diagnostics("using Rask.Core.Components;\n" + body));
         Assert.Equal("RASK043", d.Id);
-        Assert.Contains("using static Rask.Core.Components.Generated;", d.GetMessage(),
-            StringComparison.Ordinal);
+        Assert.Contains("Rask.Core.RaskMarkup", d.GetMessage(), StringComparison.Ordinal);
 
+        // …and the fix it names actually silences it. There is one fix now: be a markup host. The
+        // `using static …Generated;` that used to be the third option went with the factory.
         Assert.Empty(await Diagnostics(
-            "using Rask.Core.Components;\nusing static Rask.Core.Components.Generated;\n" + body));
+            "using Rask.Core.Components;\n"
+            + body.Replace("internal static class Parts", "[Rask.Core.RaskMarkup] internal static partial class Parts")));
     }
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)

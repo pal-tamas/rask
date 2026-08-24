@@ -1,7 +1,6 @@
 using Rask.Example.Shared;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
@@ -11,7 +10,8 @@ public sealed partial class PageHeaderTests : global::Rask.Core.RaskMarkup
     public void Render_EmitsTitle_AsH2_AndLead_AsP()
     {
         var html = new LiveHost(
-            () => PageHeader(Title: "Greetings", Lead: "A welcoming subtitle."),
+            () => global::RaskEntriesRask_Example_Shared.PageHeader
+                .Title("Greetings").Lead("A welcoming subtitle."),
             TestServices.Default()).RenderAsLiveRoot();
         // PageHeader uses H1 with bootstrap class "h2" (visual sizing, not HTML tag).
         Assert.Contains("<h1 class=\"h2 fw-bold mb-2\">Greetings</h1>", html);
@@ -22,7 +22,7 @@ public sealed partial class PageHeaderTests : global::Rask.Core.RaskMarkup
     public void Render_HtmlEncodesContent()
     {
         var html = new LiveHost(
-            () => PageHeader(Title: "<a>", Lead: "&amp;"),
+            () => global::RaskEntriesRask_Example_Shared.PageHeader.Title("<a>").Lead("&amp;"),
             TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("&lt;a&gt;", html);
     }

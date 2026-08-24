@@ -8,13 +8,11 @@ namespace Rask.Generators.Tests;
 
 public class InputTypeMismatchAnalyzerTests
 {
-    // Wraps a Render() body. Real Rask.Core factories (Generated.Input<T>) + InputType are referenced via
-    // BuildReferences(), so the analyzer resolves the genuine generic Input factory and value type T.
+    // Wraps a Render() body. The real Rask.Html Input<T> entry + InputType are referenced via
+    // BuildReferences(), so the analyzer resolves the genuine control and its value type T.
     private static string App(string body) => $$"""
                                                 using System;
                                                 using Rask.Core;
-                                                using static Rask.Core.Components.Generated;
-                                                using static Rask.Html.Components.Generated;
                                                 namespace Demo;
                                                 public sealed partial class App : Component
                                                 {
@@ -32,27 +30,17 @@ public class InputTypeMismatchAnalyzerTests
                                                 }
                                                 """;
 
-    // The factory's `Type:` argument. Qualified because the builder entry (Component.Input<T>) shadows the
-    // unqualified name — a method entry, unlike a property entry, hides the same-named factory.
-    // Input<T> ships from Rask.Html now, so its factory lives in that assembly's Generated class.
-    private const string Factory = "Rask.Html.Components.Generated.";
-
-    [Fact]
-    public async Task StringFamilyType_OnIntInput_ReportsRask025()
-    {
-        var d = Assert.Single(await Diagnostics(App($"return {Factory}Input(() => _m.Age, Type: InputType.Email);")));
-        Assert.Equal("RASK025", d.Id);
-        Assert.Contains("Email", d.GetMessage());
-    }
+    // Named in full because `App` is not a markup host in this fixture — it declares a component, so it is
+    // given no entries of its own and the bare `Input` would be the TYPE (RASK043 says exactly that).
+    private const string Entry = "global::RaskEntriesRask_Html.Input";
 
     [Fact]
     public async Task StringFamilyType_OnBoolInput_ReportsRask025() =>
         Assert.Equal("RASK025",
-            Assert.Single(await Diagnostics(App($"return {Factory}Input(() => _m.Flag, Type: InputType.Text);"))).Id);
+            Assert.Single(await Diagnostics(App($"return {Entry}.Bind(() => _m.Flag).Type(InputType.Text);"))).Id);
 
-    // The same mistake written on the builder surface: `.Type(…)` chained onto a non-string Input<T>.
     [Fact]
-    public async Task BuilderSetter_StringFamilyType_OnIntInput_ReportsRask025()
+    public async Task StringFamilyType_OnIntInput_ReportsRask025()
     {
         var d = Assert.Single(await Diagnostics(App("return global::RaskEntriesRask_Html.Input.Bind(() => _m.Age).Type(InputType.Email);")));
         Assert.Equal("RASK025", d.Id);
@@ -60,25 +48,16 @@ public class InputTypeMismatchAnalyzerTests
     }
 
     [Fact]
-    public async Task BuilderSetter_StringFamilyType_OnStringInput_NoDiagnostic() =>
+    public async Task StringFamilyType_OnStringInput_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Name).Type(InputType.Email);")));
 
     [Fact]
-    public async Task BuilderSetter_NumberType_OnIntInput_NoDiagnostic() =>
+    public async Task NumberType_OnIntInput_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Age).Type(InputType.Number);")));
-
-    [Fact]
-    public async Task StringFamilyType_OnStringInput_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App($"return {Factory}Input(() => _m.Name, Type: InputType.Email);")));
 
     [Fact]
     public async Task NoExplicitType_OnIntInput_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Age);")));
-
-    [Fact]
-    public async Task NumberType_OnIntInput_NoDiagnostic() =>
-        // Number is not a string-family type — pairing it with Input<int> is fine.
-        Assert.Empty(await Diagnostics(App($"return {Factory}Input(() => _m.Age, Type: InputType.Number);")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {

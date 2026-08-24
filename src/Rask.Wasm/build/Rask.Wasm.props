@@ -2,7 +2,6 @@
   <ItemGroup>
     <Using Include="Rask.Core"/>
     <!-- Auto-generated HTML tag factories live in Rask.Core.Components.Components. -->
-    <Using Include="Rask.Core.Components.Generated" Static="true"/>
     <!-- The one hand-written generic entry point, VirtualizeModel's typed opener. Aliased rather
          than static-imported so the call site reads Virtualize.Items&lt;T&gt;(...): importing it
          statically would put a bare `Items` in scope, which is far too general a simple name to
@@ -13,8 +12,6 @@
          as for Rask.Core above and for the same reason: importing the NAMESPACE would put the tag
          TYPES in scope, and a type beats a same-named builder-entry property (CS0119). Entries reach
          an app's own components by injection into their partials, the tags' types by the entry. -->
-    <Using Include="Rask.Html.Components.Generated" Static="true"/>
     <!-- Routing helpers (Router/Outlet/Route<T>) come from the generator in Rask.Core.Routing.Components. -->
-    <Using Include="Rask.Core.Routing.Generated" Static="true"/>
   </ItemGroup>
 </Project>

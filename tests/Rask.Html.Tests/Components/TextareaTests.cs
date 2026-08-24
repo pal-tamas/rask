@@ -37,7 +37,7 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<textarea>&lt;x&gt;</textarea>", Textarea<string>()["<x>"].ToHtml());
+        Assert.Equal("<textarea>&lt;x&gt;</textarea>", Textarea.Of<string>()["<x>"].ToHtml());
 
     [Fact]
     public void Render_OnInputOutsideLiveContext_OmitsHandlerAttribute() =>

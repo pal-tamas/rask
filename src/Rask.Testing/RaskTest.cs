@@ -1,3 +1,11 @@
+// RASK014 tells you to build a component with a chain, because a chain routes through GetOrCreate and
+// that is what gives the component an identity the runtime can reconcile across renders. Every `new`
+// below constructs a ROOT — the component nothing else renders — from a runtime constructor argument
+// (the tree factory, the app instance, the capture callback). There is no parent render context for a
+// chain to route through, and a chain carries properties and DI services, not runtime constructor
+// arguments. So the rule does not apply to this file, and it says so once here rather than six times.
+#pragma warning disable RASK014
+
 using Rask.Core;
 using Rask.Core.Forms;
 using Rask.Core.Live;
@@ -93,7 +101,7 @@ public static class RaskTest
     ///     doctype, <c>&lt;html lang&gt;</c>, the <c>&lt;head&gt;</c> every mounted component contributed
     ///     to, and the <c>&lt;body&gt;</c> the app rendered into.
     ///     <code>
-    ///     var page = RaskTest.RenderDocument(new App(), services);
+    ///     var page = RaskTest.RenderDocument(App, services);
     ///     Assert.Contains("&gt;My app&lt;/title&gt;", page.Html);   // the head block keys its tags, so match the body
     ///     </code>
     ///     <see cref="Render{T}(T, IServiceProvider)" /> is the one to use for everything else — it adds no
@@ -114,6 +122,22 @@ public static class RaskTest
         // rather than reimplementing the composition is the point — a test asserts what a browser gets.
         return new RenderedComponent<T>(new RootErrorBoundary(app), app, services ?? EmptyServices);
     }
+
+    /// <summary>
+    ///     Renders an app root built by a chain as a whole document — <c>RaskTest.RenderDocument(App)</c>.
+    /// </summary>
+    /// <remarks>
+    ///     The overload exists for the same reason <see cref="Render{T}(Build{T}, IServiceProvider)" /> does:
+    ///     a generic type parameter is inferred before any user-defined conversion is considered, so a chain
+    ///     cannot reach a <see cref="Component" />-constrained parameter on its own (CS0315). An app root is
+    ///     never a form control, so there is no mode-carrying counterpart.
+    /// </remarks>
+    /// <typeparam name="T">The app root the chain built.</typeparam>
+    /// <param name="chain">The app root the host would mount.</param>
+    /// <param name="services">Services available to the app. Defaults to an empty provider.</param>
+    public static RenderedComponent<T> RenderDocument<T>(Build<T> chain, IServiceProvider? services = null)
+        where T : Component
+        => RenderDocument(chain.Value, services);
 
     /// <summary>
     ///     A zero-markup component that hands <paramref name="capture" /> the <see cref="EditContext" /> the

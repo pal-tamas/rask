@@ -2,7 +2,6 @@ using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Generated;
 using RaskVirtualize = Rask.Core.Components.VirtualizeModel;
 using Virtualize = Rask.Core.Components.Virtualize;
 
