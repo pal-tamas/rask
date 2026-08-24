@@ -310,9 +310,9 @@ and emits untrusted structural diffs on insert/remove/move — and for a compone
 decides which instance is reused, so the row's own state follows the slot rather than the item
 (see [RASK046](#rask046)).
 
-Both spellings are recognised: a chain (`Li[…]`, `Li.Class("c")[…]`) and, while it still exists, a
-generated factory call. The chain form went unreported until #704 — the check matched a method named
-after the component, and a chain has none.
+Both chain spellings are recognised — `Li[…]` and `Li.Class("c")[…]`. The chain went unreported until
+#704, when the only surface this checked was a factory call: the check matched a method named after the
+component, and a chain has none.
 
 ```csharp
 // ✗ items.Select(i => Li[ i.Name ])
@@ -329,10 +329,10 @@ for why identity beats position.
 An `Img` is built without naming `Alt`. Without a text alternative, screen readers fall back to
 announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/WAI/WCAG21/Understanding/non-text-content).
 
-Both spellings are recognised: a chain (`Img.Src("/x")`, or the bare `Img`) and, while it still exists,
-a generated factory call. **The chain form went unreported until #704** — the check matched a static
-method named `Img`, and on a chain the outermost call is the `Src` setter, so an accessibility check
-that the docs' own examples should have tripped never fired at all.
+Both chain spellings are recognised — `Img.Src("/x")` and the bare `Img`. **The chain went unreported
+until #704**, when the only surface this checked was a factory call: it matched a static method named
+`Img`, and on a chain the outermost call is the `Src` setter — so an accessibility check that the docs'
+own examples should have tripped never fired at all.
 
 ```csharp
 // ✗ Img.Src("/logo.png")
@@ -742,11 +742,11 @@ the alias is only ever used outside a component body.
 ## RASK038
 **Builder chain does not set a required property** · Error
 
-A non-nullable property with no member initializer is **required** — see [RASK001](#rask001), which
-describes the same rule for the generated factory, where the language enforces it as a missing
-argument. A builder chain has no arguments: the property is set by a setter somewhere along the
-chain, so leaving it out compiles cleanly and the component renders with a `null` it was never
-supposed to hold. This analyzer walks the chain and reports what it never named.
+A non-nullable property with no member initializer is **required** — see [RASK001](#rask001). Most
+required properties are enforced by the chain's own type: they are steps the component does not exist
+until you take. This analyzer covers what that cannot reach — a chain the compiler cannot follow end to
+end (see [RASK039](#rask039)), where the property is set by a setter somewhere along the way and leaving
+it out compiles cleanly, rendering with a `null` it was never supposed to hold.
 
 ```csharp
 public sealed partial class Card : Component
