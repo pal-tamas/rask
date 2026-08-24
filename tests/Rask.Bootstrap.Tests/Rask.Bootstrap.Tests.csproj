@@ -28,10 +28,7 @@
     <Using Include="Xunit"/>
     <Using Include="Rask.Core.Components"/>
     <Using Include="Rask.Html.Components"/>
-    <Using Include="Rask.Core.Components.Generated" Static="true"/>
-    <Using Include="Rask.Html.Components.Generated" Static="true"/>
     <Using Include="Rask.Bootstrap"/>
-    <Using Include="Rask.Bootstrap.Generated" Static="true"/>
     <Using Include="Rask.Testing"/>
     <Using Include="Rask.TestSupport"/>
   </ItemGroup>

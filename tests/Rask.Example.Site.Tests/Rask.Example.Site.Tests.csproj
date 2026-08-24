@@ -23,8 +23,6 @@
          resolve. Rask.Core is still needed by hand for `Component` — the markup entries themselves arrive
          by inheritance from RaskMarkup, not from a using. -->
     <Using Include="Rask.Core"/>
-    <Using Include="Rask.Core.Components.Generated" Static="true"/>
-    <Using Include="Rask.Html.Components.Generated" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

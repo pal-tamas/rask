@@ -27,7 +27,7 @@ internal sealed partial class BoundBuilderProbe : Component
             Input.Bind(() => Model.Name).Validate(NonEmpty).Id("name").Class("field"),
             Input.Bind(() => Model.Age).Id("age"),
             Textarea.Bind(() => Model.Name).Id("bio"),
-            Select.Bind(() => Model.Name).Id("pick")[Option("Ada")["Ada"]]
+            Select.Bind(() => Model.Name).Id("pick")[Option.Value("Ada")["Ada"]]
         ];
 
     internal static IEnumerable<string> NonEmpty(string value) =>

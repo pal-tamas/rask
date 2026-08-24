@@ -42,9 +42,6 @@
     <Using Include="Rask.Core"/>
     <Using Include="Rask.Core.Components"/>
     <Using Include="Rask.Html.Components"/>
-    <Using Include="Rask.Core.Components.Generated" Static="true"/>
-    <Using Include="Rask.Html.Components.Generated" Static="true"/>
-    <Using Include="Rask.Core.Routing.Generated" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

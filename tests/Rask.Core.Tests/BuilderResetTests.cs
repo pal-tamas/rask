@@ -277,7 +277,7 @@ internal sealed partial class NestedRenderResetHost : Component
     protected override Component? Render() =>
         Div[
             Full ? Span.Id("first") : Span,
-            Raw(new NestedRenderInner().ToHtml()),
+            Raw.Value(new NestedRenderInner().ToHtml()),
             Full ? Em.Id("last") : Em
         ];
 }

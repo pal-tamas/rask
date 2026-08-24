@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Features.Generated;
-using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 

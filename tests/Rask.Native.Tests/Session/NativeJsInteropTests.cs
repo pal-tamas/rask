@@ -4,7 +4,6 @@ using Rask.Core;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Native.Tests.Infrastructure;
-using static Rask.Core.Components.Generated;
 
 #pragma warning disable RASK019 // test-infra app predates framework-managed <head>
 

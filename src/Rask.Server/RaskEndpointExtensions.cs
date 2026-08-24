@@ -40,8 +40,6 @@ using Rask.Server.Authentication;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
-using Components = Rask.Core.Components.Generated;
-using ComponentsH = Rask.Html.Components.Generated;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
 using QueryString = Rask.Core.Routing.QueryString;

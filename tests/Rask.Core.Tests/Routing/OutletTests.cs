@@ -21,7 +21,7 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
     public void Outlet_EndOfChain_RendersEmptyFragment()
     {
         // Leaf page itself calls Outlet(); cursor is past end of chain → empty Fragment.
-        var (view, state, sp) = BuildView(new[] { Route<LeafWithOutlet>("/leaf") });
+        var (view, state, sp) = BuildView(new[] { Route.To<LeafWithOutlet>("/leaf") });
         state.Path = "/leaf";
 
         var html = view.RenderAsLiveRoot(sp);
@@ -34,11 +34,11 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
     {
         var routes = new[]
         {
-            Route<Layout>("/app",
+            Route.To<Layout>("/app",
                 new[]
                 {
-                    Route<Section>("section",
-                        new[] { Route<Leaf>("leaf/{tag}") })
+                    Route.To<Section>("section",
+                        new[] { Route.To<Leaf>("leaf/{tag}") })
                 })
         };
         var (view, state, sp) = BuildView(routes);
@@ -56,8 +56,8 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
         // finds cursor past end → empty Fragment. Proves Cursor++ semantics.
         var routes = new[]
         {
-            Route<DoubleOutletLayout>("/d",
-                new[] { Route<LeafText>("leaf") })
+            Route.To<DoubleOutletLayout>("/d",
+                new[] { Route.To<LeafText>("leaf") })
         };
         var (view, state, sp) = BuildView(routes);
         state.Path = "/d/leaf";
@@ -84,7 +84,7 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
         // Before the fix this threw InvalidOperationException on the second render. It could not fire
         // before the chain surface — the generated factory re-applied every property every render, so
         // nothing was ever really render-cached and Router always re-executed.
-        var routes = new[] { Route<ShiftingLayout>("/s", new[] { Route<LeafText>("leaf") }) };
+        var routes = new[] { Route.To<ShiftingLayout>("/s", new[] { Route.To<LeafText>("leaf") }) };
         var (view, state, sp) = BuildView(routes);
         state.Path = "/s/leaf";
 

@@ -4,8 +4,6 @@ using Rask.Core.Browser;
 using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Html.Components;
-using Components = Rask.Core.Components.Generated;
-using ComponentsH = Rask.Html.Components.Generated;
 namespace Rask.Server;
 
 /// <summary>

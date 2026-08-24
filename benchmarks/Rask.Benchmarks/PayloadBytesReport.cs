@@ -4,8 +4,6 @@ using System.Text;
 using Rask.Benchmarks.Infrastructure;
 using Rask.Core;
 using Rask.Core.Live;
-using BI = Rask.Benchmarks.Infrastructure.Generated;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks;
 

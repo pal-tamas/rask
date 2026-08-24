@@ -1,7 +1,6 @@
 using Rask.Core.Routing;
 using Rask.Example.Shared;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Layout;
 

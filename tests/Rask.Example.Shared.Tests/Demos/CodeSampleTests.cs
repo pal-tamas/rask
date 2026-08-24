@@ -2,8 +2,6 @@ using Rask.Core.Routing;
 using Rask.Example.Shared;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Features.Generated;
-using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 

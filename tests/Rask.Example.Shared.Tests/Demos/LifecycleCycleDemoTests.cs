@@ -1,7 +1,6 @@
 using System.Reflection;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Features.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 

@@ -3,13 +3,7 @@
   <!--
     Rask.Core build integration.
 
-    1. RaskGlobalUsings — exposed to the source generator so it can decide whether
-       to emit RaskGlobalUsings.g.cs (the file with `global using static Rask.Core.Tags;`
-       plus per-namespace `global using static {Ns}.Components;` lines). Defaults to
-       true. Consumers that prefer explicit imports can set
-       <RaskGlobalUsings>false</RaskGlobalUsings> in their csproj.
-
-    2. Scoped-CSS sibling files — every `.css` file in the project tree is registered
+    1. Scoped-CSS sibling files — every `.css` file in the project tree is registered
        as <AdditionalFiles> so ComponentScopedCssGenerator can pair it with its
        component class (`Counter.cs` ↔ `Counter.css`). A `.css` file with no matching
        Component subclass in the same folder raises RASK015 at build time. Consumers
@@ -32,37 +26,18 @@
   -->
 
   <!--
-    RaskFactoryNavigation (default true) — exposed to the source generator. When true, each
-    generated factory carries a `<see cref>` doc breadcrumb linking to its component type, so
-    Quick-Doc / hover on `Foo(...)` offers a navigable link to `Foo`. (F12 still lands on the
-    generated method — Roslyn/ReSharper navigate generated symbols to the generated file; use
-    "Navigate to Type of Symbol" for a one-action jump to the component.) `[DebuggerStepThrough]`
-    is always emitted regardless. Set <RaskFactoryNavigation>false</RaskFactoryNavigation> to drop
-    the doc breadcrumb (e.g. if a project with documentation-file generation flags the crefs).
+    RaskBuilderEntryInjection (default true) — exposed to the source generator. Turning it off stops
+    this assembly injecting its OWN entries into its own markup hosts, while still publishing them
+    for consumers. That is what a component library wants and nothing else does: Rask.Html declares
+    ~155 tags, and injecting every one into every other is O(n²) members whose names collide with
+    the props those hosts inherit from Element.
+
+    There is no switch for the chain itself. There was one — RaskBuilderSurface — while a generated
+    factory was the other way to write markup; with the factory gone, turning the chain off would
+    leave a project unable to build a component at all.
   -->
-  <!--
-    RaskBuilderSurface — emits the entry-property surface (`Div.Class("x")[...]`) alongside the
-    generated factories. Additive: both compile in the same file.
-
-    DEFAULTS ON, and it must. The chain is the surface the docs, the guides and `rask new`'s
-    scaffolded output are all written in; with this off, a generated project does not compile at all
-    — `BsCard[...]` binds to the `Generated.BsCard(...)` factory METHOD and you get CS0119 /
-    CS0021 / CS0428 out of code the framework itself wrote. That is not a hypothetical: it is what
-    the `rask new` build gate catches the moment this is off, and it is invisible to every in-repo
-    gate because the repo sets the property for itself in Directory.Build.props. Only a build that
-    crosses the package boundary sees it.
-
-    Set it to false to opt out and get the factories alone.
-  -->
-  <PropertyGroup>
-    <RaskBuilderSurface Condition=" '$(RaskBuilderSurface)' == '' ">true</RaskBuilderSurface>
-  </PropertyGroup>
-
   <ItemGroup>
-    <CompilerVisibleProperty Include="RaskGlobalUsings"/>
     <CompilerVisibleProperty Include="RaskScopedJsAutoInclude"/>
-    <CompilerVisibleProperty Include="RaskFactoryNavigation"/>
-    <CompilerVisibleProperty Include="RaskBuilderSurface"/>
     <CompilerVisibleProperty Include="RaskBuilderEntryInjection"/>
   </ItemGroup>
 

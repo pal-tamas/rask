@@ -2,7 +2,6 @@ using System.Text.Encodings.Web;
 using Rask.Example.Shared;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Generated;
 
 #pragma warning disable RASK014 // tests construct page components directly to drive ToHtml()
 

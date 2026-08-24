@@ -19,7 +19,7 @@ public partial class RouterMatchMemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_query_change_on_the_same_path_still_reaches_the_page()
     {
-        var (view, state, sp) = BuildView([Route<QueryPage>("/search")]);
+        var (view, state, sp) = BuildView([Route.To<QueryPage>("/search")]);
         state.Path = "/search";
         state.Query = new QueryCollection(new Dictionary<string, StringValues> { ["term"] = "first" });
 
@@ -36,7 +36,7 @@ public partial class RouterMatchMemoTests : global::Rask.Core.RaskMarkup
     {
         // The Router is built by the chain, so the second render hands it a different Routes list. The
         // path never changes, so only the leaves-reference half of the key can catch this.
-        var routes = new[] { Route<FirstPage>("/x") };
+        var routes = new[] { Route.To<FirstPage>("/x") };
         var state = new RouteState();
         var services = new ServiceCollection();
         services.AddSingleton(state);
@@ -49,7 +49,7 @@ public partial class RouterMatchMemoTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("<i>first</i>", view.RenderAsLiveRoot(sp));
 
-        current = [Route<SecondPage>("/x")];
+        current = [Route.To<SecondPage>("/x")];
 
         Assert.Equal("<b>second</b>", view.RenderAsLiveRoot(sp));
     }

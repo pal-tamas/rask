@@ -21,12 +21,12 @@ internal static class RouteTemplateResolver
         // Legacy [Route] fallback. Immutable for the life of the process, so it stays cached.
         return _cache.GetOrAdd(pageType, static t =>
         {
-            // First [Route] declared wins — Route<T>() resolves a single canonical template,
+            // First [Route] declared wins — Route.To<T>() resolves a single canonical template,
             // so for multi-route pages we expose the first attribute order matches the
             // generator-emitted `Routes.{Type}()` URL formatter, which also picks the first.
             var local = t.GetCustomAttributes<RouteAttribute>(false).FirstOrDefault()
                         ?? throw new InvalidOperationException(
-                            $"Route<{t.Name}>() requires '{t.FullName}' to be a routed page — derive it from "
+                            $"Route.To<{t.Name}>() requires '{t.FullName}' to be a routed page — derive it from "
                             + "Page and override Route, and make sure its assembly's generated route registry "
                             + "has run (it registers via a module initializer).");
             return local.Template;

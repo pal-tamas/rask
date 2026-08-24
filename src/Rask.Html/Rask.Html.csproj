@@ -14,12 +14,10 @@
     longer reach for a tag component by accident, so the engine stays honest about the small DOM surface it
     genuinely depends on, and that surface is now the explicit STAY list in Rask.Core/Components.
 
-    The factory namespace is Rask.Html.Components, NOT Rask.Core.Components. That is forced, not cosmetic:
-    the generator emits a `public static partial class Generated` per compilation, so two assemblies sharing
-    one namespace would both declare Rask.Core.Components.Generated and every consumer would hit CS0433.
-    [assembly: RaskFactoryNamespace] (see BrowserFactoryNamespace.cs) is the same opt-in Rask.Native uses, and
-    it makes a consuming app's generator emit the `global using static` — so `Div.Class("x")` still resolves
-    with no per-file using and the split is invisible at the call site.
+    The namespace is Rask.Html.Components, NOT Rask.Core.Components, so the two assemblies do not both
+    contribute to one namespace. The split is invisible at the call site either way: a chain entry is a
+    MEMBER of the markup host, not a name imported from a namespace, so `Div.Class("x")` resolves with no
+    per-file using wherever the component lives.
 
     Like Rask.Core and Rask.Client this is IsPackable=false: the DLL is bundled into the Rask.Server /
     Rask.Wasm / Rask.Native package lib/ folders rather than published on its own. All three hosts render

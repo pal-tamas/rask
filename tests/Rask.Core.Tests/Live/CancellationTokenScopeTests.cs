@@ -1,6 +1,5 @@
 using Rask.Core;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Generated;
 
 #pragma warning disable RASK014 // test probe component has no generated factory
 
