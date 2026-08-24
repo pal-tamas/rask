@@ -12,6 +12,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <!-- Spectre's own test doubles: `TestConsoleInput` scripts the key presses an interactive
          SelectionPrompt reads, which a StringReader of whole lines cannot express. -->
@@ -31,6 +32,19 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Cli\Rask.Cli.csproj"/>
+  </ItemGroup>
+
+  <!-- NativeTemplateCompileTests compiles what `rask new` writes for the native template, against THIS
+       commit's assemblies and the real generator. CliBuildE2E cannot: building the native template
+       needs the iOS/Android workloads the Ubuntu runner does not have, and the templates are raw
+       strings, so nothing else in the repo compiles them at all (#795). Referenced as plain libraries
+       (the generator is driven explicitly by the test, not run over this project's own sources). -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Chrome\Rask.Chrome.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
   </ItemGroup>
 
 </Project>
