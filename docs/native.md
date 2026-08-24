@@ -192,21 +192,21 @@ Scaffold a native app from the template, then run it on an emulator/simulator:
 
 ```bash
 dotnet tool install -g Rask.Cli              # one-time: install the rask CLI
-rask new MyApp --template native             # --host local (default) | --host server
+rask new MyApp --template native             # --host native (default) | --host server
 cd MyApp
 
 dotnet workload install ios android          # the iOS/Android SDK workloads (one-time)
-dotnet build -t:Run -f net10.0-android       # Android emulator
-dotnet build -t:Run -f net10.0-ios           # iOS simulator (macOS + Xcode)
+dotnet build "-t:Build;Run" -f net10.0-android   # Android emulator
+dotnet build "-t:Build;Run" -f net10.0-ios       # iOS simulator (macOS + Xcode)
 ```
 
 The **`--host`** parameter picks the mode (see [Two modes](native-bridge.md#two-modes-local-and-server)):
-`--host local` (default) scaffolds the in-process app below; `--host server` scaffolds a thin shell over a
+`--host native` (default) scaffolds the in-process app below; `--host server` scaffolds a thin shell over a
 remote Rask Server with the [native capability bridge](native-bridge.md#native-device-apis-from-a-server-app-the-capability-bridge)
 (its heads are `Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`, and there are no `App.cs`
 components — the server renders them).
 
-`rask new MyApp --template native --host local` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
+`rask new MyApp --template native --host native` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
 
 ```
 MyApp.csproj                  # multi-targets net10.0-ios;net10.0-android; refs Rask.Native
@@ -226,7 +226,7 @@ calls `RunLocalAsync<App>(webView)`, and provides the WebView bridge.
 > thin shell over a running `Rask.Example.Server` — the peer of the Server sample). They multi-target
 > `net10.0-ios;net10.0-android` (so they sit outside `Rask.slnx`). Build/run either directly — the
 > `-p:RaskNativeHeads=true` makes `Rask.Native` build its platform heads from source:
-> `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android -p:RaskNativeHeads=true`
+> `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj "-t:Build;Run" -f net10.0-android -p:RaskNativeHeads=true`
 > (or `-f net10.0-ios`). The Local one shows how [a full app's assets](native-bridge.md#serving-a-full-apps-assets) are
 > served on-device. (Template users don't need the flag — the published package already carries the heads.)
 

@@ -7,7 +7,29 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING — `rask new --template native --host local` is now `--host native`.** The `--host` axis names
+  which of Rask's app models supplies the UI, and the on-device model is the *native* one; `local` described
+  where the code ran rather than what the app is. The other values are unchanged (`server`, `wasm-hosted`),
+  so the four-model set reads as one family: three of them mirror the web templates exactly, and `native` is
+  the one only a native app can offer.
+
+  Pre-1.0, so it breaks rather than aliasing. `--host local` now fails with the usual choice error naming
+  the valid values, which is a louder and more useful failure than silently scaffolding something else.
+
 ### Fixed
+- **The CLI told people to run `dotnet build -t:Run`, which does not rebuild.** `-t:Run` *replaces* the
+  default target, so MSBuild runs only `Run` — against whatever is already in `bin/`. An edited `.cs` file is
+  never compiled and the device relaunches the previous binary, with a fresh pid and no warning, so an
+  iteration looks successful and the change appears to have done nothing. It cost two false "this doesn't
+  work" conclusions while running the native surface backends on a simulator before the DLL timestamp gave
+  it away.
+
+  Every place that emitted it now says `dotnet build "-t:Build;Run"`, which runs both targets in order
+  (verified: the assembly is recompiled, then deployed). That is one shared constant behind both `rask new`'s
+  next-steps text and the `rask dev` native refusal, plus `docs/native.md`, `docs/native-bridge.md`,
+  `docs/cli.md`, `llms.txt`, `NUGET.md`, both native samples and the site's install tabs. The quotes matter —
+  `;` separates commands in a shell.
 - **`NativeOriginAssets` served `.wasm` as `application/octet-stream`, quietly costing the WASM runtime its
   streaming compilation.** The content-type table had no `.wasm` entry, so every assembly in a .NET WASM
   bundle fell through to the `application/octet-stream` default. The runtime checks that type by name and

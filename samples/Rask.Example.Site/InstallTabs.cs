@@ -33,7 +33,7 @@ public sealed partial class InstallTabs : Component
             Span.Class("cmt")["# native iOS + Android app (WebView hybrid, preview)\n"],
             Line("$", " dotnet tool install -g Rask.Cli"),
             Line("$", " rask new MyApp --template native"),
-            Span.Class("prompt")["$"], " dotnet build -t:Run -f net10.0-android"
+            Span.Class("prompt")["$"], " dotnet build \"-t:Build;Run\" -f net10.0-android"
         ]],
         _ => Pre[Code[
             Span.Class("cmt")["# ASP.NET live-server app\n"],

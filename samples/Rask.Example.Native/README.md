@@ -21,8 +21,8 @@ Multi-targets `net10.0-ios;net10.0-android`, so it needs the mobile workloads an
 
 ```bash
 dotnet workload install ios android
-dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android   # emulator
-dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-ios       # simulator (macOS)
+dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj "-t:Build;Run" -f net10.0-android   # emulator
+dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj "-t:Build;Run" -f net10.0-ios       # simulator (macOS)
 ```
 
 ## How it's tested

@@ -308,7 +308,7 @@ saving re-renders the open page live — see [what hot-reloads](#what-hot-reload
 
 It finds the project for you. In a **wasm-hosted** solution it picks the `.Server` host (the client is
 built into it); in a **native** app it refuses, because `dotnet watch` cannot drive a simulator or
-emulator, and points you at `dotnet build -t:Run -f net10.0-android` instead.
+emulator, and points you at `dotnet build "-t:Build;Run" -f net10.0-android` instead.
 
 It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
 set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the
@@ -353,7 +353,7 @@ Two things it does not cover:
 
 - **A native app on a device has no watch channel.** `dotnet watch` cannot drive a simulator or a device,
   and applying new IL to one needs a device-side delta agent that .NET doesn't ship — so `rask dev`
-  refuses a native project and points at `dotnet build -t:Run` instead. Restart a
+  refuses a native project and points at `dotnet build "-t:Build;Run"` instead. Restart a
   [Native + Local](native-bridge.md#two-modes-local-and-server) head to see a change. **Native + Server is
   the exception**: that head loads a remote Rask Server, so it is a browser as far as hot reload is
   concerned — point it at your dev machine and `rask dev` on the *server* project repaints the device

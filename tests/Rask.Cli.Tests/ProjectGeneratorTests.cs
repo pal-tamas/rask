@@ -579,9 +579,9 @@ public sealed class ProjectGeneratorTests
         Index(ProjectGenerator.GenerateNative(Root, "App", host, Version));
 
     [Fact]
-    public void Native_local_emits_the_shared_and_local_files_and_the_native_package()
+    public void Native_on_device_emits_the_shared_and_local_files_and_the_native_package()
     {
-        var result = ProjectGenerator.GenerateNative(Root, "App", "local", Version);
+        var result = ProjectGenerator.GenerateNative(Root, "App", "native", Version);
         var files = Index(result);
 
         foreach (var expected in NativeShared.Concat(NativeLocalOnly))
@@ -647,7 +647,7 @@ public sealed class ProjectGeneratorTests
         // An unselected platform must leave no trace: no TFM, no head, no manifest, and no MSBuild group
         // conditioned on a target framework the project does not build. Files that never compile are the
         // kind of thing that survives for years because nobody is sure whether they matter.
-        var result = ProjectGenerator.GenerateNative(Root, "App", "local", Version, ios, android);
+        var result = ProjectGenerator.GenerateNative(Root, "App", "native", Version, ios, android);
         var files = Index(result);
         var csproj = files["App.csproj"];
 
@@ -668,7 +668,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_targets_both_platforms_by_default()
     {
-        var files = GenerateNative("local");
+        var files = GenerateNative("native");
         var csproj = files["App.csproj"];
 
         Assert.Contains("<TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>", csproj, StringComparison.Ordinal);
@@ -684,7 +684,7 @@ public sealed class ProjectGeneratorTests
         // leaves one behind when it is omitted — or doubles up when it isn't.
         foreach (var (ios, android) in new[] { (true, true), (true, false), (false, true) })
         {
-            var csproj = Index(ProjectGenerator.GenerateNative(Root, "App", "local", Version, ios, android))["App.csproj"];
+            var csproj = Index(ProjectGenerator.GenerateNative(Root, "App", "native", Version, ios, android))["App.csproj"];
             Assert.DoesNotContain("\n\n\n", csproj.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
         }
     }
@@ -695,7 +695,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_local_carries_no_geolocation_backend_permission_or_registration()
     {
-        var local = GenerateNative("local");
+        var local = GenerateNative("native");
 
         Assert.DoesNotContain("Platforms/iOS/NativeGeolocation.cs", local.Keys);
         Assert.DoesNotContain("Platforms/Android/NativeGeolocation.cs", local.Keys);
@@ -717,7 +717,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_local_welcome_page_is_a_feature_slice_and_scaffolds_no_demo_pages()
     {
-        var local = GenerateNative("local");
+        var local = GenerateNative("native");
 
         Assert.DoesNotContain("Counter.cs", local.Keys);
 
@@ -739,7 +739,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_conditional_markers_are_resolved_away_in_both_hosts()
     {
-        foreach (var host in new[] { "local", "server" })
+        foreach (var host in new[] { "native", "server" })
         {
             var files = GenerateNative(host);
             foreach (var (path, content) in files)
@@ -755,7 +755,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Native_replaces_the_placeholder_namespace_everywhere_for_both_hosts()
     {
-        foreach (var host in new[] { "local", "server" })
+        foreach (var host in new[] { "native", "server" })
         {
             var files = GenerateNative(host);
             foreach (var (path, content) in files)

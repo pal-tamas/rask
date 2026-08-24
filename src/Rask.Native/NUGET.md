@@ -20,8 +20,8 @@ rask new MyApp --template native
 cd MyApp
 
 dotnet workload install ios android          # the iOS/Android SDK workloads (one-time)
-dotnet build -t:Run -f net10.0-android       # Android emulator
-dotnet build -t:Run -f net10.0-ios           # iOS simulator (macOS + Xcode)
+dotnet build "-t:Build;Run" -f net10.0-android   # Android emulator
+dotnet build "-t:Build;Run" -f net10.0-ios       # iOS simulator (macOS + Xcode)
 ```
 
 To add the host to an existing app head instead:

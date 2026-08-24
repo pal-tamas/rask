@@ -178,7 +178,23 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--host' does not accept 'cloud'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: local, server, wasm-hosted.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: native, server, wasm-hosted.", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Native_rejects_the_old_local_host_value()
+    {
+        // `--host local` was renamed to `--host native` when the axis became "which of Rask's app models
+        // supplies the UI". Pre-1.0, so it breaks rather than aliasing — this pins that it breaks LOUDLY,
+        // naming the replacement, instead of scaffolding something unexpected.
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MobileApp", "--template", "native", "--host", "local"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("Option '--host' does not accept 'local'.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("native", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -186,7 +202,7 @@ public sealed class NewCommandTests
     {
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", "server", "--host", "local"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "server", "--host", "native"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);

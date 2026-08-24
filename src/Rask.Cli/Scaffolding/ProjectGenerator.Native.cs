@@ -6,10 +6,10 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>
-    /// Generates the <c>native</c> template (a WebView-hybrid iOS + Android app hosting a Rask app) into
-    /// <paramref name="targetDirectory"/>. <paramref name="host"/> is <c>"local"</c> (the Rask component code
-    /// runs in-process on the device), or <c>"server"</c> / <c>"wasm-hosted"</c> — a thin native shell over a
-    /// Rask app you host, named for which kind it points at.
+    /// Generates the <c>native</c> template into <paramref name="targetDirectory"/>. <paramref name="host"/>
+    /// names which of Rask's app models supplies the UI: <c>"native"</c> (the Rask component code runs
+    /// in-process on the device — offline, store-distributable), or <c>"server"</c> / <c>"wasm-hosted"</c>,
+    /// a thin native shell over a Rask app you host, named for which kind it points at.
     /// </summary>
     public static ScaffoldResult GenerateNative(
         string targetDirectory, string name, string host, string version, bool ios = true, bool android = true)
@@ -21,10 +21,11 @@ internal static partial class ProjectGenerator
             (ios, android) = (true, true);
         }
 
-        // Anything that isn't "local" is a thin shell over a Rask app you host. The two remote modes
-        // ("server", "wasm-hosted") scaffold the same heads — RaskServerWebView is handed a trusted origin
-        // and never asks what serves it — and differ only in the guidance baked into the file.
-        var isLocal = string.Equals(host, "local", StringComparison.Ordinal);
+        // "native" is the on-device model: the whole app runs in-process. Anything else is a thin shell over
+        // a Rask app you host. The two remote models ("server", "wasm-hosted") scaffold the same heads —
+        // RaskServerWebView is handed a trusted origin and never asks what serves it — and differ only in the
+        // guidance baked into the file.
+        var isLocal = string.Equals(host, "native", StringComparison.Ordinal);
 
         // The csproj, plus each selected platform's manifest and entry point. An unselected platform
         // contributes no TFM and no files at all — a Platforms/iOS folder in an Android-only app is code
