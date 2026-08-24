@@ -7,6 +7,7 @@ using Rask.Example.Native.Data;
 using Rask.Example.Shared;
 using Rask.Example.Shared.Features;
 using Rask.Native;
+using Rask.Native.Surface;
 using Rask.SQLite;
 
 namespace Rask.Example.Native;
@@ -63,6 +64,10 @@ public class MainActivity : Activity
 
         // Native header/footer chrome: the same RaskAndroidWebView instance is the INativeChrome backend.
         host.Services.AddSingleton<INativeChrome>(webView);
+
+        // SPIKE (#775): the same RaskAndroidWebView is also the INativeSurface backend, so a route composing
+        // a NativeScreen paints a real android.view.View tree instead of HTML. Mirrors the iOS head.
+        host.Services.AddSingleton<INativeSurface>(webView);
 
         // Serve the demo HttpClient's data/*.json fetches from the app's bundled assets (offline). This
         // AddSingleton overrides the plain-network HttpClient AddExampleServices registered.

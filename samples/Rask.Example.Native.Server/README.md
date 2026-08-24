@@ -24,8 +24,8 @@ dotnet run --project samples/Rask.Example.Server --urls http://0.0.0.0:5080
 
 # Terminal 2 — the native shell (Android emulator reaches the host at 10.0.2.2; iOS simulator at localhost)
 dotnet workload install ios android
-dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj -t:Run -f net10.0-android
-dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj -t:Run -f net10.0-ios
+dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj "-t:Build;Run" -f net10.0-android
+dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj "-t:Build;Run" -f net10.0-ios
 ```
 
 The heads target `http://10.0.2.2:5080` (Android) / `http://localhost:5080` (iOS); http cleartext is enabled

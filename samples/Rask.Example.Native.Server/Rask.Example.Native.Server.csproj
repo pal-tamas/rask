@@ -10,8 +10,8 @@
     Multi-targets net10.0-ios;net10.0-android, so it needs the mobile workloads and is kept OUT of Rask.slnx.
     Publish + run Rask.Example.Server (bound 0.0.0.0:5080) first, then:
 
-      dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj -t:Run -f net10.0-android
-      dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj -t:Run -f net10.0-ios
+      dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj "-t:Build;Run" -f net10.0-android
+      dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj "-t:Build;Run" -f net10.0-ios
 
     The Android emulator reaches the host at 10.0.2.2; the iOS simulator at localhost (set in the heads).
   -->

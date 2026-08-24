@@ -28,7 +28,7 @@ NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.exa
 
 > **Only one of the two hot-reloads.** Applying new IL to an app already running on a device needs a
 > device-side delta agent that .NET doesn't ship, and `dotnet watch` can't drive a simulator either — so a
-> **Local** head has to be restarted (`dotnet build -t:Run`) to pick up a C# edit. A **Server** head is a
+> **Local** head has to be restarted (`dotnet build "-t:Build;Run"`) to pick up a C# edit. A **Server** head is a
 > browser onto your server, so it hot-reloads like any other page: point `ConnectToServer` at your dev
 > machine (`http://10.0.2.2:<port>` from the Android emulator — with the cleartext caveat below —
 > `http://localhost:<port>` from the iOS simulator), run [`rask dev`](cli.md#what-hot-reloads) against the
@@ -42,7 +42,8 @@ work — but a plain **`Shareable`** button still pops the **native** sheet, bec
 `--host` parameter:
 
 ```bash
-rask new MyApp --template native --host server   # (--host local is the default)
+rask new MyApp --template native --host server   # (--host native is the default)
+# …scaffolds BOTH halves: MyApp.Server (the app) + MyApp.Mobile (the heads), as one solution.
 ```
 
 The generated head (`Platforms/Android/ServerActivity.cs`, `Platforms/iOS/ServerAppDelegate.cs`) points its

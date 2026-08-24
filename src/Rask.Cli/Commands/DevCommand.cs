@@ -442,8 +442,12 @@ internal sealed class DevCommand(
 /// </summary>
 internal static class NativeRunCommands
 {
-    public const string Android = "dotnet build -t:Run -f net10.0-android";
-    public const string IOS = "dotnet build -t:Run -f net10.0-ios";
+    // `-t:Run` REPLACES the default target, so it runs only Run — against whatever is already in bin/. A
+    // source edit is never compiled and the device silently relaunches the previous binary, which reads as
+    // "my change did nothing". `-t:Build;Run` runs both, in order. The quotes are required: `;` separates
+    // commands in a shell.
+    public const string Android = "dotnet build \"-t:Build;Run\" -f net10.0-android";
+    public const string IOS = "dotnet build \"-t:Build;Run\" -f net10.0-ios";
 
     public static IReadOnlyList<string> Lines =>
     [
