@@ -114,7 +114,7 @@ public sealed partial class ShopRenderGoldenTests : global::Rask.Core.RaskMarkup
         Append(actual, "HomePage", Render(() => HomePage));
         Append(actual, "ErrorPage", Render(() => ErrorPage));
         Append(actual, "OrderConfirmation",
-            Render(() => OrderConfirmation.Customer("Ada Lovelace").Total(19.99m)));
+            Render(() => OrderConfirmation.Total(19.99m).Customer("Ada Lovelace")));
         Append(actual, "LoginPage", Render(() => LoginPage));
         Append(actual, "MembersPage", Render(() => MembersPage));
         Append(actual, "CreateProduct", Render(() => CreateProduct));
