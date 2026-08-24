@@ -3266,7 +3266,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
         {
             var hostType = assembly.GetTypeByMetadataName(EntryHostName(SanitizeIdentifier(assembly.Name)));
-            if (hostType is null || hostType.DeclaredAccessibility != Accessibility.Public)
+            if (hostType is null)
+            {
+                continue;
+            }
+
+            // An INTERNAL component publishes an `internal static` entry (EmitEntryHost), so taking public
+            // members only would tell a friend assembly about neither the component nor its entry — even
+            // though it can see both. With the factory gone there is no second spelling to fall back on,
+            // and the fully-qualified entry host is all that is left. `GivesAccessTo` is the same question
+            // the compiler asks of `InternalsVisibleTo`.
+            var friend = assembly.GivesAccessTo(compilation.Assembly);
+            if (!VisibleToEntryScan(hostType.DeclaredAccessibility, friend))
             {
                 continue;
             }
@@ -3275,7 +3286,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             var hostFqn = hostType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             foreach (var member in hostType.GetMembers())
             {
-                if (!member.IsStatic || member.DeclaredAccessibility != Accessibility.Public)
+                if (!member.IsStatic || !VisibleToEntryScan(member.DeclaredAccessibility, friend))
                 {
                     continue;
                 }
@@ -3295,6 +3306,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         return new ExternalEntrySet(SortedEntries(libraries), SortedEntries(framework));
     }
+
+    // Public entries are visible everywhere; internal ones only across an `InternalsVisibleTo` grant. The
+    // injected forwarder is `private static`, so an internal entry's type never leaks past the host.
+    private static bool VisibleToEntryScan(Accessibility accessibility, bool friend) =>
+        accessibility == Accessibility.Public || (friend && accessibility == Accessibility.Internal);
 
     // What a referenced assembly publishes, split by whether this compilation's hosts already inherit it.
     private readonly record struct ExternalEntrySet(
