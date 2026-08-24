@@ -88,14 +88,7 @@ public static class ExpressionAccessor
                      ?? throw new InvalidOperationException(
                          $"Bind expression target evaluated to null: {expression}");
 
-        return new Accessor(
-            target,
-            prop,
-            () => prop.GetValue(target),
-            v => prop.SetValue(target, v))
-        {
-            Owner = FindRootConstant(me),
-        };
+        return new Accessor(target, prop) { Owner = FindRootConstant(me) };
     }
 
     // Evaluates the target sub-expression (everything left of the terminal property) with plain
@@ -241,12 +234,22 @@ public static class ExpressionAccessor
     // Caveat: if the target is a value type (e.g. binding `() => structLocal.Field`), Target is a boxed
     // copy, so Setter writes to that copy, not the original — value-type targets are read-only in practice.
     // Bind to properties of reference-type models (the normal case) for round-tripping writes.
-    public sealed record Accessor(
-        object Target,
-        PropertyInfo Property,
-        Func<object?> Getter,
-        Action<object?> Setter)
+    public sealed record Accessor(object Target, PropertyInfo Property)
     {
+        /// <summary>Reads the terminal property off <see cref="Target" />.</summary>
+        /// <remarks>
+        ///     A method rather than the <c>Func&lt;object?&gt;</c> this used to carry. The delegate held
+        ///     nothing the record did not already have — it closed over the same <c>Target</c> and
+        ///     <c>Property</c> — and building it cost a display class and two delegates on <b>every
+        ///     Parse</b>, which is every render of every bound control. Every call site reads
+        ///     <c>acc.Getter()</c> either way (#793).
+        /// </remarks>
+        public object? Getter() => Property.GetValue(Target);
+
+        /// <summary>Writes the terminal property on <see cref="Target" />.</summary>
+        /// <remarks>See <see cref="Getter" /> for why this is a method and not an <c>Action</c>.</remarks>
+        public void Setter(object? value) => Property.SetValue(Target, value);
+
         public Type PropertyType => Property.PropertyType;
         public string PropertyName => Property.Name;
         public FieldIdentifier Field => new(Target, Property.Name);
