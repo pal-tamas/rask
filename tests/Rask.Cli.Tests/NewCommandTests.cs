@@ -142,18 +142,21 @@ public sealed class NewCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(console.ErrorText);
-        // Files are written directly under ./MobileApp — the server-host heads, not the local ones.
-        Assert.True(fs.FileExists("/proj/MobileApp/MobileApp.csproj"));
-        Assert.True(fs.FileExists("/proj/MobileApp/Platforms/iOS/ServerAppDelegate.cs"));
-        Assert.True(fs.FileExists("/proj/MobileApp/Platforms/Android/ServerActivity.cs"));
-        Assert.False(fs.FileExists("/proj/MobileApp/Features/Shared/App.cs")); // local-only
+        // A remote model writes BOTH halves under ./MobileApp: the app the shell points at, and a .Mobile
+        // project carrying the server-host heads — not the in-process ones.
+        Assert.True(fs.FileExists("/proj/MobileApp/MobileApp.Mobile/MobileApp.Mobile.csproj"));
+        Assert.True(fs.FileExists("/proj/MobileApp/MobileApp.Mobile/Platforms/iOS/ServerAppDelegate.cs"));
+        Assert.True(fs.FileExists("/proj/MobileApp/MobileApp.Mobile/Platforms/Android/ServerActivity.cs"));
+        Assert.True(fs.FileExists("/proj/MobileApp/MobileApp.Server/MobileApp.Server.csproj"));
+        Assert.True(fs.FileExists("/proj/MobileApp/MobileApp.slnx"));
+        Assert.False(fs.FileExists("/proj/MobileApp/MobileApp.Mobile/Features/Shared/App.cs")); // in-process only
         // It restores, and never shells to `dotnet new` / installs Rask.Templates.
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
     }
 
     [Fact]
-    public async Task Native_defaults_to_the_local_host()
+    public async Task Native_defaults_to_the_on_device_model()
     {
         var (console, fs, runner, command) = Build();
 

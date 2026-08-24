@@ -43,6 +43,7 @@ work — but a plain **`Shareable`** button still pops the **native** sheet, bec
 
 ```bash
 rask new MyApp --template native --host server   # (--host native is the default)
+# …scaffolds BOTH halves: MyApp.Server (the app) + MyApp.Mobile (the heads), as one solution.
 ```
 
 The generated head (`Platforms/Android/ServerActivity.cs`, `Platforms/iOS/ServerAppDelegate.cs`) points its

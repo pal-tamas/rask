@@ -200,11 +200,28 @@ dotnet build "-t:Build;Run" -f net10.0-android   # Android emulator
 dotnet build "-t:Build;Run" -f net10.0-ios       # iOS simulator (macOS + Xcode)
 ```
 
-The **`--host`** parameter picks the mode (see [Two modes](native-bridge.md#two-modes-local-and-server)):
-`--host native` (default) scaffolds the in-process app below; `--host server` scaffolds a thin shell over a
-remote Rask Server with the [native capability bridge](native-bridge.md#native-device-apis-from-a-server-app-the-capability-bridge)
-(its heads are `Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`, and there are no `App.cs`
-components — the server renders them).
+The **`--host`** parameter picks which of Rask's app models supplies the UI (see
+[Two modes](native-bridge.md#two-modes-local-and-server)). `--host native` (default) scaffolds the
+in-process app below — one project, everything on the device.
+
+`--host server` and `--host wasm-hosted` scaffold **both halves as one solution**: the app you host, and a
+`.Mobile` project carrying the thin-shell heads that point at it, with the
+[native capability bridge](native-bridge.md#native-device-apis-from-a-server-app-the-capability-bridge)
+wired in. A shell with nothing behind it is not a runnable app, so the template does not leave you to
+supply the other half:
+
+```
+MyApp/
+  MyApp.slnx
+  MyApp.Server/      # the Rask app the shell points at (wasm-hosted also gets .Client and .Shared)
+  MyApp.Mobile/      # iOS + Android heads — Platforms/{iOS/ServerAppDelegate,Android/ServerActivity}.cs
+```
+
+The heads point at the app half's own dev URL out of the box — `http://localhost:5000` on the iOS
+simulator, `http://10.0.2.2:5000` on the Android emulator, which is that VM's alias for your machine — so a
+fresh solution connects with nothing to edit. The scaffold allows cleartext for exactly that
+(`usesCleartextTraffic` on Android, `NSAllowsLocalNetworking` on iOS); swap in your deployed `https://` URL
+and drop both. There is no `App.cs` in `.Mobile` — the app half renders the components.
 
 `rask new MyApp --template native --host native` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
 
