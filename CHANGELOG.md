@@ -8,6 +8,39 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A native app can boot with no WebView at all** — `NativeAppHost.RunNativeAsync<TApp>(INativeSurface)`,
+  the pure-native model (part of #777, the four-models epic). The component tree paints as real platform
+  views and nothing HTML is instantiated.
+
+  `NativeLiveSession` required an `INativeWebView` in its constructor, pushed every frame through it, and
+  implemented back navigation as `window.history.back()`, so a WebView-less app was unrepresentable. The
+  WebView is optional now. It turned out to be a small seam: `IsNativeFrame` already gated emission, so a
+  pure-native frame never reached the WebView send in the first place.
+
+  Three things a pure-native app needs, which it now has:
+
+  - **The first render happens without a handshake.** A WebView client posts `ready` once its document
+    loads; with no document, the host performs the first render itself before returning, so the caller
+    gets an app already on screen.
+  - **Back walks the session's own history.** With a WebView the page's history is the single source of
+    truth and the session keeps none — one history, not two that can disagree. With no WebView the
+    session keeps its own, seeded with the boot route. At the first entry back does nothing on purpose,
+    so Android's hardware Back falls through to the activity and closes the app rather than trapping the
+    user.
+  - **The two things that cannot work say so.** Rendering HTML with no WebView, and calling `IJSRuntime`,
+    both raise named errors naming the model and the way out.
+
+  Both errors are more careful than they look. The HTML frame is **dropped and recorded**, then turned
+  into a throw by `RunNativeAsync` once the render has unwound — throwing from inside `SendFrameAsync`
+  reaches the root error boundary, whose answer is to render an error page, which is more HTML, for ever.
+  A hung test host is how that was found. The `IJSRuntime` out-of-render path had the mirror-image
+  problem: it dispatched through `_webView?.`, so with no WebView it silently did nothing and left the
+  caller's `await` pending for ever — the worst way to report "there is no JS engine here".
+
+  Not yet done on this issue: the `rask new --template native` scaffold still produces the WebView-hybrid
+  shape, and the platform heads do not yet wire Android's hardware Back to `GoBackAsync`. Nine tests cover
+  the model on the existing `FakeNativeSurface` harness.
+
 - **`rask new --template native --host server|wasm-hosted` now scaffolds both halves as one solution.** The
   remote models used to emit only the shell, pointed at a placeholder `https://app.example.com/`, so the
   first command produced something that could not run and did not say what was missing. They now scaffold
