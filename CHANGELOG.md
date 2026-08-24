@@ -67,6 +67,34 @@ them until tagged releases begin.
   (the factory excluded it on name *and* type; the indexer owns the word).
 
 ### Fixed
+- **A bound form control allocated less, and the pin that guards it now says which layer moved.**
+  `ExpressionAccessor.Accessor` carried a `Func<object?> Getter` and an `Action<object?> Setter` that
+  closed over the same `Target` and `Property` the record already held. They were rebuilt on every
+  `Parse`, which is every render of every bound control (`Input` / `Select` / `Textarea` / `Bs*`), for
+  a display class and two delegates that told nobody anything. They are methods now; every call site
+  still reads `acc.Getter()`. The bound probe went **5195 → 5034 B/render**.
+
+  The bigger result is the measurement. #793 recorded 5163 B/render against 3555 B on 2026-08-08 and
+  could not say where the difference went, because one aggregate ceiling cannot. Decomposed:
+
+  | | B/render |
+  | --- | --- |
+  | bare `Div` | 1088 |
+  | `Div[Input.Value(…)]` — controlled | 1216 |
+  | `Div[Input.Bind(hoisted)]` — bound, expression built once | 2723 |
+  | `Div[Input.Bind(() => …)]` — bound | 5034 |
+
+  **2311 B — 46% of the total — is the C# compiler building an `Expression<Func<T>>` at the call site
+  on every render.** That is not Rask code and nothing here can make it cheaper; only the shape of the
+  public `Bind` API could. So this probe cannot go below roughly 3500 B however good the bind path
+  gets — which is already above the 3555 B the old comment recorded, so that number cannot have been
+  measuring this shape and is not a baseline to chase. Rask's own share is the remaining 1507 B.
+
+  Those three layers are now three **absolute** pins rather than one. A relative pin is what let the
+  original regression hide, so they decompose the cost without reintroducing that: a regression in the
+  shared element path trips the controlled pin, one in the bind path trips the hoisted pin, and either
+  trips the aggregate — whose ceiling drops from 5600 B to 5300 B.
+
 - **No `rask new` template can reach a user uncompiled any more.** `CliBuildE2E` packs this commit's
   packages to a local feed and runs a real `dotnet build -warnaserror` over what the CLI writes, and it
   covered the server, wasm and wasm-hosted templates. It could not cover the **native** one: building
