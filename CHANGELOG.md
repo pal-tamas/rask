@@ -8,6 +8,37 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The last Phase 0 evidence gap is closed: a published WASM client boots inside the Android WebView too**
+  (#775, the four-models epic). `samples/WasmInWebViewSpike` grows an Android head, so both platforms now
+  answer the question the `wasm` model (#780) rests on. It boots and renders from the app's own bundled
+  assets over `https://appassets.rask/`, fully offline: 74 assets served, **zero misses**, and `.wasm`
+  served as `application/wasm` with no streaming-compilation fallback. Cold start is ~390 ms to the
+  activity and ~1.2 s more to first render applied.
+
+  Three things Android answered differently from iOS, all of which belong to #780's design:
+
+  - **Package size is 7.5 MB, not 12 MB.** The bundle is 20 MB published and 12 MB once the `.br`/`.gz`
+    siblings are dropped (neither head negotiates content encoding, so they are pure weight) — but an APK
+    deflates its assets, where an IPA stores them. 12 MB is the iOS number; Android pays 7.5 MB.
+  - **The origin-root claim reproduces identically.** `NativeOriginAssets.Resolve` takes `/`,
+    `/index.html` and `/index.native.html` for the native boot shell before consulting the bundle, so the
+    WASM shell cannot live at the root — and serving it elsewhere is not cosmetic: the router seeds the
+    document's path, so `/app.html` rendered *Not found*. Serving the bundle's own `index.html` at `/`
+    fixes it (`initial path=/`), which is the shape of the fix #780 owes.
+  - **The service worker is never even requested**, on either platform. On iOS the custom scheme forbids
+    it; on Android the origin is a secure context and it still did not register. Either way the bundle is
+    already offline, so what the service worker was doing for the app is the open question, not whether it
+    can run.
+
+  **A defect the spike found: the app renders completely unstyled on the bundled-asset origin.** Every
+  `<link rel="stylesheet">` the head morph manages — the keyed ones, `data-rask-key` — is fetched, served
+  200 with `text/css`, and then never becomes a CSSOM stylesheet; only the two unkeyed links do
+  (`document.styleSheets` is 2 of 7). The bytes are provably intact: a `fetch()` of the same URL from the
+  page returns the correct 15721 bytes of CSS. It is not the asset path and not the spike's plumbing — the
+  spike configures the WebView exactly as the shipping `RaskAndroidWebView` does — and it is not a general
+  WASM fault, since the same published bundle is fully styled in desktop Chromium over HTTP. Filed as
+  **#807**; it blocks #780 rather than Phase 0.
+
 - **A native app can boot with no WebView at all** — `NativeAppHost.RunNativeAsync<TApp>(INativeSurface)`,
   the pure-native model (part of #777, the four-models epic). The component tree paints as real platform
   views and nothing HTML is instantiated.
