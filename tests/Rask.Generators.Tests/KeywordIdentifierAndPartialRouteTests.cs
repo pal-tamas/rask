@@ -7,12 +7,12 @@ namespace Rask.Generators.Tests;
 public class KeywordIdentifierAndPartialRouteTests
 {
     [Fact]
-    public void KeywordNamedProperty_GeneratesCompilableFactory()
+    public void KeywordNamedProperty_GetsACompilableStep()
     {
         var src = """
                   using Rask.Core;
                   namespace Demo;
-                  public sealed class Widget : Component
+                  public sealed partial class Widget : Component
                   {
                       public string? @event { get; set; }   // optional keyword prop
                       public int @class { get; set; }        // required keyword prop (folded into propsChanged)
@@ -21,24 +21,23 @@ public class KeywordIdentifierAndPartialRouteTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Generated.g.cs");
+        var output = run.GeneratedSource("RaskBuilderSetters.g.cs");
 
         // The emitted identifiers are '@'-escaped...
-        Assert.Contains("string? @event = null", output);
-        Assert.Contains("__c.@event = @event", output);
-        Assert.Contains("__c.@class = @class", output);
-        // ...and the load-bearing guarantee: the generated factory compiles against the source.
+        Assert.Contains("__c.@event = value", output);
+        Assert.Contains("__c.@class = value", output);
+        // ...and the load-bearing guarantee: what the generator wrote compiles against the source.
         Assert.Empty(run.GeneratedCompileErrors());
     }
 
     [Fact]
-    public void NonKeywordProperty_FactoryUnchanged()
+    public void NonKeywordProperty_IsNotEscaped()
     {
         // Escaping is a no-op for ordinary names — the common path is byte-for-byte as before.
         var src = """
                   using Rask.Core;
                   namespace Demo;
-                  public sealed class Widget : Component
+                  public sealed partial class Widget : Component
                   {
                       public string? Title { get; set; }
                       protected override Component? Render() => this;
@@ -46,9 +45,9 @@ public class KeywordIdentifierAndPartialRouteTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Generated.g.cs");
+        var output = run.GeneratedSource("RaskBuilderSetters.g.cs");
 
-        Assert.Contains("string? Title = null", output);
+        Assert.Contains("__c.Title = value", output);
         Assert.DoesNotContain("@Title", output);
         Assert.Empty(run.GeneratedCompileErrors());
     }

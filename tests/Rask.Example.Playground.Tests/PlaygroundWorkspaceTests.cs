@@ -15,10 +15,10 @@ public sealed class PlaygroundWorkspaceTests
         var diagnostics = await NewWorkspace().DiagnoseAsync("""
             using Rask.Core;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 protected override Component? Render() =>
-                    Div()[ this_is_not_valid_csharp ];
+                    Div[ this_is_not_valid_csharp ];
             }
             """);
 
@@ -34,14 +34,14 @@ public sealed class PlaygroundWorkspaceTests
 
             namespace Demo;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private int _count;
 
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        P()[$"Count: {_count}"],
-                        Button(OnClick: () => _count++)["Click me"]
+                    Div.Class("card")[
+                        P[$"Count: {_count}"],
+                        Button.OnClick(() => _count++)["Click me"]
                     ];
             }
             """);
@@ -52,13 +52,13 @@ public sealed class PlaygroundWorkspaceTests
     [Fact]
     public async Task DiagnoseAsync_surfaces_Rask_analyzer_diagnostics()
     {
-        // `new Div()` compiles but trips RASK014 (construct via the factory) — proof the analyzer
+        // `new Div()` compiles but trips RASK014 (construct via the chain) — proof the analyzer
         // display-pass runs on the live path too, so framework hints squiggle as you type.
         var diagnostics = await NewWorkspace().DiagnoseAsync("""
             using Rask.Core;
             using Rask.Core.Components;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 protected override Component? Render() => new Div();
             }
@@ -74,7 +74,7 @@ public sealed class PlaygroundWorkspaceTests
         const string source = """
             using Rask.Core;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private int _count;
 
@@ -102,7 +102,7 @@ public sealed class PlaygroundWorkspaceTests
         const string source = """
             using Rask.Core;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 protected override Component? Render()
                 {

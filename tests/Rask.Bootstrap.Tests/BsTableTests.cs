@@ -132,7 +132,7 @@ public partial class BsTableTests : global::Rask.Core.RaskMarkup
         // The surface itself, so a rename or a removal is still caught.
         Assert.Equal(
             ["Aria", "Bordered", "Borderless", "Class", "Color", "Hover", "Id", "MaxHeight", "Responsive",
-             "Small", "StickyHeader", "Striped", "StripedColumns", "Style"],
+             "Small", "StickyHeader", "Striped", "StripedColumns"],
             typeof(BsTable).GetProperties()
                 .Where(p => p.GetIndexParameters().Length == 0 && p.DeclaringType != typeof(Component))
                 .Select(p => p.Name)

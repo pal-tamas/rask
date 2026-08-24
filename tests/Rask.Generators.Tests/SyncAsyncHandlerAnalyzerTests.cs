@@ -14,8 +14,6 @@ public class SyncAsyncHandlerAnalyzerTests
                                                 using System.Collections.Generic;
                                                 using System.Threading.Tasks;
                                                 using Rask.Core;
-                                                using static Rask.Core.Components.Generated;
-                                                using static Rask.Html.Components.Generated;
                                                 namespace Demo;
                                                 public sealed partial class App : Component
                                                 {
@@ -30,7 +28,7 @@ public class SyncAsyncHandlerAnalyzerTests
     public async Task BothSyncAndAsyncClick_ReportsRask027()
     {
         var d = Assert.Single(await Diagnostics(App(
-            "return Button(OnClick: () => {}, OnClickAsync: async () => await Task.Yield())[\"x\"];")));
+            "return Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())[\"x\"];")));
         Assert.Equal("RASK027", d.Id);
         Assert.Contains("OnClick", d.GetMessage());
         Assert.Contains("OnClickAsync", d.GetMessage());
@@ -61,24 +59,24 @@ public class SyncAsyncHandlerAnalyzerTests
     [Fact]
     public async Task OnlyAsync_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App(
-            "return Button(OnClickAsync: async () => await Task.Yield())[\"x\"];")));
+            "return Button.OnClickAsync(async () => await Task.Yield())[\"x\"];")));
 
     [Fact]
     public async Task AsyncWithNullSync_NoDiagnostic() =>
         // Passing null for the sibling is the deliberate "set at most one" conditional shape.
         Assert.Empty(await Diagnostics(App(
-            "return Button(OnClick: null, OnClickAsync: async () => await Task.Yield())[\"x\"];")));
+            "return Button.OnClick(null).OnClickAsync(async () => await Task.Yield())[\"x\"];")));
 
     [Fact]
     public async Task BothSyncAndAsyncScroll_ReportsRask027() =>
         Assert.Equal("RASK027", Assert.Single(await Diagnostics(App(
-            "return Div(OnScroll: e => {}, OnScrollAsync: async e => await Task.Yield())[\"x\"];"))).Id);
+            "return Div.OnScroll(e => {}).OnScrollAsync(async e => await Task.Yield())[\"x\"];"))).Id);
 
     [Fact]
     public async Task DifferentEvents_NoDiagnostic() =>
         // OnClick (sync) + OnScrollAsync (async) are different events — not a conflict.
         Assert.Empty(await Diagnostics(App(
-            "return Div(OnClick: () => {}, OnScrollAsync: async e => await Task.Yield())[\"x\"];")));
+            "return Div.OnClick(() => {}).OnScrollAsync(async e => await Task.Yield())[\"x\"];")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {

@@ -19,10 +19,10 @@ public sealed class PlaygroundCompilerTests
         var result = await NewCompiler().CompileAsync("""
             using Rask.Core;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 protected override Component? Render() =>
-                    Div(Class: "greeting")["Hello from the playground"];
+                    Div.Class("greeting")["Hello from the playground"];
             }
             """);
 
@@ -38,7 +38,7 @@ public sealed class PlaygroundCompilerTests
     [Fact]
     public async Task Runs_the_Rask_generator_so_user_component_factories_resolve()
     {
-        // `Badge(...)` is the generated factory for the user's OWN component — it exists only if the Rask
+        // `Badge.Label(...)` is the chain entry for the user's OWN component — it exists only if the Rask
         // source generator ran during this in-browser compile (the generator also emits the
         // `global using static Demo.Generated;` that brings the factory into scope). Without the generator
         // this is CS0103. Components live in a namespace, exactly as in a real Rask project.
@@ -47,16 +47,16 @@ public sealed class PlaygroundCompilerTests
 
             namespace Demo;
 
-            public sealed class Badge : Component
+            public sealed partial class Badge : Component
             {
                 public required string Label { get; set; }
-                protected override Component? Render() => Span(Class: "badge")[Label];
+                protected override Component? Render() => Span.Class("badge")[Label];
             }
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 protected override Component? Render() =>
-                    Div()[ Badge(Label: "new"), Badge(Label: "hot") ];
+                    Div[ Badge.Label("new"), Badge.Label("hot") ];
             }
             """);
 
@@ -105,11 +105,11 @@ public sealed class PlaygroundCompilerTests
         var result = await NewCompiler().CompileAsync("""
             using Rask.Core;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private int _count = 5;
                 protected override Component? Render() =>
-                    Div(Id: "counter")[ $"Count: {_count}" ];
+                    Div.Id("counter")[ $"Count: {_count}" ];
             }
             """);
 
@@ -123,10 +123,10 @@ public sealed class PlaygroundCompilerTests
         var result = await NewCompiler().CompileAsync("""
             using Rask.Core;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 protected override Component? Render() =>
-                    Div()[ this_is_not_valid_csharp ];
+                    Div[ this_is_not_valid_csharp ];
             }
             """);
 
@@ -140,13 +140,13 @@ public sealed class PlaygroundCompilerTests
     [Fact]
     public async Task Surfaces_Rask_analyzer_diagnostics_without_blocking_execution()
     {
-        // `new Div()` compiles, but RASK014 (construct components via the factory) flags it — proving the
+        // `new Div()` compiles, but RASK014 (construct components via the chain) flags it — proving the
         // analyzer display-pass runs. It must NOT gate execution: the component still renders.
         var result = await NewCompiler().CompileAsync("""
             using Rask.Core;
             using Rask.Core.Components;
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 protected override Component? Render() => new Div();
             }

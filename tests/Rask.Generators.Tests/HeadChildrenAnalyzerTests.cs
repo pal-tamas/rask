@@ -13,7 +13,6 @@ public class HeadChildrenAnalyzerTests
 {
     private static string App(string body) => $$"""
         using Rask.Core;
-        using static Rask.Core.Components.Generated;
         namespace Demo;
         public sealed partial class Page : Component
         {
@@ -24,11 +23,7 @@ public class HeadChildrenAnalyzerTests
         }
         """;
 
-    [Fact]
-    public async Task FactoryHeadWithChildren_ReportsRask019() =>
-        Assert.Equal("RASK019", Assert.Single(await Diagnostics(App("return Head()[Title()[\"x\"]];"))).Id);
-
-    // The chain receiver is Build<Head>, not Head, so the type test walked straight past it.
+    // The chain receiver is Build<Head>, not Head, so the type test walked straight past it (#704).
     [Fact]
     public async Task ChainHeadWithChildren_ReportsRask019() =>
         Assert.Equal("RASK019", Assert.Single(await Diagnostics(App("return Head[Title[\"x\"]];"))).Id);

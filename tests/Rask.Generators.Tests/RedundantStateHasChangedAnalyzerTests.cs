@@ -15,7 +15,6 @@ public class RedundantStateHasChangedAnalyzerTests
                                                   using System.Linq.Expressions;
                                                   using Rask.Core;
                                                   using Rask.Core.Forms;
-                                                  using static Rask.Core.Components.Generated;
                                                   namespace Demo;
                                                   public sealed partial class App : Component
                                                   {
@@ -27,7 +26,7 @@ public class RedundantStateHasChangedAnalyzerTests
     public async Task OnClick_StateHasChanged_ReportsRask026()
     {
         var d = Assert.Single(await Diagnostics(App(
-            "protected override Component? Render() => Button(OnClick: () => StateHasChanged())[\"x\"];")));
+            "protected override Component? Render() => Button.OnClick(() => StateHasChanged())[\"x\"];")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("OnClick", d.GetMessage());
     }
@@ -35,10 +34,10 @@ public class RedundantStateHasChangedAnalyzerTests
     [Fact]
     public async Task OnChange_StateHasChanged_ReportsRask026()
     {
-        // Qualified: the generic builder entry (Component.Input<T>) shadows the unqualified factory.
+        // Named in full: this fixture's host DECLARES a component, so it is given no entries of its own.
         var d = Assert.Single(await Diagnostics(App(
             "protected override Component? Render() => "
-            + "Rask.Html.Components.Generated.Input<string>(OnChange: _ => StateHasChanged());")));
+            + "global::RaskEntriesRask_Html.Input.Of<string>().OnChange(_ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("OnChange", d.GetMessage());
     }
@@ -49,7 +48,7 @@ public class RedundantStateHasChangedAnalyzerTests
         var d = Assert.Single(await Diagnostics(App(
             "private string _name = \"\";"
             + "protected override Component? Render() => "
-            + "Rask.Html.Components.Generated.Input(() => _name, AfterBind: _ => StateHasChanged());")));
+            + "global::RaskEntriesRask_Html.Input.Bind(() => _name).AfterBind(_ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("AfterBind", d.GetMessage());
     }
@@ -80,13 +79,13 @@ public class RedundantStateHasChangedAnalyzerTests
     public async Task AsyncCallback_StateHasChanged_ReportsRask026() =>
         Assert.Equal("RASK026", Assert.Single(await Diagnostics(App(
                 "protected override Component? Render() => "
-                + "Button(OnClickAsync: async () => { await System.Threading.Tasks.Task.Yield(); StateHasChanged(); })[\"x\"];")))
+                + "Button.OnClickAsync(async () => { await System.Threading.Tasks.Task.Yield(); StateHasChanged(); })[\"x\"];")))
             .Id);
 
     [Fact]
     public async Task BareHandler_NoStateHasChanged_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App(
-            "protected override Component? Render() => Button(OnClick: () => { })[\"x\"];")));
+            "protected override Component? Render() => Button.OnClick(() => { })[\"x\"];")));
 
     [Fact]
     public async Task StateHasChangedInLifecycleMethod_NoDiagnostic() =>
@@ -100,14 +99,14 @@ public class RedundantStateHasChangedAnalyzerTests
         // Re-rendering a *different* component from a callback can be intentional — only self-calls flag.
         Assert.Empty(await Diagnostics(App(
             "private readonly App _other = null!;"
-            + "protected override Component? Render() => Button(OnClick: () => _other.StateHasChanged())[\"x\"];")));
+            + "protected override Component? Render() => Button.OnClick(() => _other.StateHasChanged())[\"x\"];")));
 
     [Fact]
     public async Task StateHasChangedInLambdaToUserHelperTakingCallback_NoDiagnostic() =>
         // A user method whose parameter happens to be typed Action carries no auto-re-render guarantee —
         // only generated component factories do. The StateHasChanged here may be genuinely required.
         Assert.Empty(await Diagnostics(App(
-            "private static Component Wrap(Action cb) => Div()[Button(OnClick: cb)[\"x\"]];"
+            "private static Component Wrap(Action cb) => Div[Button.OnClick(cb)[\"x\"]];"
             + "protected override Component? Render() => Wrap(() => StateHasChanged());")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
