@@ -122,6 +122,20 @@ internal sealed class AndroidViewOps(Context context, Action<NativeSurfaceEvent>
                 linesText.SetMaxLines(lines <= 0 ? int.MaxValue : lines);
                 break;
 
+            // Ahead of the generic colour cases on purpose. ApplyButtonStyle writes the style's own fill
+            // and title colour unconditionally, so a Style arriving after a Background or Color used to
+            // throw them away — the props were order-dependent in a way nothing in the component surface
+            // hints at (#785). Routing all three through the retained appearance and repainting the whole
+            // of it removes the ordering from the answer. Every button Create() makes is a RaskButton.
+            case NativePropId.Color or NativePropId.Background or NativePropId.Style
+                when view is RaskButton appearanceButton:
+                if (appearanceButton.ButtonAppearance.Write(id, value, unset))
+                {
+                    ApplyButtonAppearance(appearanceButton);
+                }
+
+                break;
+
             case NativePropId.Color:
                 ApplyForeground(view, unset ? null : ResolveColor(value.Text));
                 break;
@@ -136,10 +150,6 @@ internal sealed class AndroidViewOps(Context context, Action<NativeSurfaceEvent>
                     view.SetBackgroundColor(background);
                 }
 
-                break;
-
-            case NativePropId.Style when view is Button styleButton:
-                ApplyButtonStyle(styleButton, unset ? NativeButtonStyle.Filled : (NativeButtonStyle)(int)value.Number);
                 break;
 
             case NativePropId.Source when view is ImageView image:
@@ -267,6 +277,7 @@ internal sealed class AndroidViewOps(Context context, Action<NativeSurfaceEvent>
     private Button NewButton()
     {
         var button = new RaskButton(_context);
+        ApplyButtonAppearance(button);
         button.Click += (s, _) =>
         {
             if (s is RaskButton { TapId: >= 0 } b)
@@ -355,12 +366,17 @@ internal sealed class AndroidViewOps(Context context, Action<NativeSurfaceEvent>
         }
     }
 
-    private void ApplyButtonStyle(Button button, NativeButtonStyle style)
+    // The WHOLE appearance, re-derived from scratch on every write to any of its three props: the style
+    // first, then the explicit colours over it, so an explicit Background or Color wins whichever order
+    // the patch delivered them in. NativeButton documents exactly that precedence.
+    private void ApplyButtonAppearance(RaskButton button)
     {
-        switch (style)
+        var appearance = button.ButtonAppearance;
+        switch (appearance.Style)
         {
             case NativeButtonStyle.Plain:
                 button.SetBackgroundColor(Color.Transparent);
+                button.SetTextColor(Color.Argb(255, 33, 150, 243));
                 break;
             case NativeButtonStyle.Destructive:
                 button.SetBackgroundColor(Color.Argb(255, 211, 47, 47));
@@ -368,11 +384,22 @@ internal sealed class AndroidViewOps(Context context, Action<NativeSurfaceEvent>
                 break;
             case NativeButtonStyle.Tinted:
                 button.SetBackgroundColor(Color.Argb(40, 33, 150, 243));
+                button.SetTextColor(Color.Argb(255, 33, 150, 243));
                 break;
             default:
                 button.SetBackgroundColor(Color.Argb(255, 33, 150, 243));
                 button.SetTextColor(Color.White);
                 break;
+        }
+
+        if (ResolveColor(appearance.Background) is { } background)
+        {
+            button.SetBackgroundColor(background);
+        }
+
+        if (ResolveColor(appearance.Foreground) is { } foreground)
+        {
+            button.SetTextColor(foreground);
         }
     }
 
@@ -494,6 +521,10 @@ internal sealed class RaskScrollView : ScrollView
 internal sealed class RaskButton(Context context) : Button(context)
 {
     public int TapId { get; set; } = -1;
+
+    // Style, Background and Color decide one painted result together, so the button holds all three and
+    // repaints from the set — see NativeButtonAppearance.
+    public NativeButtonAppearance ButtonAppearance { get; } = new();
 }
 
 internal sealed class RaskEditText(Context context) : EditText(context)

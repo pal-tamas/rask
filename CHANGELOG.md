@@ -67,6 +67,30 @@ them until tagged releases begin.
   (the factory excluded it on name *and* type; the indexer owns the word).
 
 ### Fixed
+- **`NativeButton.Background` and `Color` were ignored on iOS and thrown away by `Style` on Android.**
+  A button declared `NativeButton.Style(Filled).Background(Brand).Color(OnBrand)` painted iOS system
+  blue. No error, no warning — the props simply did nothing.
+
+  On iOS the button is driven by a `UIButtonConfiguration`, whose `BaseBackgroundColor` /
+  `BaseForegroundColor` are what you see; `UiKitViewOps` wrote `view.BackgroundColor` and
+  `SetTitleColor`, which sit behind the configuration and are never seen. `ApplyButtonStyle` also
+  assigned a **fresh** configuration on every `Style` write, so even a correct colour was discarded
+  whenever `Style` arrived last. On Android the same ordering bug in plainer form: `ApplyButtonStyle`
+  called `SetBackgroundColor` / `SetTextColor` unconditionally, wiping whatever came before it. The
+  props were order-dependent in a way nothing in the component surface hints at.
+
+  Both backends now hold the three props together in a `NativeButtonAppearance` and repaint the whole
+  of it on any write — the style first, then the explicit colours over it — so an explicit
+  `Background` / `Color` wins whatever order the patch delivers them in, which is the precedence
+  `NativeButton` already documented. Verified on an iPhone 17 Pro simulator: the pure-native showcase
+  button went from system blue to the declared `#4C1D95` with white text.
+
+  Two things found alongside it and fixed here. An **unstyled** `NativeButton` rendered Filled on iOS
+  and a bare platform button on Android — a `null` `Style` emits no prop at all, and only iOS applied
+  a default at creation, so the same tree looked different on the two platforms; Android now applies
+  the same default. And `NativeButton`'s own summary named `MaterialButton` as the Android widget,
+  where it is and always was `Button` (`docs/native.md` had it right).
+
 - **Four more test suites shared one `DbContext` across classes xUnit ran in parallel.** The shape that
   made `Rask.Outbox.Tests` fail the gate in #769 was still present in `Rask.Jobs.Tests`,
   `Rask.Cache.Tests`, `Rask.Mail.Tests` and `Rask.Data.Tests`: EF Core's model cache is **per process,

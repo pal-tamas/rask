@@ -3,7 +3,7 @@ using Rask.Native.Surface;
 namespace Rask.Native.Components;
 
 /// <summary>
-///     A tappable button, projected to a <c>UIButton</c> (iOS) or a <c>MaterialButton</c> (Android).
+///     A tappable button, projected to a <c>UIButton</c> (iOS) or a <c>Button</c> (Android).
 /// </summary>
 /// <remarks>Its label is its <b>children</b>, the same spelling as <c>Button["Save"]</c> on the web.</remarks>
 /// <example>
