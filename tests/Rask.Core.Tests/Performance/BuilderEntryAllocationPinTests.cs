@@ -36,6 +36,30 @@ internal sealed partial class AllocBoundEntryProbe : Component
     protected override Component? Render() => Div[Input.Bind(() => Model.Name).Id("name")];
 }
 
+// The same control in CONTROLLED mode. Pinned so the bound number above decomposes: whatever the bound
+// probe costs over this one is the binding, and a regression in the shared element path moves both.
+internal sealed partial class AllocControlledInputProbe : Component
+{
+    internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
+
+    protected override Component? Render() => Div[Input.Value(Model.Name).Id("name")];
+}
+
+// The bound control with the bind expression HOISTED into a field, so it is built once instead of on
+// every render. This is the pin that actually guards Rask's own bind path: the difference between this
+// and AllocBoundEntryProbe is the C# compiler constructing an Expression<Func<T>> at the call site,
+// which is not code this repo can make cheaper.
+internal sealed partial class AllocHoistedBoundEntryProbe : Component
+{
+    internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
+
+    private readonly System.Linq.Expressions.Expression<Func<string>> _bind;
+
+    public AllocHoistedBoundEntryProbe() => _bind = () => Model.Name;
+
+    protected override Component? Render() => Div[Input.Bind(_bind).Id("name")];
+}
+
 // The event surface: every one of Element's ~88 handler pairs is a
 // plain `Action?` / `Action<TArgs>?` property over the same dictionary slot, so setting one and resetting
 // one are both supposed to be free. Critically, an element handler must stay UNWRAPPED: an AutoCallback
@@ -224,17 +248,58 @@ public class BuilderEntryAllocationPinTests
         AssertCosts(cost, 1800);
     }
 
-    // The one number that has MOVED: 3555 B/render on 2026-08-08 (3e143905), 5163 B/render now. Nothing
-    // caught it, because the pin was relative and the factory arm grew alongside it — which is the whole
-    // argument for pinning absolutely. Pinned where it is rather than where it should be, so the gate is
-    // green and the regression is written down instead of blessed silently.
+    // The bound control, decomposed. One aggregate ceiling could say a number had moved but never which
+    // layer moved it, and #793 was opened on exactly that: 3555 B/render recorded 2026-08-08, 5163 B/render
+    // when it was next looked at, with nothing in between able to say where it went.
+    //
+    // Measured 2026-08-24, after removing the Accessor's redundant getter/setter delegates:
+    //
+    //     bare Div                                   1088
+    //     Div[Input.Of<string>().Id]                 1192
+    //     Div[Input.Value(...).Id]      controlled   1216
+    //     Div[Input.Bind(hoisted).Id]   bound        2723
+    //     Div[Input.Bind(() => ...).Id] bound        5034
+    //
+    // Two things fall straight out of that, and both are why 3555 is not a baseline to chase:
+    //
+    //   * 2311 B — 46% of the total — is the C# compiler building an Expression<Func<T>> at the CALL SITE
+    //     on every render. It is not Rask code and no change here can make it cheaper; the only lever is
+    //     the shape of the public Bind API. So this probe cannot go below ~3500 B however good the bind
+    //     path gets, which is already above the 3555 the comment recorded — the old number cannot have
+    //     been measuring this same shape.
+    //   * 1507 B is Rask's own bind path (bound-hoisted minus controlled): parsing the expression, the
+    //     auto-created EditContext, two registered handlers and the validator registration.
+    //
+    // All three ceilings are ABSOLUTE. A relative pin is what let the regression hide in the first place
+    // (the factory arm grew alongside the entry arm and the difference stayed inside its slack), so these
+    // decompose the cost without reintroducing that: a regression in the shared element path trips the
+    // controlled pin, one in the bind path trips the hoisted pin, and one in either trips the aggregate.
+    [Fact]
+    public void A_controlled_input_costs_what_it_costs()
+    {
+        var cost = Measure(static () => new AllocControlledInputProbe());
+
+        // 1216 B/render measured 2026-08-24; pinned at 1400 B.
+        AssertCosts(cost, 1400);
+    }
+
+    [Fact]
+    public void A_bound_input_costs_what_it_costs_apart_from_its_expression_tree()
+    {
+        var cost = Measure(static () => new AllocHoistedBoundEntryProbe());
+
+        // 2723 B/render measured 2026-08-24; pinned at 3000 B. This is the one to watch — it is the only
+        // one of the three that moves when Rask's bind path changes.
+        AssertCosts(cost, 3000);
+    }
+
     [Fact]
     public void A_bound_generic_entry_costs_what_it_costs()
     {
         var cost = Measure(static () => new AllocBoundEntryProbe());
 
-        // 5163 B/render measured 2026-08-24; pinned at 5600 B.
-        AssertCosts(cost, 5600);
+        // 5034 B/render measured 2026-08-24; pinned at 5300 B, down from the 5600 #793 recorded.
+        AssertCosts(cost, 5300);
     }
 
     private static void AssertCosts(long actual, long ceiling) =>
