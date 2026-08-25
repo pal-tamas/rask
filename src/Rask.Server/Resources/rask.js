@@ -778,7 +778,7 @@
     }
 
     // Dev-only "hot reload applied" indicator, spliced from Rask.Core/Resources/rask-hotreload.js —
-    // the same source WASM and Native use, so the three transports cannot drift. It exposes
+    // the same source WASM uses, so the two transports cannot drift. It exposes
     // window.__raskHotReloadPill; only the way the notification *arrives* differs per transport (here,
     // the hotReload frame branch above).
     // @@RASK_HOTRELOAD@@
@@ -1213,7 +1213,7 @@
 
     // Scoped-CSS FOUC gating: CSS_FOUC_GUARD_MS + waitForUnappliedHeadCss (diff path) +
     // preloadNewHeadStylesheets (full-HTML path) — spliced from Rask.Core/Resources/rask-scoped.js,
-    // shared with rask.wasm.js + rask.native.js.
+    // shared with rask.wasm.js.
     // @@RASK_SCOPED@@
 
     // Reset scroll on forward navigation only (history.action "push" — a nav-link click
@@ -1519,7 +1519,7 @@
 
     // rAF-coalesced input & scroll dispatch (inputPending/flushInputsNow/queueInput + the input and
     // scroll listeners) — spliced from Rask.Core/Resources/rask-input.js, shared with rask.wasm.js +
-    // rask.native.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
+    // rask.wasm.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
     // @@RASK_INPUT@@
 
     document.addEventListener("change", (e) => {

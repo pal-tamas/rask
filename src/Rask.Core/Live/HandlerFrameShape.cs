@@ -49,7 +49,7 @@ internal static class HandlerFrameShape
     // The frame types that legitimately feed each shape, indexed by (int)Shape. Rows overlap on purpose:
     // `click` feeds a parameterless handler, the legacy MouseModifiers one, and a MouseEventArgs one, so
     // it appears in three rows. Kept in step with the client's send sites (rask.js / rask.wasm.js /
-    // rask.native.js + the shared rask-input.js / rask-events.js splices) and with the delegate cases in
+    // the shared rask-input.js / rask-events.js splices) and with the delegate cases in
     // Component.TryInvokeHandlerAsync.
     //
     // Held as UTF-8 so the comparison runs against the frame's raw bytes — JsonElement.ValueEquals over a

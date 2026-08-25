@@ -37,9 +37,8 @@ public sealed record BatteryStatus(double Level, bool Charging, double? Charging
 ///     <para>
 ///         Browser support is partial (Chromium-family; Firefox/Safari have removed or never shipped it), so
 ///         gate on <see cref="IsSupportedAsync" /> — <see cref="GetStatusAsync" /> returns <c>null</c> where
-///         it's unavailable. In the <see href="../native.md">native shell</see> it resolves to a real OS
-///         backend (iOS <c>UIDevice</c> / Android <c>BatteryManager</c>), which the WebView can't provide;
-///         those platforms don't surface charge/discharge time, so those fields are <c>null</c> there.
+///         it's unavailable. Charge/discharge time is reported only where the browser exposes it; the
+///         fields are <c>null</c> otherwise.
 ///     </para>
 /// </remarks>
 public interface IBattery

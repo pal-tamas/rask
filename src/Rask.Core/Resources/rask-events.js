@@ -214,25 +214,13 @@ document.addEventListener("keyup", function (e) { raskSendKey(e, "data-rask-on-k
 // ----- Share (client-only) ---------------------------------------------------
 // ShareButton emits data-rask-share="{json}". The share MUST run inside the click's own call stack so the
 // browser's transient user activation is still live — a server round-trip would lose it, which is exactly
-// why this is handled on the client and not dispatched to C#. In a native shell we upgrade to the injected
-// native bridge (window.__raskNative, no activation needed); otherwise we fall back to navigator.share.
+// why this is handled on the client and not dispatched to C#.
 // Unsupported browsers (e.g. desktop Firefox) simply no-op.
 document.addEventListener("click", function (e) {
     var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-share]") : null;
     if (!t || !inRoot(t)) { return; }
     var raw = t.getAttribute("data-rask-share");
     if (!raw) { return; }
-    var nativeCaps = window.__raskNative;
-    if (nativeCaps && typeof nativeCaps.has === "function" && nativeCaps.has("share") &&
-        typeof nativeCaps.invoke === "function") {
-        var payload;
-        try { payload = JSON.parse(raw); } catch (err) { return; }
-        // invoke returns a promise now; a rejected share (user cancelled, unsupported payload) is not an
-        // error worth surfacing here, but an unhandled rejection would be.
-        var shared = nativeCaps.invoke("share", "share", payload);
-        if (shared && shared["catch"]) { shared["catch"](function () {}); }
-        return;
-    }
     if (navigator.share) {
         var data;
         try { data = JSON.parse(raw); } catch (err) { return; }

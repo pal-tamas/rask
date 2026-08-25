@@ -78,7 +78,7 @@ public class PackageDependencyTests
     //
     // A missing step in release.yml means the package is never published; a missing one in nightly.yml means it
     // is never smoke-tested from a feed before the release. Matching on the csproj path is what both workflows
-    // are written in terms of, and it covers Rask.Native too, which each packs from a separate macOS job.
+    // are written in terms of.
     [Theory]
     [InlineData("release.yml")]
     [InlineData("nightly.yml")]
@@ -316,7 +316,7 @@ public class PackageDependencyTests
 
     // The unpackable projects whose DLL this host packs into its own lib/ folder. Two mechanisms are in use
     // and both count: TfmSpecificPackageFile with a lib/ PackagePath (Rask.Server, Rask.Wasm) and
-    // BuildOutputInPackage (Rask.Native). A PrivateAssets="all" ProjectReference on its own does NOT count —
+    // BuildOutputInPackage. A PrivateAssets="all" ProjectReference on its own does NOT count —
     // the batteries take one to compile against Rask.Core without bundling it, relying on the host package
     // the consumer already has, so demanding they re-declare Core's dependencies would be noise.
     private static IReadOnlyList<string> BundledProjects(XDocument document, Dictionary<string, string> projects) =>

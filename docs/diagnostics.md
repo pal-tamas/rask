@@ -66,6 +66,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
+| RASK032 | — | *Retired* — native chrome cannot sit inside an HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 | [RASK034](#rask034) | Warning | BsDataGrid column has no Field, so the column chooser can't show/hide or reorder it |
 | [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
@@ -81,6 +82,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
 | RASK047 | — | *retired* — routes are `[Route]` attribute arguments, constant by construction |
+| RASK048 | — | *Retired* — HTML cannot sit inside a native screen |
+| RASK049 | — | *Retired* — a `NativeWebView` set a `Url` and took children |
+| RASK050 | — | *Retired* — a native head was named on a web-only host |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 
 ---
@@ -987,6 +991,13 @@ and the reconciliation note in [the live-rendering codec](architecture/live-rend
 *Retired.* It reported a `Page.Route` override that was not a compile-time constant. Routes are declared with
 `[Route("...")]`, whose argument is an attribute argument and therefore constant by construction, so the failure
 it guarded can no longer be written. The id is retired, not reused.
+
+## RASK032, RASK048, RASK049, RASK050
+*Retired.* All four guarded the native hosting model: native chrome inside an HTML tree (RASK032), HTML
+inside a native screen (RASK048), a `NativeWebView` that set a `Url` *and* took children (RASK049), and a
+native head named on a web-only host (RASK050). Rask is a web framework — `Rask.Native` and every type
+those rules mentioned are gone, so none of the mistakes they caught can be written any more. The ids are
+retired, not reused.
 
 ## RASK053
 

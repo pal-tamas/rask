@@ -30,6 +30,32 @@ them until tagged releases begin.
   session, the render cache no longer refuses to cache while chrome is being collected, and
   `IRenderHandle` loses four members. That path is web-only now and pays for nothing else.
 
+- **`rask new --template native` still existed, and it scaffolded an ASP.NET server app.** Removing the
+  native hosting model took the packages, the samples and the generator's native arm, but left the entry in
+  `TemplateCatalog` — and that entry is the whole contract: it is what `--template` validates against, what
+  the wizard lists, and what shell completion offers. With no native arm left in `rask new`'s switch, the
+  request fell through to the default one, so `rask new Field --template native` announced *"Creating Rask
+  native mobile app (iOS + Android)"*, wrote a Server project, and signed off with *"Created Field (Rask
+  server app)"*. Nothing threw, and the catalog's own tests asserted the entry was **present**, so the suite
+  stayed green over it. `native` is no longer an accepted value — it is a usage error (exit 2) naming the
+  three real templates — and a test now asserts the absence.
+
+  Everything else the sweep left behind goes with it: `rask dev`'s dead native-refusal path
+  (`DevTemplateKind.Native`, `RefuseNative`, `NativeRunCommands`, `NativeHotReloadGuidance`) and its tests;
+  the unreachable `window.__raskNative` share bridge in the client JS, which nothing has injected since the
+  hosts were deleted; the `Appium.WebDriver` package pin; and the dangling `../native.md` links in
+  `IBattery` / `ISpeechRecognition`, which shipped to consumers in the packed XML docs.
+
+  **The docs had drifted furthest, and in the worst way** — `docs/cli.md` still documented `--template
+  native` with its `--host` and `--platform` options as if they worked. Five pages had also been cut
+  mid-sentence by the sweep and read as truncated prose: `docs/sqlite.md`'s "SQLite on mobile" section
+  opened on a fragment, and `docs/cli.md`, `docs/browser-capabilities.md`, `docs/browser-apis-sharing.md`,
+  `docs/js-interop-runtime.md` and `docs/development-workflow.md` each had a clause that stopped dead. Those
+  are repaired, and `samples/README.md` no longer lists two deleted sample projects.
+
+  **RASK032, RASK048, RASK049 and RASK050 are now recorded as retired in `docs/diagnostics.md`.** They had
+  simply vanished from the table, which is how an id gets quietly reused — the one failure mode that file's
+  own descriptor tests exist to prevent.
 
 ### Added
 - **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`

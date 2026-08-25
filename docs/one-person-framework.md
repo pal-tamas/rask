@@ -22,11 +22,10 @@ Rask's answer is to collapse the stack. One language (C#), one codebase, one dat
 ## One codebase, every surface
 
 You write the UI once, as plain C# components that return a tree of HTML from `Render()`. The *same*
-component code runs on three hosts — you pick per project, not per component:
+component code runs on two hosts — you pick per project, not per component:
 
 - **Server** — rendered server-side, updated live over a WebSocket with a minimal diff.
 - **WASM** — the same component running fully client-side in the browser (and installable as an offline PWA).
-- **Native** — the same component shipped as a real iOS/Android app via `Rask.Native` *(preview)*.
 
 Behind the UI, features are **vertical slices**: [`Rask.Cqrs`](cqrs.md) gives you source-generated
 commands/queries/notifications, and [`Rask.Data`](data.md) gives every aggregate a base with identity,
@@ -73,7 +72,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[`Rask.Dashboard`](dashboard.md)** | An operator dashboard at `/_rask` over the pillars above: queue depth, dead letters and the error behind each, one-click retry, and the log. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
 | **[Auth](authentication.md)** | Cookie & JWT sessions, claims and authorization. The **user store is yours** — `--auth` scaffolds a demo one; see the [roadmap](roadmap.md#not-shipped). |
-| **[PWA & native](pwa.md)** | Installable offline apps and real iOS/Android from the same components. |
+| **[PWA](pwa.md)** | Installable, offline, native-feeling apps from the same components. |
 | **[Web Push](webpush.md)** | Server-sent Web Push on your own VAPID keys (RFC 8292/8291), zero external deps — pairs with the client `IWebPush`. |
 | **[Secrets](secrets.md)** | Environment variables, remembered by name so a redeploy can't silently drop one. No vault or rotation. |
 | **[Deploy](deployment.md)** | `rask deploy` takes a bare VPS to a live HTTPS site — installs Docker, a non-root deploy login, a firewall and SSH hardening, then builds on the box and swaps in with zero downtime. No SSH session of your own required. |

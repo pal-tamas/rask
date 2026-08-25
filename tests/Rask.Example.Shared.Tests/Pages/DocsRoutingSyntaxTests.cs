@@ -6,8 +6,8 @@ namespace Rask.Example.Shared.Tests.Pages;
 /// Guards that no doc still teaches a routing member the framework has removed.
 ///
 /// <para>Routes moved back to <c>[Route]</c> / <c>[ParentRoute]</c> and the <c>Page</c> base class went away,
-/// but a snippet is only prose to the compiler: <c>docs/native-devices.md</c> kept a
-/// <c>protected override string Route</c> on a <c>Screen</c> long after the member it overrode was gone, so a
+/// but a snippet is only prose to the compiler: a since-removed guide kept a
+/// <c>protected override string Route</c> long after the member it overrode was gone, so a
 /// reader who copied it got <c>CS0115</c>. That is the worst kind of doc bug — the page reads as
 /// authoritative and the reader blames their own code.</para>
 ///

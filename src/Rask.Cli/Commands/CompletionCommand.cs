@@ -108,8 +108,8 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
             builder.AppendLine($"    {command})");
 
             // An option with a closed set completes its own values, keyed off the preceding word — nested
-            // inside the command's branch because the same option name means different things elsewhere
-            // (`--host` is a set of native modes for `new`, a free-form SSH target for `deploy`).
+            // inside the command's branch because the same option name can mean different things from one
+            // command to the next.
             foreach (var option in ChoiceOptionsFor(command))
             {
                 builder.AppendLine($"      if [ \"$prev\" = \"--{option.LongName}\" ]; then COMPREPLY=( $(compgen -W \"{string.Join(' ', option.Choices!)}\" -- \"$cur\") ); return 0; fi");

@@ -29,8 +29,6 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 
 ## Projects
 - `src/Rask.Core` — rendering, live context, routing, scoped CSS/JS, lifecycle.
-- `src/Rask.Chrome` — `Screen` + the portable chrome bars (`AppBar`, `TabStrip`, `TabItem`, `BarButton`,
-  `BarIcon`). `IsPackable=false`, bundled into every host package; Core keeps only the `IScreenChrome` seam.
 - `src/Rask.Html` — the HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Html.Components`;
   `IsPackable=false`, bundled into every host package. Core keeps only the tags its engine builds.
 - `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `[Route]` registration.
@@ -84,11 +82,11 @@ dotnet run --project samples/Rask.Example.Server
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/JS + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–053, RASK030/042/047 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–053, RASK030/032/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–053 are documented in `docs/diagnostics.md`
-  (RASK030/042/047 are retired; RASK051–052 are free).
+  (RASK030/032/042/047/048/049/050 are retired; RASK051–052 are free).

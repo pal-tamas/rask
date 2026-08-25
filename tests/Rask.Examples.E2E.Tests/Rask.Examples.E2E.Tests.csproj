@@ -38,8 +38,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Native on-device E2E lives in tests/Rask.Native.Appium.Tests (Appium drives the real app on an
-         emulator/simulator), so this browser-driven suite no longer references the native stack. -->
     <ProjectReference Include="..\..\samples\Rask.Example.Server\Rask.Example.Server.csproj"
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.EfCore\Rask.Example.EfCore.csproj"

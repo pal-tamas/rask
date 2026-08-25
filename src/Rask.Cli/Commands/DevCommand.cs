@@ -91,11 +91,6 @@ internal sealed class DevCommand(
             return 1;
         }
 
-        if (target.Kind == DevTemplateKind.Native)
-        {
-            return RefuseNative(target);
-        }
-
         if (target.Kind == DevTemplateKind.WasmHosted && parsed.Option("project") is null)
         {
             Console.WriteLine($"Using {target.Name} (the host project).", ConsoleStyle.Dim);
@@ -395,33 +390,8 @@ internal sealed class DevCommand(
         DevTemplateKind.Server => "server",
         DevTemplateKind.WasmHosted => "wasm-hosted",
         DevTemplateKind.WasmStandalone => "wasm",
-        DevTemplateKind.Native => "native",
         _ => "app"
     };
-
-    private int RefuseNative(DevTarget target)
-    {
-        // Exit 1, not 2: the command line was well-formed, the target is simply wrong for it.
-        // Don't guess a TFM — picking the wrong one costs a ten-minute build for the wrong platform.
-        Console.Error.WriteLine(
-            $"'{target.Name}' is a Rask native app. `rask dev` runs dotnet watch, which can't drive a " +
-            "simulator or emulator. Run it on a device instead:");
-        Console.Error.WriteLine();
-        foreach (var line in NativeRunCommands.Lines)
-        {
-            Console.Error.WriteLine($"  {line}");
-        }
-
-        Console.Error.WriteLine();
-        foreach (var line in NativeHotReloadGuidance.Lines)
-        {
-            Console.Error.WriteLine(line);
-        }
-
-        Console.Error.WriteLine();
-        Console.Error.WriteLine("If you meant a different project, pass --project.");
-        return 1;
-    }
 
     private static string? FirstUrl(string? urls) =>
         urls?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
@@ -434,42 +404,4 @@ internal sealed class DevCommand(
             args.Add(project);
         }
     }
-}
-
-/// <summary>
-/// The on-device run commands for a native app. Shared so the <c>rask dev</c> refusal and the
-/// <c>rask new</c> next-steps text cannot drift apart.
-/// </summary>
-internal static class NativeRunCommands
-{
-    // `-t:Run` REPLACES the default target, so it runs only Run — against whatever is already in bin/. A
-    // source edit is never compiled and the device silently relaunches the previous binary, which reads as
-    // "my change did nothing". `-t:Build;Run` runs both, in order. The quotes are required: `;` separates
-    // commands in a shell.
-    public const string Android = "dotnet build \"-t:Build;Run\" -f net10.0-android";
-    public const string IOS = "dotnet build \"-t:Build;Run\" -f net10.0-ios";
-
-    public static IReadOnlyList<string> Lines =>
-    [
-        $"{Android}     # Android emulator",
-        $"{IOS}         # iOS simulator (macOS + Xcode)"
-    ];
-}
-
-/// <summary>
-/// What to say about hot reload once <c>rask dev</c> has refused a native app. Applying new IL to a
-/// running app needs a device-side delta agent, which does not exist — so Native + Local means restart.
-/// Native + Server is the exception, and an easy one to miss: that head loads a remote Rask Server
-/// (<c>NativeAppHost.ConnectToServer</c>), so the WebView is a browser and already picks up every edit
-/// a <c>rask dev</c> session on the server project applies. Saying so here is the whole point — the
-/// refusal is where someone is standing when they want the answer.
-/// </summary>
-internal static class NativeHotReloadGuidance
-{
-    public static IReadOnlyList<string> Lines =>
-    [
-        "Hot reload can't reach an app on a device, so a Native + Local head has to be restarted.",
-        "Native + Server is different: it loads a remote Rask Server, so run `rask dev` against that",
-        "server project and the device picks the edit up over the same live connection a browser uses."
-    ];
 }
