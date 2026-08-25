@@ -19,6 +19,28 @@ internal sealed class QueryEntry
     /// </remarks>
     private bool _fetchOwed = true;
 
+    /// <summary>Cancels the fetch currently in flight, when there is one.</summary>
+    private CancellationTokenSource? _fetchCts;
+
+    /// <summary>
+    ///     How long this entry survives with no observers.
+    /// </summary>
+    /// <remarks>
+    ///     Held here rather than read from the options at collection time, because collection walks
+    ///     entries and not queries — reading a single default there quietly ignored any query that
+    ///     asked for a longer lifetime. Two queries sharing a key keep the longest of what they ask
+    ///     for: the entry has to outlive whichever of them needs it most.
+    /// </remarks>
+    public TimeSpan GcTime { get; private set; } = QueryOptions.Default.GcTime;
+
+    public void RequireGcTime(TimeSpan gcTime)
+    {
+        if (gcTime > GcTime)
+        {
+            GcTime = gcTime;
+        }
+    }
+
     public object? Data { get; private set; }
 
     public Exception? Error { get; private set; }
@@ -83,16 +105,27 @@ internal sealed class QueryEntry
         }
 
         Observers--;
-        if (Observers == 0)
+        if (Observers != 0)
         {
-            AbandonedAt = now;
+            return;
         }
+
+        AbandonedAt = now;
+
+        // Nothing is rendering this any more, so whatever is in flight is work for a screen that has
+        // gone. Cancelling it is the difference between a component unmount releasing a request and
+        // a navigation leaving one running to completion against a database.
+        CancelInFlight();
     }
 
-    public bool IsCollectable(TimeSpan gcTime, DateTimeOffset now) =>
-        Observers == 0 && AbandonedAt is { } at && now - at >= gcTime;
+    public bool IsCollectable(DateTimeOffset now) =>
+        Observers == 0 && AbandonedAt is { } at && now - at >= GcTime;
 
-    public void BeginFetch(Task fetch) => InFlight = fetch;
+    public void BeginFetch(Task fetch, CancellationTokenSource cancellation)
+    {
+        InFlight = fetch;
+        _fetchCts = cancellation;
+    }
 
     public void Succeeded(object? data, DateTimeOffset now)
     {
@@ -102,6 +135,7 @@ internal sealed class QueryEntry
         FetchedAt = now;
         InFlight = null;
         _fetchOwed = false;
+        ReleaseCancellation();
         Notify();
     }
 
@@ -113,7 +147,48 @@ internal sealed class QueryEntry
         // blinked — which is what dropping the data would do.
         InFlight = null;
         _fetchOwed = false;
+        ReleaseCancellation();
         Notify();
+    }
+
+    /// <summary>
+    ///     The fetch was cancelled rather than finishing. Clears the in-flight state but leaves the
+    ///     fetch owed, because nothing was actually retrieved: the next observer should try again.
+    /// </summary>
+    public void Abandoned()
+    {
+        InFlight = null;
+        ReleaseCancellation();
+    }
+
+    /// <summary>Cancels and releases the in-flight fetch's cancellation source.</summary>
+    private void CancelInFlight()
+    {
+        var cancellation = _fetchCts;
+        _fetchCts = null;
+        if (cancellation is null)
+        {
+            return;
+        }
+
+        try
+        {
+            cancellation.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The fetch finished between the null check and here, and disposed it. Nothing to cancel.
+        }
+
+        cancellation.Dispose();
+    }
+
+    /// <summary>Releases the source of a fetch that has finished on its own.</summary>
+    private void ReleaseCancellation()
+    {
+        var cancellation = _fetchCts;
+        _fetchCts = null;
+        cancellation?.Dispose();
     }
 
     [SuppressMessage(

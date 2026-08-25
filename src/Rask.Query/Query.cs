@@ -36,7 +36,7 @@ public sealed class Query<TResult> : IDisposable
         Options = options;
         Fetch = fetch;
         _onChanged = OnEntryChanged;
-        _entry = client.Attach(key, _onChanged);
+        _entry = client.Attach(key, _onChanged, options.GcTime);
 
         // The one trigger TanStack calls "on mount": something has started observing this data, so
         // fetch it. Fire-and-forget because a constructor cannot await; the result arrives through
@@ -44,7 +44,7 @@ public sealed class Query<TResult> : IDisposable
         _ = client.EnsureFreshAsync(key, this, CancellationToken.None);
     }
 
-    internal QueryOptions Options { get; private set; }
+    internal QueryOptions Options { get; }
 
     internal Func<CancellationToken, Task<object?>> Fetch { get; private set; }
 
@@ -124,7 +124,7 @@ public sealed class Query<TResult> : IDisposable
         _client.Detach(_key, _onChanged);
         _key = key;
         Fetch = _client.DispatchFetch(message);
-        _entry = _client.Attach(key, _onChanged);
+        _entry = _client.Attach(key, _onChanged, Options.GcTime);
         _ = _client.EnsureFreshAsync(key, this, CancellationToken.None);
         RenderReaders();
     }
@@ -231,6 +231,4 @@ public sealed class Query<TResult> : IDisposable
     internal QueryEntry Entry => _entry;
 
     internal QueryKey Key => _key;
-
-    internal void UseOptions(QueryOptions options) => Options = options;
 }

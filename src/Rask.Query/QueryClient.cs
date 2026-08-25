@@ -108,11 +108,12 @@ internal sealed class QueryClient : IQueryClient
     internal Func<CancellationToken, Task<object?>> DispatchFetch<TResult>(IQuery<TResult> message) =>
         async ct => await _dispatcher.DispatchAsync(message, ct).ConfigureAwait(false);
 
-    internal QueryEntry Attach(QueryKey key, Action listener)
+    internal QueryEntry Attach(QueryKey key, Action listener, TimeSpan gcTime)
     {
         var entry = GetOrAdd(key);
         lock (_gate)
         {
+            entry.RequireGcTime(gcTime);
             entry.Observe(listener);
         }
 
@@ -174,6 +175,7 @@ internal sealed class QueryClient : IQueryClient
         CancellationToken cancellationToken)
     {
         TaskCompletionSource completion;
+        CancellationTokenSource cancellation;
         lock (_gate)
         {
             // Re-checked under the lock: two components rendering the same query in one frame both
@@ -190,7 +192,11 @@ internal sealed class QueryClient : IQueryClient
             // nothing will ever clear. The entry then looks permanently in flight and the query never
             // refetches again, for the rest of the session.
             completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            entry.BeginFetch(completion.Task);
+
+            // Linked, so the fetch is cancelled either by the caller or by the entry losing its last
+            // observer — a component unmounting should release the request it started.
+            cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            entry.BeginFetch(completion.Task, cancellation);
         }
 
         // Started outside the lock: it runs synchronously up to its first await, and both Succeeded
@@ -203,8 +209,15 @@ internal sealed class QueryClient : IQueryClient
         {
             try
             {
-                var data = await fetch(cancellationToken).ConfigureAwait(false);
+                var data = await fetch(cancellation.Token).ConfigureAwait(false);
                 entry.Succeeded(data, _time.GetUtcNow());
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                // Cancelled because nothing is rendering this any more, or because the caller asked.
+                // Neither is a failure to show: recording it would leave an error on an entry whose
+                // next observer would then render it, having done nothing wrong.
+                entry.Abandoned();
             }
             catch (Exception ex)
             {
@@ -257,7 +270,7 @@ internal sealed class QueryClient : IQueryClient
         lock (_gate)
         {
             foreach (var key in _entries
-                         .Where(pair => pair.Value.IsCollectable(QueryOptions.Default.GcTime, now))
+                         .Where(pair => pair.Value.IsCollectable(now))
                          .Select(pair => pair.Key)
                          .ToArray())
             {

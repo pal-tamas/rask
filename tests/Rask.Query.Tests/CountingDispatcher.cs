@@ -20,7 +20,15 @@ internal sealed class CountingDispatcher : IDispatcher
 {
     private TaskCompletionSource? _gate;
 
+    private readonly Dictionary<Type, int> _perType = [];
+
     public int QueryCount { get; private set; }
+
+    /// <summary>How many times one message type was dispatched, so a test that needs an unrelated
+    /// query to trigger something is not counting that query too.</summary>
+    public int QueryCountFor<TMessage>() => QueryCountFor(typeof(TMessage));
+
+    private int QueryCountFor(Type message) => _perType.TryGetValue(message, out var n) ? n : 0;
 
     public int CommandCount { get; private set; }
 
@@ -38,9 +46,13 @@ internal sealed class CountingDispatcher : IDispatcher
         CancellationToken cancellationToken = default)
     {
         QueryCount++;
+        _perType[query.GetType()] = QueryCountFor(query.GetType()) + 1;
         if (_gate is { } gate)
         {
-            await gate.Task.ConfigureAwait(false);
+            // Honours the token, so a cancellation test proves something: awaiting the gate without
+            // it would let a cancelled fetch run to completion anyway and the assertion would pass
+            // for the wrong reason.
+            await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
         if (Throw is { } error)
