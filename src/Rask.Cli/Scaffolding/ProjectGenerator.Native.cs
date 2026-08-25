@@ -435,41 +435,25 @@ internal static partial class ProjectGenerator
     private const string NativeAppShell =
         """
         using Rask.Core.Routing;
+        using Rask.Native.Components;
 
-        // NativeHeaderBar / NativeWebView are chain entries the generator emits into this markup host
+        // NativeHeaderBar / NativeScreen are chain entries the generator emits into this markup host
         // (hence `partial`) for any project referencing Rask.Native — no import needed here.
 
         namespace Company.RaskServer.Features.Shared;
 
         public sealed partial class App : Component
         {
-            protected override Component? HeadAssets =>
-            [
-                Title["Rask App"],
-                Meta.Charset("utf-8"),
-                Meta.Name("viewport").Content("width=device-width, initial-scale=1, viewport-fit=cover")
-            ];
-
-            // Rask builds the document around Render(); override Shell when its HtmlLang / BodyClass hooks
-            // are not enough. Here the body is padded by the device safe-area insets so content clears the
-            // status bar / notch / home indicator (the boot shell asks for an edge-to-edge viewport with
-            // viewport-fit=cover). head is the framework's <head> — place it, or the page loses every head
-            // asset.
-            protected override Component Shell(Component head, Component body) =>
-                Html.Lang("en")[
-                    head,
-                    Body.Style("margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
-                                "env(safe-area-inset-bottom) env(safe-area-inset-left)")[body]
-                ];
-
             protected override Component? Render() =>
             [
-                // Real native top bar. Opt in by hosting webView.ChromeView + registering the head as INativeChrome —
-                // see Platforms/iOS/AppDelegate.cs and Platforms/Android/MainActivity.cs.
+                // A real UINavigationBar / Android top bar. The head registers itself as the INativeChrome
+                // backend — see Platforms/iOS/AppDelegate.cs and Platforms/Android/MainActivity.cs.
                 NativeHeaderBar.Title("Rask App"),
 
-                // The HTML surface — its children are the page content, morphed into the platform WebView.
-                NativeWebView[Router]
+                // The pure-native content surface: everything inside paints as real platform views, with no
+                // WebView and no HTML anywhere. Router works here exactly as it does on the web, so [Route]
+                // pages, route parameters and type-safe navigation are unchanged.
+                NativeScreen[Router]
 
                 // Add a real native bottom tab bar here once you have somewhere to navigate:
                 //   NativeTabBar.Tabs([NativeTab.Title("Home").Icon(NativeIcon.Home).To(Routes.HomePage())])
@@ -477,34 +461,42 @@ internal static partial class ProjectGenerator
             ];
         }
 
+        // Want a web page on one route instead? Compose a NativeWebView on it and the host swaps surfaces as
+        // you navigate, keeping both alive:
+        //
+        //     OnDocs ? NativeWebView[Router] : NativeScreen[Router]
+        //
+        // Putting HTML inside a NativeScreen is a compile error (RASK048), as is putting a native component
+        // inside the HTML tree (RASK032) — the two families do not mix within one surface.
+
         """;
 
     // The welcome screen, its own Features/Home slice — a new native project already models the CLI's
-    // "screens are feature slices" convention.
+    // "screens are feature slices" convention. Pure-native: every element here is a real UILabel /
+    // TextView, not HTML in a WebView.
     private const string NativeHomePage =
         """
         using Rask.Core.Routing;
+        using Rask.Native.Components;
 
         namespace Company.RaskServer.Features.Home;
 
         [Route("/")]
         public sealed partial class HomePage : Component
         {
+            // NativeStack always states its Orientation. Left unset the two platforms disagree — iOS stacks
+            // vertically, Android horizontally — so a screen that looks right on one is a single squashed row
+            // on the other.
             protected override Component? Render() =>
-                Div.Style("padding:1.25rem;font-family:system-ui,-apple-system,sans-serif")[
-                    H1.Style("font-size:1.5rem;margin:0 0 .5rem")["Hello, Rask! 👋"],
-                    P.Style("margin:0 0 1rem;color:#374151")["Your native app is ready. Scaffold the rest with the rask CLI:"],
-                    Ul.Style("margin:0 0 1rem;padding-left:1.1rem;line-height:1.75;color:#374151")[
-                        Li[A.Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/00-overview.md")["The tutorial"], " — pages, components and features, step by step"]
-                    ],
-                    P.Style("margin:0;font-size:.9rem;color:#6b7280")[
-                        "Edit this page in ",
-                        Code["HomePage.cs"],
-                        " — drop a ",
-                        Code["HomePage.css"],
-                        " beside it and its rules are scoped to this page. Full guides at ",
-                        A.Href("https://github.com/pal-tamas/rask")["the Rask docs"],
-                        "."
+                NativeScreen[
+                    NativeStack.Orientation(NativeOrientation.Vertical).Spacing(12).Padding(20)[
+                        NativeLabel.FontSize(28).FontWeight(NativeFontWeight.Bold)["Hello, Rask! 👋"],
+                        NativeLabel[
+                            "Your native app is ready. Every control on this screen is a real platform view."],
+                        NativeDivider,
+                        NativeLabel.FontSize(14)[
+                            "Edit this page in HomePage.cs. Add a route with [Route(\"/next\")] and the tab bar "
+                            + "or a NativeButton can navigate to it."]
                     ]
                 ];
         }
@@ -530,8 +522,6 @@ internal static partial class ProjectGenerator
         using Company.RaskServer.Features.Shared;
         using Foundation;
         using Microsoft.Extensions.DependencyInjection;
-        using Rask.Client.Browser;
-        using Rask.Core.Browser;
         using Rask.Native;
         using UIKit;
 
@@ -548,15 +538,13 @@ internal static partial class ProjectGenerator
                 Window = new UIWindow(UIScreen.MainScreen.Bounds);
 
                 var webView = new RaskWkWebView();
-                // Host ChromeView (the container that lays the native header/footer bars around the WebView) rather
-                // than the bare WebView, so the App's composed NativeHeaderBar/NativeTabBar become a real
+                // Host ChromeView (the container that lays the native header/footer bars around the content) rather
+                // than the bare view, so the App's composed NativeHeaderBar/NativeTabBar become a real
                 // UINavigationBar/UITabBar. The INativeChrome backend is registered below; without it the bars render
-                // nothing (the WebView fills the screen), so a native app that navigates via the tab bar should keep it.
+                // nothing, so a native app that navigates via the tab bar should keep that registration.
                 Window.RootViewController = new UIViewController { View = webView.ChromeView };
                 Window.MakeKeyAndVisible();
 
-                // Wire the in-process session BEFORE loading the shell, so the session is ready to receive the
-                // client's `ready` handshake and push the first frame. Native + Local mode.
                 _ = StartAsync(webView);
                 return true;
             }
@@ -564,16 +552,18 @@ internal static partial class ProjectGenerator
             private async Task StartAsync(RaskWkWebView webView)
             {
                 var host = NativeAppHost.CreateDefault();
-                // Native device backends: override Rask.Native's JS-backed defaults with the platform APIs. Register
-                // any native backend on host.Services before RunLocalAsync — the last registration wins. See
-                // docs/native.md "Native device backends".
-                host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));  // share sheet
-                host.Services.AddSingleton<INotifications>(_ => new NativeNotifications());                 // UNUserNotificationCenter
-                host.Services.AddSingleton<IBadge>(_ => new NativeBadge());                                 // app-icon badge
+                // All fifteen native device backends in one line — share, geolocation, clipboard, vibration,
+                // wake lock, network info, battery, speech, screen info, orientation/motion, notifications,
+                // badge and permissions. The framework resolves each native-first over the WebView's JS
+                // default. Call UsePlatform before running the app. See docs/native.md.
+                host.UsePlatform(new ApplePlatform(() => Window?.RootViewController));
                 host.Services.AddSingleton<INativeChrome>(webView);                                         // native header/footer bars
                 // host.Services.AddSingleton<IMyService, MyService>();   // register app services here
-                _app = await host.RunLocalAsync<App>(webView);
-                webView.LoadShell();
+
+                // RunNativeAsync, not RunLocalAsync: the app paints real platform views through the surface
+                // backend, so there is no HTML, no boot shell to load, and no `ready` handshake to wait for —
+                // the host renders the first frame itself and returns with the app already on screen.
+                _app = await host.RunNativeAsync<App>(webView);
             }
 
             public override void WillTerminate(UIApplication application) => _ = _app?.DisposeAsync();
@@ -667,8 +657,6 @@ internal static partial class ProjectGenerator
         using Android.OS;
         using Company.RaskServer.Features.Shared;
         using Microsoft.Extensions.DependencyInjection;
-        using Rask.Client.Browser;
-        using Rask.Core.Browser;
         using Rask.Native;
 
         namespace Company.RaskServer;
@@ -693,30 +681,85 @@ internal static partial class ProjectGenerator
                 }
 
                 _webView = new RaskAndroidWebView(this);
-                // Host ChromeView (the container that lays the native header/footer bars around the WebView) rather
-                // than the bare WebView, so the App's composed NativeHeaderBar/NativeTabBar become real top/bottom bars.
-                // The INativeChrome backend is registered below; without it the bars render nothing (the WebView fills
-                // the screen), so a native app that navigates via the tab bar should keep that registration.
+                // Host ChromeView (the container that lays the native header/footer bars around the content) rather
+                // than the bare view, so the App's composed NativeHeaderBar/NativeTabBar become real top/bottom bars.
+                // The INativeChrome backend is registered below; without it the bars render nothing, so a native app
+                // that navigates via the tab bar should keep that registration.
                 SetContentView(_webView.ChromeView);
 
-                // Wire the in-process session before loading the shell so it's ready for the client's `ready`
-                // handshake. Native + Local mode.
                 _ = StartAsync(_webView);
+                RegisterBackHandler();
             }
 
             private async Task StartAsync(RaskAndroidWebView webView)
             {
                 var host = NativeAppHost.CreateDefault();
-                // Native device backends: override Rask.Native's JS-backed defaults with the platform APIs. Register
-                // any native backend on host.Services before RunLocalAsync — the last registration wins. See
-                // docs/native.md "Native device backends".
-                host.Services.AddSingleton<IShare>(_ => new NativeShare(this));                  // OS share sheet
-                host.Services.AddSingleton<INotifications>(_ => new NativeNotifications(this));   // NotificationManager
-                host.Services.AddSingleton<IBadge>(_ => new NativeBadge(this));                   // app badge notification
+                // All fifteen native device backends in one line — share, geolocation, clipboard, vibration,
+                // wake lock, network info, battery, speech, screen info, orientation/motion, notifications,
+                // badge and permissions. The framework resolves each native-first over the WebView's JS
+                // default. Call UsePlatform before running the app. See docs/native.md.
+                host.UsePlatform(new AndroidPlatform(this));
                 host.Services.AddSingleton<INativeChrome>(webView);                              // native header/footer bars
                 // host.Services.AddSingleton<IMyService, MyService>();   // register app services here
-                _app = await host.RunLocalAsync<App>(webView);
-                webView.LoadShell();
+
+                // RunNativeAsync, not RunLocalAsync: the app paints real platform views through the surface
+                // backend, so there is no HTML, no boot shell to load, and no `ready` handshake to wait for —
+                // the host renders the first frame itself and returns with the app already on screen.
+                _app = await host.RunNativeAsync<App>(webView);
+            }
+
+            // Route the hardware Back button through the app's own history instead of the activity stack, so
+            // Back means "the previous page" the way it does in any other Android app.
+            //
+            // This uses OnBackInvokedDispatcher, NOT the OnBackPressed override. For an app targeting API 35+
+            // predictive back is on by default and OnBackPressed is NEVER CALLED — wiring only that override
+            // compiles, looks right, and silently closes the app mid-navigation. The override is kept below
+            // for API 32 and earlier, where the dispatcher does not exist.
+            private BackInvokedCallback? _backCallback;
+
+            private void RegisterBackHandler()
+            {
+                if (!OperatingSystem.IsAndroidVersionAtLeast(33) || OnBackInvokedDispatcher is not { } dispatcher)
+                {
+                    return;
+                }
+
+                _backCallback = new BackInvokedCallback(this);
+                // PRIORITY_DEFAULT. Registering a callback takes over the gesture entirely, so this handler
+                // owns closing the app too — see HandleBack.
+                dispatcher.RegisterOnBackInvokedCallback(0, _backCallback);
+            }
+
+            // Nothing to go back to means the press should close the app, which is what a user expects at
+            // the root of a task. The system no longer does that for us once a callback is registered, so
+            // Finish() is ours to call — without it Back would be dead on the first page.
+            private void HandleBack()
+            {
+                if (_app is { CanGoBack: true } app)
+                {
+                    _ = app.GoBackAsync();
+                    return;
+                }
+
+                Finish();
+            }
+
+            private sealed class BackInvokedCallback(MainActivity owner)
+                : Java.Lang.Object, Android.Window.IOnBackInvokedCallback
+            {
+                public void OnBackInvoked() => owner.HandleBack();
+            }
+
+            // API 32 and earlier: no dispatcher, and this override is still delivered.
+            public override void OnBackPressed()
+            {
+                if (_app is { CanGoBack: true } app)
+                {
+                    _ = app.GoBackAsync();
+                    return;
+                }
+
+                base.OnBackPressed();
             }
 
             // Forward runtime-permission results so NativeNotifications' RequestPermissionAsync can await the grant.
@@ -728,6 +771,12 @@ internal static partial class ProjectGenerator
 
             protected override void OnDestroy()
             {
+                if (_backCallback is { } cb && OperatingSystem.IsAndroidVersionAtLeast(33))
+                {
+                    OnBackInvokedDispatcher?.UnregisterOnBackInvokedCallback(cb);
+                    _backCallback = null;
+                }
+
                 _ = _app?.DisposeAsync();
                 base.OnDestroy();
             }

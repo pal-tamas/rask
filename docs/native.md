@@ -34,6 +34,7 @@ one route served as HTML, the next fully native.
 
 Also in this doc: [How it fits](#how-it-fits), [Pure-native screens](#pure-native-screens-no-webview),
 [A WebView pointed at your own app](#a-webview-pointed-at-your-own-app),
+[The hardware Back button](#the-hardware-back-button),
 [Get started](#get-started), [Files, downloads and sign-out](#files-downloads-and-sign-out),
 [Honest framing](#honest-framing), [Roadmap](#roadmap).
 
@@ -168,6 +169,47 @@ unaffected by both and composes beside either.
 > `usesCleartextTraffic` on Android, so a `Url` of `http://localhost:5000` loads **nothing, silently**. Use
 > `https://`, or add the narrow exception the remote templates use while developing (see
 > [the CLI docs](cli.md)).
+
+### The hardware Back button
+
+A pure-native app has no page, so there is no `window.history` for Back to pop — the session keeps its
+own history instead, and the head routes the button through it:
+
+```csharp
+private void RegisterBackHandler()
+{
+    if (!OperatingSystem.IsAndroidVersionAtLeast(33) || OnBackInvokedDispatcher is not { } dispatcher)
+    {
+        return;
+    }
+
+    _backCallback = new BackInvokedCallback(this);
+    dispatcher.RegisterOnBackInvokedCallback(0, _backCallback);
+}
+
+private void HandleBack()
+{
+    if (_app is { CanGoBack: true } app)
+    {
+        _ = app.GoBackAsync();
+        return;
+    }
+
+    Finish();   // nothing to pop — Back closes the app, as it should at the root of a task
+}
+```
+
+`rask new --template native` writes this for you. Two things about it are easy to get wrong:
+
+- **Use `OnBackInvokedDispatcher`, not the `OnBackPressed` override.** For an app targeting API 35+
+  predictive back is enabled by default and `OnBackPressed` is **never called** — the override compiles,
+  looks correct, and Back silently closes the app mid-navigation. Keep the override only as the API 32
+  and earlier path.
+- **Registering a callback means you own closing the app too.** The system stops doing it for you, so
+  `HandleBack` must call `Finish()` when `CanGoBack` is false, or Back is dead on the first page.
+
+`CanGoBack` is false for an app that has a WebView: the page owns that history, and reading it needs a
+round trip the back handler cannot wait for. A hybrid app therefore keeps the platform's default Back.
 
 ### Wiring it up
 

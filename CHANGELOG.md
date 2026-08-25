@@ -7,6 +7,56 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **`rask new --template native --host native` scaffolds a pure-native app** (#777, the four-models
+  epic). The scaffold still emitted the WebView-hybrid shape — `NativeWebView[Router]` and a page of
+  plain HTML — so the model the epic renamed to `native`, meaning *pure-native screens*, was the one
+  thing `rask new` could not produce. The App shell is now `NativeScreen[Router]`, the welcome page is
+  `NativeLabel` / `NativeStack` / `NativeDivider`, and both heads call `RunNativeAsync`. A comment shows
+  how to put a `NativeWebView` on one route if you want markup somewhere.
+
+  The scaffolded `NativeStack` always states its `Orientation`, because leaving it unset renders
+  differently on the two platforms (#791) and a starter template is the worst place to inherit that.
+
+### Added
+- **`NativeApp.GoBackAsync()` and `NativeApp.CanGoBack`** — back navigation a platform head can actually
+  reach. `GoBackAsync` already existed on `NativeLiveSession`, but `NativeApp.Session` is internal, so
+  "wire the hardware Back button" was not expressible in app code at all. `CanGoBack` answers
+  synchronously, because the caller that needs it — Android's back handler — must decide in the moment
+  whether to handle the press or let it close the activity.
+
+  It is false for an app with a WebView, and that is the safe answer rather than a missing feature: the
+  page owns that history and reading it needs a round trip. Such a head keeps the platform's default
+  Back, exactly as before.
+
+### Fixed
+- **A navigation performed by a handler built no back history in the pure-native model.** Only
+  navigations arriving as a `navigate` *message* reached `RecordNativeHistory`; the ones a handler
+  performed through `Navigator.NavigateTo` consumed their history entry and handed it to the payload
+  instead. With a WebView that difference is invisible — the client calls `pushState`, and the page's
+  history is the only one that exists — so it survived until a pure-native app was driven on a device,
+  where a button that navigated left no trace and the hardware Back button closed the app from the
+  second page. All three dispatch paths now go through one helper, so a fourth cannot reintroduce it.
+
+- **The scaffolded Android head wired Back through `OnBackPressed`, which modern Android never calls.**
+  For an app targeting API 35+ predictive back is on by default and the override is dead — it compiles,
+  it looks right, and Back silently closes the app mid-navigation. The scaffold registers an
+  `OnBackInvokedDispatcher` callback on API 33+ and keeps the override only for API 32 and earlier.
+  Registering a callback also takes over closing the app, so the handler calls `Finish()` itself when
+  there is nothing to pop — without which Back would be dead on the first page instead.
+
+  Verified on an API 36 emulator against a freshly scaffolded app: Back returns from the second page to
+  the first, and at the root it closes the app.
+
+- **The scaffolded iOS head did not compile.** It registered `NativeNotifications` and `NativeBadge`
+  directly, and both are `internal` — so `rask new --template native --platform ios` emitted an
+  `AppDelegate` with two `CS0122`s in it. Nothing caught this: `NativeTemplateCompileTests` deliberately
+  excludes `Platforms/**` (it needs the workloads), and `CliBuildE2E` cannot build the native template at
+  all. Both heads now call `host.UsePlatform(new ApplePlatform(…))` / `new AndroidPlatform(this)`, which
+  is what the docs and the samples already recommended — one line, no internals, and all **fifteen**
+  device backends instead of the three the template hand-registered.
+
+
 ### Added
 - **`NativeWebView` can point at a URL instead of hosting markup.** It had one mode: its children are the
   page. It has two now — give it a `Url` and the WebView loads that address, so the UI comes from a Rask

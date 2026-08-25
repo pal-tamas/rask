@@ -531,6 +531,29 @@ public sealed class NativeApp : IAsyncDisposable
     /// <summary>The app's service provider — resolve app services or the framework's browser APIs from it.</summary>
     public IServiceProvider Services => _provider;
 
+    /// <summary>
+    ///     Whether <see cref="GoBackAsync" /> has somewhere to go. Answered synchronously, because the caller
+    ///     that needs it — Android's <c>OnBackPressed</c> — has to decide in the moment whether to handle the
+    ///     press or let it close the activity:
+    ///     <code>
+    ///     public override void OnBackPressed()
+    ///     {
+    ///         if (_app is { CanGoBack: true } app) { _ = app.GoBackAsync(); return; }
+    ///         base.OnBackPressed();   // nothing to pop — let Back close the app
+    ///     }
+    ///     </code>
+    ///     False for an app with a WebView: the page owns that history and reading it needs a round trip,
+    ///     which a synchronous answer cannot afford. Such a head keeps the platform's default Back behaviour.
+    /// </summary>
+    public bool CanGoBack => Session.CanGoBack;
+
+    /// <summary>
+    ///     Navigate back one entry, if there is one. The counterpart of the platform's own back affordance,
+    ///     for a head that wants to route the hardware button through the app's history rather than the
+    ///     activity stack. A no-op when <see cref="CanGoBack" /> is false.
+    /// </summary>
+    public ValueTask GoBackAsync() => Session.GoBackAsync();
+
     public async ValueTask DisposeAsync()
     {
         Session.Dispose();
