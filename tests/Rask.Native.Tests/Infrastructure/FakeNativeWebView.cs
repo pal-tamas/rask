@@ -16,6 +16,13 @@ internal sealed class FakeNativeWebView : INativeWebView
     /// <summary>Every script the host evaluated via <see cref="EvaluateJavaScriptAsync" /> (IJSRuntime interop).</summary>
     public List<string> Evaluated { get; } = new();
 
+    /// <summary>
+    ///     Every address the session navigated to via <see cref="LoadUrlAsync" />, in order — a Url-mode
+    ///     <c>NativeWebView</c>. The count is the point as much as the values: a re-render naming the same
+    ///     address must not reload the page.
+    /// </summary>
+    public List<Uri> LoadedUrls { get; } = new();
+
     public Func<byte[], Task>? OnMessage { get; set; }
 
     public ValueTask ApplyRenderAsync(ReadOnlyMemory<byte> frameUtf8)
@@ -28,6 +35,12 @@ internal sealed class FakeNativeWebView : INativeWebView
     public ValueTask EvaluateJavaScriptAsync(string javaScript)
     {
         Evaluated.Add(javaScript);
+        return default;
+    }
+
+    public ValueTask LoadUrlAsync(Uri url)
+    {
+        LoadedUrls.Add(url);
         return default;
     }
 

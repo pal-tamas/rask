@@ -53,6 +53,27 @@ public sealed partial class RaskAndroidWebView : INativeWebView, INativeChrome
     /// <summary>Load the boot shell once the session is wired (call from the Activity).</summary>
     public void LoadShell() => _webView.LoadUrl(_origin + "index.native.html");
 
+    // The origin a Url-mode NativeWebView named, once one has been loaded. Null while the app hosts its own
+    // markup, and the policy below is inert then.
+    private Uri? _remoteOrigin;
+
+    /// <inheritdoc />
+    public ValueTask LoadUrlAsync(Uri url)
+    {
+        ArgumentNullException.ThrowIfNull(url);
+
+        _remoteOrigin = url;
+        _webView.Post(() =>
+        {
+            // Swapped in rather than configured up front, so an app that never names a Url keeps exactly the
+            // client it had. The asset interceptor is still wanted: scoped CSS/JS and the app's own bundled
+            // files are served from the app origin regardless of what the page is.
+            _webView.SetWebViewClient(new ShowcaseWebViewClient(_origin, _readStaticFile, url));
+            _webView.LoadUrl(url.ToString());
+        });
+        return default;
+    }
+
     /// <inheritdoc />
     public ValueTask ApplyRenderAsync(ReadOnlyMemory<byte> frameUtf8)
     {
@@ -93,7 +114,13 @@ internal sealed class RaskJsBridge(RaskAndroidWebView owner) : Java.Lang.Object
 // Serves the app origin from NativeOriginAssets (shell/client + scoped assets + bundled static files);
 // under-origin misses return an empty 200 so the page never hangs, and off-origin requests fall through to
 // the real network.
-internal sealed class ShowcaseWebViewClient(string origin, Func<string, byte[]?> readStaticFile) : WebViewClient
+//
+// When remoteOrigin is set the app is in Url mode, and this client also carries the policy that mode needs:
+// inject the capability bridge for that origin, and keep the WebView on it.
+internal sealed class ShowcaseWebViewClient(
+    string origin,
+    Func<string, byte[]?> readStaticFile,
+    Uri? remoteOrigin = null) : WebViewClient
 {
     public override WebResourceResponse? ShouldInterceptRequest(WebView? view, IWebResourceRequest? request)
     {
@@ -111,6 +138,37 @@ internal sealed class ShowcaseWebViewClient(string origin, Func<string, byte[]?>
 
         // Under-origin miss (favicon we don't ship, …) — empty 200 so nothing blocks the render.
         return new WebResourceResponse("text/plain", "UTF-8", new MemoryStream([]));
+    }
+
+    // The page loaded from a Url gets the capability bridge, so it can reach the device backends this app
+    // registered — but only the origin the app actually named.
+    public override void OnPageStarted(WebView? view, string? url, Android.Graphics.Bitmap? favicon)
+    {
+        base.OnPageStarted(view, url, favicon);
+
+        if (remoteOrigin is { } trusted && NativeCapabilities.IsTrustedOrigin(trusted, url))
+        {
+            view?.EvaluateJavascript(NativeCapabilities.BridgeScript, null);
+        }
+    }
+
+    // Keep the WebView on that origin. Anything else opens in the system browser — the grant is to the page
+    // you pointed at, and this is what stops it travelling with the user somewhere you did not.
+    //
+    // This matters more on Android than the equivalent does on iOS: __raskBridge is a @JavascriptInterface
+    // bound to the WebView itself, so it is reachable by whatever document the WebView holds.
+    public override bool ShouldOverrideUrlLoading(WebView? view, IWebResourceRequest? request)
+    {
+        var url = request?.Url?.ToString();
+        if (remoteOrigin is not { } trusted || url is null || NativeCapabilities.IsTrustedOrigin(trusted, url))
+        {
+            return base.ShouldOverrideUrlLoading(view, request);
+        }
+
+        var intent = new Intent(Intent.ActionView, Android.Net.Uri.Parse(url));
+        intent.AddFlags(ActivityFlags.NewTask);
+        view?.Context?.StartActivity(intent);
+        return true;
     }
 }
 

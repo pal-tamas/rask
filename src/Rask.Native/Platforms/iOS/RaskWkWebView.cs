@@ -15,7 +15,8 @@ namespace Rask.Native;
 ///     <see cref="IosBundledAssets" />). Assign <see cref="View" /> to a view controller, wire the session
 ///     (<c>RunLocalAsync</c>), then <see cref="LoadShell" />.
 /// </summary>
-public sealed partial class RaskWkWebView : NSObject, INativeWebView, IWKScriptMessageHandler, INativeChrome
+public sealed partial class RaskWkWebView : NSObject, INativeWebView, IWKScriptMessageHandler, INativeChrome,
+    IWKNavigationDelegate
 {
     /// <summary>The default custom scheme + app origin the shell + client + assets are served from.</summary>
     public const string DefaultScheme = "raskapp";
@@ -63,6 +64,63 @@ public sealed partial class RaskWkWebView : NSObject, INativeWebView, IWKScriptM
     /// <summary>Load the boot shell once the session is wired (call from the AppDelegate).</summary>
     public void LoadShell() =>
         View.LoadRequest(new NSUrlRequest(new NSUrl(_origin + "index.native.html")));
+
+    // The origin a Url-mode NativeWebView named, once one has been loaded. Null while the app hosts its own
+    // markup, and the navigation policy below is inert then — the boot shell is served over the custom
+    // scheme, which is not http/https and is this app's own origin anyway.
+    private Uri? _remoteOrigin;
+
+    /// <inheritdoc />
+    public ValueTask LoadUrlAsync(Uri url)
+    {
+        ArgumentNullException.ThrowIfNull(url);
+
+        _remoteOrigin = url;
+        DispatchQueue.MainQueue.DispatchAsync(() =>
+        {
+            // Assigned here rather than in the constructor so an app that never uses a Url keeps exactly the
+            // behaviour it had: no delegate, no policy, nothing to go wrong.
+            View.NavigationDelegate = this;
+            View.LoadRequest(new NSUrlRequest(new NSUrl(url.ToString())));
+        });
+        return default;
+    }
+
+    // The page loaded from a Url gets the capability bridge, so it can reach the device backends this app
+    // registered. Injected per navigation, after commit, and only for the origin the app named.
+    [Export("webView:didCommitNavigation:")]
+    public void DidCommitNavigation(WKWebView webView, WKNavigation navigation)
+    {
+        if (_remoteOrigin is { } origin && NativeCapabilities.IsTrustedOrigin(origin, webView.Url?.AbsoluteString))
+        {
+            webView.EvaluateJavaScript(new NSString(NativeCapabilities.BridgeScript), null);
+        }
+    }
+
+    // Keep the WebView on the origin the app named. A tapped link, a 302, a window.location or a form POST
+    // that leaves it opens in Safari instead — the bridge is granted to the page you pointed at, and this is
+    // what stops that grant travelling with the user to somewhere you did not.
+    [Export("webView:decidePolicyForNavigationAction:decisionHandler:")]
+    public void DecidePolicy(WKWebView webView, WKNavigationAction navigationAction,
+        Action<WKNavigationActionPolicy> decisionHandler)
+    {
+        var url = navigationAction.Request.Url;
+        var scheme = url?.Scheme;
+        var isWeb = string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase);
+
+        // Only http/https is policed, and only once a remote origin exists: the boot shell rides the custom
+        // scheme, and about:blank arrives before any of this.
+        if (_remoteOrigin is not { } origin || !isWeb
+            || NativeCapabilities.IsTrustedOrigin(origin, url?.AbsoluteString))
+        {
+            decisionHandler(WKNavigationActionPolicy.Allow);
+            return;
+        }
+
+        UIApplication.SharedApplication.OpenUrl(url!, new NSDictionary(), null);
+        decisionHandler(WKNavigationActionPolicy.Cancel);
+    }
 
     /// <inheritdoc />
     public ValueTask ApplyRenderAsync(ReadOnlyMemory<byte> frameUtf8)

@@ -7,6 +7,70 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`NativeWebView` can point at a URL instead of hosting markup.** It had one mode: its children are the
+  page. It has two now — give it a `Url` and the WebView loads that address, so the UI comes from a Rask
+  server or a WASM app you host rather than from components rendering on the device:
+
+  ```csharp
+  protected override Component? Render() =>
+  [
+      NativeHeaderBar.Title("Home"),
+      NativeWebView.Url("https://app.example.com/"),
+  ];
+  ```
+
+  The bars around it are still native, still declared in the same `Render()`, and the page reaches the
+  device backends through the capability bridge. What changes is only where the UI comes from — which is
+  the four-models epic's whole claim, now expressible in markup rather than only by picking a different
+  platform head.
+
+  `.Url(…)` takes a `string` or a `Uri`. Both must be an absolute `http`/`https` address, checked in the
+  property setter so neither way in can skip it. That check earns its place: on Unix
+  `Uri.TryCreate("/relative", Absolute, …)` **succeeds**, as `file:///relative` — and `javascript:` and
+  `data:` parse absolutely too. All three would otherwise have been handed to a WebView carrying the
+  capability bridge.
+
+  **The two modes are exclusive**, and the compiler says so rather than the framework discarding work
+  silently. `RASK049` is one `NativeWebView` that sets a `Url` *and* takes children — it shows one
+  document, so the children could only be built and thrown away. `RASK050` is one component that could
+  render either: in URL mode the session keeps no HTML diff baseline, so the markup arm has nothing to
+  paint against. A pure-native `NativeScreen` is unaffected by both and still composes beside either.
+
+  RASK050 is scoped to the declaring **type**, and the first cut got that wrong. Scoped to the compilation
+  it read "one app", which a compilation is not — this repo's own native test assembly holds many app
+  roots, and every markup one lit up. An assembly with more than one app is ordinary; one component that
+  could render either page is the actual mistake.
+
+  **The Local heads had no navigation policy at all**, which this change could not leave alone.
+  `RaskWkWebView` was not a `WKNavigationDelegate`, and `RaskAndroidWebView`'s client overrode only
+  `ShouldInterceptRequest` and let off-origin requests through — while Android's `__raskBridge`
+  `@JavascriptInterface` was already bound to that WebView. Loading a remote page into it would have
+  exposed the bridge to that page *and to anywhere it navigated*. Both heads now carry the policy the
+  Server heads always had: inject for the declared origin, and send an off-origin navigation to the system
+  browser. The grant is to the page you named; this is what stops it travelling.
+
+  Pointing `.Url(…)` at a site you do not control still gives that site your device APIs. That is inherent,
+  not an oversight, and the docs say so where the feature is introduced.
+
+  `samples/Rask.Example.Native.Server` is now written this way — one `ServerShellApp` with a header bar and
+  a `NativeWebView.Url(…)`, run by the ordinary `RaskWkWebView`/`RaskAndroidWebView` head, instead of the
+  separate `RaskServerViewController` / `RaskServerWebView` classes. Same app, same behaviour, and the
+  Server model stops being a parallel code path with no session and no chrome. Verified on an iPhone 17 Pro
+  simulator against a real `Rask.Example.Server`: a native `UINavigationBar` at the top, the remote app
+  rendering fully styled below it.
+
+  **A URL-mode app still loads the boot shell first**, which is worth knowing because it is not obvious.
+  `RunLocalAsync` defers the first render to the client's `ready` handshake, and the client lives in the
+  shell — so with no shell there is no handshake, no first frame, and therefore no address to navigate to.
+  Skipping `LoadShell()` produces a blank white screen and no bars, which is exactly what the first device
+  run showed. The shell is loaded, the first frame carries the `Url`, and the WebView navigates away from
+  it. Giving the host a way to render the first frame without a handshake — as `RunNativeAsync` already
+  does for the pure-native model — would remove the extra document load, and is the obvious follow-up.
+
+  Also fixed on the way: `CLAUDE.md` claimed the diagnostic range was RASK001–048 with only RASK047
+  retired. `docs/diagnostics.md` has said RASK001–053 for a while, and RASK030 and RASK042 are retired too.
+
 ### Changed
 - **`rask new --template native` says what each hosting model actually costs you** (#776, the four-models
   epic). The chooser used to say only where the UI comes from. The epic's rule is that exactly three
