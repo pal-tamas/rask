@@ -8,6 +8,55 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A visitor's culture, owned by their session.** `IRaskCulture` reports the culture to format with,
+  the language to render text in, the app's supported languages, and whether the script runs
+  right-to-left; `SetAsync` switches it, persists the choice and repaints. Components read
+  `Culture` / `UICulture` / `IsRightToLeft`; code that is not a component reads `RaskCulture.Current`.
+  Configure with `AddRask(configureCulture: c => c.SupportedCultures.Add("hu"))`.
+
+  **Off until an app names a language, and byte-identical until then.** With no supported cultures
+  the render walk never resolves a culture service, `<html lang>` stays exactly `"en"`, and no `dir`
+  attribute is emitted at all — so an app that never asked for localization renders the same bytes it
+  did before. `lang` reports the negotiated language rather than the machine's locale precisely so
+  that turning the feature *off* cannot silently change `lang="en"` into `lang="en-US"`.
+
+  **The culture is fetched per render, never propagated.** `LifecycleSyncContext` deliberately calls
+  `ExecutionContext.SuppressFlow()` so a continuation cannot inherit `InHandlerScope` — and since .NET
+  Core, `CultureInfo.CurrentCulture` lives in an `AsyncLocal` riding that same `ExecutionContext`. Any
+  design where the culture had to *flow* to the render thread would lose it exactly there, ambient
+  culture and a hand-rolled `AsyncLocal` alike. So `LiveRenderContext` asks the session for the
+  culture at the top of every walk, which nothing can interrupt. A test renders inside a genuinely
+  suppressed flow, with a negative control proving the suppression is real.
+
+  **Reading the culture opts a component out of the render cache, and the reader cannot forget to.**
+  The marking lives inside the accessor, not at the call site. A language switch additionally dirties
+  the whole tree, which covers components that format through `CultureInfo.CurrentCulture` directly
+  and are therefore invisible to that marking. Rask also pins the ambient culture for the duration of
+  a render and a handler dispatch, because some culture-sensitive code has no seam to route through —
+  `BsDataGrid`'s sort reaches `Comparer<T>.Default` and a linguistic string comparison.
+
+  **Negotiation is `?culture=` → cookie → `Accept-Language` → the app's default**, and **URLs stay
+  culture-neutral**: one link is the same page for everyone, and the router, the generated
+  `Url()`/`Go()` helpers and every route value are untouched. The cookie is ASP.NET's own
+  `.AspNetCore.Culture`, in ASP.NET's own format, so an app sharing a host with MVC — or one that also
+  calls `UseRequestLocalization()` — agrees with it rather than holding a second, conflicting
+  preference.
+
+  **A runtime without ICU degrades instead of throwing.** Under `InvariantGlobalization` — still the
+  WASM default — `PredefinedCulturesOnly` is on and `new CultureInfo("hu-HU")` *throws* rather than
+  falling back. Every lookup goes through `RaskCultureResolver`, which answers `false` instead, so an
+  app that asked for languages this runtime cannot produce still renders; it reports the reason once,
+  naming `RaskGlobalization`, rather than once per render.
+
+### Changed
+- **The Bootstrap date and time pickers follow the visitor's culture instead of the server's.**
+  `BsPickerBase` read `CultureInfo.CurrentCulture` for month names, weekday names and
+  first-day-of-week — but nothing in Rask ever *set* it, so on a server every visitor got the
+  **server process** locale. It now inherits `Component.Culture`, which is the session's; the shadowing
+  member is gone, and the compiler found every call site. With culture support off the behaviour is
+  unchanged.
+
+### Removed
 
 - **Non-overlapping range constraints, declared on the model.** A booking, a lease, a price valid for a
   period — the rule is always "two rows may not cover the same point", and SQLite has no way to say it:

@@ -443,7 +443,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
             {
                 try
                 {
-                    Component.MarkSubtreeDirtyForHotReload(session.View);
+                    Component.MarkSubtreeDirtyInternal(session.View);
                     await session.View.StateHasChangedAsync().ConfigureAwait(false);
                 }
                 catch
