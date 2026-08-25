@@ -691,6 +691,35 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     /// <summary>Whether this session owns its back history — true exactly when there is no WebView.</summary>
     internal bool OwnsBackHistory => _webView is null;
 
+    /// <summary>
+    ///     Whether <see cref="GoBackAsync" /> has somewhere to go — the question a platform head must answer
+    ///     <b>synchronously</b>, because Android's <c>OnBackPressed</c> has to decide right there whether to
+    ///     handle the press or let it close the activity.
+    /// </summary>
+    /// <remarks>
+    ///     False whenever a WebView is present, and that is not a gap. The page's own history is the single
+    ///     source of truth there, and it lives in the page — a session cannot read it without a round trip,
+    ///     which is exactly what a synchronous answer cannot afford. A hybrid head therefore keeps the
+    ///     platform's default Back behaviour, unchanged from before this existed.
+    /// </remarks>
+    internal bool CanGoBack
+    {
+        get
+        {
+            if (!OwnsBackHistory)
+            {
+                return false;
+            }
+
+            lock (_nativeHistory)
+            {
+                // Two entries: the one showing, and the one underneath it to return to. At one, back is a
+                // deliberate no-op so Android's Back closes the app rather than trapping the user at the root.
+                return _nativeHistory.Count >= 2;
+            }
+        }
+    }
+
     /// <summary>This session's back history, current entry last. Empty unless it owns one.</summary>
     internal IReadOnlyList<string> BackHistory
     {
@@ -701,6 +730,37 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 return _nativeHistory.ToArray();
             }
         }
+    }
+
+    /// <summary>
+    ///     Take the history entry a handler's <c>Navigator.NavigateTo</c> left behind, and — with no WebView —
+    ///     record it in this session's own history so Back has somewhere to go.
+    /// </summary>
+    /// <remarks>
+    ///     Every navigation must reach <see cref="RecordNativeHistory" />, and before this the ones that
+    ///     arrived as a <c>navigate</c> MESSAGE did while the ones a handler performed did not. With a
+    ///     WebView that difference is invisible: the consumed url is handed to the payload, the client calls
+    ///     pushState, and the page's history — the only one that exists — is correct either way. With no
+    ///     WebView there is no client to do that, so a button calling NavigateTo moved the route and left no
+    ///     trace, and the hardware Back button closed the app from the second page.
+    ///     <para>
+    ///         One helper for all three consume sites rather than three copies, so a fourth dispatch path
+    ///         cannot quietly reintroduce the gap.
+    ///     </para>
+    /// </remarks>
+    private (string? Url, bool Replace) ConsumeHistory(Navigator navigator)
+    {
+        if (!navigator.TryConsumeHistory(out var url, out var replace))
+        {
+            return (null, false);
+        }
+
+        if (url is not null)
+        {
+            RecordNativeHistory(url, replace);
+        }
+
+        return (url, replace);
     }
 
     private void RecordNativeHistory(string fullUrl, bool replace)
@@ -776,13 +836,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                     return Array.Empty<byte>();
                 }
 
-                string? historyUrl = null;
-                var historyReplace = false;
-                if (navigator.TryConsumeHistory(out var url, out var replace))
-                {
-                    historyUrl = url;
-                    historyReplace = replace;
-                }
+                var (historyUrl, historyReplace) = ConsumeHistory(navigator);
 
                 await _renderLock.WaitAsync().ConfigureAwait(false);
                 try
@@ -854,13 +908,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                     return Array.Empty<byte>();
                 }
 
-                string? historyUrl = null;
-                var historyReplace = false;
-                if (navigator.TryConsumeHistory(out var url, out var replace))
-                {
-                    historyUrl = url;
-                    historyReplace = replace;
-                }
+                var (historyUrl, historyReplace) = ConsumeHistory(navigator);
 
                 await _renderLock.WaitAsync().ConfigureAwait(false);
                 try
@@ -1073,13 +1121,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                         return Array.Empty<byte>();
                     }
 
-                    string? historyUrl = null;
-                    var historyReplace = false;
-                    if (navigator.TryConsumeHistory(out var url, out var replace))
-                    {
-                        historyUrl = url;
-                        historyReplace = replace;
-                    }
+                    var (historyUrl, historyReplace) = ConsumeHistory(navigator);
 
                     // Acquire _renderLock only around the render (not the handler above): an in-handler
                     // InvokeWithRenderingAsync renders inline under _renderLock first, so holding it across
