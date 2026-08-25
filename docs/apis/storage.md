@@ -6,8 +6,7 @@
 - **MDN:** [Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 Values are strings — serialise your own objects. The WebView persists these on Native, so no native backend is needed.
 

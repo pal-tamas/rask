@@ -6,8 +6,7 @@
 - **MDN:** [Notifications API](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅ ★
-- **Native backend:** UNUserNotificationCenter / NotificationManager
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 Transport-agnostic; the JS helper ships on Server only under `AddRaskPwa`. In the native shell it resolves to a
 native backend — a WebView has no `Notification` API. On Android 33+ this needs the `POST_NOTIFICATIONS`

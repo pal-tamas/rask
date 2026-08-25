@@ -80,36 +80,8 @@ jobs:
           path: |
             **/BenchmarkDotNet.Artifacts/**
             benchmarks/Rask.Benchmarks.Sqlite/Results/*.csv
-
-  # Rask.Native ships iOS/Android platform heads, so its prerelease package is built + packed on macOS
-  # with the mobile workloads (-p:RaskNativeHeads=true) and handed to publish-nightly as an artifact.
-  pack-native-nightly:
-    needs: [aot-publish]
-    # Pinned to macos-26 (not the moving macos-latest label) so the Microsoft.iOS workload lands on the
-    # matching Xcode SDK.
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0   # MinVer needs full history + tags to stamp the prerelease version
-
-      - uses: ./.github/actions/setup
-        with:
-          workloads: ios android
-
-      - name: Pack Rask.Native (with iOS/Android heads)
-        run: >-
-          dotnet pack src/Rask.Native/Rask.Native.csproj -c Release
-          -p:RaskNativeHeads=true -p:ValidateXcodeVersion=false -o ./artifacts
-
-      - name: Upload Rask.Native package
-        uses: actions/upload-artifact@v7
-        with:
-          name: native-nupkgs
-          path: ./artifacts/Rask.Native.*.*nupkg
-
   publish-nightly:
-    needs: [aot-publish, pack-native-nightly]
+    needs: [aot-publish]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -124,8 +96,6 @@ jobs:
         run: dotnet restore Rask.slnx
 
       - name: Pack (prerelease)
-        # Rask.Native is packed on macOS (pack-native-nightly) because it ships iOS/Android heads this
-        # Ubuntu runner can't build.
         run: |
           dotnet pack src/Rask.Server/Rask.Server.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release -o ./artifacts
@@ -152,12 +122,6 @@ jobs:
           dotnet pack src/Rask.Dashboard/Rask.Dashboard.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cli/Rask.Cli.csproj -c Release -o ./artifacts
-
-      - name: Download Rask.Native package (macOS-built, with heads)
-        uses: actions/download-artifact@v8
-        with:
-          name: native-nupkgs
-          path: ./artifacts
 
       - name: Push prerelease to nuget.org
         run: >-

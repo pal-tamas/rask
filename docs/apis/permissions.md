@@ -6,8 +6,7 @@
 - **MDN:** [Permissions API](https://developer.mozilla.org/en-US/docs/Web/API/Permissions_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅ ★
-- **Native backend:** OS authorization status (iOS `CLLocationManager`/`UNUserNotificationCenter`/`AVCaptureDevice`) · `Activity.CheckSelfPermission` (Android)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 ## In the browser, support is patchy
 
@@ -19,7 +18,6 @@ fault as "unknown".
 
 ## On Native it answers about whatever you're actually about to use
 
-This is the wrapper's sharpest edge, and why it has a native backend. In the [native shell](../native.md),
 `IGeolocation`, `INotifications` and `IClipboard` resolve to **native backends gated by the OS app
 permission** — the `Info.plist`/manifest grant and the system prompt. The WebView's Permissions API cannot
 see that: it describes the WebView's own grants, a different system from the one those backends use.

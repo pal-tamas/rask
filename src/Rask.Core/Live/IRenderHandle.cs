@@ -36,26 +36,7 @@ public interface IRenderHandle
     {
     }
 
-    // Host-awareness axes surfaced to components during render (via LiveRenderContext → Component.HostShell/…).
-    // Defaulted here so the interface stays non-breaking; concrete sessions override with their own facts.
-    internal RenderShell Shell => RenderShell.Web;
+    // The render engine, surfaced to components during render (via LiveRenderContext → Component.HostEngine).
+    // Defaulted here so the interface stays non-breaking; concrete sessions override with their own fact.
     internal RenderEngine Engine => RenderEngine.Server;
-    internal RenderPlatform Platform => RenderPlatform.None;
-
-    // Native-chrome collection: only the native host (with an INativeChrome backend registered) opts in, so the
-    // serializer hands each user component it walks to the session, which picks out the native bars composed in
-    // the tree (Rask.Core stays free of any Rask.Native type — the component arrives as a plain Component and the
-    // native session classifies it). Reporting mid-walk keeps the bars' factories DI-correct and callback-owner
-    // wired. Last bar of a kind in the pre-order walk wins. No-op everywhere else.
-    internal bool CollectsNativeChrome => false;
-    internal void ReportNativeComponent(Component component) { }
-
-    /// <summary>
-    ///     The closing half of <see cref="ReportNativeComponent" />, raised after the component's subtree has
-    ///     been walked. The pair turns the flat "last bar of a kind wins" report into a balanced pre-order
-    ///     enter/exit stream, which is what lets the native host rebuild a whole native view TREE (a screen of
-    ///     stacks, labels and buttons) from the same single walk that produces the HTML — rather than only the
-    ///     flat header/footer chrome. Non-native hosts never opt in, so this is a no-op everywhere else.
-    /// </summary>
-    internal void ReportNativeComponentExit(Component component) { }
 }

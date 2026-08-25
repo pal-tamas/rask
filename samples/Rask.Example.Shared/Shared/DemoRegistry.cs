@@ -98,9 +98,6 @@ public static partial class DemoRegistry
             ["browser-navigator-info"] = () => CodeSample.Files(["NavigatorInfoDemo.cs"]).Result(NavigatorInfoDemo),
             ["browser-network"] = () => CodeSample.Files(["NetworkInfoDemo.cs"]).Result(NetworkInfoDemo),
             ["browser-battery"] = () => CodeSample.Files(["BatteryDemo.cs"]).Result(BatteryDemo),
-            ["chrome-bars"] = () => CodeSample
-                .Files(["ChromeBarsDemo.cs", "ChromeBarsDemo.css"])
-                .Result(ChromeBarsDemo),
             ["browser-screen"] = () => CodeSample.Files(["ScreenInfoDemo.cs"]).Result(ScreenInfoDemo),
             ["browser-visual-viewport"] = () => CodeSample.Files(["VisualViewportDemo.cs"]).Result(VisualViewportDemo),
             ["browser-media-query"] = () => CodeSample.Files(["MediaQueryDemo.cs"]).Result(MediaQueryDemo),

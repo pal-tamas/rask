@@ -3281,38 +3281,6 @@ p .fst-italic .mb-0 .text-secondary
 h3 .h6 .mt-4 .small .text-secondary .text-uppercase
 p .mb-0 .small .text-secondary
 
-=== chrome-bars ===
-div .border-0 .card .mb-4 .sample-card .shadow-sm
-div .sample-code-col
-div .sample-code-header
-span .dot-r .sample-dot
-span .dot-y .sample-dot
-span .dot-g .sample-dot
-span .ms-2 .sample-tabs
-button .active .sample-tab
-button .sample-tab
-button .sample-copy
-i .bi .bi-clipboard .me-1
-span .sample-copy-text
-pre .m-0 .sample-code
-code .language-csharp
-div .p-4 .sample-result-col
-div .sample-result-label
-div .sample-result-body
-div .chrome-demo
-div .rask-header-bar
-div .rask-header-title
-div .rask-header-trailing
-button .rask-bar-button
-div .chrome-demo-body
-p .mb-0 .small
-span .fw-semibold
-div .rask-tab-bar
-a .rask-tab .rask-tab-active
-a .rask-tab
-div .rask-tab-badge
-a .rask-tab
-
 === component-tiers ===
 div .border-0 .card .mb-4 .sample-card .shadow-sm
 div .sample-code-col

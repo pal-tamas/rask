@@ -56,8 +56,8 @@ rask deploy --host root@box --domain shop.example.com      # ship it: bare box �
 Every step is a first-party command, and every stateful pillar it touches — auth, jobs, mail, cache,
 events — rides the app's own SQLite database. Run `rask` with no arguments for a wizard.
 
-> **Prerequisites:** the .NET 10 SDK (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload for the WASM
-> templates, or `ios android` for the native template.
+> **Prerequisites:** the .NET 10 SDK (`dotnet --version` ≥ `10.0`) and the `wasm-tools` workload for the
+> WASM templates.
 
 ## Packages
 
@@ -70,7 +70,6 @@ trim/AOT-safe.
 | `Rask.Server` | [![Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=%20)](https://www.nuget.org/packages/Rask.Server) | ASP.NET host — state changes stream to the browser as minimal diffs over a WebSocket |
 | `Rask.Wasm` | [![Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm) | Browser-WebAssembly host — the same components client-side, installable as an offline PWA |
 | `Rask.Wasm.Hosting` | [![Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm.Hosting) | Serves a published WASM bundle from an ASP.NET host |
-| `Rask.Native` | [![Rask.Native](https://img.shields.io/nuget/v/Rask.Native.svg?label=%20)](https://www.nuget.org/packages/Rask.Native) | *(preview)* the same component code as a real iOS / Android app |
 | `Rask.Cli` | [![Rask.Cli](https://img.shields.io/nuget/v/Rask.Cli.svg?label=%20)](https://www.nuget.org/packages/Rask.Cli) | `new` · `dev` · `db` · `deploy` · `info` · `doctor` — the whole lifecycle, one tool |
 | `Rask.Bootstrap` | [![Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=%20)](https://www.nuget.org/packages/Rask.Bootstrap) | Typed Bootstrap 5.3 components, zero-JS interactivity, typed utility classes |
 | `Rask.Testing` | [![Rask.Testing](https://img.shields.io/nuget/v/Rask.Testing.svg?label=%20)](https://www.nuget.org/packages/Rask.Testing) | Render a component in a unit test and assert on its HTML |
@@ -97,7 +96,7 @@ trim/AOT-safe.
 | `Rask.WebPush` | [![Rask.WebPush](https://img.shields.io/nuget/v/Rask.WebPush.svg?label=%20)](https://www.nuget.org/packages/Rask.WebPush) | Server-side Web Push (VAPID + RFC 8291), zero external dependencies |
 | `Rask.Signaling` | [![Rask.Signaling](https://img.shields.io/nuget/v/Rask.Signaling.svg?label=%20)](https://www.nuget.org/packages/Rask.Signaling) | The WebRTC signaling `IWebRtc` needs |
 
-`Rask.Server`, `Rask.Wasm` and `Rask.Native` pull in `Rask.Core`, `Rask.Html` and the source generators
+`Rask.Server` and `Rask.Wasm` pull in `Rask.Core`, `Rask.Html` and the source generators
 transitively.
 
 <details>
@@ -108,7 +107,6 @@ transitively.
 | `Rask.Server`                      | `net10.0` ASP.NET                                                   | `services.AddRask()` + `app.UseRask<TApp>()`                |
 | `Rask.Wasm`                        | `net10.0-browser`                                                   | `WasmHostBuilder.CreateDefault()` + `host.RunAsync<TApp>()` |
 | `Rask.Wasm.Hosting`                | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
-| `Rask.Native` *(preview)*          | `net10.0-ios;net10.0-android` app head                             | `NativeAppHost.CreateDefault()` + `host.RunLocalAsync<TApp>(webView)` |
 | `Rask.Validation.DataAnnotations`  | any host that hosts your forms                                      | drop `DataAnnotationsValidator` inside a `Form`             |
 | `Rask.Validation.FluentValidation` | any host that hosts your forms                                      | drop `FluentValidationValidator.Validator(myValidator)` inside |
 | `Rask.Bootstrap`                   | any host with your components                                       | link `BootstrapStyles` in `Head`, then chain the `Bs*` components |
@@ -143,7 +141,7 @@ transitively.
 | **[Composition](docs/composition.md)** · **[Lifecycle](docs/lifecycle.md)** · **[Routing](docs/routing.md)** · **[Forms](docs/forms.md)** | Context, callbacks, children; mount/update/dispose; URLs and the form pipeline |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup |
 | **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[Email](docs/mail.md)** · **[Cache](docs/cache.md)** · **[Outbox](docs/outbox.md)** · **[Logging](docs/logging.md)** · **[SQLite](docs/sqlite.md)** | The DB-backed pillars |
-| **[Bootstrap](docs/bootstrap.md)** · **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** | Typed Bootstrap 5.3, 53 typed Web-API wrappers, installable PWAs, native iOS/Android |
+| **[Bootstrap](docs/bootstrap.md)** · **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** | Typed Bootstrap 5.3, 53 typed Web-API wrappers, installable PWAs |
 | **[Best practices](docs/best-practices.md)** · **[Testing](docs/testing.md)** · **[Accessibility](docs/accessibility.md)** · **[AOT](docs/aot.md)** | Patterns and pitfalls; unit + E2E; a11y; opt-in full WASM AOT |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | Day-to-day differences side by side; every RASK build error and its fix |
 

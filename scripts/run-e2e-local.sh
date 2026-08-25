@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 # Local E2E gate.
 #
-# The browser-journey E2E (tests/Rask.Examples.E2E.Tests, Playwright) and the on-device native E2E
-# (tests/Rask.Native.Appium.Tests, Appium) no longer run in CI — they run here, locally, and the
+# The browser-journey E2E (tests/Rask.Examples.E2E.Tests, Playwright) no longer runs in CI — it runs
+# here, locally, and the
 # pre-push hook (.githooks/pre-push) enforces this browser gate before code leaves the machine.
 #
 # This mirrors the build-once → publish-samples → run-shards flow the old .github/workflows/e2e.yml
-# used. The on-device native Appium suite needs a booted emulator/simulator + an Appium server, so it
-# can't run unattended here; run it manually per docs/native.md.
 #
 # Usage:  scripts/run-e2e-local.sh
 # Skip:   RASK_SKIP_E2E=1 (also honoured by the pre-push hook)
@@ -152,5 +150,3 @@ dotnet test tests/Rask.Examples.E2E.Tests/bin/Release/net10.0/Rask.Examples.E2E.
 
 echo
 echo "==> Browser E2E passed."
-echo "    Reminder: the on-device native E2E (Rask.Native.Appium.Tests) is NOT part of this gate — it needs"
-echo "    a booted emulator/simulator + Appium. Run it before shipping native changes (see docs/native.md)."

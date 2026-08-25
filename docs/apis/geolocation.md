@@ -6,8 +6,7 @@
 - **MDN:** [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes to a callback)
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** CLLocationManager / LocationManager
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 Needs a secure context and the location permission. The native backend gives the real OS prompt and sensor accuracy; add `NSLocationWhenInUseUsageDescription` / `ACCESS_FINE_LOCATION`.
 

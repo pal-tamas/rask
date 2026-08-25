@@ -361,4 +361,3 @@ The `native` template targets `net10.0-ios;net10.0-android` and produces a nativ
 (your C# runs natively on the device; the UI renders in a platform WebView). It is built and
 distributed as an app-store package, not a server image, so it has no Dockerfile. If you want a
 **native shell over a remote Rask Server**, scaffold `rask new MyApp --template native --host server` and deploy
-that server with the `--template server` container above. See [Native mobile](native.md).

@@ -33,7 +33,7 @@ public sealed class PackagingContractTests
     private static readonly string _repoRoot = CliBuildE2E.FindRepoRoot();
 
     /// <summary>The packages that ship the generators, and so must also ship what feeds them.</summary>
-    public static TheoryData<string> HostPackages() => new() { "Rask.Server", "Rask.Wasm", "Rask.Native" };
+    public static TheoryData<string> HostPackages() => new() { "Rask.Server", "Rask.Wasm" };
 
     [Theory]
     [MemberData(nameof(HostPackages))]

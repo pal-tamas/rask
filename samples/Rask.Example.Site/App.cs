@@ -25,7 +25,7 @@ public partial class App : Component
         Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
         Meta
             .Name("description")
-            .Content("Rask is the .NET One Person Framework: one developer builds, runs, and ships a whole product — UI, data, auth, background work, and deploy — from one C# codebase on one SQLite-backed server. The same components run on Server, WebAssembly, and native iOS/Android."),
+            .Content("Rask is the .NET One Person Framework: one developer builds, runs, and ships a whole product — UI, data, auth, background work, and deploy — from one C# codebase on one SQLite-backed server. The same components run on Server and WebAssembly."),
         Meta.Name("theme-color").Content("#7c3aed"),
         Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),
         Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/global.css")
@@ -82,7 +82,7 @@ public partial class App : Component
                         P.Class("eyebrow")["The .NET One Person Framework"],
                         H1["Ship a whole product.", Br, "Just you, and ", Span.Class("lit")["C#"], "."],
                         P.Class("lede")["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
-                        P.Class("sub")["The same components run server-rendered over a WebSocket, fully client-side on WebAssembly, or as a native iOS/Android app — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
+                        P.Class("sub")["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
                         Div.Class("cta-row")[
                             // Named for what they are. The Pages site is three apps — this landing page at
                             // the root, the live showcase at docs/, the playground at playground/ — and
@@ -93,7 +93,7 @@ public partial class App : Component
                         Div.Class("badges")[
                             Span.Class("badge")[B[".NET 10"]],
                             Span.Class("badge")["MIT"],
-                            Span.Class("badge")[B["Server"], " · WASM · Native"],
+                            Span.Class("badge")[B["Server"], " · WASM"],
                             Span.Class("badge")[B["SQLite"], " · production DB"]
                         ]
                     ],
@@ -216,8 +216,8 @@ public partial class App : Component
                         "ASP.NET host. State lives on the server; a live diff streams to the browser over a WebSocket. Nothing to compile client-side."),
                     Host("Rask.Wasm", "WebAssembly", "WasmHostBuilder.CreateDefault()",
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
-                    Host("Rask.Native · preview", "Native iOS / Android", "NativeAppHost.CreateDefault()",
-                        "A WebView-hybrid app head for App Store / Play Store — your C# runs natively on the device. Scaffold with ", Code["rask new MyApp --template native"], ".")
+                    Host("Rask.Wasm.Hosting", "Static host", "AddRaskWasmHosting()",
+                        "Serves a published WASM bundle from an ASP.NET host, with the right content types and pre-compressed variants.")
                 ]
             ]
         ];

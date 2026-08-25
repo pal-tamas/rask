@@ -182,13 +182,6 @@ public static class GuideCatalog
             "bi-globe", "Mobile & devices"),
         new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.",
             "bi-phone", "Mobile & devices"),
-        new("native", "Native (iOS/Android)",
-            "WebView-hybrid native host — INativeWebView bridge, safe-area insets, native bars.",
-            "bi-phone-fill", "Mobile & devices"),
-        new("native-bridge", "Native — modes & bridge", "Local vs Server, INativeWebView, platform heads, asset serving.",
-            "bi-phone-fill", "Mobile & devices"),
-        new("native-devices", "Native — device capabilities", "Safe-area insets, device backends, native header/footer.",
-            "bi-phone-fill", "Mobile & devices"),
         new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPushSender, delivery results.",
             "bi-send", "Mobile & devices"),
 

@@ -6,8 +6,7 @@
 - **MDN:** [WebRTC API](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 WebRTC opens a direct connection between two browsers, so data travels peer-to-peer instead of through your
 server. The live `RTCPeerConnection` stays in the browser under the framework's `__raskRtc` helper; C# holds

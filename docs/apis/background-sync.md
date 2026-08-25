@@ -7,8 +7,7 @@
   [PeriodicSyncManager](https://developer.mozilla.org/en-US/docs/Web/API/Web_Periodic_Background_Synchronization_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot (register / list / unregister) + subscription (`OnSyncAsync` pushes to a callback)
-- **Availability:** Web/Server ⬜ · PWA/WASM ✅ · Native ⬜
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ⬜ · PWA/WASM ✅
 
 Both registrations live on the **service-worker registration**, and a Server app renders over a live
 WebSocket with no client-side runtime to wake into — so this is WASM-only, and it needs a registered

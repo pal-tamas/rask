@@ -6,8 +6,7 @@
 - **MDN:** [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes to a callback)
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 Transport-agnostic — works on Server too; the JS helper ships on Server only under `AddRaskPwa`.
 

@@ -29,7 +29,6 @@ public class HotReloadClientContractTests
 
     private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.js");
     private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.js");
-    private static string NativeJs => Read("src", "Rask.Native", "Resources", "rask.native.js");
 
     /// <summary>The single implementation every transport splices in.</summary>
     private static string SharedJs => Read("src", "Rask.Core", "Resources", "rask-hotreload.js");
@@ -37,7 +36,6 @@ public class HotReloadClientContractTests
     // The two built artifacts that are committed (the Server's is assembled into obj/ and embedded, so
     // there is no checked-in copy to inspect).
     private static string BuiltWasmJs => Read("src", "Rask.Wasm", "Browser", "rask.wasm.js");
-    private static string BuiltNativeJs => Read("src", "Rask.Native", "Assets", "rask.native.js");
 
     [Fact]
     public void The_server_client_handles_the_hotReload_frame_and_returns()
@@ -118,7 +116,6 @@ public class HotReloadClientContractTests
     [Fact]
     public void The_committed_built_artifacts_carry_the_spliced_indicator()
     {
-        // src/Rask.Wasm/Browser/rask.wasm.js and src/Rask.Native/Assets/rask.native.js are generated
         // by the build and COMMITTED. Editing the shared module without rebuilding leaves them stale,
         // which no other test would catch — the marker would still be sitting there unsubstituted.
         foreach (var (name, built) in BuiltArtifacts())
@@ -136,14 +133,12 @@ public class HotReloadClientContractTests
     public void Each_transport_triggers_the_indicator_its_own_way()
     {
         // Shared implementation, transport-specific trigger. Only Server has a socket a frame can
-        // arrive on; WASM is called from .NET through a JS export; Native comes over the WebView
-        // bridge, so its template needs no trigger of its own at all.
+        // arrive on; WASM is called from .NET through a JS export.
         Assert.Contains("data.type === \"hotReload\"", ServerJs, StringComparison.Ordinal);
         Assert.Contains("window.__raskHotReloadPill()", ServerJs, StringComparison.Ordinal);
 
         Assert.Contains("export function hotReloadApplied", WasmJs, StringComparison.Ordinal);
         Assert.DoesNotContain("data.type === \"hotReload\"", WasmJs, StringComparison.Ordinal);
-        Assert.DoesNotContain("data.type === \"hotReload\"", NativeJs, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -171,13 +166,11 @@ public class HotReloadClientContractTests
     {
         yield return ("rask.js", ServerJs);
         yield return ("rask.wasm.js", WasmJs);
-        yield return ("rask.native.js", NativeJs);
     }
 
     private static IEnumerable<(string Name, string Js)> BuiltArtifacts()
     {
         yield return ("src/Rask.Wasm/Browser/rask.wasm.js", BuiltWasmJs);
-        yield return ("src/Rask.Native/Assets/rask.native.js", BuiltNativeJs);
     }
 
     private static int Occurrences(string haystack, string needle)

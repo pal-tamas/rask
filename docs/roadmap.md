@@ -25,7 +25,6 @@ service to operate.
 | **The door out of one box** | ❌ | Not shipped — Rask wires SQLite only. Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — cookie & JWT sessions, claims, authorization, and hardening guidance. |
 | **Auth — user store** | ❌ | Not shipped. `rask new --auth` scaffolds a **demo** `ICredentialStore` with hardcoded logins, clearly marked as such; you supply the real one. See [below](#not-shipped). |
-| **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
 | **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
 | **Deploy to one box** | ✅ | [`rask deploy`](cli.md) — bare-VPS setup (Docker, deploy login, firewall, SSH hardening), build over SSH, zero-downtime, auto-HTTPS (Caddy), multi-app on one host, GitHub Actions. |
 | **Dead letters & queue health** | ✅ | [`dashboard.md`](dashboard.md) — `Rask.Dashboard` mounts `/_rask` over the outbox, jobs, mail and cache: queue depth, **what has given up**, the error behind it, and one click to retry. Plus the log (a live tail, and searchable history with [`Rask.Logging`](logging.md)) and the live SQLite pragmas. Fail-closed behind an authorization policy. |

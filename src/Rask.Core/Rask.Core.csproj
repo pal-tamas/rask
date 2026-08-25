@@ -37,8 +37,6 @@
          seams the tag components always used while they lived here. -->
     <!-- Screen + the portable chrome bars. They implement Core's IScreenChrome seam explicitly, which is
          how Core walks a screen's chrome slots while naming no chrome type of its own. -->
-    <InternalsVisibleTo Include="Rask.Chrome"/>
-    <InternalsVisibleTo Include="Rask.Chrome.Tests"/>
     <InternalsVisibleTo Include="Rask.Html"/>
     <InternalsVisibleTo Include="Rask.Html.Tests"/>
     <!-- Rask.Bootstrap composes Core's components by FORWARDING its own carrier props into their
@@ -55,8 +53,6 @@
     <InternalsVisibleTo Include="Rask.Server.HotReload.Tests"/>
     <InternalsVisibleTo Include="Rask.Wasm"/>
     <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
-    <InternalsVisibleTo Include="Rask.Native"/>
-    <InternalsVisibleTo Include="Rask.Native.Tests"/>
     <!-- For Navigator.EnterHandler: the remote-dispatch file bridge extends Navigator, so its tests need
          the same handler scope Rask.Core.Tests uses to exercise Download. -->
     <InternalsVisibleTo Include="Rask.Cqrs.Client.Tests"/>

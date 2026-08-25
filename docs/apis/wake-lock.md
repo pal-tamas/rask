@@ -6,8 +6,7 @@
 - **MDN:** [Screen Wake Lock API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes to a callback)
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** IdleTimerDisabled / FLAG_KEEP_SCREEN_ON
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 The native backend keeps the screen on without the Wake Lock API the WebView restricts.
 

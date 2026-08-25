@@ -354,7 +354,6 @@ Two things it does not cover:
 - **A native app on a device has no watch channel.** `dotnet watch` cannot drive a simulator or a device,
   and applying new IL to one needs a device-side delta agent that .NET doesn't ship — so `rask dev`
   refuses a native project and points at `dotnet build "-t:Build;Run"` instead. Restart a
-  [Native + Local](native-bridge.md#two-modes-local-and-server) head to see a change. **Native + Server is
   the exception**: that head loads a remote Rask Server, so it is a browser as far as hot reload is
   concerned — point it at your dev machine and `rask dev` on the *server* project repaints the device
   exactly as it does a browser tab.

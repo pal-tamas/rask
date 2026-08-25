@@ -140,6 +140,5 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Getting started", html);
         Assert.Contains("href=\"/guides/routing\"", html);
         // The Native guide (docs/native.md) is surfaced under the Mobile & devices group.
-        Assert.Contains("href=\"/guides/native\"", html);
     }
 }

@@ -53,7 +53,6 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 The last four are **PWA** APIs but transport-agnostic (`IJSRuntime`-backed, no transient activation), so they
 register on Server too — their JS helpers just ship on the Server client only under `AddRaskPwa` (see
 [pwa.md](pwa.md)). On Native, several Shared APIs resolve to a **native C# backend** instead of the WebView —
-see the [capability matrix](browser-capabilities.md) and the [Native guide](native-devices.md#native-device-backends).
 
 ## Sharing — declarative (all hosts) vs imperative (in-process)
 
@@ -75,7 +74,6 @@ Firefox); an unsupported browser no-ops.
 after an `await`). That needs the in-process transport to keep the activation, so it's registered only by
 the **WASM and Native** hosts (`Rask.Native` can't reference the browser-only `Rask.Wasm`, so it lives in
 `Rask.Client`). On Native a platform head can register a native `UIActivityViewController` /
-`Intent.ACTION_SEND` backend that needs no activation — see the [Native guide](native-devices.md#native-device-backends).
 
 | API | Home | Hosts | Use |
 | --- | --- | --- | --- |
