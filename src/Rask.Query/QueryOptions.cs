@@ -70,6 +70,17 @@ public sealed record QueryOptions
     /// </remarks>
     public TimeSpan? RefetchInterval { get; init; }
 
+    /// <summary>
+    ///     Keeps the previous result on screen while a re-keyed query loads the next one.
+    /// </summary>
+    /// <remarks>
+    ///     The biggest perceived-speed change available here. Without it, paging replaces a table
+    ///     with a spinner and back again on every click; with it the rows stay put, marked by
+    ///     <see cref="Query{TResult}.IsPlaceholderData" /> so a component can grey them, and are
+    ///     replaced in place when the new page lands.
+    /// </remarks>
+    public bool KeepPreviousData { get; init; }
+
     /// <summary>The default backoff: one second doubling, capped at thirty.</summary>
     public static TimeSpan DefaultRetryDelay(int attempt) =>
         TimeSpan.FromMilliseconds(Math.Min(1000d * Math.Pow(2, attempt), 30_000d));

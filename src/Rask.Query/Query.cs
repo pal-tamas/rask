@@ -23,6 +23,7 @@ public sealed class Query<TResult> : IDisposable
     private readonly Action _onChanged;
     private readonly ComponentReaders _readers = new();
     private readonly CancellationTokenSource? _polling;
+    private QueryEntry? _placeholder;
     private QueryEntry _entry;
     private QueryKey _key;
     private bool _disposed;
@@ -84,13 +85,37 @@ public sealed class Query<TResult> : IDisposable
 
     internal Func<CancellationToken, Task<object?>> Fetch { get; private set; }
 
-    /// <summary>The result, or <c>default</c> until one has arrived.</summary>
+    /// <summary>
+    ///     The result, or <c>default</c> until one has arrived — or the previous page's result while
+    ///     a re-keyed query loads, when <see cref="QueryOptions.KeepPreviousData" /> is on.
+    /// </summary>
     public TResult? Data
     {
         get
         {
             Touch();
-            return _entry.HasData ? (TResult?)_entry.Data : default;
+            if (_entry.HasData)
+            {
+                return (TResult?)_entry.Data;
+            }
+
+            return Placeholder() is { } previous ? (TResult?)previous.Data : default;
+        }
+    }
+
+    /// <summary>
+    ///     What is on screen belongs to the previous key, and the current one is still loading.
+    /// </summary>
+    /// <remarks>
+    ///     The cue to grey the rows rather than replace them. Without something saying so, keeping
+    ///     the previous page shows stale data with no indication that it is stale.
+    /// </remarks>
+    public bool IsPlaceholderData
+    {
+        get
+        {
+            Touch();
+            return !_entry.HasData && Placeholder() is not null;
         }
     }
 
@@ -105,12 +130,17 @@ public sealed class Query<TResult> : IDisposable
     }
 
     /// <summary>What this query holds: nothing yet, a failure, or a result.</summary>
+    /// <remarks>
+    ///     A query showing placeholder data reports <see cref="QueryStatus.Success" />: there is
+    ///     something on screen, and reporting Pending would put a spinner over it, which is the whole
+    ///     thing <see cref="QueryOptions.KeepPreviousData" /> exists to avoid.
+    /// </remarks>
     public QueryStatus Status
     {
         get
         {
             Touch();
-            return StatusOf(_entry);
+            return !_entry.HasData && Placeholder() is not null ? QueryStatus.Success : StatusOf(_entry);
         }
     }
 
@@ -193,10 +223,15 @@ public sealed class Query<TResult> : IDisposable
             return;
         }
 
+        var previous = _entry;
         _client.Detach(_key, _onChanged);
         _key = key;
         Fetch = _client.DispatchFetch(message);
         _entry = _client.Attach(key, _onChanged, Options.GcTime);
+
+        // Captured only when the new key has nothing yet: navigating to a page already in cache
+        // should show that page, not the one before it.
+        _placeholder = Options.KeepPreviousData && !_entry.HasData && previous.HasData ? previous : null;
         _ = _client.EnsureFreshAsync(key, this, CancellationToken.None);
         _readers.RenderAll();
     }
@@ -223,6 +258,10 @@ public sealed class Query<TResult> : IDisposable
         _client.Detach(_key, _onChanged);
         _readers.Clear();
     }
+
+    /// <summary>The previous key's entry, while it is still worth showing.</summary>
+    private QueryEntry? Placeholder() =>
+        Options.KeepPreviousData && _placeholder is { HasData: true } previous ? previous : null;
 
     private static QueryStatus StatusOf(QueryEntry entry) => entry switch
     {
@@ -263,6 +302,12 @@ public sealed class Query<TResult> : IDisposable
     /// </remarks>
     private void OnEntryChanged()
     {
+        if (_entry.HasData)
+        {
+            // The real page landed; stop standing in for it.
+            _placeholder = null;
+        }
+
         if (!_disposed && _entry.NeedsRefetch)
         {
             _ = _client.EnsureFreshAsync(_key, this, CancellationToken.None);

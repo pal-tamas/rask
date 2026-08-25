@@ -32,6 +32,18 @@ them until tagged releases begin.
 
 
 ### Added
+- **`Rask.Query` keeps the previous page on screen while the next loads.**
+  `QueryOptions.KeepPreviousData` holds the current result across a re-key, and
+  `Query<T>.IsPlaceholderData` says so, so a component can grey the rows instead of pretending they
+  are current. A query showing placeholder data reports `Success` rather than `Pending` — putting a
+  spinner over data the user already has is precisely what the option exists to avoid. The
+  placeholder is only used when the new key has nothing behind it, so navigating to a cached page
+  shows that page rather than stepping backwards.
+
+- **`IQueryClient.PrefetchAsync`** warms an entry ahead of the component that will want it. It
+  never throws: a prefetch is a guess about where the user is going, and a wrong guess must not
+  surface as a failure at the navigation that made it.
+
 - **`Rask.Query` retries a failed fetch, and can poll.** `QueryOptions` gains `Retry`
   (TanStack's default of three), `RetryDelay` (exponential, one second doubling to a thirty-second
   cap), `ShouldRetry`, and `RefetchInterval`.

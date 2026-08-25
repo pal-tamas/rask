@@ -62,6 +62,23 @@ public interface IQueryClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    ///     Fills the cache ahead of time, so the component that wants this next paints immediately.
+    /// </summary>
+    /// <remarks>
+    ///     Never throws. A prefetch is a guess about where the user is going, and a wrong guess must
+    ///     not surface as a failure at the navigation that made it — the query that really needs the
+    ///     data will fetch again and report the failure then.
+    /// </remarks>
+    /// <typeparam name="TResult">What the query returns.</typeparam>
+    /// <param name="message">The query to warm.</param>
+    /// <param name="options">Freshness and retry; TanStack's defaults when omitted.</param>
+    /// <param name="cancellationToken">Cancels the fetch.</param>
+    Task PrefetchAsync<TResult>(
+        IQuery<TResult> message,
+        QueryOptions? options = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     ///     Dispatches a command and then invalidates whatever it declares with
     ///     <see cref="InvalidatesAttribute" />, so the affected queries refetch wherever they are on screen.
     /// </summary>

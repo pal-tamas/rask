@@ -69,6 +69,25 @@ internal sealed class QueryClient : IQueryClient
         return (TResult)entry.Data!;
     }
 
+    public async Task PrefetchAsync<TResult>(
+        IQuery<TResult> message,
+        QueryOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        try
+        {
+            await FetchAsync(message, options, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // A prefetch is a guess about where the user is going. Throwing at the navigation that
+            // triggered it would turn a speculative miss into a visible failure; the query that
+            // really needs the data will fetch it again and report the failure then.
+        }
+    }
+
     public async Task MutateAsync(ICommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
