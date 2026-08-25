@@ -44,19 +44,23 @@ internal sealed class QueryClient : IQueryClient
 
     public async Task<TResult> FetchAsync<TResult>(
         IQuery<TResult> message,
+        QueryOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(message);
 
+        var settings = options ?? QueryOptions.Default;
         var key = new QueryKey(message.GetType(), message, null);
         var entry = GetOrAdd(key);
+        entry.RequireGcTime(settings.GcTime);
 
-        if (entry.HasData && !entry.IsStale(QueryOptions.Default.StaleTime, _time.GetUtcNow()))
+        if (entry.HasData && !entry.IsStale(settings.StaleTime, _time.GetUtcNow()))
         {
             return (TResult)entry.Data!;
         }
 
-        await RunAsync(entry, DispatchFetch(message), cancellationToken).ConfigureAwait(false);
+        await RunAsync(entry, DispatchFetch(message), settings, cancellationToken)
+            .ConfigureAwait(false);
         if (entry.Error is { } error)
         {
             throw error;
@@ -198,7 +202,7 @@ internal sealed class QueryClient : IQueryClient
             }
         }
 
-        return RunAsync(entry, query.Fetch, cancellationToken);
+        return RunAsync(entry, query.Fetch, query.Options, cancellationToken);
     }
 
     [SuppressMessage(
@@ -209,6 +213,7 @@ internal sealed class QueryClient : IQueryClient
     private Task RunAsync(
         QueryEntry entry,
         Func<CancellationToken, Task<object?>> fetch,
+        QueryOptions options,
         CancellationToken cancellationToken)
     {
         TaskCompletionSource completion;
@@ -242,23 +247,49 @@ internal sealed class QueryClient : IQueryClient
         _ = Execute();
         return completion.Task;
 
+        // A BOUNDED loop inside one attempt, deliberately, rather than letting a failure notify and
+        // be re-entered as a fresh fetch. That shape is what produced an unbounded hot retry against
+        // an already-unwell server the first time round; the entry's owed-fetch flag exists to stop
+        // it, and retrying through the notification path would defeat it again.
         async Task Execute()
         {
-            try
+            var worthRetrying = options.ShouldRetry ?? QueryOptions.IsWorthRetrying;
+            var backoff = options.RetryDelay ?? QueryOptions.DefaultRetryDelay;
+
+            for (var attempt = 0; ; attempt++)
             {
-                var data = await fetch(cancellation.Token).ConfigureAwait(false);
-                entry.Succeeded(data, _time.GetUtcNow());
-            }
-            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
-            {
-                // Cancelled because nothing is rendering this any more, or because the caller asked.
-                // Neither is a failure to show: recording it would leave an error on an entry whose
-                // next observer would then render it, having done nothing wrong.
-                entry.Abandoned();
-            }
-            catch (Exception ex)
-            {
-                entry.Failed(ex);
+                try
+                {
+                    var data = await fetch(cancellation.Token).ConfigureAwait(false);
+                    entry.Succeeded(data, _time.GetUtcNow());
+                    break;
+                }
+                catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+                {
+                    // Cancelled because nothing is rendering this any more, or because the caller
+                    // asked. Neither is a failure to show: recording it would leave an error on an
+                    // entry whose next observer would then render it, having done nothing wrong.
+                    entry.Abandoned();
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    if (attempt >= options.Retry || !worthRetrying(ex))
+                    {
+                        entry.Failed(ex);
+                        break;
+                    }
+
+                    try
+                    {
+                        await Task.Delay(backoff(attempt), cancellation.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        entry.Abandoned();
+                        break;
+                    }
+                }
             }
 
             completion.TrySetResult();

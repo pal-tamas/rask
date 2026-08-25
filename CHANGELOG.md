@@ -32,6 +32,24 @@ them until tagged releases begin.
 
 
 ### Added
+- **`Rask.Query` retries a failed fetch, and can poll.** `QueryOptions` gains `Retry`
+  (TanStack's default of three), `RetryDelay` (exponential, one second doubling to a thirty-second
+  cap), `ShouldRetry`, and `RefetchInterval`.
+
+  **A 4xx is never retried.** `QueryOptions.IsWorthRetrying` refuses a `RemoteDispatchException`
+  carrying a 4xx and any cancellation: a 403 is not a network blip, and retrying one turns a single
+  refused request into four while delaying the answer by several seconds.
+
+  **Retry applies to queries only**, which is safe by construction — a Rask query is defined as
+  safe and idempotent, and the transport enforces it by refusing to send a command as a GET.
+  Mutations get none, for the reason TanStack gives them none: running a command twice is not free.
+
+  **A polling query stops.** On dispose, and also once every component that read it has gone —
+  disposing from `OnUnmount` is the mechanism, the second check is a safety net so a forgotten
+  query cannot keep a session fetching for ever.
+
+  `FetchAsync` now takes `QueryOptions` too; it previously had no way to be configured at all.
+
 - **`Rask.Query` mutations you can render, with optimistic updates.** `MutateAsync` is
   await-and-forget, so there was no way to disable a button and show "Saving…" from it — the
   most-felt gap against TanStack Query. `IQueryClient.Mutation<TCommand>()` returns a

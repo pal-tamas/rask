@@ -30,8 +30,63 @@ public sealed record QueryOptions
     public TimeSpan GcTime { get; init; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
-    ///     Whether the query may run at all. False holds it at <see cref="Query{TResult}.IsLoading" />
-    ///     without fetching — for a query that depends on something the user has not chosen yet.
+    ///     Whether the query may run at all. False holds it at <see cref="QueryStatus.Pending" /> with
+    ///     <see cref="FetchStatus.Paused" /> and does not fetch — for a query that depends on
+    ///     something the user has not chosen yet.
     /// </summary>
     public bool Enabled { get; init; } = true;
+
+    /// <summary>
+    ///     How many further attempts a failed fetch gets. TanStack's default of three.
+    /// </summary>
+    /// <remarks>
+    ///     Safe to default on because it applies to <b>queries only</b>, and a Rask query is defined
+    ///     as safe and idempotent — the transport enforces that by refusing to send a command as a
+    ///     GET. Mutations get no retry at all, for the same reason TanStack gives them none: running
+    ///     a command twice is not a free action.
+    /// </remarks>
+    public int Retry { get; init; } = 3;
+
+    /// <summary>
+    ///     How long to wait before attempt <c>n</c> (zero-based). Defaults to TanStack's exponential
+    ///     backoff: one second doubling, capped at thirty.
+    /// </summary>
+    public Func<int, TimeSpan>? RetryDelay { get; init; }
+
+    /// <summary>
+    ///     Whether a given failure is worth retrying at all. Defaults to
+    ///     <see cref="QueryOptions.IsWorthRetrying" />.
+    /// </summary>
+    public Func<Exception, bool>? ShouldRetry { get; init; }
+
+    /// <summary>
+    ///     Refetches on this interval while something is rendering the query. Null — the default —
+    ///     never polls.
+    /// </summary>
+    /// <remarks>
+    ///     A polling query keeps a session doing work, so it stops when the query is disposed, and
+    ///     also once every component that was reading it has gone. Dispose the query from
+    ///     <c>OnUnmount</c>: the second check is a safety net, not the mechanism.
+    /// </remarks>
+    public TimeSpan? RefetchInterval { get; init; }
+
+    /// <summary>The default backoff: one second doubling, capped at thirty.</summary>
+    public static TimeSpan DefaultRetryDelay(int attempt) =>
+        TimeSpan.FromMilliseconds(Math.Min(1000d * Math.Pow(2, attempt), 30_000d));
+
+    /// <summary>
+    ///     The default retry rule: everything except a refusal and a cancellation.
+    /// </summary>
+    /// <remarks>
+    ///     A 4xx will never succeed on a retry — a 403 is not a network blip — so retrying one turns
+    ///     a single refused request into four and delays telling the user anything by several
+    ///     seconds. A cancellation is not a failure at all: it means nothing is rendering the query
+    ///     any more.
+    /// </remarks>
+    public static bool IsWorthRetrying(Exception error) => error switch
+    {
+        OperationCanceledException => false,
+        Rask.Cqrs.RemoteDispatchException { StatusCode: >= 400 and < 500 } => false,
+        _ => true,
+    };
 }

@@ -15,6 +15,26 @@ internal sealed class ComponentReaders
 {
     private readonly List<WeakReference<Component>> _readers = [];
 
+    /// <summary>Whether any component has ever read this during a render.</summary>
+    public bool EverObserved { get; private set; }
+
+    /// <summary>Whether at least one registered component is still alive.</summary>
+    public bool HasLiveReaders
+    {
+        get
+        {
+            foreach (var reader in _readers)
+            {
+                if (reader.TryGetTarget(out _))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
     /// <summary>
     ///     Registers the component currently rendering, if one is.
     /// </summary>
@@ -29,6 +49,8 @@ internal sealed class ComponentReaders
         {
             return;
         }
+
+        EverObserved = true;
 
         foreach (var existing in _readers)
         {

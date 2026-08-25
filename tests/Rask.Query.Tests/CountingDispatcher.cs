@@ -36,6 +36,9 @@ internal sealed class CountingDispatcher : IDispatcher
 
     public Exception? Throw { get; set; }
 
+    /// <summary>Fails this many times and then succeeds, so a retry can be seen to recover.</summary>
+    public int FailTimes { get; set; }
+
     /// <summary>Makes the next command fail, so the rollback path can be asserted rather than assumed.</summary>
     public Exception? ThrowOnCommand { get; set; }
 
@@ -59,6 +62,12 @@ internal sealed class CountingDispatcher : IDispatcher
             // it would let a cancelled fetch run to completion anyway and the assertion would pass
             // for the wrong reason.
             await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (FailTimes > 0)
+        {
+            FailTimes--;
+            throw Throw ?? new InvalidOperationException("transient");
         }
 
         if (Throw is { } error)

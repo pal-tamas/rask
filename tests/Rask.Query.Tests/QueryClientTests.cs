@@ -129,7 +129,10 @@ public class QueryClientTests
     public async Task A_failed_refetch_keeps_the_data_that_is_already_on_screen()
     {
         var (client, dispatcher, _) = NewClient();
-        using var query = client.Query(new GetOrders(1));
+
+        // Retry off: this is about how a failure is reported, and leaving the default three attempts
+        // on would make the test spend seven seconds in backoff proving nothing.
+        using var query = client.Query(new GetOrders(1), new QueryOptions { Retry = 0 });
         await SettleAsync(query);
 
         // Blanking a working page because the network blinked is worse than showing data that is a
@@ -326,7 +329,7 @@ public class QueryClientTests
         dispatcher.Throw = new InvalidOperationException("handler said no");
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => client.FetchAsync(new GetOrders(1)));
+            () => client.FetchAsync(new GetOrders(1), new QueryOptions { Retry = 0 }));
 
         Assert.Equal("handler said no", error.Message);
     }

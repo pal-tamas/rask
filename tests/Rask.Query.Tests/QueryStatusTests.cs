@@ -80,7 +80,7 @@ public class QueryStatusTests
     public async Task A_failed_refresh_reports_error_while_still_holding_the_data()
     {
         var (client, dispatcher, _) = NewClient();
-        using var query = client.Query(new GetOrders(1));
+        using var query = client.Query(new GetOrders(1), new QueryOptions { Retry = 0 });
         await Settle(query);
 
         dispatcher.Throw = new InvalidOperationException("boom");

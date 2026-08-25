@@ -22,6 +22,7 @@ public sealed class Query<TResult> : IDisposable
     private readonly QueryClient _client;
     private readonly Action _onChanged;
     private readonly ComponentReaders _readers = new();
+    private readonly CancellationTokenSource? _polling;
     private QueryEntry _entry;
     private QueryKey _key;
     private bool _disposed;
@@ -39,6 +40,44 @@ public sealed class Query<TResult> : IDisposable
         // fetch it. Fire-and-forget because a constructor cannot await; the result arrives through
         // the entry and re-renders whoever read it.
         _ = client.EnsureFreshAsync(key, this, CancellationToken.None);
+
+        if (options.RefetchInterval is { } interval && interval > TimeSpan.Zero)
+        {
+            _polling = new CancellationTokenSource();
+            _ = PollAsync(interval, _polling.Token);
+        }
+    }
+
+    /// <summary>
+    ///     Refetches on an interval for as long as this query is alive and something is watching it.
+    /// </summary>
+    /// <remarks>
+    ///     A <c>Task.Delay</c> loop rather than a timer, which is what the rest of the repo does.
+    ///     It stops on dispose, and also once every component that ever read this has been collected
+    ///     — a query left undisposed must not keep a session fetching for ever. Disposing from
+    ///     <c>OnUnmount</c> is still the mechanism; that second check is a safety net.
+    /// </remarks>
+    private async Task PollAsync(TimeSpan interval, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (_disposed || (_readers.EverObserved && !_readers.HasLiveReaders))
+            {
+                return;
+            }
+
+            _entry.Invalidate();
+            await _client.EnsureFreshAsync(_key, this, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     internal QueryOptions Options { get; }
@@ -179,6 +218,8 @@ public sealed class Query<TResult> : IDisposable
         }
 
         _disposed = true;
+        _polling?.Cancel();
+        _polling?.Dispose();
         _client.Detach(_key, _onChanged);
         _readers.Clear();
     }

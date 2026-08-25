@@ -54,8 +54,12 @@ public interface IQueryClient
     /// </summary>
     /// <typeparam name="TResult">What the query returns.</typeparam>
     /// <param name="message">The query to run.</param>
+    /// <param name="options">Freshness and retry; TanStack's defaults when omitted.</param>
     /// <param name="cancellationToken">Cancels the fetch.</param>
-    Task<TResult> FetchAsync<TResult>(IQuery<TResult> message, CancellationToken cancellationToken = default);
+    Task<TResult> FetchAsync<TResult>(
+        IQuery<TResult> message,
+        QueryOptions? options = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Dispatches a command and then invalidates whatever it declares with
