@@ -85,15 +85,6 @@ public sealed class DevTargetTests
     }
 
     [Fact]
-    public void A_native_project_is_detected_from_its_target_frameworks()
-    {
-        var fs = new FakeFileSystem();
-        fs.Seed("/app/App.csproj", """<Project><TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks></Project>""");
-
-        Assert.Equal(DevTemplateKind.Native, DevTarget.Detect(fs, "/app", null)!.Kind);
-    }
-
-    [Fact]
     public void Detection_walks_up_from_a_subdirectory()
     {
         var fs = new FakeFileSystem();

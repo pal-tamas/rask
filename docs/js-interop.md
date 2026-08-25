@@ -35,7 +35,7 @@ on the component's elements and rewrites every selector to `selector[data-{scope
 `<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>`.
 
 Auto-globbing arrives with the host package's build integration, so it needs a **direct**
-`PackageReference` to `Rask.Server`, `Rask.Wasm` or `Rask.Native` — NuGet applies a package's
+`PackageReference` to `Rask.Server` or `Rask.Wasm` — NuGet applies a package's
 `build/` folder only to the project that references it. A component class library that picks a host
 package up transitively needs its own reference (the same reach the implicit global usings have).
 `bin/`, `obj/`, `node_modules/` and `wwwroot/` are excluded from the glob.

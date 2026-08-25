@@ -20,8 +20,8 @@
     per-file using wherever the component lives.
 
     Like Rask.Core and Rask.Client this is IsPackable=false: the DLL is bundled into the Rask.Server /
-    Rask.Wasm / Rask.Native package lib/ folders rather than published on its own. All three hosts render
-    HTML, so all three carry it.
+    Rask.Wasm package lib/ folders rather than published on its own. Both hosts render HTML, so both
+    carry it.
   -->
   <PropertyGroup>
     <!-- Mirrors Rask.Core: net10.0-browser exists purely so the trim/AOT analysers run over this source
@@ -71,7 +71,7 @@
       Nothing needs re-declaring at a package boundary either: this project is IsPackable=false and every host
       references it with PrivateAssets="all", so its deps never reach a nuspec. The host packages surface
       Rask.Core's runtime deps (Microsoft.JSInterop, Primitives, ObjectPool, Authorization) themselves — see
-      the ItemGroup comments in Rask.Wasm and Rask.Native.
+      the ItemGroup comments in Rask.Server and Rask.Wasm.
     -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
   </ItemGroup>

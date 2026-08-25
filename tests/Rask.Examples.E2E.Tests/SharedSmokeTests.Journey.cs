@@ -513,7 +513,7 @@ public abstract partial class SharedSmokeTests
             .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
         // Native fallback (Native: true) renders a real OS <select> (data-fed from the same Options), so
-        // it degrades cleanly where the custom popover is unwanted (e.g. the native mobile host).
+        // it degrades cleanly where the custom popover is unwanted.
         var tier = Page.Locator("select#bs-tier");
         await Expect(tier).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(tier.Locator("option")).ToHaveCountAsync(3,
@@ -1631,9 +1631,9 @@ public abstract partial class SharedSmokeTests
             .ToContainTextAsync("getBoundingClientRect", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(codeCard.Locator(".sample-code code span[class]").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // The copy click round-trips (handler → InvokeVoidAsync → scoped JS flashes "Copied!"); over
-        // the native WebView bridge a single message can be dropped, and the copy action is idempotent,
-        // so retry the click a couple of times before failing. The flash restores after 1.5s.
+        // The copy click round-trips (handler → InvokeVoidAsync → scoped JS flashes "Copied!"); a single
+        // message can be dropped, and the copy action is idempotent, so retry the click a couple of times
+        // before failing. The flash restores after 1.5s.
         var copyButton = codeCard.Locator(".sample-copy");
         for (var attempt = 1; ; attempt++)
         {

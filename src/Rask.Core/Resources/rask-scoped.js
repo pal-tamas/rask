@@ -1,7 +1,7 @@
 // rask-scoped.js — scoped-CSS FOUC (flash-of-unstyled-content) gating, shared by all three clients.
 //
 // Spliced (at "// @@RASK_SCOPED@@") into the Server runtime (rask.js), the WASM runtime
-// (rask.wasm.js) and the native runtime (rask.native.js). A newly mounted component ships its
+// (rask.wasm.js). A newly mounted component ships its
 // scoped stylesheet as a keyed <link href="/_rask/a/{hash}.css" data-rask-key="rsk-…">; without
 // this gate the swapped body paints before that just-inserted sheet parses + applies, flashing
 // unstyled. Both entry points return a Promise the host chains its render commit on (or null when
@@ -13,7 +13,7 @@
 // NOTE: the scoped-JS `Rask.*` invoke gate (trackHeadAsset / ensureRaskNamespacePoll /
 // beginInvokeJS deferral) is deliberately NOT here — it has genuinely diverged between the Server
 // (skips rsk- assets, 5s timeout) and WASM (tracks rsk- scripts, 30s backstop) hosts, so it stays
-// inline per host until a dedicated reconciliation pass. See docs/native.md roadmap.
+// inline per host until a dedicated reconciliation pass.
 
 // Hard cap on how long a render defers the body swap waiting for a newly mounted page's scoped
 // stylesheet to apply. A warm, content-addressed /_rask/a/{hash}.css load resolves in a few ms;

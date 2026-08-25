@@ -7,7 +7,7 @@ namespace Rask.Cli.Commands;
 
 /// <summary>
 /// <c>rask new</c> — scaffold a Rask project. The CLI is the scaffolding authority: every template
-/// (<c>server</c>, <c>wasm</c>, <c>wasm-hosted</c>, <c>native</c>) is generated directly — files written +
+/// (<c>server</c>, <c>wasm</c>, <c>wasm-hosted</c>) is generated directly — files written +
 /// package refs baked at the CLI's own version + <c>dotnet restore</c> — with no <c>dotnet new</c> /
 /// Rask.Templates dependency.
 /// </summary>
@@ -323,9 +323,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// result of a decision rather than as a wall of paths.
     /// </summary>
     /// <remarks>
-    /// Only rows that were actually decided are shown. A summary listing every axis would tell a native
-    /// app it had chosen Rask.Bootstrap and declined Docker — two questions that template never asks and
-    /// does not support — which is worse than saying nothing, because it reads as confirmation.
+    /// Only rows that were actually decided are shown. A summary listing every axis would tell a WASM
+    /// SPA it had chosen a database battery — a question that template never asks and does not support —
+    /// which is worse than saying nothing, because it reads as confirmation.
     /// </remarks>
     private void WriteWizardSummary(IReadOnlyList<string> args, TemplateInfo template)
     {

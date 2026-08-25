@@ -103,10 +103,8 @@ transient activation has expired. The practical effect:
   call stack**, so the activation is still live — it therefore works on **every** host, Server included. The
   imperative **`IShare`** (`Rask.Client.Browser`) lets you
   share from *code* (a lifecycle hook, after an `await`), which needs the in-process transport to keep the
-  activation — so it's registered only by the **WASM and Native** hosts (on Server `navigator.share` would
-  reject with "Must be handling a user gesture"). `Rask.Native` can't reference the browser-targeted
-  `Rask.Wasm`, so the WASM+Native-shared `IShare` lives in `Rask.Client`; on Native a platform head can
-  register a native backend (`UIActivityViewController` / `Intent.ACTION_SEND`) that needs no activation —
+  activation — so it's registered only by the **WASM** host (on Server `navigator.share` would reject with
+  "Must be handling a user gesture").
 - **`IBadge`** (app icon badge), **`IWakeLock`** (keep the screen awake), **`IScreenOrientation`**
   (read/lock orientation), **`IFullscreen`** (present an element/page fullscreen — like `IShare`,
   `requestFullscreen` needs transient activation), and **`IInstallPrompt`** (capture/replay the deferred

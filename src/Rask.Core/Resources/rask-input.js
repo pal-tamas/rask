@@ -1,7 +1,7 @@
 // rask-input.js — rAF-coalesced input & scroll dispatch, shared by all three client runtimes.
 //
 // Spliced (at "// @@RASK_INPUT@@") into the Server runtime (rask.js), the WASM runtime
-// (rask.wasm.js) and the native runtime (rask.native.js) so the three clients can never drift.
+// (rask.wasm.js) so the two clients can never drift.
 // It relies only on three symbols every host defines in the surrounding scope: `send(payload)`,
 // `inRoot(el)` and the global `document` (plus the standard requestAnimationFrame/
 // cancelAnimationFrame). This module MUST be spliced BEFORE rask-events.js, whose keyboard handler

@@ -3,8 +3,8 @@ using Rask.Core;
 
 namespace Rask.Wasm.Tests;
 
-// The WASM end of the cross-host parity gate — see the sibling tests in Rask.Server.Tests and
-// Rask.Native.Tests. Built from WasmHostBuilder itself rather than the session harness: the harness wires
+// The WASM end of the cross-host parity gate — see the sibling test in Rask.Server.Tests. Built from
+// WasmHostBuilder itself rather than the session harness: the harness wires
 // only what the session tests need, so asserting against it would prove nothing about what a real app gets.
 public sealed class HostContractParityTests
 {

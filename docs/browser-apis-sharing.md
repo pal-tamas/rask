@@ -21,10 +21,10 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IPageVisibility` | `document.visibilityState` | Foreground/background state | one-shot |
 | `INavigatorInfo` | `window.navigator` | `OnLineAsync` / `LanguageAsync` / `UserAgentAsync` | one-shot |
 | `INetworkInfo` | `navigator.connection` | Effective type / downlink / RTT / Data Saver — adapt loading | one-shot |
-| `IBattery` | Battery Status API | Charge level + charging state (native OS backend on the shell) | one-shot + **subscription** |
+| `IBattery` | Battery Status API | Charge level + charging state | one-shot + **subscription** |
 | `IMediaQuery` | `window.matchMedia` | Evaluate a query; `PrefersDarkAsync` / `PrefersReducedMotionAsync` | one-shot |
 | `ISpeechSynthesis` | `window.speechSynthesis` | Speak text aloud; cancel | one-shot |
-| `ISpeechRecognition` | `webkitSpeechRecognition` | Dictation — spoken audio → text (native OS backend on the shell) | **subscription** |
+| `ISpeechRecognition` | `webkitSpeechRecognition` | Dictation — spoken audio → text | **subscription** |
 | `IMediaSession` | `navigator.mediaSession` | Now-playing metadata + hardware media-key handlers (native-feel player) | one-shot + subscription |
 | `IDeviceOrientation` | `deviceorientation` | Gyroscope/compass tilt angles (tilt UI, AR, compass) | **subscription** |
 | `IDeviceMotion` | `devicemotion` | Accelerometer / rotation rate (shake, step counter, motion games) | **subscription** |
@@ -52,7 +52,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 
 The last four are **PWA** APIs but transport-agnostic (`IJSRuntime`-backed, no transient activation), so they
 register on Server too — their JS helpers just ship on the Server client only under `AddRaskPwa` (see
-[pwa.md](pwa.md)). On Native, several Shared APIs resolve to a **native C# backend** instead of the WebView —
+[pwa.md](pwa.md)).
 
 ## Sharing — declarative (all hosts) vs imperative (in-process)
 
@@ -66,19 +66,17 @@ Shareable(new ShareData { Title = "Rask", Url = "https://…" },
 
 The shared client fires `navigator.share` **inside the click gesture** — no round-trip, so the transient
 user activation survives even on the Server transport. Because it's headless, the trigger can be any element
-with a `Data` prop (a link, an icon button, a `BsButton`), not just a `<button>`. In the native shell it
-upgrades to a native backend. Web Share is available on mobile Safari / Android Chrome / Edge (not desktop
-Firefox); an unsupported browser no-ops.
+with a `Data` prop (a link, an icon button, a `BsButton`), not just a `<button>`. Web Share is available on
+mobile Safari / Android Chrome / Edge (not desktop Firefox); an unsupported browser no-ops.
 
 **`IShare`** (`Rask.Client.Browser`) is the **imperative** path — share from *code* (a lifecycle hook,
 after an `await`). That needs the in-process transport to keep the activation, so it's registered only by
-the **WASM and Native** hosts (`Rask.Native` can't reference the browser-only `Rask.Wasm`, so it lives in
-`Rask.Client`). On Native a platform head can register a native `UIActivityViewController` /
+the **WASM** host.
 
 | API | Home | Hosts | Use |
 | --- | --- | --- | --- |
 | `Shareable` | `Rask.Core` | **all** (Server too) | Headless declarative share — attaches `data-rask-share` to your element; fires `navigator.share` in the gesture |
-| `IShare` | `Rask.Client.Browser` | WASM + Native | Imperative share from code; native backend on Native |
+| `IShare` | `Rask.Client.Browser` | WASM | Imperative share from code |
 
 ### Gesture bridge — activation-gated APIs on the Server host
 
@@ -109,8 +107,8 @@ All six ship: `FullscreenTrigger`, `ScreenOrientationTrigger`, `EyeDropperTrigge
 
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
-Registered only by the WASM host. Each needs something neither the Server transport nor a native WebView
-provides — the installed-PWA instance / live document, or a browser-only device API.
+Registered only by the WASM host. Each needs something the Server transport cannot provide — the
+installed-PWA instance / live document, or a browser-only device API.
 
 | Service | Wraps | What it does | Why WASM-only |
 | --- | --- | --- | --- |

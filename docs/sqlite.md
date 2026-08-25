@@ -24,7 +24,7 @@ product** — app, data, and background work — with nothing to rent or wire to
 [Limitations & when to outgrow SQLite](#limitations--when-to-outgrow-sqlite) for the honest edges.
 
 > Two packages: **`Rask.SQLite`** is the pragma engine — it depends only on `Microsoft.Data.Sqlite`, is
-> reflection-free, and so works server-side, on mobile, and under trimming/AOT.
+> reflection-free, and so works under trimming/AOT.
 > **`Rask.SQLite.EntityFrameworkCore`** adds the one-line `UseRaskSqlite(...)` for EF Core (and pulls in
 > `Microsoft.EntityFrameworkCore.Sqlite`). Neither needs the rest of Rask.
 
@@ -594,44 +594,11 @@ All three packages run in a container — with the same care the platform sectio
 - **Single writer.** Don't scale the service to multiple replicas writing the same database
   (`docker compose --scale`, K8s `replicas > 1`) — run one instance.
 
-## SQLite on mobile (Rask.Native)
-
-directly — and `Rask.SQLite`'s pragmas (WAL, `foreign_keys`, `busy_timeout`) all apply on the device's
-real sandbox filesystem. Two things make the **base `Rask.SQLite` package** the right choice here:
-
-- **Reflection-free → AOT-safe.** iOS device builds are fully ahead-of-time compiled, and EF Core's
-  `Expression.Compile` crashes there unless you force the Mono interpreter. The raw `AddRaskSqlite`
-  path uses only `Microsoft.Data.Sqlite` — no `Expression.Compile`, no reflection — so it just works.
-- **Lean.** No Entity Framework Core in the app bundle. (If you do want EF Core on device, add
-  `Rask.SQLite.EntityFrameworkCore` and set `<MtouchInterpreter>-all</MtouchInterpreter>` for iOS.)
-
-Register it in the platform head, pointing the database at the app sandbox, **before** `RunLocalAsync`:
-
-```csharp
-// Platforms/iOS/AppDelegate.cs or Platforms/Android/MainActivity.cs
-var dbPath = Path.Combine(
-    System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
-    "app.db");
-host.Services.AddRaskSqlite($"Data Source={dbPath}");
-host.Services.AddSingleton<IMyStore, SqliteMyStore>();   // your data service over IRaskSqliteConnectionFactory
-
-_app = await host.RunLocalAsync<MyApp>(webView);
-```
-
-The runnable reference is `samples/Rask.Example.Native`, whose **Todos** tab is backed by a
-`SqliteTodoStore` on device: the same shared page uses a transient in-memory store on Server/WASM and
-the SQLite store on mobile, so adding a todo, killing the app, and relaunching shows it persisted.
-
-> Backup on mobile: use a snapshot (SQLite's Online Backup API) into the sandbox or shared storage —
-> **not** Litestream, which spawns a child process (impossible on iOS). WAL still works on-device;
-> `Environment.SpecialFolder.LocalApplicationData` maps to the app sandbox (iOS `Library/`, Android
-> `filesDir`), which is local storage, so the locking WAL needs is fine.
-
 ## SQLite in the browser? (WASM)
 
 SQLite runs in the browser — `Microsoft.Data.Sqlite` and EF Core on top of it, in the tab, with no server
-involved. What does **not** belong there is `Rask.SQLite` itself: that package is a **server- and
-mobile-side** one, and deliberately so. Its whole value is the production pragma set — WAL,
+involved. What does **not** belong there is `Rask.SQLite` itself: that package is a **server-side**
+one, and deliberately so. Its whole value is the production pragma set — WAL,
 `busy_timeout`, `synchronous` — which tames **concurrent** access to a file database. A browser app has
 one connection and no concurrency to tame, so those pragmas buy it nothing.
 
@@ -654,8 +621,8 @@ already wraps:
   needs a Worker — see [Where OPFS fits](#where-opfs-fits)). Reach for it if
   the client-side database is the point of the app rather than a local cache of one.
 
-For a **server** app, none of this changes the advice: keep SQLite behind the server (or on device with
-`Rask.Native`) and let the client talk to it through an API. The browser database is for apps that must
+For a **server** app, none of this changes the advice: keep SQLite behind the server and let the client
+talk to it through an API. The browser database is for apps that must
 work offline or own their data locally — not a way to avoid having a server.
 
 > **It does run, though: the [playground's tutorial](playground.md#the-guided-tutorial) does exactly

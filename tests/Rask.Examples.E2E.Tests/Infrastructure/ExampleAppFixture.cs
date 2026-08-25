@@ -229,7 +229,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         // CI publishes each publish-based host once in the `e2e-build` job (default output folder), ships
         // it in the shared build artifact, and every shard boots that prebuilt DLL — so the shards don't
         // each repeat a from-scratch restore+compile+publish. Prefer it when present; multiple fixtures
-        // (e.g. Server + NativeServerSmoke) share the one folder and just launch it on their own ports.
+        // can share the one folder and just launch it on their own ports.
         var prebuiltDir = Path.Combine(projectPath, "bin", Configuration, "net10.0", "publish");
         if (File.Exists(Path.Combine(prebuiltDir, $"{appName}.dll")))
         {

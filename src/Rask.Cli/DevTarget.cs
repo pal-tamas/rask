@@ -16,9 +16,6 @@ internal enum DevTemplateKind
     /// <summary>A standalone WebAssembly app: no ASP.NET host, and no launch profile scaffolded.</summary>
     WasmStandalone,
 
-    /// <summary>A native (iOS/Android) app. <c>dotnet watch</c> cannot drive a device or simulator.</summary>
-    Native,
-
     /// <summary>Something else. Treated like <see cref="Server" />, minus the banner URL.</summary>
     Unknown
 }
@@ -142,15 +139,7 @@ internal sealed record DevTarget(
             return DevTemplateKind.Unknown;
         }
 
-        // Order matters: a native project is also a Web SDK project in some shapes, and the wasm-hosted
-        // client uses the WebAssembly SDK just like a standalone one.
-        if (text.Contains("net10.0-android", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("net10.0-ios", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Rask.Native", StringComparison.Ordinal))
-        {
-            return DevTemplateKind.Native;
-        }
-
+        // Order matters: the wasm-hosted client uses the WebAssembly SDK just like a standalone one.
         if (text.Contains("Microsoft.NET.Sdk.WebAssembly", StringComparison.Ordinal))
         {
             return DevTemplateKind.WasmStandalone;

@@ -40,7 +40,7 @@ public sealed class ResourcesSpliceTests
         // helpers (rask-pwa.js — shared with the Server client), the WASM-only helpers (rask-wasm-api.js),
         // then the shared rAF input/scroll coalescing (rask-input.js) and scoped-CSS FOUC gating
         // (rask-scoped.js), and finally the shared dev-only hot-reload indicator (rask-hotreload.js) —
-        // the last three shared with rask.js + rask.native.js.
+        // the last three shared with rask.js.
         var spliced = template
             .Replace("// @@RASK_DOM@@", dom)
             .Replace("// @@RASK_MORPH@@", morph)
