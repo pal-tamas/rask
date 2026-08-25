@@ -61,6 +61,27 @@ internal sealed partial class LiveSession
         }
     }
 
+    /// <summary>
+    ///     Re-send the current chrome now that a transport exists.
+    /// </summary>
+    /// <returns>Whether a descriptor was queued, so the caller knows whether a frame needs to carry it.</returns>
+    /// <remarks>
+    ///     The document is rendered on the HTTP GET, and a queued JS invoke can only ride a WebSocket frame
+    ///     — so the bars described during that render are queued into a channel that does not exist yet. The
+    ///     socket handshake is the first moment they can actually be delivered.
+    /// </remarks>
+    internal bool PushChromeOnSocketAttached()
+    {
+        if (ShellCore != RenderShell.Native)
+        {
+            return false;
+        }
+
+        _chrome.Invalidate();
+        PushChrome();
+        return true;
+    }
+
     /// <summary>Run the callback behind a native bar item the user tapped.</summary>
     internal bool TryRunChromeTap(string? id) => _chrome.TryRunTap(id);
 }

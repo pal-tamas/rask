@@ -1012,6 +1012,16 @@ public static partial class RaskEndpointExtensions
                     // component for no visible change — that's what made Server's initial-
                     // mount hook count diverge from WASM's. FlushPendingRenderAsync is a
                     // no-op when nothing's pending.
+                    // The bars this app composed were described during the GET render, into a queue that
+                    // only a WebSocket frame can carry — and the socket did not exist yet. This is the first
+                    // moment they can reach the shell, so re-queue them and send a frame that carries them.
+                    // Without this the app boots with no bars at all until the user happens to do something
+                    // that changes them.
+                    if (session.PushChromeOnSocketAttached())
+                    {
+                        await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
+                    }
+
                     await session.FlushPendingRenderAsync().ConfigureAwait(false);
                     continue;
                 }

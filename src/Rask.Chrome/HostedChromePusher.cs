@@ -87,6 +87,15 @@ internal sealed class HostedChromePusher
         return true;
     }
 
+    /// <summary>Forget what the shell is showing, so the next push sends even if nothing changed.</summary>
+    /// <remarks>
+    ///     For the moment a shell starts listening. The descriptor built during the initial render has
+    ///     nowhere to go yet — the transport does not exist — and without this the unchanged-check would
+    ///     then suppress the very first delivery, leaving the app with no bars until the user happened to
+    ///     do something that changed them.
+    /// </remarks>
+    public void Invalidate() => _lastPushed = null;
+
     /// <summary>Run the callback behind a bar item the user pressed.</summary>
     /// <returns>
     ///     Whether the id matched. An id from a bar since replaced simply does nothing — the press raced

@@ -61,6 +61,32 @@ generated head injects `BridgeScript` only for your origin and opens off-origin 
 leaves your origin and no other page can reach native; the bridge is a fixed component envelope, not open
 native RPC. (For a local `http://10.0.2.2:<port>` dev server, allow cleartext in `AndroidManifest.xml`.)
 
+### Native bars from a hosted app (the chrome descriptor)
+
+A `Screen`'s `AppBar` and `TabStrip` render as HTML in a browser. Inside a native shell they render as a
+**real** `UINavigationBar` / `UITabBar` and Android top bar / `BottomNavigationView` — and this now works
+when the app is *hosted*, running on a server or as a WASM bundle rather than in the head's own process.
+The same component, unchanged, in all four models.
+
+It works in three steps, none of which your app has to write:
+
+1. **The head says it is a shell.** It sets `X-Rask-Shell: native` on the page load it initiates (a WASM
+   app cannot read a request header — it boots after the document — so the injected bridge states it on the
+   window instead, and the app reads it at startup).
+2. **The app describes its bars instead of drawing them.** The session emits no bar markup at all — there
+   is no flash of HTML bars before the native ones appear — and sends a JSON descriptor over the bridge, at
+   the handshake and then only when the bars actually change.
+3. **A press comes back.** The head reports the tap, the page forwards it, and the app runs the button's
+   own `OnClick` — the callback lives in your C#, wherever that is running.
+
+Only the **portable** bars cross this boundary. `NativeHeaderBar` and `NativeToolbar` live in `Rask.Native`,
+which a server app does not reference and cannot name; `AppBar` and `TabStrip` are the whole vocabulary
+here, which is exactly why they exist.
+
+There is one thing to know: **the app that owns the window owns the bars.** If a URL-mode
+`NativeWebView` shows a remote app, let the remote app declare the chrome — a local `Screen` declaring its
+own bars around it means two writers for one bar, and the last render wins.
+
 ### Every native backend, in every model
 
 The bridge is not a share channel with room for more — all fifteen backends are reachable through it, in

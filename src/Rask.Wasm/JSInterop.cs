@@ -278,6 +278,9 @@ internal static partial class JSInterop
 
     public static BeginInvokeJsCall? LastBeginInvokeJsCall { get; private set; }
 
+    /// <summary>Clears the recorded call so a test asserts on its OWN dispatch, not a previous test's.</summary>
+    internal static void ResetLastBeginInvokeJsCall() => LastBeginInvokeJsCall = null;
+
     public static void BeginInvokeJSImport(string taskId, string identifier, string? argsJson, int resultType,
         string targetInstanceId) =>
         LastBeginInvokeJsCall = new BeginInvokeJsCall(taskId, identifier, argsJson, resultType, targetInstanceId);

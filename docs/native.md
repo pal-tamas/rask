@@ -34,6 +34,7 @@ one route served as HTML, the next fully native.
 
 Also in this doc: [How it fits](#how-it-fits), [Pure-native screens](#pure-native-screens-no-webview),
 [A WebView pointed at your own app](#a-webview-pointed-at-your-own-app),
+[Bars declared by the app you pointed at](#bars-declared-by-the-app-you-pointed-at),
 [The hardware Back button](#the-hardware-back-button),
 [Get started](#get-started), [Files, downloads and sign-out](#files-downloads-and-sign-out),
 [Honest framing](#honest-framing), [Roadmap](#roadmap).
@@ -169,6 +170,29 @@ unaffected by both and composes beside either.
 > `usesCleartextTraffic` on Android, so a `Url` of `http://localhost:5000` loads **nothing, silently**. Use
 > `https://`, or add the narrow exception the remote templates use while developing (see
 > [the CLI docs](cli.md)).
+
+### Bars declared by the app you pointed at
+
+Everything above declares the bars in the *head's* `Render()`. A hosted app can declare them itself
+instead — the `Screen` in your **server** or **WASM** app, with the `AppBar` and `TabStrip` it already
+renders in a browser, drawn as real platform bars when it runs inside the shell:
+
+```csharp
+// In the hosted app. Nothing here names a native type, and nothing changes for the browser build.
+protected override Component? Render() =>
+    Screen
+        .HeaderBar(AppBar.Title("Inbox").Trailing([BarButton.Icon(BarIcon.Add).OnClick(Compose)]))
+        .TabBar(TabStrip.Tabs([...]))[Content()];
+```
+
+Point a head at it with `NativeWebView.Url(...)` and the bars are lifted out of the page onto the platform:
+no bar markup is sent at all, the shell draws a genuine `UINavigationBar` / `BottomNavigationView`, and
+pressing `Add` runs `Compose` on the server. The mechanics — how the head announces itself, when the
+descriptor is sent, how a press travels back — are in
+[the chrome descriptor](native-bridge.md#native-bars-from-a-hosted-app-the-chrome-descriptor).
+
+One rule: **the app that owns the window owns the bars.** Declare them in the head, or in the hosted app,
+not both — two writers for one bar means the last render wins.
 
 ### The hardware Back button
 

@@ -8,6 +8,29 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A hosted app's bars now render as real platform chrome** (#779, the four-models epic). A `Screen`'s
+  `AppBar` and `TabStrip` became a genuine `UINavigationBar` / `UITabBar` and Android top bar /
+  `BottomNavigationView` only when the app ran *in the head's own process*. A server or WASM app inside the
+  same shell drew HTML bars inside the WebView — the same components, the same `Screen`, and a visibly
+  worse app for no reason the user could see. They cross the bridge now, so one `Screen` is native chrome in
+  all four models.
+
+  **No flash of HTML bars.** A server renders its document on the HTTP GET, before any script runs, so a
+  handshake over the WebSocket would arrive after the bars had already shipped and painted. The head sets
+  `X-Rask-Shell: native` on the load it initiates and the server emits no bar markup at all. A WASM app has
+  no request to read — it boots inside a document that was already fetched — so the injected bridge states
+  it on the window and the app reads it at startup.
+
+  **A press still runs your `OnClick`.** The callback lives in the app's C#, wherever that is running, so
+  the tap travels back over the same channel and dispatches like any other event — under the session lock,
+  behind the route's authorization check, with `Navigator.NavigateTo` and its history entry working as they
+  do from a button in the page.
+
+  The descriptor is sent at the handshake and then only when the bars actually change: a platform bar
+  reapplied on every keystroke visibly flickers, and on iOS it cuts off the navigation title's own
+  animation. Only the portable bars cross — `NativeHeaderBar` and `NativeToolbar` live in `Rask.Native`,
+  which a server app cannot reference, and that is precisely why `AppBar` and `TabStrip` exist.
+
 - **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
   advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen
   native backends the platform modules register were unreachable from a remote shell — a page running as a
