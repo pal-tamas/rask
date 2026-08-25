@@ -83,6 +83,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
 | RASK047 | — | *retired* — routes are `[Route]` attribute arguments, constant by construction |
 | [RASK048](#rask048) | Error | HTML nested inside a native screen |
+| [RASK049](#rask049) | Error | NativeWebView sets a Url and takes children |
+| [RASK050](#rask050) | Error | One component uses both of NativeWebView's modes |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 
 ---
@@ -1049,6 +1051,67 @@ protected override Component? Render() => NativeWebView[Div["Hello"]];
 or put the markup inside a `NativeWebView` instead. An app is free to compose both — one route rendering a
 `NativeWebView` and the next a `NativeScreen` is the supported mixed-surface setup; see
 [native](native.md).
+
+---
+
+## RASK049
+**NativeWebView sets a Url and takes children** · Error
+
+`NativeWebView` shows **one** document. Either it hosts markup — its children are the page — or it takes a
+`Url` and shows a Rask server or hosted WASM app you deploy. Setting both means the children are built and
+then thrown away: accepted where you wrote them, gone by the time the frame is pushed. That is the failure
+the chain's mode system exists to prevent elsewhere, and this is the same rule for the same reason.
+
+```csharp
+// ✗ RASK049 — the children can never render; the page at the Url is what shows
+protected override Component? Render() =>
+    NativeWebView.Url("https://app.example.com/")[Div["Hello"]];
+
+// ✓ markup mode — the children ARE the page
+protected override Component? Render() => NativeWebView[Router];
+
+// ✓ URL mode — the hosted app renders the page, and the native bars still frame it
+protected override Component? Render() =>
+[
+    NativeHeaderBar.Title("Home"),
+    NativeWebView.Url("https://app.example.com/"),
+];
+```
+
+**Fix:** drop one. Keep the children and remove the `Url`, or keep the `Url` and let the hosted app render
+the page. See [native](native.md).
+
+---
+
+## RASK050
+**One component uses both of NativeWebView's modes** · Error
+
+A component renders one kind of page. In URL mode the WebView is showing a document the session did not
+render and holds no HTML diff baseline for, so a markup arm in the same component has nothing to paint
+against — it would be diffing against someone else's page.
+
+```csharp
+// ✗ RASK050 — this component could render either
+protected override Component? Render() =>
+    Remote ? NativeWebView.Url("https://app.example.com/") : NativeWebView[Router];   // ← reported here
+
+// ✓ one mode per component
+protected override Component? Render() =>
+[
+    NativeHeaderBar.Title("Home"),
+    NativeWebView.Url("https://app.example.com/"),
+];
+```
+
+It is reported on the **markup** arm: the `Url` is the deliberate choice, and the markup is the half that
+has quietly stopped working.
+
+The rule is scoped to the declaring **type**, not the compilation — an assembly with more than one app
+root, or a test project, legitimately contains both modes in different components, and those are fine.
+
+**Fix:** pick a mode for the component, or split the two into components of their own. A pure-native
+`NativeScreen` is unaffected and composes beside either mode — that is the supported
+[mixed-surface](native.md) setup.
 
 ---
 
