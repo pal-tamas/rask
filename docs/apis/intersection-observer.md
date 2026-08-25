@@ -6,8 +6,7 @@
 - **MDN:** [Intersection Observer API](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes to a callback)
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 Inherently DOM — always the WebView on Native.
 

@@ -40,7 +40,6 @@ text (`SetAsync`/`GetAsync`) or raw bytes (`SetBytesAsync`/`GetBytesAsync`, stor
 
 <!-- demo:browser-network -->
 
-**`IBattery`** — charge level and charging state: `GetStatusAsync()` reads once, `WatchAsync(onChange)` subscribes to level/charging changes. Chromium-only in the browser (`GetStatusAsync` returns `null` elsewhere); in the [native shell](native.md) it resolves to a real OS backend (iOS `UIDevice` / Android `BatteryManager`).
 
 <!-- demo:browser-battery -->
 
@@ -162,7 +161,6 @@ The push pattern above, one element at a time.
 
 <!-- demo:browser-speech -->
 
-**`ISpeechRecognition`** — dictation: `StartAsync(onResult, options)` streams each recognised phrase (final and, with `InterimResults`, interim) to the callback; dispose the handle to stop. Prompts for the microphone; Chromium-only in the browser, with a native `SFSpeechRecognizer`/`SpeechRecognizer` backend in the [native shell](native.md). The counterpart to `ISpeechSynthesis`.
 
 <!-- demo:browser-speech-recognition -->
 
@@ -214,7 +212,6 @@ exchange.
 <!-- demo:browser-signaling -->
 
 **`INotifications` + `IBadge`** — raise a local notification and set the app-icon badge from the page. In the
-[native shell](native.md) these resolve to real OS backends (UNUserNotificationCenter / NotificationManager and
 the native app-icon badge) that a WebView cannot provide; on Server/WASM they use the browser's Notifications
 and Badging APIs (a badge only shows on an installed PWA). On iOS the badge is numeric-only.
 

@@ -6,8 +6,7 @@
 - **MDN:** [WebUSB API](https://developer.mozilla.org/en-US/docs/Web/API/WebUSB_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
-- **Availability:** Web/Server ⬜ · PWA/WASM ✅ · Native ⬜
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ⬜ · PWA/WASM ✅
 
 Chooser needs activation; stateful transfers — WASM-only by design.
 

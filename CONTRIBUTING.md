@@ -102,11 +102,8 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   by hand at least once after a Release-only build and you'll see the same thing — build the generators in
   Debug first. Bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`.
 - **E2E runs locally, not in CI.** The browser-journey E2E (`tests/Rask.Examples.E2E.Tests`, Playwright)
-  and the on-device native E2E (`tests/Rask.Native.Appium.Tests`, Appium) are not part of the CI
-  pipeline. Run the browser gate with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for you on
-  `git push`; bypass a docs-only push with `git push --no-verify` or `RASK_SKIP_E2E=1`). The on-device
-  native suite needs a booted emulator/simulator + Appium — run it manually before shipping native
-  changes (see [docs/native.md](docs/native.md)).
+  is not part of the CI pipeline. Run it with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for
+  you on `git push`; bypass a docs-only push with `git push --no-verify` or `RASK_SKIP_E2E=1`).
 - **Do not** append `Co-Authored-By` or `Generated-with` footers to commits or PR descriptions.
 - Add a note to [`CHANGELOG.md`](CHANGELOG.md) under `[Unreleased]` for user-visible changes.
 - User-facing changes must update a sample under `samples/` and the relevant docs

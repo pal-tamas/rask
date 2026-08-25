@@ -51,7 +51,6 @@ rask new MyApp                       # create a server app in ./MyApp (server is
 | `server` (default)  | One ASP.NET project. Components render on the server; live updates ship over a WebSocket. **Best default.** |
 | `wasm`              | One `net10.0-browser` project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
 | `wasm-hosted`       | Three projects: `MyApp.Client` (the WASM SPA), `MyApp.Server` (the ASP.NET host that serves the bundle and your own `/api/...` endpoints), and `MyApp.Shared` (a class library both reference). |
-| `native`            | A native iOS/Android app head (WebView hybrid, preview) running the same components — see [native](native.md). Needs the `ios android` workloads. |
 
 They emit the same starter pages, so the rest of this guide applies whichever you chose. Each also
 accepts a `--auth` switch that scaffolds a working login flow — see [authentication](authentication.md)

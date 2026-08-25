@@ -32,11 +32,10 @@ public sealed class Counter : Component
 
 > **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
 > (`dotnet workload install wasm-tools`) for the WASM templates, or `ios android`
-> (`dotnet workload install ios android`) for the native template.
 
 ```bash
 dotnet tool install -g Rask.Cli          # the rask CLI — scaffold, migrate, run, deploy
-rask new MyApp                            # or: --template wasm | wasm-hosted | native
+rask new MyApp                            # or: --template wasm | wasm-hosted
 rask db add Initial && rask db update     # migrations, via dotnet-ef
 rask dev                                  # run with hot reload
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
@@ -48,7 +47,6 @@ Or add to an existing project. **Pick a host:**
 dotnet add package Rask.Server            # server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
-dotnet add package Rask.Native            # native iOS/Android app head (WebView hybrid, preview)
 ```
 
 **Then the batteries you want** — each is opt-in, and every one is a `AddRaskX<AppDbContext>()` call plus
@@ -57,7 +55,7 @@ a `modelBuilder.AddRaskX()` schema line:
 ```bash
 dotnet add package Rask.Data              # base entity + EF interceptors (soft delete, concurrency, events)
 dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
-dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM/native client
+dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM client
 dotnet add package Rask.Cqrs.Server       # host the endpoint those clients dispatch to
 dotnet add package Rask.Jobs              # durable background jobs
 dotnet add package Rask.Mail              # transactional email queue
@@ -94,7 +92,7 @@ back in C# without `.razor` mixing markup and code. So Rask makes a component a 
 the *same* code on Server or WASM, and treats the network as the bottleneck (a state change ships a minimal diff, not
 the page). It's a craft project built in the open, deep on Roslyn source generators and tree diffing.
 
-- **One component model, three hosts** — the same C# component runs Server (live diff over WS), WASM, or a native iOS/Android app (`Rask.Native`, preview).
+- **One component model, two hosts** — the same C# component runs Server (live diff over WS) or WASM.
 - **Markup is a chain** — a Roslyn generator emits `Div.Class("card")`, `Counter.Start(3)` and type-safe routes, so the IDE lists every step and a missing one is a compile error.
 - **Scoped CSS & JS** — sibling `Component.css`/`Component.js`, content-addressed and cached.
 - **Routing, lifecycle, forms, validation, auth** — batteries included, no JavaScript required.

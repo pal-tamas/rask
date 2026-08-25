@@ -29,7 +29,6 @@
         <Project Path="src/Rask.Bootstrap/Rask.Bootstrap.csproj"/>
         <Project Path="src/Rask.Cache/Rask.Cache.csproj"/>
         <Project Path="src/Rask.Cli/Rask.Cli.csproj"/>
-        <Project Path="src/Rask.Chrome/Rask.Chrome.csproj"/>
         <Project Path="src/Rask.Client/Rask.Client.csproj"/>
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
         <Project Path="src/Rask.Cqrs/Rask.Cqrs.csproj"/>
@@ -47,7 +46,6 @@
         <Project Path="src/Rask.Html/Rask.Html.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
         <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
-        <Project Path="src/Rask.Native/Rask.Native.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
         <Project Path="src/Rask.Signaling/Rask.Signaling.csproj"/>
         <Project Path="src/Rask.SQLite/Rask.SQLite.csproj"/>
@@ -67,7 +65,6 @@
         <Project Path="tests/Rask.Bootstrap.Tests/Rask.Bootstrap.Tests.csproj"/>
         <Project Path="tests/Rask.Cache.Tests/Rask.Cache.Tests.csproj"/>
         <Project Path="tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj"/>
-        <Project Path="tests/Rask.Chrome.Tests/Rask.Chrome.Tests.csproj"/>
         <Project Path="tests/Rask.Client.Tests/Rask.Client.Tests.csproj"/>
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Tests/Rask.Cqrs.Tests.csproj"/>
@@ -94,7 +91,6 @@
         <Project Path="tests/Rask.Example.Wasm.Tests/Rask.Example.Wasm.Tests.csproj"/>
         <Project Path="tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj"/>
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj"/>
-        <Project Path="tests/Rask.Native.Tests/Rask.Native.Tests.csproj"/>
         <Project Path="tests/Rask.Server.HotReload.Tests/Rask.Server.HotReload.Tests.csproj"/>
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
         <Project Path="tests/Rask.Signaling.Tests/Rask.Signaling.Tests.csproj"/>

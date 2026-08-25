@@ -23,7 +23,7 @@ public sealed partial class DocsRoutingSyntaxTests
     [
         (RouteOverrideRegex(), "protected override string Route", "the [Route(\"...\")] attribute"),
         (ParentOverrideRegex(), "protected override Type? Parent", "the [ParentRoute(typeof(...))] attribute"),
-        (PageBaseRegex(), "the Page base class", "a plain Component, or Screen for native chrome"),
+        (PageBaseRegex(), "the Page base class", "a plain Component"),
     ];
 
     [Fact]

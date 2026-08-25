@@ -202,13 +202,10 @@ public partial class BsDataGridQueryTests : global::Rask.Core.RaskMarkup
         Assert.Contains("1-2 / 5", grid.Html);
     }
 
-    [Theory]
-    [InlineData(RenderEngine.Server)]
-    [InlineData(RenderEngine.InProcess)]
-    public void Query_IsAllowed_WhereADatabaseCanExist(RenderEngine engine) =>
-        // A native host's in-process engine can hold a local SQLite DbContext, so Query is legitimate there —
-        // the guard is about WASM specifically, not about "not Server".
-        BsDataGrid<Row>.EnsureQueryHost(engine);
+    [Fact]
+    public void Query_IsAllowed_WhereADatabaseCanExist() =>
+        // The guard is about WASM specifically, not about "not Server" — a server host holds the DbContext.
+        BsDataGrid<Row>.EnsureQueryHost(RenderEngine.Server);
 
     [Fact]
     public void Query_InWasm_ThrowsWithAnActionableMessage()

@@ -6,8 +6,7 @@
 - **MDN:** [Web Serial API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** subscription (pushes to a callback)
-- **Availability:** Web/Server ⬜ · PWA/WASM ✅ · Native ⬜
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ⬜ · PWA/WASM ✅
 
 The device chooser needs activation and the session is stateful/low-latency — WASM-only by design.
 

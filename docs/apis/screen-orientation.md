@@ -6,8 +6,7 @@
 - **MDN:** [Screen Orientation API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Orientation_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
-- **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
 Lock needs fullscreen + transient activation, so the imperative `IScreenOrientation` service is WASM-only. On the **Server** host, use the declarative **`ScreenOrientationTrigger`** component (`ScreenOrientationTrigger(Orientation: "landscape", …)`) — its click locks the orientation inside the gesture. The browser's `screen.orientation.lock` only resolves while the page is fullscreen, so pair it with a `FullscreenTrigger` (or app-controlled fullscreen); off-fullscreen or on desktop the lock is a silent no-op.
 

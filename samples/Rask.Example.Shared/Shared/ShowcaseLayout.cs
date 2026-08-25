@@ -75,9 +75,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     protected override Component? Render() =>
     [
-        // Under the native mobile shell the real UINavigationBar/MaterialToolbar takes over, so drop the web
-        // navbar there. IsNative is false on Server/WASM, so the web showcase is unchanged.
-        IsNative ? null : BsNavbar
+        BsNavbar
             .Color(BsColor.Dark)
             .Theme(BsTheme.Dark)
             .Sticky(true)

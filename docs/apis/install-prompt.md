@@ -6,8 +6,7 @@
 - **MDN:** [beforeinstallprompt](https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeinstallprompt_event)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
-- **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
 Needs transient activation + a boot-captured event, so the imperative `IInstallPrompt` service is WASM-only. On the **Server** host, use the declarative **`InstallTrigger`** component — its click shows the browser's install prompt inside the gesture and posts the outcome (`"accepted"` / `"dismissed"` / `"unavailable"`) to `OnOutcome`. The app must be installable (a web manifest + service worker over HTTPS — on Server that means `AddRaskPwa`), otherwise the outcome is `"unavailable"`.
 

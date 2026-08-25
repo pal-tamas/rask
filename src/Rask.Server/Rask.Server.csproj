@@ -22,7 +22,6 @@
          so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
     <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
     <!-- Rask.Chrome: Screen + the portable chrome bars, bundled into lib/ like Rask.Core/Rask.Html. -->
-    <ProjectReference Include="..\Rask.Chrome\Rask.Chrome.csproj" PrivateAssets="all"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
@@ -140,10 +139,6 @@
           Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
     <!-- Rask.Chrome (Screen + the portable chrome bars) rides along on the same terms. The Server host
          renders those bars as landmark HTML, so a Screen subclass shared with a native head works here too. -->
-    <None Include="$(OutputPath)Rask.Chrome.dll"
-          Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
-    <None Include="$(OutputPath)Rask.Chrome.xml"
-          Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
   </ItemGroup>
 
   <Import Project="..\RaskAnalyzerPack.targets"/>

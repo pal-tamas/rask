@@ -66,7 +66,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
-| [RASK032](#rask032) | Error | Native component nested in the HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 | [RASK034](#rask034) | Warning | BsDataGrid column has no Field, so the column chooser can't show/hide or reorder it |
 | [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
@@ -82,9 +81,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
 | RASK047 | — | *retired* — routes are `[Route]` attribute arguments, constant by construction |
-| [RASK048](#rask048) | Error | HTML nested inside a native screen |
-| [RASK049](#rask049) | Error | NativeWebView sets a Url and takes children |
-| [RASK050](#rask050) | Error | One component uses both of NativeWebView's modes |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 
 ---
@@ -508,39 +504,6 @@ so upgrading Rask never hard-breaks a build that compiled before.
 
 **Fix:** give one page a distinct route, or merge the two. Reported on every colliding page after the
 first (ordered by fully-qualified name), naming the page it collides with.
-
-## RASK032
-**Native component nested in the HTML tree** · Error
-
-A native chrome component — a `Rask.Native.Components.NativeComponent` subclass such as `NativeHeaderBar`,
-`NativeTabBar`, `NativeToolbar`, or `NativeBarButton` — describes a real platform bar for the `Rask.Native`
-mobile host, not HTML. Bars are composed at the native page's **layout level**, as siblings of a
-`NativeWebView` (which hosts the HTML). Nested inside the HTML — as an element child, or inside
-`NativeWebView`'s content — a bar would serialize to nothing, so the mistake is caught at compile time. The
-analyzer flags a native component passed to any element-children indexer.
-
-```csharp
-// ✗ RASK032 — native chrome as an element child
-protected override Component? Render() => Div[NativeHeaderBar.Title("Home")];
-
-// ✗ RASK032 — native chrome inside the NativeWebView's HTML content
-protected override Component? Render() => NativeWebView[NativeHeaderBar.Title("Home")];
-
-// ✓ correct — bars are siblings of NativeWebView at the layout level
-protected override Component? Render() =>
-[
-    NativeHeaderBar.Title("Home"),
-    NativeWebView[Router],
-    NativeTabBar.Tabs([...]).Selected(0)
-];
-```
-
-**Fix:** move the native component out of the HTML — compose it at the layout level, as a sibling of
-`NativeWebView`. Native chrome renders only under the native host and is inert on Server/WASM.
-
-Native **view** components (`NativeLabel`, `NativeStack`, …) are the same family, so the same rule holds
-for them — with one addition: inside a `NativeScreen` they are exactly where they belong, and the analyzer
-classifies by the container. See [RASK048](#rask048) for the mirror-image mistake.
 
 ## RASK033
 **Hardcoded path for internal navigation instead of the generated route URL** · Warning
@@ -1024,96 +987,6 @@ and the reconciliation note in [the live-rendering codec](architecture/live-rend
 *Retired.* It reported a `Page.Route` override that was not a compile-time constant. Routes are declared with
 `[Route("...")]`, whose argument is an attribute argument and therefore constant by construction, so the failure
 it guarded can no longer be written. The id is retired, not reused.
-
-## RASK048
-**HTML nested inside a native screen** · Error
-
-The mirror image of [RASK032](#rask032). A `NativeScreen` is the content root of a **pure-native** page:
-everything inside it becomes a real `UIView` / `android.view.View`, and there is no WebView behind it. An
-HTML element composed in there has nothing that could render it, so it silently disappears — which is
-exactly the kind of mistake that only shows up on a device, and only as an absence.
-
-```csharp
-// ✗ RASK048 — a Div inside a native screen renders nothing
-protected override Component? Render() => NativeScreen[Div["Hello"]];
-
-// ✓ native views inside a native screen
-protected override Component? Render() =>
-    NativeScreen[NativeStack.Spacing(12)[
-        NativeLabel["Hello"],
-        NativeButton.OnClick(Go)["Go"]]];
-
-// ✓ HTML inside a NativeWebView — both may live in one app, on different routes
-protected override Component? Render() => NativeWebView[Div["Hello"]];
-```
-
-**Fix:** use the native view family (`NativeLabel`, `NativeStack`, `NativeButton`, …) for a native screen,
-or put the markup inside a `NativeWebView` instead. An app is free to compose both — one route rendering a
-`NativeWebView` and the next a `NativeScreen` is the supported mixed-surface setup; see
-[native](native.md).
-
----
-
-## RASK049
-**NativeWebView sets a Url and takes children** · Error
-
-`NativeWebView` shows **one** document. Either it hosts markup — its children are the page — or it takes a
-`Url` and shows a Rask server or hosted WASM app you deploy. Setting both means the children are built and
-then thrown away: accepted where you wrote them, gone by the time the frame is pushed. That is the failure
-the chain's mode system exists to prevent elsewhere, and this is the same rule for the same reason.
-
-```csharp
-// ✗ RASK049 — the children can never render; the page at the Url is what shows
-protected override Component? Render() =>
-    NativeWebView.Url("https://app.example.com/")[Div["Hello"]];
-
-// ✓ markup mode — the children ARE the page
-protected override Component? Render() => NativeWebView[Router];
-
-// ✓ URL mode — the hosted app renders the page, and the native bars still frame it
-protected override Component? Render() =>
-[
-    NativeHeaderBar.Title("Home"),
-    NativeWebView.Url("https://app.example.com/"),
-];
-```
-
-**Fix:** drop one. Keep the children and remove the `Url`, or keep the `Url` and let the hosted app render
-the page. See [native](native.md).
-
----
-
-## RASK050
-**One component uses both of NativeWebView's modes** · Error
-
-A component renders one kind of page. In URL mode the WebView is showing a document the session did not
-render and holds no HTML diff baseline for, so a markup arm in the same component has nothing to paint
-against — it would be diffing against someone else's page.
-
-```csharp
-// ✗ RASK050 — this component could render either
-protected override Component? Render() =>
-    Remote ? NativeWebView.Url("https://app.example.com/") : NativeWebView[Router];   // ← reported here
-
-// ✓ one mode per component
-protected override Component? Render() =>
-[
-    NativeHeaderBar.Title("Home"),
-    NativeWebView.Url("https://app.example.com/"),
-];
-```
-
-It is reported on the **markup** arm: the `Url` is the deliberate choice, and the markup is the half that
-has quietly stopped working.
-
-The rule is scoped to the declaring **type**, not the compilation — an assembly with more than one app
-root, or a test project, legitimately contains both modes in different components, and those are fine.
-
-**Fix:** pick a mode for the component, or split the two into components of their own. A pure-native
-`NativeScreen` is unaffected and composes beside either mode — that is the supported
-[mixed-surface](native.md) setup.
-
----
 
 ## RASK053
 

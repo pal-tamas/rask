@@ -24,9 +24,7 @@ public class ClientConsoleContractTests
         // The committed build artifact. It is spliced from the source above by _RaskSpliceClientJs and
         // checked in, so it can drift silently — and it is the copy the browser actually downloads.
         { "Rask.Wasm (committed artifact)", ["src", "Rask.Wasm", "Browser", "rask.wasm.js"] },
-        { "Rask.Native", ["src", "Rask.Native", "Resources", "rask.native.js"] },
         // The native host's committed spliced artifact, for the same reason as the WASM one above.
-        { "Rask.Native (committed artifact)", ["src", "Rask.Native", "Assets", "rask.native.js"] },
         { "shared: rask-morph.js", ["src", "Rask.Core", "Resources", "rask-morph.js"] },
         { "shared: rask-dom.js", ["src", "Rask.Core", "Resources", "rask-dom.js"] },
     };

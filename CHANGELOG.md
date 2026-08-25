@@ -7,6 +7,30 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+
+- **The native hosting model is gone. Rask is a web framework.** `Rask.Native` and `Rask.Chrome` are
+  deleted, along with the `native` CLI template (and its `--host` / `--platform` options), both native
+  samples, the WebView spike, the Appium suite, the macOS CI/pack jobs, and the native guides. This is a
+  direction change, not a verdict on the code: shipping one component model to a browser is the whole
+  product now, and a second presentation shell was taking design decisions hostage across Core, the
+  serializer, the CLI and the docs.
+
+  **What this takes with it.** `Screen`, `AppBar`, `TabStrip`, `TabItem`, `BarButton` and `BarIcon` are
+  gone — they existed to be a portable bar vocabulary a native head could project, and rendered landmark
+  HTML on the web only so one class could serve both. A page is a plain `Component` again. The
+  host-awareness axes collapse to one: `RenderEngine` (`Server` | `Wasm`) with `HostEngine` / `IsServer` /
+  `IsWasm`. `RenderShell`, `RenderPlatform`, `HostShell`, `HostPlatform`, `IsNative`, `IsIOS`, `IsAndroid`
+  and `IScreenChrome` no longer exist, and `RenderEngine.InProcess` is removed.
+
+  **Diagnostics RASK032, RASK048, RASK049 and RASK050 are retired** — every one of them policed a native
+  composition rule. Their IDs are not reused.
+
+  The render walk got simpler on the way out: the serializer no longer reports every user component to the
+  session, the render cache no longer refuses to cache while chrome is being collected, and
+  `IRenderHandle` loses four members. That path is web-only now and pays for nothing else.
+
+
 ### Added
 - **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
   advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen

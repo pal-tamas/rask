@@ -6,8 +6,7 @@
 - **MDN:** [EyeDropper API](https://developer.mozilla.org/en-US/docs/Web/API/EyeDropper_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
-- **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
 Needs activation, so the imperative `IEyeDropper` service is WASM-only. On the **Server** host, use the declarative **`EyeDropperTrigger`** component — its click opens the picker inside the gesture and posts the chosen colour back to your `OnColor` callback.
 

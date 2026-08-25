@@ -414,7 +414,7 @@ public class BuilderEntryEmissionTests
     // Components in a REFERENCED assembly are in neither emission: they are not Rask.Core's (whose
     // entries ride on Component itself and are inherited), and they are not in this compilation's
     // syntax. Without this they reach the builder surface not at all and stay factory-only — which is
-    // what makes deleting the factory impossible. Rask.Native is a real referenced Rask assembly here.
+    // what makes deleting the factory impossible. Rask.Html is a real referenced Rask assembly here.
     [Fact]
     public void A_referenced_assemblys_components_are_injected_too()
     {
@@ -424,11 +424,7 @@ public class BuilderEntryEmissionTests
                                                   public partial class Page : Component { }
                                                   """).Source(Entries);
 
-        Assert.Contains(
-            "    private static global::Rask.Core.Build<global::Rask.Native.Components.NativeTabBar> NativeTabBar "
-            + "=> global::RaskEntriesRask_Native.NativeTabBar;",
-            entries,
-            StringComparison.Ordinal);
+        Assert.Contains("global::RaskEntriesRask_Html.", entries, StringComparison.Ordinal);
     }
 
     // Rask.Core's tags are members of Component, which every component everywhere already inherits.
