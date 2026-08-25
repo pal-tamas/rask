@@ -33,6 +33,7 @@ one route served as HTML, the next fully native.
 - [Device capabilities & chrome](native-devices.md) — safe-area insets, device backends, native header/footer.
 
 Also in this doc: [How it fits](#how-it-fits), [Pure-native screens](#pure-native-screens-no-webview),
+[A WebView pointed at your own app](#a-webview-pointed-at-your-own-app),
 [Get started](#get-started), [Files, downloads and sign-out](#files-downloads-and-sign-out),
 [Honest framing](#honest-framing), [Roadmap](#roadmap).
 
@@ -129,6 +130,44 @@ JS state survive) and returning to a native route patches the retained view tree
 
 Putting HTML inside a `NativeScreen` is a compile error ([RASK048](diagnostics.md#rask048)), as is putting
 a native component inside the HTML tree ([RASK032](diagnostics.md#rask032)).
+
+### A WebView pointed at your own app
+
+A `NativeWebView` has a second mode. Instead of hosting markup, give it a `Url` and it loads that address —
+a Rask server, or a WASM app you host — so the UI ships when you deploy rather than when the store approves:
+
+```csharp
+protected override Component? Render() =>
+[
+    NativeHeaderBar.Title("Home"),
+    NativeWebView.Url("https://app.example.com/"),
+    NativeTabBar.Tabs([...]),
+];
+```
+
+The bars around it are still native, still declared in the same `Render()`, and still projected onto a real
+`UINavigationBar` / Android top bar. The page reaches the device backends through the
+[capability bridge](native-bridge.md#native-device-apis-from-a-server-app-the-capability-bridge). What
+changes is only where the UI comes from.
+
+`.Url(…)` takes a `string` or a `Uri`, and both must be an absolute `http`/`https` address — a relative one,
+or a `javascript:` / `data:` / `file:` one, is rejected where you write it rather than becoming a blank
+WebView on a device.
+
+The two modes are exclusive. One `NativeWebView` that sets a `Url` *and* takes children is
+[RASK049](diagnostics.md#rask049) — it shows one document, so the children could only be discarded — and a
+component that uses both modes is [RASK050](diagnostics.md#rask050), because in URL mode the session holds
+no HTML baseline for a markup arm to paint against. A pure-native `NativeScreen` is
+unaffected by both and composes beside either.
+
+> **The page you name gets your device APIs.** The head keeps the WebView on that origin — an off-origin
+> link opens in the system browser instead — but that confines where the grant travels, not what the site
+> you pointed at can do with it. Point it at an origin you control.
+
+> **Cleartext is blocked by default.** A `--host native` app ships with no ATS exception on iOS and no
+> `usesCleartextTraffic` on Android, so a `Url` of `http://localhost:5000` loads **nothing, silently**. Use
+> `https://`, or add the narrow exception the remote templates use while developing (see
+> [the CLI docs](cli.md)).
 
 ### Wiring it up
 

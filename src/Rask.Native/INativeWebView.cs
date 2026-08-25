@@ -36,6 +36,20 @@ public interface INativeWebView
     ValueTask EvaluateJavaScriptAsync(string javaScript);
 
     /// <summary>
+    ///     Navigate the WebView to <paramref name="url" /> — the seam behind
+    ///     <c>NativeWebView.Url(…)</c>, where the UI comes from a Rask server or a hosted WASM app instead
+    ///     of from components rendering on the device. Called from <c>NativeLiveSession</c> when a frame
+    ///     names an address, and only when that address changes, so a re-render does not reload the page.
+    ///     <para>
+    ///         An implementation must marshal onto the UI thread, and must keep the WebView on this
+    ///         origin: inject the capability bridge for it, and send an off-origin navigation to the system
+    ///         browser rather than following it. The page is given the device backends, so where it is
+    ///         allowed to travel is the boundary of that grant.
+    ///     </para>
+    /// </summary>
+    ValueTask LoadUrlAsync(Uri url);
+
+    /// <summary>
     ///     Set by the host to receive JS → .NET messages: component events (<c>click</c>/<c>input</c>/
     ///     <c>submit</c>/<c>navigate</c>/…), <c>jsResult</c> replies, and <c>dotNetInvoke</c> calls — each
     ///     a UTF-8 JSON payload. The platform head calls this from its script-message handler.

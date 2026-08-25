@@ -60,6 +60,13 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     private byte[]? _lastPushedChrome;
     private Dictionary<string, Action> _chromeTapHandlers = new(StringComparer.Ordinal);
 
+    // A Url-mode NativeWebView: the address this frame says the WebView should be showing, collected fresh
+    // each walk exactly like the bars, and the one it was last actually sent to. Two fields rather than one
+    // for the same reason _lastPushedChrome exists — a re-render that names the same address must not reload
+    // the page, which would discard its scroll position, its form state and anything in flight.
+    private Uri? _pendingWebViewUrl;
+    private Uri? _loadedWebViewUrl;
+
     // Pure-native content. Optional in exactly the same way as _chrome: with no INativeSurface registered the
     // NativeScreen family is inert and every frame paints through the WebView, so existing apps are untouched.
     //
@@ -151,11 +158,15 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
 
     // Opt into the serializer's render-walk collection only when a backend is registered (else pure no-op).
     // Either backend needs it: the bars come from the same walk that the native view tree is rebuilt from.
-    protected override bool CollectsNativeChromeCore => _chrome is not null || _surface is not null;
+    //
+    // A WebView counts too, and not only for the bars: a NativeWebView carrying a Url is reported through
+    // this same walk, and an app in that mode may register neither of the other two backends.
+    protected override bool CollectsNativeChromeCore =>
+        _chrome is not null || _surface is not null || _webView is not null;
 
     // The serializer hands us every user component it walks; pick out the native bars composed in the tree —
     // a NativeHeaderBar becomes the header, a NativeTabBar/NativeToolbar the footer. Last of each kind wins
-    // (the deepest layout in the walk). NativeWebView and bar items pass through here and are ignored.
+    // (the deepest layout in the walk). Bar items pass through here and are ignored.
     protected override void ReportNativeComponentCore(Component component)
     {
         switch (component)
@@ -165,6 +176,12 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 break;
             case NativeTabBar or NativeToolbar or TabStrip:
                 _pendingFooter = component;
+                break;
+            // A NativeWebView hosting markup is transparent and stays ignored — its children ARE the frame.
+            // One carrying a Url is the opposite: it says this frame has no HTML of its own and names the
+            // address the WebView should be showing instead. Last one wins, like the bars.
+            case NativeWebView { Url: { } url }:
+                _pendingWebViewUrl = url;
                 break;
         }
 
@@ -193,6 +210,10 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         _pendingHeader = null;
         _pendingFooter = null;
 
+        // Same reasoning for the address: a frame that no longer composes a Url-mode NativeWebView reports
+        // none, and the session is back to hosting its own HTML.
+        _pendingWebViewUrl = null;
+
         // Reset the collected view tree too, so a frame that renders no NativeScreen reports none — that is
         // exactly the signal that this frame's content is the WebView.
         _treeBuilder.Reset();
@@ -206,7 +227,24 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     private async Task PushNativeFrameAsync()
     {
         await PushChromeAsync().ConfigureAwait(false);
+        await PushWebViewUrlAsync().ConfigureAwait(false);
         await PushSurfaceAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Navigate the WebView when this frame names an address it is not already showing. Guarded the same
+    ///     way the chrome push is: a re-render that produces the same URL must not reload the page, which
+    ///     would throw away its scroll position, its form state and any work in flight.
+    /// </summary>
+    private ValueTask PushWebViewUrlAsync()
+    {
+        if (_pendingWebViewUrl is not { } url || _webView is not { } webView || url == _loadedWebViewUrl)
+        {
+            return default;
+        }
+
+        _loadedWebViewUrl = url;
+        return webView.LoadUrlAsync(url);
     }
 
     /// <summary>
@@ -218,12 +256,19 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     private bool IsNativeFrame => _surface is not null && _treeBuilder.Root is not null;
 
     /// <summary>
-    ///     The emit gate every send in this session goes through. On a native frame it reports "nothing sent"
-    ///     WITHOUT touching the base's double-buffered baseline, so <c>_lastSentBuffer</c> keeps describing the
-    ///     HTML the WebView is actually still showing.
+    ///     Whether the frame just walked hands the WebView an address instead of HTML. The WebView is then
+    ///     showing a document this session did not render and must not diff against — the page belongs to
+    ///     whatever is serving that URL.
+    /// </summary>
+    private bool IsRemoteFrame => _pendingWebViewUrl is not null;
+
+    /// <summary>
+    ///     The emit gate every send in this session goes through. On a native OR a remote frame it reports
+    ///     "nothing sent" WITHOUT touching the base's double-buffered baseline, so <c>_lastSentBuffer</c> keeps
+    ///     describing the HTML the WebView last actually received.
     /// </summary>
     private ValueTask<bool> EmitFrameAsync(bool force) =>
-        IsNativeFrame ? ValueTask.FromResult(false) : TryEmitFrameAsync(force);
+        IsNativeFrame || IsRemoteFrame ? ValueTask.FromResult(false) : TryEmitFrameAsync(force);
 
     /// <summary>
     ///     Commit the frame just built — paint it, then push the bars and the native content — and return the
@@ -233,10 +278,14 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     ///     A native frame paints through the surface and emits no HTML at all, so it must NOT take the
     ///     "nothing was emitted, bail out" path the HTML callers use: that would skip the surface push and the
     ///     screen would never update. Navigating from a web route to a native one goes through exactly here.
+    ///     <para>
+    ///         A remote frame is the same shape for the same reason — it emits no HTML either, and its work
+    ///         (the bars, and the navigation itself) is all in the push.
+    ///     </para>
     /// </remarks>
     private async Task<byte[]> CommitFrameAsync(bool force)
     {
-        if (IsNativeFrame)
+        if (IsNativeFrame || IsRemoteFrame)
         {
             await PushNativeFrameAsync().ConfigureAwait(false);
             return Array.Empty<byte>();
