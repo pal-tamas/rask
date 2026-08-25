@@ -72,6 +72,81 @@ public sealed class PureNativeBootTests : ResettingTestBase
     }
 
     /// <summary>
+    ///     The head cannot reach the session — it is internal — so the same back navigation has to be
+    ///     reachable from <see cref="NativeApp" />, which is what an Android activity actually holds.
+    ///     Without this, "wire the hardware Back button" is not expressible in app code at all.
+    /// </summary>
+    [Fact]
+    public async Task Back_navigation_is_reachable_from_the_app_a_head_holds()
+    {
+        var (app, _) = await NewPureNativeAsync();
+        var routeState = app.Services.GetRequiredService<RouteState>();
+
+        // One entry: nothing to pop, and OnBackPressed must fall through and close the activity.
+        Assert.False(app.CanGoBack);
+
+        await app.Session.DispatchAsync(Message("""{"type":"navigate","path":"/second"}"""));
+        Assert.True(app.CanGoBack);
+
+        await app.GoBackAsync();
+
+        Assert.Equal("/", routeState.Path);
+        Assert.False(app.CanGoBack);
+
+        await app.DisposeAsync();
+    }
+
+    /// <summary>The route the navigating stub sends you to.</summary>
+    internal const string SecondPath = "/second";
+
+    /// <summary>
+    ///     A navigation a HANDLER performs must build back history too, not only one that arrives as a
+    ///     `navigate` message. With a WebView the difference is invisible — the client calls pushState and
+    ///     the page's history is the only one there is — so this gap survived until a pure-native app was
+    ///     driven on a device, where a button calling NavigateTo moved the route, left no trace, and the
+    ///     hardware Back button closed the app from the second page.
+    /// </summary>
+    [Fact]
+    public async Task A_navigation_from_a_handler_records_back_history()
+    {
+        var host = NativeAppHost.CreateDefault();
+        var surface = new FakeNativeSurface();
+        var app = await host.RunNativeAsync<NavigatingStubApp>(surface);
+        var routeState = app.Services.GetRequiredService<RouteState>();
+
+        Assert.False(app.CanGoBack);
+
+        // Exactly what a NativeButton's OnClick does when it calls Navigator.NavigateTo.
+        var tapId = FindTapId(surface.Tree!);
+        await surface.OnSurfaceEvent!(new NativeSurfaceEvent(tapId, NativeSurfaceEventKind.Tap, null));
+
+        Assert.Equal(SecondPath, routeState.Path);
+        Assert.True(app.CanGoBack);
+
+        await app.GoBackAsync();
+
+        Assert.Equal("/", routeState.Path);
+        Assert.False(app.CanGoBack);
+
+        await app.DisposeAsync();
+    }
+
+    /// <summary>
+    ///     A hybrid app answers false, and that is the safe answer rather than a missing feature: the page
+    ///     owns that history and reading it needs a round trip, which <c>OnBackPressed</c> cannot wait for.
+    ///     Such a head keeps the platform's default Back, exactly as before this API existed.
+    /// </summary>
+    [Fact]
+    public async Task An_app_with_a_webview_reports_that_it_cannot_go_back()
+    {
+        var (app, _, _) = await NewSessionAsync();
+
+        Assert.False(app.CanGoBack);
+
+        await app.DisposeAsync();
+    }
+
+    /// <summary>
     ///     At the first entry back does nothing, so on Android the hardware button falls through to the
     ///     activity and closes the app — the platform behaviour at the root of a task. Swallowing it would
     ///     trap the user.
@@ -213,6 +288,18 @@ internal sealed partial class PureNativeStubApp : Component
                 NativeLabel[$"path={_routeState.Path}"],
                 NativeLabel[$"taps={_taps}"],
                 NativeButton.OnClick(() => _taps++)["bump"]
+            ]
+        ];
+}
+
+/// <summary>A pure-native app whose only button navigates, so the tap under test is the navigation.</summary>
+internal sealed partial class NavigatingStubApp(Navigator nav, RouteState routeState) : Component
+{
+    protected override Component? Render() =>
+        NativeScreen[
+            NativeStack[
+                NativeLabel[$"path={routeState.Path}"],
+                NativeButton.OnClick(() => nav.NavigateTo(PureNativeBootTests.SecondPath))["go"]
             ]
         ];
 }
