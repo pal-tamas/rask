@@ -57,6 +57,21 @@ them until tagged releases begin.
   bug that is not there. Outside development it is a 503, because then it is a real deployment
   fault.
 
+  **The build runs the front end's own toolchain.** A host named `MyApp.Server` finds a sibling
+  `MyApp.Client` holding a `package.json` (or names one with `<RaskSpaClientDir>`), installs its
+  dependencies, runs its build, and bakes the output path so `UseRaskSpa()` resolves with no
+  arguments. `npm ci` is used wherever the lockfile allows it and `npm install` where it does not.
+  Both steps are incremental against narrow globs — a `**/*` over the client would enumerate
+  `node_modules` on every evaluation and cost more than the build it skips.
+
+  **On publish the bundle is copied next to the app**, which the WASM host does not do and needs
+  to: a baked absolute path belongs to the machine that built it, and inside a `rask deploy`
+  container it names a directory that does not exist.
+
+  **`-p:RaskSpaBuild=false` skips node entirely** — the app still compiles and its API still
+  works. `rask dev` will pass it, because the bundler's dev server owns the build during a dev
+  session, and it is also what lets a machine with no node build a solution containing a front end.
+
 - **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
   advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen
   native backends the platform modules register were unreachable from a remote shell — a page running as a

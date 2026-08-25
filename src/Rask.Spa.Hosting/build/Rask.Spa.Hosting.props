@@ -1,0 +1,56 @@
+<Project>
+
+  <!--
+    Consumer-facing knobs for the front-end build Rask.Spa.Hosting runs. Override any of these in your
+    host project, or with -p:.
+
+    Point the host at its client one of two ways:
+
+        <RaskSpaClientDir>..\MyApp.Client</RaskSpaClientDir>
+
+    or rely on the convention — a project named MyApp.Server looks for a sibling MyApp.Client holding a
+    package.json, and does nothing at all when there isn't one. That is why this file is harmless to
+    import into a project with no front end.
+  -->
+  <PropertyGroup>
+    <!--
+      Master switch. False skips the install, the build and the node probe entirely — the app still
+      compiles and its API still works, and UseRaskSpa reports that there is nothing to serve.
+
+      `rask dev` passes false, because the bundler's dev server owns the build during a dev session and
+      paying for a production bundle on every save would make watch unusable. The repo's own unit gate
+      passes it too, so a machine with no node can still build a solution that contains a front end.
+      Same shape as RaskWasmDevBundle on the WASM host.
+    -->
+    <RaskSpaBuild Condition="'$(RaskSpaBuild)' == ''">true</RaskSpaBuild>
+
+    <!-- Where the built app is copied inside the publish output, and the first place UseRaskSpa looks
+         at runtime. Change it only if the host already owns a wwwroot of its own. -->
+    <RaskSpaPublishDir Condition="'$(RaskSpaPublishDir)' == ''">wwwroot</RaskSpaPublishDir>
+
+    <!--
+      `npm ci` rather than `npm install` wherever it can run: it is reproducible, it is faster, and it
+      fails loudly when package-lock.json has drifted from package.json instead of quietly rewriting
+      it. It requires the lockfile, which a freshly scaffolded client does not have yet — so the
+      targets pick between these two by looking for it.
+
+      Chosen up front rather than as a `npm ci || npm install` shell fallback, which does work but
+      prints a wall of "npm error" to stderr on every first build and reads exactly like a failure.
+    -->
+    <RaskSpaInstallCommand Condition="'$(RaskSpaInstallCommand)' == ''">npm ci</RaskSpaInstallCommand>
+    <RaskSpaFirstInstallCommand Condition="'$(RaskSpaFirstInstallCommand)' == ''">npm install</RaskSpaFirstInstallCommand>
+    <RaskSpaBuildCommand Condition="'$(RaskSpaBuildCommand)' == ''">npm run build</RaskSpaBuildCommand>
+
+    <!-- Where the bundler writes, relative to the client. Vite and Vue use dist; Angular nests its
+         output under the app name (dist/<app>/browser). -->
+    <RaskSpaDistDir Condition="'$(RaskSpaDistDir)' == ''">dist</RaskSpaDistDir>
+
+    <!-- Named in the "nothing built yet" page the host serves in Development. Purely informational. -->
+    <RaskSpaDevServerUrl Condition="'$(RaskSpaDevServerUrl)' == ''"></RaskSpaDevServerUrl>
+
+    <!-- The floor the bundlers themselves require; the probe reports anything older rather than letting
+         vite fail with an engines error nobody reads. -->
+    <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">20.19.0</RaskSpaMinimumNode>
+  </PropertyGroup>
+
+</Project>

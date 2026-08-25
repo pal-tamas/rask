@@ -1,0 +1,186 @@
+<Project>
+
+  <!--
+    Rask.Spa.Hosting build integration: run the front end's own toolchain, then hand the result to the
+    ASP.NET host.
+
+      1. Resolve the client directory (an explicit property, or the .Server/.Client naming convention).
+      2. Probe for node, and say what to install if it isn't there.
+      3. `npm ci` — its own target with its own up-to-date check, because it is the expensive one.
+      4. `npm run build` — incremental against the client's sources.
+      5. Bake the dist path as assembly metadata so `app.UseRaskSpa()` resolves with no arguments.
+      6. On publish, copy the bundle next to the app. This is the step the WASM host does NOT have, and
+         its absence is a real gap there: a baked absolute path belongs to the machine that built it,
+         and inside a `rask deploy` container it names a directory that does not exist.
+
+    Everything below no-ops when no client is resolved, because this file is imported into EVERY
+    project of every consumer — same as Rask.Wasm.Hosting.targets.
+
+    TWO MSBuild rules shape all of this, and both were learned by breaking them here:
+
+      * Item-list references are illegal in a property Condition (MSB4099) — the same rule the WASM
+        hosting targets record.
+      * Properties are evaluated in an EARLIER PASS than items, so a property that reads @(SomeItem)
+        at evaluation time reads nothing at all. Silently: it produces an empty string, not an error.
+
+    Together those rule out an item-based declaration, because the derived paths have to be plain
+    properties: they feed the Inputs/Outputs of the targets below, and a target's Inputs cannot depend
+    on something an earlier target computed (its Condition is evaluated before its DependsOnTargets
+    even run). One client per host means per-item metadata bought nothing over properties anyway.
+  -->
+
+  <PropertyGroup>
+    <!-- An explicit directory wins, resolved against the project rather than the working directory. -->
+    <_RaskSpaDir Condition="'$(RaskSpaClientDir)' != ''"
+    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskSpaClientDir)'))</_RaskSpaDir>
+
+    <!--
+      Otherwise the convention: MyApp.Server looks for a sibling MyApp.Client. The package.json check
+      is what makes this safe to evaluate in every project of every solution — in this repo alone,
+      Rask.Cqrs.Server has a sibling Rask.Cqrs.Client, and without it every build of that project would
+      start looking for a bundler.
+    -->
+    <_RaskSpaConventionDir Condition="'$(_RaskSpaDir)' == '' AND $(MSBuildProjectName.EndsWith('.Server'))"
+    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../$(MSBuildProjectName.Replace(".Server",".Client"))'))</_RaskSpaConventionDir>
+
+    <_RaskSpaDir Condition="'$(_RaskSpaDir)' == '' AND '$(_RaskSpaConventionDir)' != '' AND Exists('$(_RaskSpaConventionDir)/package.json')"
+    >$(_RaskSpaConventionDir)</_RaskSpaDir>
+
+    <_RaskSpaDist Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaDistDir)</_RaskSpaDist>
+
+    <!-- `npm ci` needs the lockfile; a client that has never installed does not have one yet. -->
+    <_RaskSpaInstallCmd Condition="'$(_RaskSpaDir)' != '' AND Exists('$(_RaskSpaDir)/package-lock.json')"
+    >$(RaskSpaInstallCommand)</_RaskSpaInstallCmd>
+    <_RaskSpaInstallCmd Condition="'$(_RaskSpaDir)' != '' AND '$(_RaskSpaInstallCmd)' == ''"
+    >$(RaskSpaFirstInstallCommand)</_RaskSpaInstallCmd>
+
+    <!-- Whether any of the work below actually happens. Design-time builds are excluded: an IDE
+         reloading the project must never shell out to npm. -->
+    <_RaskSpaDoBuild
+      Condition="'$(_RaskSpaDir)' != '' AND '$(RaskSpaBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
+    >true</_RaskSpaDoBuild>
+  </PropertyGroup>
+
+  <!--
+    The client sources the bundler's output depends on.
+
+    This has to be an ItemGroup: a target's Inputs attribute does NOT expand wildcards, it treats the
+    pattern as a literal filename, decides it "does not exist", and rebuilds every single time. Item
+    globs do expand, so the list lives here and the target references @(_RaskSpaInput).
+
+    The globs are NARROW on purpose. A `**/*` over the client directory would enumerate node_modules —
+    tens of thousands of files — on every evaluation, which costs far more than the build it is trying
+    to skip.
+  -->
+  <ItemGroup Condition="'$(_RaskSpaDir)' != ''">
+    <_RaskSpaInput Include="$(_RaskSpaDir)/*.json;$(_RaskSpaDir)/*.ts;$(_RaskSpaDir)/*.js;$(_RaskSpaDir)/*.mjs;$(_RaskSpaDir)/*.html;$(_RaskSpaDir)/src/**/*;$(_RaskSpaDir)/public/**/*"
+                   Exclude="$(_RaskSpaDir)/$(RaskSpaDistDir)/**/*"/>
+    <_RaskSpaInstallInput Include="$(_RaskSpaDir)/package.json;$(_RaskSpaDir)/package-lock.json"/>
+  </ItemGroup>
+
+  <!--
+    Only fires for an EXPLICIT declaration. A convention match that finds no package.json is not an
+    error — it is the overwhelmingly common case of a project that simply has no front end — but a
+    directory somebody named by hand and got wrong is worth saying out loud.
+  -->
+  <Target Name="_RaskSpaValidate" BeforeTargets="BeforeBuild" Condition="'$(RaskSpaClientDir)' != ''">
+    <Error Condition="!Exists('$(_RaskSpaDir)/package.json')"
+           Code="RASKSPA003"
+           Text="Rask.Spa.Hosting: RaskSpaClientDir points at '$(_RaskSpaDir)', which has no package.json. Point it at the front-end project directory."/>
+  </Target>
+
+  <!--
+    Node is required only when a build is actually going to run, and the up-to-date checks below mean
+    that is not every build. Probing here rather than letting `npm` fail turns "command not found" into
+    a sentence naming what to install.
+  -->
+  <Target Name="_RaskSpaProbeNode" Condition="'$(_RaskSpaDoBuild)' == 'true'">
+    <Exec Command="node --version" ContinueOnError="true" IgnoreExitCode="true"
+          StandardOutputImportance="low" StandardErrorImportance="low" ConsoleToMSBuild="true">
+      <Output TaskParameter="ExitCode" PropertyName="_RaskSpaNodeExit"/>
+      <Output TaskParameter="ConsoleOutput" PropertyName="_RaskSpaNodeVersion"/>
+    </Exec>
+    <Error Condition="'$(_RaskSpaNodeExit)' != '0'"
+           Code="RASKSPA001"
+           Text="Rask.Spa.Hosting: building $([System.IO.Path]::GetFileName('$(_RaskSpaDir)')) needs Node.js, but 'node --version' did not run. Install Node.js $(RaskSpaMinimumNode) or newer from https://nodejs.org (macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your distro's nodejs package), then build again. To build the server WITHOUT the front end — the API still works and the site serves a 'nothing built yet' page — pass -p:RaskSpaBuild=false."/>
+  </Target>
+
+  <!--
+    Its own target with its own stamp, because `npm ci` deletes node_modules and costs tens of seconds:
+    it must not re-run for a source edit. node_modules/.package-lock.json is npm's own install marker
+    and is the honest output to compare against.
+  -->
+  <Target Name="_RaskSpaInstallDeps"
+          DependsOnTargets="_RaskSpaProbeNode"
+          Condition="'$(_RaskSpaDoBuild)' == 'true'"
+          Inputs="@(_RaskSpaInstallInput)"
+          Outputs="$(_RaskSpaDir)/node_modules/.package-lock.json">
+    <Message Importance="high" Text="Rask.Spa.Hosting: $(_RaskSpaInstallCmd) in $(_RaskSpaDir)"/>
+    <!-- IgnoreStandardErrorWarningFormat: npm writes deprecation notices and audit summaries to stderr
+         as a matter of course, and Exec turns any stderr line into MSB3077 even when the command
+         exited 0. The exit code is the only honest signal here. -->
+    <Exec Command="$(_RaskSpaInstallCmd)" WorkingDirectory="$(_RaskSpaDir)"
+          IgnoreStandardErrorWarningFormat="true"/>
+  </Target>
+
+  <!--
+    dist/index.html is listed first among the Outputs so that deleting dist by hand forces a rebuild
+    even though the stamp file survives.
+  -->
+  <Target Name="_RaskSpaBuildClient"
+          BeforeTargets="BeforeBuild"
+          DependsOnTargets="_RaskSpaInstallDeps"
+          Condition="'$(_RaskSpaDoBuild)' == 'true'"
+          Inputs="@(_RaskSpaInput)"
+          Outputs="$(_RaskSpaDist)/index.html;$(IntermediateOutputPath)rask-spa.build.stamp">
+    <Message Importance="high" Text="Rask.Spa.Hosting: $(RaskSpaBuildCommand) in $(_RaskSpaDir) ($(Configuration))"/>
+    <Exec Command="$(RaskSpaBuildCommand)" WorkingDirectory="$(_RaskSpaDir)"
+          IgnoreStandardErrorWarningFormat="true"/>
+    <Error Condition="!Exists('$(_RaskSpaDist)/index.html')"
+           Code="RASKSPA002"
+           Text="Rask.Spa.Hosting: '$(RaskSpaBuildCommand)' finished but '$(_RaskSpaDist)/index.html' is not there. Set RaskSpaDistDir to the bundler's real output directory (Angular nests it: dist/&lt;app&gt;/browser)."/>
+    <!-- BeforeBuild runs before the SDK has created obj/, so the stamp has nowhere to land yet. -->
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <Touch Files="$(IntermediateOutputPath)rask-spa.build.stamp" AlwaysCreate="true"/>
+  </Target>
+
+  <!--
+    Baked whenever a client is resolved, not only when it was built: `rask dev` skips the build, but the
+    running host still wants the dev-server URL to name in its "nothing built yet" page.
+  -->
+  <Target Name="_RaskSpaSetMetadata" BeforeTargets="GetAssemblyAttributes" Condition="'$(_RaskSpaDir)' != ''">
+    <ItemGroup>
+      <AssemblyMetadata Include="Rask.SpaDistDir" Value="$(_RaskSpaDist)"/>
+      <AssemblyMetadata Include="Rask.SpaClientDir" Value="$(_RaskSpaDir)"/>
+      <AssemblyMetadata Include="Rask.SpaDevServerUrl" Value="$(RaskSpaDevServerUrl)"
+                        Condition="'$(RaskSpaDevServerUrl)' != ''"/>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Publish-time only. Copying hundreds of bundle files into bin on every F5 would be pure waste, and at
+    runtime the baked path is right there on the developer's own disk. It is the published app that
+    needs its own copy, because the baked path names the build machine.
+  -->
+  <Target Name="_RaskSpaCollectPublishAssets"
+          AfterTargets="ComputeFilesToPublish"
+          DependsOnTargets="_RaskSpaBuildClient"
+          Condition="'$(_RaskSpaDist)' != '' AND Exists('$(_RaskSpaDist)')">
+    <ItemGroup>
+      <_RaskSpaDistFile Include="$(_RaskSpaDist)/**/*"/>
+      <!--
+        ResolvedFileToPublish, added AFTER ComputeFilesToPublish. Contributing ContentWithTargetPath
+        before it looks equivalent and silently publishes nothing: that item is derived from Content
+        during AssignTargetPaths, which has already run by then, so the entries are simply never
+        consumed. ResolvedFileToPublish is the list the publish copy actually walks.
+      -->
+      <ResolvedFileToPublish Include="@(_RaskSpaDistFile)">
+        <RelativePath>$(RaskSpaPublishDir)/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+    <Message Importance="high"
+             Text="Rask.Spa.Hosting: publishing @(_RaskSpaDistFile->Count()) file(s) from $(_RaskSpaDist) into $(RaskSpaPublishDir)/"/>
+  </Target>
+
+</Project>
