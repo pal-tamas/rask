@@ -6,8 +6,7 @@
 - **MDN:** [Performance API](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 ## See also
 

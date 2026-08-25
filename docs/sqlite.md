@@ -596,7 +596,6 @@ All three packages run in a container — with the same care the platform sectio
 
 ## SQLite on mobile (Rask.Native)
 
-A [`Rask.Native`](native.md) app runs your C# **natively on the device**, so it can talk to SQLite
 directly — and `Rask.SQLite`'s pragmas (WAL, `foreign_keys`, `busy_timeout`) all apply on the device's
 real sandbox filesystem. Two things make the **base `Rask.SQLite` package** the right choice here:
 

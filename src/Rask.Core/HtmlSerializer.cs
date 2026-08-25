@@ -425,19 +425,6 @@ internal static class HtmlSerializer
                     component.Boundary = liveCtx.CurrentBoundary;
                 }
 
-                // Native header/footer collection — only when the host opts in (the native host with an
-                // INativeChrome backend). Nothing is EVALUATED here: there is no Header/Footer override on
-                // Component, so this hands the already-built component to the session, which type-switches
-                // it (Rask.Core names no Rask.Native type). Which is why this sits outside the component's
-                // own parent scope while the Head collection had to move inside it — no user expression runs
-                // here, so nothing can take a positional identity from the wrong parent. Reporting pre-order,
-                // before the subtree walk, is what makes the deepest bar of each kind win. Pure no-op on
-                // Server/WASM: CollectsNativeChrome is false, so this never even runs.
-                if (liveCtx is not null && liveCtx.CollectsNativeChrome)
-                {
-                    liveCtx.CollectNativeChrome(component);
-                }
-
                 // Phase B: replay a cached clean subtree straight from its retained frame span instead
                 // of re-walking (and thus retaining) its Element object graph. Only clean, pure-element,
                 // handler-free subtrees were cached (see Component.TryCacheCleanSubtree); a dirty or
@@ -446,14 +433,6 @@ internal static class HtmlSerializer
                 // for its parent, so flag that.
                 if (frames is not null && component.TryReplayCleanSubtree(sb, frames, liveCtx))
                 {
-                    // Balance the enter reported above. Unreachable while collecting — TryCacheCleanSubtree
-                    // refuses to cache when collectsNativeChrome is set, so nothing can be replayed on a
-                    // native host — but the stream must stay balanced by construction, not by that argument.
-                    if (liveCtx is not null && liveCtx.CollectsNativeChrome)
-                    {
-                        liveCtx.CollectNativeChromeExit(component);
-                    }
-
                     _sawNestedComponent = true;
                     break;
                 }
@@ -508,38 +487,7 @@ internal static class HtmlSerializer
                             liveCtx.HeadAssets.Add(head);
                         }
 
-                        // A Screen's chrome slots. Walked inside the screen's own scope — so a bar button's
-                        // callback attributes back to the screen and re-renders it like any other callback.
-                        //
-                        // Walked on EVERY host, not just the native one. The Rask.Native bars render null, so
-                        // a native-only screen still contributes no HTML here; the portable Rask.Core bars
-                        // (HeaderBar / TabBar) render markup on the web hosts and null on native. That is what
-                        // lets one Screen subclass serve web and native — which it could not while these
-                        // overrides were read on the native host alone.
-                        var screenChrome = component as IScreenChrome;
-                        if (screenChrome is not null)
-                        {
-                            Serialize(screenChrome.HeaderBarSlot, sb);
-                            Serialize(screenChrome.ToolbarSlot, sb);
-                        }
-
-                        // The tab bar's position differs by host, and for two unrelated reasons. On the web it
-                        // is bottom navigation, so it belongs after the body. On a native head position in the
-                        // markup is meaningless (the bars emit nothing) but ORDER IS THE MERGE RULE: the
-                        // collector takes the last reported bar of each kind, which makes the deepest screen
-                        // win. Emitting it after the body would report a layout screen's tab bar after the
-                        // leaf's — inverting deepest-wins for that one slot.
-                        if (screenChrome is not null && liveCtx is { CollectsNativeChrome: true })
-                        {
-                            Serialize(screenChrome.TabBarSlot, sb);
-                        }
-
                         Serialize(rendered, sb);
-
-                        if (screenChrome is not null && liveCtx is not { CollectsNativeChrome: true })
-                        {
-                            Serialize(screenChrome.TabBarSlot, sb);
-                        }
                     }
                     finally
                     {
@@ -550,19 +498,11 @@ internal static class HtmlSerializer
                     }
                 }
 
-                // Close the enter reported before the walk. The native host reads the balanced stream as a
-                // pre-order traversal and rebuilds the native view tree from it.
-                if (liveCtx is not null && liveCtx.CollectsNativeChrome)
-                {
-                    liveCtx.CollectNativeChromeExit(component);
-                }
-
                 var hadNested = _sawNestedComponent;
                 if (frames is not null && frameStart >= 0)
                 {
                     component.TryCacheCleanSubtree(
-                        frames, frameStart, hadNested, liveCtx?.CollectsNativeChrome ?? false,
-                        forwardedKeyAtCapture, liveCtx);
+                        frames, frameStart, hadNested, forwardedKeyAtCapture, liveCtx);
                 }
 
                 // Mark that our parent's subtree now contains a user component (us).

@@ -6,8 +6,7 @@
 - **MDN:** [Web Bluetooth API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** subscription (pushes to a callback)
-- **Availability:** Web/Server ⬜ · PWA/WASM ✅ · Native ⬜
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ⬜ · PWA/WASM ✅
 
 WASM-only by design (stateful, activation-gated chooser).
 

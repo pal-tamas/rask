@@ -6,8 +6,7 @@
 - **MDN:** [WebSockets API](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 [`IWebRtc`](webrtc.md) deliberately doesn't pick a signaling channel — an app that already has one should
 use it. `ISignaling` is the channel for apps that don't, and it pairs with the **`Rask.Signaling`** package —

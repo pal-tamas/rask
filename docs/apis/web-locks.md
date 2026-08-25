@@ -6,8 +6,7 @@
 - **MDN:** [Web Locks API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** callback-scoped (holds a named lock for the lifetime of your callback)
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 `RequestAsync(name, work)` waits for the named lock, runs `work` while holding it, then releases — even
 if `work` throws. `TryRequestAsync(name, work)` uses `ifAvailable`: it returns `false` immediately

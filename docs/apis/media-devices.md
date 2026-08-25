@@ -6,8 +6,7 @@
 - **MDN:** [Media Capture and Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Media_Capture_and_Streams_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
-- **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
 Capture needs transient activation + a secure (HTTPS) context, so the imperative `IMediaDevices` service is WASM-only. On the **Server** host, use the declarative **`MediaCaptureTrigger`** component — point its `For:` at a `<video>`'s `ElementRef`, set `Audio` / `Video` / `FacingMode`, and its click starts the stream and attaches it to that element inside the gesture, posting `"granted"` / `"denied"` to `OnResult`.
 

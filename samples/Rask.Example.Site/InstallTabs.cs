@@ -6,9 +6,9 @@ namespace Rask.Example.Site;
 /// </summary>
 public sealed partial class InstallTabs : Component
 {
-    private int _active; // 0 = Server, 1 = WASM, 2 = Native
+    private int _active; // 0 = Server, 1 = WASM
 
-    private static readonly string[] Labels = ["Server", "WASM", "Native"];
+    private static readonly string[] Labels = ["Server", "WASM"];
 
     private Component Tab(int i) =>
         Button
@@ -28,12 +28,6 @@ public sealed partial class InstallTabs : Component
             Line("$", " dotnet tool install -g Rask.Cli"),
             Line("$", " rask new MyApp --template wasm --pwa"),
             Span.Class("prompt")["$"], " cd MyApp && rask dev"
-        ]],
-        2 => Pre[Code[
-            Span.Class("cmt")["# native iOS + Android app (WebView hybrid, preview)\n"],
-            Line("$", " dotnet tool install -g Rask.Cli"),
-            Line("$", " rask new MyApp --template native"),
-            Span.Class("prompt")["$"], " dotnet build \"-t:Build;Run\" -f net10.0-android"
         ]],
         _ => Pre[Code[
             Span.Class("cmt")["# ASP.NET live-server app\n"],

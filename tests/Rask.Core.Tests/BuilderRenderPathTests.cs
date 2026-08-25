@@ -81,31 +81,6 @@ internal sealed partial class MountBuildsHost : Component
     protected override Component? Render() => Div[Leaf = MountBuildsLeaf.Word("a")];
 }
 
-// A stand-in for a native bar: a component that renders no HTML and is picked out of the walk by the
-// session (Rask.Core names no Rask.Native type — the serializer hands every walked user component to
-// IRenderHandle.ReportNativeComponent and the native session classifies it). Built by its parent with a
-// chain that drops a prop on the second frame, the same shape the Head pair above uses.
-[global::Rask.Core.RaskMarkup]
-internal sealed partial class ChromeEntryBar : Component
-{
-    public string? Word { get; set; }
-
-    public string? Extra { get; set; }
-
-    protected override Component? Render() => null;
-}
-
-[global::Rask.Core.RaskMarkup]
-internal sealed partial class ChromeEntryHost : Component
-{
-    internal string Seed = "a";
-
-    internal ChromeEntryBar? Bar;
-
-    protected override Component? Render() =>
-        Div[Bar = Seed == "a" ? ChromeEntryBar.Word(Seed).Extra("keep").Value : ChromeEntryBar.Word(Seed)];
-}
-
 public partial class BuilderRenderPathTests : global::Rask.Core.RaskMarkup
 {
     // One live render, driven the way a parent whose own props moved would drive it, so the host
@@ -175,46 +150,7 @@ public partial class BuilderRenderPathTests : global::Rask.Core.RaskMarkup
     // own parent scope is pushed — but it is NOT the same bug, and this pins why. Head was a virtual the
     // serializer EVALUATED there, so a chain written inside a Head override ran in the enclosing
     // component's scope. Native chrome has no such override: Component declares no Header/Footer, and
-    // CollectNativeChrome only hands the already-built component to the session, which type-switches over
-    // it. No user expression runs at the collection point, so nothing can take an identity there.
-    //
-    // What DOES build the bars is the parent's ordinary Render() — the supported composition is a bar as
-    // a sibling of the WebView — so the ownership question is the ordinary one: the bar is reported to
-    // the session, and reset on time when the chain stops naming a prop. Runs on any host here (a fake
-    // handle opting into collection); the real projection is native-only and verifiable only on a device.
-    [Fact]
-    public void A_bar_built_by_an_entry_is_reported_and_reset()
-    {
-        var sp = RenderHarness.EmptyServices();
-        var builderChrome = new ChromeHandle();
-        var builder = new ChromeEntryHost { RenderHandle = builderChrome };
 
-        Assert.Equal("<div></div>", Render(builder, sp));
-
-        // Pre-order: the host is reported before the bar it composed, which is what makes "deepest wins".
-        Assert.Equal(new Component[] { builder, builder.Bar! }, builderChrome.Reported);
-        Assert.Equal("keep", builder.Bar!.Extra);
-
-        builder.Seed = "b";
-        builderChrome.Reported.Clear();
-        Render(builder, sp);
-
-        Assert.Null(builder.Bar!.Extra);
-        Assert.Equal(new Component[] { builder, builder.Bar }, builderChrome.Reported);
-    }
-
-    // Opts into the serializer's native-chrome collection and records what it is handed, in walk order.
-    // Rask.Core.Tests has InternalsVisibleTo, so it can implement IRenderHandle's internal members.
-    private sealed class ChromeHandle : IRenderHandle
-    {
-        internal List<Component> Reported { get; } = new();
-
-        public Task RequestRenderAsync() => Task.CompletedTask;
-
-        bool IRenderHandle.CollectsNativeChrome => true;
-
-        void IRenderHandle.ReportNativeComponent(Component component) => Reported.Add(component);
-    }
 
     // A lifecycle hook is user code and may build components; the commit that runs it is walking the
     // parent's child map, and building anything writes to that map.

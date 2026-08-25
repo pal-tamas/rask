@@ -6,8 +6,7 @@
 - **MDN:** [Origin private file system](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 Unlike [`IFileSystemAccess`](file-system-access.md) there is no picker and no user gesture. The app
 addresses files by path and reopens the same paths on every visit, which is what makes OPFS — not

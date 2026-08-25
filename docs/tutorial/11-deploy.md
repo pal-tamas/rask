@@ -93,7 +93,6 @@ Where to go next:
 - **Harden auth** → swap the demo credential store for a real one — [authentication](../authentication.md).
 - **Go deeper on any pillar** → [jobs](../jobs.md) · [mail](../mail.md) · [cache](../cache.md) ·
   [outbox](../outbox.md) · [CQRS](../cqrs.md) · [production SQLite](../sqlite.md).
-- **Add reach** → the same components as an installable [PWA](../pwa.md) or a [native](../native.md) app.
 - **See the roadmap** → what's shipped and what's next — [roadmap](../roadmap.md).
 
 **Learn more:** [deployment](../deployment.md) · [the `rask` CLI](../cli.md)

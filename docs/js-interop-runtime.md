@@ -107,7 +107,6 @@ transient activation has expired. The practical effect:
   reject with "Must be handling a user gesture"). `Rask.Native` can't reference the browser-targeted
   `Rask.Wasm`, so the WASM+Native-shared `IShare` lives in `Rask.Client`; on Native a platform head can
   register a native backend (`UIActivityViewController` / `Intent.ACTION_SEND`) that needs no activation —
-  see the [Native guide](native-devices.md#native-device-backends).
 - **`IBadge`** (app icon badge), **`IWakeLock`** (keep the screen awake), **`IScreenOrientation`**
   (read/lock orientation), **`IFullscreen`** (present an element/page fullscreen — like `IShare`,
   `requestFullscreen` needs transient activation), and **`IInstallPrompt`** (capture/replay the deferred

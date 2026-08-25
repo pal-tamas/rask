@@ -6,8 +6,7 @@
 - **MDN:** [MediaStream](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** — (WebView JS)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 A `MediaStream` can't cross interop, so the framework holds it in the browser under a
 [`MediaStreamId`](#the-id-is-the-currency) and C# passes the id around instead. `IMediaStreams` is what you

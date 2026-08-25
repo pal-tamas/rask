@@ -42,11 +42,10 @@ public class FormGuardClientContractTests
     public void Every_host_reports_the_change_value_through_the_shared_helper()
     {
         // #595's half of the same invariant. Each host computed the change frame's `value` itself, and
-        // all three got <select multiple> wrong in the same way — `select.value` is the FIRST selected
+        // both got <select multiple> wrong in the same way — `select.value` is the FIRST selected
         // option, so picking three reported one. The fix has to live in one place or the next control
         // with a non-obvious "current value" repeats it.
-        var native = Read("src", "Rask.Native", "Resources", "rask.native.js");
-        foreach (var js in new[] { ServerJs, WasmJs, native })
+        foreach (var js in new[] { ServerJs, WasmJs })
         {
             var dispatch = ChangeDispatch(js);
             Assert.Contains("raskChangeFrameValue(", dispatch, StringComparison.Ordinal);

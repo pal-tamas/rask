@@ -54,10 +54,6 @@ public sealed class LiveRenderContext : IDisposable
         HeadAssets = headAssets;
         MountedTypes = mountedTypes;
         _handle = root.RenderHandle;
-        // Snapshot once (a session-lifetime constant) so the per-component check in HtmlSerializer is a field
-        // read, not a virtual interface call — keeps the render hot path allocation- and dispatch-free on the
-        // non-native hosts, which never collect chrome.
-        _collectsNativeChrome = _handle?.CollectsNativeChrome ?? false;
         // One context IS one render pass, and a pass is exactly the scope over which each component
         // numbers its handler slots from 0. Stamping the generation here rather than in
         // RenderAsLiveRootCore covers every path that can register a handler — Begin is public, and a
@@ -68,8 +64,6 @@ public sealed class LiveRenderContext : IDisposable
         _current.Value = this;
         _syncCurrent = this;
     }
-
-    private readonly bool _collectsNativeChrome;
 
     internal bool IsActive { get; private set; } = true;
 
@@ -95,26 +89,10 @@ public sealed class LiveRenderContext : IDisposable
 
     internal RouteRenderState? Route { get; set; }
 
-    // Host-awareness axes forwarded from the owning session (the render handle), surfaced to components
-    // via Component.HostShell/HostEngine/HostPlatform. Constant for the session → safe to read from Render() without
-    // the render-cache ambient-state opt-out.
-    internal RenderShell Shell => _handle?.Shell ?? RenderShell.Web;
+    // The render engine, forwarded from the owning session (the render handle) and surfaced to components via
+    // Component.HostEngine. Constant for the session → safe to read from Render() without the render-cache
+    // ambient-state opt-out.
     internal RenderEngine Engine => _handle?.Engine ?? RenderEngine.Server;
-    internal RenderPlatform Platform => _handle?.Platform ?? RenderPlatform.None;
-
-    // Native-chrome collection, gated by the session so non-native hosts pay nothing. Called by HtmlSerializer
-    // for each user component during the pre-order walk; hands it to the session, which picks out the native bars
-    // composed in the tree (Rask.Core references no Rask.Native type) and keeps the last (deepest) of each kind.
-    internal bool CollectsNativeChrome => _collectsNativeChrome;
-
-    internal void CollectNativeChrome(Component component) => _handle?.ReportNativeComponent(component);
-
-    /// <summary>
-    ///     The closing half of <see cref="CollectNativeChrome" />, raised once the component's subtree has been
-    ///     walked. Together they give the native host a balanced pre-order stream it can rebuild a native view
-    ///     tree from — see <see cref="IRenderHandle.ReportNativeComponentExit" />.
-    /// </summary>
-    internal void CollectNativeChromeExit(Component component) => _handle?.ReportNativeComponentExit(component);
 
     public IServiceProvider? Services { get; }
 

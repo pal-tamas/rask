@@ -6,8 +6,7 @@
 - **MDN:** [SpeechRecognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription (pushes each result to a callback)
-- **Availability:** Web/Server ✅ (Chromium-only) · PWA/WASM ✅ (Chromium-only) · Native ✅ ★
-- **Native backend:** iOS `SFSpeechRecognizer` + `AVAudioEngine` / Android `SpeechRecognizer`
+- **Availability:** Web/Server ✅ (Chromium-only) · PWA/WASM ✅ (Chromium-only)
 
 The counterpart to [`ISpeechSynthesis`](speech-synthesis.md). Call `StartAsync(onResult, options)` from a
 user gesture — it prompts for microphone access and returns an `IAsyncDisposable`; dispose it to stop

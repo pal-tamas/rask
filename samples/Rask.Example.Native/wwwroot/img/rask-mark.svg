@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="22 6 80 108" width="64" height="64" role="img" aria-label="Rask">
-    <defs>
-        <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#7C3AED"/>
-            <stop offset="100%" stop-color="#512BD4"/>
-        </linearGradient>
-    </defs>
-    <path d="M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z" fill="url(#bolt)"/>
-</svg>

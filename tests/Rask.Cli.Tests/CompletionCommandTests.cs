@@ -98,14 +98,16 @@ public sealed class CompletionCommandTests
 
         await app.RunAsync(["completion", "bash"], CancellationToken.None);
 
-        // `--host` names a closed set under `new` and a free-form SSH target under `deploy`; the value
-        // completion has to sit inside the command's own branch or deploy would offer local/server.
+        // `--template` names a closed set under `new`; the value completion has to sit inside the
+        // command's own branch or every other command would offer template names too.
         var script = console.OutText;
         var newBranch = script.IndexOf("    new)", StringComparison.Ordinal);
-        var hostChoices = script.IndexOf("\"$prev\" = \"--host\"", StringComparison.Ordinal);
+        var templateChoices = script.IndexOf("\"$prev\" = \"--template\"", StringComparison.Ordinal);
         var deployBranch = script.IndexOf("    deploy)", StringComparison.Ordinal);
 
-        Assert.True(newBranch >= 0 && hostChoices > newBranch, "the --host value list belongs to `new`'s branch");
-        Assert.True(deployBranch > hostChoices, "and must not leak into `deploy`'s");
+        Assert.True(
+            newBranch >= 0 && templateChoices > newBranch,
+            "the --template value list belongs to `new`'s branch");
+        Assert.True(deployBranch > templateChoices, "and must not leak into `deploy`'s");
     }
 }

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-	<uses-permission android:name="android.permission.INTERNET"/>
-	<!-- Native + Server mode loads a local dev server over http (http://10.0.2.2:5080). Cleartext is a
-	     DEVELOPMENT convenience only — a real deployment is https and would not need this. -->
-	<application android:label="Rask Showcase" android:allowBackup="true" android:supportsRtl="true"
-	             android:usesCleartextTraffic="true"/>
-</manifest>

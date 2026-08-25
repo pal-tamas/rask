@@ -43,8 +43,6 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Chrome\Rask.Chrome.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
   </ItemGroup>
 
 </Project>

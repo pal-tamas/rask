@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pre-push gate: run the local browser-journey E2E and the CLI build gate before anything leaves the machine.
 #
-# The E2E suites (browser + on-device native) were moved OUT of CI — they run locally instead, and this
+# The E2E suites (browser) were moved OUT of CI — they run locally instead, and this
 # hook enforces the browser gate on push. Enable it once with:  git config core.hooksPath .githooks
 #
 # The CLI build gate is here too because it is the only thing proving the code `rask new` / `rask generate`

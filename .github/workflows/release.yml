@@ -9,38 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  # Rask.Native ships its iOS/Android platform heads (RaskWkWebView / RaskAndroidWebView / NativeShare /
-  # the Native+Server controllers), so its package must be built + packed on macOS with the mobile
-  # workloads (-p:RaskNativeHeads=true multi-targets net10.0;net10.0-ios;net10.0-android). It's produced
-  # here and handed to the publish job as an artifact.
-  pack-native:
-    # Pinned to macos-26 (not the moving macos-latest label) so the Microsoft.iOS workload lands on the
-    # matching Xcode SDK.
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0   # MinVer needs full history + tags to stamp the release version
-
-      - uses: ./.github/actions/setup
-        with:
-          workloads: ios android
-
-      - name: Pack Rask.Native (with iOS/Android heads)
-        run: >-
-          dotnet pack src/Rask.Native/Rask.Native.csproj -c Release
-          -p:RaskNativeHeads=true -p:ValidateXcodeVersion=false -o ./artifacts
-
-      - name: Upload Rask.Native package
-        uses: actions/upload-artifact@v7
-        with:
-          name: native-nupkgs
-          path: ./artifacts/Rask.Native.*.*nupkg
-
-  # Pack & publish: gated on the unit/integration suite being green (browser + on-device E2E run locally
-  # before push — see CONTRIBUTING.md / scripts/run-e2e-local.sh — and no longer in CI).
   publish:
-    needs: [pack-native]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -67,14 +36,6 @@ jobs:
 
       - name: Pack Rask.Wasm.Hosting
         run: dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
-
-      # Rask.Native is packed WITH its iOS/Android platform heads on macOS (the pack-native job) — this
-      # Ubuntu runner has no ios/android workloads. Pull that .nupkg/.snupkg into ./artifacts.
-      - name: Download Rask.Native package (macOS-built, with heads)
-        uses: actions/download-artifact@v8
-        with:
-          name: native-nupkgs
-          path: ./artifacts
 
       - name: Pack Rask.Validation.DataAnnotations
         run: dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts

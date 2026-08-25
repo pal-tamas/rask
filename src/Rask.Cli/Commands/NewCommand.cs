@@ -18,20 +18,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
 
-    /// <summary>
-    /// Where a native app's UI comes from (<c>--host</c>). <c>native</c> runs the components on the device;
-    /// the other two point a native shell at a Rask app you host and scaffold both halves as one solution.
-    /// The models and the copy that describes them live in <see cref="NativeModels" />, so the choice list,
-    /// the help text, the wizard, the post-scaffold summary and the generator cannot drift apart.
-    /// </summary>
-    private static readonly string[] NativeHosts = NativeModels.Ids;
-
-    /// <summary>
-    /// The platforms the native template can target (<c>--platform</c>, repeatable). Omitting it targets
-    /// both — the common case, and the one where leaving a platform out later costs nothing.
-    /// </summary>
-    private static readonly string[] NativePlatforms = ["ios", "android"];
-
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
     internal static readonly string[] FeatureFlags =
     [
@@ -57,7 +43,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         "rask new Api --template server --auth --docker",
         "rask new Blog --data --docker",
         "rask new Shop --all-batteries --auth --docker",
-        "rask new MyApp --template native --host server",
     ];
 
     public override ArgumentSchema? OptionSchema => CreateSchema();
@@ -68,8 +53,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
-            .Option("host", valueHint: "mode", description: "Native template only: where the UI comes from — 'native' runs the components on the device and works offline (default); 'server' and 'wasm-hosted' scaffold a native shell plus the Rask app it points at, and differ in what survives losing the network.", choices: NativeHosts)
-            .MultiOption("platform", valueHint: "name", description: "Native template only: a platform to target, repeatable (default: both). Only the chosen platforms get a TFM, a manifest and a head.", choices: NativePlatforms)
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
             .Flag("cqrs", description: "Wire up Rask.Cqrs. On 'wasm-hosted' this also makes the client dispatch to the server — no HttpClient, no endpoints to write.")
@@ -172,40 +155,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail($"Template '{template.Key}' does not support: {rejected}. Supported flags: {supported}.");
         }
 
-        // --host only applies to the native template (which mode to scaffold). Reject it elsewhere so a
-        // misplaced flag is a clear error rather than silently ignored.
-        var host = parsed.Option("host");
-        if (host is not null && template.Key != "native")
-        {
-            return Fail($"Template '{template.Key}' does not support --host. It applies only to the native template (--host {NativeModels.IdList}).");
-        }
-
-        var platforms = parsed.MultiOption("platform");
-        if (platforms.Count > 0 && template.Key != "native")
-        {
-            return Fail($"Template '{template.Key}' does not support --platform. It applies only to the native template (--platform ios|android).");
-        }
-
-        // Native is generated directly, but with its own shape: a --host choice, the platforms to target, a
-        // single package, and no feature flags. The values are declared choices, so they are already valid.
-        if (template.Key == "native")
-        {
-            host ??= "native";
-
-            // Naming neither is the default (both); naming one narrows to it. The parse normalises the
-            // spelling, so an ordinal comparison is enough here.
-            var ios = platforms.Count == 0 || platforms.Contains("ios", StringComparer.Ordinal);
-            var android = platforms.Count == 0 || platforms.Contains("android", StringComparer.Ordinal);
-
-            return await GenerateDirectAsync(
-                template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"),
-                parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"),
-                (dir, version) => ProjectGenerator.GenerateNative(dir, name, host, version, ios, android),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        // Every web template is generated directly by the CLI (server, wasm, wasm-hosted). native is handled
-        // above with its own shape; the key here is one of those three (validated by TemplateCatalog.TryGet).
+        // Every template is generated directly by the CLI (server, wasm, wasm-hosted); the key here is one
+        // of those three (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
             template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"),
             parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"),
@@ -305,45 +256,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         _ = TemplateCatalog.TryGet(templateKey, out var template);
 
-        if (templateKey == "native")
-        {
-            if (parsed.Option("host") is null)
-            {
-                filled.Add("--host");
-                // Each option states the three things that actually differ between the models — where the
-                // code runs, what works offline, what an edit costs — because those are the only grounds
-                // for choosing, and a chooser that hides them just defers the discovery to a deploy.
-                filled.Add(prompt.Select(
-                    "Where the app's UI comes from",
-                    [
-                        .. NativeModels.All.Select(m =>
-                            (m.Id, $"[bold]{m.Title}[/] [dim]— {m.TradeOff}[/]")),
-                    ],
-                    NativeModels.InProcess));
-            }
-
-            if (parsed.MultiOption("platform").Count == 0)
-            {
-                // A checklist, because both are ordinarily wanted and picking one is the exception. Ticking
-                // nothing means "both" rather than "no platforms" — an app targeting neither is not a thing
-                // to scaffold, so the empty answer is read as the default instead of as an error to correct.
-                var chosen = prompt.MultiSelect(
-                    "Platforms [dim](space to tick; none ticked = both)[/]",
-                    [
-                        ("android", "[bold]Android[/] [dim]— emulator or device, needs the android workload[/]"),
-                        ("ios", "[bold]iOS[/] [dim]— simulator or device, needs macOS + Xcode[/]"),
-                    ]);
-
-                foreach (var platform in chosen)
-                {
-                    filled.Add("--platform");
-                    filled.Add(platform);
-                }
-            }
-
-            WriteWizardSummary(filled, template);
-            return filled;
-        }
 
         // Styling. Asked as a choice rather than a "skip Bootstrap?" confirm, because both answers are a
         // real starting point and neither is a subtraction from the other.
@@ -428,55 +340,28 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         grid.AddRow(Label("📦", "Project"), new Text(args[0]));
         grid.AddRow(Label("🧩", "Type"), new Text(template.DisplayName));
 
-        if (template.Key == "native")
+        grid.AddRow(
+            Label("🎨", "Styling"),
+            new Text(args.Contains("--no-bootstrap", StringComparer.Ordinal) ? "plain elements" : "Rask.Bootstrap"));
+
+        if (batteries.Any(DataImplyingFlags.Select(f => f[2..]).Contains))
         {
-            var host = args
-                .SkipWhile(a => !a.Equals("--host", StringComparison.Ordinal))
-                .Skip(1)
-                .FirstOrDefault() ?? "native";
-
-            grid.AddRow(Label("📱", "UI from"), new Text(NativeHostSummary(host)));
-
-            var picked = args
-                .Select((a, i) => (a, i))
-                .Where(x => x.a.Equals("--platform", StringComparison.Ordinal) && x.i + 1 < args.Count)
-                .Select(x => args[x.i + 1])
-                .ToArray();
-
-            grid.AddRow(
-                Label("🤖", "Platforms"),
-                new Text(picked.Length == 0 ? "Android, iOS" : string.Join(", ", picked.Select(NativePlatformSummary))));
+            grid.AddRow(Label("🗄️", "Database"), new Text("SQLite (one file, no server)"));
         }
-        else
-        {
-            grid.AddRow(
-                Label("🎨", "Styling"),
-                new Text(args.Contains("--no-bootstrap", StringComparer.Ordinal) ? "plain elements" : "Rask.Bootstrap"));
 
-            if (batteries.Any(DataImplyingFlags.Select(f => f[2..]).Contains))
-            {
-                grid.AddRow(Label("🗄️", "Database"), new Text("SQLite (one file, no server)"));
-            }
+        grid.AddRow(
+            Label("🐳", "Docker"),
+            new Text(batteries.Contains("docker") ? "yes" : "no"));
 
-            grid.AddRow(
-                Label("🐳", "Docker"),
-                new Text(batteries.Contains("docker") ? "yes" : "no"));
-
-            grid.AddRow(
-                Label("🔋", "Batteries"),
-                new Text(batteries.Where(b => b != "docker").ToArray() is { Length: > 0 } rest
-                    ? string.Join(", ", rest)
-                    : "none"));
-        }
+        grid.AddRow(
+            Label("🔋", "Batteries"),
+            new Text(batteries.Where(b => b != "docker").ToArray() is { Length: > 0 } rest
+                ? string.Join(", ", rest)
+                : "none"));
 
         var ansi = Console.Ansi;
         ansi.WriteLine();
         ansi.Write(new RaggedRight(new Padder(grid, new Padding(1, 0, 0, 1))));
-
-        static string NativePlatformSummary(string platform) =>
-            platform.Equals("ios", StringComparison.Ordinal) ? "iOS" : "Android";
-
-        static string NativeHostSummary(string host) => NativeModels.For(host).Summary;
 
         Text Label(string emoji, string text) =>
             new(Branding.Label(Console, emoji, text), ConsoleStyling.Of(ConsoleStyle.Dim));

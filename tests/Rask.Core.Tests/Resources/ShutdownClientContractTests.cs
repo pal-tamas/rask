@@ -15,7 +15,6 @@ public class ShutdownClientContractTests
 
     private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.js");
     private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.js");
-    private static string NativeJs => Read("src", "Rask.Native", "Resources", "rask.native.js");
 
     [Fact]
     public void The_server_client_handles_the_shutdown_frame_and_returns()
@@ -268,23 +267,21 @@ public class ShutdownClientContractTests
     [Fact]
     public void Only_the_server_dialect_restores_fields()
     {
-        // Same asymmetry as the shutdown frame below, for the same reason: neither WASM nor Native has a
-        // server whose redeploy could reload them. The dirty-field CAPTURE is shared (it rides in
-        // rask-morph.js / rask-input.js so the three clients can't drift), but nothing reads it there.
+        // Same asymmetry as the shutdown frame below, for the same reason: WASM has no server whose
+        // redeploy could reload it. The dirty-field CAPTURE is shared (it rides in rask-morph.js /
+        // rask-input.js so the two clients can't drift), but nothing reads it there.
         Assert.Contains("function saveRestoreFields", ServerJs, StringComparison.Ordinal);
         Assert.DoesNotContain("rask:restore:fields", WasmJs, StringComparison.Ordinal);
-        Assert.DoesNotContain("rask:restore:fields", NativeJs, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Only_the_server_dialect_branches_on_the_shutdown_frame()
     {
         // Same asymmetry as the hotReload contract, for the same reason: WASM runs the session
-        // in-browser and Native is fed by its host over the WebView bridge, so neither has a server
-        // whose shutdown could reach them. Neither file contains a WebSocket at all.
+        // in-browser, so it has no server whose shutdown could reach it — its file contains no
+        // WebSocket at all.
         Assert.Contains("data.type === \"shutdown\"", ServerJs, StringComparison.Ordinal);
         Assert.DoesNotContain("\"shutdown\"", WasmJs, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"shutdown\"", NativeJs, StringComparison.Ordinal);
     }
 
     private static string Read(params string[] parts) =>

@@ -6,8 +6,7 @@
 - **MDN:** [SpeechSynthesis](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
-- **Native backend:** AVSpeechSynthesizer / TextToSpeech
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 The native backend uses the platform TTS voices (WKWebView speech is unreliable).
 

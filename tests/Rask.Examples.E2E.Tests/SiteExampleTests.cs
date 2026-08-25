@@ -49,8 +49,8 @@ public sealed class SiteExampleTests
             // The install tabs are Rask state too — switching re-renders the selected terminal.
             await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "WASM" }).ClickAsync();
             await Expect(page.Locator(".term")).ToContainTextAsync("rask new MyApp --template wasm");
-            await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "Native" }).ClickAsync();
-            await Expect(page.Locator(".term")).ToContainTextAsync("net10.0-android");
+            await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "Server" }).ClickAsync();
+            await Expect(page.Locator(".term")).ToContainTextAsync("rask new MyApp");
 
             // The page opens on the chain animation, before it says anything about the framework. The
             // adjacent-sibling selector is the assertion: it only matches if the animation's box comes

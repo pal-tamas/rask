@@ -6,8 +6,7 @@
 - **MDN:** [Badging API](https://developer.mozilla.org/en-US/docs/Web/API/Badging_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
-- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅ ★
-- **Native backend:** SetBadgeCount / badge notification
+- **Availability:** Web/Server ✅ · PWA/WASM ✅
 
 `setAppBadge` needs an installed PWA instance. In the native shell it resolves to the real app-icon badge:
 iOS uses `UNUserNotificationCenter.SetBadgeCount` (numeric only — there is no numberless dot, so `SetAsync(null)`
