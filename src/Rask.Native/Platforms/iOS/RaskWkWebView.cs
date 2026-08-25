@@ -5,6 +5,8 @@ using Foundation;
 using UIKit;
 using WebKit;
 
+using Rask.Chrome;
+
 namespace Rask.Native;
 
 /// <summary>
@@ -84,9 +86,20 @@ public sealed partial class RaskWkWebView : NSObject, INativeWebView, IWKScriptM
             // Assigned here rather than in the constructor so an app that never uses a Url keeps exactly the
             // behaviour it had: no delegate, no policy, nothing to go wrong.
             View.NavigationDelegate = this;
-            View.LoadRequest(new NSUrlRequest(new NSUrl(url.ToString())));
+            View.LoadRequest(ShellRequest(url));
         });
         return default;
+    }
+
+    // Every load of the declared origin announces the shell, so the app on the other end renders its bars as
+    // a descriptor for this process to draw instead of as HTML inside the WebView. Without the header the
+    // page paints its own bars and the user sees two.
+    private static NSMutableUrlRequest ShellRequest(Uri url)
+    {
+        var request = new NSMutableUrlRequest(new NSUrl(url.ToString()));
+        request.Headers = NSDictionary.FromObjectAndKey(
+            new NSString(NativeShellProtocol.NativeShell), new NSString(NativeShellProtocol.ShellHeader));
+        return request;
     }
 
     // The page loaded from a Url gets the capability bridge, so it can reach the device backends this app
@@ -114,9 +127,25 @@ public sealed partial class RaskWkWebView : NSObject, INativeWebView, IWKScriptM
 
         // Only http/https is policed, and only once a remote origin exists: the boot shell rides the custom
         // scheme, and about:blank arrives before any of this.
-        if (_remoteOrigin is not { } origin || !isWeb
-            || NativeCapabilities.IsTrustedOrigin(origin, url?.AbsoluteString))
+        if (_remoteOrigin is not { } origin || !isWeb)
         {
+            decisionHandler(WKNavigationActionPolicy.Allow);
+            return;
+        }
+
+        if (NativeCapabilities.IsTrustedOrigin(origin, url?.AbsoluteString))
+        {
+            // A reload or a redirect issues its own request, and WebKit does not carry our header onto it.
+            // Re-issue it once, with the header, so the document comes back as native chrome rather than as
+            // HTML bars. Loop-free: the replacement request has the header, so it takes the Allow below.
+            if (navigationAction.TargetFrame?.MainFrame == true
+                && navigationAction.Request.Headers?[NativeShellProtocol.ShellHeader] is null)
+            {
+                decisionHandler(WKNavigationActionPolicy.Cancel);
+                DispatchQueue.MainQueue.DispatchAsync(() => webView.LoadRequest(ShellRequest(new Uri(url!.AbsoluteString!))));
+                return;
+            }
+
             decisionHandler(WKNavigationActionPolicy.Allow);
             return;
         }

@@ -16,7 +16,7 @@ namespace Rask.Wasm;
 // the Server host. WasmLiveSession adds the in-process transport: the JSImport ApplyRender push,
 // the single dispatch lock, the route-auth guard, the navigate/dispatch handlers, and the byte[]-
 // per-frame model the JSExport boundary needs.
-internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
+internal sealed partial class WasmLiveSession : LiveSessionBase, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
 

@@ -1034,6 +1034,16 @@ public static partial class RaskEndpointExtensions
                     continue;
                 }
 
+                if (hasType && t.ValueEquals("nativeTap"u8))
+                {
+                    // A press on a real platform bar this session described. The callback lives here, in
+                    // the app's C#, so the tap has to come back to run it — and it re-renders afterwards
+                    // like any other event, because a bar button that changes state must repaint the page
+                    // it changed.
+                    await DispatchChromeTapAsync(session, root, ct).ConfigureAwait(false);
+                    continue;
+                }
+
                 if (hasType && t.ValueEquals("jsResult"u8))
                 {
                     // Round-trip reply for an IJSRuntime.InvokeAsync<T> call. The base
@@ -1223,6 +1233,81 @@ public static partial class RaskEndpointExtensions
         catch
         {
             // Swallow: the client re-syncs on the next ack or its hard-timeout backstop.
+        }
+    }
+
+    /// <summary>
+    ///     Run the callback behind a native bar item the user pressed on a platform bar this session
+    ///     described.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately not a shortcut past <see cref="DispatchHandlerAsync" />'s protections. A bar button
+    ///     is an event like any other: it takes the session lock (so it cannot interleave with a render and
+    ///     read a half-swapped handler table), it re-checks the route's authorization (a user whose access
+    ///     was revoked mid-session must not fire a handler from the bar either), and its
+    ///     <c>Navigator.NavigateTo</c> must reach the client — which only happens if the history entry the
+    ///     handler pushed is consumed and carried into the render.
+    /// </remarks>
+    private static async Task DispatchChromeTapAsync(
+        LiveSession session, JsonElement root, CancellationToken ct)
+    {
+        var id = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
+            ? idEl.GetString()
+            : null;
+
+        if (string.IsNullOrEmpty(id))
+        {
+            return;
+        }
+
+        try
+        {
+            await session.Lock.WaitAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        session.InHandlerScope = true;
+        try
+        {
+            if (!await IsCurrentRouteAuthorizedAsync(session).ConfigureAwait(false))
+            {
+                await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
+                return;
+            }
+
+            var navigator = session.Services.GetRequiredService<Navigator>();
+            using (navigator.EnterHandler())
+            {
+                // A tap whose id no longer resolves is not an error — the bar it came from has since been
+                // replaced, and the press raced the swap. Doing nothing is the right answer.
+                if (!session.TryRunChromeTap(id))
+                {
+                    return;
+                }
+
+                string? historyUrl = null;
+                var historyReplace = false;
+                if (navigator.TryConsumeHistory(out var url, out var replace))
+                {
+                    historyUrl = url;
+                    historyReplace = replace;
+                }
+
+                await EnforceAuthAndRenderAsync(session, historyUrl, historyReplace).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Live", $"Rask Live native bar tap '{id}' threw", ex);
+        }
+        finally
+        {
+            session.InHandlerScope = false;
+            session.Lock.Release();
         }
     }
 

@@ -7,6 +7,8 @@ using Rask.Native.Components;
 using UIKit;
 using WebKit;
 
+using Rask.Chrome;
+
 namespace Rask.Native;
 
 // The iOS INativeChrome backend: projects a NativeChromeDescriptor to a real UINavigationBar (top) and a

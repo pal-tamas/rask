@@ -8,6 +8,8 @@ using Android.Webkit;
 using Android.Widget;
 using Rask.Native.Components;
 
+using Rask.Chrome;
+
 namespace Rask.Native;
 
 // The Android INativeChrome backend: projects a NativeChromeDescriptor to a top bar and a bottom tab bar /

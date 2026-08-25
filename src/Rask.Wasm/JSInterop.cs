@@ -49,6 +49,18 @@ internal static partial class JSInterop
     public static Task ImportJsModuleAsync() =>
         JSHost.ImportAsync(ModuleName, "../rask.wasm.js");
 
+    /// <summary>
+    ///     A press on a bar the native shell drew for this app.
+    /// </summary>
+    /// <remarks>
+    ///     Separate from <see cref="Dispatch" /> because it is not a DOM event and has no handler id in the
+    ///     rendered tree — the bar is not in this page at all. Only the session's chrome table can say what
+    ///     the press means.
+    /// </remarks>
+    [JSExport]
+    public static Task NativeTap(string id) =>
+        _session is null ? Task.CompletedTask : _session.DispatchChromeTapAsync(id);
+
     [JSExport]
     public static async Task Dispatch(byte[] json)
     {
@@ -156,6 +168,18 @@ internal static partial class JSInterop
     [JSImport("hotReloadApplied", ModuleName)]
     public static partial void HotReloadApplied();
 
+    /// <summary>
+    ///     What kind of shell this page is displayed in — <c>"native"</c> when a native head injected its
+    ///     bridge, empty in an ordinary browser.
+    /// </summary>
+    /// <remarks>
+    ///     A WASM app cannot be told this by a request header the way a server-rendered one is: it boots
+    ///     inside the page, long after the document was fetched. The shell states it on the window instead,
+    ///     before any of this app's script runs.
+    /// </remarks>
+    [JSImport("getShell", ModuleName)]
+    public static partial string GetShell();
+
     [JSImport("getLocation", ModuleName)]
     public static partial string GetLocation();
 
@@ -217,6 +241,17 @@ internal static partial class JSInterop
     }
 
     public static void ApplyRender(Span<byte> payload) { }
+    /// <summary>
+    ///     Non-browser stub for the shell kind. Settable so a test can exercise the native-shell render path
+    ///     — the branch where the bars describe themselves instead of emitting HTML — without a WebView.
+    /// </summary>
+    public static string ShellForTests { get; set; } = "";
+
+    public static string GetShell() => ShellForTests;
+
+    public static Task NativeTap(string id) =>
+        _session is null ? Task.CompletedTask : _session.DispatchChromeTapAsync(id);
+
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
     public static void PushHistory(string url, bool replace) { }

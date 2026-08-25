@@ -239,6 +239,12 @@
             // page instead of telling us to reload. A server that DOES know it ignores the field
             // entirely — the intact session is always the better outcome, and is what a normal
             // reconnect within the grace period gets.
+            // A native shell draws this page's bars as real platform chrome, and echoes a press back
+            // here. Forward it to the session that owns the callback — the bar was declared in C# on the
+            // server, so that is the only place the OnClick exists.
+            window.__raskChromeTap = function (id) {
+                send({type: "nativeTap", id: id});
+            };
             const hello = {type: "hello", session: sessionId};
             if (resumeToken) hello.resume = resumeToken;
             ws.send(JSON.stringify(hello));

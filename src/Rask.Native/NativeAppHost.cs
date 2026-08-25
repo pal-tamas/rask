@@ -391,9 +391,32 @@ public sealed class NativeAppHost
                 }
 
                 return;
+            case "chrome":
+                // Bars described by a REMOTE session. In URL mode this head's WebView is showing an app that
+                // runs elsewhere — on a server, or as a hosted WASM bundle — and that app's Screen declared
+                // the bars. It cannot draw them: only this process can touch a UINavigationBar or a
+                // BottomNavigationView. So it sends the descriptor, and the head applies it through the same
+                // INativeChrome the in-process session uses. One chrome path, two sources.
+                await NativeShellChrome
+                    .TryApplyAsync(json, app.Services.GetService<INativeChrome>())
+                    .ConfigureAwait(false);
+                return;
             case "nativeTap":
                 // A native bar-button tap — invoke its OnClick and re-render (tabs arrive as "navigate" and
                 // flow through DispatchAsync's default path below).
+                //
+                // The bar may belong to a remote session instead, in which case the OnClick does not exist in
+                // this process at all. Hand it back to the page, which forwards it over its own transport to
+                // the session that does own it. Checked before dispatching rather than after: an unmatched id
+                // and a handler that threw both come back as an empty frame, and forwarding a tap that ALREADY
+                // ran would run it twice.
+                if (!app.Session.OwnsChromeTap(root) && evaluate is not null
+                    && NativeShellChrome.TapScriptFor(json) is { } forward)
+                {
+                    await evaluate(forward).ConfigureAwait(false);
+                    return;
+                }
+
                 await app.Session.DispatchNativeTapAsync(json).ConfigureAwait(false);
                 return;
             case "back":

@@ -21,7 +21,7 @@ namespace Rask.Server;
 // Render/diff/payload pipeline + the IJSRuntime queue live in LiveSessionBase (Core), shared with
 // the WASM host. LiveSession adds the WebSocket transport: the socket lifecycle, reconnect/force-
 // resend, the dispatch lock, out-of-band sends, and the zero-copy double-buffered send dedup.
-internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposable
+internal sealed partial class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposable
 {
     // Which shell this session is rendering into. Web unless a native head said otherwise — see
     // UseNativeShell. Held as a field rather than a constant override because it is not a property of the

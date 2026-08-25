@@ -5,6 +5,8 @@ using Android.Content;
 using Android.Webkit;
 using Java.Interop;
 
+using Rask.Chrome;
+
 namespace Rask.Native;
 
 /// <summary>
@@ -61,6 +63,14 @@ public sealed partial class RaskAndroidWebView : INativeWebView, INativeChrome
     private Uri? _remoteOrigin;
 
     /// <inheritdoc />
+    // Announces the shell on every load of the declared origin, so the app on the other end describes its
+    // bars for this process to draw rather than rendering them as HTML the user would see twice.
+    internal static IDictionary<string, string> NativeShellHeaders { get; } =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [NativeShellProtocol.ShellHeader] = NativeShellProtocol.NativeShell,
+        };
+
     public ValueTask LoadUrlAsync(Uri url)
     {
         ArgumentNullException.ThrowIfNull(url);
@@ -72,7 +82,7 @@ public sealed partial class RaskAndroidWebView : INativeWebView, INativeChrome
             // client it had. The asset interceptor is still wanted: scoped CSS/JS and the app's own bundled
             // files are served from the app origin regardless of what the page is.
             _webView.SetWebViewClient(new ShowcaseWebViewClient(_origin, _readStaticFile, url, Capabilities));
-            _webView.LoadUrl(url.ToString());
+            _webView.LoadUrl(url.ToString(), NativeShellHeaders);
         });
         return default;
     }
@@ -164,8 +174,24 @@ internal sealed class ShowcaseWebViewClient(
     public override bool ShouldOverrideUrlLoading(WebView? view, IWebResourceRequest? request)
     {
         var url = request?.Url?.ToString();
-        if (remoteOrigin is not { } trusted || url is null || NativeCapabilities.IsTrustedOrigin(trusted, url))
+        if (remoteOrigin is not { } trusted || url is null)
         {
+            return base.ShouldOverrideUrlLoading(view, request);
+        }
+
+        if (NativeCapabilities.IsTrustedOrigin(trusted, url))
+        {
+            // A reload or a redirect issues its own request and WebView does not carry our header onto it.
+            // Re-issue it once, with the header, so the document comes back describing native chrome instead
+            // of painting HTML bars. Loop-free: the replacement request carries the header.
+            if (view is not null
+                && request!.IsForMainFrame
+                && request.RequestHeaders?.ContainsKey(NativeShellProtocol.ShellHeader) != true)
+            {
+                view.LoadUrl(url, RaskAndroidWebView.NativeShellHeaders);
+                return true;
+            }
+
             return base.ShouldOverrideUrlLoading(view, request);
         }
 

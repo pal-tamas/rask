@@ -3492,6 +3492,13 @@ export function setExports(exports) {
         console.error("[Rask] setExports: the .NET Dispatch export is unreachable — no event will "
             + "reach the app. Exports:", exports);
     }
+    // A native shell draws this app's bars itself and sends a press back here. Route it to the session
+    // that owns the callback — the bar was declared in this app's C#, so the OnClick exists nowhere else.
+    // Wired here rather than at module load because it needs the export it calls.
+    window.__raskChromeTap = function (id) {
+        if (ok) { exports.Rask.Wasm.JSInterop.NativeTap(id); }
+    };
+
     // Initial sweep for Head-declared external assets emitted by the browser's
     // index.html (and any subsequent applyRender will re-sweep so morph-added
     // assets get picked up too — see applyDom in handle()).
@@ -3676,6 +3683,13 @@ function decodeBase64(b64) {
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
+}
+
+// Whether this page is running inside a native shell that will draw the app's bars as real platform
+// chrome. Set by the shell's injected bridge before any of this app's script runs; absent in an ordinary
+// browser, which is the answer that matters — a plain tab must render its bars as HTML as it always has.
+export function getShell() {
+    return typeof window.__raskShell === "string" ? window.__raskShell : "";
 }
 
 export function getLocation() {

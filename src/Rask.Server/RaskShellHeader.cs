@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Rask.Chrome;
 
 namespace Rask.Server;
 
@@ -21,10 +22,10 @@ namespace Rask.Server;
 internal static class RaskShellHeader
 {
     /// <summary>The header a native head sends. Named for the framework so nothing else collides with it.</summary>
-    public const string Name = "X-Rask-Shell";
+    public const string Name = NativeShellProtocol.ShellHeader;
 
     /// <summary>The one value that means anything today.</summary>
-    public const string NativeValue = "native";
+    public const string NativeValue = NativeShellProtocol.NativeShell;
 
     /// <summary>
     ///     Whether this request came from a native shell. Unknown values read as "no": a header this server

@@ -818,6 +818,22 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     ///     <see cref="DispatchAsync" />. Returns the sent frame bytes (the test seam). A tab tap arrives as a
     ///     <c>navigate</c> message and flows through <see cref="HandleNavigateAsync(JsonElement)" /> instead.
     /// </summary>
+    /// <summary>
+    ///     Whether a <c>{"type":"nativeTap","id":...}</c> names a bar item THIS session described.
+    /// </summary>
+    /// <remarks>
+    ///     Asked so a tap on a remote app's bar can be forwarded rather than swallowed. Both sessions mint
+    ///     ids the same way, so the id alone does not say who owns it - the handler table does.
+    /// </remarks>
+    internal bool OwnsChromeTap(JsonElement root)
+    {
+        var id = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
+            ? idEl.GetString()
+            : null;
+
+        return id is not null && _chromeTapHandlers.ContainsKey(id);
+    }
+
     public async Task<byte[]> DispatchNativeTapAsync(byte[] json)
     {
         if (json is null || json.Length == 0)

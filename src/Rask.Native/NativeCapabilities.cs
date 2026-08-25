@@ -73,6 +73,13 @@ public static partial class NativeCapabilities
                     else if (window.__raskBridge && typeof window.__raskBridge.dispatch === "function") { window.__raskBridge.dispatch(s); }
                 }
                 var n = window.__raskNative = window.__raskNative || {};
+
+                // How a page that renders in the BROWSER learns it is inside a native shell. A Rask Server
+                // app is told by a request header, because its document is built before any script runs; a
+                // WASM app has no such moment - it boots here, in this page, after this script. So the shell
+                // states it as a fact on the window, and the WASM session reads it while deciding whether to
+                // draw its bars as HTML or describe them for the platform to draw.
+                window.__raskShell = "native";
                 n.capabilities = [__CAPS__];
                 n.has = function (name) { return n.capabilities.indexOf(name) !== -1; };
 
@@ -116,6 +123,22 @@ public static partial class NativeCapabilities
                     }
                     cb(value);
                 };
+                // Chrome. The session that rendered the bars is on the server, so it describes them and
+                // sends the descriptor here as an ordinary JS invoke; this hands it to the head, which
+                // applies it through the same INativeChrome path the in-process model has always used.
+                //
+                // Fire-and-forget on purpose: the page has nothing to do with the answer, and making the
+                // render wait on a bar being drawn would put platform UI on the render's critical path.
+                n.applyChrome = function (json) {
+                    send(JSON.stringify({ type: "chrome", data: json }));
+                };
+
+                // The head echoes a bar tap back here; the page forwards it to the session that owns the
+                // callback. Without this a platform bar would render and do nothing when pressed.
+                n.chromeTap = function (id) {
+                    if (typeof window.__raskChromeTap === "function") { window.__raskChromeTap(id); }
+                };
+
                 n.capabilityResult = function (json) {
                     var msg;
                     try { msg = JSON.parse(json); } catch (e) { return; }

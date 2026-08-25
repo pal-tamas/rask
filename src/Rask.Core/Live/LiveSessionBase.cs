@@ -81,6 +81,17 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // drops out). Base is a no-op.
     protected virtual void OnBeforeRenderWalk() { }
 
+    /// <summary>
+    ///     Called once the render walk has finished and everything it collected is known — the closing half
+    ///     of <see cref="OnBeforeRenderWalk" />.
+    /// </summary>
+    /// <remarks>
+    ///     Runs before the payload is built, deliberately. A host that reacts to what the walk collected —
+    ///     native chrome, say — usually wants to send something as part of the SAME frame, and anything
+    ///     queued after the payload exists has missed it and arrives a render late.
+    /// </remarks>
+    protected virtual void OnAfterRenderWalk() { }
+
     protected LiveSessionBase(Component view, IServiceProvider services, LiveDiffMode diffMode)
     {
         View = view;
@@ -269,6 +280,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
             // Render into the session's reused char buffer (no per-update page string); the caller
             // consumes the chars synchronously before the next render overwrites them.
             View.RenderAsLiveRootInto(Services, publishOnly, _htmlBuffers);
+            OnAfterRenderWalk();
             return _htmlBuffers.Current;
         }
         finally
