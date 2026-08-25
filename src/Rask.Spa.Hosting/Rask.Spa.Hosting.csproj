@@ -36,6 +36,13 @@
 
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
+    <!--
+      The TypeScript client, shipped as source the way Rask.Wasm ships Browser/main.js. It is written
+      into a scaffolded client by `rask new` and refreshed on build while its header line is intact,
+      so upgrading the package upgrades the client. Not published to npm: that would mean a second
+      release train to keep wire-locked to this one, for ~400 lines.
+    -->
+    <None Include="client\**" Pack="true" PackagePath="client\"/>
   </ItemGroup>
 
 </Project>
