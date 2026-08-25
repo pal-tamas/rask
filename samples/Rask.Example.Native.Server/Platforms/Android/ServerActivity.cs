@@ -1,7 +1,6 @@
 using Android.App;
 using Android.OS;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Client.Browser;
 using Rask.Native;
 
 namespace Rask.Example.Native.Server;
@@ -39,9 +38,11 @@ public class ServerActivity : Activity
     private async Task StartAsync(RaskAndroidWebView webView)
     {
         var host = NativeAppHost.CreateDefault();
-        // The remote page reaches the device backends through the capability bridge, so registering them
-        // here is what gives that page a real Android share chooser.
-        host.Services.AddSingleton<IShare>(_ => new NativeShare(this));
+        // UsePlatform, not a hand-picked service or two. The remote page reaches these through the
+        // capability bridge, and the bridge advertises exactly what the platform module registered — so
+        // registering IShare by hand would give the page ONE backend and leave the other fourteen falling
+        // back to the WebView's JS, which is the gap #778 exists to close.
+        host.UsePlatform(new AndroidPlatform(this));
         host.Services.AddSingleton<INativeChrome>(webView);
         host.Services.AddSingleton(new ServerOrigin(ServerUrl));
 

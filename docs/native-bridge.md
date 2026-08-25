@@ -61,6 +61,48 @@ generated head injects `BridgeScript` only for your origin and opens off-origin 
 leaves your origin and no other page can reach native; the bridge is a fixed component envelope, not open
 native RPC. (For a local `http://10.0.2.2:<port>` dev server, allow cleartext in `AndroidManifest.xml`.)
 
+### Every native backend, in every model
+
+The bridge is not a share channel with room for more — all fifteen backends are reachable through it, in
+every model. A page running as a *server* app inside the shell calls `IGeolocation`, `IBadge`, `IClipboard`
+and the rest exactly as it does on the web, and the native implementation answers.
+
+Three things make that work:
+
+- **The head advertises what it actually backs.** `window.__raskNative.capabilities` is derived from what
+  the platform module registered — probing its own `Register` — so adding a sixteenth backend advertises
+  it with nothing else to edit, and a head with no platform module advertises nothing and the page keeps
+  using its own web APIs. There is no `IsNative` branch in app code either way.
+- **An invoke returns a value.** The envelope carries a correlation id and the host answers on
+  `window.__raskNative.capabilityResult`, so `invoke` is a promise. Twenty-two of the thirty-five members
+  across the fifteen interfaces return something; before this leg existed none of them could cross.
+- **Streams work too.** The six pushing members — the geolocation and battery watches, the two sensor
+  streams, speech recognition, and the wake lock's held sentinel — hand back an `IAsyncDisposable` that a
+  JSON envelope cannot carry, so the handle stays native-side and the page refers to it by id.
+
+```js
+// One-shot: a promise, resolved by the native backend.
+const position = await window.__raskNative.invoke("geolocation", "getCurrentPosition", { enableHighAccuracy: true });
+
+// A stream: the page mints the id, so a reading that beats the reply still has somewhere to land.
+const sub = await window.__raskNative.subscribe("battery", "watch", null, reading => { /* … */ });
+await window.__raskNative.unsubscribe("battery", "unwatch", sub);
+```
+
+The readings still reach your C# through the page's own `DotNet.invokeMethodAsync` path, exactly as the
+web implementation delivers them. The bridge changes *where a reading comes from*, not how it gets home —
+which is why nothing in the app half changes.
+
+**Every outcome answers.** An unknown capability, a backend the head never registered, and a backend that
+threw all send a reply carrying the reason. That matters more than it sounds: the page is `await`ing, and
+a silently-consumed envelope leaves it pending for ever — which is what happened to everything except
+`share` before.
+
+> **Security.** Injecting the bridge exposes these backends to any JS on that page, so a head injects it
+> only for its trusted origin and sends off-origin navigations to the system browser. Widening the bridge
+> from one capability to fifteen widens what that grant is worth; it is still a fixed envelope of named
+> operations, not an open native-RPC channel.
+
 ## The `INativeWebView` bridge
 
 `Rask.Native` **ships the platform WebView heads** — `RaskWkWebView` (iOS, `WKWebView`) and

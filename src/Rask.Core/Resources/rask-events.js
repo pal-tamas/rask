@@ -223,9 +223,14 @@ document.addEventListener("click", function (e) {
     var raw = t.getAttribute("data-rask-share");
     if (!raw) { return; }
     var nativeCaps = window.__raskNative;
-    if (nativeCaps && nativeCaps.capabilities && nativeCaps.capabilities.indexOf &&
-        nativeCaps.capabilities.indexOf("share") !== -1 && typeof nativeCaps.invoke === "function") {
-        nativeCaps.invoke("share", raw);
+    if (nativeCaps && typeof nativeCaps.has === "function" && nativeCaps.has("share") &&
+        typeof nativeCaps.invoke === "function") {
+        var payload;
+        try { payload = JSON.parse(raw); } catch (err) { return; }
+        // invoke returns a promise now; a rejected share (user cancelled, unsupported payload) is not an
+        // error worth surfacing here, but an unhandled rejection would be.
+        var shared = nativeCaps.invoke("share", "share", payload);
+        if (shared && shared["catch"]) { shared["catch"](function () {}); }
         return;
     }
     if (navigator.share) {

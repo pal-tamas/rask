@@ -30,6 +30,9 @@ public sealed partial class RaskWkWebView : NSObject, INativeWebView, IWKScriptM
     public WKWebView View { get; }
 
     /// <inheritdoc />
+    public IReadOnlyList<string> Capabilities { get; set; } = [];
+
+    /// <inheritdoc />
     public Func<byte[], Task>? OnMessage { get; set; }
 
     /// <param name="origin">The app origin (default <see cref="DefaultOrigin" />).</param>
@@ -93,7 +96,7 @@ public sealed partial class RaskWkWebView : NSObject, INativeWebView, IWKScriptM
     {
         if (_remoteOrigin is { } origin && NativeCapabilities.IsTrustedOrigin(origin, webView.Url?.AbsoluteString))
         {
-            webView.EvaluateJavaScript(new NSString(NativeCapabilities.BridgeScript), null);
+            webView.EvaluateJavaScript(new NSString(NativeCapabilities.BridgeScript(Capabilities)), null);
         }
     }
 
