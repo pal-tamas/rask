@@ -25,7 +25,7 @@ internal static partial class ProjectGenerator
         // a Rask app you host. The two remote models ("server", "wasm-hosted") scaffold the same heads —
         // RaskServerWebView is handed a trusted origin and never asks what serves it — and differ only in the
         // guidance baked into the file.
-        var isLocal = string.Equals(host, "native", StringComparison.Ordinal);
+        var isLocal = NativeModels.For(host).RunsInProcess;
 
         // The csproj, plus each selected platform's manifest and entry point. An unselected platform
         // contributes no TFM and no files at all — a Platforms/iOS folder in an Android-only app is code
@@ -389,11 +389,15 @@ internal static partial class ProjectGenerator
     {
         var platforms = ios && android ? "iOS + Android" : ios ? "iOS" : "Android";
 
-        var isLocal = string.Equals(host, "native", StringComparison.Ordinal);
+        var model = NativeModels.For(host);
+        var isLocal = model.RunsInProcess;
 
         var steps = new StringBuilder();
         steps.Append("Created ").Append(name).Append(" (Rask native ").Append(platforms)
-            .Append(" app, UI from ").Append(NativeHostSummary(host)).Append(").\n\nNext steps:\n");
+            .Append(" app, UI from ").Append(model.Summary).Append(").\n");
+        // The three things that genuinely differ between the models, stated once here rather than left to
+        // be discovered — waiting on a reload that was never coming is the failure this prevents.
+        steps.Append("  ").Append(model.TradeOff).Append("\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
         steps.Append("  dotnet workload install ").Append(string.Join(' ', NativeWorkloads(ios, android)))
             .Append("   # once, if not already installed\n");
@@ -602,12 +606,7 @@ internal static partial class ProjectGenerator
     private const string AndroidDevOrigin = "http://10.0.2.2:5000/";
 
     /// <summary>How each model is described to the person who just scaffolded it.</summary>
-    private static string NativeHostSummary(string host) => host switch
-    {
-        "server" => "a Rask server you host",
-        "wasm-hosted" => "a wasm-hosted app you host",
-        _ => "the device (works offline)",
-    };
+    private static string NativeHostSummary(string host) => NativeModels.For(host).Summary;
 
     /// <summary>How the thing the shell points at is named in the generated comments.</summary>
     private static string RemoteTargetName(string host) =>
