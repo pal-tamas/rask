@@ -286,7 +286,14 @@ public sealed class NativeAppHost
         // WebView events, so there is no separate native-input path.
         if (provider.GetService<INativeChrome>() is { } chrome)
         {
-            chrome.OnChromeEvent = json => RouteMessageAsync(nativeApp, json);
+            // The reply channel goes in too. A bar this process did not describe belongs to a hosted app,
+            // and the only way back to it is through the page — so without an evaluator a tap on a remote
+            // app's bar would be swallowed here, and the button would look dead. There is no evaluator in
+            // the pure-native model, where every bar is by definition local.
+            chrome.OnChromeEvent = json => RouteMessageAsync(
+                nativeApp,
+                json,
+                webView is null ? null : script => webView.EvaluateJavaScriptAsync(script));
         }
 
         // Same idea for a pure-native surface, but its events carry a handler id rather than a JSON message,
