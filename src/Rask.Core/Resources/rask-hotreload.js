@@ -1,5 +1,5 @@
 // Dev-only "hot reload applied" indicator — one implementation, spliced into all three transports
-// (Server rask.js, WASM rask.wasm.js, Native rask.native.js) at their hot-reload splice marker.
+// (Server rask.js, WASM rask.wasm.js) at their hot-reload splice marker.
 //
 // Deliberately does not spell that marker out: this file's text is substituted *for* it, so a literal
 // copy here would survive into every built artifact and read as a marker the splice had missed.

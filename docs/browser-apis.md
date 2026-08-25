@@ -7,7 +7,7 @@ shape right yourself. Each is a thin, awaitable layer over the same unified
 app runs on the **Server** (WebSocket) or **WASM** (`JSImport`/`JSExport`) transport.
 
 This page is the **map of the whole surface**. For an at-a-glance view of *where each API works*
-(Web / PWA / Native, and which have a native backend), see the
+(Web / PWA), see the
 [**capability matrix**](browser-capabilities.md) — it links to a dedicated reference page per API
 under [`docs/apis/`](apis/). For the deeper "why" — user activation, the transport seam, element
 refs — see [JS interop → Typed browser APIs](js-interop-runtime.md#typed-browser-apis); for the mobile/PWA
@@ -19,15 +19,14 @@ under Browser APIs, and as injectable services under PWA.)
 
 ## Three homes, one rule
 
-- **`Rask.Core.Browser`** — APIs that work on **every host** (Server + WASM + Native). Registered by all three.
-- **`Rask.Client.Browser`** — APIs the **in-process** hosts (WASM + Native) can run but Server can't:
-  they need *transient* user activation, preserved only when the interop call runs inside the click's own
-  call stack, which the Server's WebSocket round-trip loses. `Rask.Native` can't reference the
-  browser-targeted `Rask.Wasm`, so anything both in-process hosts share lives here.
+- **`Rask.Core.Browser`** — APIs that work on **every host** (Server + WASM). Registered by both.
+- **`Rask.Client.Browser`** — APIs the **in-process** WASM host can run but Server can't: they need
+  *transient* user activation, preserved only when the interop call runs inside the click's own call
+  stack, which the Server's WebSocket round-trip loses.
 - **`Rask.Wasm.Browser`** — browser-only APIs (the installed-PWA instance / live document / browser-only
   device APIs). Registered only by the WASM host.
 
-> **The rule:** shared-everywhere APIs live in `Rask.Core.Browser`; WASM+Native-shared ones in
+> **The rule:** shared-everywhere APIs live in `Rask.Core.Browser`; in-process ones in
 > `Rask.Client.Browser`; browser-only ones in `Rask.Wasm.Browser`. A host simply doesn't register a
 > service it can't provide.
 
@@ -35,7 +34,7 @@ Sharing shows the split cleanly. The **declarative, headless** `Shareable` (Rask
 a `data-rask-share` attribute and the shared client fires `navigator.share` *inside the click gesture* — no
 round-trip, so activation survives — so it works on **every** host, Server included. The **imperative**
 `IShare` (Rask.Client) lets you share from code (a lifecycle hook, after an `await`), which only the
-in-process hosts can do, so it lives one tier down.
+in-process WASM host can do, so it lives one tier down.
 
 Inject through the **constructor** (not a settable property — that would become a required chain
 parameter) and call from an **event handler or lifecycle hook**, never from `Render()`:

@@ -354,10 +354,3 @@ The `nginx.conf` does four things that matter for a Rask WASM bundle:
 Because it's just static files, you can equally serve the `wwwroot` publish output from any CDN or
 object-storage static host instead of a container. For GitHub Pages / sub-path hosting, publish with
 `/p:RaskPathBase=/my-repo` — see [Mobile & PWA → Deploying](pwa.md#deploying-github-pages--sub-paths).
-
-## Not containerized: `--template native`
-
-The `native` template targets `net10.0-ios;net10.0-android` and produces a native mobile app
-(your C# runs natively on the device; the UI renders in a platform WebView). It is built and
-distributed as an app-store package, not a server image, so it has no Dockerfile. If you want a
-**native shell over a remote Rask Server**, scaffold `rask new MyApp --template native --host server` and deploy

@@ -47,8 +47,6 @@ internal static class TemplateCatalog
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags],
                 StringComparer.Ordinal)),
-        new("native", "Rask native mobile app (iOS + Android)",
-            new HashSet<string>(StringComparer.Ordinal)),
     ];
 
     /// <summary>The default template when none is specified — a server-rendered app.</summary>

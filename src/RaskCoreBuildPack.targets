@@ -3,9 +3,9 @@
   <!--
     Shared packing of Rask.Core's build integration (the scoped-CSS/JS <AdditionalFiles> globs and the
     three <CompilerVisibleProperty> entries) into each host package's build/ folder. Imported by the host
-    packages (Rask.Server, Rask.Wasm, Rask.Native). All three live at src/<Name>/, so the ..\Rask.Core
+    packages (Rask.Server, Rask.Wasm). Both live at src/<Name>/, so the ..\Rask.Core
     relative path — evaluated relative to the IMPORTING project's directory — resolves identically from
-    any of them, keeping the three packages' build payload in lockstep from one place.
+    either of them, keeping the two packages' build payload in lockstep from one place.
 
     Rask.Core itself is IsPackable=false, so it cannot ship this file; and NuGet auto-imports only
     build/<PackageId>.{props,targets}, so a build/Rask.Core.targets is payload, not an entry point —

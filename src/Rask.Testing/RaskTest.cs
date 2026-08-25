@@ -117,7 +117,7 @@ public static class RaskTest
     {
         ArgumentNullException.ThrowIfNull(app);
 
-        // The same wrapper Rask.Server / Rask.Wasm / Rask.Native install: it composes the shell from the
+        // The same wrapper Rask.Server / Rask.Wasm install: it composes the shell from the
         // app's Shell / HtmlLang / BodyClass and catches anything the subtree throws. Going through it
         // rather than reimplementing the composition is the point — a test asserts what a browser gets.
         return new RenderedComponent<T>(new RootErrorBoundary(app), app, services ?? EmptyServices);

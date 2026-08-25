@@ -181,50 +181,6 @@ public sealed class DevCommandTests
         Assert.Contains("Couldn't find a .csproj", console.ErrorText, StringComparison.Ordinal);
     }
 
-    // ---- native refusal ----
-
-    [Fact]
-    public async Task A_native_project_is_refused_with_the_on_device_commands()
-    {
-        var fs = new FakeFileSystem();
-        fs.Seed("/app/App.csproj", """<Project><TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks></Project>""");
-        var console = new StringConsole();
-        var runner = new FakeProcessRunner();
-        var command = new DevCommand(console, runner, fs, new FakeBrowserLauncher(), "/app");
-
-        var exit = await command.ExecuteAsync([], CancellationToken.None);
-
-        // Exit 1, not the usage code: the command line was fine, the target is wrong for it.
-        Assert.Equal(1, exit);
-        Assert.Contains(NativeRunCommands.Android, console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains(NativeRunCommands.IOS, console.ErrorText, StringComparison.Ordinal);
-        Assert.Empty(runner.Invocations); // nothing spawned
-    }
-
-    [Fact]
-    public async Task The_native_refusal_points_a_server_shell_at_its_server_project_for_hot_reload()
-    {
-        // The refusal is where someone stands when they wonder why their edit did nothing, so it has to
-        // answer the hot-reload question rather than leave it to the docs: Native + Local restarts,
-        // Native + Server hot-reloads today by being a browser onto a `rask dev` server.
-        var fs = new FakeFileSystem();
-        fs.Seed("/app/App.csproj", """<Project><TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks></Project>""");
-        var console = new StringConsole();
-        var command = new DevCommand(console, new FakeProcessRunner(), fs, new FakeBrowserLauncher(), "/app");
-
-        await command.ExecuteAsync([], CancellationToken.None);
-
-        foreach (var line in NativeHotReloadGuidance.Lines)
-        {
-            Assert.Contains(line, console.ErrorText, StringComparison.Ordinal);
-        }
-
-        Assert.Contains("Native + Server", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("rask dev", console.ErrorText, StringComparison.Ordinal);
-    }
-
-    // ---- build status (#603) ----
-
     [Fact]
     public async Task A_watch_session_tells_the_app_where_to_point_the_browser_for_build_status()
     {

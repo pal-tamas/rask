@@ -17,8 +17,7 @@ namespace Rask.Client.Browser;
 ///         in-process). The default <see cref="Share" /> backing is the Web Share API
 ///         (<c>navigator.share</c>), which requires a secure context and <em>transient</em> user activation —
 ///         preserved only when the interop call runs inside the click's own call stack, which the Server's
-///         WebSocket round-trip loses. That's why it's an in-process API and lives in <c>Rask.Client</c>
-///         (which <c>Rask.Native</c> can share; it can't reference the browser-targeted <c>Rask.Wasm</c>).
+///         WebSocket round-trip loses. That's why it's an in-process API and lives in <c>Rask.Client</c>.
 ///     </para>
 ///     <para>
 ///         For a <b>declarative</b> share that also works on the Server host, use the all-host, headless

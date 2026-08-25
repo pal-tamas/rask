@@ -1,8 +1,8 @@
 namespace Rask.Example.Shared.Features;
 
 // Persistence seam for the Todos screen. The default is InMemoryTodoStore (used by the Server and WASM
-// showcase, where the list is transient). The native app registers a SQLite-backed store instead, so the
-// same Todos tab survives an app restart on-device — see samples/Rask.Example.Native.
+// showcase, where the list is transient). A host can register a durable store instead, so the same Todos
+// tab survives a restart.
 public interface ITodoStore
 {
     IReadOnlyList<TodoItem> GetAll();

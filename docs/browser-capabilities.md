@@ -1,13 +1,12 @@
 # Browser & device API capability matrix
 
-Every typed browser/device API wrapper Rask ships, and where it works. Inject the interface; the
-framework resolves the best implementation for the host — a native iOS/Android backend where one
-exists, the WebView's JS otherwise. Each API links to its own reference page; the narrative overview
-(with the three-homes rationale and the subscription pattern) is [browser-apis.md](browser-apis.md).
+Every typed browser/device API wrapper Rask ships, and where it works. Inject the interface and the
+framework resolves the implementation for the host. Each API links to its own reference page; the
+narrative overview (with the three-homes rationale and the subscription pattern) is
+[browser-apis.md](browser-apis.md).
 
 **Legend** — ✅ injectable service · 🟡 reachable on Server via a declarative **gesture component** (runs the
-activation-gated call inside a click), not as an injected service · ⬜ not available · — n/a. A **★** in the
-Native column marks an API with a native C# backend (the rest run through the WebView's JS).
+activation-gated call inside a click), not as an injected service · ⬜ not available · — n/a.
 
 | API | Web / Server | PWA / WASM |
 |-----|:---:|:---:|
@@ -73,15 +72,5 @@ Native column marks an API with a native C# backend (the rest run through the We
   [`MediaCaptureTrigger`](apis/media-devices.md), and [`PictureInPictureTrigger`](apis/picture-in-picture.md)
   (plus the generic `GestureTrigger`). The last two target a `<video>` via its `ElementRef`.
 - **PWA / WASM** is the in-browser WebAssembly host, which registers the full set.
-- **Native** is the `Rask.Native` host. Every ★ API has a first-class native backend wired by
-  their Native cell is whatever the WebView's own JS engine exposes — which is *not* the same set a
-  desktop browser has. The ★ backends exist precisely where that gap bites, so the two ⬜ rows below are
-  the ones nothing covers yet:
-  - **`IFileSystemAccess` — ⬜ on Native.** `window.showOpenFilePicker` is `undefined` on WebKit; the File
-    System Access API is effectively Chromium-desktop-only. Use a plain `<input type="file">` instead.
-  - **`IWebPush` — ⬜ on Native.** `window.PushManager` is `undefined` in the WebView, so there is nothing
-    to subscribe with (service workers *do* register — it's push specifically that's missing). Native push
-    needs an APNs/FCM backend behind the same interface, which is a tracked follow-up
-    *local* notifications work on device.
 - Push subscription (`IWebPush`) and the PWA APIs (`INotifications`, `IBadge`, `IWakeLock`) work on
   Server too, but their JS helpers ship only under `AddRaskPwa` — see [pwa.md](pwa.md).

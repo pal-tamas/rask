@@ -63,7 +63,7 @@
   <!--
     ONE copy of the Rask analyzer payload, however many host packages are referenced.
 
-    Rask.Server, Rask.Wasm and Rask.Native each pack analyzers/dotnet/cs/Rask.Generators.dll (see
+    Rask.Server and Rask.Wasm each pack analyzers/dotnet/cs/Rask.Generators.dll (see
     src\RaskAnalyzerPack.targets) so that referencing any single host package is enough to get the
     generator. Reference TWO of them and NuGet hands csc both copies, at different package paths —
     which Roslyn reads as two distinct generators. Both run, both emit RaskBuilderSetters.g.cs and

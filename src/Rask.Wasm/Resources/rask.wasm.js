@@ -20,7 +20,7 @@ let basePath = null;
 // @@RASK_WASM_API@@
 
 // Dev-only "hot reload applied" indicator, spliced from Rask.Core/Resources/rask-hotreload.js — the
-// same source the Server and Native clients use. It exposes window.__raskHotReloadPill; here the
+// same source the Server client uses. It exposes window.__raskHotReloadPill; here the
 // notification arrives through the hotReloadApplied() export below rather than over a socket, because
 // a WASM app has no Rask server to push it a frame.
 // @@RASK_HOTRELOAD@@
@@ -171,7 +171,7 @@ function headAssetsReady() {
 
 // Scoped-CSS FOUC gating: CSS_FOUC_GUARD_MS + waitForUnappliedHeadCss (diff path) +
 // preloadNewHeadStylesheets (full-HTML path) — spliced from Rask.Core/Resources/rask-scoped.js,
-// shared with rask.js + rask.native.js.
+// shared with rask.js.
 // @@RASK_SCOPED@@
 
 function maybeDrainPendingInvokes() {
@@ -349,8 +349,7 @@ export function hotReloadApplied() {
     if (window.__raskHotReloadPill) window.__raskHotReloadPill();
 }
 
-// The input[type=file] ref registry (rask-files.js), shared with the native client — it was local to this
-// file, which is precisely why file input worked on WASM and silently did nothing on a native head.
+// The input[type=file] ref registry (rask-files.js), shared with the Server client.
 // @@RASK_FILES@@
 
 // The [JSImport] on the .NET side binds to this module export, so the export has to be declared here (an ES
@@ -660,7 +659,7 @@ document.addEventListener("click", (e) => {
 
 // rAF-coalesced input & scroll dispatch (inputPending/flushInputsNow/queueInput + the input and
 // scroll listeners) — spliced from Rask.Core/Resources/rask-input.js, shared with rask.js +
-// rask.native.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
+// rask.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
 // @@RASK_INPUT@@
 
 document.addEventListener("change", (e) => {

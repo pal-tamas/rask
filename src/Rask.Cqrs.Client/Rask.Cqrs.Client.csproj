@@ -20,7 +20,7 @@
 
          PrivateAssets="all" — Rask.Core is IsPackable=false; without it the nuspec declares a dependency on
          a nonexistent "Rask.Core" package and every restore fails with NU1101. Core.dll reaches consumers
-         from the Rask.Wasm / Rask.Server / Rask.Native package this add-on sits alongside, which bundle it
+         from the Rask.Wasm / Rask.Server package this add-on sits alongside, which bundle it
          into lib/; re-packing it here would ship a duplicate assembly instead. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
   </ItemGroup>
