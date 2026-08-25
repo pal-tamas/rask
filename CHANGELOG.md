@@ -56,7 +56,17 @@ them until tagged releases begin.
   `samples/Rask.Example.Native.Server` is now written this way — one `ServerShellApp` with a header bar and
   a `NativeWebView.Url(…)`, run by the ordinary `RaskWkWebView`/`RaskAndroidWebView` head, instead of the
   separate `RaskServerViewController` / `RaskServerWebView` classes. Same app, same behaviour, and the
-  Server model stops being a parallel code path with no session and no chrome.
+  Server model stops being a parallel code path with no session and no chrome. Verified on an iPhone 17 Pro
+  simulator against a real `Rask.Example.Server`: a native `UINavigationBar` at the top, the remote app
+  rendering fully styled below it.
+
+  **A URL-mode app still loads the boot shell first**, which is worth knowing because it is not obvious.
+  `RunLocalAsync` defers the first render to the client's `ready` handshake, and the client lives in the
+  shell — so with no shell there is no handshake, no first frame, and therefore no address to navigate to.
+  Skipping `LoadShell()` produces a blank white screen and no bars, which is exactly what the first device
+  run showed. The shell is loaded, the first frame carries the `Url`, and the WebView navigates away from
+  it. Giving the host a way to render the first frame without a handshake — as `RunNativeAsync` already
+  does for the pure-native model — would remove the extra document load, and is the obvious follow-up.
 
   Also fixed on the way: `CLAUDE.md` claimed the diagnostic range was RASK001–048 with only RASK047
   retired. `docs/diagnostics.md` has said RASK001–053 for a while, and RASK030 and RASK042 are retired too.

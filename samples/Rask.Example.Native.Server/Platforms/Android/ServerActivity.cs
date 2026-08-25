@@ -45,9 +45,12 @@ public class ServerActivity : Activity
         host.Services.AddSingleton<INativeChrome>(webView);
         host.Services.AddSingleton(new ServerOrigin(ServerUrl));
 
-        // No LoadShell(): this app hosts no markup of its own, so the first frame's Url is what the WebView
-        // navigates to.
         _app = await host.RunLocalAsync<ServerShellApp>(webView);
+
+        // The boot shell still loads first, even though this app hosts no markup: RunLocalAsync defers the
+        // first render to the client's `ready` handshake, and the client lives in the shell. That first
+        // frame is what carries the Url, so the WebView navigates away from the shell immediately after.
+        webView.LoadShell();
     }
 
     protected override void OnDestroy()
