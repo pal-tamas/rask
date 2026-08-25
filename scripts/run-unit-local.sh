@@ -53,6 +53,34 @@ done
 echo "==> Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
 dotnet format Rask.slnx --verify-no-changes --no-restore
 
+# The generated TypeScript is checked by tsc, which needs node. The rest of this gate deliberately does
+# not (the build passes -p:RaskSpaBuild=false), so the toolchain is provisioned here when it can be and
+# the check is excluded — LOUDLY — when it cannot. What must not happen is the third option: a test that
+# quietly reports success without ever running a type-checker, which is how a generator emitting
+# malformed TypeScript would ship green.
+#
+# Cached under artifacts/, so the install is a one-off rather than a per-run download.
+# tsgo, the native Go build of the TypeScript compiler (@typescript/native-preview), rather than tsc:
+# it is a single platform binary, so npm is needed to FETCH the toolchain but nothing is needed to RUN
+# it, and the check finishes in well under a second instead of a couple.
+tsc_filter=""
+tsc_home="$root/artifacts/tsc"
+if command -v npm >/dev/null 2>&1; then
+  if [ ! -x "$tsc_home/node_modules/.bin/tsgo" ]; then
+    echo "==> Provisioning the TypeScript toolchain (one-off, into artifacts/tsc)"
+    mkdir -p "$tsc_home"
+    npm install --prefix "$tsc_home" --no-save --silent \
+      @typescript/native-preview @tanstack/react-query react @types/react
+  fi
+  RASK_TSC="$tsc_home/node_modules/.bin/tsgo"
+  export RASK_TSC
+else
+  echo "run-unit-local: WARNING — npm is not on PATH, so the generated TypeScript was NOT type-checked." >&2
+  echo "  Install Node.js to run that check, or run it directly with:" >&2
+  echo "    RASK_TSC=<path-to>/tsgo dotnet test tests/Rask.Spa.Tasks.Tests --filter TypeScriptCompiles" >&2
+  tsc_filter="&FullyQualifiedName!~TypeScriptCompiles"
+fi
+
 echo "==> Unit & integration tests (excludes the browser E2E)"
 # --blame-crash: when a test host dies below the managed layer, the run reports "Test host process
 # crashed" with no exception, no stack and not even the name of the test that was running — and since
@@ -62,7 +90,7 @@ echo "==> Unit & integration tests (excludes the browser E2E)"
 # sequence file naming the test in flight and collects a dump, so the next occurrence is diagnosable
 # instead of merely observed. It costs nothing on a green run.
 dotnet test Rask.slnx -c Release --no-build \
-  --filter "FullyQualifiedName!~Rask.Examples.E2E" \
+  --filter "FullyQualifiedName!~Rask.Examples.E2E$tsc_filter" \
   --blame-crash \
   --results-directory "$root/artifacts/test-blame" \
   --logger "console;verbosity=normal"

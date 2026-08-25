@@ -25,6 +25,8 @@ export interface Dispatchable<TResult, TKind extends MessageKind = MessageKind> 
   /** Payload properties carrying a File/Blob, in the wire index order the server assigns. */
   readonly files: readonly string[]
   readonly returnsFile: boolean
+  /** The shape the answer revives against, and how many containers stand in front of it. */
+  readonly result?: ShapeRef
   readonly payload: unknown
   readonly _result?: TResult
 }
@@ -34,6 +36,7 @@ export interface MessageSpec<TKind extends MessageKind> {
   readonly kind: TKind
   readonly files?: readonly string[]
   readonly returnsFile?: boolean
+  readonly result?: ShapeRef
 }
 
 export type MessageFactory<TPayload, TResult, TKind extends MessageKind> = ((
@@ -56,9 +59,94 @@ export function message<TPayload, TResult = void, TKind extends MessageKind = Me
     kind: spec.kind,
     files,
     returnsFile,
+    result: spec.result,
     payload,
   })
   return Object.assign(factory, { messageName: spec.name })
+}
+
+/** A named shape, and how many arrays or dictionaries stand between a value and it. */
+export type ShapeRef = readonly [shape: string, depth: number]
+
+/** One shape's date-bearing properties, and the properties that lead to other shapes. */
+export interface Shape {
+  readonly instants: readonly string[]
+  readonly nested: Readonly<Record<string, ShapeRef>>
+}
+
+let shapes: Readonly<Record<string, Shape>> = {}
+
+/**
+ * Arms date revival with the generated shape table.
+ *
+ * Called by the generated messages module, not by you. It is pushed in rather than imported so this
+ * file never depends on generated code — a scaffolded app has to type-check before its first build
+ * has produced any.
+ */
+export function registerShapes(table: Readonly<Record<string, Shape>>): void {
+  shapes = table
+}
+
+/**
+ * Turns exactly the strings the C# types called instants into `Date` objects, in place.
+ *
+ * Deliberately not a `JSON.parse` reviver testing every string against a date-shaped regex: that
+ * converts a product code, an ETag or a free-text field that merely looks like a timestamp, and it
+ * does so silently. Nothing is guessed here — the server's own type said which properties these are.
+ *
+ * `DateOnly`, `TimeOnly` and `TimeSpan` are left as strings on purpose, and are not in the table. A
+ * calendar date is not an instant: `new Date("2026-08-25")` is UTC midnight, so anyone west of UTC
+ * would render it as the 24th.
+ *
+ * Nothing is needed in the other direction — `JSON.stringify` already calls `Date.toJSON`, which is
+ * `toISOString()`: always UTC, always with a `Z`. So a value sent from the browser is never
+ * ambiguous, and a round trip normalises a C# `DateTime` with an unspecified `Kind` into UTC.
+ */
+export function revive<T>(value: T, ref: ShapeRef | undefined): T {
+  if (ref === undefined) return value
+  walk(value, ref[0], ref[1])
+  return value
+}
+
+function walk(value: unknown, shape: string, depth: number): void {
+  if (value === null || typeof value !== 'object') return
+
+  if (depth > 0) {
+    // An array's items or a dictionary's values, which are indistinguishable at this point and want
+    // the same treatment. Object.values covers both.
+    for (const item of Object.values(value as Record<string, unknown>)) {
+      walk(item, shape, depth - 1)
+    }
+    return
+  }
+
+  const descriptor = shapes[shape]
+  if (descriptor === undefined) return
+
+  const record = value as Record<string, unknown>
+  for (const property of descriptor.instants) {
+    record[property] = toDates(record[property])
+  }
+  for (const property of Object.keys(descriptor.nested)) {
+    const nested = descriptor.nested[property]
+    walk(record[property], nested[0], nested[1])
+  }
+}
+
+/**
+ * An instant, or any nesting of arrays and dictionaries of them.
+ *
+ * The container depth is not carried for instants the way it is for shapes, because it does not need
+ * to be: a string is unmistakable, so the walk can simply stop at one.
+ */
+function toDates(value: unknown): unknown {
+  if (typeof value === 'string') return new Date(value)
+  if (Array.isArray(value)) return value.map(toDates)
+  if (value !== null && typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    for (const key of Object.keys(record)) record[key] = toDates(record[key])
+  }
+  return value
 }
 
 /**
@@ -466,15 +554,19 @@ export function httpTransport(options: HttpTransportOptions = {}): RaskTransport
  */
 export function createDispatcher(transport: RaskTransport = httpTransport()): RaskDispatcher {
   return {
-    dispatch<TResult>(msg: Dispatchable<TResult>, options: CallOptions = {}): Promise<TResult> {
-      return transport.send({
+    async dispatch<TResult>(msg: Dispatchable<TResult>, options: CallOptions = {}): Promise<TResult> {
+      const answer = await transport.send({
         name: msg.name,
         kind: msg.kind,
         files: msg.files,
         returnsFile: msg.returnsFile,
         payload: msg.payload,
         options,
-      }) as Promise<TResult>
+      })
+
+      // Revived here rather than inside the transport so a custom transport — a test double, a
+      // worker bridge — gets it for free instead of having to remember to do it.
+      return revive(answer, msg.result) as TResult
     },
   }
 }

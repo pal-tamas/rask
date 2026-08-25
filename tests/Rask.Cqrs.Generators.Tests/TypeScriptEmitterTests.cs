@@ -216,8 +216,49 @@ public class TypeScriptEmitterTests
             public sealed record Probe(List<Line> Lines);
             """);
 
-        Assert.Equal("Line", emitter.Shapes["Probe"].Nested["lines"]);
+        Assert.Equal(new NestedShape("Line", 1), emitter.Shapes["Probe"].Nested["lines"]);
         Assert.Equal(["shippedAt"], emitter.Shapes["Line"].Instants);
+    }
+
+    [Fact]
+    public void A_dictionary_of_shapes_is_counted_as_a_container()
+    {
+        var (_, emitter) = Emit(
+            """
+            public sealed record Line(DateTimeOffset ShippedAt);
+            public sealed record Probe(Dictionary<string, Line> ByCode);
+            """);
+
+        // The count is what the client needs to tell a Dictionary<string, Line> from a Line: both
+        // arrive as plain objects, so without it the walk would look for shippedAt on the dictionary
+        // itself and revive nothing.
+        Assert.Equal(new NestedShape("Line", 1), emitter.Shapes["Probe"].Nested["byCode"]);
+    }
+
+    [Fact]
+    public void A_nullable_shape_is_not_a_container()
+    {
+        var (_, emitter) = Emit(
+            """
+            public sealed record Line(DateTimeOffset ShippedAt);
+            public sealed record Probe(Line? Latest);
+            """);
+
+        // `Line?` still arrives as one object. Counting it would make the client iterate the object's
+        // own properties looking for more Lines.
+        Assert.Equal(new NestedShape("Line", 0), emitter.Shapes["Probe"].Nested["latest"]);
+    }
+
+    [Fact]
+    public void A_list_of_lists_is_counted_twice()
+    {
+        var (_, emitter) = Emit(
+            """
+            public sealed record Line(DateTimeOffset ShippedAt);
+            public sealed record Probe(List<List<Line>> Batches);
+            """);
+
+        Assert.Equal(new NestedShape("Line", 2), emitter.Shapes["Probe"].Nested["batches"]);
     }
 
     [Fact]

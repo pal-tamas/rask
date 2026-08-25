@@ -176,6 +176,43 @@ them until tagged releases begin.
   works. `rask dev` will pass it, because the bundler's dev server owns the build during a dev
   session, and it is also what lets a machine with no node build a solution containing a front end.
 
+- **The CQRS contracts are generated as TypeScript, so the front end and the server cannot
+  disagree.** Every remote message becomes a factory whose payload and result types come from the
+  C# record — `await rask.dispatch(getOrder({ id }))` is an `Order`, inferred, with no wire name
+  and no cast at the call site. The types are emitted by a second backend over the same
+  `WireType` model the codec generator uses, so the property names, the enum encoding and the null
+  handling are decided once rather than described twice.
+
+  **A source generator cannot write files**, so the TypeScript rides out of the compiler as two
+  string constants and `Rask.Spa.Tasks` lifts them onto disk between the C# compile and
+  `npm run build`. It reads them straight from the PE metadata rather than by loading the
+  assembly, which is what makes the WASM asset bake fragile under MSBuild node reuse (#650): a
+  constant needs no runtime, no resolver and no reference closure.
+
+  **Dates arrive as real `Date` objects, and only the ones that are dates.** A `DateTimeOffset` or
+  `DateTime` becomes a `Date`; the generator emits a per-shape descriptor naming exactly those
+  properties, and the client revives against it. The usual approach — a `JSON.parse` reviver that
+  regex-tests every string — silently converts a product code or an ETag that merely looks like a
+  timestamp. Nothing is guessed here: the C# type said so.
+
+  **`DateOnly`, `TimeOnly` and `TimeSpan` stay strings**, with named aliases so the intent survives
+  into the editor. A calendar date is not an instant: `new Date("2026-08-25")` is UTC midnight, so
+  anyone west of UTC would render it as the 24th — the off-by-one-day the Gantt sample already
+  documents. Nothing is needed in the other direction, because `JSON.stringify` already writes a
+  `Date` as `toISOString()`: always UTC, always with a `Z`.
+
+  **The descriptor counts containers.** `Dictionary<string, Line>` and `Line` both arrive as plain
+  objects and nothing in the JSON tells them apart, so a nested shape carries how many arrays or
+  dictionaries stand in front of it — without it the walk would revive a dictionary's own keys as
+  if they were the shape's properties.
+
+  **The generated output is type-checked, by a compiler, in the unit gate.** A substring assertion
+  cannot tell a well-formed type expression from a malformed one, so `scripts/run-unit-local.sh`
+  provisions `tsgo` — the native Go build of the TypeScript compiler, a single platform binary that
+  needs no node to run — and compiles the generated files together with the vendored client under
+  `--strict`. When it cannot provision the toolchain it excludes that check **and says so**, rather
+  than reporting a green that never ran a type-checker.
+
 - **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
   advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen
   native backends the platform modules register were unreachable from a remote shell — a page running as a

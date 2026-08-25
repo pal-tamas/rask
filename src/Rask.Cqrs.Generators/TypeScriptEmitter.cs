@@ -206,7 +206,7 @@ internal sealed class TypeScriptEmitter
 
         var body = new StringBuilder();
         var instants = new List<string>();
-        var nested = new Dictionary<string, string>();
+        var nested = new Dictionary<string, NestedShape>();
 
         foreach (var member in type.Members)
         {
@@ -237,19 +237,34 @@ internal sealed class TypeScriptEmitter
     ///     Records how one property must be revived: directly, or by walking into a named shape.
     /// </summary>
     /// <remarks>
-    ///     Unwraps nullables, sequences and dictionaries, because a date inside a list is still a
-    ///     date. The runtime walks arrays and record values generically, so one entry covers all
-    ///     three containers.
+    ///     <para>
+    ///         Unwraps nullables, sequences and dictionaries, because a date inside a list is still a
+    ///         date.
+    ///     </para>
+    ///     <para>
+    ///         An instant needs no container count: the runtime walks down until it finds strings, and
+    ///         a string is unmistakable. A nested shape does, because <c>Dictionary&lt;string, T&gt;</c>
+    ///         and <c>T</c> both arrive as plain objects and nothing in the JSON tells them apart —
+    ///         guessing there would either revive the dictionary's own keys as if they were the
+    ///         shape's properties, or skip the values entirely.
+    ///     </para>
     /// </remarks>
     private void Describe(
         string wireName,
         WireType type,
         List<string> instants,
-        Dictionary<string, string> nested)
+        Dictionary<string, NestedShape> nested)
     {
         var inner = type;
+        var depth = 0;
         while (inner.Kind is WireKind.Nullable or WireKind.Sequence or WireKind.Dictionary)
         {
+            // A nullable is not a container: `Order?` still arrives as one object, not a list of them.
+            if (inner.Kind != WireKind.Nullable)
+            {
+                depth++;
+            }
+
             inner = inner.Inner!;
         }
 
@@ -261,7 +276,7 @@ internal sealed class TypeScriptEmitter
 
         if (inner.Kind == WireKind.Object)
         {
-            nested[wireName] = Ensure(inner);
+            nested[wireName] = new NestedShape(Ensure(inner), depth);
         }
     }
 
@@ -283,14 +298,22 @@ internal sealed class TypeScriptEmitter
     }
 }
 
+/// <summary>A named shape reached through some number of arrays or dictionaries.</summary>
+/// <param name="Name">The shape's TypeScript name.</param>
+/// <param name="Depth">
+///     How many containers stand between the property and the shape: 0 for a plain object, 1 for a
+///     list or a dictionary of them, 2 for a list of lists.
+/// </param>
+internal sealed record NestedShape(string Name, int Depth);
+
 /// <summary>Which properties of one shape carry dates, and which lead to another shape.</summary>
-internal sealed class ShapeDescriptor(IReadOnlyList<string> instants, IReadOnlyDictionary<string, string> nested)
+internal sealed class ShapeDescriptor(IReadOnlyList<string> instants, IReadOnlyDictionary<string, NestedShape> nested)
 {
     /// <summary>Properties that are instants, and so become <c>Date</c>.</summary>
     public IReadOnlyList<string> Instants { get; } = instants;
 
     /// <summary>Properties whose value is another named shape, by that shape's TypeScript name.</summary>
-    public IReadOnlyDictionary<string, string> Nested { get; } = nested;
+    public IReadOnlyDictionary<string, NestedShape> Nested { get; } = nested;
 
     /// <summary>Whether this shape, as written, needs the runtime to touch it at all.</summary>
     public bool IsEmpty => Instants.Count == 0 && Nested.Count == 0;

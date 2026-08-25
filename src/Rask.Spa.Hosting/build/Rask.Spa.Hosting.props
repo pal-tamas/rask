@@ -51,6 +51,22 @@
     <!-- The floor the bundlers themselves require; the probe reports anything older rather than letting
          vite fail with an engines error nobody reads. -->
     <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">20.19.0</RaskSpaMinimumNode>
+
+    <!--
+      Where the generated contracts land, relative to the client. Inside src/ on purpose: the bundler
+      only compiles and tree-shakes what its own source tree contains, and TypeScript's project
+      references would otherwise need widening to reach outside it.
+    -->
+    <RaskSpaGeneratedDir Condition="'$(RaskSpaGeneratedDir)' == ''">src/rask</RaskSpaGeneratedDir>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      What the CQRS generator reads to decide whether to carry the TypeScript out in the assembly. It
+      is off unless a front end is actually resolved (the targets set it), because the constants are
+      the whole front-end contract surface as a string and no in-process app should pay for them.
+    -->
+    <CompilerVisibleProperty Include="RaskEmitTypeScript"/>
+  </ItemGroup>
 
 </Project>

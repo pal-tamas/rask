@@ -59,7 +59,19 @@
     <_RaskSpaDoBuild
       Condition="'$(_RaskSpaDir)' != '' AND '$(RaskSpaBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
     >true</_RaskSpaDoBuild>
+
+    <!--
+      The generated contracts, on the other hand, are written whenever a client is resolved — including
+      under RaskSpaBuild=false. `rask dev` runs the bundler itself, and its dev server still has to
+      compile against contracts that match the server it is talking to.
+    -->
+    <RaskEmitTypeScript Condition="'$(RaskEmitTypeScript)' == '' AND '$(_RaskSpaDir)' != ''">true</RaskEmitTypeScript>
+
+    <_RaskSpaGenerated Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaGeneratedDir)</_RaskSpaGenerated>
   </PropertyGroup>
+
+  <UsingTask TaskName="Rask.Spa.Tasks.WriteGeneratedTypeScriptTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.Spa.Tasks.dll"/>
 
   <!--
     The client sources the bundler's output depends on.
@@ -124,12 +136,38 @@
   </Target>
 
   <!--
+    Lifts the contracts the CQRS generator produced out of the compiled assembly and into the client's
+    sources.
+
+    AFTER the compile, necessarily: the constants it reads do not exist until Roslyn has run. And
+    BEFORE the bundler, necessarily: the files it writes are what the front end imports. That pair is
+    the whole reason the client build below moved off BeforeBuild — a bundler run that preceded the
+    compile would type-check the previous build's contracts, pass, and then break on the wire.
+  -->
+  <Target Name="_RaskSpaEmitTypeScript"
+          AfterTargets="CoreCompile"
+          Condition="'$(RaskEmitTypeScript)' == 'true' AND '$(DesignTimeBuild)' != 'true'">
+    <WriteGeneratedTypeScriptTask AssemblyPath="@(IntermediateAssembly)" OutputDirectory="$(_RaskSpaGenerated)"/>
+
+    <!--
+      The dispatcher rides alongside, refreshed from the package on every build. That is what keeps the
+      client wire-locked to the server: the generated messages import from './client', and upgrading
+      Rask.Spa.Hosting has to upgrade both halves together or the pair drifts. SkipUnchangedFiles for
+      the same reason the generated files are written only when they differ — the bundler is watching.
+    -->
+    <ItemGroup>
+      <_RaskSpaClientSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
+    </ItemGroup>
+    <Copy SourceFiles="@(_RaskSpaClientSource)" DestinationFolder="$(_RaskSpaGenerated)" SkipUnchangedFiles="true"/>
+  </Target>
+
+  <!--
     dist/index.html is listed first among the Outputs so that deleting dist by hand forces a rebuild
     even though the stamp file survives.
   -->
   <Target Name="_RaskSpaBuildClient"
-          BeforeTargets="BeforeBuild"
-          DependsOnTargets="_RaskSpaInstallDeps"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="_RaskSpaInstallDeps;_RaskSpaEmitTypeScript"
           Condition="'$(_RaskSpaDoBuild)' == 'true'"
           Inputs="@(_RaskSpaInput)"
           Outputs="$(_RaskSpaDist)/index.html;$(IntermediateOutputPath)rask-spa.build.stamp">

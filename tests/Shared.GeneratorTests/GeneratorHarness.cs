@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Rask.Generators.TestSupport;
 
@@ -26,7 +28,22 @@ internal static class GeneratorHarness
     /// Simple names of assemblies the source — or the <i>generated</i> code — needs to compile, so
     /// <see cref="GeneratorRun.GeneratedCompileErrors"/> can validate the emitted code for real.
     /// </param>
-    public static GeneratorRun Run(string source, IIncrementalGenerator generator, params string[] extraAssemblies)
+    public static GeneratorRun Run(string source, IIncrementalGenerator generator, params string[] extraAssemblies) =>
+        Run(source, generator, globalOptions: null, extraAssemblies);
+
+    /// <summary>
+    /// Runs <paramref name="generator"/> with MSBuild properties visible to it.
+    /// </summary>
+    /// <param name="globalOptions">
+    /// The analyzer-config global options, keyed the way a generator reads them —
+    /// <c>build_property.Something</c>. A generator branch gated on one of these is otherwise
+    /// untestable: the default provider is empty, so only the off path would ever be exercised.
+    /// </param>
+    public static GeneratorRun Run(
+        string source,
+        IIncrementalGenerator generator,
+        IReadOnlyDictionary<string, string>? globalOptions,
+        params string[] extraAssemblies)
     {
         // Give the tree a real path. Roslyn scopes `file`-local types by syntax-tree path, so trees that
         // all share the default empty path are treated as one file — which would silently hide exactly
@@ -41,10 +58,32 @@ internal static class GeneratorHarness
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 
-        var driver = CSharpGeneratorDriver.Create(generator)
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator)
             .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest));
 
+        if (globalOptions is not null)
+        {
+            driver = driver.WithUpdatedAnalyzerConfigOptions(new FixedAnalyzerConfigOptionsProvider(globalOptions));
+        }
+
         return new GeneratorRun(driver.RunGenerators(compilation).GetRunResult(), compilation);
+    }
+
+    /// <summary>The smallest provider that answers <c>GlobalOptions</c> and nothing else.</summary>
+    private sealed class FixedAnalyzerConfigOptionsProvider(IReadOnlyDictionary<string, string> options)
+        : AnalyzerConfigOptionsProvider
+    {
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new FixedAnalyzerConfigOptions(options);
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
+    }
+
+    private sealed class FixedAnalyzerConfigOptions(IReadOnlyDictionary<string, string> options) : AnalyzerConfigOptions
+    {
+        public override bool TryGetValue(string key, [NotNullWhen(true)] out string? value) =>
+            options.TryGetValue(key, out value);
     }
 
     private static ImmutableArray<MetadataReference> BuildReferences(params string[] extraAssemblies)
