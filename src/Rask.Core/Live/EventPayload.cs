@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Rask.Core.Live;
@@ -28,7 +29,10 @@ internal static class EventPayload
         {
             JsonValueKind.Number when v.TryGetInt32(out var i) => i,
             JsonValueKind.Number => (int)v.GetDouble(),
-            JsonValueKind.String when int.TryParse(v.GetString(), out var i) => i,
+            // Invariant: the client serialises DOM numbers with JS number formatting, which is
+            // invariant. Parsing them under an ambient culture would read "1.5" as 15 in de-DE.
+            JsonValueKind.String when int.TryParse(
+                v.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var i) => i,
             _ => 0
         };
     }
@@ -43,7 +47,9 @@ internal static class EventPayload
         return v.ValueKind switch
         {
             JsonValueKind.Number when v.TryGetDouble(out var d) => d,
-            JsonValueKind.String when double.TryParse(v.GetString(), out var d) => d,
+            // Invariant, for the reason given in ReadInt above — these carry wheel/pointer deltas.
+            JsonValueKind.String when double.TryParse(
+                v.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) => d,
             _ => 0
         };
     }

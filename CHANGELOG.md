@@ -74,6 +74,34 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Everything Rask puts on the wire now formats and parses invariantly, whatever culture the process
+  is in.** Rask has no culture concept yet, so every one of these paths inherited the machine's locale
+  by accident. That is invisible on a developer machine in `en-US` and becomes a bug the moment the
+  process runs somewhere else — and it is a prerequisite for per-user culture, which will deliberately
+  put a *non*-invariant culture on the render thread and would have armed every one of them at once.
+
+  **A wheel delta could be read ten times too large.** `EventPayload.ReadDouble` parsed
+  string-encoded DOM numbers with no format provider. The client serialises them with JS number
+  formatting, which is invariant, so under `de-DE` a `"1.5"` scroll/pointer delta parsed as **15**.
+  `ReadInt`, `ScrollEvent` and `ModelGraphWalker`'s collection indices took the same treatment; those
+  turn out to be culture-robust for the shapes the client actually sends, and are pinned as contract
+  rather than as a caught bug.
+
+  **A reconciliation key could be re-spelled underneath the client.** `Component.KeyString`
+  stringified a non-string `Key` with a bare `ToString()`. Under `sv-SE` a negative `int` key rendered
+  with U+2212 MINUS SIGN rather than `-`, and a `decimal`/`DateTime` key re-spelled entirely. The key
+  is baked into the HTML the client already holds, so the mismatch breaks keyed reconciliation exactly
+  when the culture changes.
+
+  **A scoped-CSS scope id and an asset hash are identities, not numbers.** `CssScoper.ScopeIdFor` and
+  `HeadAssetRegistry.ContentHash` formatted without a provider; the scope id is baked into class names
+  at build time and recomputed at runtime, and the two must agree byte-for-byte on any machine. Handler
+  ids (`CreateLargeHandlerId`) and the dev-error source gutter were pinned for the same reason.
+
+  **CA1305 is now an error for `src/Rask.Core`**, via one `.editorconfig` severity line rather than an
+  `AnalysisLevel` bump — the level raise surfaces ~33 unrelated findings and stays deferred. This is
+  what stops the next unqualified `ToString`/`TryParse` from reaching the wire.
+
 - **`decimal` no longer mis-sorts — or kills the process — on a non-English locale.** SQLite has no
   decimal type, so EF Core stores one as culture-invariant `TEXT` and sorts it with a collating sequence,
   emitting `ORDER BY "Price" COLLATE EF_DECIMAL`. EF registers that sequence as

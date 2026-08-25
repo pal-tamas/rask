@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 
 namespace Rask.Core.Forms;
@@ -225,14 +226,14 @@ public static class ModelGraphWalker
         var key = seg.Index!;
         if (value is Array arr)
         {
-            return int.TryParse(key, out var idx) && idx >= 0 && idx < arr.Length
+            return TryParseIndex(key, out var idx) && idx >= 0 && idx < arr.Length
                 ? arr.GetValue(idx)
                 : null;
         }
 
         if (value is IList list)
         {
-            return int.TryParse(key, out var idx) && idx >= 0 && idx < list.Count
+            return TryParseIndex(key, out var idx) && idx >= 0 && idx < list.Count
                 ? list[idx]
                 : null;
         }
@@ -244,11 +245,17 @@ public static class ModelGraphWalker
                 return dict[key];
             }
 
-            return int.TryParse(key, out var i) && dict.Contains(i) ? dict[i] : null;
+            return TryParseIndex(key, out var i) && dict.Contains(i) ? dict[i] : null;
         }
 
         return null;
     }
+
+    // A collection index inside a field path ("Items[10].Name") is structure, not a user-facing number:
+    // it is produced by the framework and round-trips through the wire, so it parses invariantly no
+    // matter what culture the render or dispatch is running under.
+    private static bool TryParseIndex(string key, out int index) =>
+        int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out index);
 
     private static List<PathSegment> SplitPath(string path)
     {
