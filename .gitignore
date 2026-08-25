@@ -97,6 +97,12 @@ coverage*.info
 
 # Claude Code
 .claude/settings.local.json
+
+# Linked git worktrees created by tooling live INSIDE the repo, so without this an IDE opened on the repo
+# root indexes a complete second copy of the framework per worktree. Every component type then exists
+# N times over, the generator injects its chain entries into each copy, and a bare `Div` stops resolving
+# to an entry — CS0119 on essentially every file, with nothing wrong in the code itself.
+.claude/worktrees/
 .claude/scheduled_tasks.lock
 
 # Other
