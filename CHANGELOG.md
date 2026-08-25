@@ -32,6 +32,34 @@ them until tagged releases begin.
 
 
 ### Added
+- **`Rask.Query` wraps `IDispatcher` in a cache.** Dedup, staleness, background refetch and
+  invalidation for C# components on every .NET host — what a React front end gets from TanStack
+  Query, rather than that being a privilege of the JavaScript half of the same app. Inject
+  `IQueryClient`, hold the `Query<T>` it returns, render its `Data`/`IsLoading`/`Error`.
+
+  **The message is the cache key.** Rask messages are records, so `new GetOrders(Page: 1)` written
+  in two components is one entry and one round trip, with no key string to invent and nothing to
+  keep in sync when a property is added. An arbitrary async function can be cached too, under a key
+  you supply.
+
+  **Scoped to the live session, and that is the security boundary, not a tuning choice.** Rask
+  creates a service scope per session, so on the Server host — one process, every visitor — this
+  gives one cache per visitor and one visitor's data can never be served to another. There is no
+  way to register it as a singleton.
+
+  **A command declares what it invalidates**: `[Invalidates(typeof(GetOrders))]` sits on the
+  command, so the relationship lives next to its cause, appears in a diff, and cannot be forgotten
+  at a new call site. Invalidation is by message type, so a save refreshes page one and page seven
+  alike.
+
+  **Freshness follows TanStack's defaults** — `StaleTime = 0`, `GcTime = 5 min` — so what people
+  already know transfers. Staleness is a condition, not a trigger: a query nobody is watching does
+  not poll. What refetches is mounting, re-keying, an explicit refetch, or an invalidation.
+
+  **Re-key when the inputs change**: `_orders.SetMessage(new GetOrders(Page))` from
+  `OnPropsChanged`. A field initializer runs once, so without it a query keeps showing page one for
+  ever when the route parameter changes — silently, which is the worst way for it to be wrong.
+
 - **`Rask.Spa.Hosting` serves a built React/Vue/Angular app from an ASP.NET host.**
   `app.UseRaskSpa()` mounts the bundler's `dist/` with correct MIME types, bundler-aware cache
   headers, precompressed `.br`/`.gz` siblings and a SPA fallback. It references nothing else in

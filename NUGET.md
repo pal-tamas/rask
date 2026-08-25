@@ -57,6 +57,7 @@ a `modelBuilder.AddRaskX()` schema line:
 dotnet add package Rask.Data              # base entity + EF interceptors (soft delete, concurrency, events)
 dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
 dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM client
+dotnet add package Rask.Query             # cache, dedup and invalidate dispatched queries per session
 dotnet add package Rask.Cqrs.Server       # host the endpoint those clients dispatch to
 dotnet add package Rask.Jobs              # durable background jobs
 dotnet add package Rask.Mail              # transactional email queue

@@ -37,6 +37,9 @@ jobs:
       - name: Pack Rask.Wasm.Hosting
         run: dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Query
+        run: dotnet pack src/Rask.Query/Rask.Query.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Spa.Hosting
         run: dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release --no-build -o ./artifacts
 

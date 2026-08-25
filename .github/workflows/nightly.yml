@@ -106,6 +106,7 @@ jobs:
           dotnet pack src/Rask.Bootstrap/Rask.Bootstrap.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Query/Rask.Query.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs.Server/Rask.Cqrs.Server.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Signaling/Rask.Signaling.csproj -c Release -o ./artifacts

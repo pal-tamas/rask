@@ -56,6 +56,10 @@
     <!-- For Navigator.EnterHandler: the remote-dispatch file bridge extends Navigator, so its tests need
          the same handler scope Rask.Core.Tests uses to exercise Download. -->
     <InternalsVisibleTo Include="Rask.Cqrs.Client.Tests"/>
+    <!-- Rask.Query observes the rendering component so a resolved fetch can re-render it, and opts
+         that component out of the render cache in the same call. See LiveRenderContext.ObserveAmbientState. -->
+    <InternalsVisibleTo Include="Rask.Query"/>
+    <InternalsVisibleTo Include="Rask.Query.Tests"/>
     <InternalsVisibleTo Include="Rask.Benchmarks"/>
     <InternalsVisibleTo Include="Rask.Benchmarks.VsBlazor"/>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>
