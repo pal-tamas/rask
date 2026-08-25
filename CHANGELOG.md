@@ -32,6 +32,52 @@ them until tagged releases begin.
 
 
 ### Added
+- **`Rask.Query` mutations you can render, with optimistic updates.** `MutateAsync` is
+  await-and-forget, so there was no way to disable a button and show "Saving…" from it — the
+  most-felt gap against TanStack Query. `IQueryClient.Mutation<TCommand>()` returns a
+  `Mutation<TCommand>` carrying `Status`/`IsPending`/`Error`/`Reset`, which re-renders its
+  component the same way a `Query<T>` does.
+
+  ```csharp
+  private readonly Mutation<ShipOrder> _ship = q.Mutation<ShipOrder>();
+
+  Button.Disabled(_ship.IsPending)
+        .OnClick(() => _ship.RunAsync(new ShipOrder(id)))
+        [_ship.IsPending ? "Shipping…" : "Ship"]
+  ```
+
+  **`RunAsync` never throws.** It is called from an event handler, where an exception has nowhere
+  to go and would surface as an unhandled framework error rather than as something the screen can
+  show; the failure lands on `Error` and `Status`. `MutateAsync` remains for when you want the
+  exception.
+
+  **`Optimistic(query, update)`** edits a cached result before the server answers and puts the
+  previous value back if the command fails — every registered edit, in reverse, not just the one
+  that had been applied when it threw. A screen still showing an optimistic result after a refused
+  save tells the user something happened that did not.
+
+- **`QueryStatus` and `FetchStatus`.** Two orthogonal enums rather than a family of overlapping
+  booleans, because a query can hold a result *and* be fetching a newer one — the refresh-in-place
+  case, where rendering a spinner would hide data the user already has. `IsLoading`, `IsFetching`,
+  `IsSuccess` and the new `IsError` are derived from them.
+
+### Changed
+- **`Query<T>.IsLoading` is now false for a query held back by `Enabled = false`.** It is pending,
+  but nothing is coming, so reporting it as loading left a spinner turning for ever. The state that
+  says so is `FetchStatus.Paused`. This matches TanStack, where a disabled query is
+  `isLoading: false`.
+
+### Fixed
+- **A `Rask.Query` fetch is cancelled when nothing is rendering it any more.** Every fetch used
+  `CancellationToken.None`, so a request outlived the component that started it: navigating away
+  left it running to completion against the database, and paginating quickly left one per page
+  visited. A cancelled fetch records neither data nor error and leaves the work owed, so the next
+  observer fetches rather than inheriting an error it did not cause.
+
+- **A custom `GcTime` is honoured.** Collection read the value from `QueryOptions.Default` rather
+  than from the entry, so a query asking to be kept for an hour was still dropped at the
+  five-minute default. Two queries sharing a key now keep the longest lifetime asked for.
+
 - **`Rask.Query` wraps `IDispatcher` in a cache.** Dedup, staleness, background refetch and
   invalidation for C# components on every .NET host — what a React front end gets from TanStack
   Query, rather than that being a privilege of the JavaScript half of the same app. Inject

@@ -72,6 +72,25 @@ public interface IQueryClient
     Task<TResult> MutateAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
 
     /// <summary>
+    ///     A command you can render — whether it is running, whether it failed, and what to disable
+    ///     while it is in flight.
+    /// </summary>
+    /// <remarks>
+    ///     Hold the result in a field. Unlike
+    ///     <see cref="MutateAsync(ICommand, System.Threading.CancellationToken)" />, which is the
+    ///     await-and-forget form, this one carries state a component can render.
+    /// </remarks>
+    /// <typeparam name="TCommand">The command to dispatch.</typeparam>
+    Mutation<TCommand> Mutation<TCommand>()
+        where TCommand : ICommand;
+
+    /// <summary>A renderable command that returns a value.</summary>
+    /// <typeparam name="TCommand">The command to dispatch.</typeparam>
+    /// <typeparam name="TResult">What the command returns.</typeparam>
+    Mutation<TCommand, TResult> Mutation<TCommand, TResult>()
+        where TCommand : ICommand<TResult>;
+
+    /// <summary>
     ///     Marks every entry for a query message type stale. Anything rendering one refetches at once;
     ///     anything not rendered refetches when something next observes it.
     /// </summary>

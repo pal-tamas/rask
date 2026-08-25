@@ -1,6 +1,3 @@
-using Rask.Core;
-using Rask.Core.Live;
-
 namespace Rask.Query;
 
 /// <summary>
@@ -24,7 +21,7 @@ public sealed class Query<TResult> : IDisposable
 {
     private readonly QueryClient _client;
     private readonly Action _onChanged;
-    private readonly List<WeakReference<Component>> _readers = [];
+    private readonly ComponentReaders _readers = new();
     private QueryEntry _entry;
     private QueryKey _key;
     private bool _disposed;
@@ -68,13 +65,39 @@ public sealed class Query<TResult> : IDisposable
         }
     }
 
-    /// <summary>Fetching with nothing to show yet — the only state that warrants a spinner.</summary>
+    /// <summary>What this query holds: nothing yet, a failure, or a result.</summary>
+    public QueryStatus Status
+    {
+        get
+        {
+            Touch();
+            return StatusOf(_entry);
+        }
+    }
+
+    /// <summary>Whether a request is on the wire, and if not, whether one is being held back.</summary>
+    public FetchStatus FetchStatus
+    {
+        get
+        {
+            Touch();
+            return FetchStatusOf(_entry);
+        }
+    }
+
+    /// <summary>
+    ///     The first load, with nothing to show yet — the only state that warrants a spinner.
+    /// </summary>
+    /// <remarks>
+    ///     False for a query held back by <see cref="QueryOptions.Enabled" />: it is pending, but
+    ///     nothing is coming, and rendering a spinner for it would leave one turning for ever.
+    /// </remarks>
     public bool IsLoading
     {
         get
         {
             Touch();
-            return !_entry.HasData && _entry.Error is null;
+            return StatusOf(_entry) == QueryStatus.Pending && FetchStatusOf(_entry) == FetchStatus.Fetching;
         }
     }
 
@@ -87,7 +110,7 @@ public sealed class Query<TResult> : IDisposable
         get
         {
             Touch();
-            return _entry.InFlight is not null;
+            return FetchStatusOf(_entry) == FetchStatus.Fetching;
         }
     }
 
@@ -97,7 +120,17 @@ public sealed class Query<TResult> : IDisposable
         get
         {
             Touch();
-            return _entry.HasData && _entry.Error is null;
+            return StatusOf(_entry) == QueryStatus.Success;
+        }
+    }
+
+    /// <summary>The last attempt threw. Any earlier result is still on <see cref="Data" />.</summary>
+    public bool IsError
+    {
+        get
+        {
+            Touch();
+            return StatusOf(_entry) == QueryStatus.Error;
         }
     }
 
@@ -126,7 +159,7 @@ public sealed class Query<TResult> : IDisposable
         Fetch = _client.DispatchFetch(message);
         _entry = _client.Attach(key, _onChanged, Options.GcTime);
         _ = _client.EnsureFreshAsync(key, this, CancellationToken.None);
-        RenderReaders();
+        _readers.RenderAll();
     }
 
     /// <summary>Fetches again regardless of freshness, and paints the result.</summary>
@@ -150,33 +183,32 @@ public sealed class Query<TResult> : IDisposable
         _readers.Clear();
     }
 
+    private static QueryStatus StatusOf(QueryEntry entry) => entry switch
+    {
+        { Error: not null } => QueryStatus.Error,
+        { HasData: true } => QueryStatus.Success,
+        _ => QueryStatus.Pending,
+    };
+
+    private FetchStatus FetchStatusOf(QueryEntry entry) => entry.InFlight is not null
+        ? FetchStatus.Fetching
+        : Options.Enabled ? FetchStatus.Idle : FetchStatus.Paused;
+
     /// <summary>
     ///     Registers the rendering component so a later result reaches it.
     /// </summary>
     /// <remarks>
-    ///     <para>
-    ///         <see cref="LiveRenderContext.ObserveAmbientState" /> also opts that component out of
-    ///         the render cache, and the two must happen together: a component told to re-render that
-    ///         then serves its cached tree looks exactly like the data never arriving.
-    ///     </para>
-    ///     <para>
-    ///         Deliberately does <b>not</b> start a fetch. With the default <c>StaleTime</c> of zero
-    ///         an entry is stale the moment it lands, so fetching from here would mean a request on
-    ///         every property read — a request per render, for ever. TanStack's zero means "refetch
-    ///         when something starts observing this", not "refetch continuously", and the triggers
-    ///         are the ones below: construction, re-keying, an explicit refetch, and invalidation.
-    ///     </para>
+    ///     Deliberately does <b>not</b> start a fetch. With the default <c>StaleTime</c> of zero an
+    ///     entry is stale the moment it lands, so fetching from here would mean a request on every
+    ///     property read — a request per render, for ever. TanStack's zero means "fetch when
+    ///     something starts observing this", not "fetch continuously", and the triggers are the ones
+    ///     elsewhere in this file: construction, re-keying, an explicit refetch, and invalidation.
     /// </remarks>
     private void Touch()
     {
-        if (_disposed)
+        if (!_disposed)
         {
-            return;
-        }
-
-        if (LiveRenderContext.ObserveAmbientState() is { } component)
-        {
-            AddReader(component);
+            _readers.Observe();
         }
     }
 
@@ -195,37 +227,7 @@ public sealed class Query<TResult> : IDisposable
             _ = _client.EnsureFreshAsync(_key, this, CancellationToken.None);
         }
 
-        RenderReaders();
-    }
-
-    private void AddReader(Component component)
-    {
-        foreach (var existing in _readers)
-        {
-            if (existing.TryGetTarget(out var target) && ReferenceEquals(target, component))
-            {
-                return;
-            }
-        }
-
-        // Weak, so a component that leaves the tree without this query being disposed — the query
-        // outlives it in a longer-lived field — cannot be kept alive by the cache.
-        _readers.Add(new WeakReference<Component>(component));
-    }
-
-    private void RenderReaders()
-    {
-        for (var i = _readers.Count - 1; i >= 0; i--)
-        {
-            if (_readers[i].TryGetTarget(out var component))
-            {
-                component.StateHasChanged();
-            }
-            else
-            {
-                _readers.RemoveAt(i);
-            }
-        }
+        _readers.RenderAll();
     }
 
     internal QueryEntry Entry => _entry;

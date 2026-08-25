@@ -273,7 +273,12 @@ public class QueryClientTests
         await SettleAsync(query);
 
         Assert.Equal(0, dispatcher.QueryCount);
-        Assert.True(query.IsLoading);
+
+        // Pending, but nothing is coming. IsLoading is false so a disabled query does not leave a
+        // spinner turning for ever — the state that says so is FetchStatus.Paused.
+        Assert.Equal(QueryStatus.Pending, query.Status);
+        Assert.Equal(FetchStatus.Paused, query.FetchStatus);
+        Assert.False(query.IsLoading);
     }
 
     [Fact]

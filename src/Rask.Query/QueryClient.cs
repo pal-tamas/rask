@@ -82,6 +82,12 @@ internal sealed class QueryClient : IQueryClient
         return result;
     }
 
+    public Mutation<TCommand> Mutation<TCommand>()
+        where TCommand : ICommand => new(this);
+
+    public Mutation<TCommand, TResult> Mutation<TCommand, TResult>()
+        where TCommand : ICommand<TResult> => new(this);
+
     public void Invalidate<TQuery>() => Invalidate(typeof(TQuery));
 
     public void Invalidate(Type queryType)
@@ -102,6 +108,37 @@ internal sealed class QueryClient : IQueryClient
     {
         ArgumentNullException.ThrowIfNull(message);
         GetOrAdd(new QueryKey(message.GetType(), message, null)).Succeeded(data, _time.GetUtcNow());
+    }
+
+    /// <summary>Dispatches a void command, for a Mutation that owns the surrounding state.</summary>
+    internal Task DispatchCommandAsync(ICommand command, CancellationToken cancellationToken) =>
+        _dispatcher.DispatchAsync(command, cancellationToken);
+
+    /// <summary>Dispatches a value-returning command, for a Mutation that owns the surrounding state.</summary>
+    internal Task<TResult> DispatchCommandAsync<TResult>(
+        ICommand<TResult> command,
+        CancellationToken cancellationToken) =>
+        _dispatcher.DispatchAsync(command, cancellationToken);
+
+    /// <summary>
+    ///     The cached result for a message, when there is one. Used to snapshot before an optimistic
+    ///     edit — the only honest undo is the previous value, since a caller's projection cannot be
+    ///     inverted.
+    /// </summary>
+    internal bool TryGetData<TResult>(IQuery<TResult> message, out TResult? data)
+    {
+        lock (_gate)
+        {
+            if (_entries.TryGetValue(new QueryKey(message.GetType(), message, null), out var entry)
+                && entry.HasData)
+            {
+                data = (TResult?)entry.Data;
+                return true;
+            }
+        }
+
+        data = default;
+        return false;
     }
 
     /// <summary>Wraps a message as a fetch, so the entry stores the boxed result uniformly.</summary>
@@ -286,7 +323,7 @@ internal sealed class QueryClient : IQueryClient
     ///     Attribute metadata on a type the app already references, not member reflection, so the
     ///     trimmer keeps it — the same reason attributes survive on a trimmed WASM publish.
     /// </remarks>
-    private void InvalidateDeclared(object command)
+    internal void InvalidateDeclared(object command)
     {
         if (command.GetType().GetCustomAttribute<InvalidatesAttribute>() is not { } declaration)
         {

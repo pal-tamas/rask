@@ -36,6 +36,12 @@ internal sealed class CountingDispatcher : IDispatcher
 
     public Exception? Throw { get; set; }
 
+    /// <summary>Makes the next command fail, so the rollback path can be asserted rather than assumed.</summary>
+    public Exception? ThrowOnCommand { get; set; }
+
+    /// <summary>What a value-returning command hands back.</summary>
+    public object? CommandResult { get; set; } = 42;
+
     /// <summary>Holds the next dispatch until <see cref="Release" />, so an in-flight state is observable.</summary>
     public void Block() => _gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -66,13 +72,15 @@ internal sealed class CountingDispatcher : IDispatcher
     public Task DispatchAsync(ICommand command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
-        return Task.CompletedTask;
+        return ThrowOnCommand is { } error ? Task.FromException(error) : Task.CompletedTask;
     }
 
     public Task<TResult> DispatchAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
-        return Task.FromResult(default(TResult)!);
+        return ThrowOnCommand is { } error
+            ? Task.FromException<TResult>(error)
+            : Task.FromResult((TResult)(object)CommandResult!);
     }
 
     public Task PublishAsync<TNotification>(
