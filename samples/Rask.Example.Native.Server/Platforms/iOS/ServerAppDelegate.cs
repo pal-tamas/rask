@@ -1,6 +1,5 @@
 using Foundation;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Client.Browser;
 using Rask.Native;
 using UIKit;
 
@@ -41,9 +40,11 @@ public class AppDelegate : UIApplicationDelegate
     private async Task StartAsync(RaskWkWebView webView)
     {
         var host = NativeAppHost.CreateDefault();
-        // The remote page reaches the device backends through the capability bridge, so registering them
-        // here is what gives that page a real iOS share sheet.
-        host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));
+        // UsePlatform, not a hand-picked service or two. The remote page reaches these through the
+        // capability bridge, and the bridge advertises exactly what the platform module registered — so
+        // registering IShare by hand would give the page ONE backend and leave the other fourteen falling
+        // back to the WebView's JS, which is the gap #778 exists to close.
+        host.UsePlatform(new ApplePlatform(() => Window?.RootViewController));
         host.Services.AddSingleton<INativeChrome>(webView);
         host.Services.AddSingleton(new ServerOrigin(ServerUrl));
 
