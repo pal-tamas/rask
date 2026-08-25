@@ -32,6 +32,31 @@ them until tagged releases begin.
 
 
 ### Added
+- **`Rask.Spa.Hosting` serves a built React/Vue/Angular app from an ASP.NET host.**
+  `app.UseRaskSpa()` mounts the bundler's `dist/` with correct MIME types, bundler-aware cache
+  headers, precompressed `.br`/`.gz` siblings and a SPA fallback. It references nothing else in
+  Rask — no `Rask.Core`, no `Rask.Html` — which is what lets it sit in front of a plain ASP.NET
+  app, the same discipline `Rask.Cqrs.Server` already keeps. Pairs with `MapRaskCqrs()`, which
+  gives the front end a typed JSON wire; map your API **before** `UseRaskSpa`.
+
+  **A missing asset stays a 404.** The naive SPA fallback answers every unmatched request with
+  `index.html`, so a missing module import arrives as HTML and the browser reports
+  `Failed to load module script` — which reads as a broken framework rather than a missing file.
+  Requests under a content-hashed prefix, and requests whose `Accept` asks for something other
+  than HTML, are refused instead.
+
+  **Cache classification is per bundler, not shared with the WASM host.** That host's rule matches
+  `dotnet.7a8b9c2d3e.js` — dot-separated, lowercase hex — and misses Vite's `index-DkK9xYz1.js`
+  entirely. Widening one rule to cover both would mark `vendor-react.js` immutable for a year, and
+  a wrong `immutable` cannot be withdrawn without renaming the file. The prefix the bundler
+  guarantees is hashed is consulted first; the filename heuristic is the fallback for Angular,
+  and it requires a digit so a merely long name is not mistaken for a hash.
+
+  **In development, no build output is answered with 200 and an explanation** naming the dev
+  server, not 503 — the bundler is serving the app, so a server error would send you hunting a
+  bug that is not there. Outside development it is a 503, because then it is a real deployment
+  fault.
+
 - **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
   advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen
   native backends the platform modules register were unreachable from a remote shell — a page running as a

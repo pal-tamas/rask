@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Spa.Hosting</RootNamespace>
+
+    <PackageId>Rask.Spa.Hosting</PackageId>
+    <Title>Rask — JS Single-Page App Host</Title>
+    <Description>ASP.NET host for a built React/Vue/Angular front end. `app.UseRaskSpa()` serves the bundler's dist/ with correct MIME types, bundler-aware cache headers, precompressed siblings and a SPA fallback that still 404s a missing asset. Pairs with Rask.Cqrs.Server, which gives the front end a typed JSON wire. Depends on nothing else in Rask.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!--
+    Deliberately no reference to Rask.Core, Rask.Html or Rask.Wasm. A React app has no Component, no
+    scoped assets and no live session, so there is nothing to depend on — and staying free of them is
+    what lets this package serve a plain ASP.NET app too, exactly as Rask.Cqrs.Server does. The one
+    consequence is that RaskPath.Normalize is out of reach, so SpaPath carries its own copy.
+  -->
+
+  <ItemGroup>
+    <!--
+      Serving details shared with Rask.Wasm.Hosting, source-linked rather than referenced: the two
+      hosts must not depend on each other. Same arrangement as src/Rask.Generators.Shared.
+    -->
+    <Compile Include="..\Rask.Hosting.Shared\*.cs" Link="Shared\%(Filename)%(Extension)"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Spa.Hosting.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

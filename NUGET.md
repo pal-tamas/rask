@@ -47,6 +47,7 @@ Or add to an existing project. **Pick a host:**
 dotnet add package Rask.Server            # server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
+dotnet add package Rask.Spa.Hosting       # host a built React/Vue/Angular app on ASP.NET
 ```
 
 **Then the batteries you want** — each is opt-in, and every one is a `AddRaskX<AppDbContext>()` call plus

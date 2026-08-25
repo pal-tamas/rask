@@ -100,6 +100,7 @@ jobs:
           dotnet pack src/Rask.Server/Rask.Server.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Bootstrap/Rask.Bootstrap.csproj -c Release -o ./artifacts
