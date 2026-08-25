@@ -29,6 +29,9 @@ public sealed partial class RaskAndroidWebView : INativeWebView, INativeChrome
     public Android.Views.View View => _webView;
 
     /// <inheritdoc />
+    public IReadOnlyList<string> Capabilities { get; set; } = [];
+
+    /// <inheritdoc />
     public Func<byte[], Task>? OnMessage { get; set; }
 
     /// <param name="context">The hosting activity/context.</param>
@@ -68,7 +71,7 @@ public sealed partial class RaskAndroidWebView : INativeWebView, INativeChrome
             // Swapped in rather than configured up front, so an app that never names a Url keeps exactly the
             // client it had. The asset interceptor is still wanted: scoped CSS/JS and the app's own bundled
             // files are served from the app origin regardless of what the page is.
-            _webView.SetWebViewClient(new ShowcaseWebViewClient(_origin, _readStaticFile, url));
+            _webView.SetWebViewClient(new ShowcaseWebViewClient(_origin, _readStaticFile, url, Capabilities));
             _webView.LoadUrl(url.ToString());
         });
         return default;
@@ -120,7 +123,8 @@ internal sealed class RaskJsBridge(RaskAndroidWebView owner) : Java.Lang.Object
 internal sealed class ShowcaseWebViewClient(
     string origin,
     Func<string, byte[]?> readStaticFile,
-    Uri? remoteOrigin = null) : WebViewClient
+    Uri? remoteOrigin = null,
+    IReadOnlyList<string>? remoteCapabilities = null) : WebViewClient
 {
     public override WebResourceResponse? ShouldInterceptRequest(WebView? view, IWebResourceRequest? request)
     {
@@ -148,7 +152,7 @@ internal sealed class ShowcaseWebViewClient(
 
         if (remoteOrigin is { } trusted && NativeCapabilities.IsTrustedOrigin(trusted, url))
         {
-            view?.EvaluateJavascript(NativeCapabilities.BridgeScript, null);
+            view?.EvaluateJavascript(NativeCapabilities.BridgeScript(remoteCapabilities ?? []), null);
         }
     }
 
