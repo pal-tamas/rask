@@ -43,7 +43,7 @@ public sealed partial class InstallTabs : Component
                 .Class("tabs")
                 .Role("tablist")
                 .Aria(new Dictionary<string, string?> { ["label"] = "Project template" })[
-                Tab(0), Tab(1), Tab(2)
+                Tab(0), Tab(1)
             ],
             Div.Class("term")[Terminal()],
             P.Class("install-foot")[
