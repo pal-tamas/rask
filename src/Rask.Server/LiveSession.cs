@@ -23,6 +23,27 @@ namespace Rask.Server;
 // resend, the dispatch lock, out-of-band sends, and the zero-copy double-buffered send dedup.
 internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposable
 {
+    // Which shell this session is rendering into. Web unless a native head said otherwise — see
+    // UseNativeShell. Held as a field rather than a constant override because it is not a property of the
+    // host: the SAME server serves ordinary browsers and native shells at once, and only the request knows
+    // which one it is answering.
+    private RenderShell _shell = RenderShell.Web;
+
+    /// <inheritdoc />
+    protected override RenderShell ShellCore => _shell;
+
+    /// <summary>
+    ///     Render as though inside a native shell: the portable bars emit no markup, and their descriptor
+    ///     goes to the head instead.
+    /// </summary>
+    /// <remarks>
+    ///     Called from the initial GET, before the first render, because that is the only moment early
+    ///     enough. Deciding on the WebSocket hello would be simpler, but the document has already been
+    ///     rendered and sent by then — the bars would ship as HTML, paint, and vanish a moment later. A
+    ///     request header is the one signal that arrives before anything is rendered.
+    /// </remarks>
+    internal void UseNativeShell() => _shell = RenderShell.Native;
+
     // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
     // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
     // handler thread) from racing the HandlerSyncContext.RunWithRendersAsync renders (fired on

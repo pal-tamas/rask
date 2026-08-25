@@ -36,6 +36,9 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <!-- The portable chrome bars: a server app renders them, and a native shell turns them into real
+         platform chrome. Bundled into the Rask.Server package, so an app gets it without asking. -->
+    <ProjectReference Include="..\..\src\Rask.Chrome\Rask.Chrome.csproj"/>
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Chrome;
 using Rask.Chrome.Components;
 using Rask.Core;
 using Rask.Core.Authentication;
@@ -379,30 +380,16 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         // The portable bar carries no appearance of its own — colour and segmented titles are
         // platform-exact features that stay with NativeHeaderBar — so it takes every style slot from the
         // app-wide NativeTheme.
-        if (header is AppBar appBar)
+        //
+        // Built by Rask.Chrome, not here: the server and WASM sessions describe the same bar for the remote
+        // models, and one builder is what keeps a Screen looking identical whichever model renders it.
+        if (ChromeDescriptorBuilder.BuildHeader(
+                header,
+                handlers,
+                ResolveColor(null, theme?.Background),
+                ResolveColor(null, theme?.Tint),
+                ResolveColor(null, theme?.TitleColor)) is { } portable)
         {
-            var portable = new NativeHeaderDescriptor
-            {
-                Title = appBar.Title,
-                Background = ResolveColor(null, theme?.Background),
-                Tint = ResolveColor(null, theme?.Tint),
-                TitleColor = ResolveColor(null, theme?.TitleColor),
-            };
-            if (appBar.Leading is { } portableLeading)
-            {
-                portable.Leading = BuildItemDescriptor(portableLeading, "h.leading", handlers);
-            }
-
-            if (appBar.Trailing is { Count: > 0 } portableTrailing)
-            {
-                portable.Trailing = new List<NativeBarItemDescriptor>(portableTrailing.Count);
-                for (var i = 0; i < portableTrailing.Count; i++)
-                {
-                    portable.Trailing.Add(
-                        BuildItemDescriptor(portableTrailing[i], "h.trailing." + i, handlers));
-                }
-            }
-
             return portable;
         }
 
@@ -463,31 +450,13 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             // SAME method the web hosts call — so one declaration cannot light a different tab depending on
             // which head is running it.
             case TabStrip strip:
-                var stripFooter = new NativeFooterDescriptor
-                {
-                    Kind = "tabbar",
-                    Selected = strip.Selected ?? TabStrip.DeriveSelected(strip.Tabs, currentPath),
-                    Background = ResolveColor(null, theme?.Background),
-                    Tint = ResolveColor(null, theme?.Tint),
-                    UnselectedTint = ResolveColor(null, theme?.UnselectedTint),
-                };
-                if (strip.Tabs is { Count: > 0 } stripTabs)
-                {
-                    stripFooter.Tabs = new List<NativeTabDescriptor>(stripTabs.Count);
-                    foreach (var tab in stripTabs)
-                    {
-                        stripFooter.Tabs.Add(new NativeTabDescriptor
-                        {
-                            Title = tab.Title,
-                            IosIcon = tab.Icon.IosSymbol,
-                            AndroidIcon = tab.Icon.AndroidResource,
-                            Path = tab.To.ToString(),
-                            Badge = string.IsNullOrEmpty(tab.Badge) ? null : tab.Badge,
-                        });
-                    }
-                }
-
-                return stripFooter;
+                // Same builder the remote models use, so one TabStrip lights the same tab everywhere.
+                return ChromeDescriptorBuilder.BuildFooter(
+                    strip,
+                    currentPath,
+                    ResolveColor(null, theme?.Background),
+                    ResolveColor(null, theme?.Tint),
+                    ResolveColor(null, theme?.UnselectedTint));
 
             case NativeTabBar tabBar:
                 // Derive the active tab from the current route unless the page pinned Selected explicitly, so
@@ -551,21 +520,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             // The portable bar button: an icon, a title, and an optional tap. Everything past that (a back
             // affordance, an overflow menu) stays with the Rask.Native family.
             case BarButton portable:
-                string? portableTapId = null;
-                if (portable.OnClick is { } portableClick)
-                {
-                    handlers[id] = portableClick;
-                    portableTapId = id;
-                }
-
-                return new NativeBarItemDescriptor
-                {
-                    Kind = "button",
-                    Id = portableTapId,
-                    IosIcon = portable.Icon.IosSymbol,
-                    AndroidIcon = portable.Icon.AndroidResource,
-                    Title = portable.Title,
-                };
+                return ChromeDescriptorBuilder.BuildItem(portable, id, handlers);
 
             case NativeBackButton:
                 // The head wires a back item to the platform's own back affordance — no server round-trip.

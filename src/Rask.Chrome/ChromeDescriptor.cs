@@ -1,11 +1,18 @@
 using System.Text.Json.Serialization;
 
-namespace Rask.Native;
+namespace Rask.Chrome;
 
-// The wire shape the native heads read to build platform bars. Kept entirely inside Rask.Native (Core stays
-// serialization-free) and serialized through the source-generated NativeChromeJsonContext so it is trim/AOT
-// safe (iOS requires full AOT). Icons carry BOTH platform tokens (the head picks its own); buttons carry a tap
-// id when they have an OnClick (the head echoes it back in a nativeTap event); tabs carry a route path.
+// The wire shape a native head reads to build platform bars.
+//
+// It lives in Rask.Chrome, not Rask.Native, because all four hosting models have to be able to PRODUCE one.
+// In the in-process model the native session builds it; in the remote models the server or WASM session does,
+// and ships it to the shell — those assemblies cannot see Rask.Native and should not. Rask.Chrome is the one
+// assembly all three hosts already reference and already bundle, and it owns the portable bars this describes.
+//
+// Kept out of Rask.Core deliberately: Core names no chrome type and stays serialization-free. Serialized
+// through the source-generated context below so it is trim/AOT safe (iOS requires full AOT). Icons carry BOTH
+// platform tokens (the head picks its own); buttons carry a tap id when they have an OnClick (the head echoes
+// it back as a nativeTap event); tabs carry a route path.
 
 internal sealed class NativeChromeDescriptor
 {

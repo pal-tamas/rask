@@ -39,10 +39,13 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Chrome.Tests"/>
-    <!-- The native host's descriptor builder calls TabStrip.DeriveSelected, so both ends of one
-         declaration light the same tab. Internal rather than public: it is a framework contract between
-         these two assemblies, not something an app needs to call. -->
+    <!-- The chrome descriptor and TabStrip.DeriveSelected are a framework contract between this assembly
+         and the hosts, not something an app calls — so they stay internal and the hosts are named here.
+         All three need it now: every model has to be able to PRODUCE a descriptor, because in the remote
+         models it is the server or WASM session that renders the bars, not the native one. -->
     <InternalsVisibleTo Include="Rask.Native"/>
+    <InternalsVisibleTo Include="Rask.Server"/>
+    <InternalsVisibleTo Include="Rask.Wasm"/>
   </ItemGroup>
 
 </Project>

@@ -485,6 +485,15 @@ public static partial class RaskEndpointExtensions
             // WASM's InitialRenderAsync / `_lastAppliedHtml`), AND the diff-codec frame
             // baseline so the FIRST interactive WS render ships a diff instead of the whole
             // document. See LiveSession.RenderInitialRoot.
+            // A native shell announces itself on the request, before anything is rendered. That timing is
+            // the whole point: the portable bars decide whether to emit markup during this very render, and
+            // any later signal — the WebSocket hello, a script in the page — arrives after the document has
+            // already been built and sent, so the bars would ship as HTML, paint, and disappear.
+            if (RaskShellHeader.IsNativeShell(httpContext.Request))
+            {
+                session.UseNativeShell();
+            }
+
             var html = session.RenderInitialRoot();
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
             // from the same predicate that decides whether to subscribe at all, so the two can't
