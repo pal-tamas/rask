@@ -50,6 +50,14 @@ public interface INativeWebView
     ValueTask LoadUrlAsync(Uri url);
 
     /// <summary>
+    ///     What this head backs natively, set by the host from the platform module before the shell loads.
+    ///     The injected bridge script advertises it, so the page can decide per API whether to cross the
+    ///     bridge or use its own JS — and a head with no platform module advertises nothing and degrades to
+    ///     the WebView's web APIs, with no branch in app code either way.
+    /// </summary>
+    IReadOnlyList<string> Capabilities { get; set; }
+
+    /// <summary>
     ///     Set by the host to receive JS → .NET messages: component events (<c>click</c>/<c>input</c>/
     ///     <c>submit</c>/<c>navigate</c>/…), <c>jsResult</c> replies, and <c>dotNetInvoke</c> calls — each
     ///     a UTF-8 JSON payload. The platform head calls this from its script-message handler.

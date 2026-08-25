@@ -7,6 +7,55 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
+  advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen
+  native backends the platform modules register were unreachable from a remote shell — a page running as a
+  *server* app silently got the WebView's JS instead. All fifteen cross the bridge now, in every model.
+
+  **The envelope had no way to answer.** `invoke(component, data)` posted and returned nothing: no
+  correlation id, no reply path. That is why `share` was the only capability that ever worked — it returns
+  nothing. **Twenty-two of the thirty-five members** across the fifteen interfaces return a value, and none
+  of them could cross. The envelope carries an id now and the host answers on
+  `window.__raskNative.capabilityResult`, so an invoke is a promise — the same shape `jsResult` and
+  `dotNetInvoke` already used in the other direction.
+
+  **Every outcome answers.** An unknown capability, a backend the head never registered, and a backend that
+  threw each send a reply carrying the reason. Previously anything but `share` was consumed as a
+  forward-compatible no-op, which left the page's `await` pending for ever — the worst way to report that
+  there is nothing there.
+
+  **The six pushing members work too** — the geolocation and battery watches, the device orientation and
+  motion streams, speech recognition, and the wake lock's held sentinel. They hand back an
+  `IAsyncDisposable`, which a JSON envelope cannot carry, so the handle stays native-side and the page
+  refers to it by id. The **page mints that id** rather than receiving it in the reply: a sensor can deliver
+  a reading before the reply arrives, and an id the page has not seen yet is one it cannot route, so the
+  first readings would vanish — silently, and only on a fast device. Releasing is one path for all six, and
+  the app disposes whatever is still live, because a GPS watch or a wake lock that outlives its app is a
+  battery complaint with no visible cause.
+
+  Readings still reach your C# through the page's own `DotNet.invokeMethodAsync` path, exactly as the web
+  implementation delivers them. The bridge replaces *where a reading comes from*, not how it gets home,
+  which is why nothing in the app half changes and no `IsNative` branch appears anywhere.
+
+- **`window.__raskNative.capabilities` is derived, not declared.** It comes from probing the platform
+  module's own `Register`, so adding a sixteenth backend advertises it with nothing else to edit — the
+  drift G1 describes cannot happen. Asking the live container instead would have advertised everything:
+  the framework registers a JS-backed default for every one of these interfaces and a module uses `TryAdd`,
+  so "is it registered" cannot tell a native backend from the WebView's own JS. A head with no platform
+  module advertises nothing and the page keeps its web APIs.
+
+### Changed
+- **The capability envelope now carries an `op`.** It was `{ component, data }`, which could only ever name
+  one operation per backend; it is `{ id, component, op, data }` now. The old two-field form only ever
+  routed `share`, and both clients ship in this repo, so nothing outside it can have depended on the shape.
+
+- **The remote heads take the app's services, not a lone `IShare`.** `RaskServerViewController` and
+  `RaskServerWebView` had their own private notion of what a capability was, which is why they could only
+  ever forward one. They share the in-process dispatcher and its reply channel now, so the two models
+  cannot drift apart — the same envelope, the same backends, the same answers.
+
+
 ### Changed
 - **`rask new --template native --host native` scaffolds a pure-native app** (#777, the four-models
   epic). The scaffold still emitted the WebView-hybrid shape — `NativeWebView[Router]` and a page of

@@ -30,7 +30,7 @@ namespace Rask.Native;
 ///     external pages. The bridge is a fixed component envelope (<c>share</c>, …), not an open native-RPC
 ///     channel.
 /// </remarks>
-public static class NativeCapabilities
+public static partial class NativeCapabilities
 {
     /// <summary>
     ///     The document-start script a Native + Server head injects so the loaded page can reach native
@@ -38,59 +38,102 @@ public static class NativeCapabilities
     ///     which posts a <c>{ type:"capability" }</c> message over the same <c>window.__raskSend</c> /
     ///     <c>window.__raskBridge</c> channel the head already wires. Inject for your trusted origin only.
     /// </summary>
-    public static string BridgeScript { get; } =
-        """
-        (function () {
-            function send(s) {
-                if (typeof window.__raskSend === "function") { window.__raskSend(s); }
-                else if (window.__raskBridge && typeof window.__raskBridge.dispatch === "function") { window.__raskBridge.dispatch(s); }
-            }
-            var n = window.__raskNative = window.__raskNative || {};
-            n.capabilities = ["share"];
-            n.invoke = function (component, data) {
-                send(JSON.stringify({ type: "capability", component: component, data: data }));
-            };
-        })();
-        """;
-
     /// <summary>
-    ///     Handle a WebView → .NET message posted by <see cref="BridgeScript" />'s <c>invoke</c>. If it's a
-    ///     <c>{ type:"capability" }</c> envelope it's consumed (share is routed to <paramref name="share" />)
-    ///     and this returns <c>true</c>; a non-capability message returns <c>false</c> so the head can handle
-    ///     it otherwise. An unknown component is consumed as a no-op (forward-compatible), and a malformed
-    ///     payload is discarded without throwing.
+    ///     The document-start script a head injects so the loaded page can reach the native backends this
+    ///     app registered. Defines <c>window.__raskNative.capabilities</c> and an <c>invoke</c> that returns
+    ///     a promise, resolved by <c>capabilityResult</c> when the native side answers.
     /// </summary>
-    public static async Task<bool> TryHandleAsync(ReadOnlyMemory<byte> messageJson, IShare share)
+    /// <param name="capabilities">
+    ///     What this head actually backs natively — see <see cref="NativeCapabilityRegistry.AdvertisedFor" />.
+    ///     The page uses it to decide, per API, whether to cross the bridge or use its own JS, so a head that
+    ///     backs nothing degrades to the WebView's web APIs with no branch in app code.
+    /// </param>
+    /// <summary>
+    ///     A one-liner that tells an already-loaded client what this head backs natively. The in-process
+    ///     client defines <c>window.__raskNative</c> itself and ships with an empty list; this fills it.
+    /// </summary>
+    public static string AdvertiseScript(IEnumerable<string> capabilities)
     {
-        ArgumentNullException.ThrowIfNull(share);
+        ArgumentNullException.ThrowIfNull(capabilities);
 
-        string? component;
-        string? dataJson;
-        try
-        {
-            using var doc = JsonDocument.Parse(messageJson);
-            var root = doc.RootElement;
-            if (Str(root, "type") != "capability")
-            {
-                return false;
-            }
+        var list = string.Join(",", capabilities.Select(c => "\"" + JsonEncodedText.Encode(c) + "\""));
+        return "window.__raskNative.capabilities = [" + list + "];";
+    }
 
-            component = Str(root, "component");
-            dataJson = Str(root, "data");
-        }
-        catch (JsonException ex)
-        {
-            RaskDiagnostics.Report(RaskLogLevel.Warning, "Rask.Native",
-                "[Rask.Native] discarded a malformed capability message", ex);
-            return false;
-        }
+    public static string BridgeScript(IEnumerable<string> capabilities)
+    {
+        ArgumentNullException.ThrowIfNull(capabilities);
 
-        if (component == "share" && !string.IsNullOrEmpty(dataJson))
-        {
-            await DispatchShareAsync(dataJson, share).ConfigureAwait(false);
-        }
+        var list = string.Join(",", capabilities.Select(c => "\"" + JsonEncodedText.Encode(c) + "\""));
 
-        return true;
+        return """
+            (function () {
+                function send(s) {
+                    if (typeof window.__raskSend === "function") { window.__raskSend(s); }
+                    else if (window.__raskBridge && typeof window.__raskBridge.dispatch === "function") { window.__raskBridge.dispatch(s); }
+                }
+                var n = window.__raskNative = window.__raskNative || {};
+                n.capabilities = [__CAPS__];
+                n.has = function (name) { return n.capabilities.indexOf(name) !== -1; };
+
+                // Correlation ids and a promise table, the same shape jsResult/dotNetInvoke already use in
+                // the other direction. Without this an invoke could only be fire-and-forget, which is why
+                // share was the only capability that ever worked.
+                var pending = {}, subs = {}, nextId = 1;
+                n.invoke = function (component, op, data) {
+                    var id = String(nextId++);
+                    return new Promise(function (resolve, reject) {
+                        pending[id] = { resolve: resolve, reject: reject };
+                        send(JSON.stringify({
+                            type: "capability", id: id, component: component, op: op,
+                            data: data === undefined || data === null ? null : JSON.stringify(data)
+                        }));
+                    });
+                };
+                // Streams. The id is minted here, before the request is sent, so a reading that arrives
+                // ahead of the reply still has a callback to reach.
+                n.subscribe = function (component, op, data, onEvent) {
+                    var sub = "s" + String(nextId++);
+                    subs[sub] = onEvent;
+                    var payload = Object.assign({ sub: sub }, data || {});
+                    return n.invoke(component, op, payload).then(function () { return sub; }, function (err) {
+                        delete subs[sub];
+                        throw err;
+                    });
+                };
+                n.unsubscribe = function (component, op, sub) {
+                    delete subs[sub];
+                    return n.invoke(component, op, sub);
+                };
+                n.capabilityEvent = function (json) {
+                    var msg;
+                    try { msg = JSON.parse(json); } catch (e) { return; }
+                    var cb = subs[msg.sub];
+                    if (!cb) { return; }
+                    var value = null;
+                    if (msg.payload !== null && msg.payload !== undefined) {
+                        try { value = JSON.parse(msg.payload); } catch (e) { value = msg.payload; }
+                    }
+                    cb(value);
+                };
+                n.capabilityResult = function (json) {
+                    var msg;
+                    try { msg = JSON.parse(json); } catch (e) { return; }
+                    var p = pending[msg.id];
+                    if (!p) { return; }
+                    delete pending[msg.id];
+                    if (msg.success) {
+                        var value = null;
+                        if (msg.result !== null && msg.result !== undefined) {
+                            try { value = JSON.parse(msg.result); } catch (e) { value = msg.result; }
+                        }
+                        p.resolve(value);
+                    } else {
+                        p.reject(new Error(msg.error || "The native capability failed."));
+                    }
+                };
+            })();
+            """.Replace("__CAPS__", list, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -108,36 +151,6 @@ public static class NativeCapabilities
             && string.Equals(u.Scheme, origin.Scheme, StringComparison.OrdinalIgnoreCase)
             && string.Equals(u.Host, origin.Host, StringComparison.OrdinalIgnoreCase)
             && u.Port == origin.Port;
-    }
-
-    private static async Task DispatchShareAsync(string dataJson, IShare share)
-    {
-        ShareData? data;
-        try
-        {
-            data = JsonSerializer.Deserialize(dataJson, RaskBrowserJsonContext.Default.ShareData);
-        }
-        catch (JsonException ex)
-        {
-            RaskDiagnostics.Report(RaskLogLevel.Warning, "Rask.Native",
-                "[Rask.Native] discarded a malformed share capability payload", ex);
-            return;
-        }
-
-        if (data is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await share.ShareAsync(data).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            RaskDiagnostics.Report(RaskLogLevel.Warning, "Rask.Native",
-                "[Rask.Native] share capability invoke threw", ex);
-        }
     }
 
     private static string? Str(JsonElement root, string name) =>

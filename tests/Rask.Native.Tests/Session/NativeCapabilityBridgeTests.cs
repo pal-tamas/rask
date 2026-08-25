@@ -6,7 +6,7 @@ using Rask.Native.Tests.Infrastructure;
 
 namespace Rask.Native.Tests.Session;
 
-// The native capability bridge: window.__raskNative.invoke(component, data) posts a { type:"capability" }
+// The native capability bridge: window.__raskNative.invoke(component, op, data) posts a { type:"capability" }
 // message the host routes to the registered service. This is how the declarative Shareable (and a
 // native-shell page) reaches the native backend the head registered as IShare — no user activation needed.
 [Collection("NativeSession")]
@@ -20,7 +20,7 @@ public class NativeCapabilityBridgeTests() : ResettingTestBase(LiveDiffMode.Auto
             configure: s => s.AddSingleton<IShare>(share), diffMode: DiffMode);
 
         await webView.PostAsync(
-            """{"type":"capability","component":"share","data":"{\"title\":\"Rask\",\"url\":\"https://x\"}"}""");
+            """{"type":"capability","id":"1","component":"share","op":"share","data":"{\"title\":\"Rask\",\"url\":\"https://x\"}"}""");
 
         Assert.NotNull(share.Last);
         Assert.Equal("Rask", share.Last!.Title);
@@ -34,7 +34,7 @@ public class NativeCapabilityBridgeTests() : ResettingTestBase(LiveDiffMode.Auto
         var (_, webView, _) = await NewSessionAsync(
             configure: s => s.AddSingleton<IShare>(share), diffMode: DiffMode);
 
-        await webView.PostAsync("""{"type":"capability","component":"bogus","data":"{}"}""");
+        await webView.PostAsync("""{"type":"capability","id":"2","component":"bogus","op":"go","data":"{}"}""");
 
         Assert.Null(share.Last);
     }
@@ -46,7 +46,7 @@ public class NativeCapabilityBridgeTests() : ResettingTestBase(LiveDiffMode.Auto
         var (_, webView, _) = await NewSessionAsync(
             configure: s => s.AddSingleton<IShare>(share), diffMode: DiffMode);
 
-        await webView.PostAsync("""{"type":"capability","component":"share","data":"not json"}""");
+        await webView.PostAsync("""{"type":"capability","id":"3","component":"share","op":"share","data":"not json"}""");
 
         Assert.Null(share.Last);
     }

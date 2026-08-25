@@ -4068,9 +4068,14 @@ document.addEventListener("click", function (e) {
     var raw = t.getAttribute("data-rask-share");
     if (!raw) { return; }
     var nativeCaps = window.__raskNative;
-    if (nativeCaps && nativeCaps.capabilities && nativeCaps.capabilities.indexOf &&
-        nativeCaps.capabilities.indexOf("share") !== -1 && typeof nativeCaps.invoke === "function") {
-        nativeCaps.invoke("share", raw);
+    if (nativeCaps && typeof nativeCaps.has === "function" && nativeCaps.has("share") &&
+        typeof nativeCaps.invoke === "function") {
+        var payload;
+        try { payload = JSON.parse(raw); } catch (err) { return; }
+        // invoke returns a promise now; a rejected share (user cancelled, unsupported payload) is not an
+        // error worth surfacing here, but an unhandled rejection would be.
+        var shared = nativeCaps.invoke("share", "share", payload);
+        if (shared && shared["catch"]) { shared["catch"](function () {}); }
         return;
     }
     if (navigator.share) {
@@ -4643,12 +4648,85 @@ function endDotNetInvoke(resultJson) {
 
 // The host reaches applyRender/beginInvokeJS/endDotNetInvoke through EvaluateJavaScript. capabilities +
 // invoke() are the native device-capability bridge the shared client uses (e.g. Shareable): invoke() posts
-// a capability message the host routes to the registered service (IShare) — see NativeAppHost. On the Native
-// host, sharing is always available, so it's advertised here; invoke() needs no user activation.
+// a capability message the host routes to the backend the head registered — see NativeAppHost.
+//
+// capabilities is EMPTY here and filled in by the host (NativeCapabilityRegistry), because what this app
+// backs natively is a property of the platform module it was given, not of the client. It used to be a
+// hardcoded ["share"], which is why share was the only capability that ever worked.
+const capabilityPending = new Map();
+const capabilitySubs = new Map();
+let nextCapabilityId = 1;
+
 window.__raskNative = {
     applyRender, beginInvokeJS, endDotNetInvoke,
-    capabilities: ["share"],
-    invoke: function (component, data) { send({ type: "capability", component: component, data: data }); }
+    capabilities: [],
+    has: function (name) { return window.__raskNative.capabilities.indexOf(name) !== -1; },
+
+    // Returns a promise, resolved by capabilityResult below. The same correlation-id shape jsResult and
+    // dotNetInvoke already use in the other direction — without it an invoke could only be fire-and-forget,
+    // and every capability that returns a value was unreachable.
+    invoke: function (component, op, data) {
+        const id = String(nextCapabilityId++);
+        return new Promise((resolve, reject) => {
+            capabilityPending.set(id, { resolve, reject });
+            send({
+                type: "capability", id: id, component: component, op: op,
+                data: data === undefined || data === null ? null : JSON.stringify(data)
+            });
+        });
+    },
+
+// Streams. The subscription id is minted HERE, not returned by the host: a sensor can deliver a reading
+    // before the reply arrives, and an id the page has not seen yet is one it cannot route — the first
+    // readings would vanish, silently and only on a fast device. Registering the callback first removes the
+    // race entirely.
+    subscribe: function (component, op, data, onEvent) {
+        const sub = "s" + String(nextCapabilityId++);
+        capabilitySubs.set(sub, onEvent);
+        const payload = Object.assign({ sub: sub }, data || {});
+        return window.__raskNative.invoke(component, op, payload).then(() => sub, (err) => {
+            capabilitySubs.delete(sub);
+            throw err;
+        });
+    },
+
+    unsubscribe: function (component, op, sub) {
+        capabilitySubs.delete(sub);
+        return window.__raskNative.invoke(component, op, sub);
+    },
+
+    // Host → page: one reading. Handed to the callback the page registered, which forwards it to C#
+    // exactly as the web implementation would — the bridge changes where a reading comes from, not how it
+    // gets home.
+    capabilityEvent: function (json) {
+        let msg;
+        try { msg = JSON.parse(json); } catch (e) { return; }
+        const cb = capabilitySubs.get(msg.sub);
+        if (!cb) return;
+        let value = null;
+        if (msg.payload !== null && msg.payload !== undefined) {
+            try { value = JSON.parse(msg.payload); } catch (e) { value = msg.payload; }
+        }
+        cb(value);
+    },
+
+    // Host → page: settle the promise the invoke above is waiting on.
+    capabilityResult: function (json) {
+        let msg;
+        try { msg = JSON.parse(json); } catch (e) { console.error("[Rask.Native] capabilityResult bad JSON", e); return; }
+        const pending = capabilityPending.get(msg.id);
+        if (!pending) return;
+        capabilityPending.delete(msg.id);
+        if (msg.success) {
+            let value = null;
+            if (msg.result !== null && msg.result !== undefined) {
+                try { value = JSON.parse(msg.result); } catch (e) { value = msg.result; }
+            }
+            pending.resolve(value);
+        } else {
+            pending.reject(new Error(msg.error || "The native capability failed."));
+        }
+    }
 };
 
 // Signal readiness so the host fires its first render only now (see NativeAppHost.RouteMessageAsync).

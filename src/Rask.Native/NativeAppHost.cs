@@ -85,6 +85,11 @@ public sealed class NativeAppHost
 
         // IJSRuntime backed by the native WebView bridge. Singleton — one runtime per app instance;
         // NativeLiveSession's ctor binds it to the session + WebView.
+        // Live capability subscriptions (a GPS watch, a held wake lock, the sensor streams). Singleton
+        // because the whole native app is one session, and disposed with the app so nothing it started
+        // outlives it.
+        Services.TryAddSingleton<NativeCapabilitySubscriptions>();
+
         Services.AddSingleton<NativeJSRuntime>();
         Services.AddSingleton<IJSRuntime>(sp => sp.GetRequiredService<NativeJSRuntime>());
     }
@@ -256,6 +261,11 @@ public sealed class NativeAppHost
 
         var session = new NativeLiveSession(root, provider, webView, _diffMode);
         var nativeApp = new NativeApp(session, provider);
+        // Derived from the module, not declared: adding a sixteenth backend advertises it, and a head with
+        // no module advertises nothing rather than promising backends it does not have.
+        nativeApp.Capabilities = _platform is null
+            ? []
+            : NativeCapabilityRegistry.AdvertisedFor(_platform);
 
         // The WebView drives everything through this single message channel: the initial-render handshake
         // (ready), IJSRuntime results (jsResult), JS-initiated [JSInvokable] (dotNetInvoke), and component
@@ -263,7 +273,12 @@ public sealed class NativeAppHost
         // Absent in the pure-native model, where the surface's own event channel below is the only input.
         if (webView is not null)
         {
-            webView.OnMessage = json => RouteMessageAsync(nativeApp, json);
+            webView.OnMessage = json => RouteMessageAsync(
+                nativeApp, json, script => webView.EvaluateJavaScriptAsync(script));
+
+            // Derived from the module, not declared: adding a sixteenth backend advertises it, and a head
+            // with no module advertises nothing rather than promising backends it does not have.
+            webView.Capabilities = nativeApp.Capabilities;
         }
 
         // If a native-chrome backend is registered, route its bar interactions through the SAME dispatcher —
@@ -309,7 +324,15 @@ public sealed class NativeAppHost
         }
     }
 
-    private static async Task RouteMessageAsync(NativeApp app, byte[] json)
+    /// <param name="app">The running app whose session and services the message targets.</param>
+    /// <param name="json">The raw UTF-8 message.</param>
+    /// <param name="evaluate">
+    ///     Evaluates JS in the WebView that sent the message — the capability bridge's reply channel.
+    ///     Null for input that did not come from a WebView (a native bar tap), which cannot carry a
+    ///     capability envelope and so never needs to answer one.
+    /// </param>
+    private static async Task RouteMessageAsync(
+        NativeApp app, byte[] json, Func<string, ValueTask>? evaluate = null)
     {
         if (json is null || json.Length == 0)
         {
@@ -336,6 +359,15 @@ public sealed class NativeAppHost
         switch (type)
         {
             case "ready":
+                // Tell the page what this head backs natively, BEFORE the first frame: a component that
+                // reaches for a device API while rendering must already know whether to cross the bridge.
+                // The in-process client ships with an empty list because what is native is a property of
+                // the platform module the head was given, not of the client.
+                if (evaluate is not null)
+                {
+                    await evaluate(NativeCapabilities.AdvertiseScript(app.Capabilities)).ConfigureAwait(false);
+                }
+
                 // First-render handshake: the client signals it has loaded and is ready to receive frames.
                 await app.Session.InitialRenderAsync().ConfigureAwait(false);
                 return;
@@ -350,9 +382,12 @@ public sealed class NativeAppHost
                 // NativeCapabilities dispatcher with the DI-registered service, so a declarative Shareable
                 // reaches the native backend the head registered — see docs/native.md. (A Native + Server
                 // head uses the same dispatcher with its own IShare.)
-                if (app.Services.GetService<IShare>() is { } capabilityShare)
+                // The reply channel is the WebView this session already drives. Handed in rather than
+                // reached for, so the remote heads — which have a WebView but no session — use the same
+                // dispatcher with their own.
+                if (evaluate is not null)
                 {
-                    await NativeCapabilities.TryHandleAsync(json, capabilityShare).ConfigureAwait(false);
+                    await NativeCapabilities.TryHandleAsync(json, app.Services, evaluate).ConfigureAwait(false);
                 }
 
                 return;
@@ -530,6 +565,12 @@ public sealed class NativeApp : IAsyncDisposable
 
     /// <summary>The app's service provider — resolve app services or the framework's browser APIs from it.</summary>
     public IServiceProvider Services => _provider;
+
+    /// <summary>
+    ///     What this app backs natively, derived from the platform module it was given. Empty when there is
+    ///     none, which is what makes a head with no module degrade to the WebView's own web APIs.
+    /// </summary>
+    internal IReadOnlyList<string> Capabilities { get; set; } = [];
 
     /// <summary>
     ///     Whether <see cref="GoBackAsync" /> has somewhere to go. Answered synchronously, because the caller

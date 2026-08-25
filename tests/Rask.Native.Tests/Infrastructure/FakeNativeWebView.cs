@@ -23,6 +23,9 @@ internal sealed class FakeNativeWebView : INativeWebView
     /// </summary>
     public List<Uri> LoadedUrls { get; } = new();
 
+    /// <summary>What the host advertised to the page — the derived native-backend set.</summary>
+    public IReadOnlyList<string> Capabilities { get; set; } = [];
+
     public Func<byte[], Task>? OnMessage { get; set; }
 
     public ValueTask ApplyRenderAsync(ReadOnlyMemory<byte> frameUtf8)

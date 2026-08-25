@@ -3,7 +3,6 @@ using Android.Content;
 using Android.Graphics;
 using Android.Webkit;
 using Java.Interop;
-using Rask.Client.Browser;
 
 namespace Rask.Native;
 
@@ -18,10 +17,16 @@ public static class RaskServerWebView
     /// <summary>Create a configured Native + Server WebView. Hand the result to <c>SetContentView</c>.</summary>
     /// <param name="context">The hosting activity/context.</param>
     /// <param name="origin">The trusted remote server origin (the bridge is exposed only here).</param>
-    /// <param name="share">The native share backend the bridge routes <c>share</c> to.</param>
-    public static WebView Create(Context context, Uri origin, IShare share)
+    /// <param name="services">
+    ///     The app services holding the native backends the bridge routes to — the whole provider, because
+    ///     every capability the head registered is reachable now, not just share.
+    /// </param>
+    /// <param name="capabilities">What to advertise to the page — see <see cref="NativeCapabilityRegistry" />.</param>
+    public static WebView Create(
+        Context context, Uri origin, IServiceProvider services, IReadOnlyList<string> capabilities)
     {
-        ArgumentNullException.ThrowIfNull(share);
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(capabilities);
         // Validates the origin is absolute (same contract a Native + Server head's ConnectToServer uses).
         var serverBaseUrl = NativeAppHost.ConnectToServer(origin).ServerBaseUrl;
 
@@ -31,32 +36,33 @@ public static class RaskServerWebView
         settings.DomStorageEnabled = true;
 
         // JS → native: window.__raskBridge.dispatch (used by NativeCapabilities.BridgeScript's send()).
-        webView.AddJavascriptInterface(new RaskServerBridge(share), "__raskBridge");
-        webView.SetWebViewClient(new RaskServerWebViewClient(serverBaseUrl));
+        webView.AddJavascriptInterface(new RaskServerBridge(services, webView), "__raskBridge");
+        webView.SetWebViewClient(new RaskServerWebViewClient(serverBaseUrl, capabilities));
         webView.LoadUrl(serverBaseUrl.ToString());
         return webView;
     }
 }
 
-// Routes a WebView → native message to the shared capability dispatcher with the head's native IShare.
+// Routes a WebView → native message to the shared capability dispatcher with the head's own services.
 // Only { type:"capability" } envelopes are honoured; the WebViewClient guarantees only the trusted origin
 // can reach this interface.
-internal sealed class RaskServerBridge(IShare share) : Java.Lang.Object
+internal sealed class RaskServerBridge(IServiceProvider services, WebView webView) : Java.Lang.Object
 {
     [JavascriptInterface]
     [Export("dispatch")]
     public void Dispatch(string message) =>
-        _ = NativeCapabilities.TryHandleAsync(Encoding.UTF8.GetBytes(message), share);
+        _ = NativeCapabilities.TryHandleAsync(Encoding.UTF8.GetBytes(message), services,
+            script => { webView.Post(() => webView.EvaluateJavascript(script, null)); return default; });
 }
 
-internal sealed class RaskServerWebViewClient(Uri origin) : WebViewClient
+internal sealed class RaskServerWebViewClient(Uri origin, IReadOnlyList<string> capabilities) : WebViewClient
 {
     // Inject the capability bridge (window.__raskNative) only for the trusted origin, as each page commits.
     public override void OnPageStarted(WebView? view, string? url, Bitmap? favicon)
     {
         if (view is not null && NativeCapabilities.IsTrustedOrigin(origin, url))
         {
-            view.EvaluateJavascript(NativeCapabilities.BridgeScript, null);
+            view.EvaluateJavascript(NativeCapabilities.BridgeScript(capabilities), null);
         }
     }
 
