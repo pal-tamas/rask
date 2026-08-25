@@ -14,12 +14,19 @@ namespace Rask.Spa.Tasks.Tests;
 ///         a malformed one.
 ///     </para>
 ///     <para>
-///         Needs a TypeScript compiler, so it is opt-in through <c>RASK_TSC</c>, naming the binary to
-///         run — tsgo, the native Go build, which run-unit-local.sh provisions and which needs no node
-///         at run time. It does NOT quietly pass when that is unset: an unset variable fails the test
-///         with the command to set, because a type-check gate that silently reports success is worse
-///         than none. The gate script excludes this test by name when it cannot provision the
-///         toolchain, and says so.
+///         The compiler is tsgo — the native Go build of TypeScript — fetched through <c>npx</c>,
+///         which caches the download itself, so there is no provisioning step of ours to keep
+///         working. <c>RASK_TSC</c> overrides it with a compiler already on disk.
+///     </para>
+///     <para>
+///         The version is PINNED. <c>@typescript/native-preview</c> publishes dated dev builds to
+///         <c>latest</c>, and this runs from a pre-commit hook: an unpinned fetch would let somebody
+///         else's release turn a commit red for a reason that has nothing to do with the change.
+///     </para>
+///     <para>
+///         It does NOT quietly pass when there is no compiler to run — a type-check gate that
+///         silently reports success is worse than none. The gate script excludes this test by name
+///         when npx is not on PATH, and says so.
 ///     </para>
 /// </remarks>
 public class TypeScriptCompilesTests : IDisposable
@@ -73,36 +80,62 @@ public class TypeScriptCompilesTests : IDisposable
         public sealed record ArchiveOrder(Guid Id) : ICommand;
         """;
 
+    /// <summary>
+    ///     The dev build of tsgo this gate runs. Dated, and deliberately not <c>latest</c>.
+    /// </summary>
+    private const string CompilerVersion = "7.0.0-dev.20260707.2";
+
     [Fact]
     public void The_generated_TypeScript_compiles_against_the_client()
     {
-        var tsc = Environment.GetEnvironmentVariable("RASK_TSC");
-        Assert.False(
-            string.IsNullOrWhiteSpace(tsc),
-            "RASK_TSC is not set, so the generated TypeScript was never type-checked. Run this through "
-            + "scripts/run-unit-local.sh, which provisions the compiler, or point RASK_TSC at a "
-            + "tsgo/tsc binary yourself.");
+        var (command, prefix) = Compiler();
 
         Directory.CreateDirectory(_directory);
         var constants = GeneratedTypeScript.Read(TestCompilation.Emit(Contracts, _directory));
         File.WriteAllText(Path.Combine(_directory, "contracts.ts"), constants["Contracts"]);
         File.WriteAllText(Path.Combine(_directory, "messages.ts"), constants["Messages"]);
-
-        foreach (var source in Directory.EnumerateFiles(ClientDirectory(), "*.ts"))
-        {
-            File.Copy(source, Path.Combine(_directory, Path.GetFileName(source)), overwrite: true);
-        }
-
+        File.Copy(
+            Path.Combine(ClientDirectory(), "client.ts"),
+            Path.Combine(_directory, "client.ts"),
+            overwrite: true);
         File.WriteAllText(Path.Combine(_directory, "usage.check.ts"), Usage);
-        LinkPackages(tsc!);
 
+        // query.ts is NOT in this set. It imports @tanstack/react-query, whose types would have to be
+        // installed into the scratch directory, and it is the one client file with nothing generated
+        // about it. The scaffolded template's own `npm run build` type-checks it, against the version
+        // that template actually pins — which is a better check than a version chosen here.
         var (exitCode, output) = Run(
-            tsc!,
-            "--noEmit --strict --target es2022 --module esnext --moduleResolution bundler "
-            + "--lib es2022,dom --skipLibCheck client.ts query.ts contracts.ts messages.ts usage.check.ts");
+            command,
+            prefix + "--noEmit --strict --target es2022 --module esnext --moduleResolution bundler "
+            + "--lib es2022,dom --skipLibCheck client.ts contracts.ts messages.ts usage.check.ts");
 
         Assert.True(exitCode == 0, output);
     }
+
+    /// <summary>The compiler to run, and anything that has to precede its own arguments.</summary>
+    private static (string Command, string Prefix) Compiler()
+    {
+        if (Environment.GetEnvironmentVariable("RASK_TSC") is { Length: > 0 } configured &&
+            !configured.Equals("npx", StringComparison.Ordinal))
+        {
+            return (configured, string.Empty);
+        }
+
+        var npx = OperatingSystem.IsWindows() ? "npx.cmd" : "npx";
+        Assert.True(
+            Which(npx) is not null,
+            "npx is not on PATH, so the generated TypeScript was never type-checked. Install Node.js, "
+            + "or point RASK_TSC at a tsgo/tsc binary yourself. Do not silence this — a type-check "
+            + "gate that reports success without running a type-checker is worse than none.");
+
+        return (npx, $"--yes -p @typescript/native-preview@{CompilerVersion} tsgo ");
+    }
+
+    private static string? Which(string command) =>
+        (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+        .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+        .Select(directory => Path.Combine(directory, command))
+        .FirstOrDefault(File.Exists);
 
     /// <summary>
     ///     What a call site is supposed to be able to write, asserted at the type level.
@@ -149,20 +182,6 @@ public class TypeScriptCompilesTests : IDisposable
           await rask.dispatch(getOrder({ nope: 1 }))
         }
         """;
-
-    /// <summary>
-    ///     Points the scratch directory at the packages beside the compiler, so <c>query.ts</c> resolves
-    ///     TanStack Query for real rather than being excluded from the check for being inconvenient.
-    /// </summary>
-    private void LinkPackages(string compiler)
-    {
-        // RASK_TSC names <somewhere>/node_modules/.bin/tsgo, so the package root is two levels up.
-        var packages = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(compiler)));
-        if (packages is not null && Directory.Exists(packages))
-        {
-            Directory.CreateSymbolicLink(Path.Combine(_directory, "node_modules"), packages);
-        }
-    }
 
     private static string ClientDirectory()
     {

@@ -60,22 +60,14 @@ dotnet format Rask.slnx --verify-no-changes --no-restore
 # malformed TypeScript would ship green.
 #
 # Cached under artifacts/, so the install is a one-off rather than a per-run download.
-# tsgo, the native Go build of the TypeScript compiler (@typescript/native-preview), rather than tsc:
-# it is a single platform binary, so npm is needed to FETCH the toolchain but nothing is needed to RUN
-# it, and the check finishes in well under a second instead of a couple.
+# The generated TypeScript is compiled by tsgo, which the test fetches through npx at a pinned version
+# (npx caches it, so only the first run downloads). The rest of this gate deliberately needs no node —
+# the build passes -p:RaskSpaBuild=false — so when npx is absent the check is excluded here, LOUDLY.
+# What must not happen is the third option: a test that quietly reports success without ever having run
+# a type-checker, which is how a generator emitting malformed TypeScript would ship green.
 tsc_filter=""
-tsc_home="$root/artifacts/tsc"
-if command -v npm >/dev/null 2>&1; then
-  if [ ! -x "$tsc_home/node_modules/.bin/tsgo" ]; then
-    echo "==> Provisioning the TypeScript toolchain (one-off, into artifacts/tsc)"
-    mkdir -p "$tsc_home"
-    npm install --prefix "$tsc_home" --no-save --silent \
-      @typescript/native-preview @tanstack/react-query react @types/react
-  fi
-  RASK_TSC="$tsc_home/node_modules/.bin/tsgo"
-  export RASK_TSC
-else
-  echo "run-unit-local: WARNING — npm is not on PATH, so the generated TypeScript was NOT type-checked." >&2
+if ! command -v npx >/dev/null 2>&1; then
+  echo "run-unit-local: WARNING — npx is not on PATH, so the generated TypeScript was NOT type-checked." >&2
   echo "  Install Node.js to run that check, or run it directly with:" >&2
   echo "    RASK_TSC=<path-to>/tsgo dotnet test tests/Rask.Spa.Tasks.Tests --filter TypeScriptCompiles" >&2
   tsc_filter="&FullyQualifiedName!~TypeScriptCompiles"

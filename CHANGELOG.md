@@ -207,11 +207,12 @@ them until tagged releases begin.
   if they were the shape's properties.
 
   **The generated output is type-checked, by a compiler, in the unit gate.** A substring assertion
-  cannot tell a well-formed type expression from a malformed one, so `scripts/run-unit-local.sh`
-  provisions `tsgo` — the native Go build of the TypeScript compiler, a single platform binary that
-  needs no node to run — and compiles the generated files together with the vendored client under
-  `--strict`. When it cannot provision the toolchain it excludes that check **and says so**, rather
-  than reporting a green that never ran a type-checker.
+  cannot tell a well-formed type expression from a malformed one, so the generated files are compiled
+  together with the vendored client under `--strict` by `tsgo` — the native Go build of the TypeScript
+  compiler — fetched through `npx` at a **pinned** version. Pinned because that package publishes
+  dated dev builds to `latest` and this runs from a pre-commit hook: an unpinned fetch would let
+  somebody else's release turn a commit red. When npx is absent the check is excluded **and said so**,
+  rather than reporting a green that never ran a type-checker.
 
 - **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
   advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen
