@@ -499,6 +499,19 @@ public static partial class RaskEndpointExtensions
             var routeState = session.Services.GetRequiredService<RouteState>();
             routeState.Path = path;
             routeState.Query = AdaptQuery(httpContext.Request.Query);
+
+            // The visitor's language, seeded from the request alongside their identity and route, and
+            // BEFORE the first render below — so the page is built in their language rather than
+            // rendered in the default and corrected in a second frame they would see flash.
+            if (ServerCultureNegotiation.TryNegotiate(
+                    httpContext.Request, httpContext.RequestServices, out var culture))
+            {
+                ServerCultureNegotiation.Apply(session.Services, culture);
+                ServerCultureNegotiation.Persist(
+                    httpContext.Response,
+                    culture,
+                    httpContext.RequestServices.GetRequiredService<RaskCultureOptions>());
+            }
             // Render the GET shell and seed both baselines: the dedup baseline so a no-op
             // click after hello dedups against the HTML the browser already has (mirroring
             // WASM's InitialRenderAsync / `_lastAppliedHtml`), AND the diff-codec frame
@@ -653,8 +666,14 @@ public static partial class RaskEndpointExtensions
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
                     ctx.RequestAborted, drain.HardStopping);
                 var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
+
+                // Negotiated here, from the upgrade request, because that is the last point at which its
+                // headers and cookies exist. It is only USED if this socket ends up rebuilding a session
+                // (the resume path), which happens in a fresh DI scope much later.
+                ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var wsCulture);
+
                 await RunSocketLoop(ws, store, limits, wsUser, resume, appFactory, linked.Token,
-                    drain.HardStopping);
+                    drain.HardStopping, wsCulture);
             }));
 
         var script = LoadEmbeddedScript();
@@ -803,7 +822,7 @@ public static partial class RaskEndpointExtensions
 
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
         ClaimsPrincipal wsUser, SessionResumeSupport resume, Func<IServiceProvider, Component> appFactory,
-        CancellationToken ct, CancellationToken stopping)
+        CancellationToken ct, CancellationToken stopping, CultureNegotiation resumeCulture = default)
     {
         using var abortReg = stopping.Register(() =>
         {
@@ -991,6 +1010,14 @@ public static partial class RaskEndpointExtensions
                         // which re-stamps data-rask-root — see LiveSessionBase's full-payload path.
                         session.AttachSocket(ws, ct);
                         session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
+
+                        // A resumed session is a NEW DI scope, so its culture starts at the app default.
+                        // Without this the visitor's language would silently reset the first time the
+                        // host restarted under them — the one moment resume exists to hide.
+                        if (resumeCulture.Culture is not null)
+                        {
+                            ServerCultureNegotiation.Apply(session.Services, resumeCulture);
+                        }
                         await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
                         continue;
                     }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 
 namespace Rask.Server.Tests.Infrastructure;
@@ -57,7 +58,8 @@ internal sealed class RaskTestHost : IDisposable
         string pathBase = "",
         Action<RaskServerOptions>? configureServer = null,
         LiveDiffMode diffMode = LiveDiffMode.Auto,
-        string? environment = null)
+        string? environment = null,
+        Action<RaskCultureOptions>? configureCulture = null)
         where TApp : Component
     {
         // Defaults to whatever WebApplication picks (Production under test, absent an env var).
@@ -71,7 +73,10 @@ internal sealed class RaskTestHost : IDisposable
         // carried on the LiveSessionStore) are seeded here, so each TestServer carries its own — tests
         // that assert on a specific diff/full payload pass diffMode instead of writing a process-global
         // static, which lets them run in parallel.
-        builder.Services.AddRask(configure: live => live.DiffMode = diffMode, configureServer: configureServer);
+        builder.Services.AddRask(
+            configure: live => live.DiffMode = diffMode,
+            configureServer: configureServer,
+            configureCulture: configureCulture);
         configureServices?.Invoke(builder.Services);
 
         var app = builder.Build();
