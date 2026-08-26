@@ -8,6 +8,24 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask new --culture en --culture hu` scaffolds a localized app.** `--culture` is repeatable and
+  names the languages; the **first is the default** a visitor falls back to. `--localization` on its own
+  means English, which is the shape an app grows a second language into. Both are supported on
+  `server`, `wasm` and `wasm-hosted`.
+
+  The scaffold writes one `Resources/Strings.{culture}.json` per language — the translations start as a
+  copy of the neutral catalog, so the build immediately reports what still needs doing (RASK052) rather
+  than the app quietly rendering English where a key was forgotten — and it includes a plural key,
+  which is the part nobody guesses the shape of.
+
+  **`--all-batteries` deliberately does not imply it.** The batteries are the back-end pillars a
+  DB-backed app needs; shipping a second language is a commitment to translating every string in the
+  app, which is not a decision a convenience flag should make.
+
+  An unknown tag is rejected naming it (`'zz-ZZ' isn't a language tag this machine knows`), and a
+  repeated one is rejected rather than deduped — a repeat means the command line does not say what its
+  author thought it said.
+
 - **The framework's own text can be translated, by dropping in one file.**
   `Resources/RaskStrings.{culture}.json` translates what Rask itself renders — the date/time picker
   chrome, the built-in not-found page, the built-in error page. The keys are `RaskString` members, so a

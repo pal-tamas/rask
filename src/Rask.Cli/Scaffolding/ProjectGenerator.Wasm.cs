@@ -6,7 +6,8 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>wasm</c> template (a standalone browser-WASM SPA) into <paramref name="targetDirectory"/>.</summary>
-    public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version, bool bootstrap = true)
+    public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa,
+        bool docker, string version, bool bootstrap = true, ServerBatteries? batteries = null)
     {
         var files = new List<(string Path, string Content)>
         {
