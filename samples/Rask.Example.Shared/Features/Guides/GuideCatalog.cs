@@ -67,6 +67,8 @@ public static class GuideCatalog
             "bi-database-gear", "One Person Framework"),
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.",
             "bi-shuffle", "One Person Framework"),
+        new("spa", "React, Vue and Angular", "A JS front end with TypeScript generated from your C# contracts.",
+            "bi-filetype-tsx", "One Person Framework"),
         new("jobs", "Background jobs", "Durable enqueued / delayed / recurring work on your database.",
             "bi-clock-history", "One Person Framework"),
         new("mail", "Transactional email", "Durable email queued on your database, delivered over SMTP.",

@@ -170,6 +170,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 var bootstrap = !parsed.HasFlag("no-bootstrap");
                 return template.Key switch
                 {
+                    "react" => ProjectGenerator.GenerateSpa(
+                        dir, name, SpaFramework.React, ToBatteries(requestedFlags, bootstrap), version),
                     "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version, bootstrap),
                     // Push is cleared rather than rejected: an explicit --push on this template already
                     // fails fast against TemplateCatalog, so the only way to arrive here with it set is
@@ -392,9 +394,19 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         if (dryRun)
         {
             WriteHeading($"Would create {template.DisplayName} '{name}':");
+            foreach (var external in result.ExternalScaffolds)
+            {
+                WriteDryRun("run", external.Command + " " + string.Join(" ", external.Arguments));
+            }
+
             foreach (var file in result.Files)
             {
                 WriteDryRun("write", Path.GetRelativePath(_workingDirectory, file.Path));
+            }
+
+            foreach (var patch in result.Patches)
+            {
+                WriteDryRun("patch", Path.GetRelativePath(_workingDirectory, patch.Path) + " — " + patch.Description);
             }
 
             return 0;
@@ -437,6 +449,18 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         WriteHeading($"Creating {template.DisplayName} '{name}'…");
+
+        // Before our own files, because ours are an overlay on top of what these produce — a vite.config
+        // the scaffolder just wrote, an App component we replace. Anything they leave behind stays.
+        foreach (var external in result.ExternalScaffolds)
+        {
+            if (await RunExternalScaffoldAsync(external, targetDirectory, cancellationToken).ConfigureAwait(false) is
+                { } failure)
+            {
+                return failure;
+            }
+        }
+
         foreach (var file in result.Files)
         {
             var directory = Path.GetDirectoryName(file.Path);
@@ -447,6 +471,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
             _fileSystem.WriteAllText(file.Path, file.Content);
             WriteCreated(Path.GetRelativePath(_workingDirectory, file.Path));
+        }
+
+        foreach (var patch in result.Patches)
+        {
+            ApplyPatch(patch);
         }
 
         // Package refs are already baked into the csproj(s) at the pinned version; restore pulls them so the
@@ -483,6 +512,78 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         return 0;
+    }
+
+    /// <summary>
+    ///     Runs a framework's own scaffolder, or null when it succeeded.
+    /// </summary>
+    /// <remarks>
+    ///     The missing-command case is checked before the run rather than after: an executable that is not
+    ///     there surfaces as a Win32Exception with a message naming a file, which reads as a bug in the tool
+    ///     rather than as "install Node.js".
+    /// </remarks>
+    private async Task<int?> RunExternalScaffoldAsync(
+        ExternalScaffold external, string targetDirectory, CancellationToken cancellationToken)
+    {
+        Console.WriteLine(external.Description, ConsoleStyle.Dim);
+
+        // The scaffolder writes INTO the target directory, which nothing has created yet on a fresh run.
+        _fileSystem.CreateDirectory(targetDirectory);
+
+        int exitCode;
+        try
+        {
+            exitCode = await _process
+                .RunAsync(external.Command, external.Arguments, targetDirectory, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Console.WriteErrorLine(
+                $"'{external.Command}' is not available, and this template needs it. {external.MissingHint}",
+                ConsoleStyle.Error);
+            return 1;
+        }
+
+        if (exitCode != 0)
+        {
+            Console.WriteErrorLine(
+                $"'{external.Command} {string.Join(" ", external.Arguments)}' failed (exit {exitCode.ToString(CultureInfo.InvariantCulture)}). "
+                + "Nothing further was written.",
+                ConsoleStyle.Error);
+            return 1;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Applies an edit to a file the scaffold did not write, reporting rather than failing when it is
+    ///     not there.
+    /// </summary>
+    /// <remarks>
+    ///     Not fatal on purpose. These amend an external scaffolder's output, and that output is not ours to
+    ///     depend on the shape of — a create-vite that stops writing a .gitignore should cost a line of
+    ///     advice, not a failed scaffold with a half-written project on disk.
+    /// </remarks>
+    private void ApplyPatch(ScaffoldPatch patch)
+    {
+        var relative = Path.GetRelativePath(_workingDirectory, patch.Path);
+        if (!_fileSystem.FileExists(patch.Path))
+        {
+            Console.WriteLine($"Skipped {relative} ({patch.Description}) — it isn't there.", ConsoleStyle.Dim);
+            return;
+        }
+
+        try
+        {
+            _fileSystem.WriteAllText(patch.Path, patch.Transform(_fileSystem.ReadAllText(patch.Path)));
+            WriteCreated($"{relative} ({patch.Description})");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Text.Json.JsonException)
+        {
+            Console.WriteLine($"Could not patch {relative} ({patch.Description}) — {ex.Message}", ConsoleStyle.Dim);
+        }
     }
 
     /// <summary>

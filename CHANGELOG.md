@@ -206,6 +206,43 @@ them until tagged releases begin.
   dictionaries stand in front of it — without it the walk would revive a dictionary's own keys as
   if they were the shape's properties.
 
+- **`rask new <name> --template react` scaffolds a React front end on an ASP.NET host.** Two
+  projects: `MyApp.Server` holds the message records, their handlers and the JSON endpoint;
+  `MyApp.Client` is the React app. Not three — the wasm-hosted template needs a `.Shared` because
+  both halves are C#, but here the client's half of every contract is generated TypeScript, so there
+  is nothing for a third project to hold.
+
+  **The client comes from the framework's own scaffolder.** `rask new` runs
+  `npx create-vite@latest --template react-ts` and overlays four files onto it: a `vite.config.ts`
+  that proxies `/_rask`, `App.tsx`, `main.tsx`, and a README. Everything else is whatever Vite ships
+  today. A React skeleton Rask maintained by hand would be a worse React skeleton within a release or
+  two, and it would not be what a React developer recognises. The cost is stated rather than hidden:
+  this template needs **Node.js and a network** at `rask new` time, where the C# templates need
+  neither.
+
+  Two files of create-vite's own output are amended rather than replaced — TanStack Query added to
+  `package.json`, `src/rask/` added to `.gitignore` — both idempotent, because carrying a copy of a
+  file we chose not to own is exactly what the split avoids. The starter app is one real round trip:
+  a query and a command through TanStack Query, with a `DateTimeOffset` arriving as a `Date` and
+  invalidation keyed on `getGreeting.messageName` rather than a string literal.
+
+  **`--auth`, `--pwa` and `--push` are refused, not half-scaffolded.** Each needs work on the client
+  — a login flow in React, a service worker through `vite-plugin-pwa` — that this template does not
+  write yet. `--cqrs` is not offered because it is not optional: the typed wire *is* the template.
+  The database batteries and `--docker` all work.
+
+- **`rask dev` runs a React solution's two halves together.** `dotnet watch` for the host, the
+  bundler's dev server for the client, and the browser pointed at the **bundler** — which proxies
+  `/_rask` back to the host, so HMR is native and the browser only ever sees one origin. The
+  production bundle is skipped for the session, because the dev server owns the client; the generated
+  contracts are still written, because a dev server compiling the previous build's contracts is
+  exactly the failure that pipeline exists to prevent.
+
+  The client process is killed with the host. A cancelled `rask dev` used to leave its child running
+  — a bundler still holding port 5173, which the next session picks up and serves the previous run's
+  output from, against a new server. `IProcessRunner.RunAsync` now kills the process tree on
+  cancellation, which fixes that for every command that shells out.
+
   **The generated output is type-checked, by a compiler, in the unit gate.** A substring assertion
   cannot tell a well-formed type expression from a malformed one, so the generated files are compiled
   together with the vendored client under `--strict` by `tsgo` — the native Go build of the TypeScript
@@ -213,6 +250,24 @@ them until tagged releases begin.
   dated dev builds to `latest` and this runs from a pre-commit hook: an unpinned fetch would let
   somebody else's release turn a commit red. When npx is absent the check is excluded **and said so**,
   rather than reporting a green that never ran a type-checker.
+
+- **Rask supports TypeScript single-page app clients, and now says so where it can be checked.** A
+  resolved client with no `tsconfig.json` fails the build with **RASKSPA004**, naming the fix;
+  `--template react` asks `create-vite` for `react-ts` rather than `react`; and the package, the docs
+  and the CLI all describe a TypeScript SPA rather than "a JavaScript front end".
+
+  A refusal rather than a warning, because the alternative is worse than no support at all. A
+  JavaScript client *can* import the generated files — Vite transpiles a `.ts` module whatever the
+  project is — and gets none of what they are for: no inferred result type on `dispatch`, no compile
+  error when a C# property is renamed, no refusal when a command is handed to `raskQuery`. Every
+  guarantee here is one a compiler makes, and half of it delivered silently reads exactly like all of
+  it until the wire disagrees.
+
+  The framework is still yours to pick — React, Vue and Angular all bundle to the same thing, and the
+  cache rules are keyed on the *bundler*'s guarantee rather than on who generated it. Two ways out,
+  both honest: `RaskSpaTypeScriptConfig` names a config that is not at `tsconfig.json` (a monorepo
+  base config, a `tsconfig.app.json`), and `RaskEmitTypeScript=false` drops the contracts entirely,
+  leaving `UseRaskSpa` a static-file host with no opinion about what produced the bundle.
 
 - **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
   advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen

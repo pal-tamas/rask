@@ -13,9 +13,15 @@ using Rask.Hosting.Shared;
 namespace Rask.Spa.Hosting;
 
 /// <summary>
-///     Serves a built React/Vue/Angular app from an ASP.NET host — the bundle, its cache headers, and
-///     the fallback that keeps client-side routes working on a refresh or a deep link.
+///     Serves a built TypeScript single-page app from an ASP.NET host — the bundle, its cache headers,
+///     and the fallback that keeps client-side routes working on a refresh or a deep link.
 /// </summary>
+/// <remarks>
+///     The framework is not this package's business — React, Vue and Angular all bundle to the same
+///     thing, and the cache rules below are keyed on what the <em>bundler</em> guarantees rather than on
+///     who generated it. The language is: the contracts Rask generates for the client are TypeScript,
+///     and the build refuses a client that cannot check them (RASKSPA004).
+/// </remarks>
 public static class RaskSpaEndpointExtensions
 {
     private static readonly FileExtensionContentTypeProvider _contentTypes = BuildContentTypes();

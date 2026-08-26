@@ -95,7 +95,7 @@ public sealed class CommandHelpTests
 
         await app.RunAsync(["new", "--help"], CancellationToken.None);
 
-        Assert.Contains("[server|wasm|wasm-hosted|native]", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("[server|wasm|wasm-hosted|native|react]", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]

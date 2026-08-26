@@ -58,6 +58,19 @@
       references would otherwise need widening to reach outside it.
     -->
     <RaskSpaGeneratedDir Condition="'$(RaskSpaGeneratedDir)' == ''">src/rask</RaskSpaGeneratedDir>
+
+    <!--
+      The client's TypeScript configuration, relative to the client. Its presence is what the build
+      checks (RASKSPA004) before it generates contracts into a front end: what this package supports is
+      a TypeScript single-page app, and TypeScript is the whole point rather than a preference — the
+      contracts are emitted as `.ts`, and a JavaScript client would import them, have nothing checked,
+      and find a renamed property on the wire instead of at the compiler.
+
+      Name it explicitly when the client keeps its config somewhere else — a monorepo base config, or a
+      `tsconfig.app.json` with no plain `tsconfig.json` beside it. Serving a bundle a JavaScript app
+      produced is still fine; turn RaskEmitTypeScript off and this package is a static-file host.
+    -->
+    <RaskSpaTypeScriptConfig Condition="'$(RaskSpaTypeScriptConfig)' == ''">tsconfig.json</RaskSpaTypeScriptConfig>
   </PropertyGroup>
 
   <ItemGroup>

@@ -255,7 +255,7 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--template' does not accept 'svelte'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, wasm-hosted, native.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, wasm-hosted, native, react.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]

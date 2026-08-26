@@ -1,0 +1,264 @@
+# TypeScript front ends
+
+Rask hosts a **TypeScript** single-page app and gives it a typed connection to your C#. You write the
+message records once, in C#; the TypeScript the browser imports is generated from them on every
+build. There is no schema file to keep in sync, no client SDK to publish, and no wire name spelled
+out at a call site.
+
+The **framework** is yours to pick — React, Vue and Angular all bundle to the same thing, and
+everything on this page is keyed on what the *bundler* guarantees rather than on who generated it.
+The **language** is not a choice: a client with no TypeScript configuration is refused at build time
+with [RASKSPA004](#typescript-only), because the whole of what this gives you is checked by a
+compiler you would not be running.
+
+```bash
+rask new Shop --template react
+cd Shop
+rask dev
+```
+
+`rask new --template react` runs the framework's **own** scaffolder — `create-vite` — and overlays
+four files onto what it produces. Everything else in the client is whatever Vite ships today. That
+is deliberate: a React skeleton Rask maintained by hand would be a worse React skeleton within a
+release or two, and it would not be what a React developer recognises.
+
+It asks `create-vite` for its **TypeScript** template — `react-ts`, never `react`. The cost is
+stated rather than hidden: this template needs **Node.js and a network** at `rask new` time, where
+the C# templates need neither.
+
+## TypeScript only
+
+A client that generates no `tsconfig.json` fails the build:
+
+```
+error RASKSPA004: Rask.Spa.Hosting: 'Shop.Client' has no tsconfig.json, and Rask generates
+TypeScript contracts into it. Rask supports TypeScript single-page app clients: scaffold the
+client from its framework's TypeScript template (`npm create vite@latest -- --template react-ts`),
+or point RaskSpaTypeScriptConfig at the config it does have.
+```
+
+This is a refusal rather than a warning because the alternative is worse than no support at all. A
+JavaScript client *can* import the generated files — Vite transpiles a `.ts` module whatever the
+project is — and gets none of what they are for: no inferred result type on `dispatch`, no compile
+error when a C# property is renamed, no refusal when a command is handed to `raskQuery`. Every
+guarantee on this page is a **compile-time** one. Half of it, delivered silently, reads exactly like
+all of it right up to the moment the wire disagrees.
+
+Two ways out, and both are honest ones:
+
+- The client is TypeScript but keeps its config elsewhere — a monorepo base config, or a
+  `tsconfig.app.json` with no plain `tsconfig.json` beside it. Name it:
+  `<RaskSpaTypeScriptConfig>tsconfig.app.json</RaskSpaTypeScriptConfig>`.
+- You want the **hosting** and not the contracts — an existing front end, in any language, that you
+  would like served properly. Set `RaskEmitTypeScript=false`. Nothing is generated, the check does
+  not apply, and `UseRaskSpa` serves the bundle exactly as before; it has no opinion about what
+  produced it.
+
+## What you get
+
+| | |
+|---|---|
+| `Shop.Server/` | The ASP.NET host: your message records, their handlers, and the JSON endpoint the client dispatches through. |
+| `Shop.Client/` | The React app, as `create-vite` scaffolds it, plus Rask's overlay. |
+| `Shop.Client/src/rask/` | Generated on every build. Gitignored. |
+
+## The call site
+
+A message factory carries its own wire name and its own result type, so `dispatch` infers what
+comes back:
+
+```ts
+import { rask } from './rask/client'
+import { getGreeting } from './rask/messages'
+
+const greeting = await rask.dispatch(getGreeting({ name: 'Ada' }))
+//    ^? Greeting — inferred from the message, no cast
+```
+
+Rename a property on the C# record and this line stops compiling. That is the whole point of
+generating the types rather than describing them.
+
+With TanStack Query, which the template wires up:
+
+```tsx
+const { data, isPending } = useQuery(raskQuery(getGreeting({ name })))
+const visit = useMutation({
+  ...raskMutation(recordVisit),
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
+})
+```
+
+`raskQuery` accepts only a **query**. Handing it a command is a compile error — the same thing the
+server enforces by answering `405` to a command sent as a `GET`.
+
+Invalidation uses `getGreeting.messageName` rather than a string literal, so renaming the record
+moves the cache key with it.
+
+## Dates
+
+The generated types give you real `Date` objects, and only where the C# type actually said so.
+
+| C# | TypeScript | Why |
+|---|---|---|
+| `DateTimeOffset` | `Date` | A true instant, which is exactly what `Date` is. |
+| `DateTime` | `Date` | Unambiguous only if its `Kind` is `Utc` or `Local` — see the warning below. |
+| `DateOnly` | `DateOnly` (a `string`) | A calendar fact, not an instant. |
+| `TimeOnly` | `TimeOnly` (a `string`) | A time of day. Seven fractional digits, which `Date` cannot parse. |
+| `TimeSpan` | `Duration` (a `string`) | A length, not a point. `[-][d.]hh:mm:ss[.fffffff]`, not ISO-8601. |
+| `byte[]` | `Base64` (a `string`) | Base64, as the wire carries it. |
+
+**`DateOnly` stays a string on purpose.** `new Date("2026-08-25")` is parsed as UTC midnight, so
+anyone west of UTC renders it as the **24th**. A date somebody picked in a calendar is not a point
+in time, and making it one reintroduces a bug this repo has already fixed once.
+
+**Prefer `DateTimeOffset` to `DateTime`** on anything a front end reads. A `DateTime` with
+`DateTimeKind.Unspecified` writes an ISO string with no suffix, and modern JavaScript parses that as
+**local** time — so the same payload means a different instant on every machine that reads it.
+
+### How the revival works
+
+Not with a regex. The usual `JSON.parse` reviver tests every string against a date-shaped pattern
+and converts anything that matches — including a product code, an ETag, or a free-text field that
+happens to look like a timestamp, silently.
+
+Rask does not have to guess. The generator walks the same wire model the C# codec is built from and
+emits a descriptor naming exactly the date-bearing properties:
+
+```ts
+export const shapes = {
+  Order: { instants: ['placedAt'], nested: { lines: ['Line', 1] } },
+  Line: { instants: ['shippedAt'], nested: {} },
+} as const
+```
+
+The client revives precisely those. The number beside a nested shape is how many arrays or
+dictionaries stand between the property and it — `Dictionary<string, Line>` and `Line` both arrive
+as plain objects, and without the count the walk would revive a dictionary's own keys as if they
+were the shape's properties.
+
+### Sending one back
+
+Nothing is needed. `JSON.stringify` already writes a `Date` through `toJSON`, which is
+`toISOString()`: always UTC, always with a `Z`. So a value sent from the browser is never ambiguous.
+
+One consequence worth knowing: a round trip **normalises** a `DateTime` with an unspecified `Kind`
+into UTC.
+
+### Displaying one
+
+That is your app's job, and the browser already does it well:
+
+```ts
+new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(order.placedAt)
+```
+
+`undefined` means the visitor's own locale, and the browser's own time zone is the default — which
+is the right answer on a front end, and the reason none of the C#-side timezone machinery applies.
+
+## Development
+
+`rask dev` starts two processes: `dotnet watch` for the host, and the bundler's own dev server for
+the client. **The browser talks to the bundler**, on `http://localhost:5173`, and the scaffolded
+`vite.config.ts` proxies `/_rask` back to the host on `:5000`.
+
+```
+browser → :5173  (vite, native HMR)
+            └── /_rask/* → :5000 (dotnet watch)
+```
+
+HMR is native and instant, and the browser only ever sees one origin — which is why there is no CORS
+to configure. In production neither half of that exists: the host serves the built bundle and
+answers `/_rask` itself, on one port.
+
+The generated contracts are written on **every** build, including under `rask dev` — a dev server
+compiling the previous build's contracts is exactly the failure this pipeline exists to prevent.
+
+## Building and publishing
+
+`dotnet build` runs the client's own toolchain: `npm ci` (or `npm install` when there is no
+lockfile), then `npm run build`. Both steps are incremental. `dotnet publish` copies the bundle into
+`wwwroot` next to the app, so a deployed container carries the front end rather than a path that
+only existed on the build machine.
+
+`-p:RaskSpaBuild=false` skips node entirely. The app still compiles, its API still works, and the
+site serves a page saying there is nothing built yet. Use it on a machine with no node, or in a CI
+job that only cares about the C#.
+
+## Serving it yourself
+
+`Rask.Spa.Hosting` works on any ASP.NET app, with or without the rest of Rask — and on this side of
+the line the front end's language is its own business, since nothing is generated into it:
+
+```csharp
+app.MapRaskCqrs();   // map your API FIRST
+app.UseRaskSpa();
+```
+
+**Order matters.** `UseRaskSpa` ends the pipeline with a fallback to `index.html`; an endpoint mapped
+after it is shadowed by that fallback rather than reached, and the symptom is an API call answered
+with HTML.
+
+What it does beyond `UseStaticFiles` + a fallback:
+
+- **A missing asset stays a 404.** The naive SPA fallback answers every unmatched request with
+  `index.html`, so a missing module import arrives as HTML and the browser reports
+  `Failed to load module script` — which reads as a broken framework rather than a missing file.
+  Requests under a content-hashed prefix, and requests whose `Accept` asks for something other than
+  HTML, are refused instead.
+- **Cache headers per bundler.** The hashed prefix the bundler guarantees is consulted first, with a
+  filename heuristic as the fallback for Angular (which hashes at the dist root). `index.html` is
+  never cached, whatever the rules say — freezing it strands a visitor on the deploy they first saw.
+- **Precompressed siblings.** A `.br` or `.gz` beside a file is served when the client accepts it,
+  keeping the real content type.
+- **In development, no build output is explained rather than failed.** 200 with a page naming the dev
+  server, not a 503 — the bundler is serving the app, so a server error would send you hunting a bug
+  that is not there. Outside development it is a 503, because then it is a real deployment fault.
+
+### Options
+
+```csharp
+app.UseRaskSpa(configure: options =>
+{
+    options.DevServerUrl = "http://localhost:5173";
+    options.ImmutablePathPrefixes.Add("/static/");
+});
+```
+
+### MSBuild properties
+
+| Property | Default | |
+|---|---|---|
+| `RaskSpaClientDir` | the `.Server` → `.Client` convention | Where the front end lives. |
+| `RaskSpaDistDir` | `dist` | The bundler's output. Angular nests it: `dist/<app>/browser`. |
+| `RaskSpaGeneratedDir` | `src/rask` | Where the generated contracts land, inside the client. |
+| `RaskSpaBuild` | `true` | `false` skips node entirely. |
+| `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
+| `RaskEmitTypeScript` | on when a client is resolved | Whether the contracts are generated at all. `false` also lifts the TypeScript requirement — see [above](#typescript-only). |
+| `RaskSpaTypeScriptConfig` | `tsconfig.json` | The client's TypeScript config, relative to the client. Its presence is what RASKSPA004 checks. |
+
+## Adding a message
+
+Add a record and a handler:
+
+```csharp
+public sealed record Order(Guid Id, DateTimeOffset PlacedAt, DateOnly DeliverBy);
+
+public sealed record GetOrder(Guid Id) : IQuery<Order>;
+
+public sealed class GetOrderHandler : IQueryHandler<GetOrder, Order>
+{
+    public Task<Order> HandleAsync(GetOrder query, CancellationToken cancellationToken) => /* … */;
+}
+```
+
+The next build writes `getOrder` into `src/rask/messages.ts` and `Order` into `contracts.ts`. If a
+property has no wire encoding, the build fails with **RASK053** naming it — a shape that cannot cross
+is reported at compile time rather than on the wire.
+
+A message that is never sent anywhere — a job payload, an outbox event — should say so with
+`[LocalOnly]`, which exempts it from all of this.
+
+## See also
+
+- [`docs/cqrs.md`](cqrs.md) — the mediator, the wire protocol, and authorization.
+- [`docs/cli.md`](cli.md) — `rask new`, `rask dev`, `rask deploy`.

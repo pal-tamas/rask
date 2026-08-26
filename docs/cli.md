@@ -96,6 +96,7 @@ rask new MyApp --auth --docker       # + cookie auth + a production Dockerfile
 rask new Blog --data --docker        # + a SQLite database, ready for your first feature
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
+rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
 rask new Field --template native     # a native iOS + Android app
 rask new Kiosk --template native --platform android   # Android only
 ```
@@ -126,6 +127,15 @@ restore` so the output builds immediately. `wasm-hosted` emits a three-project s
 (the browser-WASM SPA), `MyApp.Server` (the ASP.NET host you run and deploy), and `MyApp.Shared` (a class
 library both reference).
 
+`react` is the one template that does **not** write its own client. It runs the framework's own
+scaffolder — `npx create-vite@latest MyApp.Client --template react-ts` — and overlays four files onto
+what that produces, so the skeleton is whatever Vite ships today rather than a copy Rask maintains. It
+therefore needs **Node.js and a network** at `rask new` time, and it emits two projects rather than
+three: the client's half of every contract is generated TypeScript, so there is nothing for a `.Shared`
+to hold. `react-ts`, never `react`: Rask supports **TypeScript** SPA clients, and a client with no
+TypeScript configuration is refused at build time with `RASKSPA004`. See
+[TypeScript front ends](spa.md).
+
 A new project is deliberately **minimal** — nothing to delete before you start — and everything it
 scaffolds already follows the vertical-slice layout the guides build on: feature code under
 `Features/<Name>/`, cross-cutting code under `Features/Shared/`.
@@ -149,7 +159,7 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or `native`. |
+| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, `native`, or `react`. |
 | `--auth` | Scaffold a cookie login/session (web templates). |
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
@@ -182,14 +192,18 @@ useful than a page designed to reveal nothing.
 
 ### Which template supports which flag
 
-| Flag | `server` | `wasm` | `wasm-hosted` | `native` |
-| --- | :-: | :-: | :-: | :-: |
-| `--auth` | ✅ | ✅ | ✅ | — |
-| `--pwa` | ✅ | ✅ | ✅ | — |
-| `--docker` | ✅ | ✅ | ✅ | — |
-| `--cqrs`, `--data` | ✅ | — | ✅ | — |
-| `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | — |
-| `--push` | ✅ | — | — | — |
+| Flag | `server` | `wasm` | `wasm-hosted` | `native` | `react` |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| `--auth` | ✅ | ✅ | ✅ | — | — |
+| `--pwa` | ✅ | ✅ | ✅ | — | — |
+| `--docker` | ✅ | ✅ | ✅ | — | ✅ |
+| `--cqrs`, `--data` | ✅ | — | ✅ | — | ✅¹ |
+| `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | — | ✅ |
+| `--push` | ✅ | — | — | — | — |
+
+¹ `react` always wires CQRS — the typed wire *is* the template — so `--cqrs` is accepted but changes
+nothing. `--auth` and `--pwa` are refused rather than half-scaffolded: both need work on the client
+(a React login flow, a service worker through `vite-plugin-pwa`) that the template does not write yet.
 | `--all-batteries` | ✅ | — | ✅ | — |
 | `--host`, `--platform` (see below) | — | — | — | ✅ |
 
@@ -268,7 +282,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native, react.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 
@@ -309,6 +323,18 @@ saving re-renders the open page live — see [what hot-reloads](#what-hot-reload
 It finds the project for you. In a **wasm-hosted** solution it picks the `.Server` host (the client is
 built into it); in a **native** app it refuses, because `dotnet watch` cannot drive a simulator or
 emulator, and points you at `dotnet build "-t:Build;Run" -f net10.0-android` instead.
+
+In a **react** solution it runs **two** processes: `dotnet watch` for the host, and the bundler's own
+dev server for the client. The browser talks to the **bundler**, on `http://localhost:5173`, and the
+scaffolded `vite.config.ts` proxies `/_rask` back to the host on `:5000` — so HMR is native and instant,
+and the browser only ever sees one origin, which is why there is no CORS to configure. `--open` opens
+the bundler's URL rather than the host's, and the dev server is killed with the host so a stale one
+cannot be picked up by the next session.
+
+The production bundle is skipped for that session (`-p:RaskSpaBuild=false`): the dev server owns the
+client, and paying for a full bundle on every save would make watch unusable. The **generated
+contracts are still written**, because a dev server compiling the previous build's contracts is exactly
+the failure that pipeline exists to prevent.
 
 It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
 set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the

@@ -68,6 +68,8 @@
     <RaskEmitTypeScript Condition="'$(RaskEmitTypeScript)' == '' AND '$(_RaskSpaDir)' != ''">true</RaskEmitTypeScript>
 
     <_RaskSpaGenerated Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaGeneratedDir)</_RaskSpaGenerated>
+
+    <_RaskSpaTsConfig Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaTypeScriptConfig)</_RaskSpaTsConfig>
   </PropertyGroup>
 
   <UsingTask TaskName="Rask.Spa.Tasks.WriteGeneratedTypeScriptTask"
@@ -99,6 +101,27 @@
     <Error Condition="!Exists('$(_RaskSpaDir)/package.json')"
            Code="RASKSPA003"
            Text="Rask.Spa.Hosting: RaskSpaClientDir points at '$(_RaskSpaDir)', which has no package.json. Point it at the front-end project directory."/>
+  </Target>
+
+  <!--
+    What this package supports is a TypeScript single-page app, and this is where that is enforced
+    rather than merely documented.
+
+    The contracts below are emitted as TypeScript. A JavaScript client can import them — Vite
+    transpiles a .ts file whatever the project is — and would get exactly nothing out of them: no
+    inferred result type, no compile error when a C# property is renamed, no 405-shaped refusal when a
+    command is handed to raskQuery. The wire would simply be wrong at runtime, which is the one failure
+    this whole pipeline exists to prevent. Half a guarantee reads like a whole one, so it is refused.
+
+    Gated on RaskEmitTypeScript, not on a client merely existing, because that is the honest line:
+    UseRaskSpa serves a built bundle with no opinion about what produced it, so turning the contracts
+    off leaves this package a static-file host for any front end at all.
+  -->
+  <Target Name="_RaskSpaRequireTypeScript" BeforeTargets="BeforeBuild"
+          Condition="'$(_RaskSpaDir)' != '' AND '$(RaskEmitTypeScript)' == 'true' AND '$(DesignTimeBuild)' != 'true'">
+    <Error Condition="!Exists('$(_RaskSpaTsConfig)')"
+           Code="RASKSPA004"
+           Text="Rask.Spa.Hosting: '$([System.IO.Path]::GetFileName('$(_RaskSpaDir)'))' has no $(RaskSpaTypeScriptConfig), and Rask generates TypeScript contracts into it. Rask supports TypeScript single-page app clients: scaffold the client from its framework's TypeScript template (`npm create vite@latest -- --template react-ts`), or point RaskSpaTypeScriptConfig at the config it does have. To serve this bundle without the generated contracts, set RaskEmitTypeScript=false — then nothing is generated and any front end will do."/>
   </Target>
 
   <!--

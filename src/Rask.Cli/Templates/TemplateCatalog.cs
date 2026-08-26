@@ -49,6 +49,17 @@ internal static class TemplateCatalog
                 StringComparer.Ordinal)),
         new("native", "Rask native mobile app (iOS + Android)",
             new HashSet<string>(StringComparer.Ordinal)),
+        // The TypeScript front-end template: a React client on an ASP.NET host, talking to it over generated
+        // TypeScript. --cqrs is not listed because it is not optional here — the wire IS the template, and
+        // a flag you cannot turn off is a worse thing to advertise than no flag at all.
+        //
+        // --auth and --pwa are left out rather than half-scaffolded: both need work on the CLIENT side
+        // (a login flow in React, a service worker through vite-plugin-pwa) that this template does not
+        // write yet. --push needs both.
+        new("react", "Rask React front end + ASP.NET host",
+            new HashSet<string>(
+                [.. DatabaseFlags, "docker"],
+                StringComparer.Ordinal)),
     ];
 
     /// <summary>The default template when none is specified — a server-rendered app.</summary>
