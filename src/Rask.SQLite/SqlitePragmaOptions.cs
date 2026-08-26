@@ -105,6 +105,33 @@ public sealed class SqlitePragmaOptions
     /// </summary>
     public SqliteTempStore? TempStore { get; set; }
 
+    /// <summary>
+    /// <c>trusted_schema</c> — whether the schema may invoke functions that are not marked innocuous
+    /// from views, triggers, index expressions and <c>CHECK</c> constraints. Defaults to
+    /// <see langword="false"/>, which is the hardened setting SQLite recommends for any application
+    /// that opens a database file it did not itself create; a malicious schema is otherwise a code
+    /// execution surface. Turn it on only for a legacy schema that genuinely needs such a function.
+    /// </summary>
+    public bool? TrustedSchema { get; set; } = false;
+
+    /// <summary>
+    /// <c>cell_size_check</c> — verify b-tree cell sizes as pages are read. Defaults to
+    /// <see langword="true"/>: it turns a corrupt page into an immediate, localised error instead of
+    /// letting the damage propagate into query results, for a small read cost.
+    /// </summary>
+    public bool? CellSizeCheck { get; set; } = true;
+
+    /// <summary>
+    /// <c>analysis_limit</c> — the ceiling on how many index rows <c>PRAGMA optimize</c> samples per
+    /// index. Defaults to <c>400</c>, the value SQLite documents as bounding the work to a few
+    /// milliseconds while still producing useful statistics. <c>0</c> means no limit, which on a large
+    /// table can take a long time.
+    /// </summary>
+    /// <remarks>
+    /// This only bounds the cost of <see cref="SqlitePragmas.Optimize"/>; it does no analysis on its own.
+    /// </remarks>
+    public int? AnalysisLimit { get; set; } = 400;
+
     /// <summary>Throws <see cref="InvalidOperationException"/> if any configured value is out of range.</summary>
     internal void Validate()
     {
@@ -147,6 +174,11 @@ public sealed class SqlitePragmaOptions
         if (JournalSizeLimit is < 0)
         {
             throw new InvalidOperationException($"{nameof(JournalSizeLimit)} must not be negative (was {JournalSizeLimit}).");
+        }
+
+        if (AnalysisLimit is < 0)
+        {
+            throw new InvalidOperationException($"{nameof(AnalysisLimit)} must not be negative (was {AnalysisLimit}).");
         }
     }
 }

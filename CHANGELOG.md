@@ -7,6 +7,78 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **STRICT tables — `UseRaskSqlite(connectionString, strictTables: true)`.** SQLite is dynamically
+  typed: a column's declared type is an *affinity*, not a rule, so the text `"lots"` stores happily in
+  an `INTEGER` column and comes back later as a cast error, a mis-ordered index or a silently wrong
+  result. EF Core's model keeps C# honest, but nothing stops a direct `INSERT`, an admin tool or a
+  legacy row. [STRICT tables](https://sqlite.org/stricttables.html) reject the write at the source, and
+  EF Core has no support for them — so Rask ships `RaskSqliteStrictMigrationsSqlGenerator`, which emits
+  `CREATE TABLE … ) STRICT`. Table rebuilds (SQLite's route for most `ALTER`s) go through the same
+  operation, so a rebuilt table keeps its strictness.
+
+  Every column must declare one of `INT`, `INTEGER`, `REAL`, `TEXT`, `BLOB` or `ANY`. EF Core's default
+  SQLite types all qualify, so a normal model needs no changes; an explicit `HasColumnType(...)` outside
+  that set is rejected **naming the table and column at fault**, rather than leaving you with SQLite's
+  own message, which names only the type. Verified against the full `Rask.Example.Shop` schema —
+  Products, Orders, Outbox, Jobs, Mail and Cache all create cleanly as STRICT.
+
+  Off by default, because strictness is decided when a table is created: turning it on needs no
+  migration and affects tables created from then on, while converting an existing table means
+  rebuilding it. **`rask new --data` scaffolds it on**, where it is free.
+
+- **Three hardening pragmas, on by default.** `trusted_schema=OFF` — a schema can carry function calls
+  in views, triggers, index expressions and `CHECK` constraints, and `OFF` is the setting SQLite
+  recommends for any app that opens a file it did not create, since a malicious schema is otherwise a
+  code-execution surface. `cell_size_check=ON` — turns a corrupt b-tree page into an immediate,
+  localised error instead of letting the damage reach query results. `analysis_limit=400` — bounds the
+  cost of the next item. Each is `null`-able to fall back to SQLite's own default.
+
+- **`PRAGMA optimize` on connection close.** SQLite's planner chooses between indexes using
+  `sqlite_stat1`, and nothing updates that table on its own — so a table that was small when it was last
+  analysed keeps handing the planner stale numbers, which is the usual reason a query that was instant
+  in development crawls in production. The EF Core interceptor now runs `PRAGMA optimize` on
+  `ConnectionClosing` (for a pooled connection, every return to the pool), bounded by `analysis_limit`
+  and best-effort so a connection being torn down never fails because of it. Raw ADO.NET users can call
+  `SqlitePragmas.Optimize(connection)` directly.
+
+### Fixed
+
+- **`decimal` no longer mis-sorts — or kills the process — on a non-English locale.** SQLite has no
+  decimal type, so EF Core stores one as culture-invariant `TEXT` and sorts it with a collating sequence,
+  emitting `ORDER BY "Price" COLLATE EF_DECIMAL`. EF registers that sequence as
+  `decimal.Compare(decimal.Parse(x), decimal.Parse(y))` — **with no `IFormatProvider`** — so it parses the
+  invariant text under the machine's `CurrentCulture`. Where `.` is the *group* separator (`de-DE`,
+  `fr-FR`) `"19.95"` reads as `1995` and rows come back **silently mis-ordered**; where `.` is neither
+  separator (`en-HU`, `hu-HU`) the parse **throws inside a native SQLite comparison callback**, which a
+  managed exception cannot be unwound across — so it does not surface as a query error, it **terminates
+  the process**. The same crash happens on any locale once a non-numeric value reaches the column, which
+  SQLite's dynamic typing permits.
+
+  `UseRaskSqlite` (and the raw-ADO `IRaskSqliteConnectionFactory`) now re-register `EF_DECIMAL` on every
+  connection open with an invariant, total, non-throwing comparison — the new `SqliteCollations.Apply`.
+  EF's own generated SQL picks it up, so `ORDER BY`, `GROUP BY` and `DISTINCT` on a `decimal` are correct
+  on every locale, and text that cannot be parsed sorts after the numbers instead of crashing the app.
+
+  **Nothing in the database file changes** — no column type, no collation in the DDL, no migration, and
+  every other tool still reads the file exactly as before. Re-registration happens on each open because
+  Microsoft.Data.Sqlite's pool runs `Deactivate()` on return, which un-registers collations.
+
+  Correct is not free, and the cost is now measured rather than guessed: each comparison is a managed
+  callback, so ordering 100k decimals takes ~156 ms and allocates 125 MB, against ~4.5 ms and 768 B for
+  an indexed `INTEGER` column (`SqliteDecimalOrderingBenchmarks`). It is avoidable — declaring
+  `UseCollation("EF_DECIMAL")` on the property lets an index serve the ordering with no comparisons at
+  query time, at the cost of a DDL that only a connection registering the collation can query. Both are
+  documented, and the documented snippet is compiled and run by a test.
+
+  Arithmetic, comparisons and `Sum`/`Average`/`Min`/`Max` were never affected — those translate through
+  EF's `ef_add`/`ef_compare`/`ef_sum`/… helpers, which take typed `decimal` parameters. `docs/sqlite.md`
+  and `docs/data-access.md` claimed EF "falls back to REAL for `ORDER BY` and aggregates" and that "EF
+  Core warns"; neither was true — there is no REAL fallback and `SqliteEventId.DecimalTypeDefaultWarning`
+  no longer exists in EF Core 10. Both are corrected, and modelling money as integer minor units is now
+  presented as an indexing/throughput choice rather than a correctness workaround.
+
 ### Removed
 
 - **The native hosting model is gone. Rask is a web framework.** `Rask.Native` and `Rask.Chrome` are
