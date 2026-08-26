@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 
@@ -44,9 +45,10 @@ public sealed class DefaultNotFoundPage : Component
 
         return Div
             .Style("max-width:640px;margin:4rem auto;padding:0 1rem;font-family:system-ui,sans-serif;color:#1f2937;")[
-            H1.Style("margin:0 0 0.75rem;font-size:2rem;")["Page not found"],
+            H1.Style("margin:0 0 0.75rem;font-size:2rem;")[
+                RaskStrings.Get(RaskString.NotFoundTitle, "Page not found")],
             P.Style("margin:0 0 1.25rem;color:#4b5563;line-height:1.5;")[
-                "No route is registered for ",
+                RaskStrings.Get(RaskString.NotFoundBody, "No route is registered for "),
                 Code.Style("background:#f3f4f6;padding:0.1rem 0.35rem;border-radius:0.25rem;")[
                     path.Length == 0 ? "/" : path
                 ],
@@ -55,7 +57,7 @@ public sealed class DefaultNotFoundPage : Component
             A
                 .Href("/")
                 .Style("display:inline-block;padding:0.5rem 0.9rem;background:#2563eb;color:#fff;text-decoration:none;border-radius:0.375rem;")
-                ["Back to home"]
+                [RaskStrings.Get(RaskString.NotFoundBackHome, "Back to home")]
         ];
     }
 }

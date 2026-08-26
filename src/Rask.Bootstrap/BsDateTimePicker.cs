@@ -8,7 +8,7 @@ namespace Rask.Bootstrap;
 // Pure live-diff view state — no bootstrap.js. Picking a day preserves the time-of-day; picking an
 // hour/minute/second preserves the date, so the halves compose one value. Min/Max/Disable constrain the
 // calendar, and the time columns grey out-of-range items on the boundary day. Seconds:true adds a seconds
-// column. Keyboard mirrors BsDatePicker for the grid; Labels localizes the nav/column/clear aria-labels.
+// column. Keyboard mirrors BsDatePicker for the grid.
 // Native:true falls back to <input type=datetime-local>. Reuses PickerParts.CalendarGrid + TimeColumns.
 //   Bound:      BsDateTimePicker.Bind(() => model.When).Label("When")
 //   Controlled: BsDateTimePicker<DateTime>().Value(dt).OnChange(v => …)
@@ -96,12 +96,11 @@ public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
             PickerParts.MonthHeader(_cursor, Culture,
                 () => _cursor = ClampCursor(_cursor.AddMonths(-1)),
                 () => _cursor = ClampCursor(_cursor.AddMonths(1)),
-                PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor), PickerLabels),
+                PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor)),
             Div.Class(BsClass.Join("bs-datetime", Display.Flex(), Flex.Gap(2)))[
                 PickerParts.CalendarGrid(_cursor, _cursor, selDate, minDate, maxDate, Disable, Culture,
                     prefix, gridId, day => PickDayAsync(acc, ctx, fid, selected, offset, day)),
                 PickerParts.TimeColumns(selTime, step, showSeconds, secStep, minTime, maxTime, Culture,
-                    PickerLabels,
                     hour => PickTimeAsync(acc, ctx, fid, selected, offset, hour, null, null),
                     minute => PickTimeAsync(acc, ctx, fid, selected, offset, null, minute, null),
                     showSeconds ? second => PickTimeAsync(acc, ctx, fid, selected, offset, null, null, second) : null)

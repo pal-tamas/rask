@@ -109,12 +109,17 @@ public static class RaskCulture
     {
         get
         {
-            if (!IsEnabled)
+            // Deliberately NOT gated on IsEnabled alone. That flag says some host in this process
+            // configured cultures, which is not a fact about the render in front of you: a static
+            // ToHtml or a unit test has no session, and reporting the machine's locale there would
+            // turn lang="en" into lang="en-US" on a US machine — changing the HTML of apps that never
+            // asked for localization, and making the answer depend on what else the process is doing.
+            if (LiveRenderContext.CurrentSync is not { HasCulture: true } ctx)
             {
                 return null;
             }
 
-            var name = CurrentUI.Name;
+            var name = ctx.UICulture.Name;
             return name.Length == 0 ? null : name;
         }
     }
@@ -124,7 +129,10 @@ public static class RaskCulture
     ///     emitted at all — left-to-right is the HTML default, and emitting it would change every
     ///     existing page.
     /// </summary>
-    public static string? HtmlDir => IsEnabled && IsRightToLeft ? "rtl" : null;
+    public static string? HtmlDir =>
+        LiveRenderContext.CurrentSync is { HasCulture: true } ctx && ctx.Culture.TextInfo.IsRightToLeft
+            ? "rtl"
+            : null;
 
     /// <summary>
     ///     The current culture <em>without</em> marking the caller as culture-dependent, for framework
