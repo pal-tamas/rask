@@ -51,4 +51,13 @@ public interface IRenderHandle
 
     // As above, for the language UI text renders in.
     internal System.Globalization.CultureInfo UICulture => System.Globalization.CultureInfo.CurrentUICulture;
+
+    // Whether the culture above came from a SESSION or is merely the thread's.
+    //
+    // Load-bearing for <html lang>: without it, a render outside any session (a unit test, a static
+    // ToHtml) would report the machine's locale as the document language, turning lang="en" into
+    // lang="en-US" on a US machine. The process-wide RaskCulture.IsEnabled flag cannot answer this —
+    // it only says whether SOME host in this process configured cultures, which is not a fact about
+    // the render in front of you.
+    internal bool HasCulture => false;
 }

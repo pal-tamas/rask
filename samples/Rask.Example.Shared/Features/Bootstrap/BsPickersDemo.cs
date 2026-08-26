@@ -18,7 +18,6 @@ public sealed partial class BsPickersDemo : Component
         WhenFloat = DateTime.Today.AddHours(9),
         Alarm = new TimeOnly(9, 30, 0),
         WhenSeconds = DateTime.Today.AddHours(9).AddMinutes(30),
-        DayLabels = DateOnly.FromDateTime(DateTime.Today),
     };
 
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
@@ -34,11 +33,8 @@ public sealed partial class BsPickersDemo : Component
                 .Min(Today).Max(Today.AddDays(30))
                 .Disable(d => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday).Id("pick-date-range"),
             BsDatePicker.Bind(() => _model.Deadline).Label("Deadline (nullable, clearable)").Id("pick-deadline"),
-            // Custom accessible names for the month-nav buttons (Labels also covers the time columns + clear).
-            BsDatePicker.Bind(() => _model.DayLabels).Label("Date (custom labels)")
-                .Labels(new BsPickerLabels { PreviousMonth = "Go back a month", NextMonth = "Go forward a month" })
-                .Id("pick-date-labels"),
-
+            // The nav/column/clear accessible names follow the visitor's language, from an app's own
+            // Resources/RaskStrings.{culture}.json — they are no longer set per picker instance.
             // Time — stepped, floating, native, and a range-constrained picker with a seconds column.
             BsTimePicker.Bind(() => _model.Time).Label("Time (15-min steps)").MinuteStep(15).Id("pick-time"),
             BsTimePicker.Bind(() => _model.TimeNative).Label("Time (native)").Native(true).Id("pick-time-native"),
@@ -65,7 +61,6 @@ public sealed partial class BsPickersDemo : Component
         public DateOnly DayFloat { get; set; }
         public DateOnly DayNative { get; set; }
         public DateOnly DayRange { get; set; }
-        public DateOnly DayLabels { get; set; }
         public DateOnly? Deadline { get; set; }
 
         public TimeOnly Time { get; set; }

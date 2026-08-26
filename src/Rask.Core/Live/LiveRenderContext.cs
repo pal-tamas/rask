@@ -68,6 +68,7 @@ public sealed class LiveRenderContext : IDisposable
 
         Culture = _handle?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
         UICulture = _handle?.UICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
+        HasCulture = _handle?.HasCulture ?? false;
 
         // Pin the ambient culture for the walk, so code that formats through CultureInfo.CurrentCulture
         // — including code Rask does not own, and BsDataGrid's linguistic string sort, which reaches
@@ -116,6 +117,10 @@ public sealed class LiveRenderContext : IDisposable
     internal System.Globalization.CultureInfo Culture { get; }
 
     internal System.Globalization.CultureInfo UICulture { get; }
+
+    // Whether Culture/UICulture above came from the session rather than from the thread. See
+    // IRenderHandle.HasCulture.
+    internal bool HasCulture { get; }
 
     public IServiceProvider? Services { get; }
 
