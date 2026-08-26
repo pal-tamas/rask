@@ -40,6 +40,20 @@ at from `angular.json`), the dev server is `ng serve` on **4200**, and the bundl
 `dist/<project>/browser` — which the scaffolded host is told about with `RaskSpaDistDir`. The Angular
 CLI also has its own Node floor, higher than Vite's; it says so itself if yours is too old.
 
+### Which Node
+
+**Use the current LTS.** The build's own floor is Vite's — 20.19 — because that is genuinely the
+oldest Node the six Vite templates run on, and refusing a version that works would be a worse default
+than letting you use it. But the scaffolders move faster than the floor does: Angular's CLI already
+requires a Node newer than several releases that satisfy Rask, and it is the CLI that will tell you,
+not Rask.
+
+```bash
+nvm install --lts && nvm alias default 'lts/*'
+```
+
+Set `RaskSpaMinimumNode` if you want the build to insist on more than Rask does.
+
 **TanStack Router comes wired up for React and Solid**, because those are the two adapters it ships.
 The routes are declared in code, in `src/router.tsx`, rather than through the file-based plugin —
 that plugin wants to own `src/routes/`, and this client is scaffolded by somebody else. Nothing stops
@@ -53,7 +67,7 @@ is deliberate: a React skeleton Rask maintained by hand would be a worse React s
 release or two, and it would not be what a React developer recognises.
 
 It asks `create-vite` for its **TypeScript** template — `react-ts`, never `react`. The cost is
-stated rather than hidden: this template needs **Node.js and a network** at `rask new` time, where
+stated rather than hidden: these templates need **Node.js and a network** at `rask new` time, where
 the C# templates need neither.
 
 ## TypeScript only
