@@ -8,6 +8,34 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Translated text is generated from JSON, and a missing key is a compile error.**
+  `Resources/Strings.en.json` beside `Resources/Strings.hu.json` becomes
+  `Strings.Greeting(user.Name)` — a real member, with real parameters.
+
+  **The point is what happens when you get it wrong.** A typo'd key is **CS0117**, and the wrong number
+  of arguments is **CS1501**: ordinary C# errors, at the call site, before anything runs. A
+  stringly-typed lookup would instead render the key itself to a user, which is the classic way a
+  localized app fails in production.
+
+  **Placeholders are named** — `{name}`, optionally `{count:int}`, optionally `{price:decimal:C}`.
+  Named because other languages reorder arguments, so the correctness rule is that the *set* of names
+  matches the neutral catalog, not the order. A translation that disagrees is **RASK051**, an error,
+  because `string.Format` would throw `FormatException` the first time that string rendered — in that
+  one language only.
+
+  **A missing translation is a warning, not an error** (**RASK052**), because a partly translated app
+  is the normal state of every real project: the neutral text is used until it is filled in. Promote it
+  to an error in `.editorconfig` to gate a release on complete translations.
+
+  **Nothing reflects, and nothing ships in a satellite assembly.** Lookup is a generated `switch` over a
+  BCP 47 **string**, never a `CultureInfo` — which is what lets an app ship in three languages under
+  `InvariantGlobalization`, where constructing a culture throws. Only placeholder *formatting* falls
+  back to invariant there. A key with no placeholders compiles to a property returning an interned
+  literal, so reading one allocates nothing.
+
+  Fallback walks `hu-HU` → `hu` → the neutral catalog, and "the key itself" is a state that cannot
+  occur: a key absent from the neutral catalog generates no member, so it cannot be referenced.
+
 - **A WASM app negotiates the visitor's language before its first render, and `RaskGlobalization`
   decides whether it ships ICU.** `host.UseCulture(c => c.SupportedCultures.Add("hu"))` turns culture
   support on; the browser's signals — `?culture=`, the remembered cookie, `navigator.languages` — are
