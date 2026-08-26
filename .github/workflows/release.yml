@@ -43,6 +43,9 @@ jobs:
       - name: Pack Rask.Spa.Hosting
         run: dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Tailwind
+        run: dotnet pack src/Rask.Tailwind/Rask.Tailwind.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Validation.DataAnnotations
         run: dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts
 

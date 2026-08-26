@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- No code of its own: the package IS the props/targets pair plus the task assembly. -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+
+    <PackageId>Rask.Tailwind</PackageId>
+    <Title>Rask — Tailwind CSS for .NET</Title>
+    <Description>Tailwind CSS on any Rask host, with no npm required. The build compiles your stylesheet with Tailwind's standalone binary — scanning your C# for the classes you actually wrote, arbitrary values included — and falls back to npm on the platforms Tailwind publishes no binary for, so nothing is unsupported. The version is pinned rather than floating, the download is verified against its published checksum and cached once per user, and `-p:RaskTailwindBuild=false` skips the whole thing. Depends on nothing else in Rask.</Description>
+
+    <!--
+      Build-only: the package is a props/targets pair plus the MSBuild task that resolves the compiler.
+      There is no runtime assembly, so there is nothing to reference and no dependency to inherit — which
+      is what lets this sit on a Server host, a WASM host, or a plain ASP.NET app equally.
+    -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Build-order-only edge to the task project, which drops Rask.Tailwind.Tasks.dll into build/ here
+      (CopyTaskAssemblyToRaskTailwindBuild) for <UsingTask> to load and for the build\** Pack glob to
+      collect. Same arrangement as Rask.Wasm/Rask.Wasm.Tasks and Rask.Spa.Hosting/Rask.Spa.Tasks.
+    -->
+    <ProjectReference Include="..\Rask.Tailwind.Tasks\Rask.Tailwind.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>
