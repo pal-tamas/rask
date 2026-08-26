@@ -72,6 +72,12 @@ them until tagged releases begin.
   query time, at the cost of a DDL that only a connection registering the collation can query. Both are
   documented, and the documented snippet is compiled and run by a test.
 
+  The culture half is fixed upstream in **EF Core 11.0.0 preview 1**
+  ([dotnet/efcore#37432](https://github.com/dotnet/efcore/issues/37432)), which adds
+  `CultureInfo.InvariantCulture` to the parse — but that fix still uses `decimal.Parse`, not `TryParse`,
+  so on EF 11 the collation continues to throw and terminate the process the moment a value that is not
+  a number reaches the column. Rask's registration stays: it is the only one that is total.
+
   Arithmetic, comparisons and `Sum`/`Average`/`Min`/`Max` were never affected — those translate through
   EF's `ef_add`/`ef_compare`/`ef_sum`/… helpers, which take typed `decimal` parameters. `docs/sqlite.md`
   and `docs/data-access.md` claimed EF "falls back to REAL for `ORDER BY` and aggregates" and that "EF
