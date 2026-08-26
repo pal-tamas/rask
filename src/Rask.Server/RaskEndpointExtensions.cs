@@ -721,6 +721,10 @@ public static partial class RaskEndpointExtensions
             // open for the duration of someone's bad connection is pure waste.
             if (!interactive)
             {
+                // Marked before the teardown so a later push — the one symptom of the failure mode
+                // detection cannot see — is reported rather than swallowed by the ordinary
+                // disposed-session early-return.
+                session.MarkDiscardedAsStatic();
                 await store.DiscardAsync(session).ConfigureAwait(false);
             }
 

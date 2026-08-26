@@ -73,6 +73,16 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     private volatile WebSocket? _socket;
     private CancellationToken _socketCt;
 
+    // Set when the host tore this session down because it judged the page static — i.e. nothing in
+    // the render needed a live connection. Distinct from ordinary disposal, because the two want
+    // opposite things from a late StateHasChanged: after a normal teardown it is noise, and after
+    // this it is the one symptom of the failure mode static rendering cannot detect.
+    private volatile bool _discardedAsStatic;
+
+    // Guards the report below to one per session. A polling loop pushes on a timer, so an unguarded
+    // warning would repeat for as long as the loop survives its own page.
+    private int _staticPushReported;
+
     // Set once disposal begins. Read by RequestRenderInternalAsync so a StateHasChanged fired
     // from a component's Unmount/Dispose callback can't re-enter the render path and deadlock on
     // the _renderLock that DisposeAsync/Dispose hold while tearing the tree down. Volatile because
@@ -279,6 +289,38 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
     }
 
+    /// <summary>
+    ///     Records that the host served this page without a live session, so a later re-render
+    ///     request can say so instead of vanishing.
+    /// </summary>
+    internal void MarkDiscardedAsStatic() => _discardedAsStatic = true;
+
+    protected override void OnLatePush() => ReportPushToAStaticPage();
+
+    // The audit for the one thing detection cannot see. Interactivity is judged from what the render
+    // DID: a handler, a form, a ref, a JS call, unsettled async work. A component that pushes from a
+    // timer or an event subscription does none of those during the walk, so its page is judged static
+    // and its updates then go nowhere — silently, and only in production.
+    //
+    // This is that silence made audible. It fires when something asks a discarded-as-static session to
+    // re-render, which is exactly the moment the page would have updated and cannot.
+    private void ReportPushToAStaticPage()
+    {
+        if (!_discardedAsStatic || Interlocked.Exchange(ref _staticPushReported, 1) != 0)
+        {
+            return;
+        }
+
+        RaskDiagnostics.Report(
+            RaskLogLevel.Warning,
+            "Rask.Ssr",
+            $"A page served without a live session (RaskServerOptions.StaticPages) asked to re-render " +
+            $"after its response had gone, so the update reached nobody. Session {Id}. This is what a " +
+            "component pushing from a timer or an event subscription looks like: the render itself " +
+            "showed no need for a connection, so the page was served as a document. Give that " +
+            "component something the render can see, or turn StaticPages off for this app.");
+    }
+
     protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
         // _disposed short-circuits a StateHasChanged raised from an Unmount/Dispose callback during
@@ -287,6 +329,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         if (_disposed || _socket is null || _socket.State != WebSocketState.Open)
         {
             _renderRequestedWhileDetached = true;
+            ReportPushToAStaticPage();
             return;
         }
 

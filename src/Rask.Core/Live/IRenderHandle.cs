@@ -37,6 +37,20 @@ public interface IRenderHandle
     }
 
     /// <summary>
+    ///     Report a re-render requested after this component left the tree.
+    /// </summary>
+    /// <remarks>
+    ///     Ordinarily noise — an unmount callback raising <c>StateHasChanged</c> during teardown is
+    ///     routine, which is why the caller drops it. A session torn down because its page was judged
+    ///     static is the exception: there, a late push is the single observable symptom of the one
+    ///     failure mode static rendering cannot detect, so that session says so and every other
+    ///     implementation ignores it.
+    /// </remarks>
+    internal void ReportLatePush()
+    {
+    }
+
+    /// <summary>
     ///     Record that something in this render needs a live connection to work.
     /// </summary>
     /// <remarks>

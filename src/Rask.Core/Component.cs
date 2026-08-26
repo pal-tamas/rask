@@ -1701,6 +1701,9 @@ public abstract partial class Component : RaskMarkup
     {
         if (Live.IsUnmounted)
         {
+            // Dropped, as it must be — but a session torn down because its page was judged static
+            // wants to know, because this is what that misjudgement looks like from the inside.
+            RenderHandle?.ReportLatePush();
             return;
         }
 
