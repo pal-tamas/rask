@@ -84,14 +84,24 @@ public static class RaskCultureResolver
     {
         try
         {
-            // en-US exists wherever ICU does. Under invariant globalization PredefinedCulturesOnly is
-            // on, so this throws — the catch is the whole test. The equality check covers a runtime
-            // that allows arbitrary culture names but still has no data behind them, where the lookup
-            // succeeds and hands back the invariant culture.
-            return !CultureInfo.GetCultureInfo("en-US").Equals(CultureInfo.InvariantCulture);
+            // Ask whether the runtime has culture DATA, not whether a lookup succeeds. Those are
+            // different questions, and getting it wrong is silent: with PredefinedCulturesOnly turned
+            // off — which is exactly what shipping ICU sets — GetCultureInfo never throws and hands
+            // back a culture object that is not the invariant one, even when no ICU data was linked
+            // in. An identity check therefore answers "yes" for a runtime that formats everything
+            // identically, and an app is told it has languages it does not have.
+            //
+            // German writes 14.03.2026 where the invariant culture writes 03/14/2026. If those come
+            // back the same, there is no data behind the name.
+            var probe = new DateTime(2026, 3, 14);
+            return !string.Equals(
+                probe.ToString("d", CultureInfo.GetCultureInfo("de-DE")),
+                probe.ToString("d", CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
         }
         catch (CultureNotFoundException)
         {
+            // Invariant globalization with PredefinedCulturesOnly on: the lookup itself is refused.
             return false;
         }
     }

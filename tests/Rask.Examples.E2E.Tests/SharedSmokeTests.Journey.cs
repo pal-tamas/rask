@@ -81,6 +81,7 @@ public abstract partial class SharedSmokeTests
         await WalkLifecycleGuideAsync();
         await WalkRoutingGuideAsync();
         await WalkJsInteropGuideAsync();
+        await WalkLocalizationGuideAsync();
         await WalkElementsGuideAsync();
         await WalkHttpAndFilesGuideAsync();
         await WalkCqrsGuideAsync();
@@ -1550,6 +1551,67 @@ public abstract partial class SharedSmokeTests
     // the asset-loading/bundle demos, and "JS interop — runtime" carries IJSRuntime, element refs and the
     // third-party (Gantt) wrapper. Hydration-gate each page on a late demo, then drive by #id / scoped
     // locator. Counts are the `<!-- demo: -->` markers in the matching docs/js-interop*.md.
+    /// <summary>
+    ///     The localization guide: the culture table formats per language, or says why it cannot.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Both outcomes are asserted, because both are real. A WASM bundle built without the native
+    ///         relink (which is how this gate builds, for speed) carries no ICU data, and the demo is
+    ///         designed to say so rather than render four identical columns that look like a bug. The
+    ///         Server host always has culture data, so the "formats differ" assertion below does run —
+    ///         on the host where it can.
+    ///     </para>
+    ///     <para>
+    ///         That difference is what no unit test reaches: a component reading the ambient culture
+    ///         rather than the session's would look correct in isolation and produce four identical
+    ///         columns in a browser.
+    ///     </para>
+    /// </remarks>
+    protected async Task WalkLocalizationGuideAsync()
+    {
+        await SideAsync("Localization", "Localization", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "localization");
+
+        var rows = Page.Locator(".guide-demo tbody tr[data-culture]");
+        var warning = Page.Locator(".guide-demo .alert-warning");
+
+        // Wait for the demo to settle into one of its two shapes before deciding which to assert.
+        await Expect(rows.First.Or(warning.First)).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        if (await rows.CountAsync() > 0)
+        {
+            await Expect(rows).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+            // The point of the table: the SAME value reads differently per language.
+            //
+            // Compared against GERMAN rather than the Hungarian row above it, and that is not
+            // arbitrary. This gate builds WASM without the native relink (for speed), and ICU file
+            // selection needs that relink — so those bundles carry the runtime pack's default ICU
+            // shard, which covers EFIGS only: English, French, Italian, German, Spanish. Hungarian
+            // resolves there and formats in English, so asserting en != hu would fail for a reason
+            // that has nothing to do with the code under test. German is in the shard on every host,
+            // which makes this assertion mean the same thing everywhere it runs.
+            var english = await rows.Nth(0).Locator("td").Nth(1).InnerTextAsync();
+            var german = await rows.Nth(2).Locator("td").Nth(1).InnerTextAsync();
+            Assert.NotEqual(english.Trim(), german.Trim());
+        }
+        else
+        {
+            // No culture data. The demo has to explain that rather than mislead, and it has to name the
+            // property that fixes it — a reader seeing identical columns would file a bug instead.
+            await Expect(warning.First).ToContainTextAsync("RaskGlobalization");
+        }
+
+        // The document declares a language. This app names none, so it stays the framework default —
+        // the guarantee that localization costs nothing until an app asks for it.
+        Assert.Equal("en", await Page.EvaluateAsync<string>("() => document.documentElement.lang"));
+        Assert.Equal(
+            string.Empty,
+            await Page.EvaluateAsync<string>("() => document.documentElement.getAttribute('dir') ?? ''"));
+    }
+
     protected async Task WalkJsInteropGuideAsync()
     {
         await ClearJsRuntimeStorageAsync();

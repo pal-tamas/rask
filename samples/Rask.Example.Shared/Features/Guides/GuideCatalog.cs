@@ -164,6 +164,8 @@ public static class GuideCatalog
             "bi-database", "Integration"),
         new("accessibility", "Accessibility", "ARIA, focus management, the img-alt analyzer.",
             "bi-universal-access", "Integration"),
+        new("localization", "Localization", "Ship in more than one language: negotiated culture, typed catalogs, plurals.",
+            "bi-translate", "Integration"),
         new("dashboard", "Dashboard", "An operator dashboard over every battery's table.",
             "bi-speedometer2", "Integration"),
         new("logging", "Logging", "A durable log store in a database of its own.",

@@ -285,6 +285,20 @@
   <PropertyGroup Condition=" '$(RaskWasm)' == 'true' AND '$(RaskGlobalization)' == 'true' ">
     <InvariantGlobalization>false</InvariantGlobalization>
     <PredefinedCulturesOnly>false</PredefinedCulturesOnly>
+    <!--
+      FULL ICU, not the SDK's default shard.
+
+      The WebAssembly SDK ships a reduced ICU file covering EFIGS — English, French, Italian, German,
+      Spanish — and nothing else. That default is a trap for exactly this feature: an app that turned
+      globalization ON to support Hungarian gets a runtime where hu-HU RESOLVES, does not throw, and
+      formats dates in English. Every check passes and the output is quietly wrong, which is the
+      failure mode this whole subsystem exists to prevent.
+
+      Measured rather than assumed: with the shard, the showcase's culture table rendered 3/14/2026 for
+      both en-US and hu-HU. An app that only ever needs EFIGS can set
+      <WasmIncludeFullIcu>false</WasmIncludeFullIcu> back and save the difference.
+    -->
+    <WasmIncludeFullIcu Condition=" '$(WasmIncludeFullIcu)' == '' ">true</WasmIncludeFullIcu>
   </PropertyGroup>
 
   <!--
