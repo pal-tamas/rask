@@ -368,26 +368,112 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// </summary>
     internal string RenderInitialRoot()
     {
-        string html;
-        if (DiffMode != LiveDiffMode.DisabledFull)
-        {
-            _renderCache ??= new SessionRenderCache();
-            var frameWriter = _renderCache.PrepareCurrentBuffer();
-            using (FrameSinkScope.Push(frameWriter))
-            {
-                html = View.RenderAsLiveRoot(Services);
-            }
-
-            _renderCache.Snapshot(); // promote GET frames to the diff baseline
-        }
-        else
-        {
-            html = View.RenderAsLiveRoot(Services);
-        }
-
-        SeedInitialHtml(html);
+        var html = RenderRootWave(publishOnly: false);
+        CommitInitialRoot(html);
         return html;
     }
+
+    /// <summary>
+    ///     Render the shell, waiting up to <paramref name="budget" /> for the async lifecycle work
+    ///     it starts to settle, so the HTML carries the page's data rather than its placeholders.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Runs in waves: render, wait for what that render started, render again. A wave is the
+    ///         right unit because resolved data mounts new components, which start their own work —
+    ///         a page whose list loads and whose rows then load is two waves, not one longer wait.
+    ///     </para>
+    ///     <para>
+    ///         Waves after the first are <c>publishOnly</c>. That is not an optimisation: every
+    ///         component has already rendered once, so a normal wave would re-fire
+    ///         <c>OnRendered</c> on all of them, once per wave, each enqueuing another round of JS
+    ///         interop.
+    ///     </para>
+    ///     <para>
+    ///         The budget is one deadline for the whole response, not one per wave — otherwise ten
+    ///         waves of five seconds is a fifty-second page. On expiry the caller is told through
+    ///         <see cref="LastRenderTimedOut" />; the pending work is deliberately NOT cancelled,
+    ///         because the page is about to be handed a live session that will finish the load.
+    ///     </para>
+    /// </remarks>
+    internal async Task<string> RenderInitialRootAsync(TimeSpan budget)
+    {
+        if (budget <= TimeSpan.Zero)
+        {
+            return RenderInitialRoot();
+        }
+
+        using var quiescence = QuiescenceScope.Begin();
+        var html = RenderRootWave(publishOnly: false);
+
+        var deadline = DateTime.UtcNow + budget;
+        var waves = 0;
+        while (quiescence.TrySnapshotPending(out var batch))
+        {
+            var remaining = deadline - DateTime.UtcNow;
+            if (remaining <= TimeSpan.Zero || waves >= MaxQuiescenceWaves)
+            {
+                quiescence.MarkTimedOut();
+                break;
+            }
+
+            try
+            {
+                await Task.WhenAll(batch).WaitAsync(remaining).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                quiescence.MarkTimedOut();
+                break;
+            }
+
+            html = RenderRootWave(publishOnly: true);
+            waves++;
+        }
+
+        LastRenderTimedOut = quiescence.TimedOut;
+        CommitInitialRoot(html);
+        return html;
+    }
+
+    /// <summary>
+    ///     Whether the initial render was served before its async work settled. The host must keep a
+    ///     live session for such a page: served as a static document it would sit on its placeholder
+    ///     for ever, because nothing would be left running to replace it.
+    /// </summary>
+    internal bool LastRenderTimedOut { get; private set; }
+
+    // A single render into the frame sink, WITHOUT promoting anything. Intermediate waves must not
+    // touch either baseline: only the HTML actually served is what the browser will hold, so
+    // committing a wave that is about to be superseded would leave the first live render diffing
+    // against a document that never existed. Same discipline as the coalescing render loop's
+    // deferred rotation.
+    private string RenderRootWave(bool publishOnly)
+    {
+        if (DiffMode == LiveDiffMode.DisabledFull)
+        {
+            return View.RenderAsLiveRoot(Services, publishOnly);
+        }
+
+        _renderCache ??= new SessionRenderCache();
+        var frameWriter = _renderCache.PrepareCurrentBuffer();
+        using (FrameSinkScope.Push(frameWriter))
+        {
+            return View.RenderAsLiveRoot(Services, publishOnly);
+        }
+    }
+
+    // Promote the served render to both baselines, exactly once.
+    private void CommitInitialRoot(string html)
+    {
+        _renderCache?.Snapshot(); // promote GET frames to the diff baseline
+        SeedInitialHtml(html);
+    }
+
+    // Bounds a pathological render whose every wave keeps starting new work. Mirrors the coalescing
+    // loop's budget: past this the page is promoted to interactive and the live session finishes
+    // the job, rather than the response growing without limit.
+    private const int MaxQuiescenceWaves = 16;
 
     /// <summary>
     ///     Whether the last render fell back to the framework's error page rather than the app.

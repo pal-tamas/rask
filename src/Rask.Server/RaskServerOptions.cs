@@ -65,6 +65,28 @@ public sealed class RaskServerOptions
     public TimeSpan UnconnectedSessionGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
+    ///     How long the initial <c>GET</c> waits for a page's async lifecycle work
+    ///     (<c>OnMountAsync</c>) to settle before serving the HTML. <see cref="TimeSpan.Zero" />
+    ///     disables the wait, restoring the previous behaviour of serving whatever rendered
+    ///     synchronously. Default 5&#160;seconds.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Without this a page that loads its data in <c>OnMountAsync</c> serves its
+    ///         <c>"Loading…"</c> placeholder as the first paint and as the whole document every
+    ///         crawler sees — the data arrives over the live connection a moment later, which no
+    ///         cache, crawler or uptime check ever observes.
+    ///     </para>
+    ///     <para>
+    ///         Blowing the budget is not an error: the page is served as it stands and keeps a live
+    ///         session, so the load finishes exactly as it does today. It does mean a slow page
+    ///         holds a request open for up to this long, so treat it together with the session cap
+    ///         when sizing a host — the two multiply.
+    ///     </para>
+    /// </remarks>
+    public TimeSpan InitialRenderQuiescenceTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     ///     If a connected WebSocket sends no inbound frame for this long, the server closes it. The
     ///     session itself survives under <see cref="SessionGracePeriod" /> for reconnect, so this only
     ///     reclaims the idle socket (and its receive loop), not the component tree. Bounds a silently
