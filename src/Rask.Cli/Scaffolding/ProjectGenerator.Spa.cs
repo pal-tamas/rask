@@ -39,10 +39,13 @@ internal static partial class ProjectGenerator
 
             // The overlay: everything else in the client is create-vite's.
             ($"{NameToken}.Client/vite.config.ts", SpaViteConfig(framework)),
-            ($"{NameToken}.Client/src/App.tsx", SpaApp),
-            ($"{NameToken}.Client/src/main.tsx", SpaMain),
             ("README.md", SpaReadme(framework)),
         };
+
+        foreach (var (path, content) in framework.ClientFiles)
+        {
+            files.Add(($"{NameToken}.Client/{path}", content));
+        }
 
         if (batteries.Data)
         {
@@ -78,8 +81,8 @@ internal static partial class ProjectGenerator
             [
                 new ScaffoldPatch(
                     System.IO.Path.Combine(client, "package.json"),
-                    AddQueryDependency,
-                    "adding @tanstack/react-query"),
+                    json => AddClientDependencies(json, framework),
+                    "adding " + Dependencies(framework)),
                 new ScaffoldPatch(
                     System.IO.Path.Combine(client, ".gitignore"),
                     IgnoreGeneratedContracts,
@@ -88,16 +91,35 @@ internal static partial class ProjectGenerator
         };
     }
 
+    /// <summary>What the patch says it is adding, for the line the command prints.</summary>
+    private static string Dependencies(SpaFramework framework) =>
+        framework.RouterPackage is null
+            ? framework.QueryPackage
+            : framework.QueryPackage + " and " + framework.RouterPackage;
+
     /// <summary>
-    ///     Adds TanStack Query to whatever <c>create-vite</c> wrote, leaving the rest of the file alone.
+    ///     Adds this framework's TanStack packages to whatever <c>create-vite</c> wrote, leaving the rest
+    ///     of the file alone.
     /// </summary>
     /// <remarks>
-    ///     Parsed and re-serialised rather than string-spliced: the scaffolder's <c>package.json</c> is not
-    ///     ours and its shape is free to change. Idempotent, so re-running <c>rask new --force</c> over an
-    ///     existing client does not produce a duplicate key or a second copy of the range.
+    ///     <para>
+    ///         Parsed and re-serialised rather than string-spliced: the scaffolder's <c>package.json</c> is
+    ///         not ours and its shape is free to change. Idempotent, so re-running <c>rask new --force</c>
+    ///         over an existing client does not produce a duplicate key or a second copy of a range.
+    ///     </para>
+    ///     <para>
+    ///         Svelte's <c>build</c> script is rewritten as well, and that is the one script edit this
+    ///         template makes. create-vite gives Svelte a bare <c>vite build</c> — type checking lives in a
+    ///         separate <c>check</c> script, because <c>tsc</c> cannot read a <c>.svelte</c> file. Left
+    ///         alone, renaming a C# property would break nothing at build time and surface on the wire,
+    ///         which is precisely the failure the generated contracts exist to prevent. Every other
+    ///         framework's template already runs its type-checker in <c>build</c>.
+    ///     </para>
     /// </remarks>
-    internal static string AddQueryDependency(string packageJson)
+    internal static string AddClientDependencies(string packageJson, SpaFramework framework)
     {
+        ArgumentNullException.ThrowIfNull(framework);
+
         var root = JsonNode.Parse(packageJson) as JsonObject
                    ?? throw new InvalidOperationException("package.json is not a JSON object.");
 
@@ -107,20 +129,19 @@ internal static partial class ProjectGenerator
             root["dependencies"] = dependencies;
         }
 
-        dependencies["@tanstack/react-query"] = TanStackQueryRange;
+        dependencies[framework.QueryPackage] = framework.QueryVersion;
+        if (framework.RouterPackage is { } router)
+        {
+            dependencies[router] = framework.RouterVersion;
+        }
+
+        if (framework.Key == "svelte" && root["scripts"] is JsonObject scripts)
+        {
+            scripts["build"] = "svelte-check --tsconfig ./tsconfig.app.json && vite build";
+        }
 
         return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
     }
-
-    /// <summary>
-    ///     The TanStack Query range the template pins.
-    /// </summary>
-    /// <remarks>
-    ///     A caret range rather than an exact version: the client's own lockfile is what makes a build
-    ///     reproducible, and pinning exactly here would freeze every scaffolded app on whatever was current
-    ///     the day its Rask was released.
-    /// </remarks>
-    private const string TanStackQueryRange = "^5.100.0";
 
     /// <summary>Adds the generated-contracts directory to the client's own ignore file.</summary>
     /// <remarks>
@@ -326,10 +347,17 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private static string SpaViteConfig(SpaFramework framework) =>
-        $$"""
-        import {{framework.PluginImport}}
-        import { defineConfig } from 'vite'
+    private static string SpaViteConfig(SpaFramework framework)
+    {
+        // Lit needs no plugin: its components are standard custom elements and its decorators are
+        // TypeScript's, so create-vite ships that template with no vite.config.ts at all. This is the
+        // file that creates one, purely to carry the dev proxy.
+        var import_ = framework.PluginImport.Length == 0
+            ? string.Empty
+            : "import " + framework.PluginImport + "\n";
+
+        return $$"""
+        {{import_}}import { defineConfig } from 'vite'
 
         // https://vite.dev/config/
         export default defineConfig({
@@ -349,87 +377,7 @@ internal static partial class ProjectGenerator
         })
 
         """;
-
-    private const string SpaMain =
-        """
-        import { StrictMode } from 'react'
-        import { createRoot } from 'react-dom/client'
-        import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-        import './index.css'
-        import App from './App.tsx'
-
-        // Defaults left alone deliberately: staleTime 0 and a 5-minute garbage-collection window are
-        // TanStack's, and Rask's own C# query client mirrors them, so the two halves of an app behave the
-        // same way. Change them here once you know which way you want them to differ.
-        const queryClient = new QueryClient()
-
-        createRoot(document.getElementById('root')!).render(
-          <StrictMode>
-            <QueryClientProvider client={queryClient}>
-              <App />
-            </QueryClientProvider>
-          </StrictMode>,
-        )
-
-        """;
-
-    private const string SpaApp =
-        """
-        import { useState } from 'react'
-        import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-        import { raskMutation, raskQuery } from './rask/query'
-        import { getGreeting, recordVisit } from './rask/messages'
-        import './App.css'
-
-        export default function App() {
-          const [name, setName] = useState('world')
-          const queryClient = useQueryClient()
-
-          // The message carries its own result type, so `greeting` is a Greeting with no cast and no
-          // wire name spelled out here. Renaming a property in the C# record breaks this line at build
-          // time rather than at runtime.
-          const { data: greeting, isPending, error } = useQuery(raskQuery(getGreeting({ name })))
-
-          const visit = useMutation({
-            ...raskMutation(recordVisit),
-            // The factory carries its wire name, so invalidation is never a string literal either.
-            onSuccess: () => queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
-          })
-
-          return (
-            <main>
-              <h1>Rask + React</h1>
-
-              <label>
-                Name{' '}
-                <input value={name} onChange={(event) => setName(event.target.value)} />
-              </label>
-
-              {isPending && <p>Loading…</p>}
-              {error && <p role="alert">{error.message}</p>}
-
-              {greeting && (
-                <>
-                  <p>{greeting.message}</p>
-                  {/* seenAt is a real Date, revived from the wire because the C# type said it was an
-                      instant — not because the string looked like one. Formatting is the browser's job:
-                      `undefined` means the visitor's own locale, and their own time zone. */}
-                  <p>
-                    Server time:{' '}
-                    {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
-                  </p>
-                  <p>Visits: {greeting.visits}</p>
-                </>
-              )}
-
-              <button onClick={() => visit.mutate({ name })} disabled={visit.isPending}>
-                Record a visit
-              </button>
-            </main>
-          )
-        }
-
-        """;
+    }
 
     private const string SpaDockerfile =
         """
@@ -567,12 +515,102 @@ internal sealed record SpaFramework(
     string DisplayName,
     string ViteTemplate,
     string PluginImport,
-    string PluginCall)
+    string PluginCall,
+    string QueryPackage,
+    string QueryVersion,
+    string? RouterPackage,
+    string? RouterVersion,
+    IReadOnlyList<(string Path, string Content)> ClientFiles)
 {
+    /// <summary>
+    ///     Ranges rather than exact versions: the client's own lockfile is what makes a build
+    ///     reproducible, and pinning exactly here would freeze every scaffolded app on whatever was
+    ///     current the day its Rask shipped.
+    /// </summary>
+    private const string QueryRange = "^5.102.0";
+
+    /// <summary>Svelte Query versions independently of the others, and is already at 6.</summary>
+    private const string SvelteQueryRange = "^6.1.0";
+
+    /// <summary>Lit Query is young, and its 0.x means a minor can break — so the range is tighter.</summary>
+    private const string LitQueryRange = "^0.2.0";
+
+    private const string RouterRange = "^1.170.0";
+
     public static readonly SpaFramework React = new(
-        "react",
-        "React",
-        "react-ts",
-        "react from '@vitejs/plugin-react'",
-        "react()");
+        "react", "React", "react-ts",
+        "react from '@vitejs/plugin-react'", "react()",
+        "@tanstack/react-query", QueryRange,
+        "@tanstack/react-router", RouterRange,
+        SpaClientSources.React);
+
+    /// <summary>
+    ///     Preact, on the React adapter.
+    /// </summary>
+    /// <remarks>
+    ///     There is no <c>@tanstack/preact-query</c> and there does not need to be: create-vite's Preact
+    ///     template already maps <c>react</c> and <c>react-dom</c> to <c>preact/compat</c> in its
+    ///     tsconfig, and <c>@preact/preset-vite</c> does the same at build time — so the React adapter
+    ///     type-checks and bundles here unchanged.
+    /// </remarks>
+    public static readonly SpaFramework Preact = new(
+        "preact", "Preact", "preact-ts",
+        "preact from '@preact/preset-vite'", "preact()",
+        "@tanstack/react-query", QueryRange,
+        null, null,
+        SpaClientSources.Preact);
+
+    public static readonly SpaFramework Solid = new(
+        "solid", "Solid", "solid-ts",
+        "solid from 'vite-plugin-solid'", "solid()",
+        "@tanstack/solid-query", QueryRange,
+        "@tanstack/solid-router", RouterRange,
+        SpaClientSources.Solid);
+
+    public static readonly SpaFramework Vue = new(
+        "vue", "Vue", "vue-ts",
+        "vue from '@vitejs/plugin-vue'", "vue()",
+        "@tanstack/vue-query", QueryRange,
+        null, null,
+        SpaClientSources.Vue);
+
+    /// <summary>
+    ///     Svelte. No TanStack Router — it ships React and Solid adapters only, and SvelteKit is what
+    ///     this ecosystem reaches for instead.
+    /// </summary>
+    public static readonly SpaFramework Svelte = new(
+        "svelte", "Svelte", "svelte-ts",
+        "{ svelte } from '@sveltejs/vite-plugin-svelte'", "svelte()",
+        "@tanstack/svelte-query", SvelteQueryRange,
+        null, null,
+        SpaClientSources.Svelte);
+
+    /// <summary>
+    ///     Lit, which needs no Vite plugin at all — its components are standard custom elements, and
+    ///     its decorators are TypeScript's.
+    /// </summary>
+    public static readonly SpaFramework Lit = new(
+        "lit", "Lit", "lit-ts",
+        string.Empty, string.Empty,
+        "@tanstack/lit-query", LitQueryRange,
+        null, null,
+        SpaClientSources.Lit);
+
+    /// <summary>Every framework <c>rask new</c> can scaffold a client for.</summary>
+    public static IReadOnlyList<SpaFramework> All { get; } = [React, Preact, Vue, Solid, Svelte, Lit];
+
+    public static bool TryGet(string key, out SpaFramework framework)
+    {
+        foreach (var candidate in All)
+        {
+            if (candidate.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
+            {
+                framework = candidate;
+                return true;
+            }
+        }
+
+        framework = React;
+        return false;
+    }
 }

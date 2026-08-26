@@ -62,7 +62,7 @@ events — rides the app's own SQLite database. Run `rask` with no arguments for
 Prefer React? `rask new Shop --template react` scaffolds a Vite client on an ASP.NET host, with the
 front end's TypeScript generated from your C# message records on every build — so
 `await rask.dispatch(getOrder({ id }))` is typed, and renaming a property breaks the build rather
-than the wire. The client is a **TypeScript** SPA — React, Vue or Angular, but not JavaScript, since
+than the wire. The client is a **TypeScript** SPA — React, Preact, Vue, Solid, Svelte or Lit, but not JavaScript, since
 every guarantee here is one a compiler makes. See [docs/spa.md](docs/spa.md). (Needs Node.js.)
 
 ## Packages

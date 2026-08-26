@@ -250,12 +250,14 @@ public sealed class NewCommandTests
     {
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", "svelte"], CancellationToken.None);
+        // Not a near-miss of a real template on purpose: 'svelte' used to stand in for "unknown" here,
+        // and became a template, which turned this into a test of nothing.
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "cobol"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("Option '--template' does not accept 'svelte'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, wasm-hosted, native, react.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, wasm-hosted, native, react, preact, vue, solid, svelte, lit.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]

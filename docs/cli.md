@@ -97,6 +97,7 @@ rask new Blog --data --docker        # + a SQLite database, ready for your first
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
+rask new Shop --template svelte      # …or preact, solid, lit
 rask new Field --template native     # a native iOS + Android app
 rask new Kiosk --template native --platform android   # Android only
 ```
@@ -127,14 +128,17 @@ restore` so the output builds immediately. `wasm-hosted` emits a three-project s
 (the browser-WASM SPA), `MyApp.Server` (the ASP.NET host you run and deploy), and `MyApp.Shared` (a class
 library both reference).
 
-`react` is the one template that does **not** write its own client. It runs the framework's own
-scaffolder — `npx create-vite@latest MyApp.Client --template react-ts` — and overlays four files onto
-what that produces, so the skeleton is whatever Vite ships today rather than a copy Rask maintains. It
-therefore needs **Node.js and a network** at `rask new` time, and it emits two projects rather than
-three: the client's half of every contract is generated TypeScript, so there is nothing for a `.Shared`
-to hold. `react-ts`, never `react`: Rask supports **TypeScript** SPA clients, and a client with no
-TypeScript configuration is refused at build time with `RASKSPA004`. See
-[TypeScript front ends](spa.md).
+The front-end templates — `react`, `preact`, `solid`, `svelte`, `lit` — are the ones that do **not**
+write their own client. Each runs the framework's own scaffolder
+(`npx create-vite@latest MyApp.Client --template <framework>-ts`) and overlays at most four files onto
+what that produces, so the skeleton is whatever Vite ships today rather than a copy Rask maintains.
+They therefore need **Node.js and a network** at `rask new` time, and they emit two projects rather
+than three: the client's half of every contract is generated TypeScript, so there is nothing for a
+`.Shared` to hold. Always the `-ts` half of each pair: Rask supports **TypeScript** SPA clients, and a
+client with no TypeScript configuration is refused at build time with `RASKSPA004`.
+
+The set is exactly the frameworks TanStack Query ships an adapter for, and **TanStack Router is wired
+up for React and Solid** — the two adapters it ships. See [TypeScript front ends](spa.md).
 
 A new project is deliberately **minimal** — nothing to delete before you start — and everything it
 scaffolds already follows the vertical-slice layout the guides build on: feature code under
@@ -159,7 +163,7 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, `native`, or `react`. |
+| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, `native`, or a front-end framework: `react`, `preact`, `solid`, `svelte`, `lit`. |
 | `--auth` | Scaffold a cookie login/session (web templates). |
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
@@ -192,7 +196,7 @@ useful than a page designed to reveal nothing.
 
 ### Which template supports which flag
 
-| Flag | `server` | `wasm` | `wasm-hosted` | `native` | `react` |
+| Flag | `server` | `wasm` | `wasm-hosted` | `native` | front-end |
 | --- | :-: | :-: | :-: | :-: | :-: |
 | `--auth` | ✅ | ✅ | ✅ | — | — |
 | `--pwa` | ✅ | ✅ | ✅ | — | — |
@@ -201,7 +205,7 @@ useful than a page designed to reveal nothing.
 | `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | — | ✅ |
 | `--push` | ✅ | — | — | — | — |
 
-¹ `react` always wires CQRS — the typed wire *is* the template — so `--cqrs` is accepted but changes
+¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--cqrs` is accepted but changes
 nothing. `--auth` and `--pwa` are refused rather than half-scaffolded: both need work on the client
 (a React login flow, a service worker through `vite-plugin-pwa`) that the template does not write yet.
 | `--all-batteries` | ✅ | — | ✅ | — |
@@ -282,7 +286,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native, react.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native, react, preact, solid, svelte, lit.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 

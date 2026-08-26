@@ -38,12 +38,15 @@ public sealed class SpaTemplateTests
     ///     Every framework the scaffolder knows asks <c>create-vite</c> for its <b>TypeScript</b> template.
     /// </summary>
     /// <remarks>
-    ///     Reflection over the declared frameworks rather than an assertion about React, because this is the
-    ///     invariant a second framework is most likely to break: create-vite ships each of them as a pair
-    ///     (<c>vue</c>/<c>vue-ts</c>, <c>angular</c> is TypeScript already), and picking the wrong half
-    ///     scaffolds a client the host then refuses to build with RASKSPA004. Rask supports TypeScript
-    ///     single-page app clients — a JavaScript one would import the generated contracts and have nothing
-    ///     check them, which is the failure the whole generated-TypeScript pipeline exists to prevent.
+    ///     Reflection over the declared fields rather than over <see cref="SpaFramework.All" />, because
+    ///     this catches the framework somebody adds and forgets to put in that list — which would otherwise
+    ///     be invisible here and merely absent from the CLI.
+    ///     <para>
+    ///         create-vite ships each framework as a pair, and picking the JavaScript half scaffolds a
+    ///         client the host then refuses to build with RASKSPA004. Rask supports TypeScript single-page
+    ///         app clients: a JavaScript one would import the generated contracts and have nothing check
+    ///         them, which is the failure the whole pipeline exists to prevent.
+    ///     </para>
     /// </remarks>
     [Fact]
     public void Every_scaffolded_client_is_typescript()
@@ -58,20 +61,25 @@ public sealed class SpaTemplateTests
         foreach (var framework in frameworks)
         {
             Assert.True(
-                framework.ViteTemplate.EndsWith("-ts", StringComparison.Ordinal)
-                || framework.ViteTemplate == "angular",
+                framework.ViteTemplate.EndsWith("-ts", StringComparison.Ordinal),
                 $"{framework.DisplayName} scaffolds '{framework.ViteTemplate}', which is not a TypeScript template.");
+
+            Assert.Contains(framework, SpaFramework.All);
         }
     }
 
-    [Fact]
-    public void Only_four_client_files_are_ours()
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void The_overlay_stays_small(string key)
     {
-        var result = Generate();
+        var result = ProjectGenerator.GenerateSpa(Root, "Shop", Framework(key), new ServerBatteries(), "1.2.3");
 
         // Everything else in the client is create-vite's, and stays create-vite's. A React skeleton Rask
-        // maintained by hand would be a worse one within a release or two — and the overlay growing is the
-        // signal that the split has stopped working.
+        // maintained by hand would be a worse one within a release or two — so the overlay growing is the
+        // signal that the split has stopped working, and this is where that shows up.
+        //
+        // Four is the ceiling, not a target: a Vite config for the dev proxy, an entry that installs the
+        // QueryClient, the component that dispatches, and — where TanStack ships a router — its routes.
         var ours = result.Files
             .Select(f => f.Path.Replace('\\', '/'))
             .Where(p => p.Contains("/Shop.Client/", StringComparison.Ordinal))
@@ -79,7 +87,8 @@ public sealed class SpaTemplateTests
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(["src/App.tsx", "src/main.tsx", "vite.config.ts"], ours);
+        Assert.Contains("vite.config.ts", ours);
+        Assert.InRange(ours.Length, 2, 4);
     }
 
     [Fact]
@@ -204,7 +213,7 @@ public sealed class SpaTemplateTests
             }
             """;
 
-        var patched = ProjectGenerator.AddQueryDependency(Original);
+        var patched = ProjectGenerator.AddClientDependencies(Original, SpaFramework.React);
 
         Assert.Contains("\"@tanstack/react-query\"", patched, StringComparison.Ordinal);
         Assert.Contains("\"react\": \"^19.2.8\"", patched, StringComparison.Ordinal);
@@ -215,16 +224,16 @@ public sealed class SpaTemplateTests
     [Fact]
     public void Adding_the_query_dependency_twice_is_the_same_as_once()
     {
-        var once = ProjectGenerator.AddQueryDependency("""{ "dependencies": { "react": "^19.2.8" } }""");
+        var once = ProjectGenerator.AddClientDependencies("""{ "dependencies": { "react": "^19.2.8" } }""", SpaFramework.React);
 
-        Assert.Equal(once, ProjectGenerator.AddQueryDependency(once));
+        Assert.Equal(once, ProjectGenerator.AddClientDependencies(once, SpaFramework.React));
     }
 
     [Fact]
     public void A_package_json_with_no_dependencies_still_gets_one()
     {
         // create-vite's output is not ours, and its shape is free to change.
-        var patched = ProjectGenerator.AddQueryDependency("""{ "name": "shop-client" }""");
+        var patched = ProjectGenerator.AddClientDependencies("""{ "name": "shop-client" }""", SpaFramework.React);
 
         Assert.Contains("\"@tanstack/react-query\"", patched, StringComparison.Ordinal);
     }
@@ -234,7 +243,175 @@ public sealed class SpaTemplateTests
     {
         // The command turns this into a line of advice instead of a failed scaffold with a half-written
         // project on disk — but it has to be told, not silently handed unchanged content.
-        Assert.Throws<InvalidOperationException>(() => ProjectGenerator.AddQueryDependency("[]"));
+        Assert.Throws<InvalidOperationException>(() => ProjectGenerator.AddClientDependencies("[]", SpaFramework.React));
+    }
+
+    public static IEnumerable<object[]> Frameworks() =>
+        SpaFramework.All.Select(framework => new object[] { framework.Key });
+
+    private static SpaFramework Framework(string key)
+    {
+        Assert.True(SpaFramework.TryGet(key, out var framework));
+        return framework;
+    }
+
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Every_framework_is_offered_as_a_template(string key)
+    {
+        // The catalog is DERIVED from this list rather than repeating it. Two hand-maintained lists of
+        // the same frameworks is how `--template native` came to be accepted by the parser and then
+        // generate a server app.
+        Assert.True(TemplateCatalog.TryGet(key, out var template));
+        Assert.Equal(key, template.Key);
+    }
+
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Every_framework_scaffolds_something_that_can_dispatch(string key)
+    {
+        var framework = Framework(key);
+        var result = ProjectGenerator.GenerateSpa(Root, "Shop", framework, new ServerBatteries(), "1.2.3");
+
+        // Whatever the framework, the client has to reach the generated messages and the bridge — those
+        // two imports are what the whole template exists to make possible.
+        var client = string.Join(
+            "\n",
+            result.Files
+                .Where(f => f.Path.Replace('\\', '/').Contains("/Shop.Client/", StringComparison.Ordinal))
+                .Select(f => f.Content));
+
+        Assert.Contains("rask/messages", client, StringComparison.Ordinal);
+        Assert.Contains("rask/query", client, StringComparison.Ordinal);
+        Assert.Contains("getGreeting", client, StringComparison.Ordinal);
+        Assert.Contains("recordVisit", client, StringComparison.Ordinal);
+
+        // Invalidation by the factory's own wire name, never a string literal — renaming the C# record
+        // has to move the cache key with it.
+        Assert.Contains("getGreeting.messageName", client, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Every_framework_overlays_onto_the_entry_its_scaffolder_actually_wrote(string key)
+    {
+        var framework = Framework(key);
+
+        // create-vite does not name these the same way — Solid boots from src/index.tsx, Preact's app is
+        // src/app.tsx in lower case, Svelte has no App.tsx at all, and Lit has no entry module beside its
+        // element. An overlay written for the wrong name does not fail: it lands beside the real file and
+        // is never imported, so the app builds and shows the scaffolder's placeholder instead.
+        var expected = key switch
+        {
+            "react" => "src/main.tsx",
+            "preact" => "src/main.tsx",
+            "vue" => "src/App.vue",
+            "solid" => "src/index.tsx",
+            "svelte" => "src/App.svelte",
+            "lit" => "src/my-element.ts",
+            _ => throw new InvalidOperationException($"'{key}' has no expected entry point in this test."),
+        };
+
+        Assert.Contains(framework.ClientFiles, file => file.Path == expected);
+    }
+
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Every_framework_asks_its_scaffolder_for_a_TypeScript_template(string key)
+    {
+        // Rask supports TypeScript clients only. create-vite ships each framework as a pair, and asking
+        // for the JavaScript half would scaffold a client the host then refuses to build (RASKSPA004).
+        Assert.EndsWith("-ts", Framework(key).ViteTemplate, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Frameworks))]
+    public void Every_framework_pins_the_TanStack_Query_adapter_its_own_code_imports(string key)
+    {
+        var framework = Framework(key);
+        var patched = ProjectGenerator.AddClientDependencies("""{ "name": "c" }""", framework);
+
+        Assert.Contains($"\"{framework.QueryPackage}\"", patched, StringComparison.Ordinal);
+
+        // The adapter the package.json pins and the one the client code imports are one decision written
+        // in two places, and nothing else checks they agree. A mismatch is an unresolved import at build.
+        var client = string.Join("\n", framework.ClientFiles.Select(f => f.Content));
+        Assert.Contains($"from '{framework.QueryPackage}'", client, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("react", "@tanstack/react-router")]
+    [InlineData("solid", "@tanstack/solid-router")]
+    public void React_and_Solid_get_TanStack_Router(string key, string package)
+    {
+        var framework = Framework(key);
+
+        Assert.Equal(package, framework.RouterPackage);
+        Assert.Contains(framework.ClientFiles, file => file.Path == "src/router.tsx");
+        Assert.Contains(
+            $"\"{package}\"",
+            ProjectGenerator.AddClientDependencies("""{ "name": "c" }""", framework),
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("preact")]
+    [InlineData("svelte")]
+    [InlineData("lit")]
+    public void Everything_else_gets_no_router(string key)
+    {
+        // TanStack Router ships React and Solid adapters only. Scaffolding a different router for the
+        // others would be Rask picking one on their behalf, in a template whose whole argument is that
+        // the framework's own conventions win.
+        var framework = Framework(key);
+
+        Assert.Null(framework.RouterPackage);
+        Assert.DoesNotContain(framework.ClientFiles, file => file.Path.Contains("router", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Svelte_type_checks_in_its_build_script()
+    {
+        // create-vite gives Svelte a bare `vite build`; tsc cannot read a .svelte file, so type checking
+        // lives in a separate `check` script nothing runs. Left alone, renaming a C# property would break
+        // NOTHING at build time and surface on the wire — the exact failure the generated contracts exist
+        // to prevent. Every other framework's template already type-checks in build.
+        var patched = ProjectGenerator.AddClientDependencies(
+            """{ "scripts": { "build": "vite build", "check": "svelte-check" } }""",
+            Framework("svelte"));
+
+        Assert.Contains("svelte-check", patched, StringComparison.Ordinal);
+        Assert.Contains("vite build", patched, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Only_Svelte_has_its_build_script_rewritten()
+    {
+        // Somebody else's scripts are not ours to edit. Svelte is the one exception and it is argued for
+        // above; a second one appearing silently is the thing this pins.
+        foreach (var framework in SpaFramework.All.Where(f => f.Key != "svelte"))
+        {
+            var patched = ProjectGenerator.AddClientDependencies(
+                """{ "scripts": { "build": "tsc -b && vite build" } }""", framework);
+
+            Assert.Contains("tsc -b", patched, StringComparison.Ordinal);
+            Assert.DoesNotContain("svelte-check", patched, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Lit_needs_no_vite_plugin()
+    {
+        // Its components are standard custom elements and its decorators are TypeScript's — which is why
+        // create-vite ships that template with no vite.config.ts at all. The generated one exists purely
+        // to carry the dev proxy, and a dangling `import  from` would not parse.
+        var config = Content(
+            ProjectGenerator.GenerateSpa(Root, "Shop", Framework("lit"), new ServerBatteries(), "1.2.3"),
+            "/Shop.Client/vite.config.ts");
+
+        Assert.DoesNotContain("import  from", config, StringComparison.Ordinal);
+        Assert.Contains("plugins: []", config, StringComparison.Ordinal);
+        Assert.Contains("'/_rask'", config, StringComparison.Ordinal);
     }
 
     [Fact]

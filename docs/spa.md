@@ -5,17 +5,45 @@ message records once, in C#; the TypeScript the browser imports is generated fro
 build. There is no schema file to keep in sync, no client SDK to publish, and no wire name spelled
 out at a call site.
 
-The **framework** is yours to pick — React, Vue and Angular all bundle to the same thing, and
-everything on this page is keyed on what the *bundler* guarantees rather than on who generated it.
-The **language** is not a choice: a client with no TypeScript configuration is refused at build time
-with [RASKSPA004](#typescript-only), because the whole of what this gives you is checked by a
-compiler you would not be running.
+The **framework** is yours to pick. The **language** is not: a client with no TypeScript
+configuration is refused at build time with [RASKSPA004](#typescript-only), because the whole of what
+this gives you is checked by a compiler you would not be running.
 
 ```bash
-rask new Shop --template react
+rask new Shop --template react     # or preact, solid, svelte, lit
 cd Shop
 rask dev
 ```
+
+| `--template` | Scaffolded from | TanStack Query | TanStack Router |
+|---|---|---|---|
+| `react` | `create-vite --template react-ts` | `@tanstack/react-query` | ✅ `@tanstack/react-router` |
+| `preact` | `create-vite --template preact-ts` | `@tanstack/react-query` ¹ | — |
+| `vue` | `create-vite --template vue-ts` | `@tanstack/vue-query` | — |
+| `solid` | `create-vite --template solid-ts` | `@tanstack/solid-query` | ✅ `@tanstack/solid-router` |
+| `svelte` | `create-vite --template svelte-ts` | `@tanstack/svelte-query` | — |
+| `lit` | `create-vite --template lit-ts` | `@tanstack/lit-query` | — |
+
+¹ There is no `@tanstack/preact-query`, and there does not need to be: create-vite's Preact template
+already maps `react` and `react-dom` to `preact/compat` in its tsconfig, and `@preact/preset-vite`
+does the same at build time, so the React adapter type-checks and bundles unchanged.
+
+The set is the frameworks **TanStack Query** ships an adapter for *and* `create-vite` scaffolds.
+Below the call site every one of them is the same wire; the adapter is what makes the generated
+contracts worth having.
+
+Angular is the one adapter TanStack ships that is missing here, and the reason is the scaffolder
+rather than the wire: Angular has no `create-vite` template, so it would need `@angular/cli` and a
+second overlay shape. Nothing about `Rask.Spa.Hosting` stops you pointing it at an Angular client you
+scaffolded yourself — set `RaskSpaClientDir`, and `RaskSpaDistDir` to `dist/<app>/browser`, which is
+where Angular nests its output.
+
+**TanStack Router comes wired up for React and Solid**, because those are the two adapters it ships.
+The routes are declared in code, in `src/router.tsx`, rather than through the file-based plugin —
+that plugin wants to own `src/routes/`, and this client is scaffolded by somebody else. Nothing stops
+you switching to it later. For the others Rask scaffolds no router at all rather than picking one on
+the framework's behalf, in a template whose whole argument is that the framework's own conventions
+win.
 
 `rask new --template react` runs the framework's **own** scaffolder — `create-vite` — and overlays
 four files onto what it produces. Everything else in the client is whatever Vite ships today. That
@@ -59,7 +87,7 @@ Two ways out, and both are honest ones:
 | | |
 |---|---|
 | `Shop.Server/` | The ASP.NET host: your message records, their handlers, and the JSON endpoint the client dispatches through. |
-| `Shop.Client/` | The React app, as `create-vite` scaffolds it, plus Rask's overlay. |
+| `Shop.Client/` | The client, as `create-vite` scaffolds it, plus Rask's overlay — at most four files: a Vite config for the dev proxy, an entry that installs the `QueryClient`, the component that dispatches, and (React and Solid) its routes. |
 | `Shop.Client/src/rask/` | Generated on every build. Gitignored. |
 
 ## The call site
@@ -93,6 +121,23 @@ server enforces by answering `405` to a command sent as a `GET`.
 
 Invalidation uses `getGreeting.messageName` rather than a string literal, so renaming the record
 moves the cache key with it.
+
+### The one thing that differs per framework
+
+`raskQuery` and `raskMutation` return plain options objects and import nothing from TanStack, so the
+same two calls work under every adapter. What differs is how the adapter wants them:
+
+```ts
+useQuery(raskQuery(getGreeting({ name })))            // React, Preact
+useQuery(() => raskQuery(getGreeting({ name: name() })))   // Solid
+createQuery(() => raskQuery(getGreeting({ name })))        // Svelte
+createQueryController(this, () => raskQuery(getGreeting({ name: this.name })))   // Lit
+```
+
+The thunk is not a formality. It is what lets the options re-read the signal, the rune or the
+reactive property and refetch when it changes — pass the object directly in Solid or Svelte and it
+reads the value once, at setup, and never again. The scaffolded starter already does this correctly
+for whichever framework you picked.
 
 ## Dates
 
@@ -179,6 +224,13 @@ compiling the previous build's contracts is exactly the failure this pipeline ex
 lockfile), then `npm run build`. Both steps are incremental. `dotnet publish` copies the bundle into
 `wwwroot` next to the app, so a deployed container carries the front end rather than a path that
 only existed on the build machine.
+
+**Svelte is the one template whose `build` script Rask rewrites.** create-vite gives it a bare
+`vite build`, with type checking in a separate `check` script — `tsc` cannot read a `.svelte` file.
+Left alone, renaming a C# property would break nothing at build time and surface on the wire, which
+is exactly what the generated contracts exist to prevent, so `build` becomes
+`svelte-check --tsconfig ./tsconfig.app.json && vite build`. Every other framework's template already
+runs its type-checker in `build`.
 
 `-p:RaskSpaBuild=false` skips node entirely. The app still compiles, its API still works, and the
 site serves a page saying there is nothing built yet. Use it on a machine with no node, or in a CI

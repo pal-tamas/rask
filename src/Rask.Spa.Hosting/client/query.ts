@@ -1,13 +1,18 @@
 // rask-client vendored from Rask.Spa.Hosting
 //
-// The bridge between a Rask message and TanStack Query. This is the ONLY file that imports
-// TanStack, so deleting it is how you opt out — `rask.dispatch` works on its own.
+// The bridge between a Rask message and TanStack Query. Deleting it is how you opt out —
+// `rask.dispatch` works on its own.
 //
 // Rask deliberately ships no cache, no request dedup, no stale-while-revalidate and no
 // window-focus refetch. Those are TanStack's job and it does them far better than a framework
 // hook bolted onto a dispatcher would.
+//
+// It imports NOTHING from TanStack, on purpose. Every adapter — react-query, solid-query,
+// svelte-query, lit-query — exports its own `queryOptions`, so importing one would tie this file to
+// one framework for the sake of a helper that is an identity function with a type signature. What it
+// returns is the same plain options object those helpers hand back, so `useQuery`, `createQuery` and
+// `createQueryController` all take it as-is.
 
-import { queryOptions } from '@tanstack/react-query'
 import { rask, RaskDispatchError, type CallOptions, type Dispatchable } from './client'
 
 /**
@@ -24,12 +29,13 @@ import { rask, RaskDispatchError, type CallOptions, type Dispatchable } from './
  * by answering 405 to a command sent as a GET.
  */
 export function raskQuery<T>(message: Dispatchable<T, 'query'>, options?: CallOptions) {
-  return queryOptions({
+  return {
     queryKey: [message.name, message.payload] as const,
     // TanStack aborts this signal when the query is superseded or the component unmounts, so a
     // stale request is really cancelled rather than merely ignored.
-    queryFn: ({ signal }) => rask.dispatch(message, { ...options, signal }),
-  })
+    queryFn: ({ signal }: { signal: AbortSignal }): Promise<T> =>
+      rask.dispatch(message, { ...options, signal }),
+  }
 }
 
 /**

@@ -231,6 +231,39 @@ them until tagged releases begin.
   write yet. `--cqrs` is not offered because it is not optional: the typed wire *is* the template.
   The database batteries and `--docker` all work.
 
+- **Six front-end templates, not one: `react`, `preact`, `vue`, `solid`, `svelte`, `lit`.** The set
+  is the frameworks TanStack Query ships an adapter for *and* `create-vite` scaffolds — below the
+  call site every one of them is the same wire, and the adapter is what makes the generated contracts
+  worth having. Angular is the one TanStack adapter missing, and the reason is the scaffolder rather
+  than the wire: it has no `create-vite` template. `UseRaskSpa` will still serve one you scaffolded
+  yourself.
+
+  **TanStack Router comes wired up for React and Solid**, the two adapters it ships. Routes are
+  declared in code, in `src/router.tsx`, rather than through the file-based plugin — that plugin
+  wants to own `src/routes/`, and this client is somebody else's scaffold. The other frameworks get
+  no router at all rather than Rask picking one on their behalf.
+
+  **Each overlay lands on the entry its own scaffolder actually wrote** — `src/main.tsx` for React
+  and Preact, `src/index.tsx` for Solid, `src/main.ts` + `App.vue` for Vue, `App.svelte` for Svelte,
+  `src/my-element.ts` for Lit. Getting that wrong does not fail: the file lands beside the real one,
+  is never imported, and the app builds showing the scaffolder's placeholder.
+
+  **The bridge imports nothing from TanStack.** Every adapter exports its own `queryOptions`, so
+  importing one would tie `raskQuery` to a single framework for the sake of an identity function.
+  What differs per framework is only how the adapter wants the options: React and Preact take them
+  directly, Solid, Svelte and Lit take a **thunk**, and Vue a `computed` — which is what lets them
+  re-read the signal, the rune or the ref and refetch when it changes.
+
+  **Svelte is the one template whose `build` script Rask rewrites.** `create-vite` gives it a bare
+  `vite build`, with type checking in a separate script nothing runs, because `tsc` cannot read a
+  `.svelte` file. Left alone, renaming a C# property would break nothing at build time and surface
+  on the wire — the exact failure the generated contracts exist to prevent.
+
+  Preact needs no adapter of its own: create-vite's template already maps `react`/`react-dom` to
+  `preact/compat` in its tsconfig, and `@preact/preset-vite` does the same at build time. Lit needs
+  no Vite plugin at all, so Rask writes the `vite.config.ts` that template does not ship, purely to
+  carry the dev proxy.
+
 - **`rask dev` runs a React solution's two halves together.** `dotnet watch` for the host, the
   bundler's dev server for the client, and the browser pointed at the **bundler** — which proxies
   `/_rask` back to the host, so HMR is native and the browser only ever sees one origin. The

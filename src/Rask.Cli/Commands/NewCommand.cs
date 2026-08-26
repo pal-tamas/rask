@@ -168,10 +168,17 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 // Bootstrap is the default; --no-bootstrap opts the generated pages out of the component
                 // library and onto the shell's own baseline stylesheet.
                 var bootstrap = !parsed.HasFlag("no-bootstrap");
+                // A front-end framework claims its own template key, so this has to be asked before the
+                // switch below — and asking the SAME list the catalog was built from is what stops a key
+                // being accepted by the parser and then generating something else.
+                if (SpaFramework.TryGet(template.Key, out var framework))
+                {
+                    return ProjectGenerator.GenerateSpa(
+                        dir, name, framework, ToBatteries(requestedFlags, bootstrap), version);
+                }
+
                 return template.Key switch
                 {
-                    "react" => ProjectGenerator.GenerateSpa(
-                        dir, name, SpaFramework.React, ToBatteries(requestedFlags, bootstrap), version),
                     "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version, bootstrap),
                     // Push is cleared rather than rejected: an explicit --push on this template already
                     // fails fast against TemplateCatalog, so the only way to arrive here with it set is
