@@ -119,7 +119,7 @@ watch the pipeline log build up.
 
 ## Remote dispatch — a client and a server (`Rask.Cqrs.Client` / `Rask.Cqrs.Server`)
 
-A WASM-hosted or native app reaches its server through the **same `IDispatcher` call** it already makes
+A WASM-hosted app reaches its server through the **same `IDispatcher` call** it already makes
 in-process. There is no `HttpClient` at the call site, no `/api/*` endpoint to write, and nothing on a
 message marks it as remote — you write a record and a handler exactly as above, and *where the project
 sits* decides where it runs.
@@ -128,7 +128,7 @@ One package and one line per project. Neither half references the other, so a br
 compile the endpoint code and the server never carries the browser transport:
 
 ```csharp
-// The client (a WASM app, or a native one). Every message it dispatches goes to the server.
+// The client (a WASM app). Every message it dispatches goes to the server.
 host.Services.AddRaskCqrsClient();
 
 // The server.
@@ -199,7 +199,7 @@ file a user picked is passed straight to the handler, with nothing to convert an
 ```csharp
 public sealed record AttachReceipt(int OrderId, RaskFile File) : ICommand;
 
-// The call site. Identical on a server-rendered app, a WASM-hosted one and a native one.
+// The call site. Identical on a server-rendered app and a WASM-hosted one.
 await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked));
 
 // Download: the file the handler returned, saved by the browser.

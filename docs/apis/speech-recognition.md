@@ -13,9 +13,7 @@ user gesture — it prompts for microphone access and returns an `IAsyncDisposab
 listening and release the microphone. Each `RecognitionResult` carries the `Transcript`, whether it
 `IsFinal`, and a `Confidence`. `SpeechRecognitionOptions` sets the `Lang` (BCP-47), `Continuous` listening
 (restarts after each utterance until disposed), and `InterimResults` (emit live hypotheses as well as final
-transcripts). Browser support is Chromium-family; gate on `IsSupportedAsync`. Needs microphone permission on
-every platform — on the native shell, iOS needs `NSMicrophoneUsageDescription` +
-`NSSpeechRecognitionUsageDescription` and Android needs `RECORD_AUDIO`.
+transcripts). Browser support is Chromium-family; gate on `IsSupportedAsync`. Needs microphone permission.
 
 ## See also
 

@@ -126,9 +126,8 @@ public static partial class DemoRegistry
                 .Notes("Shareable (Rask.Core) is headless — you render the trigger element, it hands you the "
                 + "data-rask-share attribute to spread onto it. The shared client fires navigator.share inside "
                 + "the click gesture, so the transient user activation survives even on the Server transport "
-                + "(an imperative round-trip would lose it), and it works on every host. In the native shell it "
-                + "upgrades to a native UIActivityViewController / ACTION_SEND backend. For a code-driven share "
-                + "on the in-process hosts, inject IShare from Rask.Client.Browser.")
+                + "(an imperative round-trip would lose it), and it works on every host. For a code-driven "
+                + "share on the in-process host, inject IShare from Rask.Client.Browser.")
                 .Result(ShareDemo),
             ["browser-gesture-bridge"] = () => CodeSample
                 .Files(["GestureBridgeDemo.cs"])

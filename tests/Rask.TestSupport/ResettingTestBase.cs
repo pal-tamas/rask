@@ -9,8 +9,8 @@ namespace Rask.TestSupport;
 ///     process-global <see cref="ScopedAssetRegistry" /> (why these subclasses run under a
 ///     serialized collection) and records the wire-payload shape the subclass wants. DiffMode is
 ///     no longer a static — it is <b>per session</b> now — so subclasses pass <see cref="DiffMode" />
-///     to the harness that builds their session (NativeAppHost / WasmSessionHarness) rather than
-///     relying on a shared global.
+///     to the harness that builds their session (e.g. WasmSessionHarness) rather than relying on a
+///     shared global.
 /// </summary>
 /// <remarks>
 ///     Derives from <see cref="RaskMarkup" /> so its subclasses can name markup. A test class reaches

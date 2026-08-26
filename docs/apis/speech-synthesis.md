@@ -8,7 +8,7 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-The native backend uses the platform TTS voices (WKWebView speech is unreliable).
+Uses the browser's own `speechSynthesis` voices; the voice list is populated asynchronously, so query it after the first `voiceschanged`.
 
 ## See also
 

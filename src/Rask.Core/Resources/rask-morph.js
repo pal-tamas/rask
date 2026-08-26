@@ -350,7 +350,7 @@ function raskNotePendingFormState(el) {
     }
 }
 
-// What a `change` frame reports for a control, in one place for all three hosts — same reasoning as the
+// What a `change` frame reports for a control, in one place for both hosts — same reasoning as the
 // recorder above, which exists because each host carried its own hand-copied copy and they drifted.
 //
 // `value` keeps exactly the meaning it had, so nothing downstream changes shape. `values` is added only

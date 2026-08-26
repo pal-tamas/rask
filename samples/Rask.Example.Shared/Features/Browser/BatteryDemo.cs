@@ -6,8 +6,7 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="IBattery" /> — read the device charge level and charging state, and subscribe to changes.
 ///     The watch is opened on mount and disposed on unmount; its handler updates state and calls
 ///     <c>StateHasChanged()</c> (the sanctioned pattern for an externally-pushed update). Browser support is
-///     Chromium-only, so each call is gated on <see cref="IBattery.IsSupportedAsync" />; in the native shell
-///     it resolves to a real OS backend.
+///     Chromium-only, so each call is gated on <see cref="IBattery.IsSupportedAsync" />.
 /// </summary>
 public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
 {

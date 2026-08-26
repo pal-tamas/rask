@@ -214,13 +214,13 @@ public static partial class RaskEndpointExtensions
         services.AddScoped<IToaster, Toaster>();
         // Typed browser/device API wrappers — the transport-agnostic Core set, Scoped (one per WebSocket
         // session). Registered via the shared helper (RaskBrowserApis) so the interface → impl list lives in
-        // one place instead of being duplicated across the Server/WASM/Native hosts. TryAdd inside the helper
+        // one place instead of being duplicated across the Server and WASM hosts. TryAdd inside the helper
         // lets an app pre-register a better implementation and win. The PWA members (IWebPush, INotifications,
         // IBadge, IWakeLock) are included; their JS helpers ship in the Server client only under AddRaskPwa.
         // The remaining browser APIs are intentionally NOT registered on Server: they need transient user
         // activation, a live document/handle, or the installed-PWA instance the WebSocket round-trip loses,
-        // so they are provided only by the in-process hosts — IShare in Rask.Client (WASM + Native, native
-        // backend swappable) and the WASM-only set (see RaskWasmBrowserApis). Server can still reach the
+        // so they are provided only by the in-process host — IShare in Rask.Client (WASM) and the WASM-only
+        // set (see RaskWasmBrowserApis). Server can still reach the
         // activation-gated APIs declaratively via GestureTrigger — see docs/browser-capabilities.md.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
         services.AddScoped<AuthSignIn>();

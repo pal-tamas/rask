@@ -8,7 +8,7 @@
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-Inherently DOM — always the WebView on Native.
+Inherently DOM — it observes the live document on every host.
 
 ## See also
 

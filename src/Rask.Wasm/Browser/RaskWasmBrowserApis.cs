@@ -6,7 +6,7 @@ namespace Rask.Wasm.Browser;
 /// <summary>
 ///     Registration for the WASM-only browser/device wrappers — the ones that need a live document/handle, a
 ///     transient user gesture, an installed-PWA instance, or a device chooser, all of which only the in-browser
-///     WASM host can provide. Server never registers these; the Native host does not reference this assembly.
+///     WASM host can provide. Server never registers these.
 /// </summary>
 public static class RaskWasmBrowserApis
 {

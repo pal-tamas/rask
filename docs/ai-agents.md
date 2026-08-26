@@ -13,7 +13,7 @@ Rask app correctly without you re-explaining the conventions.
 - **`llms.txt`** (repo root) — the emerging standard index that points AI tools at the docs.
 - **The `docs/` set** — a task guide for each subsystem (getting-started, elements & the DSL, routing,
   lifecycle, composition, forms, js-interop, browser APIs, authentication, data access, HTTP & files,
-  PWA, native mobile, CQRS, diagnostics, testing, … — the full curated list is in the on-site guides index) plus the
+  PWA, CQRS, diagnostics, testing, … — the full curated list is in the on-site guides index) plus the
   optional `Rask.Bootstrap` reference (`docs/bootstrap.md`: typed Bootstrap 5.3 components, zero-JS
   interactivity, typed utility classes). Each guide embeds its examples as live demos, so the source
   a user reads on GitHub and the running showcase stay in lockstep.

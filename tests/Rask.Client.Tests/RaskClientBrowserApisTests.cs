@@ -4,8 +4,8 @@ using Rask.Core.Browser;
 
 namespace Rask.Client.Tests;
 
-// The in-process tier (WASM + Native) that AddClientBrowserApis registers: today IShare. Like the Core tier
-// it is a TryAdd fallback, so a native backend (the Native host's platform module) registered first wins.
+// The in-process (WASM) tier that AddClientBrowserApis registers: today IShare. Like the Core tier it is a
+// TryAdd fallback, so a backend the app registers first wins.
 public class RaskClientBrowserApisTests
 {
     [Fact]
@@ -34,18 +34,18 @@ public class RaskClientBrowserApisTests
     }
 
     [Fact]
-    public void AddClientBrowserApis_IsFallbackOnly_ANativeShareRegisteredFirstWins()
+    public void AddClientBrowserApis_IsFallbackOnly_AnAppSuppliedShareRegisteredFirstWins()
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<IShare, FakeNativeShare>();
+        services.AddSingleton<IShare, FakeAppShare>();
         services.AddClientBrowserApis(ServiceLifetime.Singleton);
 
         var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IShare));
-        Assert.Equal(typeof(FakeNativeShare), descriptor.ImplementationType);
+        Assert.Equal(typeof(FakeAppShare), descriptor.ImplementationType);
     }
 
-    private sealed class FakeNativeShare : IShare
+    private sealed class FakeAppShare : IShare
     {
         public ValueTask ShareAsync(ShareData data) => default;
 

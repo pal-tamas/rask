@@ -69,8 +69,8 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         // internet, on a page the journey throttles to Slow-3G. Every arrival moves the text and therefore
         // the bounding box of everything below it, and Playwright's actionability check requires a box that
         // is identical across two consecutive animation frames. That is #625: "element is not stable" for
-        // the full 30s, on whichever guide page the walk had reached, on all three hosts (they share this
-        // shell), with the text assertions on the very same subtree passing because innerText does not care
+        // the full 30s, on whichever guide page the walk had reached, on every sample host (they share
+        // this shell), with the text assertions on the very same subtree passing because innerText does not care
         // what font it is in.
         //
         // Aborting the requests makes the page render in the fallback font immediately and settle once.
@@ -98,24 +98,9 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
                 _console.Add($"[pageerror] {err}");
             }
         };
-
-        // Hook for hosts that must wire the page BEFORE the journey navigates. The browser-served hosts
-        // (Server/Wasm) need nothing here — they GET a live HTTP host.
-        await ConfigurePageAsync();
     }
 
-    public async Task DisposeAsync()
-    {
-        await TeardownAsync();
-        await _ctx.DisposeAsync();
-    }
-
-    // Default no-op: the HTTP-served hosts need no per-page wiring.
-    protected virtual Task ConfigurePageAsync() => Task.CompletedTask;
-
-    // Default no-op: paired with ConfigurePageAsync so a host that spun up in-process resources can tear
-    // them down before the browser context closes.
-    protected virtual Task TeardownAsync() => Task.CompletedTask;
+    public async Task DisposeAsync() => await _ctx.DisposeAsync();
 
     // Default = direct deep link. Overridden by hosts (e.g. WasmAppHost) that don't install
     // a SPA fallback; those must navigate via the home shell + sidebar instead.

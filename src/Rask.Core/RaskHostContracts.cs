@@ -9,18 +9,18 @@ using Rask.Core.Routing;
 namespace Rask.Core;
 
 /// <summary>
-///     The contracts <c>Rask.Core</c> guarantees are resolvable on <b>every</b> host — Server, WASM and
-///     Native. Core is the shared component surface: anything a component can inject or call from Core must
-///     work on all three, or a component shared between an app's web and native heads breaks on one of them
-///     only, at runtime, with no compile-time signal.
+///     The contracts <c>Rask.Core</c> guarantees are resolvable on <b>every</b> host — Server and WASM.
+///     Core is the shared component surface: anything a component can inject or call from Core must work on
+///     both, or a component shared between an app's hosts breaks on one of them only, at runtime, with no
+///     compile-time signal.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         This list is the machine-readable form of that rule. Each host's test project asserts that its own
-///         bootstrap (<c>AddRask</c> / <c>WasmHostBuilder</c> / <c>NativeAppHost.RunLocalAsync</c>) resolves
-///         every entry, so a host that forgets one fails the build instead of shipping a hole. That gate is
-///         the reason it exists: all three of <see cref="IBrowserFileBackend" />, <see cref="IDownloadSink" />
-///         and <see cref="IAuthSignIn" /> had silently drifted off the Native host before it was added.
+///         bootstrap (<c>AddRask</c> / <c>WasmHostBuilder</c>) resolves every entry, so a host that forgets
+///         one fails the build instead of shipping a hole. That gate is the reason it exists: all three of
+///         <see cref="IBrowserFileBackend" />, <see cref="IDownloadSink" /> and <see cref="IAuthSignIn" />
+///         had silently drifted off a host before it was added.
 ///     </para>
 ///     <para>
 ///         <see cref="BrowserApis" /> mirrors <see cref="RaskBrowserApis.AddCoreBrowserApis" /> — the
@@ -35,7 +35,7 @@ public static class RaskHostContracts
 {
     /// <summary>
     ///     The per-session/per-app services each host wires by hand. These are where drift actually happens:
-    ///     unlike <see cref="BrowserApis" /> there is no shared registration helper forcing the three hosts to
+    ///     unlike <see cref="BrowserApis" /> there is no shared registration helper forcing both hosts to
     ///     agree, so each one spells them out in its own bootstrap.
     /// </summary>
     public static IReadOnlyList<Type> HostServices { get; } =
@@ -47,8 +47,8 @@ public static class RaskHostContracts
         typeof(IPersistentState),
         typeof(IToaster),
         typeof(IUserProvider),
-        // Sign-in/out. The three hosts mean very different things by it (a cookie the server sets, a POST to
-        // a logout endpoint, a token cleared on device) — which is exactly why each must supply one.
+        // Sign-in/out. The two hosts mean very different things by it (a cookie the server sets, or a POST
+        // to a logout endpoint) — which is exactly why each must supply one.
         typeof(IAuthSignIn),
         // File input (<input type=file> -> RaskFile) and Navigator.Download.
         typeof(IBrowserFileBackend),
@@ -60,9 +60,9 @@ public static class RaskHostContracts
     /// <summary>
     ///     The transport-agnostic browser/device wrappers from <see cref="RaskBrowserApis.AddCoreBrowserApis" />.
     ///     Every host serves all of them: each is <see cref="IJSRuntime" />-backed and needs no transient user
-    ///     activation, so none of them depends on being in-process. A host or platform head may register a
-    ///     better implementation first (<c>TryAdd</c> makes the JS wrapper the fallback), but it may not
-    ///     register none.
+    ///     activation, so none of them depends on being in-process. A host or the app may register a better
+    ///     implementation first (<c>TryAdd</c> makes the JS wrapper the fallback), but it may not register
+    ///     none.
     /// </summary>
     public static IReadOnlyList<Type> BrowserApis { get; } =
     [

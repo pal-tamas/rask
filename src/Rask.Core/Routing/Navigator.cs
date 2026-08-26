@@ -26,7 +26,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
     //
     // AsyncLocal (not ThreadStatic) because a handler may await: the value has to flow into continuations
     // that resume on another pool thread. Per-session correctness comes from the DI registration — Server
-    // registers Navigator per session scope, WASM/Native as a singleton because a host owns one session —
+    // registers Navigator per session scope, WASM as a singleton because that host owns one session —
     // so whichever navigator a dispatch entered is that dispatch's own.
     private static readonly AsyncLocal<Navigator?> _current = new();
 
@@ -228,9 +228,8 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
     private IDownloadSink ResolveSink() =>
         downloadSink ?? throw new InvalidOperationException(
             "Navigator.Download requires an IDownloadSink. Every Rask host registers one — Rask.Server via " +
-            "AddRask(), WASM via WasmHostBuilder, native via NativeAppHost — so reaching this means the " +
-            "Navigator was built outside a host. If you're in a unit test, register a fake (Rask.Testing " +
-            "ships TestDownloadSink).");
+            "AddRask(), WASM via WasmHostBuilder — so reaching this means the Navigator was built outside " +
+            "a host. If you're in a unit test, register a fake (Rask.Testing ships TestDownloadSink).");
 
     internal IDisposable EnterHandler()
     {

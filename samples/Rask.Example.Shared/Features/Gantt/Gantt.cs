@@ -70,8 +70,8 @@ public enum GanttViewMode
 
 /// <summary>
 ///     A Gantt chart, wrapping the third-party <see href="https://github.com/frappe/gantt">frappe-gantt</see>
-///     library (MIT, vendored under <c>wwwroot/lib/frappe-gantt</c>). Renders on both transports and on the
-///     Native hosts, because everything host-specific is funnelled through <see cref="IJSRuntime" /> and
+///     library (MIT, vendored under <c>wwwroot/lib/frappe-gantt</c>). Renders on both transports, because
+///     everything host-specific is funnelled through <see cref="IJSRuntime" /> and
 ///     <see cref="RaskLiveOptions.PathBase" />.
 /// </summary>
 /// <remarks>

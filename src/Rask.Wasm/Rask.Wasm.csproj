@@ -27,7 +27,7 @@
     <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
          so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
     <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
-    <!-- Rask.Client: the WASM+Native-shared in-process client APIs (IShare). Bundled into lib/ below like
+    <!-- Rask.Client: the in-process client APIs (IShare). Bundled into lib/ below like
          Rask.Core (PrivateAssets="all" keeps it out of the nuspec dependency list). -->
     <ProjectReference Include="..\Rask.Client\Rask.Client.csproj" PrivateAssets="all"/>
     <!--

@@ -8,7 +8,7 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-`navigator.connection` is Chromium-only; the native backend maps the OS reachability/transport instead.
+`navigator.connection` is Chromium-only — feature-detect before relying on it.
 
 ## See also
 

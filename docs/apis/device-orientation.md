@@ -8,7 +8,7 @@
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-iOS requires a gesture-triggered permission grant in the browser; the native backend needs none. Readings come from CoreMotion attitude / the Android rotation-vector sensor.
+iOS requires a gesture-triggered permission grant.
 
 ## See also
 
