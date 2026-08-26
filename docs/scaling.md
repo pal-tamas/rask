@@ -27,6 +27,18 @@ until the page isn't. See [sizing `MaxSessions`](configuration.md#sizing-maxsess
 for turning that into a cap, and note the two exclusions: Kestrel's ~32 KB per connection, and your own
 scoped services — one `DbContext` per session can dwarf everything in the table.
 
+**A page that needs nothing live can hold no session at all.** With
+[`StaticPages`](render-modes.md) on, a page with no handler, form, `Ref` or JS call is served as a
+plain document and its scope is released before the response is even written — so it never enters
+this table. That also sharpens what `MaxSessions` means: it used to bound concurrent users *and*
+`GET` traffic together, because every `GET` retained a session for ten seconds whether or not
+anything ever connected to it. A crawler sweeping N routes created N sessions. Now it bounds
+retained live sessions, which is what the name says.
+
+Note the other side of that trade: waiting for a page's async data
+([`InitialRenderQuiescenceTimeout`](render-modes.md)) holds an HTTP request open for up to that long,
+so a slow page costs a request slot rather than a session. Size the two together.
+
 ## What one box serves
 
 Fitting is not the same as serving. Measure that too:

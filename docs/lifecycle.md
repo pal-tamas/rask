@@ -72,6 +72,24 @@ public sealed partial class Weather(IWeatherForecastService service) : Component
 }
 ```
 
+On the **Server host the initial `GET` waits for that fetch**, so the first response carries the
+forecasts rather than the placeholder — which is what a crawler, a cache and the user's first paint
+all see. The placeholder still renders whenever the page mounts later (a client-side navigation), and
+still shows if the fetch outlives the budget, in which case the page keeps its live session and
+finishes loading over the socket. See [Render modes](render-modes.md).
+
+Work you deliberately detach from the hook is **not** waited on. A poll loop started with
+`_ = LoopAsync()` returns from `OnMountAsync` immediately, so the response goes out and the loop
+keeps pushing over the live connection:
+
+```csharp
+protected override async Task OnMountAsync()
+{
+    await ReadAsync(CancellationToken);   // awaited: the GET waits for this
+    _ = PollAsync(CancellationToken);     // detached: it must not hold the response open
+}
+```
+
 ### When `OnPropsChanged*` refires
 
 `OnPropsChanged*` fires on the first render and whenever a value the component is bound to **actually changes** —

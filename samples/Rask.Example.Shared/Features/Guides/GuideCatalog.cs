@@ -106,6 +106,8 @@ public static class GuideCatalog
             "bi-diagram-3", "Core"),
         new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.",
             "bi-arrow-repeat", "Core"),
+        new("render-modes", "Render modes", "Waiting for async data before the first byte, static pages, status codes.",
+            "bi-file-earmark-text", "Core"),
         new("forms", "Forms & validation", "Two-way binding, Form<T>, inline/DataAnnotations/Fluent.",
             "bi-input-cursor-text", "Core"),
         new("forms-validation", "Forms — validation", "Inline, DataAnnotations, FluentValidation, and async validators.",

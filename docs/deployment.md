@@ -311,6 +311,17 @@ the `Upgrade`/`Connection` headers (most do by default; for nginx set `proxy_set
 `Connection "upgrade"` and HTTP/1.1). To host under a sub-path, pass `app.UseRask<App>(pathBase:
 "/myapp")` and route `/myapp/*` to the container.
 
+**Caching in front of the app.** Every page used to be `Cache-Control: no-store`, because the shell
+carries a session id. With [`StaticPages`](render-modes.md) on, a page that needs nothing live is
+served without one and becomes browser-cacheable (`private, max-age=0, must-revalidate`), which is
+what restores instant back/forward. It stays `private`, so a shared cache or CDN still holds nothing —
+deliberately: the framework will not put a page in a shared cache on your behalf. Anything
+authenticated, faulted, or `>= 400` stays `no-store` regardless.
+
+If you do add a cache in front, respect the `Vary` the app sends. It carries `Cookie` — because
+"anonymous" is itself a function of the cookie — and, on a localized app, `Accept-Language` too.
+Dropping either from the key lets a cache serve one visitor's page to another.
+
 ## WASM-hosted app (`--template wasm-hosted`)
 
 Three projects in one solution: `MyApp.Client` (the browser-WASM SPA), `MyApp.Server` (the ASP.NET host
