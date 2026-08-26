@@ -451,7 +451,14 @@ public static partial class RaskEndpointExtensions
             var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
             var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
-            if (RouteResolver.TryResolve(path, out var chain))
+            // The route table says whether this path fell through to the not-found page; it does
+            // NOT say whether the user will see it. An app whose root renders directly still
+            // resolves — the fallback is always registered — but mounts no Router, so the chain is
+            // never rendered and the URL is incidental. Confirmed against the render below.
+            var matched = RouteResolver.TryResolve(path, out var chain, out var isNotFound);
+            var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
+
+            if (matched)
             {
                 var authResult = await RouteAuthorizationGuard
                     .EvaluateAsync(httpContext.RequestServices, chain, user)
@@ -536,6 +543,18 @@ public static partial class RaskEndpointExtensions
             if (session.LastRenderFaulted)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            }
+            else if (notFoundPage is not null && session.LastRenderMounted(notFoundPage))
+            {
+                // The not-found page renders perfectly ordinary HTML, so without this the response
+                // told every cache, crawler and uptime check that a missing page was fine — the
+                // same defect #607 fixed for a crashed one. The body is unchanged and the live
+                // session still attaches, so navigation off the page still works.
+                //
+                // Gated on the page actually having been MOUNTED, not merely resolved: an app that
+                // renders its root directly resolves the fallback too, and 404-ing every path such
+                // an app serves would be a far worse lie than the one being fixed.
+                httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
             }
 
             // The shell embeds the session id (data-rask-root), which is the de-facto bearer

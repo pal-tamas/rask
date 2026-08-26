@@ -229,6 +229,24 @@ them until tagged releases begin.
   entries in the list now. Unticking an entry becomes the `--no-<battery>` on the command line the
   wizard replays, so what it runs is still exactly what you could have typed.
 
+- **A path that falls through to the not-found page no longer answers `200 OK`.** The page renders
+  perfectly ordinary HTML, so nothing downstream could tell a missing page from a real one — caches
+  stored it, crawlers indexed it, uptime checks reported green. It answers **404** now. This is the
+  same defect, and the same fix, as the one that made a crashed page a real `500`.
+
+  The body is unchanged: the not-found page still renders and the live session still attaches, so
+  the reload button and navigating away both keep working. Only the status is honest.
+
+  **The status is confirmed against the render, not just the route table** — and that distinction is
+  load-bearing. `BuildTree` registers the fallback for *every* app, so route resolution "succeeds"
+  even for an app whose root component renders directly with no `Router`. Such an app never shows
+  the not-found page, and 404-ing every path it serves would have been a far worse lie than the one
+  being fixed. The 404 is emitted only when the walk actually **mounted** that page.
+
+  A faulted render still wins with `500`, and an app that declares its own catch-all `[Route]` is
+  deliberately serving those paths, so it stays `200`.
+>>>>>>> 77e1a775 (feat(routing): answer a real 404 when a path falls through to the not-found page)
+
 ### Added
 - **A gate that the compiled Tailwind stylesheet reaches the *published* output.** Every other Tailwind
   check stops at "it builds", and a build succeeding is the one thing a missing-from-publish failure
