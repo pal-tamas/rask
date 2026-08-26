@@ -32,12 +32,11 @@
          carry a documented suppression. -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
-    <!-- The showcase doesn't format culture-sensitive values, so drop the ~2.6 MB of ICU data
-         shipped under _framework/icudt*.dat. Gated off the fast no-native build
-         (-p:WasmBuildNative=false, used by the CI `unit` gate): the SDK forces a native relink
-         when InvariantGlobalization=true, so the two are mutually exclusive — and invariant
-         globalization is irrelevant when no WASM runtime is produced. -->
-    <InvariantGlobalization Condition=" '$(WasmBuildNative)' != 'false' ">true</InvariantGlobalization>
+    <!-- ICU is dropped: this app formats nothing culture-sensitive, so the ~2.6 MB of icudt*.dat is
+         pure payload. Owned by Rask.Wasm.targets now rather than set here — RaskGlobalization is the
+         one property, and it also handles PredefinedCulturesOnly, which defaults to true under
+         invariant globalization and makes CultureInfo.GetCultureInfo("hu-HU") throw rather than fall
+         back. Set <RaskGlobalization>true</RaskGlobalization> to ship ICU. -->
     <!-- Suppress IL2104 from Microsoft.JSInterop. The underlying warnings (IL2065 / IL2111)
          live in DotNetDispatcher.ScanAssemblyForCallableMethods — Blazor's reflection-driven
          [JSInvokable] scanner. Rask apps that only INVOKE JS (the common case) never trigger
