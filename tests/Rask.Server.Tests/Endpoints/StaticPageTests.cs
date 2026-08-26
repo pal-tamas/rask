@@ -110,6 +110,30 @@ public class StaticPageTests
         Assert.True(response.Headers.CacheControl?.NoStore);
     }
 
+    [Fact]
+    public async Task AStaticPage_KeepsTheVaryCultureNegotiationAlreadySet()
+    {
+        // Culture negotiation runs earlier in the same handler and sets Vary: Accept-Language.
+        // The cache policy adds Cookie afterwards — by APPENDING. Assigning would drop the
+        // language from the key and let a cache serve a Hungarian visitor the English page.
+        // Neither change has this bug on its own, so nothing but this test would catch it.
+        using var host = RaskTestHost.Create<ContentOnlyApp>(
+            configureServer: o => o.StaticPages = true,
+            configureCulture: c =>
+            {
+                c.SupportedCultures.Add("en");
+                c.SupportedCultures.Add("hu");
+            });
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Add("Accept-Language", "hu");
+        var response = await host.Http.SendAsync(request);
+
+        var vary = string.Join(", ", response.Headers.Vary);
+        Assert.Contains("Accept-Language", vary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Cookie", vary, StringComparison.OrdinalIgnoreCase);
+    }
+
     // The splice must fail closed. A document whose runtime tag is not exactly where it belongs is
     // one we decline to serve as cacheable, rather than guessing.
     [Theory]
