@@ -806,6 +806,11 @@ not just asserted in prose.
 - **Limited `ALTER TABLE`.** SQLite can add/rename/drop columns but not, say, change a column's type or
   constraints in place — EF Core migrations rebuild the table (create → copy → drop → rename) for those,
   which is slower and briefly locks the table.
+- **No exclusion constraints.** There is no `EXCLUDE … WITH &&`, and a `UNIQUE` index cannot express
+  "these two ranges must not overlap" — it only stops *identical* rows. Rask closes this one:
+  [`HasNonOverlappingRange`](data.md#non-overlapping-ranges) declares the rule on the model and the
+  migration emits the trigger pair that enforces it, re-emitting it after the table rebuilds above (which
+  would otherwise drop it along with the original table).
 - **No server-side surface.** It's an in-process library, not a server: no network endpoint, no
   users/roles/`GRANT`, no stored procedures, no `LISTEN/NOTIFY`. Access control and connection management
   are the app's job.

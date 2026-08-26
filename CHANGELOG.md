@@ -9,6 +9,35 @@ them until tagged releases begin.
 
 ### Added
 
+- **Non-overlapping range constraints, declared on the model.** A booking, a lease, a price valid for a
+  period — the rule is always "two rows may not cover the same point", and SQLite has no way to say it:
+  there is no `EXCLUDE … WITH &&`, and a `UNIQUE` index only stops *identical* rows, so `100–200` and
+  `150–250` both pass. Every application ended up hand-writing the same triggers per table, or checking in
+  application code where the check races the insert.
+
+  `modelBuilder.Entity<Booking>().HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy:
+  x => x.RoomId)` is now the whole API. The rule is carried as provider-agnostic model metadata in
+  `Rask.Data`, and `UseRaskSqlite(...)` emits the index and the `BEFORE INSERT`/`BEFORE UPDATE` trigger
+  pair that enforces it, so `dotnet ef migrations add` picks it up with no hand-written SQL. A violating
+  save throws `RangeOverlapException` naming the table instead of a `SQLITE_CONSTRAINT_TRIGGER` buried two
+  levels inside a `DbUpdateException`.
+
+  Ranges are **half-open** — `[lo, hi)` — so `100–200` and `200–300` are neighbours rather than a conflict.
+  `partitionBy` scopes the rule to a room, a SKU, a tenant; a soft-deleted row frees its slot automatically
+  for `ISoftDeletable` entities. Enforcement lives in the database, so raw SQL and other processes are bound
+  by it too.
+
+  **The constraint survives table rebuilds.** SQLite cannot `ALTER` most things in place, so EF's provider
+  rebuilds the table (create `ef_temp_*` → copy → `DROP TABLE` → rename) — which drops the triggers with the
+  original table and would silently retire the constraint. The DDL is therefore re-emitted at the end of
+  every migration that touches the table, drop-then-create so it stays idempotent. A guard test runs a second
+  rebuilding migration and asserts the rule still bites.
+
+  It composes with `strictTables: true` from the same release: EF Core resolves exactly one
+  `IMigrationsSqlGenerator`, so registering a strict generator and a range-exclusion generator separately
+  would keep only whichever was replaced last and drop the other feature with nothing failing. The two are
+  a single choice instead, and a test asserts a table can be both `STRICT` and range-constrained.
+
 - **STRICT tables — `UseRaskSqlite(connectionString, strictTables: true)`.** SQLite is dynamically
   typed: a column's declared type is an *affinity*, not a rule, so the text `"lots"` stores happily in
   an `INTEGER` column and comes back later as a cast error, a mis-ordered index or a silently wrong
@@ -137,6 +166,11 @@ them until tagged releases begin.
   backend and deleted types like `NativeAppHost` and `NativeBarItem` — all of which ship to consumers in
   the packed `.xml`. `Navigator.Download`'s **runtime exception message** named `NativeAppHost` as a host
   that registers an `IDownloadSink`. `Rask.Cqrs.Client`'s NuGet `<Title>` sold "Browser and Native Clients".
+
+- **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
+  advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen
+  native backends the platform modules register were unreachable from a remote shell — a page running as a
+  *server* app silently got the WebView's JS instead. All fifteen cross the bridge now, in every model.
 
   **The docs had drifted in a shape the last sweep hid.** `docs/browser-capabilities.md` was cleaned, but
   the ~19 `docs/apis/*.md` pages it links to were not: each had the Native column stripped from its
