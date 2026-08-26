@@ -8,7 +8,7 @@ and scannable. For the prose reference see [the `rask` CLI](cli.md); to learn it
 
 ```bash
 # scaffold & run
-rask new Shop --auth --docker         # new app: cookie auth + a Dockerfile for deploy
+rask new Shop --auth                 # new app: the whole stack, plus a cookie login
 rask dev                              # dotnet watch run — hot reload (--open for a browser)
 rask info                             # what rask sees: project, packages, versions
 
@@ -58,7 +58,7 @@ Plus `public DbSet<Product> Products => Set<Product>();` on the app's one `AppDb
 
 ## Wiring one-liners
 
-A data-backed app needs these three in `Program.cs` (`rask new --data` writes them for you):
+A data-backed app needs these three in `Program.cs` (`rask new` writes them for you):
 
 ```csharp
 builder.Services.AddRaskCqrs();                        // the mediator (IDispatcher)

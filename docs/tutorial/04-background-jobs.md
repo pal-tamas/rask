@@ -53,7 +53,7 @@ public sealed class SendOrderReceiptHandler(IDbContextFactory<AppDbContext> dbFa
 
 ## 2. What's already wired
 
-`--all-batteries` in Chapter 1 registered jobs for you. Worth reading anyway, because two of these lines are
+Chapter 1's `rask new` registered jobs for you. Worth reading anyway, because two of these lines are
 the ones you'd have to get right by hand.
 
 In `Program.cs`:

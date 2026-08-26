@@ -18,7 +18,7 @@ public sealed class ServerBatteryScaffoldTests
 
     // Flags in, files out — the same path `rask new` takes, so the flag names are under test too.
     private static Dictionary<string, string> Generate(params string[] flags) =>
-        ProjectGenerator.GenerateServer(Root, "App", NewCommand.ToBatteries(flags), Version).Files
+        ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
             .ToDictionary(
                 f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
                 f => f.Content,
@@ -149,9 +149,11 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Fact]
-    public void All_batteries_wires_every_pillar_into_one_app()
+    public void Every_pillar_composes_into_one_app()
     {
-        var files = Generate("all-batteries", "auth", "docker");
+        var files = Generate(
+            "data", "cqrs", "jobs", "mail", "cache", "outbox", "push", "pwa", "snapshots", "logs", "ops",
+            "auth", "docker");
         var program = files["Program.cs"];
 
         foreach (var registration in new[]
@@ -227,15 +229,19 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Contains("NOT covered by `rask db backup`", program, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The migration warning has moved out of here, and that is the point: <c>rask new</c> creates and
+    /// applies the first migration itself, so by the time this text is printed the tables already exist.
+    /// The command prints the manual pair only when it could not run them — pinned in
+    /// <c>NewCommandTests.Skipping_the_restore_says_the_migration_still_has_to_happen</c>.
+    /// </summary>
     [Fact]
-    public void All_batteries_next_steps_call_out_the_migration_the_pillars_need()
+    public void The_next_steps_no_longer_tell_you_to_migrate_before_the_first_run()
     {
-        // The pillars' tables only exist once a migration has been applied, and a faulted BackgroundService
-        // stops the host — so "I ran it before migrating" shows up as the app exiting, not a friendly error.
         var next = ProjectGenerator.GenerateServer(
-            Root, "App", NewCommand.ToBatteries(["jobs"]), Version).Notes ?? "";
+            Root, "App", NewCommand.BatteriesOf(["jobs"]), Version).Notes ?? "";
 
-        Assert.Contains("rask db add Init", next, StringComparison.Ordinal);
-        Assert.Contains("exit on a missing table", next, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask db add Init", next, StringComparison.Ordinal);
+        Assert.DoesNotContain("exit on a missing table", next, StringComparison.Ordinal);
     }
 }

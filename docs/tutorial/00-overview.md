@@ -37,7 +37,7 @@ whole product.
 
 | # | Chapter | Pillar | You'll build |
 |---|---------|--------|-----------|
-| 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --all-batteries --auth --docker` |
+| 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --auth --bootstrap` |
 | 2 | [Your first feature](02-first-feature.md) | Data · CQRS · SQLite | a `Product` slice · `rask db` |
 | 3 | [A second feature + locking it down](03-orders-and-auth.md) | Auth | an `Order` slice on the same database |
 | 4 | [Background jobs](04-background-jobs.md) | Jobs | an `IJob` + handler |
@@ -54,7 +54,7 @@ a **Verify** section (how to confirm it works) and a **Learn more** link to that
 
 One command in Chapter 1 wires every pillar in; each chapter then teaches you what one of them is *for* and
 how to use it. If you'd rather add them one at a time, every flag works on its own —
-`rask new Shop --data --jobs` gives you a database and background work and nothing else.
+`rask new Shop --no-push --no-ops` gives you everything except those two.
 
 **Want to read ahead?** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop) is the finished app,
 committed and runnable — the output of this tutorial's commands, with browser tests that prove each pillar

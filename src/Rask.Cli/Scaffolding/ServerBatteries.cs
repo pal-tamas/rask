@@ -1,12 +1,21 @@
 namespace Rask.Cli.Scaffolding;
 
 /// <summary>
-/// The opt-in batteries the <c>server</c> template can pre-wire, as chosen by <c>rask new</c>'s flags.
+/// The batteries a template can pre-wire, as resolved from <c>rask new</c>'s flags.
 /// </summary>
 /// <remarks>
 /// A record rather than a dozen <see cref="bool"/> parameters: the generator's call sites read as
 /// <c>batteries.Jobs</c> instead of a row of positional <c>true, false, false, true</c>, and a new battery
 /// doesn't churn every caller and test.
+///
+/// <para>
+/// <b>Every property here defaults to <c>false</c>, and that is not what <c>rask new</c> defaults to.</b>
+/// The command turns on every battery the chosen template supports — see
+/// <c>NewCommand.ToBatteries</c>, which owns that decision because it is the only place that knows the
+/// template. This type stays the neutral carrier, so <c>new ServerBatteries()</c> keeps meaning
+/// "explicitly nothing" for the generators, their tests, and callers that want a deliberately lean
+/// project.
+/// </para>
 /// </remarks>
 internal sealed record ServerBatteries
 {
@@ -150,6 +159,44 @@ internal sealed record ServerBatteries
             Pwa = Pwa || Push,
             Localization = localization,
             CultureList = localization && CultureList.Length == 0 ? "en" : CultureList,
+        };
+    }
+
+    /// <summary>
+    /// Applies the implications <em>downwards</em> — turning a battery off takes with it everything that
+    /// cannot work without it.
+    /// </summary>
+    /// <remarks>
+    /// The mirror of <see cref="Normalized"/>, and it exists because the batteries are on by default:
+    /// <c>--no-data</c> has to mean "and therefore no jobs, mail, cache, outbox, snapshots or dashboard",
+    /// or the command would scaffold registrations naming a <c>DbContext</c> that isn't there.
+    ///
+    /// <para>
+    /// <b>Order is load-bearing.</b> Reduce first, then normalize: <see cref="Normalized"/> turns
+    /// <c>Data</c> back on for any pillar still standing, so running it first would undo every
+    /// <c>--no-*</c> the user typed. <c>Logs</c> is untouched — it owns a file of its own and never
+    /// depended on <c>Data</c> in either direction.
+    /// </para>
+    /// </remarks>
+    public ServerBatteries Reduced()
+    {
+        // Every pillar registers as AddRaskX<TContext>, so losing the context loses all of them. And
+        // losing the mediator loses the context, because every scaffolded feature dispatches through it.
+        var data = Data && Cqrs;
+
+        return this with
+        {
+            Data = data,
+            Jobs = Jobs && data,
+            Mail = Mail && data,
+            Cache = Cache && data,
+            Outbox = Outbox && data,
+            Snapshots = Snapshots && data,
+            Ops = Ops && data,
+
+            // A browser subscribes to Web Push through the service worker the PWA registration installs.
+            Push = Push && Pwa,
+            CultureList = Localization ? CultureList : "",
         };
     }
 }

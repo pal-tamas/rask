@@ -501,25 +501,20 @@ internal static partial class ProjectGenerator
         var steps = new StringBuilder();
         steps.Append("Created ").Append(name).Append(" (Rask server app).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
-        if (batteries.Data)
-        {
-            steps.Append("  rask db add Init    # create the first migration\n");
-            steps.Append("  rask db update      # apply it to app.db\n");
-        }
-
         steps.Append("  rask dev            # run with hot reload (or: dotnet run)\n");
         if (batteries.Docker)
         {
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:8080 …\n");
         }
 
-        // The DB-backed pillars keep their state in tables that only exist once a migration has been
-        // applied. Their processors are hosted services, and a faulted BackgroundService stops the host by
-        // default — so "I ran it before migrating" shows up as the app exiting, not as a friendly error.
-        if (batteries.AnyDbPillar)
+        // Nothing about migrations here any more. `rask new` creates and applies the first one itself, so
+        // by the time this text is printed the tables the pillars need already exist — and repeating the
+        // commands would read as work still to do. The command prints the manual pair only in the two
+        // cases where it could not run them: --no-restore, and a migration that failed.
+        if (batteries.Data)
         {
-            steps.Append("\nThe background pillars store their state in your database — run `rask db add Init`\n");
-            steps.Append("and `rask db update` before the first start, or the app will exit on a missing table.\n");
+            steps.Append("\nThe first migration is already applied to app.db. Add a DbSet<T> to AppDbContext\n");
+            steps.Append("for your first entity, then `rask db add <Name>` and `rask db update` to migrate it.\n");
         }
 
         if (batteries.Push)

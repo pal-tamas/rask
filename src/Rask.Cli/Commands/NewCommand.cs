@@ -27,11 +27,34 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// </remarks>
     private static bool SupportsTailwind(string templateKey) => templateKey is not ("wasm" or "wasm-hosted");
 
+    /// <summary>Every template-scoped flag <c>rask new</c> understands — the batteries plus <c>auth</c>.</summary>
     internal static readonly string[] FeatureFlags =
     [
         "auth", "pwa", "cqrs", "data", "docker", "localization",
-        "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops", "all-batteries",
+        "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops",
     ];
+
+    /// <summary>
+    /// The batteries — everything a template supports <em>except</em> auth, and therefore exactly what a
+    /// bare <c>rask new</c> turns on.
+    /// </summary>
+    /// <remarks>
+    /// Derived from <see cref="FeatureFlags"/> minus <c>auth</c> rather than listed a second time. The
+    /// default set is then <c>template.SupportedFlags</c> intersected with this, so a template that cannot
+    /// host a database gets the right answer without anyone maintaining a per-template default list — the
+    /// same reasoning that keeps <see cref="TemplateCatalog"/> derived from <see cref="SpaFramework.All"/>.
+    ///
+    /// <para>
+    /// Auth is the one battery left off, because it is the only one that changes what the app <em>is</em>
+    /// rather than what it can do: a login wall in front of a project you are about to show someone is a
+    /// decision, not a convenience. Styling is the other decision, and it is its own axis.
+    /// </para>
+    /// </remarks>
+    internal static readonly string[] BatteryFlags =
+        [.. FeatureFlags.Where(f => f != "auth")];
+
+    /// <summary>The <c>--no-*</c> spelling of a battery.</summary>
+    internal static string OffFlag(string battery) => "no-" + battery;
 
 
     public override string Name => "new";
@@ -47,11 +70,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override IReadOnlyList<string> Examples =>
     [
         "rask new Shop",
-        "rask new Shop --template wasm --pwa",
+        "rask new Shop --auth --bootstrap",
         "rask new Shop --culture en --culture hu",
-        "rask new Api --template server --auth --docker",
-        "rask new Blog --data --docker",
-        "rask new Shop --all-batteries --auth --docker",
+        "rask new Shop --template wasm",
+        "rask new Blog --no-push --no-ops",
+        "rask new Tiny --no-data --no-docker --no-pwa --no-localization",
     ];
 
     public override ArgumentSchema? OptionSchema => CreateSchema();
@@ -63,26 +86,25 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
             .MultiOption("culture", valueHint: "tag", description: "A language to translate the UI into, repeatable (default: en). A BCP 47 tag — 'en', 'hu', 'pt-BR'. Implies --localization.")
-            .Flag("auth", description: "Add cookie authentication (login + members pages).")
-            .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
-            .Flag("cqrs", description: "Wire up Rask.Cqrs. On 'wasm-hosted' this also makes the client dispatch to the server — no HttpClient, no endpoints to write.")
-            .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext your features map through (server only).")
-            .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
-            .Flag("localization", description: "Translate the UI: a Resources/Strings.{culture}.json per language compiled into typed members, the visitor's language negotiated from their request, and a switcher in the shell.")
-            .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
-            .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
+            .Flag("auth", description: "Add cookie authentication (login + members pages). The one battery that is off by default.")
             .Flag("bootstrap", description: "Render pages with Rask.Bootstrap's Bs* components over Bootstrap 5.3.")
             .Flag("tailwind", description: "Style with Tailwind CSS, compiled from your own source at build time (no npm needed).")
+            .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
+            .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
+            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, which every scaffolded feature dispatches through.")
+            .Flag("no-data", description: "Leave out the database and EF Core — and with it every battery that maps onto a DbContext.")
+            .Flag("no-jobs", description: "Leave out durable background jobs.")
+            .Flag("no-mail", description: "Leave out transactional email.")
+            .Flag("no-cache", description: "Leave out the database-backed ICache + IDistributedCache.")
+            .Flag("no-outbox", description: "Leave out the transactional outbox for durable domain events.")
+            .Flag("no-snapshots", description: "Leave out scheduled point-in-time SQLite backups.")
+            .Flag("no-logs", description: "Leave out the durable log store (it keeps a database of its own).")
+            .Flag("no-ops", description: "Leave out the operator dashboard at /_rask.")
+            .Flag("no-localization", description: "Leave out the string catalogs, language negotiation, and the switcher.")
+            .Flag("no-docker", description: "Leave out the Dockerfile and .dockerignore.")
+            .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use). Also skips the first migration.")
+            .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
             .Flag("force", description: "Scaffold into a directory that already has files in it, overwriting on collision.")
-            .Flag("jobs", description: "Durable background jobs on the app's own database (implies --data).")
-            .Flag("mail", description: "Transactional email queued on the app's own database (implies --data).")
-            .Flag("cache", description: "A database-backed ICache + IDistributedCache (implies --data).")
-            .Flag("outbox", description: "Transactional outbox for durable domain events (implies --data).")
-            .Flag("push", description: "Server-sent Web Push with subscribe endpoints (implies --pwa).")
-            .Flag("snapshots", description: "Scheduled point-in-time SQLite backups (implies --data).")
-            .Flag("logs", description: "Keep the application log in a database of its own, so it survives a restart.")
-            .Flag("ops", description: "An operator dashboard at /_rask over every battery's table (implies --data).")
-            .Flag("all-batteries", description: "Every battery above — the full One Person Framework stack.")
             .Flag("dry-run", description: "Print the files that would be written without touching disk.");
 
     public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
@@ -91,6 +113,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private async Task<int> ExecuteAsync(IReadOnlyList<string> args, bool allowWizard, CancellationToken cancellationToken)
     {
         var schema = CreateSchema();
+
+        // Before the parse, so a retired flag gets its own answer rather than the generic did-you-mean the
+        // unknown-option path would offer. These were real flags in the last release and are all over the
+        // internet; "unknown option --data" would read as a broken CLI rather than as a changed default.
+        if (RetiredFlagError(args) is { } retired)
+        {
+            return Fail(retired);
+        }
 
         var parsed = schema.Parse(args);
         if (parsed.HasErrors)
@@ -156,15 +186,35 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var templateKey = parsed.Option("template") ?? TemplateCatalog.Default.Key;
         _ = TemplateCatalog.TryGet(templateKey, out var template);
 
-        var requestedFlags = FeatureFlags.Where(parsed.HasFlag).ToArray();
-        var unsupported = requestedFlags.Where(flag => !template.SupportedFlags.Contains(flag)).ToArray();
-        if (unsupported.Length > 0)
+        // Everything the template can do is on unless it was turned off, so the only per-battery input is
+        // the --no-* set. Auth is the exception in both directions: off by default, and asked for by name.
+        var off = BatteryFlags.Where(flag => parsed.HasFlag(OffFlag(flag))).ToArray();
+        var auth = parsed.HasFlag("auth");
+
+        // Turning off something this template never had is a mistake worth naming: it means the command
+        // line was written against a different template, and silently accepting it would hide that.
+        var absent = off.Where(flag => !template.SupportedFlags.Contains(flag))
+            .Select(OffFlag)
+            .Concat(auth && !template.SupportedFlags.Contains("auth") ? ["auth"] : Array.Empty<string>())
+            .ToArray();
+        if (absent.Length > 0)
         {
             var supported = template.SupportedFlags.Count == 0
                 ? "(none)"
-                : string.Join(", ", template.SupportedFlags.OrderBy(f => f, StringComparer.Ordinal).Select(f => "--" + f));
-            var rejected = string.Join(", ", unsupported.Select(f => "--" + f));
-            return Fail($"Template '{template.Key}' does not support: {rejected}. Supported flags: {supported}.");
+                : string.Join(", ", template.SupportedFlags.OrderBy(f => f, StringComparer.Ordinal));
+            var rejected = string.Join(", ", absent.Select(f => "--" + f));
+            return Fail(
+                $"Template '{template.Key}' has nothing to change for: {rejected}. It supports: {supported}.");
+        }
+
+        // The generated TypeScript contracts ARE the mediator's wire on these templates, so there is no
+        // project left without it. Refused rather than ignored, for the same reason --tailwind is below:
+        // a flag the CLI accepts and then disregards is the most expensive kind to discover.
+        if (off.Contains("cqrs") && SpaFramework.TryGet(template.Key, out _))
+        {
+            return Fail(
+                $"Template '{template.Key}' can't drop CQRS — the generated TypeScript client dispatches "
+                + "through it, so it is the template rather than a battery in it.");
         }
 
         // Refused rather than ignored. The browser-WASM paths collapse styling to a bool and would
@@ -210,49 +260,87 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail($"--culture {duplicate.Key} was given more than once.");
         }
 
-        // Every template is generated directly by the CLI (server, wasm, wasm-hosted); the key here is one
-        // of those three (validated by TemplateCatalog.TryGet).
+        // Naming languages and then switching translation off is two halves of opposite commands. Honouring
+        // the --no- half would scaffold no catalog for a language the user named on their own command line.
+        if (cultures.Count > 0 && off.Contains("localization"))
+        {
+            return Fail("--culture names a language to translate into, so it can't be combined with --no-localization.");
+        }
+
+        // Plain CSS is the default: it is the one answer that assumes nothing about what you are building.
+        // Bootstrap and Tailwind are both opinions, and neither should be what you get by not choosing.
+        // The pair is rejected above, so this order never has to arbitrate.
+        var styling = parsed.HasFlag("tailwind") ? Styling.Tailwind
+            : parsed.HasFlag("bootstrap") ? Styling.Bootstrap
+            : Styling.Plain;
+
+        var batteries = ToBatteries(template, off, styling, cultures, auth);
+
+        // Every template is generated directly by the CLI; the key here is one the catalog knows
+        // (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
             template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"),
-            parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"),
+            parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"), batteries,
             (dir, version) =>
             {
-                bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
-                    docker = requestedFlags.Contains("docker");
-
-                // Plain CSS is the default: it is the one answer that assumes nothing about what you are
-                // building. Bootstrap and Tailwind are both opinions, and neither should be what you get
-                // by not choosing.
-                // The pair is rejected above, so this order never has to arbitrate.
-                var styling = parsed.HasFlag("tailwind") ? Styling.Tailwind
-                    : parsed.HasFlag("bootstrap") ? Styling.Bootstrap
-                    : Styling.Plain;
-                var bootstrap = styling == Styling.Bootstrap;
-
                 // A front-end framework claims its own template key, so this has to be asked before the
                 // switch below — and asking the SAME list the catalog was built from is what stops a key
                 // being accepted by the parser and then generating something else.
                 if (SpaFramework.TryGet(template.Key, out var framework))
                 {
-                    return ProjectGenerator.GenerateSpa(
-                        dir, name, framework, ToBatteries(requestedFlags, styling), version);
+                    return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version);
                 }
 
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(
-                        dir, name, auth, pwa, docker, version, bootstrap,
-                        ToBatteries(requestedFlags, styling, cultures).Normalized()),
-                    // Push is cleared rather than rejected: an explicit --push on this template already
-                    // fails fast against TemplateCatalog, so the only way to arrive here with it set is
-                    // --all-batteries, and "every battery this template has" is the honest reading of that.
-                    "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(
-                        dir, name, ToBatteries(requestedFlags, styling, cultures) with { Push = false }, version),
-                    _ => ProjectGenerator.GenerateServer(
-                        dir, name, ToBatteries(requestedFlags, styling, cultures), version),
+                        dir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version,
+                        batteries.Bootstrap, batteries),
+                    "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(dir, name, batteries, version),
+                    _ => ProjectGenerator.GenerateServer(dir, name, batteries, version),
                 };
             },
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The flags that used to turn a battery <em>on</em>, and are gone now that every battery is on by
+    /// default — mapped to the answer that says so.
+    /// </summary>
+    /// <remarks>
+    /// Rejected with a targeted message rather than kept as a silent no-op. A flag the CLI accepts and
+    /// then disregards is this repository's most expensive bug class — it is what <c>--template native</c>
+    /// did, and the reason <c>--tailwind</c> is refused on the WASM templates instead of ignored.
+    /// </remarks>
+    private static string? RetiredFlagError(IReadOnlyList<string> args)
+    {
+        foreach (var arg in args)
+        {
+            // `--flag=false` is a spelling the parser accepts, so match the prefix too rather than only
+            // the bare token.
+            var name = arg.StartsWith("--", StringComparison.Ordinal)
+                ? arg[2..].Split('=')[0]
+                : null;
+
+            if (name is null)
+            {
+                continue;
+            }
+
+            if (name.Equals("all-batteries", StringComparison.Ordinal))
+            {
+                return "--all-batteries is gone: every battery is on by default now. "
+                    + "Pass --no-<battery> to leave one out, e.g. --no-push.";
+            }
+
+            if (Array.IndexOf(BatteryFlags, name) >= 0)
+            {
+                return $"--{name} is on by default now, so there is nothing to turn on. "
+                    + $"Pass --no-{name} to leave it out.";
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Whether this machine knows <paramref name="tag"/> as a culture.</summary>
@@ -283,41 +371,96 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     }
 
     /// <summary>
-    /// Maps the requested flag names onto the server template's battery set. <c>--all-batteries</c> expands to
-    /// every DB-backed pillar, which is what the tutorial and the showcase sample use.
+    /// The batteries a project gets: everything <paramref name="template"/> supports, minus whatever
+    /// <paramref name="off"/> names, with auth and styling asked for separately.
     /// </summary>
     /// <remarks>
-    /// <c>--all-batteries</c> deliberately does NOT imply <c>--localization</c>. The batteries are the
-    /// back-end pillars a DB-backed app needs; localization is a decision about the app's user-facing
-    /// surface, and shipping a second language is a commitment to translating every string in it.
+    /// <b>This is where "batteries included" is decided</b>, and it is decided here rather than on
+    /// <see cref="ServerBatteries"/> because this is the only layer that knows the template. A default set
+    /// baked into the record would have to be the same for a server app and a browser-WASM SPA, which have
+    /// almost nothing in common, and would silently change what every generator test means.
+    ///
+    /// <para>
+    /// Deriving the set from <c>template.SupportedFlags</c> means there is no per-template default list to
+    /// maintain: a template that cannot host a database does not advertise <c>data</c>, so it does not get
+    /// one. Adding a battery to a template's flag set is all it takes to put it on the golden path.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="ServerBatteries.Reduced"/> runs before <see cref="ServerBatteries.Normalized"/>, and the
+    /// order is load-bearing — normalizing first would turn <c>Data</c> back on for any pillar still
+    /// standing and undo every <c>--no-*</c> the user typed.
+    /// </para>
     /// </remarks>
-    internal static ServerBatteries ToBatteries(
-        IReadOnlyCollection<string> flags,
+    /// <summary>
+    /// A battery set with exactly the named batteries on, and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// A different question from <see cref="ToBatteries"/>, which answers "what did the user ask for on
+    /// this template". This one answers "give me precisely this combination", which is what the scaffold
+    /// tests, the tutorial gate and the showcase sample's provenance check need — they are pinning one
+    /// shape of generated code, not the CLI's defaults, and would otherwise all change every time a
+    /// template gains a battery.
+    ///
+    /// <para>
+    /// Deliberately not normalized: a caller asking for exactly this wants exactly this, and every
+    /// generator normalizes on the way in anyway.
+    /// </para>
+    /// </remarks>
+    internal static ServerBatteries BatteriesOf(
+        IReadOnlyCollection<string> on,
         Styling styling = Styling.Plain,
-        IReadOnlyList<string>? cultures = null)
+        IReadOnlyList<string>? cultures = null) =>
+        new()
+        {
+            Styling = styling,
+            Localization = on.Contains("localization"),
+            CultureList = cultures is { Count: > 0 } ? string.Join(",", cultures) : "",
+            Auth = on.Contains("auth"),
+            Pwa = on.Contains("pwa"),
+            Cqrs = on.Contains("cqrs"),
+            Data = on.Contains("data"),
+            Docker = on.Contains("docker"),
+            Jobs = on.Contains("jobs"),
+            Mail = on.Contains("mail"),
+            Cache = on.Contains("cache"),
+            Outbox = on.Contains("outbox"),
+            Push = on.Contains("push"),
+            Snapshots = on.Contains("snapshots"),
+            Logs = on.Contains("logs"),
+            Ops = on.Contains("ops"),
+        };
+
+    internal static ServerBatteries ToBatteries(
+        TemplateInfo template,
+        IReadOnlyCollection<string> off,
+        Styling styling = Styling.Plain,
+        IReadOnlyList<string>? cultures = null,
+        bool auth = false)
     {
-        var all = flags.Contains("all-batteries");
+        bool On(string battery) => template.SupportedFlags.Contains(battery) && !off.Contains(battery);
+
         return new ServerBatteries
         {
             Styling = styling,
-            Localization = flags.Contains("localization"),
+            Auth = auth,
+            Localization = On("localization"),
             // Joined rather than kept as a list: ServerBatteries is a record, and a collection property
             // would quietly turn its value equality into reference equality.
             CultureList = cultures is { Count: > 0 } ? string.Join(",", cultures) : "",
-            Auth = flags.Contains("auth"),
-            Pwa = flags.Contains("pwa"),
-            Cqrs = flags.Contains("cqrs"),
-            Data = flags.Contains("data"),
-            Docker = flags.Contains("docker"),
-            Jobs = all || flags.Contains("jobs"),
-            Mail = all || flags.Contains("mail"),
-            Cache = all || flags.Contains("cache"),
-            Outbox = all || flags.Contains("outbox"),
-            Push = all || flags.Contains("push"),
-            Snapshots = all || flags.Contains("snapshots"),
-            Logs = all || flags.Contains("logs"),
-            Ops = all || flags.Contains("ops"),
-        };
+            Pwa = On("pwa"),
+            Cqrs = On("cqrs"),
+            Data = On("data"),
+            Docker = On("docker"),
+            Jobs = On("jobs"),
+            Mail = On("mail"),
+            Cache = On("cache"),
+            Outbox = On("outbox"),
+            Push = On("push"),
+            Snapshots = On("snapshots"),
+            Logs = On("logs"),
+            Ops = On("ops"),
+        }.Reduced().Normalized();
     }
 
     /// <summary>
@@ -394,48 +537,60 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
         }
 
-        // Docker is asked on its own rather than from the battery list: it is about how the app ships, not
-        // about what the app does, and it's the one every template supports.
-        if (!parsed.HasFlag("docker") && template.SupportedFlags.Contains("docker")
-            && prompt.Confirm("Add a [bold]Dockerfile[/] for container deploys?", @default: false))
+        // Auth gets a question of its own because it is the one battery that is off by default. Everything
+        // else on the list is already on, so the checklist below is about taking things away; mixing the
+        // one thing you add into a list of things you remove would read as the opposite of what it does.
+        if (!parsed.HasFlag("auth") && template.SupportedFlags.Contains("auth")
+            && prompt.Confirm("Add [bold]authentication[/] — login, sessions, members pages?", @default: false))
         {
-            filled.Add("--docker");
+            filled.Add("--auth");
         }
 
-        // Three flags are held back from the list, each for its own reason. `snapshots` is asked on its
-        // own below, after the battery list, because it is a follow-up to having a database rather than a
-        // battery in its own right. `docker` was just asked above. And `all-batteries` is what a checklist
-        // already does — offering "tick everything" as one of the things to tick invites ticking it *and*
-        // its members, which is the same app described twice.
-        var offered = FeatureFlags
-            .Where(f => f is not ("snapshots" or "docker" or "all-batteries"))
-            .Where(template.SupportedFlags.Contains)
-            .ToArray();
+        // Pre-ticked, because this is what a bare `rask new` already gives you. The question is "anything
+        // you don't want?", and unticking an entry becomes the --no-<battery> that says so.
+        var offered = BatteryFlags.Where(template.SupportedFlags.Contains).ToArray();
 
-        // A command line that already named any battery has answered this question — don't re-ask it.
-        var batteriesGiven = FeatureFlags.Any(parsed.HasFlag);
+        // A command line that already turned a battery off has answered this question — don't re-ask it.
+        var batteriesGiven = BatteryFlags.Any(f => parsed.HasFlag(OffFlag(f)));
         if (!batteriesGiven && offered.Length > 0)
         {
-            var descriptions = CreateSchema().Declared.ToDictionary(o => o.LongName, o => o.Description, StringComparer.Ordinal);
-            var chosen = prompt.MultiSelect(
-                "Batteries [dim](optional)[/]",
-                [.. offered.Select(f => (f, $"[bold]--{f}[/] [dim]— {descriptions.GetValueOrDefault(f)}[/]"))]);
+            var kept = prompt.MultiSelect(
+                "Batteries [dim](all on — space to untick)[/]",
+                [.. offered.Select(f => (f, $"[bold]{f}[/] [dim]— {BatteryDescriptions[f]}[/]"))],
+                selected: offered);
 
-            filled.AddRange(chosen.Select(flag => "--" + flag));
-        }
-
-        if (!batteriesGiven
-            && template.SupportedFlags.Contains("snapshots")
-            && filled.Any(DataImplyingFlags.Contains)
-            && !filled.Contains("--all-batteries", StringComparer.Ordinal)
-            && prompt.Confirm("Back SQLite up on a schedule ([bold]--snapshots[/])?", @default: false))
-        {
-            filled.Add("--snapshots");
+            filled.AddRange(offered.Except(kept).Select(f => "--" + OffFlag(f)));
         }
 
         WriteWizardSummary(filled, template);
         return filled;
     }
+
+    /// <summary>
+    /// One line per battery for the wizard's checklist, phrased as what you <em>get</em>.
+    /// </summary>
+    /// <remarks>
+    /// Not the schema's own descriptions: those are written for <c>--no-jobs</c> and so read "leave out
+    /// …", which is exactly backwards next to a ticked box. Kept honest by a test that asserts every
+    /// <see cref="BatteryFlags"/> entry has an entry here.
+    /// </remarks>
+    internal static readonly IReadOnlyDictionary<string, string> BatteryDescriptions =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["pwa"] = "installable: a manifest, an icon, and an offline page",
+            ["cqrs"] = "the source-generated mediator every feature dispatches through",
+            ["data"] = "a SQLite database and an AppDbContext your features map through",
+            ["docker"] = "a production Dockerfile and .dockerignore",
+            ["localization"] = "string catalogs, a negotiated language, and a switcher",
+            ["jobs"] = "durable background jobs on the app's own database",
+            ["mail"] = "transactional email, queued and sent off the request thread",
+            ["cache"] = "a database-backed ICache and IDistributedCache",
+            ["outbox"] = "a transactional outbox for durable domain events",
+            ["push"] = "server-sent Web Push, with the subscribe endpoints",
+            ["snapshots"] = "scheduled point-in-time backups of the SQLite file",
+            ["logs"] = "a durable log store, so the log survives a restart",
+            ["ops"] = "an operator dashboard at /_rask over every battery's table",
+        };
 
     /// <summary>
     /// Restate the answers before the files start appearing, so the scaffolding output is read as the
@@ -448,10 +603,17 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// </remarks>
     private void WriteWizardSummary(IReadOnlyList<string> args, TemplateInfo template)
     {
-        var batteries = args.Where(a => a.StartsWith("--", StringComparison.Ordinal))
-            .Select(a => a[2..])
-            .Where(FeatureFlags.Contains)
-            .ToArray();
+        // Resolved through the same path the scaffold will take, rather than read back off the flags. The
+        // summary's whole job is to be what happens next, and a second reading of the same answers is how
+        // it comes to say something the generator then contradicts.
+        var styling = args.Contains("--tailwind", StringComparer.Ordinal) ? Styling.Tailwind
+            : args.Contains("--bootstrap", StringComparer.Ordinal) ? Styling.Bootstrap
+            : Styling.Plain;
+        var off = BatteryFlags.Where(f => args.Contains("--" + OffFlag(f), StringComparer.Ordinal)).ToArray();
+        var batteries = ToBatteries(
+            template, off, styling, auth: args.Contains("--auth", StringComparer.Ordinal));
+
+        var on = BatteryFlags.Where(f => f != "docker" && Includes(batteries, f)).ToArray();
 
         var grid = new Grid();
         grid.AddColumn(new GridColumn().NoWrap().PadRight(2));
@@ -461,25 +623,27 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         grid.AddRow(
             Label("🎨", "Styling"),
-            new Text(
-                args.Contains("--tailwind", StringComparer.Ordinal) ? "Tailwind"
-                : args.Contains("--bootstrap", StringComparer.Ordinal) ? "Rask.Bootstrap"
-                : "plain CSS"));
+            new Text(styling switch
+            {
+                Styling.Tailwind => "Tailwind",
+                Styling.Bootstrap => "Rask.Bootstrap",
+                _ => "plain CSS",
+            }));
 
-        if (batteries.Any(DataImplyingFlags.Select(f => f[2..]).Contains))
+        grid.AddRow(
+            Label("🔑", "Auth"),
+            new Text(batteries.Auth ? "cookie login + members pages" : "none"));
+
+        if (batteries.Data)
         {
             grid.AddRow(Label("🗄️", "Database"), new Text("SQLite (one file, no server)"));
         }
 
-        grid.AddRow(
-            Label("🐳", "Docker"),
-            new Text(batteries.Contains("docker") ? "yes" : "no"));
+        grid.AddRow(Label("🐳", "Docker"), new Text(batteries.Docker ? "yes" : "no"));
 
         grid.AddRow(
             Label("🔋", "Batteries"),
-            new Text(batteries.Where(b => b != "docker").ToArray() is { Length: > 0 } rest
-                ? string.Join(", ", rest)
-                : "none"));
+            new Text(on.Length > 0 ? string.Join(", ", on) : "none"));
 
         var ansi = Console.Ansi;
         ansi.WriteLine();
@@ -489,17 +653,33 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             new(Branding.Label(Console, emoji, text), ConsoleStyling.Of(ConsoleStyle.Dim));
     }
 
-    /// <summary>
-    /// The flags that pull in a database, so the wizard knows when the snapshots question is worth asking
-    /// and when the summary has a database to report. Mirrors the implications
-    /// <see cref="ServerBatteries.Normalized"/> applies.
-    /// </summary>
-    private static readonly string[] DataImplyingFlags =
-        ["--data", "--jobs", "--mail", "--cache", "--outbox", "--ops", "--all-batteries"];
+    /// <summary>Whether a resolved set includes <paramref name="battery"/>, addressed by its flag name.</summary>
+    /// <remarks>
+    /// The one place that maps flag names onto <see cref="ServerBatteries"/> properties, so the wizard
+    /// summary and the tests read the resolved answer rather than re-deriving it from the command line.
+    /// </remarks>
+    internal static bool Includes(ServerBatteries batteries, string battery) => battery switch
+    {
+        "pwa" => batteries.Pwa,
+        "cqrs" => batteries.Cqrs,
+        "data" => batteries.Data,
+        "docker" => batteries.Docker,
+        "localization" => batteries.Localization,
+        "jobs" => batteries.Jobs,
+        "mail" => batteries.Mail,
+        "cache" => batteries.Cache,
+        "outbox" => batteries.Outbox,
+        "push" => batteries.Push,
+        "snapshots" => batteries.Snapshots,
+        "logs" => batteries.Logs,
+        "ops" => batteries.Ops,
+        "auth" => batteries.Auth,
+        _ => false,
+    };
 
     private async Task<int> GenerateDirectAsync(
         TemplateInfo template, string name, string? output, bool dryRun, bool force, bool noRestore, bool noGit,
-        Func<string, string, ScaffoldResult> build, CancellationToken cancellationToken)
+        ServerBatteries batteries, Func<string, string, ScaffoldResult> build, CancellationToken cancellationToken)
     {
         // rask new MyApp → ./MyApp/ ; --output overrides the destination directory.
         var targetDirectory = Scaffold.TargetDirectory(_workingDirectory, output, name);
@@ -613,6 +793,18 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             restoreFailed = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false) != 0;
         }
 
+        // The database-backed batteries keep their state in tables that only exist once a migration has been
+        // applied, and their processors are hosted services — a faulted BackgroundService stops the host, so
+        // an unmigrated app doesn't warn, it exits. That was an opt-in edge case while --data was opt-in;
+        // now that the batteries are on by default it would be the first `dotnet run` of every new project.
+        // So the first migration is part of scaffolding rather than a step in the next-steps text.
+        var migrated = !batteries.Data || noRestore || restoreFailed
+            ? (bool?)null
+            : await CreateFirstMigrationAsync(targetDirectory, PickEfProject(result, name), cancellationToken)
+                .ConfigureAwait(false);
+
+        // After the migration, so Migrations/ is in the initial commit rather than showing up as the first
+        // uncommitted change in a project the user hasn't touched yet.
         await InitializeGitAsync(targetDirectory, noGit, cancellationToken).ConfigureAwait(false);
 
         if (!string.IsNullOrEmpty(result.Notes))
@@ -631,7 +823,88 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
+        // A warning rather than a failure, and deliberately: the files on disk are complete and correct,
+        // and this step is the only one that can need a network for something other than packages (the
+        // dotnet-ef tool install). Failing the command would make an offline `rask new` look like it
+        // scaffolded nothing.
+        if (batteries.Data && migrated != true)
+        {
+            Console.Out.WriteLine();
+            WriteFirstMigrationInstructions(migrated is null);
+        }
+
         return 0;
+    }
+
+    /// <summary>
+    /// The project that owns the <c>DbContext</c>: the <c>.Server</c> half of a multi-project template,
+    /// the single project otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Read off the scaffold rather than rebuilt from the template key. <c>ProjectLocator</c> can't be used
+    /// here: it walks <em>up</em> from the working directory, so on a template whose root holds only a
+    /// <c>.slnx</c> it would climb out of the new project and migrate whatever it found above it.
+    /// </remarks>
+    private static string? PickEfProject(ScaffoldResult result, string name)
+    {
+        var projects = result.Files
+            .Select(file => file.Path)
+            .Where(path => path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        return projects.FirstOrDefault(path =>
+                   Path.GetFileName(path).Equals(name + ".Server.csproj", StringComparison.OrdinalIgnoreCase))
+               ?? projects.FirstOrDefault(path =>
+                   Path.GetFileName(path).Equals(name + ".csproj", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Create and apply the project's first migration, so its first run has the tables the batteries need.
+    /// </summary>
+    /// <remarks>
+    /// Delegated to <see cref="DbCommand"/> rather than reimplemented against <c>dotnet ef</c>: it already
+    /// installs the EF tools on first use, adds the design package the tools require, and builds the
+    /// argument list. Running the same code the user would run next means the project ends up in exactly
+    /// the state <c>rask db add Init &amp;&amp; rask db update</c> leaves it in.
+    ///
+    /// <para>
+    /// <c>--project</c> is passed explicitly for the reason given on <see cref="PickEfProject"/>.
+    /// </para>
+    /// </remarks>
+    private async Task<bool> CreateFirstMigrationAsync(
+        string targetDirectory, string? efProject, CancellationToken cancellationToken)
+    {
+        if (efProject is null)
+        {
+            return false;
+        }
+
+        var db = new DbCommand(Console, _fileSystem, _process, targetDirectory);
+
+        Console.WriteLine("Creating the first migration…", ConsoleStyle.Dim);
+        if (await db.ExecuteAsync(["add", "Init", "--project", efProject], cancellationToken).ConfigureAwait(false) != 0)
+        {
+            return false;
+        }
+
+        Console.WriteLine("Applying it to the database…", ConsoleStyle.Dim);
+        return await db.ExecuteAsync(["update", "--project", efProject], cancellationToken).ConfigureAwait(false) == 0;
+    }
+
+    /// <summary>What to run when the first migration was skipped or didn't succeed.</summary>
+    private void WriteFirstMigrationInstructions(bool skipped)
+    {
+        Console.WriteLine(
+            skipped
+                ? "The first migration was skipped along with the restore. Before the first run:"
+                : "The first migration didn't complete. Before the first run:",
+            ConsoleStyle.Dim);
+        Console.Out.WriteLine("  rask db add Init");
+        Console.Out.WriteLine("  rask db update");
+        Console.WriteLine(
+            "The background pillars store their state in your database, and a hosted service that can't "
+            + "find its table stops the app — so this has to happen before `dotnet run`.",
+            ConsoleStyle.Dim);
     }
 
     /// <summary>
