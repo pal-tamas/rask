@@ -47,7 +47,9 @@ public sealed class WasmHostBuilder
 
         // Singleton, unlike the server's scoped registration: the whole WASM app is one visitor, so
         // there is exactly one culture for its lifetime.
-        Services.AddRaskCulture(lifetime: ServiceLifetime.Singleton);
+        // Deferred to a factory so UseCulture can still be called after the builder is constructed —
+        // the ctor runs before the app's own configuration does.
+        Services.AddRaskCulture(o => _configureCulture?.Invoke(o), ServiceLifetime.Singleton);
         // Typed browser/device API wrappers, Singleton (one per app instance). Registered via the shared
         // helpers (RaskBrowserApis / RaskWasmBrowserApis) so the interface → impl list lives in one place
         // instead of duplicated across hosts. TryAdd inside the helpers means an app can pre-register a
@@ -79,6 +81,7 @@ public sealed class WasmHostBuilder
     }
 
     private WebAppManifest? _manifest;
+    private Action<RaskCultureOptions>? _configureCulture;
 
     // The wire-payload shape this app renders with, snapshotted from RaskLiveOptions in CreateDefault
     // and handed to the WasmLiveSession — a per-session value instead of the former process-global
@@ -103,6 +106,29 @@ public sealed class WasmHostBuilder
     public WasmHostBuilder UsePwa(WebAppManifest manifest)
     {
         _manifest = manifest;
+        return this;
+    }
+
+    /// <summary>
+    ///     The languages this app ships, and how a visitor's is chosen.
+    /// </summary>
+    /// <remarks>
+    ///     Leaving this uncalled keeps culture support off, and the app renders exactly as it did before:
+    ///     <c>&lt;html lang="en"&gt;</c> with no <c>dir</c>.
+    ///     <para>
+    ///         <b>A WASM app also needs ICU</b>, which Rask does not ship by default because it is roughly
+    ///         2.6 MB. Add <c>&lt;RaskGlobalization&gt;true&lt;/RaskGlobalization&gt;</c> to the project
+    ///         file. Without it every culture formats identically and only the invariant culture
+    ///         resolves — the app still runs, and says so once at startup rather than once per render.
+    ///     </para>
+    ///     <code>
+    ///     host.UseCulture(c => { c.SupportedCultures.Add("en"); c.SupportedCultures.Add("hu"); });
+    ///     </code>
+    /// </remarks>
+    public WasmHostBuilder UseCulture(Action<RaskCultureOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        _configureCulture = configure;
         return this;
     }
 
@@ -205,6 +231,10 @@ public sealed class WasmHostBuilder
         var routeState = provider.GetRequiredService<RouteState>();
         RouteSeeder.Seed(JSInterop.GetLocation(), routeState);
         Console.WriteLine($"[Rask.Wasm] initial path={routeState.Path}");
+
+        // The visitor's language, settled before the first render for the same reason the route is:
+        // painting in the wrong one and correcting it afterwards is a flash the visitor sees.
+        WasmCultureSeeder.Seed(provider);
 
         if (provider.GetService<IUserProvider>() is { } userProvider)
         {

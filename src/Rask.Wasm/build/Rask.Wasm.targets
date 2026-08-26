@@ -246,4 +246,56 @@
            Text="Rask: the scoped-asset bake did not run during this publish and $(PublishDir)wwwroot/_rask/a is empty, so any scoped CSS/JS this app has would 404 in the browser and any component relying on it would never initialise. The bake target (_RaskBakeScopedStaticWebAssets) is skipped when RaskWasm is not 'true' or when Rask.Wasm.Tasks.dll is missing next to Rask.Wasm.targets — check both, then clear $(IntermediateOutputPath) and publish again."/>
   </Target>
 
+  <!--
+    Globalization for a WASM app: RaskGlobalization decides whether ICU ships.
+
+    OFF by default, because ICU is roughly 2.6 MB of icudt*.dat and most apps format nothing
+    culture-sensitive. An app that does turns it on with one line:
+
+      <RaskGlobalization>true</RaskGlobalization>
+
+    Owned here rather than written by hand in every app's csproj so that the two properties which have
+    to move together cannot drift apart. PredefinedCulturesOnly is the trap: it DEFAULTS to true
+    whenever InvariantGlobalization is true, and under it CultureInfo.GetCultureInfo("hu-HU") does not
+    quietly fall back — it THROWS. Setting it explicitly on the opt-in path means a stray
+    InvariantGlobalization elsewhere in a build cannot silently re-arm that.
+
+    The WasmBuildNative guard is preserved from the per-app property this replaces. InvariantGlobalization=true
+    forces a native relink, which conflicts with the fast unit gate (-p:WasmBuildNative=false) — and with
+    no runtime produced, invariant globalization is irrelevant anyway. Note the direction: turning
+    globalization ON removes the property entirely and so removes that relink trigger, which makes the
+    fast gate strictly happier, not less so.
+  -->
+  <PropertyGroup Condition=" '$(RaskWasm)' == 'true' ">
+    <RaskGlobalization Condition=" '$(RaskGlobalization)' == '' ">false</RaskGlobalization>
+    <!--
+      Snapshot before the overwrite below, so the conflict check further down can still tell an app's
+      own InvariantGlobalization from ours. By the time this file is imported the WebAssembly SDK has
+      already defaulted the property to false, so "unset" and "explicitly false" are indistinguishable
+      here — but an explicit TRUE can only have come from the app, which is the case worth catching.
+    -->
+    <_RaskAppInvariantGlobalization>$(InvariantGlobalization)</_RaskAppInvariantGlobalization>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(RaskWasm)' == 'true' AND '$(RaskGlobalization)' != 'true'
+                             AND '$(WasmBuildNative)' != 'false' ">
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(RaskWasm)' == 'true' AND '$(RaskGlobalization)' == 'true' ">
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <PredefinedCulturesOnly>false</PredefinedCulturesOnly>
+  </PropertyGroup>
+
+  <!--
+    The one failure mode the properties above cannot express: an app asks for globalization and ALSO
+    sets InvariantGlobalization=true by hand. The SDK would honour the invariant flag, every culture
+    would format identically, and the app would look like it had simply been given wrong translations.
+    Fail the build instead of shipping that.
+  -->
+  <Target Name="_RaskGlobalizationConflict" BeforeTargets="Build"
+          Condition=" '$(RaskWasm)' == 'true' AND '$(RaskGlobalization)' == 'true' AND '$(_RaskAppInvariantGlobalization)' == 'true' ">
+    <Error Text="Rask: RaskGlobalization is true but InvariantGlobalization is also true, so the runtime would ship without culture data and every culture would format identically — CultureInfo.GetCultureInfo(&quot;hu-HU&quot;) would throw. Remove the InvariantGlobalization property; RaskGlobalization owns it."/>
+  </Target>
+
 </Project>

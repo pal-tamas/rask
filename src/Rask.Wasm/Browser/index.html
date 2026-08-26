@@ -42,6 +42,40 @@
     <link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='22 6 80 108'%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C3AED'/%3E%3Cstop offset='1' stop-color='%23512BD4'/%3E%3C/linearGradient%3E%3Cpath d='M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z' fill='url(%23b)'/%3E%3C/svg%3E" rel="icon"
           type="image/svg+xml"/>
     <style id="rask-scoped"></style>
+    <!--
+      Stamp the visitor's language onto <html> before anything paints.
+
+      The boot screen below is the first thing they see, and it is on screen for as long as the runtime
+      takes to download — which on a cold cache is not brief. Without this, an RTL visitor watches a
+      left-to-right boot screen and then a layout flip once the app renders. Reading the remembered
+      choice here costs one synchronous regex and needs no runtime.
+
+      Only the REMEMBERED choice is read: navigator.language is deliberately not consulted, because the
+      app may not support it, and this script has no way to know which languages the app ships. Guessing
+      wrong here would cause the very flip it exists to prevent. An unremembered visitor keeps the
+      document default until the runtime negotiates properly a moment later.
+    -->
+    <script>
+        (function () {
+            try {
+                var m = document.cookie.match(/(?:^|;\s*)\.AspNetCore\.Culture=([^;]*)/);
+                if (!m) return;
+                var v = decodeURIComponent(m[1]);
+                var c = /(?:^|\|)c=([^|]*)/.exec(v);
+                var tag = c ? c[1] : (v.indexOf("=") < 0 ? v : "");
+                if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(tag)) return;
+                document.documentElement.lang = tag;
+                // The RTL scripts, by language subtag. A short list beats pulling in Intl.Locale, which
+                // is exactly the globalization data this app may have been built without.
+                var rtl = ["ar", "arc", "az", "dv", "fa", "he", "ku", "ps", "sd", "ug", "ur", "yi"];
+                if (rtl.indexOf(tag.split("-")[0].toLowerCase()) >= 0) {
+                    document.documentElement.dir = "rtl";
+                }
+            } catch (e) {
+                // Cookies disabled, or a document that throws on access. The app still boots.
+            }
+        })();
+    </script>
     <style>
         .rask-boot {
             position: fixed;

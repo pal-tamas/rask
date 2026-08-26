@@ -86,11 +86,12 @@ internal static partial class ProjectGenerator
                  module initialiser, which emits a [DynamicDependency] per registered page. -->
             <PublishTrimmed>true</PublishTrimmed>
             <TrimMode>full</TrimMode>
-            <!-- Drops the ~2.6 MB of ICU data under _framework/icudt*.dat. Remove this if your app
-                 formats culture-sensitive values (dates, numbers, currency). Gated off the fast
-                 no-native build (-p:WasmBuildNative=false): the SDK forces a native relink when
-                 InvariantGlobalization=true, so the two conflict, and it's irrelevant with no runtime. -->
-            <InvariantGlobalization Condition=" '$(WasmBuildNative)' != 'false' ">true</InvariantGlobalization>
+            <!-- ICU (~2.6 MB of icudt*.dat) is dropped by default. Uncomment to ship it, which you
+                 need as soon as the app formats dates, numbers or currency per culture, or shows
+                 text in more than one language. One property: it also sets PredefinedCulturesOnly,
+                 which otherwise defaults to true here and makes CultureInfo.GetCultureInfo("hu-HU")
+                 throw rather than fall back. -->
+            <!-- <RaskGlobalization>true</RaskGlobalization> -->
             <!-- IL2104 comes from Microsoft.JSInterop's reflection-driven [JSInvokable] scanner; apps
                  that only INVOKE JS never hit it. If you mark methods [JSInvokable], add a
                  [DynamicDependency] on them (standard Blazor WASM mitigation) instead of suppressing. -->

@@ -8,6 +8,32 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A WASM app negotiates the visitor's language before its first render, and `RaskGlobalization`
+  decides whether it ships ICU.** `host.UseCulture(c => c.SupportedCultures.Add("hu"))` turns culture
+  support on; the browser's signals — `?culture=`, the remembered cookie, `navigator.languages` — are
+  read in **one synchronous call** so the culture is settled before anything paints. An async probe
+  would either delay the first paint or let the app paint in the wrong language and correct itself in a
+  frame the visitor can see, which also rules out `INavigatorInfo.LanguageAsync()`.
+
+  **ICU is opt-in, because it is roughly 2.6 MB.**
+  `<RaskGlobalization>true</RaskGlobalization>` ships it. Rask.Wasm.targets owns the two properties
+  that have to move together, instead of each app writing them by hand: `PredefinedCulturesOnly` is the
+  trap, because it defaults to `true` under invariant globalization and makes
+  `CultureInfo.GetCultureInfo("hu-HU")` **throw** rather than fall back — so an app that shipped ICU but
+  left that default would fail at its first culture lookup. Asking for globalization while also forcing
+  `InvariantGlobalization=true` is now a build error rather than an app that silently formats every
+  culture identically.
+
+  The fast unit gate is unaffected, and slightly better off: `InvariantGlobalization=true` is what
+  forces a native relink, so turning globalization **on** removes the property and the relink trigger
+  with it.
+
+  **The boot screen no longer starts in the wrong direction.** A tiny inline script in the page shell
+  stamps `lang`/`dir` from the remembered cookie before the runtime downloads — which on a cold cache is
+  not a brief moment, and without it a right-to-left visitor watches a left-to-right boot screen and
+  then a layout flip. It reads only the remembered choice, never `navigator.language`: the shell cannot
+  know which languages the app ships, and guessing would cause the very flip it exists to prevent.
+
 - **The server negotiates a visitor's language from their request, before the first byte of HTML.**
   `?culture=` beats a remembered choice, which beats `Accept-Language`, which beats the app's default.
   The culture is seeded onto the session alongside the principal and the route — *before* the initial
