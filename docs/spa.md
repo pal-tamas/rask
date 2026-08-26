@@ -23,20 +23,22 @@ rask dev
 | `solid` | `create-vite --template solid-ts` | `@tanstack/solid-query` | ✅ `@tanstack/solid-router` |
 | `svelte` | `create-vite --template svelte-ts` | `@tanstack/svelte-query` | — |
 | `lit` | `create-vite --template lit-ts` | `@tanstack/lit-query` | — |
+| `angular` | `ng new` (the Angular CLI) | `@tanstack/angular-query-experimental` | — |
 
 ¹ There is no `@tanstack/preact-query`, and there does not need to be: create-vite's Preact template
 already maps `react` and `react-dom` to `preact/compat` in its tsconfig, and `@preact/preset-vite`
 does the same at build time, so the React adapter type-checks and bundles unchanged.
 
-The set is the frameworks **TanStack Query** ships an adapter for *and* `create-vite` scaffolds.
-Below the call site every one of them is the same wire; the adapter is what makes the generated
-contracts worth having.
+The set is exactly the frameworks **TanStack Query** ships an adapter for. Below the call site every
+one of them is the same wire; the adapter is what makes the generated contracts worth having.
 
-Angular is the one adapter TanStack ships that is missing here, and the reason is the scaffolder
-rather than the wire: Angular has no `create-vite` template, so it would need `@angular/cli` and a
-second overlay shape. Nothing about `Rask.Spa.Hosting` stops you pointing it at an Angular client you
-scaffolded yourself — set `RaskSpaClientDir`, and `RaskSpaDistDir` to `dist/<app>/browser`, which is
-where Angular nests its output.
+**Angular keeps its own CLI.** Angular's build *is* Vite-based — `@angular/build:application` has run
+its dev server on Vite since v17 — but `create-vite` has no Angular template and the Vite config
+belongs to Angular rather than to you. So `rask new --template angular` runs `ng new`, and three
+things differ as a result: there is no `vite.config.ts` (the dev proxy is `proxy.conf.json`, pointed
+at from `angular.json`), the dev server is `ng serve` on **4200**, and the bundle lands in
+`dist/<project>/browser` — which the scaffolded host is told about with `RaskSpaDistDir`. The Angular
+CLI also has its own Node floor, higher than Vite's; it says so itself if yours is too old.
 
 **TanStack Router comes wired up for React and Solid**, because those are the two adapters it ships.
 The routes are declared in code, in `src/router.tsx`, rather than through the file-based plugin —
@@ -128,15 +130,17 @@ moves the cache key with it.
 same two calls work under every adapter. What differs is how the adapter wants them:
 
 ```ts
-useQuery(raskQuery(getGreeting({ name })))            // React, Preact
+useQuery(raskQuery(getGreeting({ name })))                  // React, Preact
 useQuery(() => raskQuery(getGreeting({ name: name() })))   // Solid
+useQuery(computed(() => raskQuery(getGreeting({ name: name.value }))))   // Vue
 createQuery(() => raskQuery(getGreeting({ name })))        // Svelte
+injectQuery(() => raskQuery(getGreeting({ name: this.name() })))         // Angular
 createQueryController(this, () => raskQuery(getGreeting({ name: this.name })))   // Lit
 ```
 
-The thunk is not a formality. It is what lets the options re-read the signal, the rune or the
-reactive property and refetch when it changes — pass the object directly in Solid or Svelte and it
-reads the value once, at setup, and never again. The scaffolded starter already does this correctly
+The thunk is not a formality. It is what lets the options re-read the signal, the ref, the rune or
+the reactive property and refetch when it changes — pass the object directly in Solid, Svelte, Vue or
+Angular and it reads the value once, at setup, and never again. The scaffolded starter already does this correctly
 for whichever framework you picked.
 
 ## Dates
@@ -202,9 +206,11 @@ is the right answer on a front end, and the reason none of the C#-side timezone 
 
 ## Development
 
-`rask dev` starts two processes: `dotnet watch` for the host, and the bundler's own dev server for
-the client. **The browser talks to the bundler**, on `http://localhost:5173`, and the scaffolded
-`vite.config.ts` proxies `/_rask` back to the host on `:5000`.
+`rask dev` starts two processes: `dotnet watch` for the host, and the client's own dev server. **The
+browser talks to the dev server** — `http://localhost:5173` for Vite, `:4200` for Angular — and its
+proxy forwards `/_rask` back to the host on `:5000`. Which script starts it (`dev` for Vite, `start`
+for Angular) is read from the client's own `package.json`, and which port to open from the property
+the scaffold baked into the host, so neither is assumed.
 
 ```
 browser → :5173  (vite, native HMR)

@@ -25,7 +25,9 @@ public sealed class TemplateCatalogTests
     [Fact]
     public void Unknown_key_falls_back_to_default_and_returns_false()
     {
-        Assert.False(TemplateCatalog.TryGet("angular", out var template));
+        // Deliberately not a plausible framework name: "angular" stood in for "unknown" here until
+        // Angular became a template, which turned this into a test of nothing.
+        Assert.False(TemplateCatalog.TryGet("cobol", out var template));
         Assert.Equal(TemplateCatalog.Default, template);
     }
 

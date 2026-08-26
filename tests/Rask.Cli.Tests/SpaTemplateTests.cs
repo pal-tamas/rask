@@ -60,9 +60,14 @@ public sealed class SpaTemplateTests
         Assert.NotEmpty(frameworks);
         foreach (var framework in frameworks)
         {
-            Assert.True(
-                framework.ViteTemplate.EndsWith("-ts", StringComparison.Ordinal),
-                $"{framework.DisplayName} scaffolds '{framework.ViteTemplate}', which is not a TypeScript template.");
+            // Angular has no create-vite template and no ViteTemplate to check; its own CLI only ever
+            // produces TypeScript, so there is no JavaScript half to pick by mistake.
+            if (framework.WritesViteConfig)
+            {
+                Assert.True(
+                    framework.ViteTemplate.EndsWith("-ts", StringComparison.Ordinal),
+                    $"{framework.DisplayName} scaffolds '{framework.ViteTemplate}', which is not a TypeScript template.");
+            }
 
             Assert.Contains(framework, SpaFramework.All);
         }
@@ -87,7 +92,9 @@ public sealed class SpaTemplateTests
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Contains("vite.config.ts", ours);
+        // Angular declares its dev proxy in angular.json and gets proxy.conf.json instead — there is no
+        // vite.config.ts to write, because the Vite config Angular's build runs on is Angular's own.
+        Assert.Contains(Framework(key).WritesViteConfig ? "vite.config.ts" : "proxy.conf.json", ours);
         Assert.InRange(ours.Length, 2, 4);
     }
 
@@ -306,6 +313,7 @@ public sealed class SpaTemplateTests
             "react" => "src/main.tsx",
             "preact" => "src/main.tsx",
             "vue" => "src/App.vue",
+            "angular" => "src/app/app.ts",
             "solid" => "src/index.tsx",
             "svelte" => "src/App.svelte",
             "lit" => "src/my-element.ts",
@@ -315,13 +323,16 @@ public sealed class SpaTemplateTests
         Assert.Contains(framework.ClientFiles, file => file.Path == expected);
     }
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(Frameworks))]
     public void Every_framework_asks_its_scaffolder_for_a_TypeScript_template(string key)
     {
         // Rask supports TypeScript clients only. create-vite ships each framework as a pair, and asking
         // for the JavaScript half would scaffold a client the host then refuses to build (RASKSPA004).
-        Assert.EndsWith("-ts", Framework(key).ViteTemplate, StringComparison.Ordinal);
+        var framework = Framework(key);
+        Skip.IfNot(framework.WritesViteConfig, "Angular is scaffolded by its own CLI, which is TypeScript-only.");
+
+        Assert.EndsWith("-ts", framework.ViteTemplate, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -412,6 +423,77 @@ public sealed class SpaTemplateTests
         Assert.DoesNotContain("import  from", config, StringComparison.Ordinal);
         Assert.Contains("plugins: []", config, StringComparison.Ordinal);
         Assert.Contains("'/_rask'", config, StringComparison.Ordinal);
+    }
+
+
+    [Fact]
+    public void Angular_is_scaffolded_by_its_own_CLI()
+    {
+        var external = Assert.Single(
+            ProjectGenerator.GenerateSpa(Root, "Shop", Framework("angular"), new ServerBatteries(), "1.2.3")
+                .ExternalScaffolds);
+
+        // ng new, not create-vite: Angular has no create-vite template, and its own CLI is where its
+        // conventions come from. The project name has to be kebab-case — Angular rejects "Shop.Client"
+        // outright — so the CLI is given shop-client with --directory Shop.Client.
+        Assert.Contains("@angular/cli@latest", external.Arguments);
+        Assert.Contains("shop-client", external.Arguments);
+        Assert.Contains("--directory", external.Arguments);
+        Assert.Contains("Shop.Client", external.Arguments);
+
+        // The install is the build's job, and rask new initialises one repository at the solution root.
+        Assert.Contains("--skip-install", external.Arguments);
+        Assert.Contains("--skip-git", external.Arguments);
+    }
+
+    [Fact]
+    public void The_host_is_told_where_Angular_nests_its_bundle()
+    {
+        var csproj = Content(
+            ProjectGenerator.GenerateSpa(Root, "Shop", Framework("angular"), new ServerBatteries(), "1.2.3"),
+            "/Shop.Server/Shop.Server.csproj");
+
+        // Angular's default output is dist/<project>/browser. A host left pointing at dist/ serves the
+        // "nothing built yet" page after a build that succeeded — which reads as a broken scaffold.
+        Assert.Contains("<RaskSpaDistDir>dist/shop-client/browser</RaskSpaDistDir>", csproj, StringComparison.Ordinal);
+        Assert.Contains("<RaskSpaDevServerUrl>http://localhost:4200</RaskSpaDevServerUrl>", csproj, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Only_Angular_carries_a_dist_override()
+    {
+        // Every other framework writes to dist/, and a property restating the default is one more thing
+        // that can drift from it.
+        foreach (var framework in SpaFramework.All.Where(f => f.Key != "angular"))
+        {
+            var csproj = Content(
+                ProjectGenerator.GenerateSpa(Root, "Shop", framework, new ServerBatteries(), "1.2.3"),
+                "/Shop.Server/Shop.Server.csproj");
+
+            Assert.DoesNotContain("<RaskSpaDistDir>", csproj, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Angulars_dev_server_is_pointed_at_the_proxy_file()
+    {
+        var patched = ProjectGenerator.UseProxyConfig("""
+            { "projects": { "shop-client": { "architect": { "serve": { "builder": "@angular/build:dev-server" } } } } }
+            """);
+
+        // Written into angular.json rather than onto the start script, so `ng serve` picks it up however
+        // it is launched — an IDE does not run the npm script.
+        Assert.Contains("\"proxyConfig\": \"proxy.conf.json\"", patched, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_angular_json_this_does_not_recognise_is_left_alone()
+    {
+        // Failing a scaffold over a proxy line would be worse than saying it did not happen — the CLI
+        // reports the skip, and everything else on disk is still correct.
+        const string Unfamiliar = """{ "version": 1 }""";
+
+        Assert.Equal(Unfamiliar, ProjectGenerator.UseProxyConfig(Unfamiliar));
     }
 
     [Fact]

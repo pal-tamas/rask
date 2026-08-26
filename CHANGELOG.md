@@ -231,12 +231,16 @@ them until tagged releases begin.
   write yet. `--cqrs` is not offered because it is not optional: the typed wire *is* the template.
   The database batteries and `--docker` all work.
 
-- **Six front-end templates, not one: `react`, `preact`, `vue`, `solid`, `svelte`, `lit`.** The set
-  is the frameworks TanStack Query ships an adapter for *and* `create-vite` scaffolds — below the
-  call site every one of them is the same wire, and the adapter is what makes the generated contracts
-  worth having. Angular is the one TanStack adapter missing, and the reason is the scaffolder rather
-  than the wire: it has no `create-vite` template. `UseRaskSpa` will still serve one you scaffolded
-  yourself.
+- **Seven front-end templates, not one: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`,
+  `lit`.** Exactly the set TanStack Query ships an adapter for — below the call site every one of them
+  is the same wire, and the adapter is what makes the generated contracts worth having.
+
+  **Angular keeps its own CLI.** Its build *is* Vite-based (`@angular/build:application` has run its
+  dev server on Vite since v17), but `create-vite` has no Angular template and the Vite config belongs
+  to Angular rather than to you — so `rask new --template angular` runs `ng new`. Three things follow:
+  no `vite.config.ts` (the proxy is `proxy.conf.json`, pointed at from `angular.json`), `ng serve` on
+  4200 rather than Vite's 5173, and a bundle in `dist/<project>/browser` that the scaffolded host is
+  told about with `RaskSpaDistDir`.
 
   **TanStack Router comes wired up for React and Solid**, the two adapters it ships. Routes are
   declared in code, in `src/router.tsx`, rather than through the file-based plugin — that plugin

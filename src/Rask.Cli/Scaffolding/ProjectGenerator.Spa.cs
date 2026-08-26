@@ -29,7 +29,7 @@ internal static partial class ProjectGenerator
 
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.Server/{NameToken}.Server.csproj", SpaServerCsproj(batteries, version)),
+            ($"{NameToken}.Server/{NameToken}.Server.csproj", SpaServerCsproj(batteries, framework, name, version)),
             ($"{NameToken}.Server/Program.cs", SpaServerProgram(batteries)),
             ($"{NameToken}.Server/Features/Hello/Messages.cs", SpaMessages),
             ($"{NameToken}.Server/Features/Hello/HelloHandlers.cs", SpaHandlers),
@@ -37,10 +37,16 @@ internal static partial class ProjectGenerator
             ($"{NameToken}.Server/appsettings.json", AppSettings),
             ($"{NameToken}.Server/appsettings.Production.json", AppSettingsProduction),
 
-            // The overlay: everything else in the client is create-vite's.
-            ($"{NameToken}.Client/vite.config.ts", SpaViteConfig(framework)),
             ("README.md", SpaReadme(framework)),
         };
+
+        // The overlay: everything else in the client is its own scaffolder's. Angular declares its dev
+        // proxy in angular.json instead, so it gets no vite.config.ts — writing one would be a file
+        // nothing reads.
+        if (framework.WritesViteConfig)
+        {
+            files.Add(($"{NameToken}.Client/vite.config.ts", SpaViteConfig(framework)));
+        }
 
         foreach (var (path, content) in framework.ClientFiles)
         {
@@ -71,24 +77,81 @@ internal static partial class ProjectGenerator
             [
                 new ExternalScaffold(
                     "npx",
-                    ["--yes", "create-vite@latest", name + ".Client", "--template", framework.ViteTemplate],
-                    $"Scaffolding the {framework.DisplayName} client with create-vite…",
+                    framework.Scaffolder(name),
+                    $"Scaffolding the {framework.DisplayName} client with {framework.ScaffolderName}…",
                     "Install Node.js 20.19 or newer from https://nodejs.org "
                     + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; "
                     + "Linux: your distro's nodejs package)."),
             ],
-            Patches =
-            [
-                new ScaffoldPatch(
-                    System.IO.Path.Combine(client, "package.json"),
-                    json => AddClientDependencies(json, framework),
-                    "adding " + Dependencies(framework)),
-                new ScaffoldPatch(
-                    System.IO.Path.Combine(client, ".gitignore"),
-                    IgnoreGeneratedContracts,
-                    "ignoring the generated contracts"),
-            ],
+            Patches = SpaPatches(client, framework),
         };
+    }
+
+    /// <summary>The edits made to what the client's own scaffolder wrote.</summary>
+    private static IReadOnlyList<ScaffoldPatch> SpaPatches(string client, SpaFramework framework)
+    {
+        var patches = new List<ScaffoldPatch>
+        {
+            new(
+                System.IO.Path.Combine(client, "package.json"),
+                json => AddClientDependencies(json, framework),
+                "adding " + Dependencies(framework)),
+            new(
+                System.IO.Path.Combine(client, ".gitignore"),
+                IgnoreGeneratedContracts,
+                "ignoring the generated contracts"),
+        };
+
+        if (!framework.WritesViteConfig)
+        {
+            // Angular's dev proxy is a file plus a pointer at it, and the pointer lives in a config the
+            // CLI owns. Patched rather than replaced for the same reason as package.json: angular.json
+            // carries the whole build configuration, and overwriting it would mean shipping a copy of it.
+            patches.Add(new ScaffoldPatch(
+                System.IO.Path.Combine(client, "angular.json"),
+                UseProxyConfig,
+                "pointing the dev server at proxy.conf.json"));
+        }
+
+        return patches;
+    }
+
+    /// <summary>
+    ///     Points Angular's dev server at the proxy file, wherever that project happens to be named.
+    /// </summary>
+    /// <remarks>
+    ///     Written into <c>angular.json</c> rather than onto the <c>start</c> script, so
+    ///     <c>ng serve</c> picks it up however it is launched — including from an IDE, which does not run
+    ///     the npm script. Idempotent, and a no-op on a file shaped in a way this does not recognise:
+    ///     failing the scaffold over a proxy line would be worse than saying it did not happen.
+    /// </remarks>
+    internal static string UseProxyConfig(string angularJson)
+    {
+        var root = JsonNode.Parse(angularJson) as JsonObject
+                   ?? throw new InvalidOperationException("angular.json is not a JSON object.");
+
+        if (root["projects"] is not JsonObject projects)
+        {
+            return angularJson;
+        }
+
+        foreach (var project in projects)
+        {
+            if (project.Value?["architect"]?["serve"] is not JsonObject serve)
+            {
+                continue;
+            }
+
+            if (serve["options"] is not JsonObject options)
+            {
+                options = [];
+                serve["options"] = options;
+            }
+
+            options["proxyConfig"] = "proxy.conf.json";
+        }
+
+        return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
     }
 
     /// <summary>What the patch says it is adding, for the line the command prints.</summary>
@@ -163,7 +226,7 @@ internal static partial class ProjectGenerator
                + Entry + "\n";
     }
 
-    private static string SpaServerCsproj(ServerBatteries batteries, string version)
+    private static string SpaServerCsproj(ServerBatteries batteries, SpaFramework framework, string name, string version)
     {
         var refs = new StringBuilder();
 
@@ -173,6 +236,17 @@ internal static partial class ProjectGenerator
         {
             refs.Append($"\n    <PackageReference Include=\"{package}\" Version=\"{version}\"/>");
         }
+
+        // Only when it is not the default. Angular nests its output under the project name, and a host
+        // pointed at the wrong directory serves the "nothing built yet" page after a build that succeeded.
+        var dist = framework.DistFor(name) == "dist"
+            ? string.Empty
+            : $"\n    <!-- {framework.DisplayName} nests its output under the project name. -->"
+              + $"\n    <RaskSpaDistDir>{framework.DistFor(name)}</RaskSpaDistDir>";
+
+        // Named in the "nothing built yet" page the host serves in Development, so it points at the dev
+        // server this framework actually runs rather than at Vite's default.
+        var devServer = $"\n    <RaskSpaDevServerUrl>{framework.DevServerUrl}</RaskSpaDevServerUrl>";
 
         var litestream = batteries.Data
             ? "\n    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->"
@@ -185,7 +259,7 @@ internal static partial class ProjectGenerator
           <PropertyGroup>
             <TargetFramework>net10.0</TargetFramework>
             <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>{litestream}
+            <Nullable>enable</Nullable>{dist}{devServer}{litestream}
           </PropertyGroup>
 
           <ItemGroup>
@@ -523,6 +597,55 @@ internal sealed record SpaFramework(
     IReadOnlyList<(string Path, string Content)> ClientFiles)
 {
     /// <summary>
+    ///     Whether Rask writes the client's <c>vite.config.ts</c>.
+    /// </summary>
+    /// <remarks>
+    ///     False for Angular. Angular's build <em>is</em> Vite-based — <c>@angular/build:application</c>
+    ///     has run its dev server on Vite since v17 — but the config is Angular's, not yours: the proxy is
+    ///     declared in <c>proxy.conf.json</c> and pointed at from <c>angular.json</c>, and writing a
+    ///     <c>vite.config.ts</c> beside that would be a file nothing reads.
+    /// </remarks>
+    public bool WritesViteConfig { get; init; } = true;
+
+    /// <summary>Where the bundler writes, relative to the client.</summary>
+    public string DistDir { get; init; } = "dist";
+
+    /// <summary>Where the framework's own dev server listens, for the browser and the banner.</summary>
+    public string DevServerUrl { get; init; } = "http://localhost:5173";
+
+    /// <summary>
+    ///     The command that scaffolds the client, given the solution name.
+    /// </summary>
+    /// <remarks>
+    ///     Per framework rather than one <c>create-vite</c> call, because Angular's own scaffolder is
+    ///     <c>ng new</c> and that is the one it should get: the whole argument of these templates is that
+    ///     the framework's own conventions win.
+    /// </remarks>
+    public Func<string, IReadOnlyList<string>> Scaffolder { get; init; } =
+        static _ => throw new InvalidOperationException("No scaffolder was configured.");
+
+    /// <summary>The tool the scaffolder runs, named in the "install this" message when it is missing.</summary>
+    public string ScaffolderName { get; init; } = "create-vite";
+
+    /// <summary>
+    ///     The client's name in its own ecosystem's terms: lower-case, dashes, no dots.
+    /// </summary>
+    /// <remarks>
+    ///     Angular validates its project name and rejects <c>Shop.Client</c> outright, so the CLI is given
+    ///     <c>shop-client</c> with <c>--directory Shop.Client</c> — which is also what decides where the
+    ///     bundle lands, since Angular's default output is <c>dist/&lt;project&gt;/browser</c>.
+    /// </remarks>
+    internal static string ClientPackageName(string name)
+    {
+        var chars = name.Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-').ToArray();
+        return new string(chars).Trim('-') + "-client";
+    }
+
+    /// <summary>Where this framework's bundle lands for a solution called <paramref name="name" />.</summary>
+    public string DistFor(string name) =>
+        DistDir.Replace("{client}", ClientPackageName(name), StringComparison.Ordinal);
+
+    /// <summary>
     ///     Ranges rather than exact versions: the client's own lockfile is what makes a build
     ///     reproducible, and pinning exactly here would freeze every scaffolded app on whatever was
     ///     current the day its Rask shipped.
@@ -537,12 +660,19 @@ internal sealed record SpaFramework(
 
     private const string RouterRange = "^1.170.0";
 
+    /// <summary>The default: ask create-vite for a framework's TypeScript template.</summary>
+    private static Func<string, IReadOnlyList<string>> Vite(string template) =>
+        name => ["--yes", "create-vite@latest", name + ".Client", "--template", template];
+
     public static readonly SpaFramework React = new(
         "react", "React", "react-ts",
         "react from '@vitejs/plugin-react'", "react()",
         "@tanstack/react-query", QueryRange,
         "@tanstack/react-router", RouterRange,
-        SpaClientSources.React);
+        SpaClientSources.React)
+    {
+        Scaffolder = Vite("react-ts"),
+    };
 
     /// <summary>
     ///     Preact, on the React adapter.
@@ -558,21 +688,30 @@ internal sealed record SpaFramework(
         "preact from '@preact/preset-vite'", "preact()",
         "@tanstack/react-query", QueryRange,
         null, null,
-        SpaClientSources.Preact);
+        SpaClientSources.Preact)
+    {
+        Scaffolder = Vite("preact-ts"),
+    };
 
     public static readonly SpaFramework Solid = new(
         "solid", "Solid", "solid-ts",
         "solid from 'vite-plugin-solid'", "solid()",
         "@tanstack/solid-query", QueryRange,
         "@tanstack/solid-router", RouterRange,
-        SpaClientSources.Solid);
+        SpaClientSources.Solid)
+    {
+        Scaffolder = Vite("solid-ts"),
+    };
 
     public static readonly SpaFramework Vue = new(
         "vue", "Vue", "vue-ts",
         "vue from '@vitejs/plugin-vue'", "vue()",
         "@tanstack/vue-query", QueryRange,
         null, null,
-        SpaClientSources.Vue);
+        SpaClientSources.Vue)
+    {
+        Scaffolder = Vite("vue-ts"),
+    };
 
     /// <summary>
     ///     Svelte. No TanStack Router — it ships React and Solid adapters only, and SvelteKit is what
@@ -583,7 +722,10 @@ internal sealed record SpaFramework(
         "{ svelte } from '@sveltejs/vite-plugin-svelte'", "svelte()",
         "@tanstack/svelte-query", SvelteQueryRange,
         null, null,
-        SpaClientSources.Svelte);
+        SpaClientSources.Svelte)
+    {
+        Scaffolder = Vite("svelte-ts"),
+    };
 
     /// <summary>
     ///     Lit, which needs no Vite plugin at all — its components are standard custom elements, and
@@ -594,10 +736,54 @@ internal sealed record SpaFramework(
         string.Empty, string.Empty,
         "@tanstack/lit-query", LitQueryRange,
         null, null,
-        SpaClientSources.Lit);
+        SpaClientSources.Lit)
+    {
+        Scaffolder = Vite("lit-ts"),
+    };
+
+    /// <summary>
+    ///     Angular, scaffolded by its own CLI.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The one framework here <c>create-vite</c> does not ship a template for. Angular's build is
+    ///         Vite-based — <c>@angular/build:application</c> has run its dev server on Vite since v17 —
+    ///         but the config belongs to Angular, so there is no <c>vite.config.ts</c> to write: the proxy
+    ///         is declared in <c>proxy.conf.json</c> and pointed at from <c>angular.json</c>, and the
+    ///         bundle lands in <c>dist/&lt;project&gt;/browser</c> rather than <c>dist</c>.
+    ///     </para>
+    ///     <para>
+    ///         <c>--skip-install</c>: the Rask.Spa.Hosting targets run the install on the first build, the
+    ///         way they do for every other client. <c>--skip-git</c> because <c>rask new</c> initialises one
+    ///         repository at the solution root, and a second nested inside it is not what anyone wants.
+    ///     </para>
+    ///     <para>
+    ///         Angular's CLI has its own Node floor, higher than Vite's. When it refuses to run it says so
+    ///         itself and names the version it wants, which is a better message than one written here.
+    ///     </para>
+    /// </remarks>
+    public static readonly SpaFramework Angular = new(
+        "angular", "Angular", string.Empty,
+        string.Empty, string.Empty,
+        "@tanstack/angular-query-experimental", QueryRange,
+        null, null,
+        SpaClientSources.Angular)
+    {
+        WritesViteConfig = false,
+        DistDir = "dist/{client}/browser",
+        DevServerUrl = "http://localhost:4200",
+        ScaffolderName = "the Angular CLI",
+        Scaffolder = name =>
+        [
+            "--yes", "@angular/cli@latest", "new", ClientPackageName(name),
+            "--directory", name + ".Client",
+            "--style", "css", "--ssr", "false",
+            "--skip-git", "--skip-install", "--defaults",
+        ],
+    };
 
     /// <summary>Every framework <c>rask new</c> can scaffold a client for.</summary>
-    public static IReadOnlyList<SpaFramework> All { get; } = [React, Preact, Vue, Solid, Svelte, Lit];
+    public static IReadOnlyList<SpaFramework> All { get; } = [React, Preact, Vue, Angular, Solid, Svelte, Lit];
 
     public static bool TryGet(string key, out SpaFramework framework)
     {

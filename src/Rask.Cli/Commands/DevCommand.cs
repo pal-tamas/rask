@@ -211,12 +211,15 @@ internal sealed class DevCommand(
             return;
         }
 
-        Console.WriteLine($"Starting the client dev server in {Path.GetFileName(directory)}…", ConsoleStyle.Dim);
+        Console.WriteLine(
+            $"Starting the client dev server in {Path.GetFileName(directory)} "
+            + $"(npm run {target.ClientDevScript ?? "dev"})…",
+            ConsoleStyle.Dim);
 
         try
         {
             await _process
-                .RunAsync("npm", ["run", "dev"], directory, cancellationToken)
+                .RunAsync("npm", ["run", target.ClientDevScript ?? "dev"], directory, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -389,7 +392,7 @@ internal sealed class DevCommand(
         // saying that is the address they mean.
         if (target.Kind == DevTemplateKind.SpaHosted && urls is not { Length: > 0 })
         {
-            return ViteDevServerUrl;
+            return target.ClientDevServerUrl ?? ViteDevServerUrl;
         }
 
         var url = FirstUrl(urls) ?? target.LaunchUrl;
@@ -402,8 +405,8 @@ internal sealed class DevCommand(
     }
 
     /// <summary>
-    ///     Where Vite listens by default. Not read from the client's config, which may not have been
-    ///     written yet and whose value would need the bundler running to know for certain.
+    ///     Where Vite listens by default, for a scaffold too old to have baked the real answer into its
+    ///     csproj. Not probed from the running bundler, which is not up yet when this is decided.
     /// </summary>
     internal const string ViteDevServerUrl = "http://localhost:5173";
 

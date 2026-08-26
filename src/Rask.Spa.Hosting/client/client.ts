@@ -301,11 +301,14 @@ function defaultBaseUrl(): string {
 function readProblem(text: string): { type?: string; title?: string; detail?: string } {
   try {
     const body = JSON.parse(text) as Record<string, unknown>
-    return {
-      type: typeof body.type === 'string' ? body.type : undefined,
-      title: typeof body.title === 'string' ? body.title : undefined,
-      detail: typeof body.detail === 'string' ? body.detail : undefined,
-    }
+
+    // Bracket access, not `body.type`. This file is vendored into clients whose tsconfig is not ours,
+    // and Angular's turns on `noPropertyAccessFromIndexSignature` — under which reading a Record with a
+    // dot is an error. Bracket access compiles everywhere and means exactly the same thing.
+    const read = (key: string): string | undefined =>
+      typeof body[key] === 'string' ? (body[key] as string) : undefined
+
+    return { type: read('type'), title: read('title'), detail: read('detail') }
   } catch {
     // A malformed body is not worth losing the status code over — the same call the C# client makes.
     return {}

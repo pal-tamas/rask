@@ -97,7 +97,7 @@ rask new Blog --data --docker        # + a SQLite database, ready for your first
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
-rask new Shop --template svelte      # …or preact, solid, lit
+rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
 rask new Field --template native     # a native iOS + Android app
 rask new Kiosk --template native --platform android   # Android only
 ```
@@ -128,9 +128,9 @@ restore` so the output builds immediately. `wasm-hosted` emits a three-project s
 (the browser-WASM SPA), `MyApp.Server` (the ASP.NET host you run and deploy), and `MyApp.Shared` (a class
 library both reference).
 
-The front-end templates — `react`, `preact`, `solid`, `svelte`, `lit` — are the ones that do **not**
-write their own client. Each runs the framework's own scaffolder
-(`npx create-vite@latest MyApp.Client --template <framework>-ts`) and overlays at most four files onto
+The front-end templates — `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit` — are the
+ones that do **not** write their own client. Each runs the framework's own scaffolder
+(`create-vite` for all of them but Angular, which runs `ng new`) and overlays at most four files onto
 what that produces, so the skeleton is whatever Vite ships today rather than a copy Rask maintains.
 They therefore need **Node.js and a network** at `rask new` time, and they emit two projects rather
 than three: the client's half of every contract is generated TypeScript, so there is nothing for a
@@ -138,7 +138,8 @@ than three: the client's half of every contract is generated TypeScript, so ther
 client with no TypeScript configuration is refused at build time with `RASKSPA004`.
 
 The set is exactly the frameworks TanStack Query ships an adapter for, and **TanStack Router is wired
-up for React and Solid** — the two adapters it ships. See [TypeScript front ends](spa.md).
+up for React and Solid** — the two adapters it ships. Angular differs in three ways (its own CLI, its
+own dev port, and a nested `dist`); see [TypeScript front ends](spa.md).
 
 A new project is deliberately **minimal** — nothing to delete before you start — and everything it
 scaffolds already follows the vertical-slice layout the guides build on: feature code under
@@ -163,7 +164,7 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, `native`, or a front-end framework: `react`, `preact`, `solid`, `svelte`, `lit`. |
+| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, `native`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
 | `--auth` | Scaffold a cookie login/session (web templates). |
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
@@ -286,7 +287,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native, react, preact, solid, svelte, lit.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native, react, preact, vue, angular, solid, svelte, lit.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 

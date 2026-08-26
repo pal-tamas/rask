@@ -47,6 +47,13 @@ internal sealed record DevTarget(
     /// </summary>
     public string? ClientDirectory { get; init; }
 
+    /// <summary>Where the client's own dev server listens — Vite's 5173, Angular's 4200, or whatever the
+    ///     host's csproj says. Null when there is no client.</summary>
+    public string? ClientDevServerUrl { get; init; }
+
+    /// <summary>The npm script that starts it: <c>dev</c> for Vite, <c>start</c> for the Angular CLI.</summary>
+    public string? ClientDevScript { get; init; }
+
     /// <summary>The project name, used in the banner.</summary>
     public string Name => Path.GetFileNameWithoutExtension(ProjectPath);
 
@@ -75,10 +82,69 @@ internal sealed record DevTarget(
         var directory = Path.GetDirectoryName(resolved) ?? workingDirectory;
         var (url, launchesBrowser) = ReadLaunchProfile(fileSystem, directory);
         var kind = Classify(fileSystem, csproj);
+        var client = kind == DevTemplateKind.SpaHosted ? SpaClientDirectory(fileSystem, resolved) : null;
         return new DevTarget(kind, resolved, directory, url, launchesBrowser)
         {
-            ClientDirectory = kind == DevTemplateKind.SpaHosted ? SpaClientDirectory(fileSystem, resolved) : null,
+            ClientDirectory = client,
+            ClientDevServerUrl = client is null ? null : ReadDevServerUrl(fileSystem, csproj),
+            ClientDevScript = client is null ? null : ReadDevScript(fileSystem, client),
         };
+    }
+
+    /// <summary>
+    ///     Where the client's own dev server listens, read from the property the scaffold baked into the
+    ///     host's csproj.
+    /// </summary>
+    /// <remarks>
+    ///     Read rather than assumed, because it is not the same for every framework — Vite listens on 5173
+    ///     and Angular's <c>ng serve</c> on 4200 — and it is the host that already carries the answer, for
+    ///     its own "nothing built yet" page. Vite's default when the property is absent, which is what an
+    ///     older scaffold has.
+    /// </remarks>
+    private static string ReadDevServerUrl(IFileSystem fileSystem, string csproj)
+    {
+        var match = Regex.Match(
+            ReadOrEmpty(fileSystem, csproj),
+            @"<RaskSpaDevServerUrl>\s*([^<\s]+)\s*</RaskSpaDevServerUrl>");
+
+        return match.Success ? match.Groups[1].Value : "http://localhost:5173";
+    }
+
+    /// <summary>
+    ///     The npm script that starts the client's dev server: <c>dev</c> where there is one, otherwise
+    ///     <c>start</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Read from the client's own package.json rather than decided per framework, because that file is
+    ///     what actually settles it — create-vite writes <c>dev</c>, the Angular CLI writes <c>start</c>,
+    ///     and a project that renamed either is still answered correctly.
+    /// </remarks>
+    private static string ReadDevScript(IFileSystem fileSystem, string clientDirectory)
+    {
+        try
+        {
+            var manifest = fileSystem.ReadAllText(Path.Combine(clientDirectory, "package.json"));
+            using var document = JsonDocument.Parse(manifest);
+            if (document.RootElement.TryGetProperty("scripts", out var scripts))
+            {
+                if (scripts.TryGetProperty("dev", out _))
+                {
+                    return "dev";
+                }
+
+                if (scripts.TryGetProperty("start", out _))
+                {
+                    return "start";
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            // Unreadable or malformed: fall through to the common default rather than refusing to run
+            // the host over a file that is only needed for the other half.
+        }
+
+        return "dev";
     }
 
     /// <summary>
