@@ -217,6 +217,25 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     }
 
     public Component View { get; }
+
+    /// <summary>
+    ///     Whether the last render actually mounted <paramref name="pageType" />.
+    /// </summary>
+    /// <remarks>
+    ///     The route table alone cannot answer "is the user looking at the not-found page". An app
+    ///     whose root renders directly still resolves a route — the fallback is always registered —
+    ///     but mounts no <c>Router</c>, so the resolved chain is never rendered and the URL is
+    ///     incidental. Asking what the walk actually mounted distinguishes the two without the host
+    ///     having to guess whether the app routes: the not-found page is in this set only when the
+    ///     user is genuinely looking at it.
+    ///     <para>
+    ///         Reads the root's per-render mounted-type set, which is cleared at the top of every
+    ///         walk and populated unconditionally as components mount, so it describes the render
+    ///         whose HTML is about to be served.
+    ///     </para>
+    /// </remarks>
+    internal bool LastRenderMounted(Type pageType) =>
+        View.MountedTypeInLastRender(pageType);
     public IServiceProvider Services { get; }
 
     // Pending IJSRuntime calls, drained into each frame's jsInvokes and dispatched client-side after

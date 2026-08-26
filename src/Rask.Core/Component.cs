@@ -788,6 +788,14 @@ public abstract partial class Component : RaskMarkup
     /// </summary>
     protected virtual Task OnUnmountAsync() => Task.CompletedTask;
 
+    /// <summary>
+    ///     Whether the last render walk rooted here mounted <paramref name="type" />. The set is
+    ///     cleared at the top of every walk and populated as components mount, so this describes
+    ///     the render whose HTML is current — not the tree's history.
+    /// </summary>
+    internal bool MountedTypeInLastRender(Type type) =>
+        Live.MountedTypes?.Contains(type) == true;
+
     internal void RaiseLifecycleBeforeRender(bool propsChanged)
     {
         var firstRender = !Live.HasInitialized;
