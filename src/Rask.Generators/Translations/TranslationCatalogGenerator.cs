@@ -124,12 +124,41 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         var parsed = new Dictionary<string, ParsedMessage>(System.StringComparer.Ordinal);
         foreach (var key in neutralCatalog.Order)
         {
-            var message = MessageParser.Parse(neutralCatalog.Entries[key].Value);
+            var entry = neutralCatalog.Entries[key];
+            var neutralName = System.IO.Path.GetFileName(neutralCatalog.FilePath);
+
+            if (entry.IsPlural)
+            {
+                if (!ValidatePlural(spc, neutralCatalog, entry, neutralName))
+                {
+                    return;
+                }
+
+                // Every form has to agree on placeholders too — they are the same call site.
+                ParsedMessage? first = null;
+                foreach (var form in entry.Forms.Values)
+                {
+                    var parsedForm = MessageParser.Parse(form);
+                    if (parsedForm.Error is not null)
+                    {
+                        Report(spc, TranslationDiagnostics.Malformed, neutralCatalog.FilePath,
+                            entry.Line, entry.Column, neutralName,
+                            $"the text for '{key}' has {parsedForm.Error}");
+                        return;
+                    }
+
+                    first ??= parsedForm;
+                }
+
+                parsed[key] = first ?? MessageParser.Parse(string.Empty);
+                continue;
+            }
+
+            var message = MessageParser.Parse(entry.Value);
             if (message.Error is not null)
             {
                 Report(spc, TranslationDiagnostics.Malformed, neutralCatalog.FilePath,
-                    neutralCatalog.Entries[key].Line, neutralCatalog.Entries[key].Column,
-                    System.IO.Path.GetFileName(neutralCatalog.FilePath),
+                    entry.Line, entry.Column, neutralName,
                     $"the text for '{key}' has {message.Error}");
                 return;
             }
@@ -166,6 +195,38 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
                         catalog.Entries[key].Line, catalog.Entries[key].Column, name, neutralName,
                         $"'{key}' is not in the neutral catalog, so it generates nothing — add it to "
                         + $"'{neutralName}', or delete it here");
+                    continue;
+                }
+
+                if (neutralCatalog.Entries[key].IsPlural != catalog.Entries[key].IsPlural)
+                {
+                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
+                        catalog.Entries[key].Line, catalog.Entries[key].Column, name,
+                        $"'{key}' is {(catalog.Entries[key].IsPlural ? "a plural set here but a single string" : "a single string here but a plural set")} "
+                        + "in the neutral catalog — they generate different members, so they cannot differ");
+                    return;
+                }
+
+                if (catalog.Entries[key].IsPlural)
+                {
+                    if (!ValidatePlural(spc, catalog, catalog.Entries[key], name))
+                    {
+                        return;
+                    }
+
+                    // A category this language HAS but the catalog omits is a gap the reader will see
+                    // as wrong grammar, so it is reported — but as a warning, like any missing text.
+                    foreach (var category in PluralRules.CategoriesFor(catalog.CultureTag) ?? [])
+                    {
+                        if (!catalog.Entries[key].Forms.ContainsKey(category))
+                        {
+                            Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath,
+                                catalog.Entries[key].Line, catalog.Entries[key].Column, name, neutralName,
+                                $"'{key}' has no '{category}' form, which {catalog.CultureTag} distinguishes "
+                                + "— the 'other' form is used instead");
+                        }
+                    }
+
                     continue;
                 }
 
@@ -223,6 +284,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         RenderNode(sb, tree, catalogs, neutralCatalog, parsed, indent: 1);
 
         RenderCatalogPlumbing(sb, catalogs, neutralCatalog);
+        RenderPluralFunctions(sb, catalogs, neutralCatalog);
 
         sb.AppendLine("}");
         return sb.ToString();
@@ -278,7 +340,15 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
 
             if (child.Key is { } key)
             {
-                RenderMember(sb, pad, name, key, catalogs, neutralCatalog, parsed);
+                if (neutralCatalog.Entries[key].IsPlural)
+                {
+                    RenderPluralMember(sb, pad, name, key, catalogs, neutralCatalog);
+                }
+                else
+                {
+                    RenderMember(sb, pad, name, key, catalogs, neutralCatalog, parsed);
+                }
+
                 continue;
             }
 
@@ -288,6 +358,129 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             RenderNode(sb, child, catalogs, neutralCatalog, parsed, indent + 1);
             sb.AppendLine($"{pad}}}");
         }
+    }
+
+    /// <summary>
+    ///     Checks a plural entry against the grammar of the language it is written in.
+    /// </summary>
+    /// <remarks>
+    ///     An unknown language is an error rather than a silent fallback to English rules. Applying the
+    ///     wrong grammar produces text that reads as broken to every native speaker while every test
+    ///     stays green — the failure mode a curated table exists to avoid.
+    /// </remarks>
+    private static bool ValidatePlural(
+        SourceProductionContext spc, Catalog catalog, CatalogEntry entry, string name)
+    {
+        var categories = PluralRules.CategoriesFor(catalog.CultureTag);
+        if (categories is null)
+        {
+            Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
+                $"'{entry.Path}' is a plural set, but Rask does not carry the plural rules for "
+                + $"'{catalog.CultureTag}' — open an issue to add them, or replace the plural key with "
+                + "explicit per-count keys");
+            return false;
+        }
+
+        if (entry.PluralParameter is not { Length: > 0 })
+        {
+            Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
+                $"'{entry.Path}' has an empty '$plural' — name the parameter that carries the count");
+            return false;
+        }
+
+        var residual = PluralRules.ResidualFor(catalog.CultureTag)!;
+        if (!entry.Forms.ContainsKey(residual))
+        {
+            // The arm every unmatched count lands on. Note this is NOT always "other": Polish integers
+            // never select "other" — CLDR routes the residual to "many" — so requiring "other" there
+            // would demand dead text and leave the form the language really uses optional.
+            Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
+                $"'{entry.Path}' has no '{residual}' form, which is what {catalog.CultureTag} falls back to "
+                + "for any count the other forms do not match");
+            return false;
+        }
+
+        foreach (var form in entry.Forms.Keys)
+        {
+            if (!PluralRules.IsCategory(form))
+            {
+                Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
+                    $"'{entry.Path}' has a form called '{form}', which is not a CLDR plural category "
+                    + $"({string.Join(", ", PluralRules.Categories)})");
+                return false;
+            }
+
+            if (System.Array.IndexOf(categories, form) < 0)
+            {
+                // Text the language can never select: a real mistake, and invisible at runtime.
+                Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
+                    $"'{entry.Path}' has a '{form}' form, but {catalog.CultureTag} does not distinguish it "
+                    + $"— it uses {string.Join("/", categories)}, so that text could never be shown");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void RenderPluralMember(
+        StringBuilder sb,
+        string pad,
+        string name,
+        string key,
+        List<Catalog> catalogs,
+        Catalog neutralCatalog)
+    {
+        var entry = neutralCatalog.Entries[key];
+        var parameter = Escape(entry.PluralParameter!);
+        var member = Escape(name);
+
+        sb.AppendLine($"{pad}/// <summary><c>{neutralCatalog.CultureTag}</c>: a plural set counted by <c>{entry.PluralParameter}</c>.</summary>");
+        sb.AppendLine($"{pad}public static string {member}(long {parameter})");
+        sb.AppendLine($"{pad}{{");
+        sb.AppendLine($"{pad}    var __format = __Index switch");
+        sb.AppendLine($"{pad}    {{");
+
+        for (var i = 0; i < catalogs.Count; i++)
+        {
+            var catalog = catalogs[i];
+            if (!catalog.Entries.TryGetValue(key, out var localised) || !localised.IsPlural)
+            {
+                continue;
+            }
+
+            var arm = ReferenceEquals(catalog, neutralCatalog) ? "_" : i.ToString();
+            sb.AppendLine($"{pad}        {arm} => __Plural.{PluralMethod(catalog.CultureTag)}({parameter}) switch");
+            sb.AppendLine($"{pad}        {{");
+
+            var categories = PluralRules.CategoriesFor(catalog.CultureTag)!;
+            for (var c = 0; c < categories.Length; c++)
+            {
+                if (localised.Forms.TryGetValue(categories[c], out var form))
+                {
+                    sb.AppendLine($"{pad}            {c} => {Literal(MessageParser.Parse(form).Format)},");
+                }
+            }
+
+            // The residual form is guaranteed present by ValidatePlural, so an unmatched category
+            // still has text — and it is the language's own residual rather than a hardcoded "other".
+            var residual = PluralRules.ResidualFor(catalog.CultureTag)!;
+            sb.AppendLine($"{pad}            _ => {Literal(MessageParser.Parse(localised.Forms[residual]).Format)},");
+            sb.AppendLine($"{pad}        }},");
+        }
+
+        sb.AppendLine($"{pad}    }};");
+        sb.AppendLine($"{pad}    return string.Format(");
+        sb.AppendLine($"{pad}        global::Rask.Core.Globalization.RaskCulture.Current, __format, {parameter});");
+        sb.AppendLine($"{pad}}}");
+        sb.AppendLine();
+    }
+
+    private static string PluralMethod(string cultureTag)
+    {
+        var cut = cultureTag.IndexOf('-');
+        var language = cut < 0 ? cultureTag : cultureTag.Substring(0, cut);
+        return char.ToUpperInvariant(language[0]) + language.Substring(1).ToLowerInvariant();
     }
 
     private static void RenderMember(
@@ -354,6 +547,45 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         // The neutral text is the default arm, so an untranslated key falls back to it without any
         // runtime lookup — and "the key itself" is a state that cannot occur.
         sb.AppendLine($"{pad}_ => {render(MessageParser.Parse(neutralCatalog.Entries[key].Value))},");
+    }
+
+    // One category function per language that has a plural key, and nothing at all for an app with
+    // none. The arithmetic is CLDR's; see PluralRules for why it is a curated table.
+    private static void RenderPluralFunctions(StringBuilder sb, List<Catalog> catalogs, Catalog neutralCatalog)
+    {
+        var needed = new SortedDictionary<string, string>(System.StringComparer.Ordinal);
+        foreach (var catalog in catalogs)
+        {
+            foreach (var key in catalog.Order)
+            {
+                if (catalog.Entries[key].IsPlural && PluralRules.BodyFor(catalog.CultureTag) is { } body)
+                {
+                    needed[PluralMethod(catalog.CultureTag)] = body;
+                    break;
+                }
+            }
+        }
+
+        if (needed.Count == 0)
+        {
+            return;
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("    // CLDR plural categories, as plain integer arithmetic. Emitted only for the");
+        sb.AppendLine("    // languages this catalog actually pluralises in.");
+        sb.AppendLine("    private static class __Plural");
+        sb.AppendLine("    {");
+        foreach (var pair in needed)
+        {
+            sb.AppendLine($"        internal static int {pair.Key}(long n)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            {pair.Value}");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("    }");
     }
 
     private static void RenderCatalogPlumbing(StringBuilder sb, List<Catalog> catalogs, Catalog neutralCatalog)

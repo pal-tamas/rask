@@ -36,6 +36,23 @@ them until tagged releases begin.
   Fallback walks `hu-HU` → `hu` → the neutral catalog, and "the key itself" is a state that cannot
   occur: a key absent from the neutral catalog generates no member, so it cannot be referenced.
 
+  **Counts get real plural grammar**, written as `{ "$plural": "count", "one": …, "other": … }`. This
+  is the part of translation that cannot be worked around at the call site: a count is dynamic by
+  definition, so "write two keys and pick one" is simply wrong the moment a language has three
+  categories — and Polish, Russian, Czech, Latvian, Lithuanian, Romanian and Arabic all do.
+
+  Not via ICU MessageFormat, which is unavailable under `InvariantGlobalization` and would be a large
+  dependency in both an analyzer and the runtime. The plural *category function* is pure integer
+  arithmetic over the CLDR operands, so Rask carries a curated table of it and emits a picker only for
+  the languages a catalog actually pluralises in. A language whose grammar Rask does not carry is a
+  build **error naming that language**, rather than a silent fallback to English rules that would read
+  as broken to every native speaker while every test stayed green.
+
+  **The required fallback form is the language's own residual, which is not always `other`.** Polish
+  integers never select `other` — CLDR routes the residual to `many` — so a Polish catalog supplies
+  `one`/`few`/`many`, and demanding `other` would have meant writing text no visitor could ever see.
+  Supplying a form the language cannot select (`few` in English) is an error for the same reason.
+
 - **A WASM app negotiates the visitor's language before its first render, and `RaskGlobalization`
   decides whether it ships ICU.** `host.UseCulture(c => c.SupportedCultures.Add("hu"))` turns culture
   support on; the browser's signals — `?culture=`, the remembered cookie, `navigator.languages` — are
