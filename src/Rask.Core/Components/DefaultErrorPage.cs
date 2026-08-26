@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Rask.Core.Live;
 
@@ -270,13 +271,13 @@ public sealed class DefaultErrorPage : Component
 
             var start = Math.Max(1, line - radius);
             var end = Math.Min(lines.Length, line + radius);
-            var width = end.ToString().Length;
+            var width = end.ToString(CultureInfo.InvariantCulture).Length;
 
             var sb = new StringBuilder();
             for (var i = start; i <= end; i++)
             {
                 sb.Append(i == line ? "→ " : "  ")
-                    .Append(i.ToString().PadLeft(width))
+                    .Append(i.ToString(CultureInfo.InvariantCulture).PadLeft(width))
                     .Append(" | ")
                     .Append(lines[i - 1]);
                 if (i < end)

@@ -184,10 +184,21 @@ public abstract partial class Component : RaskMarkup
     // (16 B) on EVERY node in a mounted tree — a bad trade against a rare ToString on reused nodes,
     // and this is a footprint-focused path. Non-keyed nodes (the majority) hit the null short-circuit
     // and allocate nothing.
+    //
+    // Every non-string arm formats with InvariantCulture. The key is stringified into data-rask-key and
+    // baked into the HTML the client already holds, so a culture-sensitive spelling breaks keyed
+    // reconciliation at the moment the culture changes: under sv-SE a negative int renders with U+2212
+    // MINUS SIGN rather than '-', and a decimal/DateTime key re-spells entirely. int/long/Guid lead
+    // because they are the documented common keys and stay a direct call; IFormattable catches
+    // decimal/double/DateTime/DateOnly/TimeOnly and formattable enums.
     internal string? KeyString => Key switch
     {
         null => null,
         string s => s,
+        int i => i.ToString(CultureInfo.InvariantCulture),
+        long l => l.ToString(CultureInfo.InvariantCulture),
+        Guid g => g.ToString(),
+        IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
         var k => k.ToString(),
     };
 
@@ -1811,9 +1822,9 @@ public abstract partial class Component : RaskMarkup
     {
         Span<char> buf = stackalloc char[12];
         buf[0] = 'h';
-        return n.TryFormat(buf[1..], out var written)
+        return n.TryFormat(buf[1..], out var written, provider: CultureInfo.InvariantCulture)
             ? new string(buf[..(1 + written)])
-            : "h" + n;
+            : "h" + n.ToString(CultureInfo.InvariantCulture);
     }
 
     // ---- Clean-subtree handler round-trip (see CachedSubtree.Handlers) -----------------------------
