@@ -76,18 +76,20 @@ public sealed class NewCommandTests
     [Theory]
     [InlineData("wasm")]
     [InlineData("wasm-hosted")]
-    public async Task Tailwind_is_refused_on_the_browser_wasm_templates(string template)
+    public async Task Tailwind_now_scaffolds_on_the_browser_wasm_templates(string template)
     {
-        var (console, _, runner, command) = Build();
+        var (_, fs, _, command) = Build();
 
         var exit = await command.ExecuteAsync(
             ["Spa", "--template", template, "--tailwind"], CancellationToken.None);
 
-        // These paths collapse styling to a bool, so accepting the flag would scaffold plain CSS while
-        // reporting success — a mismatch found only by looking at the generated project.
-        Assert.Equal(CliCommand.UsageExitCode, exit);
-        Assert.Empty(runner.Invocations);
-        Assert.Contains("does not support --tailwind", console.ErrorText, StringComparison.Ordinal);
+        // Refused until #838, because both generators collapsed styling to a bool and would otherwise have
+        // scaffolded plain CSS while reporting success. Accepted now, and it has to WRITE something —
+        // exit 0 alone is what the old bug already looked like.
+        Assert.Equal(0, exit);
+
+        var stylesheet = template == "wasm" ? "/proj/Spa/Styles/app.css" : "/proj/Spa/Spa.Client/Styles/app.css";
+        Assert.True(fs.FileExists(stylesheet), $"[{template}] --tailwind wrote no {stylesheet}.");
     }
 
     [Fact]
@@ -402,13 +404,10 @@ public sealed class NewCommandTests
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
     }
 
-    /// <summary>
-    ///     The positive control for
-    ///     <see cref="The_wizard_does_not_offer_tailwind_for_a_template_that_would_refuse_it" />.
-    /// </summary>
+    /// <summary>The wizard offers Tailwind, on every template that reaches the styling question.</summary>
     /// <remarks>
-    ///     Without this, that test passes just as happily if the console never records option labels at
-    ///     all — an assertion on absent text proves nothing until something proves the text can be there.
+    ///     It was gated to non-WASM templates while those refused the flag (#838). They accept it now, so
+    ///     the gate is gone and this is the whole story again.
     /// </remarks>
     [Fact]
     public async Task The_wizard_offers_tailwind_where_the_template_supports_it()
@@ -427,27 +426,6 @@ public sealed class NewCommandTests
         Assert.Equal(0, exit);
         Assert.True(fs.FileExists("/proj/Spa/Program.cs")); // server template
         Assert.Contains("Tailwind", console.OutText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task The_wizard_does_not_offer_tailwind_for_a_template_that_would_refuse_it()
-    {
-        var (console, fs, _, command) = Build();
-
-        // Same flow as above: name → project type (down = wasm) → styling → Dockerfile? no → batteries.
-        console.Type("Spa")
-            .Press(ConsoleKey.DownArrow, ConsoleKey.Enter)
-            .Press(ConsoleKey.Enter)
-            .Type("n")
-            .Press(ConsoleKey.Enter);
-
-        var exit = await command.ExecuteAsync([], CancellationToken.None);
-
-        // The wizard's whole contract is that an interactive run cannot assemble a combination the
-        // command line then rejects. Offering Tailwind here would break exactly that.
-        Assert.Equal(0, exit);
-        Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html")); // wasm template
-        Assert.DoesNotContain("Tailwind", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]

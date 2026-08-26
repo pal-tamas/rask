@@ -492,12 +492,44 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(WithHygiene(WasmAlwaysPresent).Order(), files.Keys.Order());
 
-        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
+        Assert.Equal(["Rask.Wasm"], result.Packages);
         Assert.Contains("Microsoft.NET.Sdk.WebAssembly", files["App.csproj"], StringComparison.Ordinal);
         // A standalone SPA never carries the auth/pwa/docker opt-ins by default.
         Assert.DoesNotContain("Features/Auth/Auth.cs", files.Keys);
         Assert.DoesNotContain("wwwroot/icon.svg", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
+    }
+
+    /// <summary>The styling axis reaches the browser-WASM template, all three answers.</summary>
+    /// <remarks>
+    ///     It did not until #838: this generator took a <c>bool bootstrap</c> beside a ServerBatteries that
+    ///     already carried Styling, so <c>--tailwind</c> scaffolded a plain project and reported success.
+    ///     One parameter now, read off the batteries — two sources for one decision is the bug.
+    /// </remarks>
+    [Fact]
+    public void Wasm_honours_all_three_styling_answers()
+    {
+        var plain = ProjectGenerator.GenerateWasm(
+            Root, "App", auth: false, pwa: false, docker: false, Version, new ServerBatteries());
+        Assert.Equal(["Rask.Wasm"], plain.Packages);
+        Assert.DoesNotContain("Styles/app.css", Index(plain).Keys);
+
+        var bootstrap = ProjectGenerator.GenerateWasm(
+            Root, "App", auth: false, pwa: false, docker: false, Version,
+            new ServerBatteries { Styling = Styling.Bootstrap });
+        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], bootstrap.Packages);
+
+        var tailwind = ProjectGenerator.GenerateWasm(
+            Root, "App", auth: false, pwa: false, docker: false, Version,
+            new ServerBatteries { Styling = Styling.Tailwind });
+        var files = Index(tailwind);
+
+        Assert.Equal(["Rask.Wasm", "Rask.Tailwind"], tailwind.Packages);
+        Assert.Contains("@import \"tailwindcss\";", files["Styles/app.css"], StringComparison.Ordinal);
+        Assert.Contains("Rask.Tailwind", files["App.csproj"], StringComparison.Ordinal);
+
+        // The head has to point at what the build writes, or the stylesheet is compiled and never served.
+        Assert.Contains("/css/app.css", files["Features/Shared/App.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -546,7 +578,9 @@ public sealed class ProjectGeneratorTests
 
         Assert.Contains("public sealed partial class HomePage : Component", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
 
-        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
+        // Plain is what you get by not choosing, here as everywhere else — so the base package set is
+        // Rask.Wasm alone. Bootstrap and Tailwind are covered by their own case below.
+        Assert.Equal(["Rask.Wasm"], result.Packages);
         Assert.Equal(auth, files.ContainsKey("Features/Auth/Auth.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));

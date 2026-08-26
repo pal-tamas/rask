@@ -271,6 +271,27 @@ them until tagged releases begin.
   case, where rendering a spinner would hide data the user already has. `IsLoading`, `IsFetching`,
   `IsSuccess` and the new `IsError` are derived from them.
 
+- **`--tailwind` reaches the browser-WASM templates too** (#838). `GenerateWasm` took a `bool bootstrap`
+  beside a `ServerBatteries` that already carried `Styling`, and `GenerateWasmHosted` did the same for
+  its client half — so a Tailwind request scaffolded a **plain** project while the command reported
+  success. Two sources for one decision, and the caller that set only one of them was the bug; there is
+  one parameter now, read off the batteries.
+
+  On these templates the stylesheet belongs to the **client** project, because Tailwind v4 detects its
+  sources relative to where it runs and the components whose classes it is looking for are the browser
+  half's. `Rask.Tailwind` is build-only — no runtime assembly — so it adds nothing to what the browser
+  downloads.
+
+  **That it works under `Microsoft.NET.Sdk.WebAssembly` was an assumption until something built it.**
+  `Generated_..._Tailwind_compiles_the_scaffolded_pages_utilities` now scaffolds, builds and reads the
+  emitted CSS on both an ASP.NET host and a browser-WASM one, asserting a utility class **from the
+  scaffolded page** — because the way this fails is an almost-empty stylesheet from a build that
+  reported success, which no exit code distinguishes from working. A class the project never writes is
+  asserted absent too, so the test cannot pass against a stylesheet that shipped all of Tailwind.
+
+  `Rask.Tailwind` was also missing from the E2E's local feed, which is why no build gate could have
+  covered this.
+
 - **The front-end templates take `--pwa` and `--push`.** A TypeScript SPA is now installable and can
   receive Web Push from its ASP.NET host: `rask new Shop --template react --push`. The manifest, the
   icon and the service worker land in the client's own `public/`, which every bundler copies to the
@@ -329,9 +350,7 @@ them until tagged releases begin.
   `--bootstrap` asks for `Rask.Bootstrap`, and `--tailwind` asks for Tailwind. **`--no-bootstrap` is
   gone** — it was the negative half of a boolean pair that could not express three answers, and
   `--bootstrap --tailwind` is a usage error rather than a silent preference, because picking a winner
-  would scaffold something the command line did not ask for. `--tailwind` on `wasm`/`wasm-hosted` is
-  refused for the same reason: those paths have no styling axis yet, and would have scaffolded plain
-  CSS while reporting success.
+  would scaffold something the command line did not ask for.
 
 - **The WASM showcase and the docs site now ship ICU** (`RaskGlobalization=true`), which adds roughly
   2.6 MB of `icudt*.dat` to those two bundles. `RaskGlobalization` also requests **full** ICU rather

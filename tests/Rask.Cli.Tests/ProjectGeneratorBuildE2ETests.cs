@@ -638,4 +638,81 @@ public sealed class ProjectGeneratorBuildE2ETests
             CliBuildE2E.TryDeleteDirectory(temp);
         }
     }
+
+    /// <summary>
+    ///     Tailwind actually compiles, on an ASP.NET host and on a browser-WASM one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The WASM half is the reason this exists. <c>Rask.Tailwind</c> hooks <c>BeforeBuild</c> and
+    ///         shells out to a native compiler with the project directory as its working directory; that
+    ///         this survives <c>Microsoft.NET.Sdk.WebAssembly</c> — a different SDK, a different target
+    ///         framework, and a publish pipeline that rewrites <c>wwwroot</c> — was an assumption until
+    ///         something built it (#838).
+    ///     </para>
+    ///     <para>
+    ///         The assertion is a <b>utility class from the scaffolded page</b>, not the file's existence
+    ///         and not the exit code. Tailwind v4 detects its own sources relative to where it runs, so the
+    ///         way this fails is an almost-empty stylesheet from a build that reported success — which is
+    ///         indistinguishable from working unless something reads the output.
+    ///     </para>
+    ///     <para>
+    ///         Needs the network on a cold cache: the compiler is fetched once from Tailwind's releases and
+    ///         cached per user. Gated with the other build E2Es, so a plain `dotnet test` never reaches it.
+    ///     </para>
+    /// </remarks>
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Tailwind_compiles_the_scaffolded_pages_utilities(bool wasm)
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        var name = wasm ? "WTwE2E" : "TwE2E";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var batteries = new ServerBatteries { Styling = Styling.Tailwind };
+            var result = wasm
+                ? ProjectGenerator.GenerateWasm(
+                    projectDir, name, auth: false, pwa: false, docker: false, version, batteries)
+                : ProjectGenerator.GenerateServer(projectDir, name, batteries, version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            var csproj = Path.Combine(projectDir, name + ".csproj");
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{csproj}\" -warnaserror -m:1");
+            Assert.True(exit == 0, $"[wasm={wasm}] a --tailwind project failed to build.{CliBuildE2E.Diagnostics(output)}");
+
+            var stylesheet = Path.Combine(projectDir, "wwwroot", "css", "app.css");
+            Assert.True(
+                File.Exists(stylesheet),
+                $"[wasm={wasm}] the build reported success but wrote no {stylesheet} — the Tailwind target never ran.{CliBuildE2E.Diagnostics(output)}");
+
+            var css = await File.ReadAllTextAsync(stylesheet);
+
+            // From HomePage.cs's own markup. If v4 scanned the wrong tree this file is still written, still
+            // valid CSS, and carries none of the classes the page actually uses.
+            Assert.Contains("max-w-xl", css, StringComparison.Ordinal);
+            Assert.Contains("tracking-tight", css, StringComparison.Ordinal);
+
+            // A class nothing in the project writes must NOT be there: the positive alone would also pass
+            // against a stylesheet that shipped all of Tailwind, which is the other way to get this wrong.
+            Assert.DoesNotContain("max-w-3xl", css, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
 }

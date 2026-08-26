@@ -120,9 +120,8 @@ existing repository.
 pages are plain elements against a small stylesheet in the app shell — no CSS framework, nothing to
 learn before your first edit. `--bootstrap` renders them with `Rask.Bootstrap`'s `Bs*` components over
 Bootstrap 5.3, and `--tailwind` styles them with Tailwind CSS, compiled from your own source at build
-time (see [Tailwind](tailwind.md)). The two are mutually exclusive: asking for both is a usage error
-rather than a silent preference, and so is `--tailwind` on a template that does not support it yet —
-the browser-WASM ones, which have no styling axis of their own.
+time (see [Tailwind](tailwind.md)). Every template takes all three. The two flags are mutually
+exclusive: asking for both is a usage error rather than a silent preference.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
@@ -204,7 +203,7 @@ useful than a page designed to reveal nothing.
 | `--pwa` | ✅ | ✅ | ✅ | ✅ |
 | `--docker` | ✅ | ✅ | ✅ | ✅ |
 | `--bootstrap` | ✅ | ✅ | ✅ | — |
-| `--tailwind` | ✅ | — | — | ✅ |
+| `--tailwind` | ✅ | ✅ | ✅ | ✅ |
 | `--cqrs`, `--data` | ✅ | — | ✅ | ✅¹ |
 | `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | ✅ |
 | `--push` | ✅ | — | — | ✅ |
