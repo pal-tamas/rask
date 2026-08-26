@@ -36,6 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
 
 </Project>

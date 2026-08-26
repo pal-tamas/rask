@@ -62,14 +62,23 @@ public static class RaskSqliteDbContextOptionsExtensions
 
         options.Validate();
 
+        // EF Core resolves exactly one IMigrationsSqlGenerator, so this is a single choice rather than two
+        // replacements: registering a strict generator and a range-exclusion generator separately would keep
+        // only whichever was replaced last, silently dropping the other feature. Which one is wanted depends
+        // on the flag, so the combination has a type of its own. Range-exclusion DDL is inert unless an
+        // entity declares HasNonOverlappingRange — the generator finds no spec to emit.
         if (strictTables)
         {
-            // Registering the generator only when strictness is wanted keeps the flag out of the
-            // internal service provider: the replacement itself is unconditional.
-            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteStrictMigrationsSqlGenerator>();
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteStrictRangeExclusionSqlGenerator>();
+        }
+        else
+        {
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteRangeExclusionSqlGenerator>();
         }
 
         return optionsBuilder
+            // Inert too: it only reacts to the error the range-exclusion triggers raise.
+            .AddInterceptors(new RaskSqliteRangeExclusionInterceptor())
             .UseSqlite(connectionString, sqlite =>
             {
                 if (retryEnabled)
