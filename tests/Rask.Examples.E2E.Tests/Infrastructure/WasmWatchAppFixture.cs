@@ -171,10 +171,10 @@ public sealed class WasmWatchAppFixture : IAsyncLifetime
               // Not part of the sample — do not commit.
               [Route("{{ProbeRoute}}")]
               [ParentRoute(typeof(ShowcaseLayout))]
-              public sealed class HotReloadProbePage : Component
+              public sealed partial class HotReloadProbePage : Component
               {
                   protected override Component? Render() =>
-                      H1(Id: "probe")["{{marker}}"];
+                      H1.Id("probe")["{{marker}}"];
               }
 
               """);

@@ -469,6 +469,12 @@ them until tagged releases begin.
   gate that had never executed. `.githooks/pre-push` now runs both halves of the hot-reload gate, and
   the path filter that decides when covers `src/Rask.Wasm`'s client files too.
 
+  **Running it for the first time immediately found a break.** `WasmWatchAppFixture` writes a temporary
+  probe page at test time, and its template still used the factory API that #792 deleted — a `H1(Id: …)`
+  call on a non-`partial` class, which has not compiled since. The same shape as #795, where a template
+  the build gate never compiled was broken by that same change and found by reading rather than by
+  failing. The probe is now chain-built, and the gate passes.
+
 - **`scripts/run-e2e-local.sh` contradicted itself about #650.** One comment said the empty scoped-asset
   bake was unfixable by cleaning and "still open"; twenty lines later another said `-nodeReuse:false`
   *is* the fix, with a mechanism (MSBuild reuses worker nodes, `Assembly.LoadFrom` throws on a reused
