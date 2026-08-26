@@ -13,6 +13,10 @@ namespace Rask.SQLite;
 /// The per-connection pragmas (<c>foreign_keys</c>, <c>busy_timeout</c>, <c>synchronous</c>, …) do not
 /// persist, and EF Core pools connections, so they must run on <b>every</b> open — hence the
 /// <see cref="ConnectionOpened"/> / <see cref="ConnectionOpenedAsync"/> hook rather than a one-time setup.
+/// The same hook re-registers <see cref="SqliteCollations"/>, which replaces EF Core's culture-sensitive
+/// <c>EF_DECIMAL</c> collation with an invariant one so ordering a <see cref="decimal"/> column is correct
+/// on every locale; a pooled connection's <c>Deactivate()</c> un-registers it, so it too must run on
+/// every open.
 /// </remarks>
 public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
 {
@@ -31,6 +35,7 @@ public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
         if (connection is SqliteConnection sqlite)
         {
             SqlitePragmas.Apply(sqlite, _options);
+            SqliteCollations.Apply(sqlite);
         }
     }
 
@@ -43,6 +48,7 @@ public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
         if (connection is SqliteConnection sqlite)
         {
             await SqlitePragmas.ApplyAsync(sqlite, _options, cancellationToken).ConfigureAwait(false);
+            SqliteCollations.Apply(sqlite);
         }
     }
 }

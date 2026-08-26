@@ -6,6 +6,13 @@ interceptor applying the production pragma set — WAL, `synchronous=NORMAL`,
 `foreign_keys=ON`, a `busy_timeout`, `mmap_size`, `journal_size_limit` — to every connection the context
 opens.
 
+It also makes `decimal` correct. EF Core stores one as invariant TEXT and sorts it with a collating
+sequence it registers as `decimal.Parse(x)` — with no `IFormatProvider`, so it reads that invariant text
+under the machine's `CurrentCulture`. On `de-DE` an `ORDER BY` silently mis-sorts (`"19.95"` parses as
+`1995`); on `en-HU` it throws inside a native callback that cannot be unwound and **takes the process
+down**. `UseRaskSqlite` re-registers the collation invariantly on every open, changing nothing in the
+database file — no column type, no DDL, no migration.
+
 Split out from `Rask.SQLite` so apps that only use the raw `Microsoft.Data.Sqlite` path (or run on
 mobile / under AOT, where you don't want EF Core) can stay lean.
 

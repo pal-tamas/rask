@@ -7,6 +7,35 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`decimal` no longer mis-sorts — or kills the process — on a non-English locale.** SQLite has no
+  decimal type, so EF Core stores one as culture-invariant `TEXT` and sorts it with a collating sequence,
+  emitting `ORDER BY "Price" COLLATE EF_DECIMAL`. EF registers that sequence as
+  `decimal.Compare(decimal.Parse(x), decimal.Parse(y))` — **with no `IFormatProvider`** — so it parses the
+  invariant text under the machine's `CurrentCulture`. Where `.` is the *group* separator (`de-DE`,
+  `fr-FR`) `"19.95"` reads as `1995` and rows come back **silently mis-ordered**; where `.` is neither
+  separator (`en-HU`, `hu-HU`) the parse **throws inside a native SQLite comparison callback**, which a
+  managed exception cannot be unwound across — so it does not surface as a query error, it **terminates
+  the process**. The same crash happens on any locale once a non-numeric value reaches the column, which
+  SQLite's dynamic typing permits.
+
+  `UseRaskSqlite` (and the raw-ADO `IRaskSqliteConnectionFactory`) now re-register `EF_DECIMAL` on every
+  connection open with an invariant, total, non-throwing comparison — the new `SqliteCollations.Apply`.
+  EF's own generated SQL picks it up, so `ORDER BY`, `GROUP BY` and `DISTINCT` on a `decimal` are correct
+  on every locale, and text that cannot be parsed sorts after the numbers instead of crashing the app.
+
+  **Nothing in the database file changes** — no column type, no collation in the DDL, no migration, and
+  every other tool still reads the file exactly as before. Re-registration happens on each open because
+  Microsoft.Data.Sqlite's pool runs `Deactivate()` on return, which un-registers collations.
+
+  Arithmetic, comparisons and `Sum`/`Average`/`Min`/`Max` were never affected — those translate through
+  EF's `ef_add`/`ef_compare`/`ef_sum`/… helpers, which take typed `decimal` parameters. `docs/sqlite.md`
+  and `docs/data-access.md` claimed EF "falls back to REAL for `ORDER BY` and aggregates" and that "EF
+  Core warns"; neither was true — there is no REAL fallback and `SqliteEventId.DecimalTypeDefaultWarning`
+  no longer exists in EF Core 10. Both are corrected, and modelling money as integer minor units is now
+  presented as an indexing/throughput choice rather than a correctness workaround.
+
 ### Removed
 
 - **The native hosting model is gone. Rask is a web framework.** `Rask.Native` and `Rask.Chrome` are

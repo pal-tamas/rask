@@ -723,11 +723,15 @@ not just asserted in prose.
   enforce it if something writes to it directly.
 - **No native `decimal` or `DateTimeOffset`.** Storage classes are `INTEGER`/`REAL`/`TEXT`/`BLOB`/`NULL`
   only. To preserve precision, **EF Core stores a `decimal` as `TEXT`** (not `REAL`, which would round —
-  `0.1 + 0.2 ≠ 0.3`). The value round-trips exactly, but a TEXT column doesn't sort or aggregate
-  *numerically* in SQL, so server-side `ORDER BY` / `Sum` / `Average` on a decimal is unreliable (EF Core
-  warns). For money, store integer minor units instead (the EF Core sample's `Money` value object stores
-  cents) — it sorts and sums correctly. EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to
-  `TEXT` — mind text-sort ordering.
+  `0.1 + 0.2 ≠ 0.3`), in a culture-invariant format — `19.95`, never `19,95`, whatever the server's
+  locale. Arithmetic, comparisons and `Sum`/`Average`/`Min`/`Max` translate through managed helpers EF
+  registers on the connection; ordering translates to `ORDER BY "x" COLLATE EF_DECIMAL`. **EF's own
+  `EF_DECIMAL` parses that invariant text under `CurrentCulture`**, so on `de-DE` it mis-sorts and on
+  `en-HU` it throws inside a native callback and kills the process — [`UseRaskSqlite` replaces it with an
+  invariant one](data-access.md#does-sqlite-support-decimal), changing nothing in the file. For money on
+  a large, frequently sorted table, integer minor units in an `INTEGER` column still sort and aggregate
+  natively and index usefully. EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to `TEXT` —
+  mind text-sort ordering.
 - **Limited `ALTER TABLE`.** SQLite can add/rename/drop columns but not, say, change a column's type or
   constraints in place — EF Core migrations rebuild the table (create → copy → drop → rename) for those,
   which is slower and briefly locks the table.
