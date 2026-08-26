@@ -352,3 +352,27 @@ The `nginx.conf` does four things that matter for a Rask WASM bundle:
 Because it's just static files, you can equally serve the `wwwroot` publish output from any CDN or
 object-storage static host instead of a container. For GitHub Pages / sub-path hosting, publish with
 `/p:RaskPathBase=/my-repo` — see [Mobile & PWA → Deploying](pwa.md#deploying-github-pages--sub-paths).
+
+### When the app doesn't start
+
+A misconfigured static host is the commonest way a WASM bundle fails, and the symptom used to be the
+worst possible one: the splash screen, spinning, for ever. Nothing in the console, nothing on the page.
+A 404 on `_framework`, the wrong MIME type, and a genuinely slow connection all looked identical.
+
+They no longer do. **A Rask app that cannot start replaces its splash screen with what went wrong** —
+which step failed, and the exception, verbatim:
+
+> **This app failed to start.**
+> The .NET runtime could not be loaded. Check that the `_framework` assets are being served, with the
+> correct `application/wasm` content type.
+
+The full error is in the browser console too. The three failures worth recognising:
+
+| What it says | What it usually means |
+| --- | --- |
+| The .NET runtime could not be loaded | `_framework` is 404ing, or `.wasm` is served as `application/octet-stream`. Check the two `nginx.conf` items above. |
+| The Rask browser module could not be loaded | `rask.wasm.js` did not reach the client — usually a sub-path deploy without `/p:RaskPathBase`. |
+| The app finished starting but never rendered | The app booted and returned without painting. Check that `Program.cs` **awaits** `host.RunAsync<App>()`. |
+
+The failure panel appears only before the app has mounted. Once it has, an uncaught error is handled by
+the [root error boundary](lifecycle.md) instead, so a working page is never replaced by this one.

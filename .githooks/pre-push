@@ -10,6 +10,7 @@
 #
 # Bypass for docs-only or emergency pushes:  git push --no-verify
 # Per-gate bypass: RASK_SKIP_E2E=1 (browser) · RASK_SKIP_CLI_BUILD_E2E=1 (CLI build)
+#                  RASK_SKIP_WATCH_E2E=1 (hot reload, both halves) · RASK_SKIP_DEPLOY_E2E=1 (deploy)
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
@@ -100,7 +101,7 @@ fi
 # The watch gate runs a real `dotnet watch` session with 2-minute ceilings, so like the others it runs
 # only when this push touches the hot-reload path: the coordinator, the registries it refreshes, the
 # generators that emit them, the client branch, or `rask dev` itself.
-watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.js|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs)'
+watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.js|src/Rask\.Wasm/(HotReload/|Resources/rask\.wasm\.js|Browser/main\.js)|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs|tests/Rask\.Examples\.E2E\.Tests/WasmWatchHotReloadTests\.cs)'
 
 if [ "${RASK_SKIP_WATCH_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_WATCH_E2E=1 set — skipping the watch hot-reload gate."
@@ -115,6 +116,14 @@ else
   run_gate "watch hot-reload gate" scripts/run-watch-e2e.sh \
     "The hot-reload path doesn't compile." \
     "An edit no longer reaches a running app."
+
+  # And the browser half. scripts/run-wasm-watch-e2e.sh existed but nothing invoked it, so WASM hot
+  # reload was covered by no gate at all: WasmWatchHotReloadTests lives in the E2E project, so the
+  # browser gate's namespace-wide filter DOES select it — and then it reports SKIPPED, because it is
+  # opt-in on RASK_WASM_WATCH_E2E=1 and nothing set that. Green, never run. Only this script sets it.
+  run_gate "WASM watch hot-reload gate" scripts/run-wasm-watch-e2e.sh \
+    "The WASM hot-reload path doesn't compile." \
+    "An edit no longer reaches a running WASM app."
 fi
 
 # The deploy gate boots a privileged container, so it runs only when this push actually touches the

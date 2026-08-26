@@ -156,6 +156,18 @@ internal static partial class JSInterop
     [JSImport("hotReloadApplied", ModuleName)]
     public static partial void HotReloadApplied();
 
+    /// <summary>
+    ///     Shows a boot failure on the page. Called when startup throws before anything has rendered,
+    ///     where the root error boundary cannot help — it needs a mounted tree to render its fallback
+    ///     into, and there is none yet.
+    /// </summary>
+    /// <remarks>
+    ///     Reported from managed code rather than left to the JS side because only this side has the
+    ///     exception: to JS a startup failure is an opaque rejected promise out of <c>runMain</c>.
+    /// </remarks>
+    [JSImport("bootFailed", ModuleName)]
+    public static partial void BootFailed(string message, string? detail);
+
     [JSImport("getLocation", ModuleName)]
     public static partial string GetLocation();
 
@@ -246,6 +258,13 @@ internal static partial class JSInterop
     public static void HotReloadApplied() => HotReloadAppliedCount++;
 
     internal static void ResetHotReloadAppliedCount() => HotReloadAppliedCount = 0;
+
+    /// <summary>Records the last boot failure so the non-browser tests can assert what was reported.</summary>
+    public static (string Message, string? Detail)? LastBootFailure { get; private set; }
+
+    public static void BootFailed(string message, string? detail) => LastBootFailure = (message, detail);
+
+    internal static void ResetBootFailure() => LastBootFailure = null;
 
     public static Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length) =>
         Task.FromResult(Array.Empty<byte>());

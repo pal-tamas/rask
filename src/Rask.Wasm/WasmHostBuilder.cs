@@ -190,6 +190,29 @@ public sealed class WasmHostBuilder
     public async Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {
+        try
+        {
+            await BootAsync<TApp>().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Everything below runs before there is a mounted tree, so RootErrorBoundary — which needs
+            // one to render its fallback into — cannot cover any of it. Without this, a throw here
+            // escapes through runMain() as an opaque rejected promise and the visitor is left on the
+            // splash spinner for ever, which is indistinguishable from a slow network (#817).
+            //
+            // Reported from here rather than from JS because only this side has the exception; to JS
+            // it is a rejection with nothing useful attached.
+            ReportBootFailure(ex);
+            throw;
+        }
+    }
+
+    /// <summary>The boot sequence proper. See <see cref="RunAsync{TApp}" />, which reports its failures.</summary>
+    private async Task
+        BootAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
+        where TApp : Component
+    {
         Console.WriteLine($"[Rask.Wasm] Rask {RaskVersion.Current} (WASM) starting");
         Console.WriteLine("[Rask.Wasm] importing rask.wasm.js …");
         await JSInterop.ImportJsModuleAsync().ConfigureAwait(false);
@@ -292,5 +315,35 @@ public sealed class WasmHostBuilder
         var hostedServices = new WasmHostedServices(provider);
         JSInterop.Init(hostedServices);
         await hostedServices.StartAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Puts a boot failure on the page and into the app's own logging, best-effort on both counts.
+    /// </summary>
+    /// <remarks>
+    ///     Never throws. It runs from a catch block on the way to rethrowing the original exception, and
+    ///     losing that one to a secondary failure in the reporter would be strictly worse than reporting
+    ///     nothing: the console still has the rethrow. The JS call in particular is expected to fail when
+    ///     the boot got no further than importing the module.
+    /// </remarks>
+    internal static void ReportBootFailure(Exception ex)
+    {
+        try
+        {
+            RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Wasm", "[Rask.Wasm] the app failed to start", ex);
+        }
+        catch
+        {
+            // Diagnostics are installed partway through boot; before that there is nothing to report to.
+        }
+
+        try
+        {
+            JSInterop.BootFailed("The app failed to start.", ex.ToString());
+        }
+        catch
+        {
+            // No JS module yet (the import is the first thing boot does, and it can be what failed).
+        }
     }
 }
