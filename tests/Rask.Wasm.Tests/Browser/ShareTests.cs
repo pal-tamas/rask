@@ -1,6 +1,8 @@
 using Microsoft.JSInterop;
+using Rask.Core.Browser;
+using Rask.Wasm.Browser;
 
-namespace Rask.Client.Tests;
+namespace Rask.Wasm.Tests.Browser;
 
 public class ShareTests
 {

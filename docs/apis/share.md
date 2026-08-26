@@ -4,7 +4,7 @@
 
 - **Wraps:** Web Share API
 - **MDN:** [Navigator.share](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share)
-- **Home:** `Rask.Client.Browser` (WASM)
+- **Home:** `Rask.Wasm.Browser` (WASM)
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
@@ -14,6 +14,6 @@ Imperative sharing needs transient activation, so it's WASM-only. On Server, use
 
 ## See also
 
-- Source: [`IShare.cs`](../../src/Rask.Client/Browser/IShare.cs)
+- Source: [`IShare.cs`](../../src/Rask.Wasm/Browser/IShare.cs)
 - [Capability matrix](../browser-capabilities.md)
 - [Browser APIs — the narrative map](../browser-apis.md)

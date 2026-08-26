@@ -69,14 +69,14 @@ user activation survives even on the Server transport. Because it's headless, th
 with a `Data` prop (a link, an icon button, a `BsButton`), not just a `<button>`. Web Share is available on
 mobile Safari / Android Chrome / Edge (not desktop Firefox); an unsupported browser no-ops.
 
-**`IShare`** (`Rask.Client.Browser`) is the **imperative** path — share from *code* (a lifecycle hook,
+**`IShare`** (`Rask.Wasm.Browser`) is the **imperative** path — share from *code* (a lifecycle hook,
 after an `await`). That needs the in-process transport to keep the activation, so it's registered only by
 the **WASM** host.
 
 | API | Home | Hosts | Use |
 | --- | --- | --- | --- |
 | `Shareable` | `Rask.Core` | **all** (Server too) | Headless declarative share — attaches `data-rask-share` to your element; fires `navigator.share` in the gesture |
-| `IShare` | `Rask.Client.Browser` | WASM | Imperative share from code |
+| `IShare` | `Rask.Wasm.Browser` | WASM | Imperative share from code |
 
 ### Gesture bridge — activation-gated APIs on the Server host
 

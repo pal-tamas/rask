@@ -110,7 +110,7 @@ public class RaskBrowserApisTests
 
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
 
-        // IShare lives in Rask.Client; the WASM-only device set lives in Rask.Wasm. Neither is in the Core tier.
+        // IShare and the WASM-only device set both live in Rask.Wasm. Neither is in the Core tier.
         Assert.DoesNotContain(services, d => d.ServiceType.Name is "IShare" or "IFullscreen" or "ISerial");
     }
 

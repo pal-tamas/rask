@@ -1,15 +1,19 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Browser;
 using Rask.Wasm.Browser;
 
 namespace Rask.Wasm.Tests.Browser;
 
-// Covers the WASM-only device/handle set (Rask.Wasm). Together with the Core tier (Rask.Core.Tests) and the
-// in-process IShare tier (Rask.Client.Tests) this pins the full 47-wrapper surface and its Singleton lifetime
-// on the WASM host.
+// Covers the WASM-only set (Rask.Wasm) — the wrappers that need a live document/handle, a device chooser or
+// a transient user gesture. Together with the Core tier (Rask.Core.Tests) this pins the full 48-wrapper
+// surface and its Singleton lifetime on the WASM host. IShare joined this set when Rask.Client was folded
+// in: it was never a third tier, only a WASM-only wrapper kept in its own assembly for a second host that
+// no longer exists.
 public class RaskWasmBrowserApisTests
 {
     private static readonly (Type Service, Type Impl)[] WasmOnlyApis =
     [
+        (typeof(IShare), typeof(Share)),
         (typeof(IFullscreen), typeof(Fullscreen)),
         (typeof(IScreenOrientation), typeof(ScreenOrientation)),
         (typeof(IEyeDropper), typeof(EyeDropper)),
@@ -25,7 +29,7 @@ public class RaskWasmBrowserApisTests
     ];
 
     [Fact]
-    public void AddWasmBrowserApis_RegistersTheTwelveWasmOnlyWrappers_AsSingletons()
+    public void AddWasmBrowserApis_RegistersTheThirteenWasmOnlyWrappers_AsSingletons()
     {
         var services = new ServiceCollection();
 
@@ -54,5 +58,27 @@ public class RaskWasmBrowserApisTests
 
         Assert.Empty(registered.Except(pinned));   // registered but unpinned → add it to WasmOnlyApis
         Assert.Empty(pinned.Except(registered));   // pinned but unregistered → stale entry
+    }
+
+    // Every wrapper here goes in through AddBrowserApi's TryAdd, so an app that wants its own
+    // implementation registers it first and keeps it. Pinned on IShare because that is the one an app is
+    // most likely to replace, and because the assertion moved here with it from Rask.Client.Tests.
+    [Fact]
+    public void AddWasmBrowserApis_IsFallbackOnly_AnAppSuppliedShareRegisteredFirstWins()
+    {
+        var services = new ServiceCollection();
+
+        services.AddSingleton<IShare, FakeAppShare>();
+        services.AddWasmBrowserApis(ServiceLifetime.Singleton);
+
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IShare));
+        Assert.Equal(typeof(FakeAppShare), descriptor.ImplementationType);
+    }
+
+    private sealed class FakeAppShare : IShare
+    {
+        public ValueTask ShareAsync(ShareData data) => default;
+
+        public ValueTask<bool> CanShareAsync(ShareData? data = null) => ValueTask.FromResult(true);
     }
 }

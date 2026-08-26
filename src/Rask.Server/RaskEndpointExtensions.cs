@@ -219,8 +219,8 @@ public static partial class RaskEndpointExtensions
         // IBadge, IWakeLock) are included; their JS helpers ship in the Server client only under AddRaskPwa.
         // The remaining browser APIs are intentionally NOT registered on Server: they need transient user
         // activation, a live document/handle, or the installed-PWA instance the WebSocket round-trip loses,
-        // so they are provided only by the in-process host — IShare in Rask.Client (WASM) and the WASM-only
-        // set (see RaskWasmBrowserApis). Server can still reach the
+        // so they are provided only by the WASM host (IShare and the rest of the WASM-only set — see
+        // RaskWasmBrowserApis). Server can still reach the
         // activation-gated APIs declaratively via GestureTrigger — see docs/browser-capabilities.md.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
         services.AddScoped<AuthSignIn>();

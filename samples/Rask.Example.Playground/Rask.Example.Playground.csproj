@@ -61,9 +61,6 @@
          shared library would. Microsoft.JSInterop likewise, for IJSRuntime in the editor interop. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <!-- Rask.Wasm also references Rask.Client with PrivateAssets="all" and needs it at runtime, so an app
-         referencing the host by ProjectReference (rather than the NuGet package) must pull it in directly. -->
-    <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
     <!-- Typed Bootstrap primitives for the IDE chrome (topbar buttons/badge/theme toggle), so the
          playground shares the same Bs* component language + the shared design tokens as the docs. Bundles
          Bootstrap's CSS as static web assets under _content/Rask.Bootstrap — negligible next to the

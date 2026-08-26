@@ -6,7 +6,8 @@ namespace Rask.Wasm.Browser;
 /// <summary>
 ///     Registration for the WASM-only browser/device wrappers — the ones that need a live document/handle, a
 ///     transient user gesture, an installed-PWA instance, or a device chooser, all of which only the in-browser
-///     WASM host can provide. Server never registers these.
+///     WASM host can provide. Server never registers these. Each is a <c>TryAdd</c> fallback, so an app that
+///     registers its own implementation first keeps it.
 /// </summary>
 public static class RaskWasmBrowserApis
 {
@@ -14,6 +15,7 @@ public static class RaskWasmBrowserApis
     public static IServiceCollection AddWasmBrowserApis(this IServiceCollection services, ServiceLifetime lifetime)
     {
         ArgumentNullException.ThrowIfNull(services);
+        services.AddBrowserApi<IShare, Share>(lifetime);
         services.AddBrowserApi<IFullscreen, Fullscreen>(lifetime);
         services.AddBrowserApi<IScreenOrientation, ScreenOrientation>(lifetime);
         services.AddBrowserApi<IEyeDropper, EyeDropper>(lifetime);

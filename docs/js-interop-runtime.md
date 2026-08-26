@@ -101,7 +101,7 @@ transient activation has expired. The practical effect:
 - **Sharing** splits by *when* you fire it. The headless declarative **`Shareable`** (`Rask.Core`) attaches
   `data-rask-share` to your element and the shared client fires `navigator.share` **inside the click's own
   call stack**, so the activation is still live — it therefore works on **every** host, Server included. The
-  imperative **`IShare`** (`Rask.Client.Browser`) lets you
+  imperative **`IShare`** (`Rask.Wasm.Browser`) lets you
   share from *code* (a lifecycle hook, after an `await`), which needs the in-process transport to keep the
   activation — so it's registered only by the **WASM** host (on Server `navigator.share` would reject with
   "Must be handling a user gesture").

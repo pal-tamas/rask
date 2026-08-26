@@ -1,7 +1,7 @@
 using Microsoft.JSInterop;
 using Rask.Core.Browser;
 
-namespace Rask.Client.Browser;
+namespace Rask.Wasm.Browser;
 
 /// <summary>
 ///     Typed access to the OS share sheet — hand content to the platform share UI from <b>any</b> handler.
@@ -13,17 +13,17 @@ namespace Rask.Client.Browser;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         This is the <b>imperative</b> path, registered by the in-process <b>WASM</b> host. The default
-///         <see cref="Share" /> backing is the Web Share API
-///         (<c>navigator.share</c>), which requires a secure context and <em>transient</em> user activation —
-///         preserved only when the interop call runs inside the click's own call stack, which the Server's
-///         WebSocket round-trip loses. That's why it's an in-process API and lives in <c>Rask.Client</c>.
+///         This is the <b>imperative</b> path, registered by the <b>WASM</b> host. The default
+///         <see cref="Share" /> backing is the Web Share API (<c>navigator.share</c>), which requires a
+///         secure context and <em>transient</em> user activation — preserved only when the interop call runs
+///         inside the click's own call stack, which the Server's WebSocket round-trip loses. That is why it
+///         is a WASM-only API and lives in <c>Rask.Wasm.Browser</c> beside the rest of that set.
 ///     </para>
 ///     <para>
 ///         For a <b>declarative</b> share that also works on the Server host, use the all-host, headless
-///         <c>Shareable</c> component in <c>Rask.Core</c> — it fires <c>navigator.share</c> client-side inside
+///         <c>Shareable</c> component in <c>Rask.Html</c> — it fires <c>navigator.share</c> client-side inside
 ///         the click gesture (no round-trip, no activation loss). Use <see cref="IShare" /> when you need to
-///         share from code (after an <c>await</c>, a timer, …) on an in-process host.
+///         share from code (after an <c>await</c>, a timer, …) on the WASM host.
 ///     </para>
 ///     <para>
 ///         An app can replace the default by registering its own <see cref="IShare" /> before the host's —
