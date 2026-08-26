@@ -176,6 +176,62 @@ Under a retrying execution strategy (`UseRaskSqlite(..., configureRetry: _ => { 
 load is one retryable unit and a lazy sequence is buffered so the retry can re-enumerate it; the default
 per-batch mode lets EF retry each batch on its own, which is both cheaper and free of replay.
 
+## Non-overlapping ranges
+
+A booking, a lease, a price valid for a period — the rule is always the same: **two rows may not cover the
+same point in time (or in a number line)**. PostgreSQL spells this as an exclusion constraint. SQLite has
+nothing, and a `UNIQUE` index does not help — it only stops *identical* rows, so `100–200` and `150–250`
+both sail through.
+
+Declare it on the model and the migration carries the enforcement:
+
+```csharp
+modelBuilder.Entity<Booking>()
+    .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.RoomId);
+```
+
+That is the whole API. `dotnet ef migrations add` then emits an index and a `BEFORE INSERT` / `BEFORE
+UPDATE` trigger pair that `RAISE(ABORT)`s on a conflict, and a violating `SaveChanges` throws
+`RangeOverlapException` naming the table — catch it and tell the user the slot
+is taken.
+
+```csharp
+try
+{
+    await context.SaveChangesAsync();
+}
+catch (RangeOverlapException)
+{
+    return Results.Conflict("That slot is already booked.");
+}
+```
+
+**Ranges are half-open — `[lo, hi)`.** This is the part to get right: it is what makes `100–200` and
+`200–300` neighbours rather than a conflict. Store bounds in a type the database orders correctly — a
+number, a date, or a `yyyy-MM-dd` string — never a localized date string. Pair the rule with a check
+constraint keeping `lo < hi`; it assumes well-formed ranges and says nothing about inverted ones.
+
+| Option | Effect |
+| --- | --- |
+| `partitionBy` | Scopes the rule: `x => x.RoomId`, or `x => new { x.Sku, x.Region }`. Omit for table-wide. |
+| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Defaults to on for `ISoftDeletable` entities, ignored otherwise. |
+
+Three things worth knowing:
+
+- **Enforcement is in the database, not the `DbContext`.** Raw SQL, a second process and a background job
+  are all bound by it. That is the point — an application-level check is bypassable, and a check-then-insert
+  in your own code has a race between the check and the insert.
+- **It arrives via migrations.** An existing table gains the rule from the next migration; a database
+  created with `EnsureCreated` does not get it at all.
+- **It survives table rebuilds.** SQLite cannot `ALTER` most things in place, so EF rebuilds the table and
+  drops the original — taking its triggers with it. Rask re-emits them at the end of every migration that
+  touches the table, so the constraint cannot silently disappear.
+
+Requires `UseRaskSqlite(...)`, which registers the generator and the exception translation. Both are inert
+until an entity declares a rule, and the rule composes with
+[`strictTables: true`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
+`STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
+
 ## Notes
 
 - **Server-side.** These interceptors run against a real EF Core provider (SQLite by default in Rask);
