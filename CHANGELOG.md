@@ -644,6 +644,24 @@ them until tagged releases begin.
   publishes on identical inputs). The second is correct and the first predates it; the stale half is
   gone. `BakeScopedAssetsTask` also fails the build now rather than baking an empty bundle silently, so
   the version of this that cost the most to find cannot recur.
+- **The orientation demo no longer makes a failed read look like a click that never landed.**
+  `OrientationDemo.Read()` reported a thrown read into `_status` and left `_current` untouched — so the
+  "Current:" line the reader is actually looking at still said `(read to see)`, exactly as it does
+  before the button is ever pressed. It now says `read failed`, with the detail staying in `_status`.
+
+  The same catch had a second symptom: `Lock()` set `"Locked to {to}"` and *then* read back, so a
+  failing read-back overwrote it with `"Failed: …"` — reporting a lock that had in fact succeeded as
+  one that had not. The read now happens first and the lock claims its status last.
+
+  The E2E assertion changed with it, and had to. It was `Not.ToContainText("read to see")`, which is
+  satisfied by *anything* that is not the placeholder — including the new `read failed`, so the fix
+  would have quietly defeated the test that exists to catch it. (Same shape as the substring trap where
+  `"connected"` matches `"disconnected"`.) It now matches the two legitimate outcomes, so a failure
+  prints what the element actually said instead of producing one indistinguishable red for two
+  different causes.
+
+  Unit-testing this is not available: `samples/Rask.Example.Wasm` targets `net10.0-browser` and the
+  sample's test project is `net10.0`, so the demo cannot be referenced from one.
 
 - **Everything Rask puts on the wire now formats and parses invariantly, whatever culture the process
   is in.** Rask has no culture concept yet, so every one of these paths inherited the machine's locale
