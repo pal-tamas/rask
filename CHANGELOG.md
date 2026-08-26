@@ -8,6 +8,34 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The server negotiates a visitor's language from their request, before the first byte of HTML.**
+  `?culture=` beats a remembered choice, which beats `Accept-Language`, which beats the app's default.
+  The culture is seeded onto the session alongside the principal and the route — *before* the initial
+  render — so the page is built in the visitor's language rather than rendered in the default and
+  corrected in a second frame they would see flash. `Accept-Language` is read through ASP.NET's own
+  typed header reader, so quality values are honoured and a `q=0` language is treated as refused rather
+  than merely unranked.
+
+  **A shared `?culture=hu` link sticks.** When the language arrives in the URL, the response also
+  writes the preference cookie — the one place a server-side cookie write is free, because the response
+  is already open. Without it such a link would switch exactly one page load and snap back on the next
+  navigation, which reads as the feature being broken. Only a URL-supplied culture is persisted: a
+  cookie that merely round-trips is already stored, and an `Accept-Language` match is an inference
+  rather than a choice.
+
+  **A resumed session keeps its language.** Session resume exists to hide a host restart from the
+  visitor, and rebuilding their page in the wrong language would be a conspicuous way to fail at that.
+  A resumed session is a brand-new DI scope whose culture would otherwise start at the app default, so
+  the culture is negotiated from the WebSocket upgrade request — the last place those headers exist —
+  and applied when the session is rebuilt.
+
+  **Rask does not use `RequestLocalizationMiddleware` for this, and cannot.** That middleware sets the
+  culture for the duration of an HTTP request, but only the *first* render is an HTTP request: every
+  render after it runs on the WebSocket receive loop, long after the request ended. A middleware-set
+  culture would be right once and wrong forever after. An app may still call `UseRequestLocalization()`
+  for its own non-Rask endpoints — because Rask reads and writes ASP.NET's own culture cookie, in
+  ASP.NET's own format, the two agree rather than holding conflicting preferences.
+
 - **A visitor's culture, owned by their session.** `IRaskCulture` reports the culture to format with,
   the language to render text in, the app's supported languages, and whether the script runs
   right-to-left; `SetAsync` switches it, persists the choice and repaints. Components read
