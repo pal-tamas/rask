@@ -252,7 +252,16 @@ public sealed class LiveRenderContext : IDisposable
         HashSet<Type> mountedTypes) =>
         new(root, previousEditContexts, currentEditContexts, services, headAssets, mountedTypes);
 
-    public string RegisterHandler(Delegate handler) =>
+    // Every data-rask-on-* attribute in the document is minted through here, which is what makes
+    // this the one place a page's interactivity has to be observed. An element with a handler is
+    // inert without a socket to send to.
+    public string RegisterHandler(Delegate handler)
+    {
+        _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
+        return RegisterHandlerCore(handler);
+    }
+
+    private string RegisterHandlerCore(Delegate handler) =>
         // Owner = the component currently rendering (top of parent stack). The root stores
         // every handler in its dictionary (TryInvokeHandlerAsync runs on the root), but the
         // owner association is what lets the post-handler dirty-mark land on the right node.
@@ -266,9 +275,29 @@ public sealed class LiveRenderContext : IDisposable
     internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(Component component) =>
         component.CaptureHandlerRun(_root);
 
+    /// <summary>
+    ///     Record that something in this render needs a live connection. Forwarded to the handle,
+    ///     which outlives the walk; see <c>IRenderHandle.ReportRequiresLiveSession</c>.
+    /// </summary>
+    internal void MarkRequiresLiveSession(InteractivityReason reason) =>
+        _handle?.ReportRequiresLiveSession(reason);
+
     /// <summary>Re-register a captured run under its component's own slot ids, as the skipped walk would.</summary>
-    internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run) =>
+    /// <remarks>
+    ///     The clean-subtree cache re-establishes a skipped walk's registrations through here rather
+    ///     than through <see cref="RegisterHandler" />, so without marking here a page whose only
+    ///     handler-bearing subtree went clean on a later wave would be judged static — and lose the
+    ///     handler, silently, in production.
+    /// </remarks>
+    internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run)
+    {
+        if (run.Length > 0)
+        {
+            _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
+        }
+
         component.ReplayHandlerRun(_root, run);
+    }
 
     public T GetOrCreate<T>(Func<IServiceProvider, T> factory) where T : Component
     {
@@ -363,6 +392,9 @@ public sealed class LiveRenderContext : IDisposable
 
     public EditContext GetOrCreateEditContext(object model, Func<EditContext>? factory = null)
     {
+        // A form with no connection is a form whose submit goes nowhere. Every bound control
+        // resolves through here, so this covers the whole forms surface in one place.
+        _handle?.ReportRequiresLiveSession(InteractivityReason.Form);
         var key = new ObjectKey(model);
         if (_currentEditContexts.TryGetValue(key, out var current))
         {

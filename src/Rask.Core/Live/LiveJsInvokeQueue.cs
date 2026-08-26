@@ -100,4 +100,12 @@ internal interface ILiveJsHost
     LiveJsInvokeQueue JsInvokes { get; }
 
     Task RequestRenderAsync();
+
+    /// <summary>
+    ///     Record that the page needs a live connection. Defaulted to a no-op so a host that has no
+    ///     notion of a static render (or a test double) is unaffected.
+    /// </summary>
+    void MarkRequiresLiveSession(InteractivityReason reason)
+    {
+    }
 }

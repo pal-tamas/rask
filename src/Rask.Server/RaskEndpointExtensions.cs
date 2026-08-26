@@ -484,7 +484,16 @@ public static partial class RaskEndpointExtensions
             // built so untrusted GET traffic can't exhaust memory (and a concurrent burst can't
             // race past the cap). Checked after the auth guard above so challenge/forbid
             // redirects (which create no session) still work.
-            var session = store.TryCreate(appFactory);
+            //
+            // With static pages on, the slot cannot be reserved up front: whether this page needs a
+            // session at all is a property of the render that has not happened yet. The tree is
+            // built detached and admitted afterwards, so a page that turns out to need nothing live
+            // costs no slot. The cheap AtCapacity probe keeps a saturated host from doing the work
+            // anyway; the authoritative check is still the atomic one, at TryRegister below.
+            var staticPages = limits.StaticPages;
+            var session = staticPages
+                ? (store.IsDraining || store.AtCapacity ? null : store.CreateDetached(appFactory))
+                : store.TryCreate(appFactory);
             if (session is null)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
@@ -573,6 +582,15 @@ public static partial class RaskEndpointExtensions
                 httpContext.Response.Headers.CacheControl = "no-store";
                 return;
             }
+            // The verdict. Everything the walk saw has been accumulated by now; a page that
+            // recorded no reason at all needs no connection, so it can be served as a plain
+            // document. Development keeps the session either way, so `rask dev` still repaints on
+            // an edit and the audit warning below has a socket to have been worth checking.
+            var interactive = !staticPages
+                              || session.RequiresLiveSession
+                              || session.LastRenderFaulted
+                              || LiveOptions.IsDevelopment == true;
+
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.
@@ -581,8 +599,59 @@ public static partial class RaskEndpointExtensions
             // because the only thing that can answer is `rask dev`, which is the process that launched
             // this one — and it is stamped onto the page rather than pushed over the socket because the
             // question only arises once that socket is gone.
-            var content = LivePayload.InjectRootAttr(
-                html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null);
+            string content;
+            if (interactive)
+            {
+                // Admit the session now. Under static pages it was built detached, so this is where
+                // the cap is actually enforced — and a refusal here means the work is already done,
+                // which is the honest cost of not knowing the answer until the render was over.
+                if (staticPages && !store.TryRegister(session))
+                {
+                    await store.DiscardAsync(session).ConfigureAwait(false);
+                    httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                    httpContext.Response.Headers.RetryAfter = "5";
+                    httpContext.Response.Headers.CacheControl = "no-store";
+                    await httpContext.Response
+                        .WriteAsync("Server is at session capacity; please retry shortly.")
+                        .ConfigureAwait(false);
+                    return;
+                }
+
+                content = LivePayload.InjectRootAttr(
+                    html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null);
+            }
+            else
+            {
+                // No session, so no data-rask-root to stamp and no runtime to load. If the tag is
+                // not exactly where it should be, TryRemove declines and the page is treated as
+                // interactive — serving a document that might still carry a session-bearing script
+                // as a cacheable static page is the one outcome worth refusing outright.
+                var stripped = RuntimeScriptSplice.TryRemove(html, LiveOptions.PathBase);
+                if (stripped is null)
+                {
+                    interactive = true;
+                    if (staticPages && !store.TryRegister(session))
+                    {
+                        await store.DiscardAsync(session).ConfigureAwait(false);
+                        httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                        httpContext.Response.Headers.RetryAfter = "5";
+                        httpContext.Response.Headers.CacheControl = "no-store";
+                        await httpContext.Response
+                            .WriteAsync("Server is at session capacity; please retry shortly.")
+                            .ConfigureAwait(false);
+                        return;
+                    }
+
+                    content = LivePayload.InjectRootAttr(
+                        html, session.Id, dev,
+                        dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null);
+                }
+                else
+                {
+                    content = stripped;
+                }
+            }
+
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             // A page that crashed is not a 200. The root boundary catches the exception and renders the
             // error document, so without this the response looked entirely healthy to every cache,
@@ -616,9 +685,38 @@ public static partial class RaskEndpointExtensions
             // for the WS / upload / download endpoints. Forbid any shared-proxy / bfcache /
             // history caching so an authenticated user's session id can't be persisted and
             // replayed by another principal.
-            httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, private";
-            httpContext.Response.Headers.Pragma = "no-cache";
+            var cache = ShellCachePolicy.For(
+                interactive,
+                (httpContext.User?.Identity?.IsAuthenticated == true)
+                || session.Services.GetRequiredService<SessionUserProvider>()
+                    .Current.Identity?.IsAuthenticated == true,
+                session.LastRenderFaulted,
+                httpContext.Response.StatusCode);
+            httpContext.Response.Headers.CacheControl = cache.CacheControl;
+            if (cache.Pragma is { } pragma)
+            {
+                httpContext.Response.Headers.Pragma = pragma;
+            }
+
+            if (cache.Vary is { } vary)
+            {
+                httpContext.Response.Headers.Vary = vary;
+            }
+
+            // Discarded BEFORE the write, not after: WriteAsync to a slow client can take seconds,
+            // and everything below reads only the string. Holding a DI scope and a component tree
+            // open for the duration of someone's bad connection is pure waste.
+            if (!interactive)
+            {
+                await store.DiscardAsync(session).ConfigureAwait(false);
+            }
+
             await httpContext.Response.WriteAsync(content).ConfigureAwait(false);
+            if (!interactive)
+            {
+                return;
+            }
+
             // Schedule cleanup in case no WS ever connects for this session.
             // Browsers / probes can hit the catch-all for resources that don't
             // need a live session (favicon.ico, robots.txt, scanner traffic) —
@@ -2251,8 +2349,19 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    /// <summary>The runtime script tag's exact bytes, for the static-response splice.</summary>
+    internal static string RuntimeScriptTag(string pathBase) => ServerRuntimeScript.Tag(pathBase);
+
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
+        /// <summary>
+        ///     The exact bytes <see cref="Render" /> serializes to, so a static response can remove
+        ///     the tag it never needed. The two must agree; a test pins the serializer's output
+        ///     against this so they cannot drift.
+        /// </summary>
+        internal static string Tag(string pathBase) =>
+            "<script src=\"" + pathBase + RuntimePath + "\"></script>";
+
         public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath);
     }
 
