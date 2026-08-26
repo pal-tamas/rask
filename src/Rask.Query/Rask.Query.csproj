@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Query</RootNamespace>
+
+    <PackageId>Rask.Query</PackageId>
+    <Title>Rask — Server State</Title>
+    <Description>Wraps IDispatcher with a query cache for Rask components: dedup, staleness, background refetch and invalidation, scoped to the live session so one visitor is never served another's data. The C# counterpart of what a React front end gets from TanStack Query, on every .NET host.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- PrivateAssets="all" — Rask.Core is IsPackable=false, so without it the nuspec would list a
+         dependency on a package that exists on no feed and every restore would fail with NU1101.
+         Consumers get Core.dll from whichever host package they already reference. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Query.Tests"/>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Spa.Hosting</RootNamespace>
+
+    <PackageId>Rask.Spa.Hosting</PackageId>
+    <Title>Rask — TypeScript Single-Page App Host</Title>
+    <Description>ASP.NET host for a built TypeScript single-page app — React, Vue, Angular, whichever bundler. `app.UseRaskSpa()` serves the bundler's dist/ with correct MIME types, bundler-aware cache headers, precompressed siblings and a SPA fallback that still 404s a missing asset. Pairs with Rask.Cqrs.Server, which gives the client a typed JSON wire and generates its TypeScript from your C# message records; a client that is not TypeScript is refused at build time rather than served half a guarantee. Depends on nothing else in Rask.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!--
+    Deliberately no reference to Rask.Core, Rask.Html or Rask.Wasm. A TypeScript SPA has no Component, no
+    scoped assets and no live session, so there is nothing to depend on — and staying free of them is
+    what lets this package serve a plain ASP.NET app too, exactly as Rask.Cqrs.Server does. The one
+    consequence is that RaskPath.Normalize is out of reach, so SpaPath carries its own copy.
+  -->
+
+  <ItemGroup>
+    <!--
+      Serving details shared with Rask.Wasm.Hosting, source-linked rather than referenced: the two
+      hosts must not depend on each other. Same arrangement as src/Rask.Generators.Shared.
+    -->
+    <Compile Include="..\Rask.Hosting.Shared\*.cs" Link="Shared\%(Filename)%(Extension)"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Build-order-only edge to the MSBuild task project, which drops Rask.Spa.Tasks.dll into build/
+      here (CopyTaskAssemblyToRaskSpaBuild) for <UsingTask> to load and for the build\** Pack glob to
+      collect. The DLL is a generated artifact, gitignored rather than committed, so this reference is
+      what guarantees it exists before this project builds or packs. ReferenceOutputAssembly="false"
+      keeps it purely an ordering edge — no compile reference, no nupkg dependency, and no cross-TFM
+      (net10.0 vs netstandard2.0) compatibility check. Same arrangement as Rask.Wasm/Rask.Wasm.Tasks.
+    -->
+    <ProjectReference Include="..\Rask.Spa.Tasks\Rask.Spa.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Spa.Hosting.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+    <!--
+      The TypeScript client, shipped as source the way Rask.Wasm ships Browser/main.js. It is written
+      into a scaffolded client by `rask new` and refreshed on build while its header line is intact,
+      so upgrading the package upgrades the client. Not published to npm: that would mean a second
+      release train to keep wire-locked to this one, for ~400 lines.
+    -->
+    <None Include="client\**" Pack="true" PackagePath="client\"/>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,59 @@
+<Project>
+
+  <!--
+    Consumer-facing knobs for the Tailwind build. Override any of these in your host project, or with -p:.
+  -->
+  <PropertyGroup>
+    <!--
+      Master switch. False skips the whole thing — no engine resolution, no download, no CSS. The app
+      still compiles and runs; it just has no generated stylesheet. Same shape as RaskSpaBuild, and the
+      escape hatch every error message points at.
+    -->
+    <RaskTailwindBuild Condition="'$(RaskTailwindBuild)' == ''">true</RaskTailwindBuild>
+
+    <!--
+      PINNED, never floating. Tailwind is a compiler: a different version emits different CSS, so a
+      build that silently picked up a new one would change what your pages look like without a diff.
+      (Tailwind.MSBuild, the community package, defaults this to `latest` — which is exactly the
+      reproducibility hazard this avoids.) Bump it deliberately.
+    -->
+    <RaskTailwindVersion Condition="'$(RaskTailwindVersion)' == ''">4.3.3</RaskTailwindVersion>
+
+    <!--
+      `auto` prefers Tailwind's standalone binary and falls back to npm where none is published.
+
+      Standalone first because "the SDK is all you need" is why anyone picks a C# host, and the binary
+      keeps that true on macOS, Linux (glibc and musl) and Windows x64. npm second because it covers
+      strictly more — Tailwind's npm engine ships native builds for win32-arm64, 32-bit ARM and FreeBSD
+      that the standalone release has no equivalent of, plus a wasm32-wasi build that runs anywhere Node
+      does. So no platform is simply unsupported.
+
+      Force one with `standalone` or `npm`. On Windows on ARM, `npm` gets you a native engine instead of
+      the x64 binary under emulation.
+    -->
+    <RaskTailwindEngine Condition="'$(RaskTailwindEngine)' == ''">auto</RaskTailwindEngine>
+
+    <!-- Never reach the network: fail instead, naming the file to place and where it goes. For a build
+         that must be hermetic. -->
+    <RaskTailwindOffline Condition="'$(RaskTailwindOffline)' == ''">false</RaskTailwindOffline>
+
+    <!-- Your stylesheet: the one that says `@import "tailwindcss";` plus whatever you add. -->
+    <RaskTailwindInput Condition="'$(RaskTailwindInput)' == ''">Styles/app.css</RaskTailwindInput>
+
+    <!-- Where the generated CSS lands. Under wwwroot so the host serves it with no extra wiring. -->
+    <RaskTailwindOutput Condition="'$(RaskTailwindOutput)' == ''">wwwroot/css/app.css</RaskTailwindOutput>
+
+    <!-- Minify in Release only, so a Debug build stays readable in devtools. -->
+    <RaskTailwindMinify Condition="'$(RaskTailwindMinify)' == '' AND '$(Configuration)' == 'Release'">true</RaskTailwindMinify>
+    <RaskTailwindMinify Condition="'$(RaskTailwindMinify)' == ''">false</RaskTailwindMinify>
+
+    <!--
+      Where fetched binaries are cached: per user, shared by every project. Deliberately outside the
+      repository — an 80 MB file in obj/ is re-downloaded by every clean and committed by somebody
+      eventually.
+    -->
+    <RaskTailwindCacheRoot Condition="'$(RaskTailwindCacheRoot)' == '' AND '$(OS)' == 'Windows_NT'">$(LOCALAPPDATA)\rask\tailwind</RaskTailwindCacheRoot>
+    <RaskTailwindCacheRoot Condition="'$(RaskTailwindCacheRoot)' == ''">$(HOME)/.rask/tailwind</RaskTailwindCacheRoot>
+  </PropertyGroup>
+
+</Project>

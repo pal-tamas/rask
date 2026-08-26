@@ -337,6 +337,30 @@ public sealed class LiveRenderContext : IDisposable
     // (same rationale as Router/ErrorBoundary's BypassRenderCache).
     internal void MarkCurrentReadsAmbientState() => CurrentParent.MarkReadsAmbientStateInternal();
 
+    /// <summary>
+    ///     Flags the rendering component as reading ambient state and hands it back, so a package
+    ///     outside Core can re-render it when that state later changes.
+    /// </summary>
+    /// <remarks>
+    ///     One method rather than two because the two must not be used apart: a caller that observes a
+    ///     component without opting it out of the render cache gets a component that is told to
+    ///     re-render and then serves its cached tree anyway — which looks exactly like the data never
+    ///     arriving. <c>Rask.Query</c> is the caller; see its <c>Query{T}.Data</c> getter.
+    ///     <para>Null when nothing is rendering, which is the normal case off the render path.</para>
+    /// </remarks>
+    internal static Component? ObserveAmbientState()
+    {
+        var context = CurrentSync;
+        if (context is null)
+        {
+            return null;
+        }
+
+        var component = context.CurrentParent;
+        component.MarkReadsAmbientStateInternal();
+        return component;
+    }
+
     public EditContext GetOrCreateEditContext(object model, Func<EditContext>? factory = null)
     {
         var key = new ObjectKey(model);

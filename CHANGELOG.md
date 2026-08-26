@@ -187,7 +187,124 @@ them until tagged releases begin.
   app that asked for languages this runtime cannot produce still renders; it reports the reason once,
   naming `RaskGlobalization`, rather than once per render.
 
+- **`Rask.Query` keys are TanStack-shaped: ordered, and matched by prefix.** A key was a flat
+  `(Type, message, name)` struct compared for equality, so invalidation was all-or-one — every
+  `GetOrders`, one named string, or everything, and nothing in between. `QueryKey` is now public and
+  ordered, and `Invalidate` matches a **prefix**, so `QueryKey.Of("orders")` refreshes every list and
+  every detail written beneath it, across message types.
+
+  **You still rarely write one.** A message keys itself as `[typeof(GetOrders), message]` — records
+  give structural equality for free, so the same query in two components is one entry with nothing to
+  keep in sync. The `Type` comes first deliberately: it survives a rename, cannot collide across
+  namespaces, and can never be mistaken for a hand-written string part, so derived and hand-written
+  keys share one cache safely. `Invalidate<GetOrders>()` is now a prefix match rather than a special
+  case, and still refreshes page one and page seven alike.
+
+  **Order matters across parts and not inside them**, which is TanStack's rule exactly:
+  `["orders", "list"]` is not `["list", "orders"]`, but `QueryKey.Fields` sorts on construction, so
+  two components writing the same filter in a different order share one entry. A `Fields` part in a
+  filter is matched as a **subset**, so `Fields(("status", "done"))` reaches every page of the done
+  ones. Built from named pairs rather than reflected off an anonymous type, because reflection there
+  would warn under the trimmer on a WASM publish.
+
+  `Invalidate(predicate)` covers what a prefix cannot say, `Query<T>.Key` is public so a component can
+  invalidate its own entry, and `[Invalidates]` now takes a string key prefix as well as message types
+  — several types are several prefixes, several strings are one path, and the attribute allows
+  multiples so a command can declare both.
+
+- **`Rask.Query` keeps the previous page on screen while the next loads.**
+  `QueryOptions.KeepPreviousData` holds the current result across a re-key, and
+  `Query<T>.IsPlaceholderData` says so, so a component can grey the rows instead of pretending they
+  are current. A query showing placeholder data reports `Success` rather than `Pending` — putting a
+  spinner over data the user already has is precisely what the option exists to avoid. The
+  placeholder is only used when the new key has nothing behind it, so navigating to a cached page
+  shows that page rather than stepping backwards.
+
+- **`IQueryClient.PrefetchAsync`** warms an entry ahead of the component that will want it. It
+  never throws: a prefetch is a guess about where the user is going, and a wrong guess must not
+  surface as a failure at the navigation that made it.
+
+- **`Rask.Query` retries a failed fetch, and can poll.** `QueryOptions` gains `Retry`
+  (TanStack's default of three), `RetryDelay` (exponential, one second doubling to a thirty-second
+  cap), `ShouldRetry`, and `RefetchInterval`.
+
+  **A 4xx is never retried.** `QueryOptions.IsWorthRetrying` refuses a `RemoteDispatchException`
+  carrying a 4xx and any cancellation: a 403 is not a network blip, and retrying one turns a single
+  refused request into four while delaying the answer by several seconds.
+
+  **Retry applies to queries only**, which is safe by construction — a Rask query is defined as
+  safe and idempotent, and the transport enforces it by refusing to send a command as a GET.
+  Mutations get none, for the reason TanStack gives them none: running a command twice is not free.
+
+  **A polling query stops.** On dispose, and also once every component that read it has gone —
+  disposing from `OnUnmount` is the mechanism, the second check is a safety net so a forgotten
+  query cannot keep a session fetching for ever.
+
+  `FetchAsync` now takes `QueryOptions` too; it previously had no way to be configured at all.
+
+- **`Rask.Query` mutations you can render, with optimistic updates.** `MutateAsync` is
+  await-and-forget, so there was no way to disable a button and show "Saving…" from it — the
+  most-felt gap against TanStack Query. `IQueryClient.Mutation<TCommand>()` returns a
+  `Mutation<TCommand>` carrying `Status`/`IsPending`/`Error`/`Reset`, which re-renders its
+  component the same way a `Query<T>` does.
+
+  ```csharp
+  private readonly Mutation<ShipOrder> _ship = q.Mutation<ShipOrder>();
+
+  Button.Disabled(_ship.IsPending)
+        .OnClick(() => _ship.RunAsync(new ShipOrder(id)))
+        [_ship.IsPending ? "Shipping…" : "Ship"]
+  ```
+
+  **`RunAsync` never throws.** It is called from an event handler, where an exception has nowhere
+  to go and would surface as an unhandled framework error rather than as something the screen can
+  show; the failure lands on `Error` and `Status`. `MutateAsync` remains for when you want the
+  exception.
+
+  **`Optimistic(query, update)`** edits a cached result before the server answers and puts the
+  previous value back if the command fails — every registered edit, in reverse, not just the one
+  that had been applied when it threw. A screen still showing an optimistic result after a refused
+  save tells the user something happened that did not.
+
+- **`QueryStatus` and `FetchStatus`.** Two orthogonal enums rather than a family of overlapping
+  booleans, because a query can hold a result *and* be fetching a newer one — the refresh-in-place
+  case, where rendering a spinner would hide data the user already has. `IsLoading`, `IsFetching`,
+  `IsSuccess` and the new `IsError` are derived from them.
+
+- **Tailwind CSS on every host, compiled by `dotnet build`** — `rask new --tailwind`, and a
+  `Rask.Tailwind` build-only package you can add to any project. No `package.json`, no
+  `node_modules`, no PostCSS and no npm: the build fetches Tailwind v4's standalone binary, verifies
+  it against the release's published checksum, and caches it per user at `~/.rask/tailwind`. Where
+  Tailwind publishes no standalone binary — win32-arm64, 32-bit ARM, FreeBSD — it falls back to a
+  project-local npm install of the same version — including the `wasm32-wasi` engine, which runs
+  anywhere Node does — so no platform is simply unsupported.
+
+  **Your C# is the source it scans.** A component's classes are ordinary string literals, so
+  `Div.Class("rounded-lg border p-6")` is found by v4's own source detection with nothing configured
+  — no `content` array to keep in step with where the components live, and no config file at all. The
+  build is incremental over the input sheet plus the project's `.cs`/`.razor`/`.html`, and skipped
+  entirely on a design-time build, so an IDE reloading a project never downloads a binary.
+
+  The version is **pinned, not floating**: a compiler is not a library, and a build that quietly
+  picked up a new one would change what your pages look like with nothing in the diff. Every failure
+  names the way out — the Node install line for this OS, the download URL and path when offline, and
+  `RaskTailwindBuild=false` to build the app without the stylesheet rather than be blocked. Documented
+  in [docs/tailwind.md](docs/tailwind.md).
+
+  On the front-end templates it uses `@tailwindcss/vite` instead: that project already has Node, a
+  bundler and HMR, and routing its CSS through MSBuild would be strictly worse.
+
 ### Changed
+- **Styling is one axis with three answers, and plain CSS is now the default.** `rask new` gave you
+  Bootstrap unless you passed `--no-bootstrap`, which made an opinion the thing you got by not
+  choosing. Now: nothing renders plain elements against a small stylesheet inlined in the app shell,
+  `--bootstrap` asks for `Rask.Bootstrap`, and `--tailwind` asks for Tailwind. **`--no-bootstrap` is
+  gone** — it was the negative half of a boolean pair that could not express three answers, and
+  `--bootstrap --tailwind` is a usage error rather than a silent preference, because picking a winner
+  would scaffold something the command line did not ask for. `--tailwind` on `wasm`/`wasm-hosted` is
+  refused for the same reason: those paths have no styling axis yet, and would have scaffolded plain
+  CSS while reporting success.
+
 - **The WASM showcase and the docs site now ship ICU** (`RaskGlobalization=true`), which adds roughly
   2.6 MB of `icudt*.dat` to those two bundles. `RaskGlobalization` also requests **full** ICU rather
   than the WebAssembly SDK's default shard: that shard covers only EFIGS (English, French, Italian,
@@ -207,6 +324,11 @@ them until tagged releases begin.
   **server process** locale. It now inherits `Component.Culture`, which is the session's; the shadowing
   member is gone, and the compiler found every call site. With culture support off the behaviour is
   unchanged.
+
+- **`Query<T>.IsLoading` is now false for a query held back by `Enabled = false`.** It is pending,
+  but nothing is coming, so reporting it as loading left a spinner turning for ever. The state that
+  says so is `FetchStatus.Paused`. This matches TanStack, where a disabled query is
+  `isLoading: false`.
 
 ### Removed
 
@@ -356,6 +478,214 @@ them until tagged releases begin.
   Core warns"; neither was true — there is no REAL fallback and `SqliteEventId.DecimalTypeDefaultWarning`
   no longer exists in EF Core 10. Both are corrected, and modelling money as integer minor units is now
   presented as an indexing/throughput choice rather than a correctness workaround.
+
+- **A `Rask.Query` fetch is cancelled when nothing is rendering it any more.** Every fetch used
+  `CancellationToken.None`, so a request outlived the component that started it: navigating away
+  left it running to completion against the database, and paginating quickly left one per page
+  visited. A cancelled fetch records neither data nor error and leaves the work owed, so the next
+  observer fetches rather than inheriting an error it did not cause.
+
+- **A custom `GcTime` is honoured.** Collection read the value from `QueryOptions.Default` rather
+  than from the entry, so a query asking to be kept for an hour was still dropped at the
+  five-minute default. Two queries sharing a key now keep the longest lifetime asked for.
+
+- **`Rask.Query` wraps `IDispatcher` in a cache.** Dedup, staleness, background refetch and
+  invalidation for C# components on every .NET host — what a React front end gets from TanStack
+  Query, rather than that being a privilege of the JavaScript half of the same app. Inject
+  `IQueryClient`, hold the `Query<T>` it returns, render its `Data`/`IsLoading`/`Error`.
+
+  **The message is the cache key.** Rask messages are records, so `new GetOrders(Page: 1)` written
+  in two components is one entry and one round trip, with no key string to invent and nothing to
+  keep in sync when a property is added. An arbitrary async function can be cached too, under a key
+  you supply.
+
+  **Scoped to the live session, and that is the security boundary, not a tuning choice.** Rask
+  creates a service scope per session, so on the Server host — one process, every visitor — this
+  gives one cache per visitor and one visitor's data can never be served to another. There is no
+  way to register it as a singleton.
+
+  **A command declares what it invalidates**: `[Invalidates(typeof(GetOrders))]` sits on the
+  command, so the relationship lives next to its cause, appears in a diff, and cannot be forgotten
+  at a new call site. Invalidation is by message type, so a save refreshes page one and page seven
+  alike.
+
+  **Freshness follows TanStack's defaults** — `StaleTime = 0`, `GcTime = 5 min` — so what people
+  already know transfers. Staleness is a condition, not a trigger: a query nobody is watching does
+  not poll. What refetches is mounting, re-keying, an explicit refetch, or an invalidation.
+
+  **Re-key when the inputs change**: `_orders.SetMessage(new GetOrders(Page))` from
+  `OnPropsChanged`. A field initializer runs once, so without it a query keeps showing page one for
+  ever when the route parameter changes — silently, which is the worst way for it to be wrong.
+
+- **`Rask.Spa.Hosting` serves a built React/Vue/Angular app from an ASP.NET host.**
+  `app.UseRaskSpa()` mounts the bundler's `dist/` with correct MIME types, bundler-aware cache
+  headers, precompressed `.br`/`.gz` siblings and a SPA fallback. It references nothing else in
+  Rask — no `Rask.Core`, no `Rask.Html` — which is what lets it sit in front of a plain ASP.NET
+  app, the same discipline `Rask.Cqrs.Server` already keeps. Pairs with `MapRaskCqrs()`, which
+  gives the front end a typed JSON wire; map your API **before** `UseRaskSpa`.
+
+  **A missing asset stays a 404.** The naive SPA fallback answers every unmatched request with
+  `index.html`, so a missing module import arrives as HTML and the browser reports
+  `Failed to load module script` — which reads as a broken framework rather than a missing file.
+  Requests under a content-hashed prefix, and requests whose `Accept` asks for something other
+  than HTML, are refused instead.
+
+  **Cache classification is per bundler, not shared with the WASM host.** That host's rule matches
+  `dotnet.7a8b9c2d3e.js` — dot-separated, lowercase hex — and misses Vite's `index-DkK9xYz1.js`
+  entirely. Widening one rule to cover both would mark `vendor-react.js` immutable for a year, and
+  a wrong `immutable` cannot be withdrawn without renaming the file. The prefix the bundler
+  guarantees is hashed is consulted first; the filename heuristic is the fallback for Angular,
+  and it requires a digit so a merely long name is not mistaken for a hash.
+
+  **In development, no build output is answered with 200 and an explanation** naming the dev
+  server, not 503 — the bundler is serving the app, so a server error would send you hunting a
+  bug that is not there. Outside development it is a 503, because then it is a real deployment
+  fault.
+
+  **The build runs the front end's own toolchain.** A host named `MyApp.Server` finds a sibling
+  `MyApp.Client` holding a `package.json` (or names one with `<RaskSpaClientDir>`), installs its
+  dependencies, runs its build, and bakes the output path so `UseRaskSpa()` resolves with no
+  arguments. `npm ci` is used wherever the lockfile allows it and `npm install` where it does not.
+  Both steps are incremental against narrow globs — a `**/*` over the client would enumerate
+  `node_modules` on every evaluation and cost more than the build it skips.
+
+  **On publish the bundle is copied next to the app**, which the WASM host does not do and needs
+  to: a baked absolute path belongs to the machine that built it, and inside a `rask deploy`
+  container it names a directory that does not exist.
+
+  **`-p:RaskSpaBuild=false` skips node entirely** — the app still compiles and its API still
+  works. `rask dev` will pass it, because the bundler's dev server owns the build during a dev
+  session, and it is also what lets a machine with no node build a solution containing a front end.
+
+- **The CQRS contracts are generated as TypeScript, so the front end and the server cannot
+  disagree.** Every remote message becomes a factory whose payload and result types come from the
+  C# record — `await rask.dispatch(getOrder({ id }))` is an `Order`, inferred, with no wire name
+  and no cast at the call site. The types are emitted by a second backend over the same
+  `WireType` model the codec generator uses, so the property names, the enum encoding and the null
+  handling are decided once rather than described twice.
+
+  **A source generator cannot write files**, so the TypeScript rides out of the compiler as two
+  string constants and `Rask.Spa.Tasks` lifts them onto disk between the C# compile and
+  `npm run build`. It reads them straight from the PE metadata rather than by loading the
+  assembly, which is what makes the WASM asset bake fragile under MSBuild node reuse (#650): a
+  constant needs no runtime, no resolver and no reference closure.
+
+  **Dates arrive as real `Date` objects, and only the ones that are dates.** A `DateTimeOffset` or
+  `DateTime` becomes a `Date`; the generator emits a per-shape descriptor naming exactly those
+  properties, and the client revives against it. The usual approach — a `JSON.parse` reviver that
+  regex-tests every string — silently converts a product code or an ETag that merely looks like a
+  timestamp. Nothing is guessed here: the C# type said so.
+
+  **`DateOnly`, `TimeOnly` and `TimeSpan` stay strings**, with named aliases so the intent survives
+  into the editor. A calendar date is not an instant: `new Date("2026-08-25")` is UTC midnight, so
+  anyone west of UTC would render it as the 24th — the off-by-one-day the Gantt sample already
+  documents. Nothing is needed in the other direction, because `JSON.stringify` already writes a
+  `Date` as `toISOString()`: always UTC, always with a `Z`.
+
+  **The descriptor counts containers.** `Dictionary<string, Line>` and `Line` both arrive as plain
+  objects and nothing in the JSON tells them apart, so a nested shape carries how many arrays or
+  dictionaries stand in front of it — without it the walk would revive a dictionary's own keys as
+  if they were the shape's properties.
+
+- **`rask new <name> --template react` scaffolds a React front end on an ASP.NET host.** Two
+  projects: `MyApp.Server` holds the message records, their handlers and the JSON endpoint;
+  `MyApp.Client` is the React app. Not three — the wasm-hosted template needs a `.Shared` because
+  both halves are C#, but here the client's half of every contract is generated TypeScript, so there
+  is nothing for a third project to hold.
+
+  **The client comes from the framework's own scaffolder.** `rask new` runs
+  `npx create-vite@latest --template react-ts` and overlays four files onto it: a `vite.config.ts`
+  that proxies `/_rask`, `App.tsx`, `main.tsx`, and a README. Everything else is whatever Vite ships
+  today. A React skeleton Rask maintained by hand would be a worse React skeleton within a release or
+  two, and it would not be what a React developer recognises. The cost is stated rather than hidden:
+  this template needs **Node.js and a network** at `rask new` time, where the C# templates need
+  neither.
+
+  Two files of create-vite's own output are amended rather than replaced — TanStack Query added to
+  `package.json`, `src/rask/` added to `.gitignore` — both idempotent, because carrying a copy of a
+  file we chose not to own is exactly what the split avoids. The starter app is one real round trip:
+  a query and a command through TanStack Query, with a `DateTimeOffset` arriving as a `Date` and
+  invalidation keyed on `getGreeting.messageName` rather than a string literal.
+
+  **`--auth`, `--pwa` and `--push` are refused, not half-scaffolded.** Each needs work on the client
+  — a login flow in React, a service worker through `vite-plugin-pwa` — that this template does not
+  write yet. `--cqrs` is not offered because it is not optional: the typed wire *is* the template.
+  The database batteries and `--docker` all work.
+
+- **Seven front-end templates, not one: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`,
+  `lit`.** Exactly the set TanStack Query ships an adapter for — below the call site every one of them
+  is the same wire, and the adapter is what makes the generated contracts worth having.
+
+  **Angular keeps its own CLI.** Its build *is* Vite-based (`@angular/build:application` has run its
+  dev server on Vite since v17), but `create-vite` has no Angular template and the Vite config belongs
+  to Angular rather than to you — so `rask new --template angular` runs `ng new`. Three things follow:
+  no `vite.config.ts` (the proxy is `proxy.conf.json`, pointed at from `angular.json`), `ng serve` on
+  4200 rather than Vite's 5173, and a bundle in `dist/<project>/browser` that the scaffolded host is
+  told about with `RaskSpaDistDir`.
+
+  **TanStack Router comes wired up for React and Solid**, the two adapters it ships. Routes are
+  declared in code, in `src/router.tsx`, rather than through the file-based plugin — that plugin
+  wants to own `src/routes/`, and this client is somebody else's scaffold. The other frameworks get
+  no router at all rather than Rask picking one on their behalf.
+
+  **Each overlay lands on the entry its own scaffolder actually wrote** — `src/main.tsx` for React
+  and Preact, `src/index.tsx` for Solid, `src/main.ts` + `App.vue` for Vue, `App.svelte` for Svelte,
+  `src/my-element.ts` for Lit. Getting that wrong does not fail: the file lands beside the real one,
+  is never imported, and the app builds showing the scaffolder's placeholder.
+
+  **The bridge imports nothing from TanStack.** Every adapter exports its own `queryOptions`, so
+  importing one would tie `raskQuery` to a single framework for the sake of an identity function.
+  What differs per framework is only how the adapter wants the options: React and Preact take them
+  directly, Solid, Svelte and Lit take a **thunk**, and Vue a `computed` — which is what lets them
+  re-read the signal, the rune or the ref and refetch when it changes.
+
+  **Svelte is the one template whose `build` script Rask rewrites.** `create-vite` gives it a bare
+  `vite build`, with type checking in a separate script nothing runs, because `tsc` cannot read a
+  `.svelte` file. Left alone, renaming a C# property would break nothing at build time and surface
+  on the wire — the exact failure the generated contracts exist to prevent.
+
+  Preact needs no adapter of its own: create-vite's template already maps `react`/`react-dom` to
+  `preact/compat` in its tsconfig, and `@preact/preset-vite` does the same at build time. Lit needs
+  no Vite plugin at all, so Rask writes the `vite.config.ts` that template does not ship, purely to
+  carry the dev proxy.
+
+- **`rask dev` runs a React solution's two halves together.** `dotnet watch` for the host, the
+  bundler's dev server for the client, and the browser pointed at the **bundler** — which proxies
+  `/_rask` back to the host, so HMR is native and the browser only ever sees one origin. The
+  production bundle is skipped for the session, because the dev server owns the client; the generated
+  contracts are still written, because a dev server compiling the previous build's contracts is
+  exactly the failure that pipeline exists to prevent.
+
+  The client process is killed with the host. A cancelled `rask dev` used to leave its child running
+  — a bundler still holding port 5173, which the next session picks up and serves the previous run's
+  output from, against a new server. `IProcessRunner.RunAsync` now kills the process tree on
+  cancellation, which fixes that for every command that shells out.
+
+  **The generated output is type-checked, by a compiler, in the unit gate.** A substring assertion
+  cannot tell a well-formed type expression from a malformed one, so the generated files are compiled
+  together with the vendored client under `--strict` by `tsgo` — the native Go build of the TypeScript
+  compiler — fetched through `npx` at a **pinned** version. Pinned because that package publishes
+  dated dev builds to `latest` and this runs from a pre-commit hook: an unpinned fetch would let
+  somebody else's release turn a commit red. When npx is absent the check is excluded **and said so**,
+  rather than reporting a green that never ran a type-checker.
+
+- **Rask supports TypeScript single-page app clients, and now says so where it can be checked.** A
+  resolved client with no `tsconfig.json` fails the build with **RASKSPA004**, naming the fix;
+  `--template react` asks `create-vite` for `react-ts` rather than `react`; and the package, the docs
+  and the CLI all describe a TypeScript SPA rather than "a JavaScript front end".
+
+  A refusal rather than a warning, because the alternative is worse than no support at all. A
+  JavaScript client *can* import the generated files — Vite transpiles a `.ts` module whatever the
+  project is — and gets none of what they are for: no inferred result type on `dispatch`, no compile
+  error when a C# property is renamed, no refusal when a command is handed to `raskQuery`. Every
+  guarantee here is one a compiler makes, and half of it delivered silently reads exactly like all of
+  it until the wire disagrees.
+
+  The framework is still yours to pick — React, Vue and Angular all bundle to the same thing, and the
+  cache rules are keyed on the *bundler*'s guarantee rather than on who generated it. Two ways out,
+  both honest: `RaskSpaTypeScriptConfig` names a config that is not at `tsconfig.json` (a monorepo
+  base config, a `tsconfig.app.json`), and `RaskEmitTypeScript=false` drops the contracts entirely,
+  leaving `UseRaskSpa` a static-file host with no opinion about what produced the bundle.
 
 ### Removed
 

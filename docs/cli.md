@@ -96,6 +96,9 @@ rask new MyApp --auth --docker       # + cookie auth + a production Dockerfile
 rask new Blog --data --docker        # + a SQLite database, ready for your first feature
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
+rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
+rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
+rask new Shop --tailwind             # Tailwind instead of plain CSS
 ```
 
 Run `rask` (or `rask new`) with no project name and — on a terminal — it walks you through a short
@@ -111,13 +114,33 @@ automation stays predictable.
 
 Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is initialized
 as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
-existing repository. `--no-bootstrap` swaps the `Bs*` components for plain elements against a small
-stylesheet in the app shell, and drops the `Rask.Bootstrap` reference.
+existing repository.
+
+**Styling is one axis with three answers, and plain is the default.** With neither flag, the generated
+pages are plain elements against a small stylesheet in the app shell — no CSS framework, nothing to
+learn before your first edit. `--bootstrap` renders them with `Rask.Bootstrap`'s `Bs*` components over
+Bootstrap 5.3, and `--tailwind` styles them with Tailwind CSS, compiled from your own source at build
+time (see [Tailwind](tailwind.md)). The two are mutually exclusive: asking for both is a usage error
+rather than a silent preference, and so is `--tailwind` on a template that does not support it yet —
+the browser-WASM ones, which have no styling axis of their own.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
 (the browser-WASM SPA), `MyApp.Server` (the ASP.NET host you run and deploy), and `MyApp.Shared` (a class
 library both reference).
+
+The front-end templates — `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit` — are the
+ones that do **not** write their own client. Each runs the framework's own scaffolder
+(`create-vite` for all of them but Angular, which runs `ng new`) and overlays at most four files onto
+what that produces, so the skeleton is whatever Vite ships today rather than a copy Rask maintains.
+They therefore need **Node.js and a network** at `rask new` time, and they emit two projects rather
+than three: the client's half of every contract is generated TypeScript, so there is nothing for a
+`.Shared` to hold. Always the `-ts` half of each pair: Rask supports **TypeScript** SPA clients, and a
+client with no TypeScript configuration is refused at build time with `RASKSPA004`.
+
+The set is exactly the frameworks TanStack Query ships an adapter for, and **TanStack Router is wired
+up for React and Solid** — the two adapters it ships. Angular differs in three ways (its own CLI, its
+own dev port, and a nested `dist`); see [TypeScript front ends](spa.md).
 
 A new project is deliberately **minimal** — nothing to delete before you start — and everything it
 scaffolds already follows the vertical-slice layout the guides build on: feature code under
@@ -142,7 +165,7 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm`, or `wasm-hosted`. |
+| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
 | `--auth` | Scaffold a cookie login/session (web templates). |
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
@@ -156,6 +179,8 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | `--logs` | A [durable log store](logging.md) in a SQLite file of its own, so the application log survives a restart — buffered off the request thread, with retention by age and row count. The **only** battery that does *not* imply `--data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
 | `--ops` | An [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
 | `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
+| `--bootstrap` | Render the generated pages with `Rask.Bootstrap`'s `Bs*` components over Bootstrap 5.3, self-hosted (no CDN). |
+| `--tailwind` | Style the generated pages with Tailwind CSS, compiled from your own source at build time — no npm required. |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore`). |
@@ -173,15 +198,21 @@ useful than a page designed to reveal nothing.
 
 ### Which template supports which flag
 
-| Flag | `server` | `wasm` | `wasm-hosted` |
-| --- | :-: | :-: | :-: |
-| `--auth` | ✅ | ✅ | ✅ |
-| `--pwa` | ✅ | ✅ | ✅ |
-| `--docker` | ✅ | ✅ | ✅ |
-| `--cqrs`, `--data` | ✅ | — | ✅ |
-| `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ |
-| `--push` | ✅ | — | — |
-| `--all-batteries` | ✅ | — | ✅ |
+| Flag | `server` | `wasm` | `wasm-hosted` | front-end |
+| --- | :-: | :-: | :-: | :-: |
+| `--auth` | ✅ | ✅ | ✅ | — |
+| `--pwa` | ✅ | ✅ | ✅ | — |
+| `--docker` | ✅ | ✅ | ✅ | ✅ |
+| `--bootstrap` | ✅ | ✅ | ✅ | — |
+| `--tailwind` | ✅ | — | — | ✅ |
+| `--cqrs`, `--data` | ✅ | — | ✅ | ✅¹ |
+| `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | ✅ |
+| `--push` | ✅ | — | — | — |
+| `--all-batteries` | ✅ | — | ✅ | ✅ |
+
+¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--cqrs` is accepted but changes
+nothing. `--auth` and `--pwa` are refused rather than half-scaffolded: both need work on the client
+(a React login flow, a service worker through `vite-plugin-pwa`) that the template does not write yet.
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
 combination that is then rejected. On the command line, asking for one is a usage error that names both
@@ -258,7 +289,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 
@@ -298,6 +329,18 @@ saving re-renders the open page live — see [what hot-reloads](#what-hot-reload
 
 It finds the project for you: in a **wasm-hosted** solution it picks the `.Server` host (the client is
 built into it).
+
+In a **react** solution it runs **two** processes: `dotnet watch` for the host, and the bundler's own
+dev server for the client. The browser talks to the **bundler**, on `http://localhost:5173`, and the
+scaffolded `vite.config.ts` proxies `/_rask` back to the host on `:5000` — so HMR is native and instant,
+and the browser only ever sees one origin, which is why there is no CORS to configure. `--open` opens
+the bundler's URL rather than the host's, and the dev server is killed with the host so a stale one
+cannot be picked up by the next session.
+
+The production bundle is skipped for that session (`-p:RaskSpaBuild=false`): the dev server owns the
+client, and paying for a full bundle on every save would make watch unusable. The **generated
+contracts are still written**, because a dev server compiling the previous build's contracts is exactly
+the failure that pipeline exists to prevent.
 
 It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
 set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the

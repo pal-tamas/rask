@@ -58,6 +58,12 @@ events — rides the app's own SQLite database. Run `rask` with no arguments for
 > **Prerequisites:** the .NET 10 SDK (`dotnet --version` ≥ `10.0`) and the `wasm-tools` workload for the
 > WASM templates.
 
+Prefer React? `rask new Shop --template react` scaffolds a Vite client on an ASP.NET host, with the
+front end's TypeScript generated from your C# message records on every build — so
+`await rask.dispatch(getOrder({ id }))` is typed, and renaming a property breaks the build rather
+than the wire. The client is a **TypeScript** SPA — React, Preact, Vue, Angular, Solid, Svelte or Lit, but not JavaScript, since
+every guarantee here is one a compiler makes. See [docs/spa.md](docs/spa.md). (Needs Node.js.)
+
 ## Packages
 
 Pick one host package per project, then add what you need. Everything below targets .NET 10 and is
@@ -69,6 +75,7 @@ trim/AOT-safe.
 | `Rask.Server` | [![Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=%20)](https://www.nuget.org/packages/Rask.Server) | ASP.NET host — state changes stream to the browser as minimal diffs over a WebSocket |
 | `Rask.Wasm` | [![Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm) | Browser-WebAssembly host — the same components client-side, installable as an offline PWA |
 | `Rask.Wasm.Hosting` | [![Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm.Hosting) | Serves a published WASM bundle from an ASP.NET host |
+| `Rask.Spa.Hosting` | [![Rask.Spa.Hosting](https://img.shields.io/nuget/v/Rask.Spa.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Spa.Hosting) | Serves a built TypeScript SPA, and generates its TypeScript from your C# contracts |
 | `Rask.Cli` | [![Rask.Cli](https://img.shields.io/nuget/v/Rask.Cli.svg?label=%20)](https://www.nuget.org/packages/Rask.Cli) | `new` · `dev` · `db` · `deploy` · `info` · `doctor` — the whole lifecycle, one tool |
 | `Rask.Bootstrap` | [![Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=%20)](https://www.nuget.org/packages/Rask.Bootstrap) | Typed Bootstrap 5.3 components, zero-JS interactivity, typed utility classes |
 | `Rask.Testing` | [![Rask.Testing](https://img.shields.io/nuget/v/Rask.Testing.svg?label=%20)](https://www.nuget.org/packages/Rask.Testing) | Render a component in a unit test and assert on its HTML |

@@ -47,6 +47,8 @@ Or add to an existing project. **Pick a host:**
 dotnet add package Rask.Server            # server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
+dotnet add package Rask.Spa.Hosting       # host a built TypeScript SPA on ASP.NET
+dotnet add package Rask.Tailwind          # Tailwind CSS on any host, no npm required
 ```
 
 **Then the batteries you want** — each is opt-in, and every one is a `AddRaskX<AppDbContext>()` call plus
@@ -56,6 +58,7 @@ a `modelBuilder.AddRaskX()` schema line:
 dotnet add package Rask.Data              # base entity + EF interceptors (soft delete, concurrency, events)
 dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
 dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM client
+dotnet add package Rask.Query             # cache, dedup and invalidate dispatched queries per session
 dotnet add package Rask.Cqrs.Server       # host the endpoint those clients dispatch to
 dotnet add package Rask.Jobs              # durable background jobs
 dotnet add package Rask.Mail              # transactional email queue

@@ -14,8 +14,8 @@ internal static partial class ProjectGenerator
             ($"{NameToken}.csproj", WasmCsproj(auth, bootstrap, version)),
             ("Program.cs", WasmProgram(auth, pwa)),
             // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
-            ("Features/Shared/App.cs", AppShellCs(bootstrap)),
-            ("Features/Home/HomePage.cs", HomePageCs(bootstrap)),
+            ("Features/Shared/App.cs", AppShellCs(bootstrap ? Styling.Bootstrap : Styling.Plain)),
+            ("Features/Home/HomePage.cs", HomePageCs(bootstrap ? Styling.Bootstrap : Styling.Plain)),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
         };

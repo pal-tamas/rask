@@ -95,10 +95,10 @@ internal static partial class ProjectGenerator
     // The shell + welcome page are exactly the server/wasm ones, only re-homed into the .Client namespace so
     // the Server's cross-project reference and the client's own types line up. Reuse keeps the three in sync.
     private static string WasmHostedClientAppShell(bool bootstrap) =>
-        AppShellCs(bootstrap).Replace($"namespace {NameToken}.Features.Shared;", $"namespace {NameToken}.Client.Features.Shared;", StringComparison.Ordinal);
+        AppShellCs(bootstrap ? Styling.Bootstrap : Styling.Plain).Replace($"namespace {NameToken}.Features.Shared;", $"namespace {NameToken}.Client.Features.Shared;", StringComparison.Ordinal);
 
     private static string WasmHostedClientHomePage(bool bootstrap) =>
-        HomePageCs(bootstrap).Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
+        HomePageCs(bootstrap ? Styling.Bootstrap : Styling.Plain).Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
 
     private static string WasmHostedClientProgram(bool auth, bool pwa, bool cqrs)
     {
@@ -532,7 +532,7 @@ internal static partial class ProjectGenerator
     {
         // Ops is cleared here and handled below so the two packages it implies are added together and in
         // one place; Bootstrap belongs to the .Client, which is what renders the application's UI.
-        var packages = ServerPackages(batteries with { Bootstrap = false, Ops = false });
+        var packages = ServerPackages(batteries with { Styling = Styling.Plain, Ops = false });
         packages.Remove("Rask.Server");
         packages.Insert(0, "Rask.Wasm.Hosting");
 

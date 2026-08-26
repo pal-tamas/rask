@@ -1,0 +1,148 @@
+<Project>
+
+  <!--
+    Rask.Tailwind build integration: compile the app's stylesheet with Tailwind before the app builds.
+
+    Tailwind is a compiler, not a stylesheet — it reads your source, finds the class names you actually
+    wrote, and emits only those utilities. On a C# host that means it has to scan .cs files, which it
+    does automatically: Tailwind v4 detects sources from the project directory with no `content` array
+    and no config file, and it finds classes inside C# string literals (`Div.Class("flex gap-4")`),
+    including arbitrary values like `w-[137px]`.
+
+    Everything below no-ops when the input stylesheet is absent, because this file is imported into
+    EVERY project of every consumer — same as Rask.Spa.Hosting.targets.
+  -->
+
+  <UsingTask TaskName="Rask.Tailwind.Tasks.ResolveTailwindCliTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.Tailwind.Tasks.dll"/>
+
+  <PropertyGroup>
+    <_RaskTailwindInput Condition="'$(RaskTailwindInput)' != ''"
+    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindInput)'))</_RaskTailwindInput>
+    <_RaskTailwindOutput Condition="'$(RaskTailwindOutput)' != ''"
+    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindOutput)'))</_RaskTailwindOutput>
+
+    <!--
+      Whether any of this happens. Design-time builds are excluded: an IDE reloading the project must
+      never download a binary or shell out to a compiler.
+    -->
+    <_RaskTailwindDoBuild
+      Condition="'$(RaskTailwindBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_RaskTailwindInput)')"
+    >true</_RaskTailwindDoBuild>
+  </PropertyGroup>
+
+  <!--
+    What the generated CSS depends on: the input sheet, and every source file Tailwind scans for class
+    names. This has to be an ItemGroup — a target's Inputs attribute does NOT expand wildcards, it
+    treats the pattern as a literal filename, decides it "does not exist", and rebuilds every time.
+
+    The globs are narrow on purpose: obj/ and bin/ are excluded because the generated output itself
+    lives under one of them in some layouts, and a target whose input includes its own output never
+    settles.
+  -->
+  <ItemGroup Condition="'$(_RaskTailwindDoBuild)' == 'true'">
+    <_RaskTailwindSource Include="$(_RaskTailwindInput)"/>
+    <_RaskTailwindSource Include="$(MSBuildProjectDirectory)/**/*.cs;$(MSBuildProjectDirectory)/**/*.razor;$(MSBuildProjectDirectory)/**/*.html"
+                        Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*"/>
+  </ItemGroup>
+
+  <!--
+    Resolving the engine is separate from running it so the download happens once per build at most,
+    and so a failure to resolve reports as itself rather than as a failed Exec.
+  -->
+  <Target Name="_RaskTailwindResolve" Condition="'$(_RaskTailwindDoBuild)' == 'true'">
+    <ResolveTailwindCliTask Version="$(RaskTailwindVersion)"
+                            CacheRoot="$(RaskTailwindCacheRoot)"
+                            Engine="$(RaskTailwindEngine)"
+                            Offline="$(RaskTailwindOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskTailwindTool"/>
+      <Output TaskParameter="UseNpm" PropertyName="_RaskTailwindUseNpm"/>
+    </ResolveTailwindCliTask>
+  </Target>
+
+  <!--
+    The npm engine, for the platforms Tailwind publishes no standalone binary for — 32-bit ARM, FreeBSD,
+    and anywhere else its release page does not reach.
+
+    This is a real install into the project rather than an `npx` one-liner, and that is not a choice:
+    Tailwind resolves `@import "tailwindcss"` from the STYLESHEET's own directory upward, so the package
+    has to be reachable from the project. Neither the cwd flag nor npx's temporary prefix changes that.
+    The standalone binary avoids all of it by bundling Tailwind inside itself, which is why it is first.
+
+    So on this path a C# project genuinely gains a package.json and a node_modules — because that is what
+    using Tailwind from npm means. node_modules belongs in .gitignore; the package.json is harmless to
+    commit and pins the same version the standalone path uses.
+  -->
+  <Target Name="_RaskTailwindNpmInstall"
+          Condition="'$(_RaskTailwindUseNpm)' == 'true'"
+          Inputs="$(MSBuildProjectDirectory)/package.json"
+          Outputs="$(MSBuildProjectDirectory)/node_modules/.package-lock.json">
+    <WriteLinesToFile
+      File="$(MSBuildProjectDirectory)/package.json"
+      Overwrite="true"
+      Condition="!Exists('$(MSBuildProjectDirectory)/package.json')"
+      Lines="{&quot;private&quot;:true,&quot;devDependencies&quot;:{&quot;tailwindcss&quot;:&quot;$(RaskTailwindVersion)&quot;,&quot;@tailwindcss/cli&quot;:&quot;$(RaskTailwindVersion)&quot;}}"/>
+
+    <Message Importance="high"
+             Text="Rask.Tailwind: no standalone binary for this platform — installing Tailwind $(RaskTailwindVersion) from npm."/>
+
+    <!-- IgnoreStandardErrorWarningFormat: npm writes deprecation notices and audit summaries to stderr
+         as a matter of course, and Exec turns any stderr line into MSB3077 even when it exited 0. -->
+    <Exec Command="npm install --no-audit --no-fund"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"/>
+  </Target>
+
+  <!--
+    Rask auto-includes every **/*.css as a SCOPED stylesheet and expects a component of the same name
+    beside it (RASK015). The Tailwind input is a global stylesheet, not a scoped one, so it has to be
+    taken back out — precisely, by full path, rather than by turning the whole convention off with
+    RaskScopedCssAutoInclude=false, which would silently un-scope every other .css in the project.
+
+    A target rather than a bare ItemGroup because the removal has to happen AFTER Rask.Core.targets has
+    added it, and the order two packages' targets are imported in is not something to rely on.
+  -->
+  <Target Name="_RaskTailwindExcludeInputFromScopedCss"
+          BeforeTargets="CoreCompile"
+          Condition="'$(_RaskTailwindInput)' != ''">
+    <ItemGroup>
+      <!-- Both spellings: Rask.Core's glob adds it relative (Styles\app.css), but a project that named
+           the input by absolute path would have it that way instead. Remove matches on the item spec, so
+           one form does not cover the other. -->
+      <AdditionalFiles Remove="$(RaskTailwindInput)"/>
+      <AdditionalFiles Remove="$(_RaskTailwindInput)"/>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_RaskTailwindBuild"
+          BeforeTargets="BeforeBuild"
+          DependsOnTargets="_RaskTailwindResolve;_RaskTailwindNpmInstall"
+          Condition="'$(_RaskTailwindDoBuild)' == 'true'"
+          Inputs="@(_RaskTailwindSource)"
+          Outputs="$(_RaskTailwindOutput)">
+    <PropertyGroup>
+      <_RaskTailwindMinify Condition="'$(RaskTailwindMinify)' == 'true'"> --minify</_RaskTailwindMinify>
+
+      <!-- Resolved after the install, because on the npm path it does not exist until then. -->
+      <_RaskTailwindTool Condition="'$(_RaskTailwindUseNpm)' == 'true'"
+      >$(MSBuildProjectDirectory)/node_modules/.bin/tailwindcss</_RaskTailwindTool>
+    </PropertyGroup>
+
+    <Message Importance="high" Text="Rask.Tailwind: building $(RaskTailwindOutput) from $(RaskTailwindInput)"/>
+
+    <!-- BeforeBuild runs before the SDK has created the output directory. -->
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_RaskTailwindOutput)'))"/>
+
+    <!--
+      WorkingDirectory is the project: Tailwind v4 detects its sources relative to where it runs, so
+      running it anywhere else scans the wrong tree and silently emits an almost-empty stylesheet.
+
+      IgnoreStandardErrorWarningFormat: the CLI writes its progress banner to stderr as a matter of
+      course, and Exec turns any stderr line into MSB3077 even when the command exited 0.
+    -->
+    <Exec Command="&quot;$(_RaskTailwindTool)&quot; --input &quot;$(_RaskTailwindInput)&quot; --output &quot;$(_RaskTailwindOutput)&quot;$(_RaskTailwindMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"/>
+  </Target>
+
+</Project>
