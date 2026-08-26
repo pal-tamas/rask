@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A localization guide, a live demo, and a browser journey step.** `docs/localization.md` covers the
+  whole feature end to end — how a visitor's language is chosen, why URLs stay culture-neutral, typed
+  catalogs, plurals, what deliberately stays invariant, right-to-left, and the WASM ICU trade-off — and
+  is reachable from the docs site like every other guide.
+
+  The demo renders the same date, price and percentage across four languages, so the difference is
+  visible rather than described. It formats with an explicit `CultureInfo` per call and uses fixed
+  sample values, because a guide page mounts many demos in one render: reading or setting the ambient
+  culture there would reformat every other demo on the page, and a moving date would make the committed
+  markup snapshot go stale on a schedule rather than when something changed.
+
 - **`rask new --culture en --culture hu` scaffolds a localized app.** `--culture` is repeatable and
   names the languages; the **first is the default** a visitor falls back to. `--localization` on its own
   means English, which is the shape an app grows a second language into. Both are supported on
@@ -177,6 +188,19 @@ them until tagged releases begin.
   naming `RaskGlobalization`, rather than once per render.
 
 ### Changed
+- **The WASM showcase and the docs site now ship ICU** (`RaskGlobalization=true`), which adds roughly
+  2.6 MB of `icudt*.dat` to those two bundles. `RaskGlobalization` also requests **full** ICU rather
+  than the WebAssembly SDK's default shard: that shard covers only EFIGS (English, French, Italian,
+  German, Spanish), under which `hu-HU` resolves, does not throw, and formats dates **in English** —
+  every check passing while the output is quietly wrong. Found by the browser gate, not by inspection:
+  the showcase's culture table rendered `3/14/2026` for both English and Hungarian. They host the guides, and the localization guide's demo
+  formats the same values across four languages — without culture data it would render four identical
+  columns, which teaches the opposite of the point. Every other WASM sample, and every scaffolded app,
+  still defaults to invariant and pays nothing.
+
+  This also makes the showcase the repo's ICU canary: the opt-in is now exercised by the browser E2E
+  gate on every push rather than only by an MSBuild property assertion.
+
 - **The Bootstrap date and time pickers follow the visitor's culture instead of the server's.**
   `BsPickerBase` read `CultureInfo.CurrentCulture` for month names, weekday names and
   first-day-of-week — but nothing in Rask ever *set* it, so on a server every visitor got the

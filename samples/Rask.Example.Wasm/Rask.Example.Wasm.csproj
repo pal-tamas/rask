@@ -32,11 +32,15 @@
          carry a documented suppression. -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
-    <!-- ICU is dropped: this app formats nothing culture-sensitive, so the ~2.6 MB of icudt*.dat is
-         pure payload. Owned by Rask.Wasm.targets now rather than set here — RaskGlobalization is the
-         one property, and it also handles PredefinedCulturesOnly, which defaults to true under
-         invariant globalization and makes CultureInfo.GetCultureInfo("hu-HU") throw rather than fall
-         back. Set <RaskGlobalization>true</RaskGlobalization> to ship ICU. -->
+    <!-- This app hosts the guides, and the localization guide's demo formats the same values across
+         four languages — which needs real culture data. So it ships ICU (~2.6 MB of icudt*.dat under
+         _framework/) rather than dropping it. One property covers both halves: it also clears
+         PredefinedCulturesOnly, which otherwise defaults to true under invariant globalization and
+         makes CultureInfo.GetCultureInfo("hu-HU") THROW rather than fall back.
+
+         This also makes the showcase the repo's ICU canary: the opt-in is exercised by the browser
+         E2E gate on every push rather than only by an MSBuild property assertion. -->
+    <RaskGlobalization>true</RaskGlobalization>
     <!-- Suppress IL2104 from Microsoft.JSInterop. The underlying warnings (IL2065 / IL2111)
          live in DotNetDispatcher.ScanAssemblyForCallableMethods — Blazor's reflection-driven
          [JSInvokable] scanner. Rask apps that only INVOKE JS (the common case) never trigger
