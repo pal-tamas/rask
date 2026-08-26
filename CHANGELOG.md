@@ -99,6 +99,13 @@ them until tagged releases begin.
   each enqueuing another round of JS interop. Intermediate waves also promote neither the diff
   baseline nor the dedup baseline — only the HTML actually served is what the browser holds.
 
+  **Work blocked on JavaScript is not waited on**, and cannot be: a JS call made during a render
+  queues onto a frame, and during the `GET` there is no client to send it to, so the awaiting task
+  completes once the socket is up and never before. A hook that reads browser storage to restore a
+  session is exactly this shape. Nothing is lost by stopping — such a page is already interactive
+  *because* of the interop, so it keeps its session and finishes over the socket as before, whereas
+  waiting would spend the entire budget on every page load.
+
   Work whose owning component was unmounted mid-pass is dropped rather than awaited: a placeholder
   replaced by the data it was waiting for leaves the tree, and its abandoned fetch would otherwise
   hold the response open for the full budget. Work deliberately detached from the hook — a polling
