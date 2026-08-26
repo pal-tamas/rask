@@ -76,7 +76,9 @@ them until tagged releases begin.
   ([dotnet/efcore#37432](https://github.com/dotnet/efcore/issues/37432)), which adds
   `CultureInfo.InvariantCulture` to the parse — but that fix still uses `decimal.Parse`, not `TryParse`,
   so on EF 11 the collation continues to throw and terminate the process the moment a value that is not
-  a number reaches the column. Rask's registration stays: it is the only one that is total.
+  a number reaches the column — tracked upstream as
+  [dotnet/efcore#38870](https://github.com/dotnet/efcore/issues/38870). Rask's registration stays until
+  that closes: it is the only one that is total.
 
   Arithmetic, comparisons and `Sum`/`Average`/`Min`/`Max` were never affected — those translate through
   EF's `ef_add`/`ef_compare`/`ef_sum`/… helpers, which take typed `decimal` parameters. `docs/sqlite.md`
