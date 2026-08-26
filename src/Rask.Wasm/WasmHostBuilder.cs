@@ -9,6 +9,7 @@ using Rask.Core.Browser;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Globalization;
+using Rask.Core.Http;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
@@ -41,6 +42,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IBrowserFileBackend, WasmFileBackend>();
         Services.AddSingleton<IDownloadSink, WasmDownloadSink>();
         Services.AddSingleton<Navigator>();
+        Services.AddSingleton<IPageResponse, WasmPageResponse>();
         // Transient user messages / toasts (a flash-message pattern). Singleton = one queue for the app instance
         // (the whole WASM app is a single session), so a message queued before a NavigateTo survives it.
         Services.AddSingleton<IToaster, Toaster>();

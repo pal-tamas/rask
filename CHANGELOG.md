@@ -167,6 +167,31 @@ them until tagged releases begin.
   went back in — the same bug class `--template native` was, and the same one it now catches.
 ### Added
 
+- **A page can now set its own HTTP status** through `IPageResponse` (injected like `RouteState` or
+  `Navigator`), **and navigate on load into a real redirect.** The framework already answered `404`
+  for a path that fell through to the not-found page and `500` for a render that faulted; neither
+  could help the common case. `/products/9999` matches a real route, renders a perfectly ordinary
+  "no such product" page, and told every cache and crawler it was fine. Only the page knows.
+
+  `IPageResponse.SetStatus` answers with any status in the 200–599 range. A faulted render still
+  wins with `500` — a page that threw does not get to claim it succeeded — and setting `200` on the
+  not-found page is the supported way to express a deliberate soft-404. It is legal only during the
+  initial server render (`Render`, `OnMount`, `OnMountAsync`); from an event handler it **throws**,
+  because by then the response is long gone and a silently dropped status is worse than a crash the
+  developer sees immediately. On WASM it is a no-op — there is no response to shape — so a page
+  calling it compiles and runs unchanged on both hosts. It joins `RaskHostContracts`, so both hosts
+  are obliged to register it.
+
+  **Redirects are `Navigator`, not a second API.** `Navigator.NavigateTo` already expresses "the
+  user belongs somewhere else"; it simply used to throw during the initial render. It now works
+  there, and the host answers a real `302` before rendering a body at all — one response instead of
+  a whole page the client immediately navigates away from, and one a crawler and a cache both
+  understand, where a client-side hop is neither. No session is left behind, since nothing will ever
+  connect to that page, and the redirect is `no-store`: one computed from runtime state — a flag, a
+  tenant, an experiment — that a browser pinned would be unrecoverable without changing the URL. The
+  `Location` value is sanitized on the way out, because a header is exactly where an unchecked path
+  becomes an open redirect.
+
 - **The initial `GET` now waits for a page's async data before serving its HTML.** `OnMountAsync`
   is fire-and-forget: the render walk starts it, keeps walking, and the continuation paints later
   over the live connection. That is right once a socket exists and wrong for the first response,
