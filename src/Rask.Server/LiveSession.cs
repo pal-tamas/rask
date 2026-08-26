@@ -432,6 +432,14 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
 
         LastRenderTimedOut = quiescence.TimedOut;
+        if (quiescence.TimedOut)
+        {
+            // The page is going out with work still in flight, so it MUST keep a live session:
+            // served as a plain document it would sit on its placeholder for ever, with nothing
+            // left running that could ever replace it.
+            MarkRequiresLiveSession(InteractivityReason.QuiescenceTimeout);
+        }
+
         CommitInitialRoot(html);
         return html;
     }

@@ -87,6 +87,27 @@ public sealed class RaskServerOptions
     public TimeSpan InitialRenderQuiescenceTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
+    ///     Serve a page that needs nothing live as a plain document — no session, no WebSocket, no
+    ///     runtime script — and let it be cached. Default <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Whether a page needs a live connection is detected from its render: an event handler,
+    ///         a form, an element <c>Ref</c>, a call into JavaScript, or async work that had not
+    ///         settled when the response went out. A page with none of those is inert today anyway —
+    ///         it just costs a DI scope, a component tree and a socket to say so.
+    ///     </para>
+    ///     <para>
+    ///         Off by default because detection can only observe what the render did. A component
+    ///         that pushes updates from a timer or an <c>event</c> subscription — work no walk can
+    ///         see — would be judged static and go quiet. Turn it on once you have checked the pages
+    ///         it changes; in Development a static page still reports, in the browser console, any
+    ///         handler it finds on a page it judged inert.
+    ///     </para>
+    /// </remarks>
+    public bool StaticPages { get; set; }
+
+    /// <summary>
     ///     If a connected WebSocket sends no inbound frame for this long, the server closes it. The
     ///     session itself survives under <see cref="SessionGracePeriod" /> for reconnect, so this only
     ///     reclaims the idle socket (and its receive loop), not the component tree. Bounds a silently

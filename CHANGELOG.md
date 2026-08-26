@@ -167,6 +167,48 @@ them until tagged releases begin.
   went back in — the same bug class `--template native` was, and the same one it now catches.
 ### Added
 
+- **A page that needs nothing live can now be served as a plain document** — no session, no
+  WebSocket, no runtime script, and cacheable. Opt in with `RaskServerOptions.StaticPages`.
+
+  Every `GET` used to mint a DI scope and a component tree, hold them for ten seconds against
+  `MaxSessions`, and answer `Cache-Control: no-store` because the shell carries the session id. For
+  a page with no handler, no form, no element `Ref` and no call into JavaScript, all of that bought
+  nothing: the page was already inert once it reached the browser. A crawler sweeping N routes
+  created N sessions.
+
+  Which pages those are is **detected from the render**, not declared. The signals are the places
+  they already funnel through: every `data-rask-on-*` attribute is minted in one method, every bound
+  control resolves one `EditContext`, a `Ref` emits one attribute, and a JS call passes one
+  runtime. Async work that had not settled when the response went out counts too — such a page
+  *must* keep its session, because served as a document it would sit on its placeholder for ever.
+
+  Two details are load-bearing. The verdict **accumulates and is never cleared**: the clean-subtree
+  cache re-registers a skipped walk's handlers through a different path, so a page whose only button
+  went clean on a later wave would otherwise be judged static and lose it. And the runtime `<script>`
+  is emitted as always and **removed** on the static branch, rather than the serializer emitting a
+  placeholder — a WebSocket full-HTML frame goes through that same serializer, and the client morphs
+  those onto `document.documentElement`, so a placeholder would delete the running runtime out from
+  under the page it drives. If the tag is not exactly where expected, the removal declines and the
+  page is treated as interactive.
+
+  Caching is conservative by construction: static **and** anonymous gets `private, max-age=0,
+  must-revalidate` with `Vary: Cookie` — enough to restore bfcache and instant back/forward without
+  handing anything to a shared cache. Static and authenticated stays `no-store`, as does anything
+  faulted or ≥400. "Authenticated" is the union of the request principal and the post-render one,
+  since a render can sign someone in.
+
+  **Off by default, and deliberately.** Detection can only observe what the render did; a component
+  that pushes from a timer or an `event` subscription is invisible to any walk and would go quiet.
+  In Development pages always keep their session, so `rask dev` hot reload is unaffected — which
+  also means the static path is not exercised there yet. A dev-time audit that flags a page judged
+  static while carrying handlers is still to come, and until it lands, check the pages this changes
+  before enabling it in production.
+
+- **The service worker no longer buries a cached page under the offline page.** Browsers consult the
+  SW ahead of the HTTP cache for navigations, so `fetch().catch(() => offline.html)` short-circuited
+  a perfectly good cached copy of the very page the user asked for. It now tries the HTTP cache
+  first. Latent before — nothing was cacheable — and live the moment a static page is.
+
 - **A page can now set its own HTTP status** through `IPageResponse` (injected like `RouteState` or
   `Navigator`), **and navigate on load into a real redirect.** The framework already answered `404`
   for a path that fell through to the not-found page and `500` for a render that faulted; neither

@@ -36,6 +36,29 @@ public interface IRenderHandle
     {
     }
 
+    /// <summary>
+    ///     Record that something in this render needs a live connection to work.
+    /// </summary>
+    /// <remarks>
+    ///     Reported to the handle rather than the <see cref="LiveRenderContext" /> for the same
+    ///     reason <see cref="ReportDevError" /> is: the context is disposed when the walk ends and
+    ///     the host reads the verdict afterwards, so a value left on the context would be gone by
+    ///     the time anyone asked.
+    ///     <para>
+    ///         Accumulates — never clears — across the waves of one initial render. A handler that
+    ///         appeared on the first wave still needs a socket even if its subtree came back from
+    ///         the clean-subtree cache on the second, and a verdict computed from the final walk
+    ///         alone would quietly drop it.
+    ///     </para>
+    ///     <para>
+    ///         Defaulted to a no-op so the interface stays non-breaking and the unit-test handle
+    ///         simply never forms a verdict.
+    ///     </para>
+    /// </remarks>
+    internal void ReportRequiresLiveSession(InteractivityReason reason)
+    {
+    }
+
     // The render engine, surfaced to components during render (via LiveRenderContext → Component.HostEngine).
     // Defaulted here so the interface stays non-breaking; concrete sessions override with their own fact.
     internal RenderEngine Engine => RenderEngine.Server;

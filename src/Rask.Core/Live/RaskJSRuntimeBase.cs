@@ -26,6 +26,11 @@ internal abstract class RaskJSRuntimeBase : JSRuntime
     {
         var invoke = new PendingJsInvoke(taskId, identifier, argsJson, (int)resultType, targetInstanceId);
 
+        // A page that calls into JavaScript needs the connection that carries the call. Marked on
+        // both branches below: a queued invoke and an immediately dispatched one are equally
+        // undeliverable to a document served with no runtime attached.
+        CurrentHost.MarkRequiresLiveSession(InteractivityReason.JsInterop);
+
         // Mid-render (e.g. an OnRenderedAsync hook focusing a dialog as it opens): queue onto the
         // current frame so the client runs it AFTER applyDiff — i.e. against the committed DOM. This
         // is the shared, transport-independent half, and the reason WASM focus now lands like Server.
