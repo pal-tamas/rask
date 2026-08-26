@@ -104,6 +104,13 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   happen (they are what the tests boot), but you pay for one journey instead of the whole suite:
   `RASK_E2E_FILTER='FullyQualifiedName~PlaygroundExampleTests' scripts/run-e2e-local.sh`. It says loudly
   that the run was filtered, because a narrowed green is not the gate.
+
+  **Only one browser gate runs at a time.** Two suites on one machine contend for resources, and that
+  shows up as a plausible-looking red minutes later with nothing in the log pointing back at it — so the
+  gate names the other run (pid, elapsed, worktree) and stops. If you are working across several
+  worktrees, this is the thing that stops you diagnosing a failure that was never in your branch.
+  `RASK_E2E_ALLOW_CONCURRENT=1` overrides it; treat anything it then reports as suspect until re-run
+  alone.
 - **The CLI build gate runs locally, enforced before push.** `scripts/run-cli-build-e2e.sh` is the only
   thing proving the code the CLI *writes* actually compiles — every other CLI test asserts on generated
   strings. It packs this commit's Rask packages to a local feed, scaffolds every `rask new` flag

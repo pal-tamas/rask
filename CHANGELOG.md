@@ -38,6 +38,24 @@ them until tagged releases begin.
   shells — the framework's, the samples', the one `rask new` writes — they have already drifted, and a
   user may write their own. Owning it in the one file all of them load means no shell can be missing it.
 
+- **The browser gate refuses to start alongside another one.** Two suites on one machine contend for
+  resources — the port collision was fixed in #626, but contention still surfaces as a plausible-looking
+  red in one or both runs, minutes later, with nothing in the log pointing back at it. It cost exactly
+  that today: an unexplained five-minute timeout between two worktrees that were actively coordinating
+  and still both believed the machine was idle, while a third and then a fourth suite ran unseen.
+
+  `scripts/run-e2e-local.sh` now names the other run — pid, how long it has been going, and which
+  worktree — and stops, rather than producing a result nobody should trust.
+  `RASK_E2E_ALLOW_CONCURRENT=1` proceeds anyway; `CI` skips the check.
+
+  It **refuses** rather than warning because this runs from `pre-push` behind thousands of build lines,
+  where a warning is not read, and because refuse-with-override is what every other opt-out here already
+  does. The match is anchored on the `scripts/` path segment: a bare name also matches any shell whose
+  argv merely mentions the script, which reported three conflicts where there was one the first time it
+  ran — and under refuse-by-default a false positive is a blocked push. The predicate lives in
+  `scripts/lib/e2e-concurrency.sh` with a table test, the same split as `build-failure.sh`, because
+  something that decides whether a push may proceed is exactly what stays quietly wrong otherwise.
+
 - **`RASK_E2E_FILTER` narrows a browser-gate run to one journey.** The filter was hard-coded, so
   iterating on a single failing journey cost the whole suite — including two emscripten relinks — every
   attempt. A filtered run says loudly that it was filtered, in both its header and its final line: a
