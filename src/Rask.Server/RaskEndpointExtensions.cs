@@ -589,6 +589,10 @@ public static partial class RaskEndpointExtensions
             var interactive = !staticPages
                               || session.RequiresLiveSession
                               || session.LastRenderFaulted
+                              // A JS call issued from a continuation AFTER the walk is invisible to
+                              // the render context, but it is still queued waiting for a frame that
+                              // only a socket can carry.
+                              || session.JsInvokes.HasPending
                               || LiveOptions.IsDevelopment == true;
 
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
