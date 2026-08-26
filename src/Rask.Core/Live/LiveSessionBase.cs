@@ -67,6 +67,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     System.Globalization.CultureInfo IRenderHandle.UICulture =>
         _culture?.UICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
 
+    // Only once the app has actually named a language. An unconfigured culture service reports no
+    // supported cultures and sits on the invariant culture, which is not a document language.
+    bool IRenderHandle.HasCulture => _culture is { Supported.Count: > 0 };
+
     // Called at the very start of each render walk (before the tree is serialized). Base is a no-op.
     protected virtual void OnBeforeRenderWalk() { }
 

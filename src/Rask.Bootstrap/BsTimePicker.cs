@@ -9,7 +9,7 @@ namespace Rask.Bootstrap;
 // seconds by SecondStep (default 5). Min/Max grey out-of-range items and clamp every write. Keyboard: a
 // first nav key opens; ArrowUp/Down nudge the minute by a step (Shift+ArrowUp/Down the second when Seconds
 // is on), PageUp/Down nudge the hour, Home/End jump to the earliest/latest selectable time, Enter/Escape
-// close; typing into the box also commits live. Labels localizes the column/clear aria-labels. Native:true
+// close; typing into the box also commits live. Native:true
 // falls back to <input type=time>.
 //   Bound:      BsTimePicker(() => model.Alarm).Label("Alarm").MinuteStep(15)
 //   Controlled: BsTimePicker<TimeOnly>().Value(t).OnChange(v => …)
@@ -67,7 +67,7 @@ public sealed partial class BsTimePicker<T> : BsPickerBase<T>
         };
 
         var popover = Div.Id(gridId).Class(MenuClass())[
-            PickerParts.TimeColumns(selected, step, showSeconds, secStep, Min, Max, Culture, PickerLabels,
+            PickerParts.TimeColumns(selected, step, showSeconds, secStep, Min, Max, Culture,
                 hour => WriteTimeAsync(acc, ctx, fid, selected, hour, null, null),
                 minute => WriteTimeAsync(acc, ctx, fid, selected, null, minute, null),
                 showSeconds ? second => WriteTimeAsync(acc, ctx, fid, selected, null, null, second) : null)

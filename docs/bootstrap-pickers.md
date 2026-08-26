@@ -52,18 +52,30 @@ you actually arrow-navigated to, so pressing it after clearing a nullable field 
 
 ## Localizing the chrome
 
-The weekday/month names and the per-date accessible labels come from `CultureInfo.CurrentCulture`
-automatically. The remaining chrome that has no culture source — the month-nav buttons, the time-column
-headings and the clear button — is translated with `Labels`:
+The weekday and month names, the first day of the week, and the per-date accessible labels all follow
+**the visitor's culture** — `Component.Culture`, negotiated per session. (Before culture support they
+read `CultureInfo.CurrentCulture`, which on a server is the *process* locale, so every visitor of a
+multi-user app got the server's month names.)
 
-```csharp
-BsDatePicker.Bind(() => model.StartsOn).Labels(new BsPickerLabels
+The remaining chrome that has no culture source — the month-nav buttons, the time-column headings and
+the clear button — is translated by dropping a reserved catalog into the app:
+
+```jsonc
+// Resources/RaskStrings.de.json
 {
-    PreviousMonth = "Vorheriger Monat",
-    NextMonth = "Nächster Monat",
-    Clear = "Löschen",
-})
+  "PickerPreviousMonth": "Vorheriger Monat",
+  "PickerNextMonth": "Nächster Monat",
+  "PickerClear": "Löschen"
+}
 ```
+
+Nothing to wire up: the file is picked up at build time and registered automatically, and every picker
+in the app follows. Untranslated keys keep the framework's English, so a partial translation is safe.
+See [Diagnostics](diagnostics.md#rask051) for what happens if a key is misspelled.
+
+> **Changed:** this replaces the per-instance `Labels` / `BsPickerLabels` record, which had to be
+> threaded through every picker separately — translating three pickers on one page meant repeating
+> yourself three times, and it could not follow a visitor's language at all.
 
 ## Live example
 

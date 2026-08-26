@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 
 namespace Rask.Core.Components;
@@ -112,7 +113,8 @@ public sealed class DefaultErrorPage : Component
     {
         var children = new List<Component>
         {
-            H1.Style("margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"]
+            H1.Style("margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")[
+                RaskStrings.Get(RaskString.ErrorHeading, "Something went wrong")]
         };
 
         // Try again first, when the boundary handed us a way to: it keeps the session, the state and the
@@ -124,7 +126,7 @@ public sealed class DefaultErrorPage : Component
             children.Add(Button
                 .Type("button")
                 .Style(ReloadButtonStyle)
-                .OnClick(recover)["Try again"]);
+                .OnClick(recover)[RaskStrings.Get(RaskString.ErrorTryAgain, "Try again")]);
         }
 
         // In-app recovery so the user isn't stranded on the fault: the runtime wires data-rask-reload
@@ -133,7 +135,8 @@ public sealed class DefaultErrorPage : Component
         children.Add(Button
             .Type("button")
             .Style(ReloadButtonStyle)
-            .Data(new Dictionary<string, string?> { ["rask-reload"] = "" })["Reload this page"]);
+            .Data(new Dictionary<string, string?> { ["rask-reload"] = "" })[
+                RaskStrings.Get(RaskString.ErrorReload, "Reload this page")]);
 
         var chain = Unwind(_error);
 

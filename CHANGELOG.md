@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The framework's own text can be translated, by dropping in one file.**
+  `Resources/RaskStrings.{culture}.json` translates what Rask itself renders — the date/time picker
+  chrome, the built-in not-found page, the built-in error page. The keys are `RaskString` members, so a
+  misspelled one is a build error listing the valid names rather than a translation that silently does
+  nothing.
+
+  Nothing to wire up: the catalog registers itself through a generated module initializer, so it works
+  identically on Server and WASM with no `AddRask()` change. **No neutral file is needed** — the
+  framework's English lives as a literal at each call site, which is what makes a missing framework
+  string impossible; an app supplies only the languages and keys it actually has.
+
 - **Translated text is generated from JSON, and a missing key is a compile error.**
   `Resources/Strings.en.json` beside `Resources/Strings.hu.json` becomes
   `Strings.Greeting(user.Name)` — a real member, with real parameters.
@@ -156,6 +167,18 @@ them until tagged releases begin.
   unchanged.
 
 ### Removed
+
+- **`BsPickerLabels` and the pickers' `Labels` property are gone**, replaced by
+  `Resources/RaskStrings.{culture}.json`. They were a per-*instance* record that every call site had to
+  thread through: translating three pickers on one page meant repeating yourself three times, and the
+  text could not follow the visitor's language at all — which is what the whole culture epic exists to
+  fix. Per-instance labels are not replaced, deliberately; a language is a property of the visitor, not
+  of one control.
+
+  ```
+  BsPickerLabels.Default with { Clear = "Törlés" }
+    ->  Resources/RaskStrings.hu.json:  { "PickerClear": "Törlés" }
+  ```
 
 - **Non-overlapping range constraints, declared on the model.** A booking, a lease, a price valid for a
   period — the rule is always "two rows may not cover the same point", and SQLite has no way to say it:

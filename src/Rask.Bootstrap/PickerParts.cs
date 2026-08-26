@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using Rask.Core.Globalization;
+
 namespace Rask.Bootstrap;
 
 // Stateless render + date-math helpers shared by BsDatePicker / BsTimePicker / BsDateTimePicker so the
@@ -46,7 +48,7 @@ internal static partial class PickerParts
     // `labels` (they have no CultureInfo source, unlike the month/day names).
     internal static Component MonthHeader(
         DateOnly view, CultureInfo culture, Action onPrev, Action onNext,
-        bool prevDisabled, bool nextDisabled, BsPickerLabels labels) =>
+        bool prevDisabled, bool nextDisabled) =>
         Div
             .Class(BsClass.Join(Display.Flex(), Flex.Align(BsAlign.Center),
             Flex.Justify(BsJustify.Between), Margin.Bottom(2)))[
@@ -54,14 +56,14 @@ internal static partial class PickerParts
                 .Type("button")
                 .Class("btn btn-sm btn-outline-secondary")
                 .Disabled(prevDisabled ? true : null)
-                .Aria(new Dictionary<string, string?> { ["label"] = labels.PreviousMonth })
+                .Aria(new Dictionary<string, string?> { ["label"] = RaskStrings.Get(RaskString.PickerPreviousMonth, "Previous month") })
                 .OnClick(prevDisabled ? null : onPrev)["‹"],
             Span.Class(Font.Semibold)[view.ToString("y", culture)],
             Button
                 .Type("button")
                 .Class("btn btn-sm btn-outline-secondary")
                 .Disabled(nextDisabled ? true : null)
-                .Aria(new Dictionary<string, string?> { ["label"] = labels.NextMonth })
+                .Aria(new Dictionary<string, string?> { ["label"] = RaskStrings.Get(RaskString.PickerNextMonth, "Next month") })
                 .OnClick(nextDisabled ? null : onNext)["›"]
         ];
 
@@ -135,7 +137,7 @@ internal static partial class PickerParts
     // carry aria labels for AT, sourced from `labels`.
     internal static Component TimeColumns(
         TimeOnly? current, int minuteStep, bool seconds, int secondStep,
-        TimeOnly? min, TimeOnly? max, CultureInfo culture, BsPickerLabels labels,
+        TimeOnly? min, TimeOnly? max, CultureInfo culture,
         Func<int, Task> onHour, Func<int, Task> onMinute, Func<int, Task>? onSecond)
     {
         var mStep = minuteStep < 1 ? 1 : minuteStep;
@@ -168,12 +170,12 @@ internal static partial class PickerParts
             Div
                 .Class("bs-time-col")
                 .Role("listbox")
-                .Aria(new Dictionary<string, string?> { ["label"] = labels.Hour })[hours],
+                .Aria(new Dictionary<string, string?> { ["label"] = RaskStrings.Get(RaskString.PickerHour, "Hour") })[hours],
             Span.Class("bs-time-sep")[":"],
             Div
                 .Class("bs-time-col")
                 .Role("listbox")
-                .Aria(new Dictionary<string, string?> { ["label"] = labels.Minute })[minutes],
+                .Aria(new Dictionary<string, string?> { ["label"] = RaskStrings.Get(RaskString.PickerMinute, "Minute") })[minutes],
         };
 
         if (seconds && onSecond is not null)
@@ -191,7 +193,7 @@ internal static partial class PickerParts
             cols.Add(Div
                 .Class("bs-time-col")
                 .Role("listbox")
-                .Aria(new Dictionary<string, string?> { ["label"] = labels.Second })[secs]);
+                .Aria(new Dictionary<string, string?> { ["label"] = RaskStrings.Get(RaskString.PickerSecond, "Second") })[secs]);
         }
 
         return Div.Class(BsClass.Join("bs-time", Display.Flex(), Flex.Gap(1)))[cols];

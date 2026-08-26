@@ -8,7 +8,7 @@ namespace Rask.Bootstrap;
 // view state — no bootstrap.js. Full keyboard support (arrows move a virtual cursor via
 // aria-activedescendant, PageUp/Down change month — Shift for a year, Home/End the week edge, Enter
 // selects, Escape closes) and ARIA grid roles; typing into the box also commits live. Min/Max/Disable grey
-// out unavailable days. Labels localizes the nav/clear aria-labels. Native:true falls back to <input type=date>.
+// out unavailable days. Native:true falls back to <input type=date>.
 //   Bound:      BsDatePicker.Bind(() => model.StartDate).Label("Start").Min(today)
 //   Controlled: BsDatePicker<DateOnly>().Value(d).OnChange(v => …)
 
@@ -69,7 +69,7 @@ public sealed partial class BsDatePicker<T> : BsPickerBase<T>
             PickerParts.MonthHeader(_cursor, Culture,
                 () => _cursor = Clamp(_cursor.AddMonths(-1)),
                 () => _cursor = Clamp(_cursor.AddMonths(1)),
-                PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor), PickerLabels),
+                PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor)),
             PickerParts.CalendarGrid(_cursor, _cursor, selected, Min, Max, Disable, Culture, prefix, gridId,
                 day => PickAsync(acc, ctx, fid, day))
         ];
