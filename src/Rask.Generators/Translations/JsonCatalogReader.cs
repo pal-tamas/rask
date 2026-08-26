@@ -56,6 +56,14 @@ internal static class JsonCatalogReader
 
         private void ReadObject(string? prefix)
         {
+            // An object's immediate string members, held until the closing brace so a "$plural" marker
+            // anywhere inside it can retroactively turn the whole object into ONE key. Without that,
+            // "one"/"other" would already have been flattened into separate keys by the time the marker
+            // was seen.
+            var members = new List<(string Key, string Value, int Line, int Column)>();
+            var line = _line;
+            var column = Column;
+
             SkipWhitespace();
             if (Peek() == '}')
             {
@@ -97,7 +105,7 @@ internal static class JsonCatalogReader
                         return;
                     }
 
-                    catalog.Add(new CatalogEntry(path, value, keyLine, keyColumn));
+                    members.Add((key, value, keyLine, keyColumn));
                 }
                 else if (c == '{')
                 {
@@ -122,12 +130,66 @@ internal static class JsonCatalogReader
                 if (Peek() == '}')
                 {
                     _pos++;
+                    Flush(prefix, members, line, column);
                     return;
                 }
 
                 Defect($"expected ',' or '}}' after the value for '{path}'");
                 return;
             }
+        }
+
+        // Turns an object's collected members into catalog entries: one plural key, or one key each.
+        private void Flush(
+            string? prefix,
+            List<(string Key, string Value, int Line, int Column)> members,
+            int line,
+            int column)
+        {
+            string? pluralParameter = null;
+            foreach (var member in members)
+            {
+                if (member.Key == "$plural")
+                {
+                    pluralParameter = member.Value;
+                    break;
+                }
+            }
+
+            if (pluralParameter is null)
+            {
+                foreach (var member in members)
+                {
+                    var path = prefix is null ? member.Key : prefix + "." + member.Key;
+                    catalog.Add(new CatalogEntry(path, member.Value, member.Line, member.Column));
+                }
+
+                return;
+            }
+
+            if (prefix is null)
+            {
+                catalog.Defects.Add(new CatalogDefect(
+                    "a '$plural' marker at the top level — it belongs inside the key it pluralises", line, column));
+                return;
+            }
+
+            var entry = new CatalogEntry(prefix, string.Empty, line, column)
+            {
+                PluralParameter = pluralParameter,
+            };
+
+            foreach (var member in members)
+            {
+                if (member.Key == "$plural")
+                {
+                    continue;
+                }
+
+                entry.Forms[member.Key] = member.Value;
+            }
+
+            catalog.Add(entry);
         }
 
         private bool TryReadString(out string value)
