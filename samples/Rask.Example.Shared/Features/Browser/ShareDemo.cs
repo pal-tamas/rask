@@ -6,8 +6,8 @@ namespace Rask.Example.Shared.Features;
 ///     <c>Shareable</c> (Rask.Core) — headless share: it hands <b>your</b> element the
 ///     <c>data-rask-share</c> attribute, so the click opens the OS share sheet from <b>any</b> host, the
 ///     Server included. The shared client fires <c>navigator.share</c> inside the gesture (no round-trip, so
-///     the activation isn't lost), and upgrades to a native backend in the native shell. For a code-driven
-///     share on the in-process hosts, inject <c>IShare</c> from <c>Rask.Client.Browser</c>.
+///     the activation isn't lost). For a code-driven share on the in-process host, inject <c>IShare</c> from
+///     <c>Rask.Client.Browser</c>.
 /// </summary>
 public sealed partial class ShareDemo : Component
 {
@@ -20,7 +20,7 @@ public sealed partial class ShareDemo : Component
                         .Data(new ShareData
                         {
                             Title = "Rask",
-                            Text = "Ship real iOS/Android apps from the same C# component code.",
+                            Text = "Build web apps in C# — one component model, server or WebAssembly.",
                             Url = "https://github.com/pal-tamas/rask"
                         })
                         .Template(share => Button
@@ -32,8 +32,7 @@ public sealed partial class ShareDemo : Component
                 Div.Class("small text-secondary")[
                     "Works on every host — the click fires ", Code["navigator.share"],
                     " inside the gesture (so it works on Server too, where an imperative round-trip would lose "
-                    + "the activation) and upgrades to the native sheet in the native shell. Unsupported "
-                    + "browsers (e.g. desktop Firefox) no-op."]
+                    + "the activation). Unsupported browsers (e.g. desktop Firefox) no-op."]
             ]
         ];
 }

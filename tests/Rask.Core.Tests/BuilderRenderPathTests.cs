@@ -146,12 +146,6 @@ public partial class BuilderRenderPathTests : global::Rask.Core.RaskMarkup
             StringComparison.Ordinal);
     }
 
-    // The native-chrome collection point sits where the Head collection used to — before the component's
-    // own parent scope is pushed — but it is NOT the same bug, and this pins why. Head was a virtual the
-    // serializer EVALUATED there, so a chain written inside a Head override ran in the enclosing
-    // component's scope. Native chrome has no such override: Component declares no Header/Footer, and
-
-
     // A lifecycle hook is user code and may build components; the commit that runs it is walking the
     // parent's child map, and building anything writes to that map.
     [Fact]

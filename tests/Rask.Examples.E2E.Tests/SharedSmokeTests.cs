@@ -98,24 +98,9 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
                 _console.Add($"[pageerror] {err}");
             }
         };
-
-        // Hook for hosts that must wire the page BEFORE the journey navigates. The browser-served hosts
-        // (Server/Wasm) need nothing here — they GET a live HTTP host.
-        await ConfigurePageAsync();
     }
 
-    public async Task DisposeAsync()
-    {
-        await TeardownAsync();
-        await _ctx.DisposeAsync();
-    }
-
-    // Default no-op: the HTTP-served hosts need no per-page wiring.
-    protected virtual Task ConfigurePageAsync() => Task.CompletedTask;
-
-    // Default no-op: paired with ConfigurePageAsync so a host that spun up in-process resources can tear
-    // them down before the browser context closes.
-    protected virtual Task TeardownAsync() => Task.CompletedTask;
+    public async Task DisposeAsync() => await _ctx.DisposeAsync();
 
     // Default = direct deep link. Overridden by hosts (e.g. WasmAppHost) that don't install
     // a SPA fallback; those must navigate via the home shell + sidebar instead.

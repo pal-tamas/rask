@@ -29,8 +29,7 @@ Apply the matching playbook automatically:
    branch after squash-merge.
 
 ## CI hygiene (`.github/workflows/`)
-Keep the annotation panel clean. Pin macOS jobs to an explicit image (`macos-26`), never the moving
-`macos-latest` label — the mobile jobs need the Xcode SDK the Microsoft.iOS workload auto-tracks. Keep
+Keep the annotation panel clean. Pin runners to an explicit image, never a moving `*-latest` label. Keep
 `actions/*-artifact` (and other JS actions) on the current major so they run on the supported Node
 runtime, not a deprecated one.
 

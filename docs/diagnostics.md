@@ -517,7 +517,7 @@ Rask generates a type-safe `RouteUrl` factory — `Routes.<Page>()` — for ever
 that safety: rename or remove the `[Route]` and the string becomes a silent dead link that still compiles,
 whereas `Routes.<Page>()` becomes a compile error you fix immediately. The analyzer flags a string literal
 passed to internal navigation — `Navigator.NavigateTo("…")` or any `RouteUrl` slot (`NavLink(Href: …)`,
-`BsNavItem.Href(…)`, `NativeTab.To(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
+`BsNavItem.Href(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
 the path maps to a generated parameterless factory.
 
 It deliberately leaves alone:

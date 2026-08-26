@@ -8,7 +8,7 @@
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-Needs a secure context and the location permission. The native backend gives the real OS prompt and sensor accuracy; add `NSLocationWhenInUseUsageDescription` / `ACCESS_FINE_LOCATION`.
+Needs a secure context and the location permission.
 
 ## See also
 

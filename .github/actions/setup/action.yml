@@ -7,7 +7,7 @@ description: >-
 inputs:
   workloads:
     description: >-
-      Space-separated workloads to install (e.g. "wasm-tools", "ios android"). Empty installs none —
+      Space-separated workloads to install (e.g. "wasm-tools"). Empty installs none —
       pass it only for jobs that actually build/evaluate a project graph needing the workload.
     required: false
     default: ''

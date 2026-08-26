@@ -44,7 +44,7 @@ dotnet tool install -g Rask.Cli      # one-time: install the rask CLI
 rask new MyApp                       # create a server app in ./MyApp (server is the default)
 ```
 
-`rask new` ships four templates, one per host model:
+`rask new` ships three templates, one per host model:
 
 | `--template`        | What you get                                                                                  |
 |---------------------|-----------------------------------------------------------------------------------------------|

@@ -8,7 +8,7 @@
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-Native backend uses linear acceleration (gravity excluded) + gyroscope; the WebView equivalent is permission-gated and often blocked.
+Permission-gated on iOS and often blocked; gate on the permission request rather than assuming readings arrive.
 
 ## See also
 

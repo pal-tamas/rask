@@ -115,9 +115,6 @@ Useless for automation — it blocks the terminal and opens nothing headlessly. 
   fails with NU1008. And `JsonSerializerIsReflectionEnabledByDefault=true` is required because
   file-based apps disable reflection-based System.Text.Json by default, which Playwright's transport
   needs (without it: `Reflection-based serialization has been disabled`).
-- **Native samples don't build here.** `Rask.Example.Native{,.Server}` multi-target
-  `net10.0-ios;net10.0-android` and are excluded from `Rask.slnx`; without the mobile workloads they
-  won't restore. This skill is the *web* showcase only.
 
 ## Troubleshooting
 

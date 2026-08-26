@@ -67,7 +67,7 @@ public readonly struct Build<T>
     ///     both: a user-defined conversion may be followed by a standard one, so a chain reaches
     ///     <c>Component</c> through <typeparamref name="T" /> anyway. Converting to the CONCRETE type is
     ///     what keeps the chain out of the way at a call site that wants the component itself — a
-    ///     property typed as a particular component (<c>NativeBarItem? Leading</c>), a strongly-typed
+    ///     property typed as a particular component (<c>Shareable? Trigger</c>), a strongly-typed
     ///     children collection, a local the test then asserts against. Without it every one of those
     ///     needed an explicit hop through <see cref="Value" />, which is exactly the framework
     ///     bookkeeping the chain exists to remove.

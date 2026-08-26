@@ -268,9 +268,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     ///     A sealed session-resume record to attach to the payload being written, or <c>null</c> for none.
     /// </summary>
     /// <remarks>
-    ///     Only the ASP.NET host overrides this. A WASM or native app IS the process holding its session,
-    ///     so there is no other host for a record to be redeemed on and nothing to carry — the base returns
-    ///     null and those hosts pay a null check per frame. Named "Take" because an override is expected to
+    ///     Only the ASP.NET host overrides this. A WASM app IS the process holding its session, so there is
+    ///     no other host for a record to be redeemed on and nothing to carry — the base returns null and
+    ///     that host pays a null check per frame. Named "Take" because an override is expected to
     ///     mark the record as issued: it is called once per payload and must not hand out the same record
     ///     on every subsequent frame.
     /// </remarks>

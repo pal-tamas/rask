@@ -6,23 +6,22 @@ namespace Rask.Core.Browser;
 
 /// <summary>
 ///     Central registration for the typed browser/device API wrappers. Each host calls the tier helper for
-///     the wrappers it can serve (Server → <see cref="AddCoreBrowserApis" />; WASM → all three tiers; Native
-///     → core + client), instead of hand-maintaining the interface → impl list in three places.
+///     the wrappers it can serve (Server → <see cref="AddCoreBrowserApis" />; WASM → all three tiers),
+///     instead of hand-maintaining the interface → impl list in several places.
 /// </summary>
 /// <remarks>
 ///     Every wrapper is registered with <see cref="ServiceCollectionDescriptorExtensions.TryAdd(IServiceCollection,ServiceDescriptor)" />,
-///     so the JS-backed wrapper is a <em>fallback</em>: a host (or a platform head, or the app itself) that
-///     has a better implementation registers it <b>first</b> and wins. That is how the framework picks the
-///     best implementation per platform — a native iOS/Android backend where one exists, the WebView/JS
-///     wrapper otherwise — with no app-head wiring. The registrations use compile-time <c>typeof</c> only:
-///     no reflection, trim-safe.
+///     so the JS-backed wrapper is a <em>fallback</em>: a host (or the app itself) that has a better
+///     implementation registers it <b>first</b> and wins, which is how an app substitutes its own backend
+///     for a wrapper without touching the host wiring. The registrations use compile-time <c>typeof</c>
+///     only: no reflection, trim-safe.
 /// </remarks>
 public static class RaskBrowserApis
 {
     /// <summary>
     ///     Registers one wrapper as a fallback (<c>TryAdd</c>) at <paramref name="lifetime" />: the mapping is
     ///     applied only if <typeparamref name="TService" /> is not already registered, so an earlier
-    ///     (native / app) registration wins.
+    ///     app registration wins.
     /// </summary>
     public static IServiceCollection AddBrowserApi<TService,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImpl>(
@@ -37,7 +36,7 @@ public static class RaskBrowserApis
 
     /// <summary>
     ///     Registers the transport-agnostic <see cref="Rask.Core.Browser" /> wrappers — the set that works on
-    ///     every host (Server, WASM, Native) because each is <see cref="Microsoft.JSInterop.IJSRuntime" />-backed
+    ///     every host (Server and WASM) because each is <see cref="Microsoft.JSInterop.IJSRuntime" />-backed
     ///     and needs no transient user activation. Server uses <see cref="ServiceLifetime.Scoped" /> (one per
     ///     WebSocket session); the in-process hosts use <see cref="ServiceLifetime.Singleton" />.
     /// </summary>

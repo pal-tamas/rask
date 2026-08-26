@@ -55,7 +55,7 @@ public sealed class WasmHostBuilder
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         // WasmAuthSignIn posts sign-out to the server, so it needs an HttpClient. Registering the sign-in
         // service without one made IAuthSignIn — a contract Rask.Core promises on every host — resolvable on
-        // Server and Native but a DI failure here, at the injection site, in any app that hadn't happened to
+        // Server but a DI failure here, at the injection site, in any app that hadn't happened to
         // register an HttpClient of its own. TryAdd, so an app that registers one (typed clients, a handler
         // chain, a different base address) still wins.
         //

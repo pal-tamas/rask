@@ -19,8 +19,8 @@ internal static class FileListReader
         {
             // The client sent files and the handler is about to be told there were none. Silence here is the
             // worst failure mode in the framework — the user picks a file, the UI reports success, and the
-            // upload never happened — and it is exactly how the native host went a release without file
-            // input. Every host registers a backend now, so this means the container was built by hand.
+            // upload never happened. Every host registers a backend, so this means the container was
+            // built by hand.
             RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Forms",
                 $"[Rask.Forms] {arr.GetArrayLength()} file(s) arrived from the client but no "
                 + "IBrowserFileBackend is registered, so the handler will receive an empty list. Every Rask "

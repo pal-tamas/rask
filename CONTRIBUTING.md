@@ -54,7 +54,7 @@ a `[DynamicallyAccessedMembers]` annotation or a justified `[UnconditionalSuppre
 | `src/Rask.Core/` | Rendering, live diff codec, routing, lifecycle, scoped CSS/JS, primitives. |
 | `src/Rask.Generators/` | Roslyn factory/route generators and analyzers (RASK001–034 and RASK036–042; RASK035 is in `src/Rask.Generators.Shared/`). |
 | `src/Rask.Server/`, `src/Rask.Wasm/`, `src/Rask.Wasm.Hosting/` | The three hosts. |
-| `src/Rask.Cli/` | The `rask` CLI — scaffolds every project via `rask new` (server, wasm, wasm-hosted, native). |
+| `src/Rask.Cli/` | The `rask` CLI — scaffolds every project via `rask new` (server, wasm, wasm-hosted). |
 | `samples/` | Runnable feature showcases. | 
 | `tests/`, `benchmarks/` | Test suites and render hot-path baselines. |
 
@@ -87,9 +87,9 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   **E2E** gate (see below). Hooks are advisory — bypass any with the git no-verify flag,
   `RASK_SKIP_UNIT=1`, or `RASK_SKIP_E2E=1`.
 - **Tests run locally, not in CI.** The unit/integration suite and both E2E suites were moved out of the
-  CI pipeline. `.github/workflows/ci.yml` has exactly two jobs — the deterministic benchmark byte-gates
-  and the native compile gate — alongside commitlint and GitHub's default CodeQL setup. No workflow in
-  this repo runs `dotnet test`, so **nothing but your machine will tell you a test broke.**
+  CI pipeline. `.github/workflows/ci.yml` has exactly one job — the deterministic benchmark byte-gates —
+  alongside commitlint and GitHub's default CodeQL setup. No workflow in this repo runs `dotnet test`, so
+  **nothing but your machine will tell you a test broke.**
 - **Format + unit tests — `pre-commit`.** The `pre-commit` hook runs `scripts/run-unit-local.sh` when a
   commit stages code (`src/`, `tests/`, `benchmarks/`, `Rask.slnx`, `Directory.*`); docs-only commits skip
   it. The script builds once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace +

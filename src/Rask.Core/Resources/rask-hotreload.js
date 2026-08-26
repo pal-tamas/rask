@@ -6,12 +6,12 @@
 //
 // It lives here rather than in each dialect because the transports differ in how the *notification*
 // arrives — Server pushes a {"type":"hotReload"} frame over the socket, WASM calls the exported
-// hotReloadApplied() through JSImport, Native evaluates a call over the WebView bridge — but what
-// happens next is identical, and three copies of a pill would drift.
+// hotReloadApplied() through JSImport — but what happens next is identical, and two copies of a pill
+// would drift.
 //
 // Wrapped in its own IIFE so its locals cannot collide with the enclosing dialect (the Server client
-// is one big IIFE with its own `const`s; WASM and Native splice at module top level). The single
-// export is window.__raskHotReloadPill, which is how each transport reaches it.
+// is one big IIFE with its own `const`s; WASM splices at module top level). The single export is
+// window.__raskHotReloadPill, which is how each transport reaches it.
 (function () {
     "use strict";
 

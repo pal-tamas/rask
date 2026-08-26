@@ -434,6 +434,27 @@ public sealed class NewCommandTests
         Assert.Contains("UseRaskSqlite", program, StringComparison.Ordinal);
         Assert.Contains("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// The shape the removed template's bug actually took: <c>--template native</c> was accepted, fell
+    /// through to the default arm, wrote an ASP.NET server project and exited 0. TemplateCatalogTests pins
+    /// the catalog entry's absence; this pins the end-to-end refusal, which is what a user would have hit.
+    /// </summary>
+    [Fact]
+    public async Task The_removed_template_is_a_usage_error_and_scaffolds_nothing()
+    {
+        var (console, fs, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Field", "--template", "native"], CancellationToken.None);
+
+        Assert.Equal(2, exit);
+        // It names the templates that do exist.
+        Assert.Contains("server", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("wasm-hosted", console.ErrorText, StringComparison.Ordinal);
+        // Nothing was written: the bug wrote a whole Server project before signing off.
+        Assert.False(fs.FileExists("/proj/Field/Field.csproj"));
+    }
+
     private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()
     {
         var console = new StringConsole();

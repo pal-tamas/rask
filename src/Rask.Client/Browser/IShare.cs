@@ -13,8 +13,8 @@ namespace Rask.Client.Browser;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         This is the <b>imperative</b> path, registered by the <b>WASM</b> and <b>Native</b> hosts (both
-///         in-process). The default <see cref="Share" /> backing is the Web Share API
+///         This is the <b>imperative</b> path, registered by the in-process <b>WASM</b> host. The default
+///         <see cref="Share" /> backing is the Web Share API
 ///         (<c>navigator.share</c>), which requires a secure context and <em>transient</em> user activation —
 ///         preserved only when the interop call runs inside the click's own call stack, which the Server's
 ///         WebSocket round-trip loses. That's why it's an in-process API and lives in <c>Rask.Client</c>.
@@ -22,23 +22,19 @@ namespace Rask.Client.Browser;
 ///     <para>
 ///         For a <b>declarative</b> share that also works on the Server host, use the all-host, headless
 ///         <c>Shareable</c> component in <c>Rask.Core</c> — it fires <c>navigator.share</c> client-side inside
-///         the click gesture (no round-trip, no activation loss), and upgrades to a native backend in the
-///         native shell. Use <see cref="IShare" /> when you need to share from code (after an <c>await</c>, a
-///         timer, …) on an in-process host.
+///         the click gesture (no round-trip, no activation loss). Use <see cref="IShare" /> when you need to
+///         share from code (after an <c>await</c>, a timer, …) on an in-process host.
 ///     </para>
 ///     <para>
-///         On the <b>Native</b> host a platform head can replace this default with a native backend
-///         (iOS <c>UIActivityViewController</c> / Android <c>Intent.ACTION_SEND</c>) by registering its own
-///         <see cref="IShare" /> on <c>host.Services</c> before <c>RunLocalAsync</c> — the native path needs
-///         no user activation and works even where the WebView lacks <c>navigator.share</c>.
+///         An app can replace the default by registering its own <see cref="IShare" /> before the host's —
+///         the registration is a <c>TryAdd</c> fallback.
 ///     </para>
 /// </remarks>
 public interface IShare
 {
     /// <summary>
     ///     Opens the platform share sheet for <paramref name="data" /> (<c>navigator.share</c>). With the
-    ///     default Web Share backing this must be called from a user-gesture handler; a native backend has
-    ///     no such requirement.
+    ///     default Web Share backing this must be called from a user-gesture handler.
     /// </summary>
     ValueTask ShareAsync(ShareData data);
 
