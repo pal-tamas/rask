@@ -704,7 +704,16 @@ public static partial class RaskEndpointExtensions
 
             if (cache.Vary is { } vary)
             {
-                httpContext.Response.Headers.Vary = vary;
+                // APPENDED, never assigned. Culture negotiation runs earlier in this same handler and
+                // may already have set `Vary: Accept-Language` — overwriting it would let a cache
+                // serve one language's page to a visitor who asked for another. Neither change has
+                // that bug alone, which is exactly why it is worth stating here.
+                var existing = httpContext.Response.Headers.Vary.ToString();
+                httpContext.Response.Headers.Vary = existing.Length == 0
+                    ? vary
+                    : existing.Contains(vary, StringComparison.OrdinalIgnoreCase)
+                        ? existing
+                        : existing + ", " + vary;
             }
 
             // Discarded BEFORE the write, not after: WriteAsync to a slow client can take seconds,
