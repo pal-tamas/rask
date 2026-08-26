@@ -7,7 +7,7 @@ namespace Rask.SQLite;
 /// <summary>
 /// An Entity Framework Core connection interceptor that applies the configured
 /// <see cref="SqlitePragmaOptions"/> every time a SQLite connection is opened. Registered for you by
-/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?, Action{SqliteBusyRetryOptions}?)"/>.
+/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?, Action{SqliteBusyRetryOptions}?, bool)"/>.
 /// </summary>
 /// <remarks>
 /// The per-connection pragmas (<c>foreign_keys</c>, <c>busy_timeout</c>, <c>synchronous</c>, …) do not
@@ -37,6 +37,39 @@ public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
             SqlitePragmas.Apply(sqlite, _options);
             SqliteCollations.Apply(sqlite);
         }
+    }
+
+    /// <summary>
+    /// Runs <see cref="SqlitePragmas.Optimize"/> before the connection closes, so the query planner's
+    /// statistics stay current as the data shifts underneath it.
+    /// </summary>
+    /// <remarks>
+    /// This is the moment SQLite's own guidance names for it, and the connection is still open here —
+    /// by <c>ConnectionClosed</c> it is not. It is best-effort and bounded by
+    /// <see cref="SqlitePragmaOptions.AnalysisLimit"/>; a pooled connection reaches this on every return
+    /// to the pool, and analyses nothing when nothing has changed.
+    /// </remarks>
+    public override InterceptionResult ConnectionClosing(
+        DbConnection connection, ConnectionEventData eventData, InterceptionResult result)
+    {
+        if (connection is SqliteConnection sqlite && _options.AnalysisLimit is not null)
+        {
+            SqlitePragmas.Optimize(sqlite);
+        }
+
+        return base.ConnectionClosing(connection, eventData, result);
+    }
+
+    /// <inheritdoc cref="ConnectionClosing"/>
+    public override ValueTask<InterceptionResult> ConnectionClosingAsync(
+        DbConnection connection, ConnectionEventData eventData, InterceptionResult result)
+    {
+        if (connection is SqliteConnection sqlite && _options.AnalysisLimit is not null)
+        {
+            SqlitePragmas.Optimize(sqlite);
+        }
+
+        return base.ConnectionClosingAsync(connection, eventData, result);
     }
 
     /// <inheritdoc/>

@@ -14,6 +14,37 @@ public sealed class SqlitePragmasTests
         Assert.Contains("PRAGMA cache_size=2000;", script);
         Assert.Contains("PRAGMA mmap_size=134217728;", script);
         Assert.Contains("PRAGMA journal_size_limit=67108864;", script);
+
+        // Hardening defaults: a schema that cannot invoke arbitrary functions, corruption caught at the
+        // page that carries it, and a bounded PRAGMA optimize.
+        Assert.Contains("PRAGMA trusted_schema=OFF;", script);
+        Assert.Contains("PRAGMA cell_size_check=ON;", script);
+        Assert.Contains("PRAGMA analysis_limit=400;", script);
+    }
+
+    [Fact]
+    public void BuildScript_honors_hardening_overrides()
+    {
+        var options = new SqlitePragmaOptions
+        {
+            TrustedSchema = true,
+            CellSizeCheck = false,
+            AnalysisLimit = 0,
+        };
+
+        var script = SqlitePragmas.BuildScript(options);
+
+        Assert.Contains("PRAGMA trusted_schema=ON;", script);
+        Assert.Contains("PRAGMA cell_size_check=OFF;", script);
+        Assert.Contains("PRAGMA analysis_limit=0;", script);
+    }
+
+    [Fact]
+    public void A_negative_analysis_limit_is_rejected()
+    {
+        var options = new SqlitePragmaOptions { AnalysisLimit = -1 };
+        var ex = Assert.Throws<InvalidOperationException>(options.Validate);
+        Assert.Contains(nameof(SqlitePragmaOptions.AnalysisLimit), ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -47,6 +78,9 @@ public sealed class SqlitePragmasTests
             MmapSize = null,
             JournalSizeLimit = null,
             TempStore = null,
+            TrustedSchema = null,
+            CellSizeCheck = null,
+            AnalysisLimit = null,
         };
 
         Assert.Empty(SqlitePragmas.BuildScript(options));

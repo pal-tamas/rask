@@ -39,6 +39,22 @@ o.UseRaskSqlite($"Data Source={dbPath}", p =>
 });
 ```
 
+## STRICT tables
+
+SQLite is dynamically typed: the text `"lots"` stores happily in an `INTEGER` column and surfaces as a
+cast error much later. Pass `strictTables: true` and tables are created as
+[STRICT tables](https://sqlite.org/stricttables.html), so the store rejects the write instead:
+
+```csharp
+o.UseRaskSqlite($"Data Source={dbPath}", strictTables: true);
+```
+
+Every column must then declare one of `INT`, `INTEGER`, `REAL`, `TEXT`, `BLOB` or `ANY` — EF Core's
+defaults all qualify, so a normal model needs no changes, and an explicit `HasColumnType(...)` outside
+that set is reported against the table and column it came from. Strictness is decided when a table is
+created, so this needs no migration and affects tables created from then on; `rask new --data`
+scaffolds it on, where it is free.
+
 ## Busy-retry for `SaveChanges`
 
 Pass `configureRetry` (even empty) to register a fair-interval execution strategy so

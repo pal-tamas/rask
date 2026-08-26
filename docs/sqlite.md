@@ -71,6 +71,9 @@ The defaults are the battle-tested production set for a web-facing SQLite databa
 | `mmap_size` | `128 MiB` | memory-mapped I/O |
 | `journal_size_limit` | `64 MiB` | cap WAL growth |
 | `temp_store` | *unset* | left on disk by default; opt in with `SqliteTempStore.Memory` |
+| `trusted_schema` | `OFF` | a schema can carry function calls in views, triggers, index expressions and `CHECK` constraints; `OFF` allows only functions marked innocuous |
+| `cell_size_check` | `ON` | catches a corrupt b-tree page as it is read, instead of letting the damage reach your results |
+| `analysis_limit` | `400` | bounds `PRAGMA optimize` to a few milliseconds per index |
 
 Override any of them, or set one to `null` to leave SQLite's own default:
 
@@ -83,6 +86,72 @@ o.UseRaskSqlite($"Data Source={dbPath}", p =>
     p.MmapSize = null;                  // leave SQLite's default
 });
 ```
+
+## Keeping the query planner honest — `PRAGMA optimize`
+
+SQLite picks between indexes using statistics in `sqlite_stat1`, and **nothing updates that table on
+its own**. A table that was small when it was last analysed — or was never analysed at all — keeps
+handing the planner stale numbers, and it starts choosing badly. The classic symptom is a query that
+was instant in development crawling in production against real data.
+
+SQLite's own guidance is to run `PRAGMA optimize` before closing a long-lived connection, or
+periodically in a long-running process. Rask's EF Core interceptor does it on `ConnectionClosing`,
+which for a pooled connection means every return to the pool. It is cheap and self-limiting: it
+analyses only what looks stale, bounded by `analysis_limit`, and does nothing when nothing has
+changed. It is also best-effort — a connection being torn down must never fail because of an
+optimisation — so errors from it are swallowed.
+
+Raw ADO.NET users can call it directly:
+
+```csharp
+SqlitePragmas.Optimize(connection);
+```
+
+Set `AnalysisLimit = null` to switch the whole thing off, or `0` for no sampling limit (which on a
+large table can take a long time).
+
+## STRICT tables — making the store enforce your types
+
+SQLite is dynamically typed. A column's type is an *affinity*, a preference, not a rule: the text
+`"lots"` stores happily in an `INTEGER` column, and comes back later as a cast error, a mis-ordered
+index, or a silently wrong result. EF Core's model keeps your C# honest, but nothing stops a direct
+`INSERT`, an admin tool, a migration script or a legacy row from putting anything anywhere.
+
+[STRICT tables](https://sqlite.org/stricttables.html) (SQLite 3.37+) close that off — the write is
+rejected at the source instead. EF Core has no support for them, so Rask supplies a migrations SQL
+generator:
+
+```csharp
+o.UseRaskSqlite(connectionString, strictTables: true);
+```
+
+```sql
+CREATE TABLE "Products" (
+    "Id"    INTEGER NOT NULL CONSTRAINT "PK_Products" PRIMARY KEY AUTOINCREMENT,
+    "Price" TEXT NOT NULL,
+    "Name"  TEXT NOT NULL
+) STRICT;
+```
+
+```text
+sqlite> INSERT INTO Products (Price, Name) VALUES (9.95, 'ok');      -- fine
+sqlite> UPDATE Products SET Id = 'lots';
+Runtime error: cannot store TEXT value in INTEGER column Products.Id
+```
+
+**What it costs.** Every column must declare one of exactly six types — `INT`, `INTEGER`, `REAL`,
+`TEXT`, `BLOB`, `ANY`. EF Core's default SQLite types are all in that set, so a normal model needs no
+changes; an explicit `HasColumnType("VARCHAR(50)")` does. Rask checks this while generating the DDL and
+names the table and column at fault, rather than leaving you with SQLite's own message, which names
+only the type. Use `ANY` to exempt a single column.
+
+**It is off by default, and on for new apps.** Strictness is a property of a table, decided when the
+table is created — so turning it on affects tables created from then on, needs no migration, and
+converting an existing table means rebuilding it. `rask new --data` therefore scaffolds it on, where it
+is free; an existing database is the case where you have to weigh it.
+
+`decimal` is unaffected: it is `TEXT` in SQLite, which STRICT allows, and it still orders through the
+[invariant collation](data-access.md#does-sqlite-support-decimal).
 
 ## Why it hooks connection-open (not startup)
 
@@ -718,9 +787,10 @@ not just asserted in prose.
 - **Local disk only.** Never put the database on a network filesystem (NFS/CIFS/SMB) — SQLite's file
   locking is unreliable there and can corrupt the file, and WAL needs real shared memory. Use local disk or
   a single-attach block/named volume, one writer process.
-- **Dynamic typing.** SQLite uses *type affinity*, not strict types: it will happily store the text
-  `"lots"` in an `INTEGER` column. EF Core's model gives you type safety in C#, but the store itself won't
-  enforce it if something writes to it directly.
+- **Dynamic typing** *(fixable)*. SQLite uses *type affinity*, not strict types: it will happily store
+  the text `"lots"` in an `INTEGER` column. EF Core's model gives you type safety in C#, but the store
+  itself won't enforce it if something writes to it directly — unless you turn on
+  [STRICT tables](#strict-tables--making-the-store-enforce-your-types), which `rask new` does for you.
 - **No native `decimal` or `DateTimeOffset`.** Storage classes are `INTEGER`/`REAL`/`TEXT`/`BLOB`/`NULL`
   only. To preserve precision, **EF Core stores a `decimal` as `TEXT`** (not `REAL`, which would round —
   `0.1 + 0.2 ≠ 0.3`), in a culture-invariant format — `19.95`, never `19,95`, whatever the server's

@@ -7,6 +7,42 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **STRICT tables — `UseRaskSqlite(connectionString, strictTables: true)`.** SQLite is dynamically
+  typed: a column's declared type is an *affinity*, not a rule, so the text `"lots"` stores happily in
+  an `INTEGER` column and comes back later as a cast error, a mis-ordered index or a silently wrong
+  result. EF Core's model keeps C# honest, but nothing stops a direct `INSERT`, an admin tool or a
+  legacy row. [STRICT tables](https://sqlite.org/stricttables.html) reject the write at the source, and
+  EF Core has no support for them — so Rask ships `RaskSqliteStrictMigrationsSqlGenerator`, which emits
+  `CREATE TABLE … ) STRICT`. Table rebuilds (SQLite's route for most `ALTER`s) go through the same
+  operation, so a rebuilt table keeps its strictness.
+
+  Every column must declare one of `INT`, `INTEGER`, `REAL`, `TEXT`, `BLOB` or `ANY`. EF Core's default
+  SQLite types all qualify, so a normal model needs no changes; an explicit `HasColumnType(...)` outside
+  that set is rejected **naming the table and column at fault**, rather than leaving you with SQLite's
+  own message, which names only the type. Verified against the full `Rask.Example.Shop` schema —
+  Products, Orders, Outbox, Jobs, Mail and Cache all create cleanly as STRICT.
+
+  Off by default, because strictness is decided when a table is created: turning it on needs no
+  migration and affects tables created from then on, while converting an existing table means
+  rebuilding it. **`rask new --data` scaffolds it on**, where it is free.
+
+- **Three hardening pragmas, on by default.** `trusted_schema=OFF` — a schema can carry function calls
+  in views, triggers, index expressions and `CHECK` constraints, and `OFF` is the setting SQLite
+  recommends for any app that opens a file it did not create, since a malicious schema is otherwise a
+  code-execution surface. `cell_size_check=ON` — turns a corrupt b-tree page into an immediate,
+  localised error instead of letting the damage reach query results. `analysis_limit=400` — bounds the
+  cost of the next item. Each is `null`-able to fall back to SQLite's own default.
+
+- **`PRAGMA optimize` on connection close.** SQLite's planner chooses between indexes using
+  `sqlite_stat1`, and nothing updates that table on its own — so a table that was small when it was last
+  analysed keeps handing the planner stale numbers, which is the usual reason a query that was instant
+  in development crawls in production. The EF Core interceptor now runs `PRAGMA optimize` on
+  `ConnectionClosing` (for a pooled connection, every return to the pool), bounded by `analysis_limit`
+  and best-effort so a connection being torn down never fails because of it. Raw ADO.NET users can call
+  `SqlitePragmas.Optimize(connection)` directly.
+
 ### Fixed
 
 - **`decimal` no longer mis-sorts — or kills the process — on a non-English locale.** SQLite has no
