@@ -293,6 +293,13 @@ public static partial class DemoRegistry
             ["bootstrap-select"] = () => CodeSample.Files(["BsSelectDemo.cs"]).Result(BsSelectDemo),
             ["bootstrap-multiselect"] = () => CodeSample.Files(["BsMultiSelectDemo.cs"]).Result(BsMultiSelectDemo),
             ["bootstrap-pickers"] = () => CodeSample.Files(["BsPickersDemo.cs"]).Result(BsPickersDemo),
+
+            // --- Localization guide ---
+            ["localization-formats"] = () => CodeSample.Files(["CultureFormatsDemo.cs"])
+                .Title("The same values, four languages")
+                .Notes("Fixed sample values and an explicit CultureInfo per call — a demo that read the "
+                       + "ambient culture would reformat every other demo on this page.")
+                .Result(CultureFormatsDemo),
             ["bootstrap-utilities"] = () => CodeSample.Files(["BsUtilitiesDemo.cs"]).Result(BsUtilitiesDemo),
 
             // --- Data grid guide (docs/data-grid.md). Three separate grids rather than one kitchen sink, so
