@@ -69,8 +69,8 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         // internet, on a page the journey throttles to Slow-3G. Every arrival moves the text and therefore
         // the bounding box of everything below it, and Playwright's actionability check requires a box that
         // is identical across two consecutive animation frames. That is #625: "element is not stable" for
-        // the full 30s, on whichever guide page the walk had reached, on all three hosts (they share this
-        // shell), with the text assertions on the very same subtree passing because innerText does not care
+        // the full 30s, on whichever guide page the walk had reached, on every sample host (they share
+        // this shell), with the text assertions on the very same subtree passing because innerText does not care
         // what font it is in.
         //
         // Aborting the requests makes the page render in the fallback font immediately and settle once.

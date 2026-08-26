@@ -2828,7 +2828,7 @@ window.__raskSync = window.__raskSync || (() => {
 // same source the Server client uses. It exposes window.__raskHotReloadPill; here the
 // notification arrives through the hotReloadApplied() export below rather than over a socket, because
 // a WASM app has no Rask server to push it a frame.
-// Dev-only "hot reload applied" indicator — one implementation, spliced into all three transports
+// Dev-only "hot reload applied" indicator — one implementation, spliced into both transports
 // (Server rask.js, WASM rask.wasm.js) at their hot-reload splice marker.
 //
 // Deliberately does not spell that marker out: this file's text is substituted *for* it, so a literal
@@ -4033,7 +4033,7 @@ function raskNotePendingFormState(el) {
     }
 }
 
-// What a `change` frame reports for a control, in one place for all three hosts — same reasoning as the
+// What a `change` frame reports for a control, in one place for both hosts — same reasoning as the
 // recorder above, which exists because each host carried its own hand-copied copy and they drifted.
 //
 // `value` keeps exactly the meaning it had, so nothing downstream changes shape. `values` is added only
@@ -5296,7 +5296,7 @@ document.addEventListener("click", (e) => {
 // calls flushInputsNow().
 //
 // Written in modern-ES (const/let/arrow), matching rask-dom.js / rask-morph.js — the other shared
-// modules already spliced into all three hosts. No export/import, no backslash regex literals (the
+// modules already spliced into both hosts. No export/import, no backslash regex literals (the
 // splice is a raw string .Replace).
 
 // Input events fire per keystroke — on fast typing that's 5–10 messages over the

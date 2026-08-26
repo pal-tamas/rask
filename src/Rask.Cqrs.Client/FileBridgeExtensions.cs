@@ -15,7 +15,7 @@ namespace Rask.Cqrs.Client;
 ///         await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked));
 ///     </code>
 ///     <para>
-///         That is identical on a server-rendered app, a WASM-hosted one and a native one. Where it runs
+///         That is identical on a server-rendered app and a WASM-hosted one. Where it runs
 ///         in-process the handler simply receives the picked file; where it travels, the generated codec
 ///         carries the bytes and hands the handler a <c>RaskFile</c> over what arrived. An adapter method
 ///         here would be a step the developer had to know about on some hosts and not others.

@@ -80,7 +80,7 @@ public sealed class WasmHostBuilder
     // The wire-payload shape this app renders with, snapshotted from RaskLiveOptions in CreateDefault
     // and handed to the WasmLiveSession — a per-session value instead of the former process-global
     // LiveOptions.DiffMode static. WASM is single-threaded so it never raced, but carrying it on the
-    // session keeps all three hosts on one uniform mechanism.
+    // session keeps both hosts on one uniform mechanism.
     private LiveDiffMode _diffMode = LiveDiffMode.Auto;
 
     /// <summary>The DI container for the app. Register your services here before calling <see cref="RunAsync{TApp}" />.</summary>

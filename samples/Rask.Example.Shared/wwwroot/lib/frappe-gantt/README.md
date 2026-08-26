@@ -10,8 +10,8 @@ Third-party library, vendored verbatim — **do not edit these files**.
 | Files | `frappe-gantt.umd.js` (sets the `Gantt` global), `frappe-gantt.css` |
 | Fetched from | `https://unpkg.com/frappe-gantt@1.0.3/dist/` |
 
-Vendored rather than loaded from a CDN so the showcase works offline, under the GitHub Pages
-sub-path, and inside the Native (Android/iOS) hosts, which have no origin to fetch from.
+Vendored rather than loaded from a CDN so the showcase works offline and under the GitHub Pages
+sub-path.
 
 Used by `Features/Gantt/Gantt.cs` + `Gantt.js` — the third-party-interop demo embedded in
 `docs/js-interop.md`. To upgrade, re-download both files at the new tag, refresh the version above,

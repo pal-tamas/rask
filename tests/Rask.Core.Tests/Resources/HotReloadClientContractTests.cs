@@ -32,8 +32,8 @@ public class HotReloadClientContractTests
     /// <summary>The single implementation every transport splices in.</summary>
     private static string SharedJs => Read("src", "Rask.Core", "Resources", "rask-hotreload.js");
 
-    // The one built artifact that is committed (the Server's is assembled into obj/ and embedded, so
-    // there is no checked-in copy to inspect).
+    // The built artifacts that are committed — today just the WASM one (the Server's is assembled into
+    // obj/ and embedded, so there is no checked-in copy to inspect).
     private static string BuiltWasmJs => Read("src", "Rask.Wasm", "Browser", "rask.wasm.js");
 
     [Fact]
@@ -66,7 +66,7 @@ public class HotReloadClientContractTests
     public void The_indicator_never_reloads_the_page()
     {
         // A reload defeats the entire feature — "hot reload that actually works" is defined against
-        // exactly that. One assertion now covers all three transports, because there is one source.
+        // exactly that. One assertion now covers both transports, because there is one source.
         Assert.DoesNotContain("location.reload", SharedJs, StringComparison.Ordinal);
     }
 
@@ -97,10 +97,10 @@ public class HotReloadClientContractTests
     }
 
     [Fact]
-    public void The_indicator_is_one_shared_module_not_three_copies()
+    public void The_indicator_is_one_shared_module_not_a_copy_per_dialect()
     {
         // The point of the hoist. Each dialect carries the splice marker and nothing else — no
-        // dialect may grow its own copy of the pill, which is how the three would drift.
+        // dialect may grow its own copy of the pill, which is how they would drift.
         foreach (var (name, js) in AllDialects())
         {
             Assert.True(

@@ -8,7 +8,7 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-## In the browser, support is patchy
+## Support is patchy across engines
 
 `navigator.permissions.query` answers for different names in different engines. WebKit (Safari) answers
 only for `camera` and `microphone`; `geolocation` and `notifications` throw `NotSupportedError`, and the
