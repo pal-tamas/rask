@@ -16,6 +16,13 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The wire model and its emitters are internal: they are an implementation detail of the
+         generated code, not an API. The tests assert the TypeScript an emitter produces, which is
+         cheaper and far more legible than round-tripping it through a full generator run. -->
+    <InternalsVisibleTo Include="Rask.Cqrs.Generators.Tests"/>
+  </ItemGroup>
+
   <!--
     Shares only the registerability rules with the jobs/outbox registry generators: whether a type can
     be named in a valid typeof(...) from a generated file. This generator keeps its own DiagnosticHelp

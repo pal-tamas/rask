@@ -11,6 +11,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Rask.Core.Live;
 using Rask.Core.ScopedAssets;
+using Rask.Hosting.Shared;
 
 namespace Rask.Wasm.Hosting;
 
@@ -203,23 +204,11 @@ public static class RaskWasmEndpointExtensions
                 : $"bundle not found at {resolved} (run `dotnet publish` on the WASM project)";
             Console.Error.WriteLine($"Rask.Wasm.Hosting: {reason}.");
 
-            if (pathBaseNormalized.Length == 0)
+            StaticSpaFiles.MapCatchAll(endpoints, pathBaseNormalized, async ctx =>
             {
-                endpoints.MapFallback(async ctx =>
-                {
-                    ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                    await ctx.Response.WriteAsync($"Rask WASM AppBundle unavailable: {reason}.");
-                });
-            }
-            else
-            {
-                endpoints.MapFallback(pathBaseNormalized.TrimStart('/') + "/{*path:nonfile}",
-                    async ctx =>
-                    {
-                        ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                        await ctx.Response.WriteAsync($"Rask WASM AppBundle unavailable: {reason}.");
-                    });
-            }
+                ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                await ctx.Response.WriteAsync($"Rask WASM AppBundle unavailable: {reason}.");
+            });
 
             return endpoints;
         }
@@ -285,12 +274,7 @@ public static class RaskWasmEndpointExtensions
                 // The precompressed middleware may have rewritten the path to a .br/.gz
                 // sibling — strip the encoding suffix so the MIME/cache classification
                 // reflects the underlying asset (foo.wasm.br is still "application/wasm").
-                var name = ctx.File.Name;
-                if (name.EndsWith(".br", StringComparison.OrdinalIgnoreCase)
-                    || name.EndsWith(".gz", StringComparison.OrdinalIgnoreCase))
-                {
-                    name = name[..^3];
-                }
+                var name = StaticSpaFiles.UnderlyingFileName(ctx.File.Name);
 
                 var ext = Path.GetExtension(name);
                 if (ext.Equals(".wasm", StringComparison.OrdinalIgnoreCase))
@@ -343,25 +327,12 @@ public static class RaskWasmEndpointExtensions
                   + "client project, or run without -p:RaskWasmDevBundle=true to serve the published bundle.")
             : Path.Combine(resolved!, "index.html");
 
-        if (pathBaseNormalized.Length == 0)
+        StaticSpaFiles.MapCatchAll(endpoints, pathBaseNormalized, async ctx =>
         {
-            endpoints.MapFallback(async ctx =>
-            {
-                ctx.Response.ContentType = "text/html; charset=utf-8";
-                ctx.Response.Headers.CacheControl = "no-cache";
-                await ctx.Response.SendFileAsync(indexPath);
-            });
-        }
-        else
-        {
-            endpoints.MapFallback(pathBaseNormalized.TrimStart('/') + "/{*path:nonfile}",
-                async ctx =>
-                {
-                    ctx.Response.ContentType = "text/html; charset=utf-8";
-                    ctx.Response.Headers.CacheControl = "no-cache";
-                    await ctx.Response.SendFileAsync(indexPath);
-                });
-        }
+            ctx.Response.ContentType = "text/html; charset=utf-8";
+            ctx.Response.Headers.CacheControl = "no-cache";
+            await ctx.Response.SendFileAsync(indexPath);
+        });
 
         return endpoints;
     }

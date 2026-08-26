@@ -73,6 +73,38 @@ public sealed class NewCommandTests
         Assert.Contains("does not support: --data", console.ErrorText, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
+    public async Task Tailwind_is_refused_on_the_browser_wasm_templates(string template)
+    {
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(
+            ["Spa", "--template", template, "--tailwind"], CancellationToken.None);
+
+        // These paths collapse styling to a bool, so accepting the flag would scaffold plain CSS while
+        // reporting success — a mismatch found only by looking at the generated project.
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("does not support --tailwind", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Bootstrap_and_tailwind_together_are_a_usage_error()
+    {
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(
+            ["Shop", "--bootstrap", "--tailwind"], CancellationToken.None);
+
+        // Styling is one axis with three answers. Picking a winner would scaffold something the command
+        // line did not ask for, and nothing would say so.
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("--bootstrap and --tailwind are alternatives", console.ErrorText, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Wasm_template_is_generated_directly_without_dotnet_new()
     {
@@ -250,12 +282,14 @@ public sealed class NewCommandTests
     {
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", "svelte"], CancellationToken.None);
+        // Not a near-miss of a real template on purpose: 'svelte' used to stand in for "unknown" here,
+        // and became a template, which turned this into a test of nothing.
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "cobol"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("Option '--template' does not accept 'svelte'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, wasm-hosted.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -366,6 +400,54 @@ public sealed class NewCommandTests
         Assert.False(fs.FileExists("/proj/Spa/Features/Auth/Auth.cs")); // --auth left unticked
         Assert.False(fs.FileExists("/proj/Spa/Dockerfile"));            // Dockerfile answered no
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
+    }
+
+    /// <summary>
+    ///     The positive control for
+    ///     <see cref="The_wizard_does_not_offer_tailwind_for_a_template_that_would_refuse_it" />.
+    /// </summary>
+    /// <remarks>
+    ///     Without this, that test passes just as happily if the console never records option labels at
+    ///     all — an assertion on absent text proves nothing until something proves the text can be there.
+    /// </remarks>
+    [Fact]
+    public async Task The_wizard_offers_tailwind_where_the_template_supports_it()
+    {
+        var (console, fs, _, command) = Build();
+
+        // name → project type (enter = server, the default) → styling → Dockerfile? no → batteries.
+        console.Type("Spa")
+            .Press(ConsoleKey.Enter)
+            .Press(ConsoleKey.Enter)
+            .Type("n")
+            .Press(ConsoleKey.Enter);
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.True(fs.FileExists("/proj/Spa/Program.cs")); // server template
+        Assert.Contains("Tailwind", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_wizard_does_not_offer_tailwind_for_a_template_that_would_refuse_it()
+    {
+        var (console, fs, _, command) = Build();
+
+        // Same flow as above: name → project type (down = wasm) → styling → Dockerfile? no → batteries.
+        console.Type("Spa")
+            .Press(ConsoleKey.DownArrow, ConsoleKey.Enter)
+            .Press(ConsoleKey.Enter)
+            .Type("n")
+            .Press(ConsoleKey.Enter);
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        // The wizard's whole contract is that an interactive run cannot assemble a combination the
+        // command line then rejects. Offering Tailwind here would break exactly that.
+        Assert.Equal(0, exit);
+        Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html")); // wasm template
+        Assert.DoesNotContain("Tailwind", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]

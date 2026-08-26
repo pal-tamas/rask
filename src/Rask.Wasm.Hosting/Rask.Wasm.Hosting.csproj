@@ -33,6 +33,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Serving details shared with Rask.Spa.Hosting, source-linked rather than referenced: the two
+      hosts must not depend on each other, and a package holding two helpers would cost more than
+      the duplication it removes. Same arrangement as src/Rask.Generators.Shared.
+    -->
+    <Compile Include="..\Rask.Hosting.Shared\*.cs" Link="Shared\%(Filename)%(Extension)"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Rask.Wasm.Hosting.Tests"/>
   </ItemGroup>
 

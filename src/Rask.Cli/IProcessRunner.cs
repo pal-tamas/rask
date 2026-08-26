@@ -76,8 +76,46 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         IReadOnlyDictionary<string, string>? environment = null)
     {
         using var process = Start(fileName, arguments, workingDirectory, redirect: false, environment);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Waiting stopped; the child did not. Disposing a Process does not end it either, so without
+            // this a cancelled run leaks the whole tree — a bundler still holding its port, a watcher still
+            // rebuilding. The next session then finds the port taken and serves the previous run's output,
+            // which reads as a bug in whatever it was serving.
+            TryKillTree(process);
+            throw;
+        }
+
         return process.ExitCode;
+    }
+
+    private static void TryKillTree(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // It exited between the check and the kill. Which is the outcome we wanted.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Not ours to kill, or already reaped. Nothing better to do, and throwing here would replace
+            // the caller's cancellation with a less useful failure.
+        }
+        catch (NotSupportedException)
+        {
+            // A process this platform will not enumerate a tree for.
+        }
     }
 
     public async Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)

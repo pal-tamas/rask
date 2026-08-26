@@ -19,6 +19,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly string _workingDirectory = workingDirectory;
 
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
+    /// <summary>Whether a template's generated project can be styled with Tailwind.</summary>
+    /// <remarks>
+    ///     Not a <see cref="FeatureFlags"/> entry: styling is its own axis, not a battery. The browser-WASM
+    ///     generators still collapse that axis to a bool, so they would scaffold plain CSS and report
+    ///     success — see https://github.com/pal-tamas/rask/issues/838.
+    /// </remarks>
+    private static bool SupportsTailwind(string templateKey) => templateKey is not ("wasm" or "wasm-hosted");
+
     internal static readonly string[] FeatureFlags =
     [
         "auth", "pwa", "cqrs", "data", "docker", "localization",
@@ -63,7 +71,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("localization", description: "Translate the UI: a Resources/Strings.{culture}.json per language compiled into typed members, the visitor's language negotiated from their request, and a switcher in the shell.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
             .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
-            .Flag("no-bootstrap", description: "Render pages with plain elements and a small built-in stylesheet instead of Rask.Bootstrap.")
+            .Flag("bootstrap", description: "Render pages with Rask.Bootstrap's Bs* components over Bootstrap 5.3.")
+            .Flag("tailwind", description: "Style with Tailwind CSS, compiled from your own source at build time (no npm needed).")
             .Flag("force", description: "Scaffold into a directory that already has files in it, overwriting on collision.")
             .Flag("jobs", description: "Durable background jobs on the app's own database (implies --data).")
             .Flag("mail", description: "Transactional email queued on the app's own database (implies --data).")
@@ -158,6 +167,24 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail($"Template '{template.Key}' does not support: {rejected}. Supported flags: {supported}.");
         }
 
+        // Refused rather than ignored. The browser-WASM paths collapse styling to a bool and would
+        // scaffold a plain project, so accepting the flag here would mean the CLI said yes and produced
+        // something else — the failure mode that costs the most to discover.
+        if (parsed.HasFlag("tailwind") && !SupportsTailwind(template.Key))
+        {
+            return Fail(
+                $"Template '{template.Key}' does not support --tailwind yet. Use --bootstrap, or leave it "
+                + "off for plain CSS.");
+        }
+
+        // Styling is one axis with three answers, so asking for two of them says nothing coherent.
+        // Picking a winner would scaffold something the command line did not ask for, and the wizard
+        // cannot produce this pair at all — only a hand-written command can.
+        if (parsed.HasFlag("bootstrap") && parsed.HasFlag("tailwind"))
+        {
+            return Fail("--bootstrap and --tailwind are alternatives; pass one, or neither for plain CSS.");
+        }
+
         var cultures = parsed.MultiOption("culture");
         if (cultures.Count > 0 && !template.SupportedFlags.Contains("localization"))
         {
@@ -193,21 +220,36 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
                     docker = requestedFlags.Contains("docker");
 
-                // Bootstrap is the default; --no-bootstrap opts the generated pages out of the component
-                // library and onto the shell's own baseline stylesheet.
-                var bootstrap = !parsed.HasFlag("no-bootstrap");
+                // Plain CSS is the default: it is the one answer that assumes nothing about what you are
+                // building. Bootstrap and Tailwind are both opinions, and neither should be what you get
+                // by not choosing.
+                // The pair is rejected above, so this order never has to arbitrate.
+                var styling = parsed.HasFlag("tailwind") ? Styling.Tailwind
+                    : parsed.HasFlag("bootstrap") ? Styling.Bootstrap
+                    : Styling.Plain;
+                var bootstrap = styling == Styling.Bootstrap;
+
+                // A front-end framework claims its own template key, so this has to be asked before the
+                // switch below — and asking the SAME list the catalog was built from is what stops a key
+                // being accepted by the parser and then generating something else.
+                if (SpaFramework.TryGet(template.Key, out var framework))
+                {
+                    return ProjectGenerator.GenerateSpa(
+                        dir, name, framework, ToBatteries(requestedFlags, styling), version);
+                }
+
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(
                         dir, name, auth, pwa, docker, version, bootstrap,
-                        ToBatteries(requestedFlags, bootstrap, cultures).Normalized()),
+                        ToBatteries(requestedFlags, styling, cultures).Normalized()),
                     // Push is cleared rather than rejected: an explicit --push on this template already
                     // fails fast against TemplateCatalog, so the only way to arrive here with it set is
                     // --all-batteries, and "every battery this template has" is the honest reading of that.
                     "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(
-                        dir, name, ToBatteries(requestedFlags, bootstrap, cultures) with { Push = false }, version),
+                        dir, name, ToBatteries(requestedFlags, styling, cultures) with { Push = false }, version),
                     _ => ProjectGenerator.GenerateServer(
-                        dir, name, ToBatteries(requestedFlags, bootstrap, cultures), version),
+                        dir, name, ToBatteries(requestedFlags, styling, cultures), version),
                 };
             },
             cancellationToken).ConfigureAwait(false);
@@ -251,13 +293,13 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// </remarks>
     internal static ServerBatteries ToBatteries(
         IReadOnlyCollection<string> flags,
-        bool bootstrap = true,
+        Styling styling = Styling.Plain,
         IReadOnlyList<string>? cultures = null)
     {
         var all = flags.Contains("all-batteries");
         return new ServerBatteries
         {
-            Bootstrap = bootstrap,
+            Styling = styling,
             Localization = flags.Contains("localization"),
             // Joined rather than kept as a list: ServerBatteries is a record, and a collection property
             // would quietly turn its value equality into reference equality.
@@ -325,21 +367,30 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         _ = TemplateCatalog.TryGet(templateKey, out var template);
 
 
-        // Styling. Asked as a choice rather than a "skip Bootstrap?" confirm, because both answers are a
-        // real starting point and neither is a subtraction from the other.
-        if (!parsed.HasFlag("no-bootstrap"))
+        // Styling. One question with three answers rather than a pair of booleans: plain, Bootstrap and
+        // Tailwind are alternatives, and a flag pair would have had to define what --bootstrap --tailwind
+        // means. Plain leads because it is the one answer that assumes nothing about what you are
+        // building.
+        if (!parsed.HasFlag("bootstrap") && !parsed.HasFlag("tailwind"))
         {
-            var styling = prompt.Select(
-                "Styling",
-                [
-                    ("bootstrap", "[bold]Rask.Bootstrap[/] [dim]— Bs* components over Bootstrap 5.3, no CDN[/]"),
-                    ("plain", "[bold]Plain elements[/] [dim]— a small stylesheet in the app shell, no CSS framework[/]"),
-                ],
-                "bootstrap");
+            // Offered only where it works, so an interactive run cannot assemble the one combination
+            // the command line then refuses. Same predicate as the validation above, deliberately.
+            List<(string, string)> options =
+                [("plain", "[bold]Plain CSS[/] [dim]— a small stylesheet the project owns, no framework[/]")];
 
-            if (styling == "plain")
+            if (SupportsTailwind(templateKey))
             {
-                filled.Add("--no-bootstrap");
+                options.Add(
+                    ("tailwind", "[bold]Tailwind[/] [dim]— utilities compiled from your own source, no npm needed[/]"));
+            }
+
+            options.Add(("bootstrap", "[bold]Rask.Bootstrap[/] [dim]— Bs* components over Bootstrap 5.3, no CDN[/]"));
+
+            var styling = prompt.Select("Styling", [.. options], "plain");
+
+            if (styling != "plain")
+            {
+                filled.Add("--" + styling);
             }
         }
 
@@ -410,7 +461,10 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         grid.AddRow(
             Label("🎨", "Styling"),
-            new Text(args.Contains("--no-bootstrap", StringComparer.Ordinal) ? "plain elements" : "Rask.Bootstrap"));
+            new Text(
+                args.Contains("--tailwind", StringComparer.Ordinal) ? "Tailwind"
+                : args.Contains("--bootstrap", StringComparer.Ordinal) ? "Rask.Bootstrap"
+                : "plain CSS"));
 
         if (batteries.Any(DataImplyingFlags.Select(f => f[2..]).Contains))
         {
@@ -460,9 +514,19 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         if (dryRun)
         {
             WriteHeading($"Would create {template.DisplayName} '{name}':");
+            foreach (var external in result.ExternalScaffolds)
+            {
+                WriteDryRun("run", external.Command + " " + string.Join(" ", external.Arguments));
+            }
+
             foreach (var file in result.Files)
             {
                 WriteDryRun("write", Path.GetRelativePath(_workingDirectory, file.Path));
+            }
+
+            foreach (var patch in result.Patches)
+            {
+                WriteDryRun("patch", Path.GetRelativePath(_workingDirectory, patch.Path) + " — " + patch.Description);
             }
 
             return 0;
@@ -505,6 +569,18 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         WriteHeading($"Creating {template.DisplayName} '{name}'…");
+
+        // Before our own files, because ours are an overlay on top of what these produce — a vite.config
+        // the scaffolder just wrote, an App component we replace. Anything they leave behind stays.
+        foreach (var external in result.ExternalScaffolds)
+        {
+            if (await RunExternalScaffoldAsync(external, targetDirectory, cancellationToken).ConfigureAwait(false) is
+                { } failure)
+            {
+                return failure;
+            }
+        }
+
         foreach (var file in result.Files)
         {
             var directory = Path.GetDirectoryName(file.Path);
@@ -515,6 +591,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
             _fileSystem.WriteAllText(file.Path, file.Content);
             WriteCreated(Path.GetRelativePath(_workingDirectory, file.Path));
+        }
+
+        foreach (var patch in result.Patches)
+        {
+            ApplyPatch(patch);
         }
 
         // Package refs are already baked into the csproj(s) at the pinned version; restore pulls them so the
@@ -551,6 +632,78 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         return 0;
+    }
+
+    /// <summary>
+    ///     Runs a framework's own scaffolder, or null when it succeeded.
+    /// </summary>
+    /// <remarks>
+    ///     The missing-command case is checked before the run rather than after: an executable that is not
+    ///     there surfaces as a Win32Exception with a message naming a file, which reads as a bug in the tool
+    ///     rather than as "install Node.js".
+    /// </remarks>
+    private async Task<int?> RunExternalScaffoldAsync(
+        ExternalScaffold external, string targetDirectory, CancellationToken cancellationToken)
+    {
+        Console.WriteLine(external.Description, ConsoleStyle.Dim);
+
+        // The scaffolder writes INTO the target directory, which nothing has created yet on a fresh run.
+        _fileSystem.CreateDirectory(targetDirectory);
+
+        int exitCode;
+        try
+        {
+            exitCode = await _process
+                .RunAsync(external.Command, external.Arguments, targetDirectory, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Console.WriteErrorLine(
+                $"'{external.Command}' is not available, and this template needs it. {external.MissingHint}",
+                ConsoleStyle.Error);
+            return 1;
+        }
+
+        if (exitCode != 0)
+        {
+            Console.WriteErrorLine(
+                $"'{external.Command} {string.Join(" ", external.Arguments)}' failed (exit {exitCode.ToString(CultureInfo.InvariantCulture)}). "
+                + "Nothing further was written.",
+                ConsoleStyle.Error);
+            return 1;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Applies an edit to a file the scaffold did not write, reporting rather than failing when it is
+    ///     not there.
+    /// </summary>
+    /// <remarks>
+    ///     Not fatal on purpose. These amend an external scaffolder's output, and that output is not ours to
+    ///     depend on the shape of — a create-vite that stops writing a .gitignore should cost a line of
+    ///     advice, not a failed scaffold with a half-written project on disk.
+    /// </remarks>
+    private void ApplyPatch(ScaffoldPatch patch)
+    {
+        var relative = Path.GetRelativePath(_workingDirectory, patch.Path);
+        if (!_fileSystem.FileExists(patch.Path))
+        {
+            Console.WriteLine($"Skipped {relative} ({patch.Description}) — it isn't there.", ConsoleStyle.Dim);
+            return;
+        }
+
+        try
+        {
+            _fileSystem.WriteAllText(patch.Path, patch.Transform(_fileSystem.ReadAllText(patch.Path)));
+            WriteCreated($"{relative} ({patch.Description})");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Text.Json.JsonException)
+        {
+            Console.WriteLine($"Could not patch {relative} ({patch.Description}) — {ex.Message}", ConsoleStyle.Dim);
+        }
     }
 
     /// <summary>

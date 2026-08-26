@@ -30,10 +30,11 @@ internal static class CliBuildE2E
         "Rask.Server",                      // server template
         "Rask.Wasm",                        // wasm + wasm-hosted templates
         "Rask.Wasm.Hosting",                // wasm-hosted template
-        "Rask.Bootstrap",                   // every template unless --no-bootstrap
+        "Rask.Bootstrap",                   // every template with --bootstrap
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Cqrs.Client",                 // wasm-hosted --cqrs: the browser half of remote dispatch
         "Rask.Cqrs.Server",                 // wasm-hosted --cqrs: the endpoint half
+        "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
         "Rask.Data",                        // every generated feature
         "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)
         "Rask.SQLite.EntityFrameworkCore",  // server template --data and generated features that own a context (UseRaskSqlite)

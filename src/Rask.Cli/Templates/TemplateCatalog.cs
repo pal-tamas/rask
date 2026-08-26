@@ -17,6 +17,11 @@ internal sealed record TemplateInfo(
 internal static class TemplateCatalog
 {
     /// <summary>Feature flags every web template supports.</summary>
+    /// <remarks>
+    ///     <c>tailwind</c> and <c>bootstrap</c> are not here: they are the styling AXIS rather than
+    ///     features, every template understands them, and the parser handles them before this list is
+    ///     consulted.
+    /// </remarks>
     private static readonly string[] WebFlags = ["auth", "pwa", "docker", "localization"];
 
     /// <summary>
@@ -47,7 +52,31 @@ internal static class TemplateCatalog
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags],
                 StringComparer.Ordinal)),
+        // The TypeScript front-end templates, one per framework: a client on an ASP.NET host, talking to
+        // it over generated TypeScript. --cqrs is not listed because it is not optional here — the wire IS
+        // the template, and a flag you cannot turn off is a worse thing to advertise than no flag at all.
+        //
+        // --auth and --pwa are left out rather than half-scaffolded: both need work on the CLIENT side
+        // (a login flow, a service worker through vite-plugin-pwa) that these templates do not write yet.
+        // --push needs both.
+        //
+        // The set matches the frameworks TanStack Query ships an adapter for, because the adapter is what
+        // makes the generated contracts worth having — everything below the call site is the same wire.
+        .. SpaFrameworks(),
     ];
+
+    /// <summary>One template per front-end framework, all sharing the same flag set.</summary>
+    /// <remarks>
+    ///     Derived from <see cref="Scaffolding.SpaFramework.All" /> rather than listed again here. Two
+    ///     hand-maintained lists of the same frameworks is exactly how a template comes to be accepted by
+    ///     the parser and then generate something else — which is what <c>--template native</c> did after
+    ///     the native host was deleted.
+    /// </remarks>
+    private static IEnumerable<TemplateInfo> SpaFrameworks() =>
+        Scaffolding.SpaFramework.All.Select(framework => new TemplateInfo(
+            framework.Key,
+            $"Rask {framework.DisplayName} front end + ASP.NET host",
+            new HashSet<string>([.. DatabaseFlags, "docker"], StringComparer.Ordinal)));
 
     /// <summary>The default template when none is specified — a server-rendered app.</summary>
     public static TemplateInfo Default => All[0];

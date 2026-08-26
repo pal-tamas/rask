@@ -44,6 +44,11 @@
         <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
         <Project Path="src/Rask.Signaling/Rask.Signaling.csproj"/>
+        <Project Path="src/Rask.Query/Rask.Query.csproj"/>
+        <Project Path="src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj"/>
+        <Project Path="src/Rask.Spa.Tasks/Rask.Spa.Tasks.csproj"/>
+        <Project Path="src/Rask.Tailwind/Rask.Tailwind.csproj"/>
+        <Project Path="src/Rask.Tailwind.Tasks/Rask.Tailwind.Tasks.csproj"/>
         <Project Path="src/Rask.SQLite/Rask.SQLite.csproj"/>
         <Project Path="src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj"/>
         <Project Path="src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj"/>
@@ -89,6 +94,10 @@
         <Project Path="tests/Rask.Server.HotReload.Tests/Rask.Server.HotReload.Tests.csproj"/>
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
         <Project Path="tests/Rask.Signaling.Tests/Rask.Signaling.Tests.csproj"/>
+        <Project Path="tests/Rask.Query.Tests/Rask.Query.Tests.csproj"/>
+        <Project Path="tests/Rask.Spa.Hosting.Tests/Rask.Spa.Hosting.Tests.csproj"/>
+        <Project Path="tests/Rask.Spa.Tasks.Tests/Rask.Spa.Tasks.Tests.csproj"/>
+        <Project Path="tests/Rask.Tailwind.Tasks.Tests/Rask.Tailwind.Tasks.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Tests/Rask.SQLite.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.EntityFrameworkCore.Tests/Rask.SQLite.EntityFrameworkCore.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Limitations.Tests/Rask.SQLite.Limitations.Tests.csproj"/>

@@ -153,6 +153,12 @@ internal sealed class DevCommand(
             runEnvironment = withStatus;
         }
 
+        // The bundler's dev server, beside the host. Its own token, so the host exiting takes it with it —
+        // a Vite left listening on 5173 after `rask dev` returns is picked up by the NEXT session, which
+        // then serves a stale client against a new server and looks like a Rask bug.
+        using var clientTokens = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var client = StartClientDevServer(target, clientTokens.Token);
+
         var exit = status is null
             ? await _process
                 .RunAsync("dotnet", dotnetArgs, target.ProjectDirectory, cancellationToken, runEnvironment)
@@ -162,8 +168,66 @@ internal sealed class DevCommand(
                     runEnvironment)
                 .ConfigureAwait(false);
 
+        await clientTokens.CancelAsync().ConfigureAwait(false);
+        await client.ConfigureAwait(false);
         await opening.ConfigureAwait(false);
         return exit;
+    }
+
+    /// <summary>
+    ///     Starts the front end's own dev server for a SPA-hosted app, or does nothing for anything else.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Two processes rather than one because the browser talks to the bundler, not to ASP.NET: that
+    ///         is what makes HMR native and instant, and it is why the scaffolded <c>vite.config.ts</c>
+    ///         proxies <c>/_rask</c> back to the host. In production neither of those exists — the host
+    ///         serves the built bundle and answers the wire itself.
+    ///     </para>
+    ///     <para>
+    ///         A failure here is reported and then let go. The host is the process this command is really
+    ///         running, and killing it because a bundler would not start would take away the API too — and
+    ///         with it any chance of reading the error against a working server.
+    ///     </para>
+    /// </remarks>
+    private async Task StartClientDevServer(DevTarget target, CancellationToken cancellationToken)
+    {
+        if (target.Kind != DevTemplateKind.SpaHosted)
+        {
+            return;
+        }
+
+        if (target.ClientDirectory is not { } directory)
+        {
+            Console.WriteLine(
+                "No client directory found beside this host, so no dev server was started. Run the "
+                + "bundler yourself, or point RaskSpaClientDir at it.",
+                ConsoleStyle.Dim);
+            return;
+        }
+
+        Console.WriteLine(
+            $"Starting the client dev server in {Path.GetFileName(directory)} "
+            + $"(npm run {target.ClientDevScript ?? "dev"})…",
+            ConsoleStyle.Dim);
+
+        try
+        {
+            await _process
+                .RunAsync("npm", ["run", target.ClientDevScript ?? "dev"], directory, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The host exited and took this with it. Expected, every time.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Console.WriteErrorLine(
+                "npm is not available, so the client dev server did not start. The API is still running. "
+                + "Install Node.js from https://nodejs.org.",
+                ConsoleStyle.Error);
+        }
     }
 
     /// <summary>
@@ -223,6 +287,18 @@ internal sealed class DevCommand(
             if (kind == DevTemplateKind.WasmHosted && !noHotReload)
             {
                 args.Add("--property:RaskWasmDevBundle=true");
+            }
+
+            // The bundler's own dev server owns the client during a dev session — it is started beside
+            // this, and it is what the browser talks to. Paying for a full production bundle on every
+            // save as well would make watch unusable, and nothing would ever read the result.
+            //
+            // The generated TypeScript is emitted anyway: that is deliberately independent of
+            // RaskSpaBuild, because a dev server compiling last build's contracts is exactly the failure
+            // this whole pipeline exists to prevent.
+            if (kind == DevTemplateKind.SpaHosted)
+            {
+                args.Add("--property:RaskSpaBuild=false");
             }
         }
 
@@ -303,6 +379,17 @@ internal sealed class DevCommand(
             return null;
         }
 
+        // For a SPA host the browser belongs on the BUNDLER, not on ASP.NET: the dev server is what serves
+        // the app and what HMR reaches, and it proxies the wire back to the host. Opening the host's own
+        // port instead lands on "nothing built yet" and looks like a broken scaffold.
+        //
+        // --urls is still honoured: it names where the HOST listens, and someone who set it deliberately is
+        // saying that is the address they mean.
+        if (target.Kind == DevTemplateKind.SpaHosted && urls is not { Length: > 0 })
+        {
+            return target.ClientDevServerUrl ?? ViteDevServerUrl;
+        }
+
         var url = FirstUrl(urls) ?? target.LaunchUrl;
         if (url is null)
         {
@@ -311,6 +398,12 @@ internal sealed class DevCommand(
 
         return url;
     }
+
+    /// <summary>
+    ///     Where Vite listens by default, for a scaffold too old to have baked the real answer into its
+    ///     csproj. Not probed from the running bundler, which is not up yet when this is decided.
+    /// </summary>
+    internal const string ViteDevServerUrl = "http://localhost:5173";
 
     private async Task OpenWhenListeningAsync(string url, CancellationToken cancellationToken)
     {
@@ -389,6 +482,7 @@ internal sealed class DevCommand(
     {
         DevTemplateKind.Server => "server",
         DevTemplateKind.WasmHosted => "wasm-hosted",
+        DevTemplateKind.SpaHosted => "react",
         DevTemplateKind.WasmStandalone => "wasm",
         _ => "app"
     };

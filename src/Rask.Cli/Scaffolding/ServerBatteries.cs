@@ -32,10 +32,27 @@ internal sealed record ServerBatteries
 
     /// <summary>Cookie authentication: login + members pages and a demo credential store.</summary>
     /// <summary>
-    /// Render with Rask.Bootstrap's <c>Bs*</c> components (the default). When false the template emits plain
-    /// elements against a small baseline stylesheet the project owns, and no CSS-framework dependency.
+    ///     How the generated pages are styled.
     /// </summary>
-    public bool Bootstrap { get; init; } = true;
+    /// <remarks>
+    ///     <see cref="Scaffolding.Styling.Plain" /> is the default: a small stylesheet the project owns,
+    ///     and no CSS-framework dependency at all. It is the one answer that assumes nothing about what
+    ///     you are building — Bootstrap and Tailwind are both opinions, and neither should be the one you
+    ///     get by not choosing.
+    /// </remarks>
+    public Styling Styling { get; init; } = Styling.Plain;
+
+    /// <summary>
+    ///     Whether the pages use Rask.Bootstrap's <c>Bs*</c> components.
+    /// </summary>
+    /// <remarks>
+    ///     Derived rather than stored, so the generators that ask "Bs* or plain elements?" keep reading
+    ///     the way they did while there is exactly one place that decides it.
+    /// </remarks>
+    public bool Bootstrap => Styling == Styling.Bootstrap;
+
+    /// <summary>Whether the build compiles a Tailwind stylesheet for this project.</summary>
+    public bool Tailwind => Styling == Styling.Tailwind;
 
     public bool Auth { get; init; }
 
@@ -135,4 +152,24 @@ internal sealed record ServerBatteries
             CultureList = localization && CultureList.Length == 0 ? "en" : CultureList,
         };
     }
+}
+
+/// <summary>
+///     How a scaffolded project styles its pages.
+/// </summary>
+/// <remarks>
+///     One axis with three answers rather than a pair of booleans. A <c>--bootstrap --tailwind</c>
+///     pair would have had to mean something, and every combination of two flags that are really one
+///     choice ends up with a state nobody designed.
+/// </remarks>
+internal enum Styling
+{
+    /// <summary>Plain elements and a small stylesheet the project owns. The default.</summary>
+    Plain,
+
+    /// <summary>Rask.Bootstrap's <c>Bs*</c> components over Bootstrap 5.3.</summary>
+    Bootstrap,
+
+    /// <summary>Tailwind utilities, compiled from the project's own source by Rask.Tailwind.</summary>
+    Tailwind,
 }

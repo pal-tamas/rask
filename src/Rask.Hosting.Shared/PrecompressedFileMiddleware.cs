@@ -3,23 +3,26 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 
-namespace Rask.Wasm.Hosting;
+namespace Rask.Hosting.Shared;
 
-// When the consumer's WASM publish step emits .br / .gz siblings next to each framework
-// asset (e.g. dotnet.native.wasm + dotnet.native.wasm.br + dotnet.native.wasm.gz —
-// what the WASM SDK does when <CompressionEnabled>true</CompressionEnabled> is set),
-// serve the sibling directly with the matching Content-Encoding header. Pre-compressed
-// files cost zero request-time CPU and let an upstream CDN cache the encoded bytes —
-// avoiding the per-request brotli pass that UseResponseCompression otherwise performs.
+// When a build step emits .br / .gz siblings next to each asset — what the WASM SDK does with
+// <CompressionEnabled>true</CompressionEnabled>, and what a bundler plugin does for a JS app —
+// serve the sibling directly with the matching Content-Encoding header. Pre-compressed files cost
+// zero request-time CPU and let an upstream CDN cache the encoded bytes, avoiding the per-request
+// brotli pass UseResponseCompression otherwise performs.
 //
 // Falls through to the next middleware (UseStaticFiles / UseResponseCompression) when:
 //   - no sibling exists on disk for the requested path,
 //   - the client didn't advertise an Accept-Encoding we can serve,
 //   - the request method isn't GET or HEAD.
 //
-// This is intentionally a thin shim: it rewrites Path to the sibling, sets the encoding
-// headers + Vary, and lets the existing UseStaticFiles configuration (MIME types, cache
-// classification from PR7) handle the actual byte serving.
+// This is intentionally a thin shim: it rewrites Path to the sibling, sets the encoding headers +
+// Vary, and lets the existing UseStaticFiles configuration (MIME types, cache classification)
+// handle the actual byte serving.
+//
+// Source-linked into every Rask host that serves a built SPA. It has no Rask dependencies at all,
+// which is what makes sharing it a link rather than a package reference between two hosts that
+// must not depend on each other.
 internal sealed class PrecompressedFileMiddleware
 {
     private readonly IFileProvider _fileProvider;
