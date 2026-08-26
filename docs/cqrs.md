@@ -139,7 +139,7 @@ app.MapRaskCqrs();
 
 Put the message records in a project both halves reference, and the handlers in the server project only
 — which is what keeps a connection string, a table name or a pricing rule out of a download anybody can
-read. `rask new --template wasm-hosted --cqrs` scaffolds exactly this shape.
+read. `rask new --template wasm-hosted` scaffolds exactly this shape.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a

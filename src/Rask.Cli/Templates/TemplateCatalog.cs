@@ -21,8 +21,17 @@ internal static class TemplateCatalog
     ///     <c>tailwind</c> and <c>bootstrap</c> are not here: they are the styling AXIS rather than
     ///     features, every template understands them, and the parser handles them before this list is
     ///     consulted.
+    ///
+    ///     <para>
+    ///     <c>localization</c> is not here either, and that is a correction rather than an omission: the
+    ///     browser-WASM generators never read <c>Localization</c> or <c>Cultures</c>, so both templates
+    ///     accepted the flag and scaffolded no catalogs, no negotiation and no switcher. Advertising it
+    ///     was harmless while it was opt-in and rare; with the batteries on by default it would have made
+    ///     every WASM project claim a language it does not have. Listed on <c>server</c> alone until the
+    ///     WASM half exists — https://github.com/pal-tamas/rask/issues/846.
+    ///     </para>
     /// </remarks>
-    private static readonly string[] WebFlags = ["auth", "pwa", "docker", "localization"];
+    private static readonly string[] WebFlags = ["auth", "pwa", "docker"];
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a
@@ -30,13 +39,13 @@ internal static class TemplateCatalog
     /// A pure browser-WASM SPA has no server to run them on.
     /// </summary>
     private static readonly string[] DatabaseFlags =
-        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "ops", "all-batteries"];
+        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "ops"];
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
         new("server", "Rask Server app",
             new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags, "push"],
+                [.. WebFlags, .. DatabaseFlags, "push", "localization"],
                 StringComparer.Ordinal)),
         new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
@@ -53,8 +62,8 @@ internal static class TemplateCatalog
                 [.. WebFlags, .. DatabaseFlags],
                 StringComparer.Ordinal)),
         // The TypeScript front-end templates, one per framework: a client on an ASP.NET host, talking to
-        // it over generated TypeScript. --cqrs is not listed because it is not optional here — the wire IS
-        // the template, and a flag you cannot turn off is a worse thing to advertise than no flag at all.
+        // it over generated TypeScript. CQRS is listed but never optional here — the wire IS the template,
+        // so the generator forces it on and --no-cqrs is refused rather than silently ignored.
         //
         // --auth and --pwa are left out rather than half-scaffolded: both need work on the CLIENT side
         // (a login flow, a service worker through vite-plugin-pwa) that these templates do not write yet.

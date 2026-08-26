@@ -52,12 +52,19 @@ rask new MyApp                       # create a server app in ./MyApp (server is
 | `wasm`              | One `net10.0-browser` project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
 | `wasm-hosted`       | Three projects: `MyApp.Client` (the WASM SPA), `MyApp.Server` (the ASP.NET host that serves the bundle and your own `/api/...` endpoints), and `MyApp.Shared` (a class library both reference). |
 
-They emit the same starter pages, so the rest of this guide applies whichever you chose. Each also
-accepts a `--auth` switch that scaffolds a working login flow — see [authentication](authentication.md)
-when you need it. The `server` template additionally accepts `--cqrs`, which scaffolds the
-[Rask.Cqrs](cqrs.md) mediator (a sample query + handler and a `/greeting` page that dispatches it),
-`--pwa`, which makes it an installable [PWA](pwa.md), and `--docker` — a flag, not a template, which adds
-a Dockerfile for [`rask deploy`](cli.md). The full flag list is in [the CLI reference](cli.md).
+They emit the same starter pages, so the rest of this guide applies whichever you chose.
+
+**Each arrives with every battery it can carry.** On `server` that is a SQLite database, the
+[Rask.Cqrs](cqrs.md) mediator, background jobs, transactional email, a cache, a transactional outbox,
+scheduled backups, a durable log store, the [operator dashboard](dashboard.md), an installable
+[PWA](pwa.md) with Web Push, a Dockerfile for [`rask deploy`](cli.md), and the localization machinery —
+wiring, not sample pages. `wasm` takes the PWA and the Dockerfile; the rest need a host to put a
+database in.
+
+Two things are left to you: `--auth` scaffolds a working login flow (see
+[authentication](authentication.md)), and `--bootstrap` / `--tailwind` change how the pages are styled.
+To leave a battery out, name it: `rask new MyApp --no-push --no-ops`. The full flag list is in
+[the CLI reference](cli.md).
 
 ## 2. Run it
 

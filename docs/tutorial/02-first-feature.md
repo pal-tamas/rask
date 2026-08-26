@@ -13,7 +13,7 @@ what's new. The finished version of this app is committed as
 [`samples/Rask.Example.Shop`](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop) if
 you'd rather read it whole.
 
-> **You don't name a database.** Chapter 1's `--all-batteries` already wired one — `AppDbContext` in
+> **You don't name a database.** Chapter 1's `rask new` already wired one — `AppDbContext` in
 > `Features/Shared/`. Everything here maps through it, so an app keeps **one** database and one set of
 > migrations however many features you add.
 
@@ -443,8 +443,8 @@ public sealed partial class ProductsPage(IDispatcher dispatcher) : Component
 
 ## 7. Register the services
 
-`Program.cs` needs three registrations (Chapter 1's `--all-batteries` already added them; if you
-scaffolded without it, add them next to your other `builder.Services…` lines):
+`Program.cs` needs three registrations (Chapter 1's `rask new` already added them; if you scaffolded
+with `--no-data`, add them next to your other `builder.Services…` lines):
 
 ```csharp
 builder.Services.AddRaskCqrs();

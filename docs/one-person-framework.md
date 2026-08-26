@@ -80,7 +80,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 ## See it running
 
 [`samples/Rask.Example.Shop`](../samples/Rask.Example.Shop) wires **every battery above into one app** —
-and it is the CLI's own output, not a hand-written showcase: `rask new Shop --all-batteries --auth --docker`
+and it is the CLI's own output, not a hand-written showcase: `rask new Shop --auth --bootstrap`
 plus the slices from the tutorial. Place an order and watch `/ops`: the domain event commits with
 the order through the outbox, the relay queues the confirmation email and schedules a follow-up job, and
 every pillar's state sits in the same SQLite file.

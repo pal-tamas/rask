@@ -91,26 +91,43 @@ machine with no SDK simply has no `dotnetSdk` key, where the human report prints
 ```bash
 rask                                 # the wizard, from a blank slate
 rask new                             # the same wizard
-rask new MyApp                       # a server-rendered app (the default template)
-rask new MyApp --auth --docker       # + cookie auth + a production Dockerfile
-rask new Blog --data --docker        # + a SQLite database, ready for your first feature
-rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
+rask new MyApp                       # everything: a server app with the whole stack wired
+rask new MyApp --auth                # + a cookie login, sessions, and members pages
+rask new MyApp --bootstrap           # Bs* components instead of plain CSS
+rask new Blog --no-push --no-ops     # everything except those two
+rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
+rask new Spa --template wasm         # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
-rask new Shop --tailwind             # Tailwind instead of plain CSS
 ```
 
+**Batteries are included.** `rask new MyApp` gives you everything the template supports — a SQLite
+database, CQRS, background jobs, transactional email, a cache, a transactional outbox, scheduled
+backups, a durable log store, the operator dashboard, an installable PWA with Web Push, a Dockerfile,
+and the localization machinery. Not a sample page to delete: the wiring, ready for your first feature.
+
+**Two things are left to you**, because they are the two that change what the app *is* rather than what
+it can do:
+
+- **auth** — `--auth` adds a cookie login, sessions and members pages. A login wall in front of a
+  project you are about to show someone is a decision, so it is asked rather than assumed.
+- **styling** — plain CSS by default, `--bootstrap` or `--tailwind` instead.
+
+Everything else has a `--no-` to leave it out: `--no-jobs`, `--no-push`, `--no-ops`, and so on. There is
+no `--minimal`; taking three things out reads as three flags, and you can see from the command line
+exactly which three.
+
 Run `rask` (or `rask new`) with no project name and — on a terminal — it walks you through a short
-wizard: the project name, an arrow-key **project type** picker, **styling** (Rask.Bootstrap or plain
-elements), whether to add a **Dockerfile**, and a checklist of **batteries** you toggle with space. A
-database picker follows if anything you ticked needs one. It then scaffolds exactly as if you'd passed
-the flags.
+wizard: the project name, an arrow-key **project type** picker, **styling**, whether to add **auth**,
+and a **battery checklist that arrives fully ticked** — space unticks anything you don't want. Pressing
+enter through it gives you the same project a bare `rask new` does. It then scaffolds exactly as if
+you'd passed the flags.
 
 The wizard **fills gaps rather than re-asking**: anything already on the command line is kept and its
-question skipped, so `rask new --template wasm --auth` asks only for the name. Piped or in a script (no
-terminal), a missing name is a plain error instead, and bare `rask` prints the command list — so
-automation stays predictable.
+question skipped, so `rask new --template wasm --auth` asks only for the name, and a `--no-` flag
+already typed skips the checklist entirely. Piped or in a script (no terminal), a missing name is a
+plain error instead, and bare `rask` prints the command list — so automation stays predictable.
 
 Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is initialized
 as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
@@ -142,52 +159,92 @@ The set is exactly the frameworks TanStack Query ships an adapter for, and **Tan
 up for React and Solid** — the two adapters it ships. Angular differs in three ways (its own CLI, its
 own dev port, and a nested `dist`); see [TypeScript front ends](spa.md).
 
-A new project is deliberately **minimal** — nothing to delete before you start — and everything it
-scaffolds already follows the vertical-slice layout the guides build on: feature code under
+A new project has **wiring, not sample code** — there is still nothing to delete before you start — and
+everything it scaffolds follows the vertical-slice layout the guides build on: feature code under
 `Features/<Name>/`, cross-cutting code under `Features/Shared/`.
 
 ```
 MyApp/
   MyApp.csproj
-  Program.cs
+  Program.cs                      every battery composed, in the order that works
+  Dockerfile  .dockerignore       a production image
   appsettings.json                logging levels (incl. Rask's own diagnostic categories)
   appsettings.Production.json     overrides applied when deployed
   Features/
     Shared/App.cs                 the root component every page renders through
+    Shared/AppDbContext.cs        your features' entities map through this
+    Shared/ErrorPage.cs           what a visitor sees when something outside a component throws
     Home/HomePage.cs              a [Route("/")] welcome page that teaches the CLI
+    Push/PushSubscriptions.cs     the Web Push subscribe endpoints
+  Migrations/                     the first migration, already created and applied
+  Resources/Strings.en.json       the text of the UI, compiled into typed members
+  wwwroot/                        manifest.webmanifest, icon.svg, offline.html
   Properties/launchSettings.json
 ```
 
-The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice, styled with
-Bootstrap. `--auth` adds a `Features/Auth/` slice and `--data` an `AppDbContext` under `Features/Shared/`.
-Add pages and components to taste — the [tutorial](tutorial/00-overview.md) shows the shapes.
+The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice. `--auth` adds
+a `Features/Auth/` slice. Add pages and components to taste — the [tutorial](tutorial/00-overview.md)
+shows the shapes.
+
+### It runs before you touch it
+
+`rask new` doesn't stop at writing files. After the restore it **creates and applies the first
+migration** for you, so:
+
+```bash
+rask new Shop && cd Shop && dotnet run
+```
+
+serves the app. That step is not a convenience — the database-backed batteries keep their state in
+tables that only exist once a migration has been applied, their processors are hosted services, and a
+hosted service that can't find its table stops the host. Without it, the very first `dotnet run` of
+every new project would exit rather than warn.
+
+It reuses `rask db` to do it, so your project ends up in exactly the state `rask db add Init && rask db
+update` leaves it in — including installing the EF Core tools on first use. `--no-restore` skips the
+migration along with the restore, and if it can't complete, `rask new` says so and prints the two
+commands to run rather than failing: the files on disk are correct either way.
 
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
 | `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
-| `--auth` | Scaffold a cookie login/session (web templates). |
-| `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
-| `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
-| `--data` | Pre-wire a SQLite database: an empty `AppDbContext`, `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory — so your first entity attaches to it and is immediately runnable with `rask db add`/`update`. It also wires **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream)) — inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time (`rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`), and `--docker` puts the replicator binary in the image. Implies `--cqrs` (the `server` template only). |
-| `--jobs` | Durable background jobs on the app's own database: `AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`. Implies `--data`. |
-| `--mail` | Transactional email on the app's own database, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. Implies `--data`. |
-| `--cache` | A database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. Implies `--data`. |
-| `--outbox` | A transactional outbox for durable domain-event delivery. Also turns **off** the in-process publisher, so events aren't delivered twice. Implies `--data`. |
-| `--push` | Server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. Implies `--pwa`. |
-| `--snapshots` | Scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup `--data` already wires. Implies `--data`. |
-| `--logs` | A [durable log store](logging.md) in a SQLite file of its own, so the application log survives a restart — buffered off the request thread, with retention by age and row count. The **only** battery that does *not* imply `--data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
-| `--ops` | An [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
-| `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
+| `--auth` | Scaffold a cookie login/session (web templates). **The one battery that is off by default.** |
+| `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
+| `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator. |
+| `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
+| `--no-jobs` | Leave out durable background jobs (`AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`). |
+| `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
+| `--no-cache` | Leave out the database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. |
+| `--no-outbox` | Leave out the transactional outbox for durable domain-event delivery. With it on, the in-process publisher is turned **off**, so events aren't delivered twice. |
+| `--no-push` | Leave out server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. The PWA stays. |
+| `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
+| `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
+| `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. |
+| `--no-localization` | Leave out the string catalogs, the negotiated language, and the switcher. Can't be combined with `--culture`. |
+| `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
 | `--bootstrap` | Render the generated pages with `Rask.Bootstrap`'s `Bs*` components over Bootstrap 5.3, self-hosted (no CDN). |
 | `--tailwind` | Style the generated pages with Tailwind CSS, compiled from your own source at build time — no npm required. |
-| `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
+| `--culture` | A language to translate the UI into, repeatable — `--culture en --culture hu`. The first is the default a visitor falls back to. Without it you get `en`. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
-| `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore`). |
+| `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore` and the migration). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
-| `--no-restore` | Skip `dotnet restore` (for offline use). Without it, a restore failure is reported as a failure — the files are written, but the project won't build until it succeeds. |
+| `--no-git` | Don't initialize a git repository (one is created with an initial commit by default). |
+| `--no-restore` | Skip `dotnet restore` (for offline use), and the first migration with it. Without it, a restore failure is reported as a failure — the files are written, but the project won't build until it succeeds. |
 
-The flags wire a feature up; they don't scaffold sample pages for you to delete.
+The batteries wire a feature up; they don't scaffold sample pages for you to delete.
+
+**The positive flags are gone.** `--data`, `--jobs`, `--ops`, `--all-batteries` and the rest turned
+something on that is now already on, so they'd be flags the CLI accepts and disregards — the most
+expensive kind to discover. They're rejected instead, with the answer:
+
+```console
+$ rask new Shop --data
+--data is on by default now, so there is nothing to turn on. Pass --no-data to leave it out.
+
+$ rask new Shop --all-batteries
+--all-batteries is gone: every battery is on by default now. Pass --no-<battery> to leave one out, e.g. --no-push.
+```
 
 Every server app also gets `Features/Shared/ErrorPage.cs` and `app.UseExceptionHandler("/error")` outside
 Development. `ErrorBoundary` already catches anything thrown *inside* a component tree; this covers
@@ -198,61 +255,69 @@ useful than a page designed to reveal nothing.
 
 ### Which template supports which flag
 
-| Flag | `server` | `wasm` | `wasm-hosted` | front-end |
+A template gets every battery in its column, and nothing outside it. Nobody maintains a per-template
+default list: the default set *is* the column.
+
+| Battery | `server` | `wasm` | `wasm-hosted` | front-end |
 | --- | :-: | :-: | :-: | :-: |
-| `--auth` | ✅ | ✅ | ✅ | — |
-| `--pwa` | ✅ | ✅ | ✅ | — |
-| `--docker` | ✅ | ✅ | ✅ | ✅ |
+| database, CQRS | ✅ | — | ✅ | ✅¹ |
+| jobs, mail, cache, outbox, snapshots, logs, ops | ✅ | — | ✅ | ✅ |
+| PWA | ✅ | ✅ | ✅ | — |
+| Web Push | ✅ | — | — | — |
+| Docker | ✅ | ✅ | ✅ | ✅ |
+| localization | ✅ | — | — | — |
+| `--auth` *(opt-in)* | ✅ | ✅ | ✅ | — |
 | `--bootstrap` | ✅ | ✅ | ✅ | — |
 | `--tailwind` | ✅ | — | — | ✅ |
-| `--cqrs`, `--data` | ✅ | — | ✅ | ✅¹ |
-| `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | ✅ |
-| `--push` | ✅ | — | — | — |
-| `--all-batteries` | ✅ | — | ✅ | ✅ |
 
-¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--cqrs` is accepted but changes
-nothing. `--auth` and `--pwa` are refused rather than half-scaffolded: both need work on the client
-(a React login flow, a service worker through `vite-plugin-pwa`) that the template does not write yet.
+¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
+rather than ignored. `--auth` and the PWA are left out rather than half-scaffolded: both need work on
+the client (a React login flow, a service worker through `vite-plugin-pwa`) that the template does not
+write yet. Localization is missing from the WASM columns for a different reason — the generators don't
+read it yet ([#846](https://github.com/pal-tamas/rask/issues/846)), so the flag is refused rather than
+accepted and silently dropped.
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
-combination that is then rejected. On the command line, asking for one is a usage error that names both
-halves rather than silently dropping the flag:
+combination that is then rejected. On the command line, turning off something a template never had is a
+usage error that names both halves:
 
 ```console
-$ rask new X --template wasm --data
-Template 'wasm' does not support: --data. Supported flags: --auth, --docker, --pwa.
+$ rask new X --template wasm --no-data
+Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker, pwa.
 ```
 
-The battery flags need an ASP.NET host to put a database in, which the `server` template is and the
-`wasm-hosted` template's `.Server` project is too — a pure browser-WASM SPA has neither. Each implies what
-it needs (`--jobs` implies `--data` implies `--cqrs`), so you can ask for the pillar you want without also
-remembering its dependencies:
+The database-backed batteries need an ASP.NET host to put a database in, which the `server` template is
+and the `wasm-hosted` template's `.Server` project is too — a pure browser-WASM SPA has neither.
+
+Turning one off takes its dependents with it, so you never end up with a registration naming a
+`DbContext` that isn't there:
 
 ```bash
-rask new Shop --all-batteries --auth --docker    # every pillar, wired in the right order
-rask new Shop --jobs --mail                      # just background work and email
+rask new Shop --no-data     # …and no jobs, mail, cache, outbox, snapshots or dashboard
+rask new Shop --no-cqrs     # …and no database either — every feature dispatches through the mediator
+rask new Shop --no-pwa      # …and no Web Push, which subscribes through the service worker
+rask new Shop --no-logs     # …and nothing else: the log store owns a database of its own
 ```
 
 On `wasm-hosted` the batteries land in the `.Server` project and the client keeps calling the host over
-its API, exactly as it already does for auth. `--ops` additionally mounts the [operator
-dashboard](dashboard.md) there — server-rendered at `/_rask`, with the WASM client still serving every
-other route:
+its API, exactly as it already does for auth. The [operator dashboard](dashboard.md) mounts there too —
+server-rendered at `/_rask`, with the WASM client still serving every other route:
 
 ```bash
-rask new Shop --template wasm-hosted --ops       # SPA in the browser, dashboard on the host
+rask new Shop --template wasm-hosted             # SPA in the browser, dashboard on the host
 ```
 
-`--push` is the one battery `wasm-hosted` does not take. Web Push needs the subscribe endpoints and a
-service worker that posts to them, and in this template those live in two different projects — a real
-feature rather than a wiring gap, so it is left out rather than half-scaffolded.
+Web Push is the one battery `wasm-hosted` does not take. It needs the subscribe endpoints and a service
+worker that posts to them, and in this template those live in two different projects — a real feature
+rather than a wiring gap, so it is left out rather than half-scaffolded.
 
 The generated `Program.cs` composes them in an order that is load-bearing rather than stylistic — the
 outbox registered before the `DbContext` factory (so its interceptor joins the `SaveChanges` pipeline),
 `ApplyRaskConventions()` after the entity configurations (it walks the model as it stands), and the
 Litestream restore before anything opens the database. Those are pinned by tests, not left to chance.
 
-Requesting a flag a template doesn't support (for example `--cqrs` on `wasm`) fails fast with the list
-of flags that template *does* support, rather than passing an unknown option through.
+Turning off a battery a template doesn't have (for example `--no-cqrs` on `wasm`) fails fast with the
+list of what that template *does* support, rather than passing an unknown option through.
 
 ## Writing code — by hand, from the guides
 
@@ -472,10 +537,11 @@ Shared options: `--project/-p` (the project owning the `DbContext`), `--startup-
 that configures it; defaults to `--project`), and `--context/-c` (when the app has more than one
 `DbContext`). Anything after `--` is forwarded to `dotnet ef` verbatim (e.g. `rask db update -- --verbose`).
 
-The EF Core tools need the startup project to reference `Microsoft.EntityFrameworkCore.Design` —
-projects scaffolded with `--data` already do, and `rask db` adds it for you (via `dotnet add
-package`) if it's missing. `backup` and `restore` need none of that: they copy a database rather than
-migrate one, so they never install `dotnet-ef`.
+The EF Core tools need the startup project to reference `Microsoft.EntityFrameworkCore.Design`, and
+`rask db` adds it for you (via `dotnet add package`) if it's missing. A project from `rask new` already
+has it, because the first migration `rask new` runs goes through this same code path. `backup` and
+`restore` need none of that: they copy a database rather than migrate one, so they never install
+`dotnet-ef`.
 
 ### Backup and restore
 
@@ -524,7 +590,7 @@ rask deploy --dry-run --host deploy@box --domain app.example.com   # print the d
 One command builds your app's Docker image **on the box** and runs it. Every deploy step is
 `docker -H ssh://<host> …`, so there's no registry, no local Docker daemon, and no image tarball to
 copy — the build context ships to the host's daemon over SSH and builds there. It deploys the
-`Dockerfile` that `rask new --docker` scaffolds (point at another with `--dockerfile`).
+`Dockerfile` that `rask new` scaffolds (point at another with `--dockerfile`).
 
 **Handed a box that isn't ready, it sets it up** — installs Docker, creates a non-root `deploy` login
 with your keys, configures a firewall (one that covers Docker's published ports, which ufw does not
@@ -560,7 +626,7 @@ Use `rask deploy rollback` to undo a deploy that *did* come up healthy.
 per-app named volume and points the app at it (`ConnectionStrings:App` → `Data Source=/data/app.db`) — the
 SQLite database persists across container replacements. The old container keeps serving for a moment after
 the proxy switches (so a request already in flight to it isn't cut), then is stopped gracefully (SIGTERM →
-its Litestream flush + WAL checkpoint) before removal. The `rask new --docker` Dockerfile prepares a
+its Litestream flush + WAL checkpoint) before removal. The `rask new` Dockerfile prepares a
 writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`. Add
 [`Rask.SQLite.Litestream`](sqlite.md#continuous-backup-with-litestream) to also stream it off the box.
 
@@ -569,7 +635,7 @@ writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UI
 | `--host user@box` | SSH target. Required on the first deploy, then remembered in `.rask/deploy.json`. |
 | `--domain <host>` | Front the app with auto-HTTPS Caddy. Omit to publish `--port` directly. |
 | `--port <n>` | Host port when there's no domain (default `8080`). |
-| `--container-port <n>` | The port your app listens on **inside** the container — what the proxy is pointed at and what the readiness probe hits (default `8080`, which every `rask new --docker` Dockerfile uses). Only needed for a hand-written Dockerfile that exposes something else. Remembered in `.rask/deploy.json`, and recorded on the container so a host running apps on different ports keeps each one's routing correct. |
+| `--container-port <n>` | The port your app listens on **inside** the container — what the proxy is pointed at and what the readiness probe hits (default `8080`, which every `rask new` Dockerfile uses). Only needed for a hand-written Dockerfile that exposes something else. Remembered in `.rask/deploy.json`, and recorded on the container so a host running apps on different ports keeps each one's routing correct. |
 | `--name <slug>` | Image/container name (default: the project name). |
 | `--project <path>` · `--dockerfile <path>` | The build context / Dockerfile, if not the current project. |
 | `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |

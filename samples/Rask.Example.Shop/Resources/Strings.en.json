@@ -1,0 +1,5 @@
+{
+  "AppTitle": "Welcome to Rask",
+  "Greeting": "Hello, {name}!",
+  "Items": { "$plural": "count", "one": "{count} item", "other": "{count} items" }
+}

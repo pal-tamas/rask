@@ -1,5 +1,6 @@
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
+using Rask.Cli.Templates;
 
 namespace Rask.Cli.Tests;
 
@@ -458,13 +459,13 @@ public sealed class ProjectGeneratorBuildE2ETests
 
 
     /// <summary>
-    /// <c>--all-batteries</c>: every One Person Framework pillar wired into one app. Only a real compile
+    /// A default project: every One Person Framework pillar wired into one app. Only a real compile
     /// proves the composed <c>Program.cs</c> — a dozen registrations, their usings, the config-gated
     /// Litestream block, the <c>await</c> in top-level statements, the push endpoints — and the
     /// <c>AppDbContext</c> that carries four framework schemas actually resolve together.
     /// </summary>
     [SkippableFact]
-    public async Task Generated_all_batteries_server_project_builds()
+    public async Task Generated_default_server_project_builds()
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
@@ -476,7 +477,8 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = ProjectGenerator.GenerateServer(
-                projectDir, name, NewCommand.ToBatteries(["all-batteries", "auth", "docker"]), version);
+                projectDir, name,
+                NewCommand.ToBatteries(TemplateCatalog.Default, [], auth: true), version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -488,7 +490,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"generated --all-batteries project failed to build.{CliBuildE2E.Diagnostics(output)}");
+            Assert.True(exit == 0, $"a default `rask new` project failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {
@@ -497,7 +499,7 @@ public sealed class ProjectGeneratorBuildE2ETests
     }
 
     /// <summary>
-    /// <c>--all-batteries</c> on the <b>wasm-hosted</b> template: the same pillars, but composed into the
+    /// The default set on the <b>wasm-hosted</b> template: the same pillars, but composed into the
     /// <c>.Server</c> host of a three-project solution whose UI runs in the browser.
     /// <para>
     /// This is the composition nothing else covers, and the one where the two hosts meet. The generated
@@ -510,7 +512,7 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// </para>
     /// </summary>
     [SkippableFact]
-    public async Task Generated_all_batteries_wasm_hosted_solution_builds()
+    public async Task Generated_default_wasm_hosted_solution_builds()
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
@@ -524,7 +526,8 @@ public sealed class ProjectGeneratorBuildE2ETests
             // Push is the one battery this template does not carry (its subscribe endpoints and the
             // service worker that posts to them live in two different projects), and NewCommand clears
             // it for exactly this path — mirrored here so the test builds what `rask new` would write.
-            var batteries = NewCommand.ToBatteries(["all-batteries", "auth"]) with { Push = false };
+            _ = TemplateCatalog.TryGet("wasm-hosted", out var hosted);
+            var batteries = NewCommand.ToBatteries(hosted, [], auth: true);
             var result = ProjectGenerator.GenerateWasmHosted(projectDir, name, batteries, version);
 
             var fs = new SystemFileSystem();
@@ -541,7 +544,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -warnaserror -m:1");
             Assert.True(exit == 0,
-                $"generated wasm-hosted --all-batteries solution failed to build.{CliBuildE2E.Diagnostics(output)}");
+                $"a default wasm-hosted solution failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {

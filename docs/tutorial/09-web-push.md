@@ -1,7 +1,7 @@
 # Chapter 9 — Push notifications
 
 > **Goal:** tell a customer their order shipped, on their phone, with the app closed.
-> **You'll have run:** `rask new … --push`
+> **You'll have run:** `rask new Shop` — Web Push is standard
 
 Shop can email. Email is right for a receipt and wrong for "your driver is two minutes away". **Web Push**
 delivers to a device whose browser isn't even open — and you can send it from your own server, on your own

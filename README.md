@@ -45,7 +45,7 @@ An empty folder to a live, HTTPS, database-backed product, by one person in one 
 ```bash
 dotnet tool install -g Rask.Cli
 
-rask new Shop --auth --docker --data                       # scaffold: UI + cookie auth + Dockerfile + SQLite
+rask new Shop --auth                                      # scaffold: the whole stack + a cookie login
 # …write a Products slice — docs/tutorial/02-first-feature.md has the code
 rask db add InitialCreate && rask db update                # create + apply the SQLite migration
 rask dev                                                   # run it, hot-reloading, at /products
