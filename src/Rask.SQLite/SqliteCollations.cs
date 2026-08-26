@@ -47,8 +47,10 @@ namespace Rask.SQLite;
 /// which adds <see cref="CultureInfo.InvariantCulture"/> to the parse — but the fix still uses
 /// <c>decimal.Parse</c>, not <c>TryParse</c>, so on EF 11 the collation continues to <b>throw, and take
 /// the process with it</b>, the moment a value that is not a number reaches the column. EF 11 fixes the
-/// first two bullets above and leaves the third; this registration is the only one that is total.
-/// Re-check <c>SqliteRelationalConnection.InitializeDbConnection</c> before removing it.
+/// first two bullets above and leaves the third, which is tracked upstream as
+/// <a href="https://github.com/dotnet/efcore/issues/38870">dotnet/efcore#38870</a>; until that closes,
+/// this registration is the only one that is total. Re-check
+/// <c>SqliteRelationalConnection.InitializeDbConnection</c> before removing it.
 /// </para>
 /// <para>
 /// It must run on <b>every</b> connection open, not once: Microsoft.Data.Sqlite pools connections and
