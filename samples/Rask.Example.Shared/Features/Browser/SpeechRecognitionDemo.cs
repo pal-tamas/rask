@@ -5,9 +5,9 @@ namespace Rask.Example.Shared.Features;
 /// <summary>
 ///     <see cref="ISpeechRecognition" /> — dictation: start listening, and each recognised phrase is pushed
 ///     to the handler (final phrases accumulate; the interim hypothesis shows live). Prompts for microphone
-///     access on start; browser support is Chromium-only (gate on <see cref="ISpeechRecognition.IsSupportedAsync" />),
-///     and in the native shell it resolves to a real OS backend. The handler updates state and calls
-///     <c>StateHasChanged()</c> — the sanctioned pattern for an externally-pushed update.
+///     access on start; browser support is Chromium-only (gate on <see cref="ISpeechRecognition.IsSupportedAsync" />).
+///     The handler updates state and calls <c>StateHasChanged()</c> — the sanctioned pattern for an
+///     externally-pushed update.
 /// </summary>
 public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition) : Component, IAsyncDisposable
 {

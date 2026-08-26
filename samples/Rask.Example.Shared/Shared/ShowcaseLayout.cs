@@ -100,7 +100,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 PathDisplay,
                 // The live playground is a separate WASM sub-app (Roslyn compiles Rask C# in the browser),
                 // deployed only to GitHub Pages alongside this showcase. This layout is shared by the
-                // Server, WASM and native showcases (and runs locally), none of which serve a /playground
+                // Server and WASM showcases (and runs locally), neither of which serves a /playground
                 // route — so link to the one place it actually lives (absolute), opened in a new tab.
                 BsLink
                     .Href("https://pal-tamas.github.io/rask/playground/")

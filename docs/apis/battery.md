@@ -12,8 +12,7 @@
 backend reports them — charge/discharge time in seconds) once, or `null` where the platform doesn't
 expose it. `WatchAsync(onChange)` subscribes to level/charging changes and returns an `IAsyncDisposable`;
 dispose it on unmount. Browser support is Chromium-family only (Firefox and Safari removed or never
-backend the WebView can't provide; iOS/Android don't surface charge/discharge time, so those fields are
-`null` there.
+shipped the API), so gate on a `null` status rather than assuming a reading.
 
 ## See also
 

@@ -14,7 +14,7 @@ namespace Rask.Testing;
 ///         — it looks like it can. <c>FileListReader</c> resolves the backend from the container and hands
 ///         the handler an <b>empty list</b> when there is none, so a test that renders a file input and
 ///         raises its event exercises the empty branch and passes on whatever the handler does with nothing.
-///         That is the same silent-empty failure the native host shipped with, reproduced in every test.
+///         That is a silent-empty failure reproduced in every test.
 ///     </para>
 ///     <para>
 ///         Stage the files, register the backend, raise the event:

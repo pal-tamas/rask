@@ -34,7 +34,7 @@ public class InternalRouteStringAnalyzerTests
     [Fact]
     public async Task RouteUrlImplicitConversion_MatchingRoute_ReportsRask033()
     {
-        // Every RouteUrl slot (NavLink Href:, BsNavItem Href:, NativeTab To:) is a string → RouteUrl
+        // Every RouteUrl slot (NavLink Href:, BsNavItem Href:) is a string → RouteUrl
         // implicit conversion; a local assignment exercises the same conversion the analyzer flags.
         var src = """
                   using Rask.Core;

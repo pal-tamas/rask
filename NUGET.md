@@ -31,7 +31,7 @@ public sealed class Counter : Component
 ## Install
 
 > **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
-> (`dotnet workload install wasm-tools`) for the WASM templates, or `ios android`
+> (`dotnet workload install wasm-tools`) for the WASM templates.
 
 ```bash
 dotnet tool install -g Rask.Cli          # the rask CLI — scaffold, migrate, run, deploy

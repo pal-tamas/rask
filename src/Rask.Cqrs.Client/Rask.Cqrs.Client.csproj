@@ -7,7 +7,7 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Cqrs.Client</PackageId>
-    <Title>Rask.Cqrs.Client — Remote Dispatch for Browser and Native Clients</Title>
+    <Title>Rask.Cqrs.Client — Remote Dispatch for Browser Clients</Title>
     <Description>The client half of Rask.Cqrs remote dispatch. Register it and a message with no local handler is sent to the server through the same `IDispatcher` call — queries as GET, commands as POST, files as multipart — with no HttpClient at the call site. Reflection-free: the wire codecs are source-generated, so it publishes clean under the WASM/AOT trimmer.</Description>
     <PackageTags>cqrs mediator rpc remote-dispatch wasm blazor source-generator reflection-free aot trimming</PackageTags>
   </PropertyGroup>

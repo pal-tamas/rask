@@ -14,9 +14,9 @@ public sealed partial class TodosPage : Component
     private readonly TodoForm _form = new();
 
     // Persistence seam: the injected ITodoStore, or a throwaway seeded in-memory store when none is
-    // registered (Server/WASM showcase). The native app registers a SQLite-backed store, so the same
-    // screen persists across an app restart on-device. _todos is the render working set, written through
-    // to the store on every change.
+    // registered (Server/WASM showcase). An app can register a durable store — e.g. SQLite-backed — and the
+    // same screen then persists across a restart. _todos is the render working set, written through to the
+    // store on every change.
     private readonly ITodoStore _store;
 
     private readonly List<TodoItem> _todos;

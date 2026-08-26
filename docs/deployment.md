@@ -287,9 +287,7 @@ rask new MyApp --template wasm --docker           # static WASM bundle → nginx
 rask new MyApp --template wasm-hosted --docker    # WASM client + host → aspnet:10.0 runtime image
 ```
 
-Without `--docker` no container files are emitted. The `native` template has no `--docker`
-option: it builds a WebView-hybrid **iOS/Android app**, which is packaged as an `.ipa`/`.apk` and
-distributed through the app stores — there is nothing to containerize.
+Without `--docker` no container files are emitted.
 
 The Dockerfile references your project by name (the template renames `Company.RaskServer.dll` to
 `MyApp.dll` when it scaffolds), so `docker build` works with no edits.

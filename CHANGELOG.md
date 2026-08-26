@@ -57,43 +57,50 @@ them until tagged releases begin.
   simply vanished from the table, which is how an id gets quietly reused — the one failure mode that file's
   own descriptor tests exist to prevent.
 
-### Added
-- **Every native backend is reachable from every model** (#778, the four-models epic). `NativeCapabilities`
-  advertised a hardcoded `["share"]` and its dispatcher took a single `IShare`, so fourteen of the fifteen
-  native backends the platform modules register were unreachable from a remote shell — a page running as a
-  *server* app silently got the WebView's JS instead. All fifteen cross the bridge now, in every model.
+- **The last of the native model is out of the prose, including the parts that shipped.** Two deletions had
+  taken the code and left the text describing it, in ~60 files. The half that reached users mattered most:
+  `src/Rask.Cli/NUGET.md` — the CLI's README on nuget.org — still advertised `--template server|wasm|
+  wasm-hosted|native`, and XML doc comments on `IShare`, `IPermissions`, `IMediaStreams`, `ShareData`,
+  `Shareable`, `RaskHostContracts`, `RaskBrowserApis` and `Build` documented a Native host, a native
+  backend and deleted types like `NativeAppHost` and `NativeBarItem` — all of which ship to consumers in
+  the packed `.xml`. `Navigator.Download`'s **runtime exception message** named `NativeAppHost` as a host
+  that registers an `IDownloadSink`. `Rask.Cqrs.Client`'s NuGet `<Title>` sold "Browser and Native Clients".
 
-  **The envelope had no way to answer.** `invoke(component, data)` posted and returned nothing: no
-  correlation id, no reply path. That is why `share` was the only capability that ever worked — it returns
-  nothing. **Twenty-two of the thirty-five members** across the fifteen interfaces return a value, and none
-  of them could cross. The envelope carries an id now and the host answers on
-  `window.__raskNative.capabilityResult`, so an invoke is a promise — the same shape `jsResult` and
-  `dotNetInvoke` already used in the other direction.
+  **The docs had drifted in a shape the last sweep hid.** `docs/browser-capabilities.md` was cleaned, but
+  the ~19 `docs/apis/*.md` pages it links to were not: each had the Native column stripped from its
+  **Availability** line while its **Home** line and prose note still described a native backend, so
+  `docs/apis/permissions.md` remained, in effect, a native-permissions guide — a `## On Native` section
+  with an iOS/Android table. `README.md` still promised the component "runs three ways … or as a real
+  iOS/Android app" and a `net10.0-ios;net10.0-android` target; `docs/roadmap.md` marked "UI across three
+  hosts" shipped; `docs/deployment.md` explained why the `native` template emits no Dockerfile; and
+  `AGENTS.md` told agents to pin macOS jobs for an Xcode SDK no workflow has used since the removal.
+  `CONTRIBUTING.md` claimed `ci.yml` had "exactly two jobs — the benchmark byte-gates and the native
+  compile gate"; it has one, and `docs/development-workflow.md` already said so, so the two contradicted
+  each other. In the showcase, `ShareDemo` **rendered** "Ship real iOS/Android apps from the same C#
+  component code." on screen.
 
-  **Every outcome answers.** An unknown capability, a backend the head never registered, and a backend that
-  threw each send a reply carrying the reason. Previously anything but `share` was consumed as a
-  forward-compatible no-op, which left the page's `await` pending for ever — the worst way to report that
-  there is nothing there.
+  **Four sentences had been cut in half by the sweep and were left ungrammatical**, on top of the five the
+  last pass repaired: `NUGET.md`'s prerequisites stopped mid-clause at "or `ios android`",
+  `docs/apis/battery.md` welded an unclosed paren onto a native fragment,
+  `docs/browser-apis-reference.md` read "In the / the native app-icon badge)", and
+  `BuilderRenderPathTests.cs` ended a comment at "…Header/Footer, and".
 
-  **The six pushing members work too** — the geolocation and battery watches, the device orientation and
-  motion streams, speech recognition, and the wake lock's held sentinel. They hand back an
-  `IAsyncDisposable`, which a JSON envelope cannot carry, so the handle stays native-side and the page
-  refers to it by id. The **page mints that id** rather than receiving it in the reply: a sensor can deliver
-  a reading before the reply arrives, and an id the page has not seen yet is one it cannot route, so the
-  first readings would vanish — silently, and only on a fast device. Releasing is one path for all six, and
-  the app disposes whatever is still live, because a GPS watch or a wake lock that outlives its app is a
-  battery complaint with no visible cause.
+  **Two pieces of genuinely dead code go with it.** `window.__raskFiles.readChunkBase64` in
+  `rask-files.js` existed only for the Native host's `IJSRuntime`, which is JSON and could not marshal a
+  `Uint8Array`; nothing has called it since, exactly like the `window.__raskNative` share bridge the last
+  sweep removed. And `SharedSmokeTests`' `ConfigurePageAsync`/`TeardownAsync` hooks existed so the deleted
+  `NativeExampleTests` could start a host in-process — zero overrides remain.
 
-  Readings still reach your C# through the page's own `DotNet.invokeMethodAsync` path, exactly as the web
-  implementation delivers them. The bridge replaces *where a reading comes from*, not how it gets home,
-  which is why nothing in the app half changes and no `IsNative` branch appears anywhere.
+  **A test now covers the shape the bug actually took.** The template's removal was pinned only by
+  `TemplateCatalogTests` asserting the catalog entry is absent; nothing asserted that `rask new Field
+  --template native` *fails*, which is what a user would have hit — the original bug scaffolded a Server
+  project and exited 0. `NewCommandTests` now asserts exit 2 and that nothing is written.
 
-- **`window.__raskNative.capabilities` is derived, not declared.** It comes from probing the platform
-  module's own `Register`, so adding a sixteenth backend advertises it with nothing else to edit — the
-  drift G1 describes cannot happen. Asking the live container instead would have advertised everything:
-  the framework registers a JS-backed default for every one of these interfaces and a module uses `TryAdd`,
-  so "is it registered" cannot tell a native backend from the WebView's own JS. A head with no platform
-  module advertises nothing and the page keeps its web APIs.
+  **The unreleased notes no longer ship and delete the same feature.** ~30 `[Unreleased]` entries from
+  #775–#818 added the native model — `NativeCapabilities`, pure-native screens, `Screen`, `-p:RaskNativeHeads=ios`,
+  a BREAKING marker for `--host native`, and an entry "fixing" `docs/getting-started.md` to say there are
+  four templates. None of it was ever released, so it is gone rather than annotated; the removal record
+  above stays, and released sections are untouched.
 
 ### Changed
 - **The capability envelope now carries an `op`.** It was `{ component, data }`, which could only ever name
@@ -104,233 +111,6 @@ them until tagged releases begin.
   `RaskServerWebView` had their own private notion of what a capability was, which is why they could only
   ever forward one. They share the in-process dispatcher and its reply channel now, so the two models
   cannot drift apart — the same envelope, the same backends, the same answers.
-
-
-### Changed
-- **`rask new --template native --host native` scaffolds a pure-native app** (#777, the four-models
-  epic). The scaffold still emitted the WebView-hybrid shape — `NativeWebView[Router]` and a page of
-  plain HTML — so the model the epic renamed to `native`, meaning *pure-native screens*, was the one
-  thing `rask new` could not produce. The App shell is now `NativeScreen[Router]`, the welcome page is
-  `NativeLabel` / `NativeStack` / `NativeDivider`, and both heads call `RunNativeAsync`. A comment shows
-  how to put a `NativeWebView` on one route if you want markup somewhere.
-
-  The scaffolded `NativeStack` always states its `Orientation`, because leaving it unset renders
-  differently on the two platforms (#791) and a starter template is the worst place to inherit that.
-
-### Added
-- **`NativeApp.GoBackAsync()` and `NativeApp.CanGoBack`** — back navigation a platform head can actually
-  reach. `GoBackAsync` already existed on `NativeLiveSession`, but `NativeApp.Session` is internal, so
-  "wire the hardware Back button" was not expressible in app code at all. `CanGoBack` answers
-  synchronously, because the caller that needs it — Android's back handler — must decide in the moment
-  whether to handle the press or let it close the activity.
-
-  It is false for an app with a WebView, and that is the safe answer rather than a missing feature: the
-  page owns that history and reading it needs a round trip. Such a head keeps the platform's default
-  Back, exactly as before.
-
-### Fixed
-- **A navigation performed by a handler built no back history in the pure-native model.** Only
-  navigations arriving as a `navigate` *message* reached `RecordNativeHistory`; the ones a handler
-  performed through `Navigator.NavigateTo` consumed their history entry and handed it to the payload
-  instead. With a WebView that difference is invisible — the client calls `pushState`, and the page's
-  history is the only one that exists — so it survived until a pure-native app was driven on a device,
-  where a button that navigated left no trace and the hardware Back button closed the app from the
-  second page. All three dispatch paths now go through one helper, so a fourth cannot reintroduce it.
-
-- **The scaffolded Android head wired Back through `OnBackPressed`, which modern Android never calls.**
-  For an app targeting API 35+ predictive back is on by default and the override is dead — it compiles,
-  it looks right, and Back silently closes the app mid-navigation. The scaffold registers an
-  `OnBackInvokedDispatcher` callback on API 33+ and keeps the override only for API 32 and earlier.
-  Registering a callback also takes over closing the app, so the handler calls `Finish()` itself when
-  there is nothing to pop — without which Back would be dead on the first page instead.
-
-  Verified on an API 36 emulator against a freshly scaffolded app: Back returns from the second page to
-  the first, and at the root it closes the app.
-
-- **The scaffolded iOS head did not compile.** It registered `NativeNotifications` and `NativeBadge`
-  directly, and both are `internal` — so `rask new --template native --platform ios` emitted an
-  `AppDelegate` with two `CS0122`s in it. Nothing caught this: `NativeTemplateCompileTests` deliberately
-  excludes `Platforms/**` (it needs the workloads), and `CliBuildE2E` cannot build the native template at
-  all. Both heads now call `host.UsePlatform(new ApplePlatform(…))` / `new AndroidPlatform(this)`, which
-  is what the docs and the samples already recommended — one line, no internals, and all **fifteen**
-  device backends instead of the three the template hand-registered.
-
-
-### Added
-- **`NativeWebView` can point at a URL instead of hosting markup.** It had one mode: its children are the
-  page. It has two now — give it a `Url` and the WebView loads that address, so the UI comes from a Rask
-  server or a WASM app you host rather than from components rendering on the device:
-
-  ```csharp
-  protected override Component? Render() =>
-  [
-      NativeHeaderBar.Title("Home"),
-      NativeWebView.Url("https://app.example.com/"),
-  ];
-  ```
-
-  The bars around it are still native, still declared in the same `Render()`, and the page reaches the
-  device backends through the capability bridge. What changes is only where the UI comes from — which is
-  the four-models epic's whole claim, now expressible in markup rather than only by picking a different
-  platform head.
-
-  `.Url(…)` takes a `string` or a `Uri`. Both must be an absolute `http`/`https` address, checked in the
-  property setter so neither way in can skip it. That check earns its place: on Unix
-  `Uri.TryCreate("/relative", Absolute, …)` **succeeds**, as `file:///relative` — and `javascript:` and
-  `data:` parse absolutely too. All three would otherwise have been handed to a WebView carrying the
-  capability bridge.
-
-  **The two modes are exclusive**, and the compiler says so rather than the framework discarding work
-  silently. `RASK049` is one `NativeWebView` that sets a `Url` *and* takes children — it shows one
-  document, so the children could only be built and thrown away. `RASK050` is one component that could
-  render either: in URL mode the session keeps no HTML diff baseline, so the markup arm has nothing to
-  paint against. A pure-native `NativeScreen` is unaffected by both and still composes beside either.
-
-  RASK050 is scoped to the declaring **type**, and the first cut got that wrong. Scoped to the compilation
-  it read "one app", which a compilation is not — this repo's own native test assembly holds many app
-  roots, and every markup one lit up. An assembly with more than one app is ordinary; one component that
-  could render either page is the actual mistake.
-
-  **The Local heads had no navigation policy at all**, which this change could not leave alone.
-  `RaskWkWebView` was not a `WKNavigationDelegate`, and `RaskAndroidWebView`'s client overrode only
-  `ShouldInterceptRequest` and let off-origin requests through — while Android's `__raskBridge`
-  `@JavascriptInterface` was already bound to that WebView. Loading a remote page into it would have
-  exposed the bridge to that page *and to anywhere it navigated*. Both heads now carry the policy the
-  Server heads always had: inject for the declared origin, and send an off-origin navigation to the system
-  browser. The grant is to the page you named; this is what stops it travelling.
-
-  Pointing `.Url(…)` at a site you do not control still gives that site your device APIs. That is inherent,
-  not an oversight, and the docs say so where the feature is introduced.
-
-  `samples/Rask.Example.Native.Server` is now written this way — one `ServerShellApp` with a header bar and
-  a `NativeWebView.Url(…)`, run by the ordinary `RaskWkWebView`/`RaskAndroidWebView` head, instead of the
-  separate `RaskServerViewController` / `RaskServerWebView` classes. Same app, same behaviour, and the
-  Server model stops being a parallel code path with no session and no chrome. Verified on an iPhone 17 Pro
-  simulator against a real `Rask.Example.Server`: a native `UINavigationBar` at the top, the remote app
-  rendering fully styled below it.
-
-  **A URL-mode app still loads the boot shell first**, which is worth knowing because it is not obvious.
-  `RunLocalAsync` defers the first render to the client's `ready` handshake, and the client lives in the
-  shell — so with no shell there is no handshake, no first frame, and therefore no address to navigate to.
-  Skipping `LoadShell()` produces a blank white screen and no bars, which is exactly what the first device
-  run showed. The shell is loaded, the first frame carries the `Url`, and the WebView navigates away from
-  it. Giving the host a way to render the first frame without a handshake — as `RunNativeAsync` already
-  does for the pure-native model — would remove the extra document load, and is the obvious follow-up.
-
-  Also fixed on the way: `CLAUDE.md` claimed the diagnostic range was RASK001–048 with only RASK047
-  retired. `docs/diagnostics.md` has said RASK001–053 for a while, and RASK030 and RASK042 are retired too.
-
-### Changed
-- **`rask new --template native` says what each hosting model actually costs you** (#776, the four-models
-  epic). The chooser used to say only where the UI comes from. The epic's rule is that exactly three
-  things legitimately differ between the models — **where your code runs, what works offline, what an
-  edit costs** — and that each is printed rather than left to be discovered, because the way this bites
-  is someone waiting on a reload that was never coming.
-
-  The wizard and the post-scaffold summary now state all three per model:
-
-  ```
-  Created MyApp (Rask native iOS app, UI from the device (works offline)).
-    runs in the app · offline: everything · reload: restart the app
-  ```
-
-  They come from one place. `NativeHostSummary` existed **twice**, letter-for-letter, in `NewCommand`
-  and in `ProjectGenerator.Native`; the `--host` choice list, the help text, the "does not support
-  --host" error and the generator's model switch each spelled the axis out again. All of it now reads
-  from `NativeModels`, so a model is described once and #780 has a single place to add `wasm`.
-
-  `docs/cli.md` documented the `--host` default as **`local`** — a value #790 removed, so the one row
-  the docs give this flag named something the CLI rejects. It also still described the remote models as
-  scaffolding "a thin native shell", which stopped being true when they began scaffolding both halves.
-
-### Added
-- **The last Phase 0 evidence gap is closed: a published WASM client boots inside the Android WebView too**
-  (#775, the four-models epic). `samples/WasmInWebViewSpike` grows an Android head, so both platforms now
-  answer the question the `wasm` model (#780) rests on. It boots and renders from the app's own bundled
-  assets over `https://appassets.rask/`, fully offline: 74 assets served, **zero misses**, and `.wasm`
-  served as `application/wasm` with no streaming-compilation fallback. Cold start is ~390 ms to the
-  activity and ~1.2 s more to first render applied.
-
-  Three things Android answered differently from iOS, all of which belong to #780's design:
-
-  - **Package size is 7.5 MB, not 12 MB.** The bundle is 20 MB published and 12 MB once the `.br`/`.gz`
-    siblings are dropped (neither head negotiates content encoding, so they are pure weight) — but an APK
-    deflates its assets, where an IPA stores them. 12 MB is the iOS number; Android pays 7.5 MB.
-  - **The origin-root claim reproduces identically.** `NativeOriginAssets.Resolve` takes `/`,
-    `/index.html` and `/index.native.html` for the native boot shell before consulting the bundle, so the
-    WASM shell cannot live at the root — and serving it elsewhere is not cosmetic: the router seeds the
-    document's path, so `/app.html` rendered *Not found*. Serving the bundle's own `index.html` at `/`
-    fixes it (`initial path=/`), which is the shape of the fix #780 owes.
-  - **The service worker is never even requested**, on either platform. On iOS the custom scheme forbids
-    it; on Android the origin is a secure context and it still did not register. Either way the bundle is
-    already offline, so what the service worker was doing for the app is the open question, not whether it
-    can run.
-
-  **A defect the spike found: the app renders completely unstyled on the bundled-asset origin.** Every
-  `<link rel="stylesheet">` the head morph manages — the keyed ones, `data-rask-key` — is fetched, served
-  200 with `text/css`, and then never becomes a CSSOM stylesheet; only the two unkeyed links do
-  (`document.styleSheets` is 2 of 7). The bytes are provably intact: a `fetch()` of the same URL from the
-  page returns the correct 15721 bytes of CSS. It is not the asset path and not the spike's plumbing — the
-  spike configures the WebView exactly as the shipping `RaskAndroidWebView` does — and it is not a general
-  WASM fault, since the same published bundle is fully styled in desktop Chromium over HTTP. Filed as
-  **#807**; it blocks #780 rather than Phase 0.
-
-- **A native app can boot with no WebView at all** — `NativeAppHost.RunNativeAsync<TApp>(INativeSurface)`,
-  the pure-native model (part of #777, the four-models epic). The component tree paints as real platform
-  views and nothing HTML is instantiated.
-
-  `NativeLiveSession` required an `INativeWebView` in its constructor, pushed every frame through it, and
-  implemented back navigation as `window.history.back()`, so a WebView-less app was unrepresentable. The
-  WebView is optional now. It turned out to be a small seam: `IsNativeFrame` already gated emission, so a
-  pure-native frame never reached the WebView send in the first place.
-
-  Three things a pure-native app needs, which it now has:
-
-  - **The first render happens without a handshake.** A WebView client posts `ready` once its document
-    loads; with no document, the host performs the first render itself before returning, so the caller
-    gets an app already on screen.
-  - **Back walks the session's own history.** With a WebView the page's history is the single source of
-    truth and the session keeps none — one history, not two that can disagree. With no WebView the
-    session keeps its own, seeded with the boot route. At the first entry back does nothing on purpose,
-    so Android's hardware Back falls through to the activity and closes the app rather than trapping the
-    user.
-  - **The two things that cannot work say so.** Rendering HTML with no WebView, and calling `IJSRuntime`,
-    both raise named errors naming the model and the way out.
-
-  Both errors are more careful than they look. The HTML frame is **dropped and recorded**, then turned
-  into a throw by `RunNativeAsync` once the render has unwound — throwing from inside `SendFrameAsync`
-  reaches the root error boundary, whose answer is to render an error page, which is more HTML, for ever.
-  A hung test host is how that was found. The `IJSRuntime` out-of-render path had the mirror-image
-  problem: it dispatched through `_webView?.`, so with no WebView it silently did nothing and left the
-  caller's `await` pending for ever — the worst way to report "there is no JS engine here".
-
-  Not yet done on this issue: the `rask new --template native` scaffold still produces the WebView-hybrid
-  shape, and the platform heads do not yet wire Android's hardware Back to `GoBackAsync`. Nine tests cover
-  the model on the existing `FakeNativeSurface` harness.
-
-- **`rask new --template native --host server|wasm-hosted` now scaffolds both halves as one solution.** The
-  remote models used to emit only the shell, pointed at a placeholder `https://app.example.com/`, so the
-  first command produced something that could not run and did not say what was missing. They now scaffold
-  the app the shell points at *and* a `{name}.Mobile` project carrying the heads:
-
-  ```
-  MyApp/
-    MyApp.slnx
-    MyApp.Server/      # the Rask app (wasm-hosted also gets .Client and .Shared)
-    MyApp.Mobile/      # iOS + Android heads pointing at it
-  ```
-
-  The app half is generated by the same generator the standalone template uses, into its own directory and
-  under its own name — `Materialize` substitutes the placeholder in paths and namespaces alike, so there is
-  no duplicated template content and nothing to drift. Its per-solution `.gitignore` / `.editorconfig` /
-  `.slnx` are dropped and re-emitted once at the root, over every project.
-
-  The heads point at the app half's dev URL out of the box: `http://localhost:5000` on the iOS simulator and
-  `http://10.0.2.2:5000` on the Android emulator, which is that VM's alias for the host. Both platforms
-  block cleartext by default and neither says so usefully when it bites, so the scaffold opts in narrowly —
-  `usesCleartextTraffic` on Android, `NSAllowsLocalNetworking` on iOS — and the generated comment says to
-  drop both when the origin becomes `https://`. The next-steps text now starts the app half first and runs
-  the head from its own project, because "cd, build, run" would have built the wrong thing.
 
 ### Removed
 - **The generated `Generated.X(...)` factory is gone; the chain is the only way to write markup.**
@@ -449,57 +229,6 @@ them until tagged releases begin.
   shared element path trips the controlled pin, one in the bind path trips the hoisted pin, and either
   trips the aggregate.
 
-- **No `rask new` template can reach a user uncompiled any more.** `CliBuildE2E` packs this commit's
-  packages to a local feed and runs a real `dotnet build -warnaserror` over what the CLI writes, and it
-  covered the server, wasm and wasm-hosted templates. It could not cover the **native** one: building
-  that needs the iOS and Android workloads the Ubuntu runner does not have. The templates are raw
-  strings, so no in-repo build compiles them either — which left the native template verified by
-  nothing at all.
-
-  That gap was not theoretical. Dropping the factory turned every factory call in a template into
-  `CS1955`; the packaged gate caught the one in the `--auth` LoginPage exactly as designed and could
-  not see the one in the native App shell, so `rask new --template native` would have shipped a project
-  that does not compile — the template a beginner is least able to debug.
-
-  `NativeTemplateCompileTests` now takes the cheaper half of the job and runs it **always**, with no
-  workloads, no packing and no network: a Roslyn compilation over the template's own component code
-  against this commit's assemblies, with the real generators running, over each platform selection.
-  Its global usings are read from the props `Rask.Native` ships rather than restated, so the gate keeps
-  tracking what a scaffolded project actually gets. Proven by reintroducing the shipped break: the gate
-  reports `App.cs(23,9): error CS1955: Non-invocable member 'RaskMarkup.Html' cannot be used like a
-  method` — the exact diagnostic that went unseen. A negative control pins that the harness really
-  binds the chain, so a gate that quietly compiled nothing could not pass for a gate that compiles
-  everything.
-- **`NativeButton.Background` and `Color` were ignored on iOS and thrown away by `Style` on Android.**
-  A button declared `NativeButton.Style(Filled).Background(Brand).Color(OnBrand)` painted iOS system
-  blue. No error, no warning — the props simply did nothing.
-
-  On iOS the button is driven by a `UIButtonConfiguration`, whose `BaseBackgroundColor` /
-  `BaseForegroundColor` are what you see; `UiKitViewOps` wrote `view.BackgroundColor` and
-  `SetTitleColor`, which sit behind the configuration and are never seen. `ApplyButtonStyle` also
-  assigned a **fresh** configuration on every `Style` write, so even a correct colour was discarded
-  whenever `Style` arrived last.
-
-  Android's half of this was described wrongly here and is corrected: **the first render was fine.**
-  `NativeButton.WriteSurfaceProps` emits `Style` *before* `Color` and `Background`, so on a full node
-  build the colours are applied after the style and win. What was broken is the **incremental** path —
-  `NativeTreeDiffer.DiffProps` carries only the props that actually changed, so on a later frame where
-  `Style` changes and the colours do not, Android received `Style` alone and `ApplyButtonStyle` rewrote
-  both colours over values it was never sent. The fix below is right for that; only the account of when
-  it bites was wrong.
-
-  Both backends now hold the three props together in a `NativeButtonAppearance` and repaint the whole
-  of it on any write — the style first, then the explicit colours over it — so an explicit
-  `Background` / `Color` wins whether the patch carries all three or only one of them, which is the
-  precedence `NativeButton` already documented. Verified on an iPhone 17 Pro simulator: the pure-native showcase
-  button went from system blue to the declared `#4C1D95` with white text.
-
-  Two things found alongside it and fixed here. An **unstyled** `NativeButton` rendered Filled on iOS
-  and a bare platform button on Android — a `null` `Style` emits no prop at all, and only iOS applied
-  a default at creation, so the same tree looked different on the two platforms; Android now applies
-  the same default. And `NativeButton`'s own summary named `MaterialButton` as the Android widget,
-  where it is and always was `Button` (`docs/native.md` had it right).
-
 - **Four more test suites shared one `DbContext` across classes xUnit ran in parallel.** The shape that
   made `Rask.Outbox.Tests` fail the gate in #769 was still present in `Rask.Jobs.Tests`,
   `Rask.Cache.Tests`, `Rask.Mail.Tests` and `Rask.Data.Tests`: EF Core's model cache is **per process,
@@ -537,81 +266,7 @@ them until tagged releases begin.
   control with the grant naming somebody else, where the public entry still arrives and the internal
   one does not.
 
-- **An unset `NativeStack` / `NativeScreen` `Orientation` meant vertical on iOS and horizontal on Android.**
-  iOS creates both with an explicit vertical axis; Android created a bare `LinearLayout`, whose platform
-  default is HORIZONTAL, and nothing set one. So the same tree laid out in a column on one platform and a row
-  on the other — and on Android the row filled the width and every child past it was simply not drawn, with
-  no error and nothing in the log. The example in `docs/native.md` is exactly this shape, so the documented
-  snippet rendered wrong on Android.
-
-  `RaskStack` now sets `Vertical` in its constructor, matching iOS; an explicit `Orientation` still wins.
-  Verified on an API 36 emulator: the pure-native demo screen went from two labels side by side with
-  everything after them invisible, to the full column — divider, text field, switch, button, spinner — as it
-  already rendered on an iPhone 17 Pro simulator. The cross-axis default was checked at the same time and
-  already agrees (iOS `Fill` ≡ Android `Stretch`).
-
-### Changed
-- **BREAKING — `rask new --template native --host local` is now `--host native`.** The `--host` axis names
-  which of Rask's app models supplies the UI, and the on-device model is the *native* one; `local` described
-  where the code ran rather than what the app is. The other values are unchanged (`server`, `wasm-hosted`),
-  so the four-model set reads as one family: three of them mirror the web templates exactly, and `native` is
-  the one only a native app can offer.
-
-  Pre-1.0, so it breaks rather than aliasing. `--host local` now fails with the usual choice error naming
-  the valid values, which is a louder and more useful failure than silently scaffolding something else.
-
 ### Fixed
-- **The CLI told people to run `dotnet build -t:Run`, which does not rebuild.** `-t:Run` *replaces* the
-  default target, so MSBuild runs only `Run` — against whatever is already in `bin/`. An edited `.cs` file is
-  never compiled and the device relaunches the previous binary, with a fresh pid and no warning, so an
-  iteration looks successful and the change appears to have done nothing. It cost two false "this doesn't
-  work" conclusions while running the native surface backends on a simulator before the DLL timestamp gave
-  it away.
-
-  Every place that emitted it now says `dotnet build "-t:Build;Run"`, which runs both targets in order
-  (verified: the assembly is recompiled, then deployed). That is one shared constant behind both `rask new`'s
-  next-steps text and the `rask dev` native refusal, plus `docs/native.md`, `docs/native-bridge.md`,
-  `docs/cli.md`, `llms.txt`, `NUGET.md`, both native samples and the site's install tabs. The quotes matter —
-  `;` separates commands in a shell.
-- **`NativeOriginAssets` served `.wasm` as `application/octet-stream`, quietly costing the WASM runtime its
-  streaming compilation.** The content-type table had no `.wasm` entry, so every assembly in a .NET WASM
-  bundle fell through to the `application/octet-stream` default. The runtime checks that type by name and
-  says so out loud — `MONO_WASM: WebAssembly resource does not have the expected content type
-  "application/wasm", so falling back to slower ArrayBuffer instantiation` — then boots anyway, which is
-  precisely why it went unnoticed: nothing fails, the app just gives up streaming compilation for all 59
-  assemblies.
-
-  Observed directly, by booting a published Rask WASM client inside a `WKWebView` on an iPhone 17 Pro
-  simulator, served from the app bundle over the `raskapp://local/` origin, and reading the page's console
-  from the native side. After the fix the same run serves `application/wasm` and the warning is gone.
-  `.mjs`, `.jpg`/`.jpeg`, `.webp`, `.gif`, `.ico`, `.webmanifest`, `.txt`, `.xml` and `.map` were missing
-  from the same table and are mapped too.
-- **`samples/Rask.Example.Native` could not use Rask's own markup syntax, because it never referenced the
-  generator.** Every other sample references `Rask.Generators` as an analyzer; the native showcase
-  referenced `Rask.Example.Shared` instead and assumed it would inherit one. A `ProjectReference` does not
-  flow analyzers, so the native sample compiled with **no Rask source generator at all**: no builder-chain
-  entries, and no `Generated.{Type}()` factory for any component the sample itself declared. The visible
-  symptom was that the showcase had to be written entirely in factory-call style
-  (`NativeHeaderBar(Title: "Rask", ...)`) while `CLAUDE.md` and every doc say markup is a chain — and
-  writing the documented form failed with `CS0119: 'Generated.NativeHeaderBar(...)' is a method`, because
-  the name fell through to the factory the *referenced* assembly publishes.
-
-  The sample now references the generator like its siblings and is written in the chain
-  (`NativeHeaderBar.Title("Rask").Background(Brand)`), which also means its markup host declares `partial`
-  as RASK036 requires. Nothing about the framework changed — this was one missing `OutputItemType="Analyzer"`
-  reference hiding the whole builder surface from the one sample that showcases the native host.
-- **`docs/native-devices.md` no longer teaches a `Route` override the framework removed.** The second
-  `TodosScreen` snippet still declared `protected override string Route => "/todos";`, so a reader who
-  copied it got `CS0115: no suitable method found to override` — `Screen` has had no virtual `Route` since
-  routes moved back to `[Route]`. The file contradicted itself, too: the first `TodosScreen` a page earlier
-  already used the attribute. Both now read `[Route("/todos")]`, and the prose calling a `Screen` "a `Page`"
-  no longer names a base class that does not exist.
-
-  The docs had already been broken this way twice in code (`ChromeScreen`), so the fix ships with the guard
-  that closes the loop: `DocsRoutingSyntaxTests` scans every doc for the members a breaking change deleted
-  — the `Route` and `Parent` overrides and the `Page` base list — and names the file, line and replacement.
-  The existing doc gates check that links *resolve*; this checks that the API a snippet names still exists.
-  Verified by reverting the doc and watching the guard fail on `native-devices.md:121`. Closes #767.
 - **`Rask.Wasm` now declares `Microsoft.Extensions.ObjectPool`, which its bundled `Rask.Core` needs at
   runtime.** `Rask.Core.dll` is packed into `lib/` with `PrivateAssets="all"`, which is exactly what keeps
   Core out of the nuspec — and takes Core's own package dependencies with it. The package already
@@ -717,8 +372,7 @@ them until tagged releases begin.
 ### Changed
 - **BREAKING — routes are declared by `[Route]` again; the `Page` base class is gone.** A routable
   component is any `Component` carrying `[Route("/x")]`, with `[ParentRoute(typeof(Layout))]` for nesting
-  and `[NotFound]` for the catch-all. `Page` and its `Route`/`Parent` overrides are removed, and `Screen`
-  now derives from `Component` — the native `HeaderBar`/`Toolbar`/`TabBar` slots are unchanged.
+  and `[NotFound]` for the catch-all. `Page` and its `Route`/`Parent` overrides are removed.
 
   This is what makes **one page answer several URLs**: `[Route]` is `AllowMultiple`, so stacking it is the
   whole feature. The first template declared is canonical — it is what `X.Url(...)` and `Routes.X(...)`
@@ -756,7 +410,7 @@ them until tagged releases begin.
 
 ### Added
 
-- **Remote CQRS — `Rask.Cqrs.Client` and `Rask.Cqrs.Server`.** A WASM-hosted or native app now reaches
+- **Remote CQRS — `Rask.Cqrs.Client` and `Rask.Cqrs.Server`.** A WASM-hosted app now reaches
   its server through the same `IDispatcher` call it already uses in-process, with no `HttpClient` at the
   call site and no hand-written `/api/*` endpoints. One package and one line per project: the client
   calls `AddRaskCqrsClient()`, the server calls `AddRaskCqrsServer()` + `MapRaskCqrs()`, and neither
@@ -790,7 +444,7 @@ them until tagged releases begin.
   - **Files are just `RaskFile`.** A message declares `RaskFile` — the same type a file input hands a
     component — so the file a user picked is passed straight to the handler with nothing to convert:
     `await dispatcher.DispatchAsync(new AttachReceipt(id, picked))`, identical on a server-rendered app,
-    a WASM-hosted one and a native one. In-process the handler gets the picked file; over the wire the
+    and a WASM-hosted one. In-process the handler gets the picked file; over the wire the
     generated codec carries the bytes and hands the handler a `RaskFile` over what arrived. Neither
     direction buffers — every host reads a `RaskFile` in bounded slices (the browser ones through
     `Blob.slice`) — and a query returning `FileDownload` streams back with an `attachment` disposition, a
@@ -816,31 +470,6 @@ them until tagged releases begin.
     file without failing. A duplicate, missing or non-numeric part is now a 400 rather than a silent
     shift. `MaxUploadBytes` is applied to the request *before* the body is read, so an oversized upload is
     aborted mid-stream instead of being spooled to disk and reported afterwards.
-- **The portable chrome now has a sample, which is what the repo's own definition of done asks for.** #743
-  shipped `AppBar`/`TabStrip` and documented them, but no sample used them — and no sample used `Screen` at
-  all — so the cross-host claim was proven only in unit tests, never in a running app.
-
-  - **`/chrome`** in the showcase is a real `Screen`, naming no `Rask.Native` type. All three showcase hosts
-    compile it from the same `Rask.Example.Shared` project: Server and WASM render its slots as landmark
-    HTML, and the native heads project the same declaration to a `UINavigationBar` + `UITabBar`. Unlisted in
-    the sidebar, like `/table`.
-  - **`ChromeBarsDemo`** renders the bars inline with its source, embedded in the native guide at
-    `<!-- demo:chrome-bars -->`, with a ~20-line scoped stylesheet that doubles as the demonstration:
-    `Rask.Core` ships no CSS for the bars and emits `data-rask-icon="add"` rather than a glyph, so the class
-    names *are* the styling contract and one rule per icon token wires up whatever set the app already has.
-
-  Covered by the shared browser journey (so it runs on Server, WASM and standalone WASM): the two landmarks,
-  exactly one `aria-current="page"` tab and that it is the one matching the route, and a bar button's
-  callback re-rendering the screen.
-
-### Fixed
-- **A comment added in #743 described a hazard that isn't one.** It claimed importing a component namespace
-  shadows the chain entries of the same name. Entries are injected into the enclosing partial class, and a
-  member of the enclosing type wins simple-name lookup over a namespace-imported type — which is why the
-  native tests import `Rask.Native.Components` and the new sample imports `Rask.Chrome.Components`, both
-  compiling fine. The real rule, already documented in the host `.props`, is narrower: it is why the
-  framework emits a `global using static` for the entries but never a global namespace import.
-
 ### Added
 - **`BulkInsertAsync` — loading many rows is no longer everyone's hand-rolled loop.** EF Core covers the bulk
   *update* and *delete* shapes with `ExecuteUpdate`/`ExecuteDelete`, and its own plan puts bulk **inserts**
@@ -937,7 +566,6 @@ them until tagged releases begin.
   unproven and red only for a genuinely broken restore (`IDashboardBackupProbe.VerificationAsync`, a
   default interface member, so existing probes keep compiling). Closes #751.
 
-
 - **The operator dashboard runs on the `wasm-hosted` template.** `rask new --template wasm-hosted --ops`
   (and `--all-batteries`) now scaffolds the database and every DB-backed battery into the `.Server`
   project and mounts the dashboard there, server-rendered at `/_rask`, while the WASM client keeps every
@@ -961,7 +589,7 @@ them until tagged releases begin.
   test could not fail. `FileListReader` resolves `IBrowserFileBackend` from the container and hands the
   handler an **empty list** when there is none, so a test that rendered a file input and raised its event ran
   the handler with nothing in it and passed on whatever it did. That is the same silent-empty failure the
-  native host shipped with (#736), reproduced in every test.
+  framework's quietest failure mode (#736), reproduced in every test.
 
   ```csharp
   var files = new TestFileBackend();
@@ -1068,7 +696,7 @@ them until tagged releases begin.
   present.
 
 - **Referencing two Rask host packages made the build fail in generated code.** `Rask.Server`, `Rask.Wasm`
-  and `Rask.Native` each pack their own copy of `analyzers/dotnet/cs/Rask.Generators.dll`, so referencing
+  each pack their own copy of `analyzers/dotnet/cs/Rask.Generators.dll`, so referencing
   any one of them is enough to get the generator. Reference **two** and NuGet hands csc both copies at
   different package paths, which Roslyn reads as two distinct generators: both run, both emit
   `RaskBuilderSetters.g.cs`, and the build dies with `CS0101 ... already contains a definition for
@@ -1108,35 +736,12 @@ them until tagged releases begin.
   implicit `SaveChanges` transaction (probed from a `DbCommandInterceptor` in the one window where the two
   modes differ — after `BEGIN`, before the first statement), the sync and async explicit transactions, and
   `ReadUncommitted` as the deferred negative control that proves the probe can tell them apart.
-- **Everything in `Rask.Core` now works on all three hosts, and a test says so.** Core is the shared
-  component surface, so a component written once is supposed to run on Server, WASM and Native alike. Four
-  of its contracts did not: the Native host registered no `IBrowserFileBackend`, no `IDownloadSink` and no
-  `IAuthSignIn`, and the WASM host registered a `WasmAuthSignIn` that needed an `HttpClient` nobody
-  registered. Each failed only on one host, only at runtime, with nothing at compile time to warn you.
+- **Everything in `Rask.Core` now works on every host, and a test says so.** Core is the shared component
+  surface, so a component written once is supposed to run on Server and WASM alike. One of its contracts
+  did not: the WASM host registered a `WasmAuthSignIn` that needed an `HttpClient` nobody registered. It
+  failed only on that host, only at runtime, with nothing at compile time to warn you — a shared
+  `LoginPage(IAuthSignIn auth, ...)`, the shape `rask new` scaffolds, failed DI outright.
 
-  This was not hypothetical: `samples/Rask.Example.Shared` is compiled into the native showcase, and its
-  `UploadDemo` handed the handler an **empty file list** (the user picks a file, the UI reports success,
-  nothing uploaded) while its `DownloadDemo` threw `InvalidOperationException`. A shared
-  `LoginPage(IAuthSignIn auth, ...)` — the shape `rask new` scaffolds — failed DI outright on a device.
-
-  - **File input on Native.** The `<input type=file>` ref registry moved out of `rask.wasm.js` into a
-    shared `Rask.Core/Resources/rask-files.js` spliced into both in-process clients, so the native client
-    captures picked files on `change` *and* on `submit` (`__files`). `NativeFileBackend` reads them back
-    a chunk at a time over `IJSRuntime`, so `RaskFile.OpenReadStream` is a real stream rather than bytes
-    inlined into a render payload.
-  - **`Navigator.Download` on Native.** `NativeDownloadSink` uses the same token-pull contract as WASM —
-    the bytes never ride the frame. Delivery is the platform's job: the host stages the file under the app
-    cache directory and hands it to the new **`INativeFileExport`**, whose platform implementations present
-    the OS share sheet (`UIActivityViewController` / `ACTION_SEND`), which is what "here is a file for you"
-    means on a device. With no platform module registered the file is still staged and the location
-    reported, so a shared component never crashes on the one head that has no share sheet. Download names
-    are reduced to a single safe path segment before they touch the filesystem — they can be
-    attacker-influenced, and on this host they become a real path.
-  - **`IAuthSignIn` on Native.** `NativeAuthSignIn` clears the local `ITokenStore`, posts to the logout
-    endpoint when the app has an `HttpClient` to reach one, refreshes `IUserProvider` and navigates. The
-    token is cleared *before* the network call, so an offline device still ends up signed out. `returnUrl`
-    is sanitized with the same `LocalUrl` rule the other hosts use — a native app reaches these through
-    deep links.
   - **`HttpClient` on WASM.** `WasmHostBuilder` registers a lazy default (page origin as base address) with
     `TryAdd`, so `IAuthSignIn` resolves out of the box and an app that registers its own still wins.
 
@@ -1148,10 +753,9 @@ them until tagged releases begin.
   instead of quietly landing on one host.
 
 ### Changed
-- **`Navigator.Download` and file-input errors name every host.** `Navigator`'s "no `IDownloadSink`" message
-  mentioned only Server and WASM. Worse, `FileListReader` returned an empty list when no
-  `IBrowserFileBackend` was registered and said nothing at all — the framework's quietest failure, and the
-  one that hid the native gap for a release. It now reports through `RaskDiagnostics`.
+- **`Navigator.Download` and file-input errors name every host.** `FileListReader` returned an empty list
+  when no `IBrowserFileBackend` was registered and said nothing at all — the framework's quietest failure.
+  It now reports through `RaskDiagnostics`.
 
 ### Added
 - **Background Sync — `IBackgroundSync`** *(WASM)*. Ask the browser to wake the app when connectivity
@@ -1225,7 +829,7 @@ them until tagged releases begin.
   behind all three stayed in Core when the family moved out (#710), so the references have been dead
   since. Nothing needs re-declaring at a package boundary either: the project is `IsPackable=false` and
   every host references it with `PrivateAssets="all"`, so its dependencies never reached a nuspec —
-  `Rask.Wasm` and `Rask.Native` already surface Core's runtime deps themselves, which is why *their*
+  `Rask.Wasm` already surfaces Core's runtime deps itself, which is why *its*
   seemingly-unused copies of the same packages stay put.
 
   `Rask.Example.Auth.WasmCookie` referenced `Microsoft.Extensions.Logging` without logging anything.
@@ -1252,62 +856,6 @@ them until tagged releases begin.
   import would put a bare `Items` in scope for every markup host, which is far too general a simple
   name to hand out, and importing the namespace is what the existing props notes rule out (a type beats
   a same-named builder entry, CS0119). An alias puts exactly one type in scope. Closes #684.
-- **Portable chrome: one `Screen` class, every host.** `Screen` has always declared its own header/tab bar
-  instead of the app root inspecting the route — but the slots could only be filled with `Rask.Native`
-  components, and were read on the native host alone. So a shared `Screen` forced a web app to reference the
-  native package, and rendered nothing there if it did. The feature was, in practice, native-only.
-
-  A new **`Rask.Chrome`** assembly now owns `Screen` and the portable vocabulary — **`AppBar`**,
-  **`TabStrip`** + **`TabItem`**, **`BarButton`**, **`BarIcon`** — and the slots are walked on every host.
-  One declaration:
-
-  ```csharp
-  protected override Component? HeaderBar =>
-      AppBar.Title("Todos").Trailing([BarButton.Icon(BarIcon.Add).Title("New").OnClick(Add)]);
-
-  protected override Component? TabBar =>
-      TabStrip.Tabs([TabItem.Title("Home").Icon(BarIcon.Home).To(Features.Routes.Home())]);
-  ```
-
-  Inside a native shell that is a `UINavigationBar` + `UITabBar` (iOS) / a top + bottom bar (Android), and
-  the screen emits no markup for either. On Server and WASM the same declaration renders landmark HTML —
-  `role="banner"` / `role="navigation"`, `aria-current="page"` on the active tab, the tab bar after the body
-  so reading order matches the visual one. Core ships no stylesheet: the `rask-header-bar` / `rask-tab-bar` /
-  `rask-bar-button` class names are the styling contract, and an icon arrives as `data-rask-icon="add"`
-  rather than a glyph, so Core carries no SVG payload and no icon-font dependency.
-
-  Which tab is lit is derived **once**: `TabStrip.DeriveSelected` (longest matching tab path, so `/todos/42`
-  keeps the Todos tab lit and `/todos-archive` does not) is called by the web hosts *and* by the native
-  descriptor builder, so one declaration cannot light different tabs on different heads. `NativeIcon`'s
-  curated members now delegate to `BarIcon` for the same reason — two hand-kept copies of the same
-  SF-Symbol/drawable pairs would drift the moment either gained an icon.
-
-  **Why its own assembly.** `Rask.Chrome` is `IsPackable=false` and bundled into the lib/ folder of every
-  host package — the treatment `Rask.Core`, `Rask.Html` and `Rask.Client` already get — so `Rask.Core` stays
-  free of UI chrome and keeps exactly one seam for it (the internal `IScreenChrome` the serializer
-  type-tests). It is deliberately *not* in `Rask.Native`: that is the mobile **host** package
-  (`INativeWebView`, `NativeAppHost`, the platform bridge, iOS/Android TFMs), and putting `Screen` there
-  would force a shared UI project to reference a WebView host from its Server and WASM builds.
-  `Screen` moves from namespace `Rask.Core` to `Rask.Chrome`, so a screen file adds `using Rask.Chrome;`;
-  the bar entries need no using (the assembly declares `RaskFactoryNamespace`).
-
-  The `Rask.Native` family (`NativeHeaderBar`, `NativeTabBar`, `NativeToolbar`, `NativeMenuButton`, per-bar
-  tinting, segmented titles) stays as the platform-exact escape hatch, and the two mix in one screen. Naming
-  any `Native*` type is what stops a class compiling for a web head. See
-  [docs/native-devices.md](docs/native-devices.md#portable-chrome-one-screen-every-host).
-
-### Changed
-- **A `Screen`'s chrome slots are now evaluated on every host, not only on a native head with an
-  `INativeChrome` backend.** That is what lets the portable bars render on the web; it also means a slot's
-  expression now runs where it previously did not. The `Rask.Native` bars render `null` wherever they are
-  read, so a native-only screen still contributes no HTML, and a screen with no chrome pays a null check.
-
-  The serializer's per-user-component walk is the render hot path, so it was measured: the gate already ran
-  a type test there (`component is Screen`), and the change keeps exactly one. **No allocation regression** —
-  `RenderAndBuildPayload` 35.31 KB → 35.31 KB, `RenderOnce` 87.09 KB → 87.09 KB, `RenderTenTimes`
-  157.4 KB → 157.4 KB, `RenderKeyedList100` 100.12 KB → 100.12 KB, `RenderDeep_50UserComponents`
-  82.35 KB → 81.18 KB.
-
 ### Fixed
 - **`docs/pwa.md` no longer implies WASM had background sync.** The "What you don't get on Server" note
   listed it beside genuinely WASM-only features when it existed on neither host; both that line and the
@@ -1507,12 +1055,6 @@ them until tagged releases begin.
   `src/Rask.Html/Components/Button.cs`, which does not exist: `Button` is one of the handful of tags
   `Rask.Core` retained for its own shell and error pages. Both corrected, with a note about the split so
   the retained tags are not taken as the pattern to copy, and the same path fixed in `CLAUDE.md`.
-- **Two native components documented a shadowing that no longer happens.** `NativeButton.Style` and
-  `NativeImage.Source` carried `new` to shadow the generated `Style`/`Source` markup entries; the move
-  stopped those entries being injected into native components, so `new` became CS0109 and was removed —
-  but each `<remarks>` still claimed to shadow them. Rewritten to say why the keyword went, rather than
-  dropped, since nothing being left to shadow is precisely the outcome the split was for.
-
 ### Changed
 - **The README opens on the chain instead of on a wall of badges.** It led with 31 NuGet version badges
   before showing a line of C#; it now opens with the logo, three named links (Site · Docs · Playground),
@@ -1544,9 +1086,9 @@ them until tagged releases begin.
   `Meta`, `Title`, `Button`). The dependency is one-way and now checkable: Core can no longer reach for a
   tag component by accident.
   - **Nothing changes at the call site.** `Rask.Html` is `IsPackable=false` and bundled into the
-    `Rask.Server` / `Rask.Wasm` / `Rask.Native` package `lib/` folders next to `Rask.Core.dll`, exactly
+    `Rask.Server` / `Rask.Wasm` package `lib/` folders next to `Rask.Core.dll`, exactly
     like `Rask.Client`. `[assembly: RaskFactoryNamespace("Rask.Html.Components")]` — the same opt-in
-    `Rask.Native` uses — makes a consuming app's generator surface the factories, so `Div.Class("card")`
+    each host uses — makes a consuming app's generator surface the factories, so `Div.Class("card")`
     and `Generated.Img(…)` resolve with no per-file `using`.
   - **The factory namespace had to change** (`Rask.Core.Components` → `Rask.Html.Components`): the
     generator emits one `public static partial class Generated` per compilation, and Core still declares
@@ -1575,7 +1117,6 @@ them until tagged releases begin.
   A component *library* that IS the entry set needs that — injecting each of ~155 tags into every other is
   O(n²) generated members colliding with what those hosts inherit from `Element`, and a second copy of the
   generic `Key`/`Class`/`Id` extensions makes them ambiguous to infer (CS0411).
-
 
 ### Added
 - **A routable component is a `Page`, and it declares its route as a property rather than an attribute.**
@@ -1614,27 +1155,6 @@ them until tagged releases begin.
   every host already enters around a dispatch. It is what lets a static `SomePage.Go()` reach the right
   session's navigator with no receiver to inject through; outside a handler it is `null`, and
   `Navigator.RequireCurrent()` throws the same actionable message the instance methods do.
-
-- **`Screen` — a page that owns its native chrome.** A `Screen` is a `Page` with `HeaderBar`, `Toolbar` and
-  `TabBar` slots, so a screen declares its own bars instead of the app root inspecting the current path to
-  decide what the header should show:
-
-  ```csharp
-  public sealed class TodosScreen : Screen
-  {
-      protected override string Route => "/todos";
-      protected override Component? HeaderBar => NativeHeaderBar.Title("Todos");
-      protected override Component? Render() => Div[/* the HTML body */];
-  }
-  ```
-
-  Routing is unchanged on native — a screen is addressed by the same path, which is simply never shown
-  (the WebView sits on a custom-scheme origin), and `TodosScreen.Url()` / `.Go()` are generated as for any
-  page. The slots are hoisted rather than rendered inline: walked inside the screen's own scope, so a bar
-  button's `OnClick` attributes back to the screen and re-renders it, while the bar itself emits no HTML.
-  Chrome still merges by kind, deepest-wins, so a layout screen supplies the tab bar once and each leaf
-  screen supplies its own header. On Server and WASM the slots are **never read**, so one screen class
-  serves web and native with no `IsNative` branch.
 
 ### Fixed
 - **Two analyzer assemblies could number a diagnostic the same, and nothing failed.** Roslyn's `RS1019`
@@ -1870,57 +1390,7 @@ them until tagged releases begin.
   `Rask.SQLite.Crdt.Sync` had no badge and no row in the package → project-type → entry-point table.
   `Rask.Signaling` appeared nowhere but `NUGET.md`, so the WebRTC epic's server half was effectively
   undiscoverable; `llms.txt` now covers the realtime surface as well.
-- **Pure-native screens — twelve components that render real platform views, with no WebView.**
-  `NativeScreen` is the counterpart of `NativeWebView` and sits in the same slot; inside it,
-  `NativeStack`, `NativeScroll`, `NativeList`, `NativeLabel`, `NativeButton`, `NativeTextField`,
-  `NativeSwitch`, `NativeImage`, `NativeActivityIndicator`, `NativeDivider` and `NativeSpacer` describe a
-  `UIView`/`android.view.View` tree instead of HTML.
-  - **Content comes through the children indexer**, not a `Text` property: `NativeLabel["Total"]` and
-    `NativeButton.OnClick(Save)["Save"]` read exactly like `Span["Total"]` and `Button["Save"]` do on
-    the web, so there is one spelling for content across every host.
-  - **An app mixes both, per route.** One tab can be an HTML page and the next a pure-native screen. Each
-    frame is classified by what it rendered, and paints through the WebView or the native surface
-    accordingly — a native frame never pushes HTML, which is what keeps the WebView's DOM in step with the
-    HTML diff baseline.
-  - **Neither surface is torn down when switching.** A backend hides the content view it isn't showing and
-    keeps it, so returning to a web route doesn't reload the page and returning to a native route patches
-    the retained view tree rather than rebuilding it. Both of the session's diff baselines stay truthful
-    because the views they describe still exist.
-  - **One render walk feeds both.** The serializer already reported each user component it walked (for the
-    native bars); that report is now a balanced enter/exit pair, which is enough to rebuild a whole view
-    *tree* from the same single walk that produces the page HTML. No second render pass, and `Rask.Core`
-    still references no `Rask.Native` type.
-  - **Routing is unchanged.** `Router`/`Outlet` render no HTML of their own, so `NativeScreen[Router]`
-    gives `[Route]` pages, route parameters, guards and type-safe `Features.Routes.*` navigation with no
-    native-specific routing API.
-  - **Async event handlers throughout.** Every callback has an `OnXAsync` form (`OnClickAsync`,
-    `OnInputAsync`, `OnChangedAsync`) that is awaited *before* the frame is built, so state set after an
-    `await` paints in that frame rather than a later one.
-  - **Keyed rows move instead of being rewritten.** The tree differ reconciles keyed children by identity,
-    so reordering a list moves its row views — keeping scroll position, focus and animation state — and
-    only genuinely changed properties are sent.
-  - **Opt-in and backward compatible.** Register an `INativeSurface` on `host.Services` exactly like
-    `INativeChrome`; with none registered the family is inert and every frame paints through the WebView.
-  - **Both platform backends ship.** `RaskWkWebView` (UIKit) and `RaskAndroidWebView` (framework widgets,
-    no AndroidX dependency) implement `INativeSurface`, painting a screen as a real view tree in the same
-    container as the WebView and the bars and toggling which of the two is visible without tearing either
-    down. Both compile against their real platform SDKs, but **neither has been run on a simulator,
-    emulator or device**, so treat the on-screen result as unverified.
-  - **The half that could hide a bug is platform-agnostic and tested.** `NativeSurfaceHost<TView>` owns the
-    retained tree and replays patches in order; a platform head supplies only an `INativeViewOps<TView>`
-    mapping table. Patch replay — where an ordering slip shows up as a scrambled screen and is invisible in
-    a patch list that reads correctly — therefore runs on plain `net10.0` in the unit suite.
-  - **`NativeList` does not recycle rows.** Every row is a real view, built once and kept, which suits the
-    tens-of-rows lists most screens have rather than thousands. Cell reuse needs the platform's recycling
-    collection, whose data-source model does not fit a patch-addressed tree; it is a follow-up.
-
 ### Fixed
-- **RASK032 no longer misses the chain syntax.** The analyzer compared the argument's type against
-  `NativeComponent`, but a chain expression is a `Build<T>` — so a native bar nested in HTML compiled clean
-  on exactly the syntax the docs teach. It now sees through `Build<T>` on both the receiver and the
-  children, and classifies by the container, which is also what lets native views compose legitimately
-  inside a `NativeScreen`. The mirror-image mistake — HTML inside a native screen, which would silently
-  render nothing — is the new **RASK048**.
 - **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**
   `IWebRtc` deliberately doesn't pick a signaling channel; this is the channel for apps that don't already
   have one. `AddRaskSignaling()` + `MapRaskSignaling()` host rooms; `ISignaling.JoinAsync` joins one and
@@ -1959,7 +1429,7 @@ them until tagged releases begin.
     the capture trigger, and a peer — speak one currency.
 - **WebRTC — `IWebRtc`, the 48th typed browser API.** Peer connections and data channels, so two browsers
   can exchange data directly instead of through your server. It lives in `Rask.Core.Browser` and needs no
-  user activation, so it works on **every host** — Server, WASM and Native — from one injected service.
+  user activation, so it works on **every host** — Server and WASM — from one injected service.
   - **You supply the signaling.** `RtcDescription` and `RtcIceCandidate` are plain serializable records, so
     the offer/answer/ICE exchange rides whatever channel you already have — a WebSocket, an HTTP endpoint,
     or `IBroadcastChannel` between two tabs. The demo runs both peers in one page, so signaling is a method
@@ -2019,7 +1489,7 @@ them until tagged releases begin.
   Every one of those was a wrapper a moment ago — `Handler?`, `HandlerAsync?`, `Handler<int>?`,
   `Carrier<Func<Product, Component>>?` — and the wrappers existed for exactly one reason: a delegate-typed
   property on the chain's receiver swallowed its own setter. The `Build<TComponent>` receiver removes that
-  collision at its source, so ~180 properties across `Rask.Core`, `Rask.Bootstrap` and `Rask.Native` drop
+  collision at its source, so ~180 properties across `Rask.Core` and `Rask.Bootstrap` drop
   back to `Action` / `Func<…>`, and reading one back is `OnPick?.Invoke()` rather than `.Fn` / `.Invoke`
   / `.InvokeAsync`.
 
@@ -2259,12 +1729,9 @@ them until tagged releases begin.
     compares the resolved symbol instead of calling `ToDisplayString()` on every arity-1 generic. These
     run on `OperationKind.PropertyReference` — every property read in the compilation — so the old
     version allocated a string per `List<T>`/`Task<T>` read, per keystroke, in the IDE.
-- **Three more analyzers were blind to the chain, found by auditing the rest rather than stopping at the
+- **Two more analyzers were blind to the chain, found by auditing the rest rather than stopping at the
   ones that announced themselves.** These do not key on `Generated` at all — they test a TYPE, and a chain
   hands back `Build<T>` rather than `T`.
-  - **RASK032 (native chrome nested in the HTML tree) never fired on a chain.** `Div[NativeHeaderBar…]`
-    serializes to nothing on a device; the diagnostic is an **Error** precisely so that never ships, and
-    it was reporting on none of the syntax the framework teaches.
   - **RASK019 (`<head>` is a framework-managed slot) never fired on `Head[…]`.** Children passed there are
     dropped, silently. The analyzer also had **no tests at all**; it has them now, for both spellings.
   - **RASK021 (a root that renders the page shell) never fired on a chain.** It scans the root's `Render()`
@@ -2779,7 +2246,7 @@ them until tagged releases begin.
   **The same rename for every framework component, not just elements.** The remaining 81 prefix-dropped
   setters — `BsButton.OnClick`, `BsDataGrid`'s fourteen, `BsFormControl<T>.OnChange` (and therefore every
   Bs control that inherits it), `Input`/`Select`/`Textarea`/`Form`, `DragDrop.OnDrop`, the gesture
-  triggers' `OnResult`/`OnColor`/`OnOutcome`, `NativeBarButton.OnClick`, … — moved to the carriers too,
+  triggers' `OnResult`/`OnColor`/`OnOutcome`, … — moved to the carriers too,
   so `.OnClick(Save)` is now the shape everywhere and `.Click(Save)` is gone. `IFormControl<T>`'s
   controlled pair changes with it (`Handler<T>?` / `HandlerAsync<T>?`), so a custom control must update
   those two declarations alongside its four bound ones. Assignment and every generated `OnClick:`
@@ -3094,7 +2561,7 @@ them until tagged releases begin.
   member of the enclosing type wins — and the consequence is that the surface is only reachable from
   inside a component. Injection targeted concrete components only, so every abstract base that composes
   other components (`BsBlock`, `BsFormControl<T>`, `BsSelectBase<TValue, TItem>`, `BsPickerBase<T>`,
-  `PollingPanel`, `NativeComponent`) could name no entry at all. Nothing said so: the calls bound to the
+  `PollingPanel`) could name no entry at all. Nothing said so: the calls bound to the
   factory instead, and `CS0119` with no RASK diagnostic is what an author would have seen the day the
   factory went away. An abstract class is collected as an injection **host** now — deliberately not as a
   candidate, since nothing can construct it, so it still publishes no entry of its own. The forwarders
@@ -3182,8 +2649,7 @@ them until tagged releases begin.
   - **`RaskTest.RenderDocument(app, services)`** is the new way to assert on the page — the `<head>`,
     the `<html lang>`, the `<body class>` — since `RaskTest.Render` deliberately adds no markup of its
     own and now therefore produces no document. Every sample, the `rask new` templates and the docs
-    move with the change; the scaffolded native template overrides `Shell`, because a native `<body>`
-    needs safe-area padding and `BodyClass` cannot carry a style.
+    move with the change.
   - **What it costs.** The composition is 624 B per root render — pinned as a delta against the same
     body rendered bare, and pinned again as *not* scaling with page size — against one whole-page scan
     per render removed. Per live session it is +144…+424 B unconnected on an empty and a 5-row page,
@@ -3282,21 +2748,6 @@ them until tagged releases begin.
   their own CSS. The wizard asks for it as a styling choice. Covered by the CLI build gate, which packs
   this commit's packages and runs a real `-warnaserror` build over the result — the one flag where the
   generated *code* differs rather than the wiring is the one a string assertion proves least about.
-- **`--host wasm-hosted` for the native template**, alongside `local` and `server`. Picking `native` in
-  the wizard now asks where the UI comes from: the device, a Rask server, or a wasm-hosted app. The two
-  remote modes scaffold the same shell — `RaskServerWebView` takes a trusted origin and never asks what
-  serves it — and differ in the guidance they carry, because a live server renders over a WebSocket
-  while a published bundle keeps working once loaded. The wizard's summary now lists only what was
-  actually decided, so a native app is no longer told it chose Rask.Bootstrap and declined Docker.
-- **`rask new --template native --platform ios|android`** (repeatable; both by default), and a matching
-  wizard checklist. The native template used to multi-target both platforms unconditionally, so an
-  Android-only app still carried a `Platforms/iOS/` folder, an iOS target framework, an
-  `Info.plist` wiring block and a run command for a simulator it would never launch — files that never
-  compile, which is the kind of thing that survives for years because nobody is sure whether they
-  matter. Naming one platform now leaves no trace of the other, down to the `dotnet workload install`
-  line and the per-target-framework compile guards, which are emitted only when there is more than one
-  target to keep apart.
-
 ### Removed
 - **`rask generate` is gone — the CLI no longer scaffolds code inside a project.** All six artifacts
   (`page`, `component`, `feature`, `job`, `email`, `cache`) and the ~3,400 lines of generators behind
@@ -3674,45 +3125,6 @@ them until tagged releases begin.
   and shutdown is drained from `pagehide` — in reverse start order, and not for a back/forward-cache
   suspend where the page can be restored still running — which the browser does not wait for, so it
   is an optimisation rather than a guarantee.
-- **`IPermissions` now has a native backend, so on iOS/Android it answers about the OS permission the
-  other native backends actually gate on.** It was the only wrapper in its family without one — the 14
-  interfaces beside it (`IGeolocation`, `INotifications`, `IClipboard`, …) resolve to native backends, and
-  the one you reach for *first*, to decide whether you are about to prompt, still answered from the
-  WebView. That made it wrong twice over on a native head. It barely answered at all:
-  `navigator.permissions.query` throws `NotSupportedError` for `Geolocation`/`Notifications` on WebKit and
-  `TypeError` for the clipboard and persistent-storage names, so five of the seven typed `PermissionName`
-  values faulted the awaited task on iOS — including the two the interface's own docs tell you to pair it
-  with. And where it did answer, it described a different system: those native backends are gated by the
-  **OS app permission** (`Info.plist`/manifest + the system prompt), which the WebView's Permissions API
-  cannot see — so you could ask the WebView, get `granted`, and call `IGeolocation`, which reads
-  `CLLocationManager`. Each name is now answered from **the gate the caller will actually meet**: iOS
-  `CLLocationManager` / `UNUserNotificationCenter`, Android `Activity.CheckSelfPermission` plus
-  `AreNotificationsEnabled` (which also catches a user who switched notifications off below API 33, where
-  there is no runtime permission to check). Wired by `ApplePlatform`/`AndroidPlatform` like every other
-  native backend, so an app needs no new code.
-  Three answers are deliberately *not* the OS grant. **`Camera` and `Microphone` stay with the WebView** —
-  nothing on a native head consumes the app's capture grant (`IMediaDevices` is WASM-only, so capture goes
-  through the WebView, which gates it on its own permission on top of the app's), and they are also the
-  only two names WebKit answers, so deferring is both the accurate and the well-supported choice.
-  **`ClipboardRead` reports `Prompt` on iOS**, because since iOS 16 the programmatic `UIPasteboard` read
-  the native `IClipboard` performs can raise the system "Allow Paste?" alert. `ClipboardWrite` and
-  `PersistentStorage` report `Granted`, which is accurate rather than a stand-in for "don't know".
-  **Caveat, and it is deliberate:** Android's `CheckSelfPermission` reports only granted/denied and cannot
-  separate "never asked" from "denied permanently" (`ShouldShowRequestPermissionRationale` doesn't close
-  the gap — it is `false` both before the first ask and after a permanent denial), so anything not granted
-  that it could still request reports `Prompt`. Read that as "not granted", **not** as a promise that a
-  dialog will appear: a permission missing from the manifest is refused with no dialog at all. Claiming
-  `Denied` would mislead on first run, which is the common case. iOS has the real tri-state and reports it.
-  Named `NativePermissionQuery`, not `NativePermissions`: that name already belongs to the public
-  runtime-*request* bridge the scaffolded heads forward `OnRequestPermissionsResult` to, and renaming it
-  would break every scaffolded app. The two are companions — one asks, one requests.
-- **`-p:RaskNativeHeads=ios` builds just the iOS head**, the mirror of the existing `android` value. Only
-  `android` had a one-head switch (it exists so an Ubuntu job can build the APK without the iOS workload,
-  which Linux can't install), which left the opposite case — a macOS dev with only the ios workload —
-  unable to compile `Platforms/iOS/**` at all, so half of every native change was CI-only by construction.
-  Set on `Rask.Native` and both native samples together; a value present on one and missing from another
-  still fails on the workload the other head needs.
-
 ### Changed
 - **An event handler's id now belongs to the component that renders it, so one component gaining a
   handler no longer renumbers the rest of the page.** Ids came from a single counter reset to zero on
@@ -3971,10 +3383,6 @@ them until tagged releases begin.
   cutover, Caddy auto-HTTPS, bare-VPS provisioning — has shipped, and its battery list stopped at four.
 - **`AGENTS.md`** listed 8 of the 12 committed skills, omitting `add-codefix` and all three
   "drive the real app" playbooks — the ones an agent needs precisely when a passing test isn't proof.
-- **`docs/getting-started.md`** said three templates and listed three; there are four (`native` was
-  missing). It called `--docker` a template when it is a flag, and its "see the README's *Sub-path hosting*
-  section" pointed at a section that does not exist — the README's only mention pointed back at
-  getting-started, so the reader went in a circle. It now points at the pages that cover it.
 
 - **The six diagnostics that told you production would break, without telling you how to stop it, now
   say.** #275 gave the route family an actionable fix clause but only reached the descriptors in

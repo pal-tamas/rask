@@ -203,8 +203,8 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
         for (var index = 0; index < files.Count; index++)
         {
             // Opened once and read forward. A RaskFile reads in slices on every host — Blob.slice in the
-            // browser, the same ref protocol on native, a FileStream on the server — so the file is never
-            // materialised whole on either side of this loop.
+            // browser, a FileStream on the server — so the file is never materialised whole on either
+            // side of this loop.
             await using var source = files[index].OpenReadStream(cancellationToken);
 
             long offset = 0;

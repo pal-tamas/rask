@@ -4,8 +4,8 @@ namespace Rask.Html.Tests.Components;
 
 // Shareable is headless: it renders whatever the Template returns and hands it the data-rask-share bundle
 // (to spread onto the element's Data prop). The shared client handles the click locally (navigator.share in
-// the gesture, or the native bridge). No IJSRuntime, no host-specific registration — the same trigger works
-// on every host, Server included.
+// the gesture). No IJSRuntime, no host-specific registration — the same trigger works on every host,
+// Server included.
 public partial class ShareableTests : global::Rask.Core.RaskMarkup
 {
     [Fact]

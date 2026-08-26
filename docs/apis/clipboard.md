@@ -8,7 +8,7 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-In the browser, reads need a user gesture and/or a `clipboard-read` grant; the native backend has neither restriction.
+Reads need a user gesture and/or a `clipboard-read` grant.
 
 ## See also
 

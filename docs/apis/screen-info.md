@@ -8,7 +8,7 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-The native backend reports true device metrics from `UIScreen` / `DisplayMetrics`.
+Reports the browser's `window.screen` metrics, which are CSS pixels scaled by the device pixel ratio.
 
 ## See also
 

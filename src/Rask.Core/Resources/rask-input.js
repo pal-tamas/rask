@@ -8,7 +8,7 @@
 // calls flushInputsNow().
 //
 // Written in modern-ES (const/let/arrow), matching rask-dom.js / rask-morph.js — the other shared
-// modules already spliced into all three hosts. No export/import, no backslash regex literals (the
+// modules already spliced into both hosts. No export/import, no backslash regex literals (the
 // splice is a raw string .Replace).
 
 // Input events fire per keystroke — on fast typing that's 5–10 messages over the

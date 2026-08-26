@@ -8,7 +8,7 @@
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-The native backend keeps the screen on without the Wake Lock API the WebView restricts.
+The lock is released automatically when the page is hidden, so re-acquire it on `visibilitychange`.
 
 ## See also
 

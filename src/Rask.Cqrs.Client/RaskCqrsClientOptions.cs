@@ -8,7 +8,8 @@ public sealed class RaskCqrsClientOptions
     /// <summary>
     ///     The origin to send to. Null — the default — means the app's own origin, which is what a
     ///     browser-hosted app wants: the request is same-origin, so the session cookie rides it and no
-    ///     CORS preflight is involved. A native client sets this to its server's absolute address.
+    ///     CORS preflight is involved. A client served from another origin sets this to its server's
+    ///     absolute address.
     /// </summary>
     public Uri? BaseAddress { get; set; }
 
@@ -48,9 +49,9 @@ public sealed class RaskCqrsClientOptions
     ///         cookie rides it automatically and the server sees the signed-in user without being asked.
     ///     </para>
     ///     <para>
-    ///         A <b>native</b> app has no such ambient credential — its .NET code runs on real sockets
-    ///         against a remote origin, so nothing attaches itself. This is where it puts its bearer token.
-    ///         The same hook covers a browser app that authenticates with a token rather than a cookie.
+    ///         An app talking to <b>another origin</b> has no such ambient credential — nothing attaches
+    ///         itself across origins. This is where it puts its bearer token, and the same hook covers an
+    ///         app that authenticates with a token rather than a cookie.
     ///     </para>
     ///     <para>
     ///         It receives the outgoing request rather than an <c>HttpClient</c>, deliberately: attaching a

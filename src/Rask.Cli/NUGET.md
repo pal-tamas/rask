@@ -38,7 +38,7 @@ rask info
 
 | Command | What it does |
 |---|---|
-| `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted\|native`), forwarding `--auth` / `--pwa` / `--cqrs` / `--data` / `--docker` (`--data` pre-wires a SQLite `AppDbContext`). Every template is generated directly — no `dotnet new` needed. |
+| `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted`), forwarding `--auth` / `--pwa` / `--cqrs` / `--data` / `--docker` (`--data` pre-wires a SQLite `AppDbContext`). Every template is generated directly — no `dotnet new` needed. |
 | `rask db <add\|remove\|list\|update\|drop>` | Manage EF Core migrations — a friendly `dotnet ef` wrapper that finds the project and installs `dotnet-ef` on demand. |
 | `rask deploy` | Build and run the app on a single host over SSH (`docker -H ssh://…`). Sets a bare box up first (Docker, a non-root deploy login, firewall, SSH hardening) after asking. `--domain` fronts it with auto-HTTPS Caddy; deploys are zero-downtime and multiple apps share one box. `--github-actions` writes a workflow that deploys on push. |
 | `rask dev` | Run the app with C# Hot Reload (`dotnet watch run`). Finds the project itself, restarts on edits hot reload can't apply, `--open` for a browser. `--once` for a plain run. Args after `--` reach the app. |

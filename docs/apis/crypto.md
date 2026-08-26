@@ -8,7 +8,7 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-Runs in the WebView's Web Crypto; no native backend needed.
+Runs in the browser's Web Crypto.
 
 ## See also
 
