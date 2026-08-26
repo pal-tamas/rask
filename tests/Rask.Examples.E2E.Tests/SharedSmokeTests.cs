@@ -135,7 +135,7 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         var traced = false;
         try
         {
-            await body();
+            await RaceAgainstBootFailureAsync(body);
         }
         catch
         {
@@ -163,6 +163,69 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
             }
 
             await TestArtifacts.DumpAsync(Page, FixtureName, testName, ServerLog, console);
+        }
+    }
+
+    /// <summary>
+    ///     Runs the journey, but gives up the moment the app says it failed to boot.
+    /// </summary>
+    /// <remarks>
+    ///     Every WASM journey opens with a 60-120 second wait on a selector that only exists once the app
+    ///     has mounted, so a boot failure used to cost the full timeout and then report the missing
+    ///     selector — which names nothing about the cause and reads as a hang. That is most of why #817
+    ///     was expensive: the test could not tell "the app is broken" from "the network is slow".
+    ///     <para>
+    ///         main.js now marks a dead boot with <c>[data-rask-boot-error]</c> and puts the reason on the
+    ///         page. Racing the journey against that element turns the same failure into a few seconds and
+    ///         an exception that quotes what went wrong. A hook nothing waits on would only have moved the
+    ///         evidence somewhere nobody looks.
+    ///     </para>
+    ///     <para>
+    ///         Harmless on the Server hosts: they have no boot screen, so the watcher simply never
+    ///         resolves and the journey is awaited exactly as before.
+    ///     </para>
+    /// </remarks>
+    private async Task RaceAgainstBootFailureAsync(Func<Task> body)
+    {
+        var journey = body();
+
+        // Timeout 0 = wait indefinitely: this resolves only if the app actually reports a dead boot, so
+        // it can never be the thing that fails a healthy run.
+        var bootFailed = Page.WaitForSelectorAsync(
+            "[data-rask-boot-error]", new PageWaitForSelectorOptions { Timeout = 0 });
+
+        var finished = await Task.WhenAny(journey, bootFailed);
+        if (finished != bootFailed)
+        {
+            // The journey settled first, which is every healthy run. The watcher is abandoned here and
+            // faults when the context closes; observe it so it cannot surface as an unhandled exception
+            // in an unrelated test.
+            _ = bootFailed.ContinueWith(static t => _ = t.Exception, TaskScheduler.Default);
+            await journey;
+            return;
+        }
+
+        var reason = await ReadBootFailureAsync();
+        // Observe the journey's own failure too — it is about to be abandoned mid-flight, and an
+        // unobserved timeout from it would otherwise land on a later test.
+        _ = journey.ContinueWith(static t => _ = t.Exception, TaskScheduler.Default);
+        throw new InvalidOperationException(
+            $"The app reported that it failed to boot, so the journey was abandoned rather than waiting "
+            + $"for elements that will never appear.\n{reason}");
+    }
+
+    private async Task<string> ReadBootFailureAsync()
+    {
+        try
+        {
+            var text = await Page.Locator(".rask-boot__error").InnerTextAsync(
+                new LocatorInnerTextOptions { Timeout = 5_000 });
+            return text.Trim();
+        }
+        catch (Exception ex)
+        {
+            return $"(the boot-failure panel could not be read: {ex.GetType().Name}) — "
+                + "the browser console dump below has the error.";
         }
     }
 

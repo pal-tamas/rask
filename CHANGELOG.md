@@ -25,8 +25,14 @@ them until tagged releases begin.
 
   **It never paints over a working page.** Once the app has mounted the boot surface goes silent for
   good and the root error boundary owns errors, because turning a recoverable error into a full-screen
-  failure would be worse than the bug this fixes. The failure state carries a `[data-rask-boot-error]`
-  hook, so a broken boot fails an E2E in seconds with a reason attached.
+  failure would be worse than the bug this fixes.
+
+  The failure state carries a `[data-rask-boot-error]` hook, and the browser-journey harness now
+  **races every journey against it**. Each WASM journey opens with a 60–120 second wait on a selector
+  that exists only once the app has mounted, so a dead boot used to cost the whole timeout and then
+  report the missing selector — naming nothing about the cause. It now fails in seconds, quoting what
+  the page says went wrong. (A hook nothing waits on would only have moved the evidence somewhere
+  nobody looks; the Server hosts have no boot screen, so their journeys are unaffected.)
 
   The markup and CSS live in `main.js` rather than in the page shell deliberately: there are several
   shells — the framework's, the samples', the one `rask new` writes — they have already drifted, and a
