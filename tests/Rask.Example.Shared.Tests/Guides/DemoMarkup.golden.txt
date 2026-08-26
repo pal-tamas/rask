@@ -5512,6 +5512,58 @@ code .small
 li .bg-transparent .list-group-item .ps-2 .small
 code .small
 
+=== localization-formats ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+h5 .fw-semibold .mb-0
+p .mb-0 .mt-1 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+table .align-middle .table .table-sm
+thead
+tr
+th
+th
+th
+th
+tbody
+tr
+td
+code
+td
+td
+td
+tr
+td
+code
+td
+td
+td
+tr
+td
+code
+td
+td
+td
+tr
+td
+code
+td
+td
+td
+
 === master-detail ===
 div .border-0 .card .mb-4 .sample-card .shadow-sm
 div .sample-code-col
