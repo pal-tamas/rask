@@ -45,12 +45,20 @@ internal static partial class ProjectGenerator
         // nothing reads.
         if (framework.WritesViteConfig)
         {
-            files.Add(($"{NameToken}.Client/vite.config.ts", SpaViteConfig(framework)));
+            files.Add(($"{NameToken}.Client/vite.config.ts", SpaViteConfig(framework, batteries.Tailwind)));
         }
 
         foreach (var (path, content) in framework.ClientFiles)
         {
             files.Add(($"{NameToken}.Client/{path}", content));
+        }
+
+        if (batteries.Tailwind)
+        {
+            // Replaces the scaffolder's demo stylesheet rather than sitting beside it: create-vite's
+            // starter CSS styles the placeholder page we have already overlaid away, and leaving it in
+            // would fight Tailwind's own reset.
+            files.Add(($"{NameToken}.Client/{framework.GlobalStylesheet}", SpaTailwindCss));
         }
 
         if (batteries.Data)
@@ -83,18 +91,19 @@ internal static partial class ProjectGenerator
                     + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; "
                     + "Linux: your distro's nodejs package)."),
             ],
-            Patches = SpaPatches(client, framework),
+            Patches = SpaPatches(client, framework, batteries.Tailwind),
         };
     }
 
     /// <summary>The edits made to what the client's own scaffolder wrote.</summary>
-    private static IReadOnlyList<ScaffoldPatch> SpaPatches(string client, SpaFramework framework)
+    private static IReadOnlyList<ScaffoldPatch> SpaPatches(
+        string client, SpaFramework framework, bool tailwind)
     {
         var patches = new List<ScaffoldPatch>
         {
             new(
                 System.IO.Path.Combine(client, "package.json"),
-                json => AddClientDependencies(json, framework),
+                json => AddClientDependencies(json, framework, tailwind),
                 "adding " + Dependencies(framework)),
             new(
                 System.IO.Path.Combine(client, ".gitignore"),
@@ -154,6 +163,24 @@ internal static partial class ProjectGenerator
         return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
     }
 
+    /// <summary>The client's entry stylesheet when the project took Tailwind.</summary>
+    /// <remarks>
+    ///     One import, because that is all v4 needs. The Vite plugin detects the sources itself from the
+    ///     project, so there is no content array to keep in step with where the components live.
+    /// </remarks>
+    private const string SpaTailwindCss =
+        """
+        @import "tailwindcss";
+
+        """;
+
+    /// <summary>
+    ///     The Tailwind range the front-end templates pin. Deliberately beside the C# side's version: the
+    ///     two paths must not drift, or the same app would style differently depending on which half of it
+    ///     built the stylesheet.
+    /// </summary>
+    private const string TailwindRange = "^4.3.0";
+
     /// <summary>What the patch says it is adding, for the line the command prints.</summary>
     private static string Dependencies(SpaFramework framework) =>
         framework.RouterPackage is null
@@ -179,7 +206,8 @@ internal static partial class ProjectGenerator
     ///         framework's template already runs its type-checker in <c>build</c>.
     ///     </para>
     /// </remarks>
-    internal static string AddClientDependencies(string packageJson, SpaFramework framework)
+    internal static string AddClientDependencies(
+        string packageJson, SpaFramework framework, bool tailwind = false)
     {
         ArgumentNullException.ThrowIfNull(framework);
 
@@ -196,6 +224,16 @@ internal static partial class ProjectGenerator
         if (framework.RouterPackage is { } router)
         {
             dependencies[router] = framework.RouterVersion;
+        }
+
+        if (tailwind)
+        {
+            // The Vite plugin, not the standalone binary. A front-end project already has node and a
+            // bundler; making it shell out to a downloaded binary instead would be Rask insisting on its
+            // own mechanism in the one place the ecosystem's is better — and it would give up the
+            // bundler's own hot reload for CSS.
+            dependencies["tailwindcss"] = TailwindRange;
+            dependencies["@tailwindcss/vite"] = TailwindRange;
         }
 
         if (framework.Key == "svelte" && root["scripts"] is JsonObject scripts)
@@ -421,7 +459,7 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private static string SpaViteConfig(SpaFramework framework)
+    private static string SpaViteConfig(SpaFramework framework, bool tailwind)
     {
         // Lit needs no plugin: its components are standard custom elements and its decorators are
         // TypeScript's, so create-vite ships that template with no vite.config.ts at all. This is the
@@ -430,12 +468,19 @@ internal static partial class ProjectGenerator
             ? string.Empty
             : "import " + framework.PluginImport + "\n";
 
+        // Tailwind's own Vite plugin rather than the standalone binary the C# hosts use: this project
+        // already has node and a bundler, and the plugin gives the bundler's hot reload for CSS too.
+        var tailwindImport = tailwind ? "import tailwindcss from '@tailwindcss/vite'\n" : string.Empty;
+        var tailwindPlugin = tailwind
+            ? framework.PluginCall.Length == 0 ? "tailwindcss()" : ", tailwindcss()"
+            : string.Empty;
+
         return $$"""
-        {{import_}}import { defineConfig } from 'vite'
+        {{import_}}{{tailwindImport}}import { defineConfig } from 'vite'
 
         // https://vite.dev/config/
         export default defineConfig({
-          plugins: [{{framework.PluginCall}}],
+          plugins: [{{framework.PluginCall}}{{tailwindPlugin}}],
           server: {
             // In development the browser talks to Vite, and Vite forwards the CQRS calls to the ASP.NET
             // host — so HMR is native and instant, and there is no CORS to configure because the browser
@@ -614,6 +659,17 @@ internal sealed record SpaFramework(
     public string DevServerUrl { get; init; } = "http://localhost:5173";
 
     /// <summary>
+    ///     The global stylesheet this framework's scaffolder writes, and which its entry point imports.
+    /// </summary>
+    /// <remarks>
+    ///     Not the same file in any two of them — index.css for React, Preact, Solid and Lit, style.css
+    ///     for Vue, app.css for Svelte, styles.css for Angular. Overlaying the wrong name does not fail:
+    ///     it lands beside the real one, nothing imports it, and the app builds with no Tailwind in it at
+    ///     all.
+    /// </remarks>
+    public string GlobalStylesheet { get; init; } = "src/index.css";
+
+    /// <summary>
     ///     The command that scaffolds the client, given the solution name.
     /// </summary>
     /// <remarks>
@@ -710,6 +766,7 @@ internal sealed record SpaFramework(
         null, null,
         SpaClientSources.Vue)
     {
+        GlobalStylesheet = "src/style.css",
         Scaffolder = Vite("vue-ts"),
     };
 
@@ -724,6 +781,7 @@ internal sealed record SpaFramework(
         null, null,
         SpaClientSources.Svelte)
     {
+        GlobalStylesheet = "src/app.css",
         Scaffolder = Vite("svelte-ts"),
     };
 
@@ -769,6 +827,7 @@ internal sealed record SpaFramework(
         null, null,
         SpaClientSources.Angular)
     {
+        GlobalStylesheet = "src/styles.css",
         WritesViteConfig = false,
         DistDir = "dist/{client}/browser",
         DevServerUrl = "http://localhost:4200",

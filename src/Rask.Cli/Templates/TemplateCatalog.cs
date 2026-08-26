@@ -17,6 +17,11 @@ internal sealed record TemplateInfo(
 internal static class TemplateCatalog
 {
     /// <summary>Feature flags every web template supports.</summary>
+    /// <remarks>
+    ///     <c>tailwind</c> and <c>bootstrap</c> are not here: they are the styling AXIS rather than
+    ///     features, every template understands them, and the parser handles them before this list is
+    ///     consulted.
+    /// </remarks>
     private static readonly string[] WebFlags = ["auth", "pwa", "docker"];
 
     /// <summary>
