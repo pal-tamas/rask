@@ -19,6 +19,67 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
+# Is another copy of this gate already running?
+#
+# The port collision was fixed in #626, but two suites on one machine still contend for resources, and
+# the way that surfaces is the expensive one: a plausible-looking red in one or both runs, minutes after
+# the contention, with nothing in the log pointing back at it. It has already cost one unexplained
+# timeout across two worktrees that were coordinating and still both believed the machine was idle.
+#
+# REFUSE by default, with an override. This runs from .githooks/pre-push, which prints thousands of
+# build lines, and a warning in the middle of that is a warning nobody reads — which would leave the
+# contention to be discovered later as a red that looks real. Refusing also matches how every other
+# opt-out here already works (RASK_SKIP_E2E, RASK_SKIP_CLI_BUILD_E2E, RASK_SKIP_WATCH_E2E), so it needs
+# no new convention.
+#
+# The argument against — that a blocked push with a false positive becomes "I cannot push and I do not
+# know why" — is real, and is answered in two places rather than by warning instead. The match is
+# decided on the EXECUTABLE POSITION in the other process's argv (rask_is_e2e_gate_command), because a
+# bare name matched a shell whose argv merely mentioned the script the first time this was tested — and
+# an anchor on the scripts/ path, which was the first fix, then silently missed the relative invocation
+# the docs actually tell you to use. And the refusal prints the offending pid, its elapsed time, its full
+# command line, and the exact variable that overrides it, so it can never be the unexplained kind.
+#
+# Detected by PROCESS, never by a lockfile: a lockfile survives kill -9 and a laptop sleep and then
+# wedges the gate until someone works out what to delete. Process detection is self-healing — a run
+# someone Ctrl-C'd leaves nothing behind. This repo has enough gates that failed quietly without adding
+# one that fails loudly at the worst moment.
+#
+# Printing WHICH run and HOW LONG is the useful half — "there is a conflict" tells you there is a
+# problem, `ps -o etime=` is what lets you decide whether to wait for it or investigate your own red.
+#
+# Skipped under CI purely so this can never be the thing that breaks an automated run. Nothing in
+# .github/workflows runs the browser E2E today — release.yml only packs, ci.yml runs the benchmark
+# gates — so this is insurance against a future parallel path, not protection of a known one.
+if [ -z "${CI:-}" ]; then
+  # shellcheck source=lib/e2e-concurrency.sh
+  . "$root/scripts/lib/e2e-concurrency.sh"
+  others="$(rask_other_e2e_runs | tr '\n' ' ')"
+
+  if [ -n "${others// /}" ]; then
+    echo "run-e2e-local: another browser E2E gate is already running on this machine."
+    for pid in $others; do
+      elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
+      cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
+      [ -n "$elapsed" ] && echo "               pid $pid, running for ${elapsed}: $cmd"
+    done
+    echo
+    echo "            Two suites on one machine contend for resources. The port collision was fixed in"
+    echo "            #626, but contention still surfaces as a plausible-looking red in one or both runs,"
+    echo "            minutes later, with nothing in the log pointing back at it. It has already cost one"
+    echo "            unexplained timeout between two worktrees that were coordinating and still both"
+    echo "            believed the machine was idle."
+    echo
+    echo "            Wait for the run above to finish, then push again. To run anyway:"
+    echo "                RASK_E2E_ALLOW_CONCURRENT=1 git push        (or set it for this script)"
+    echo "            and treat any failure as suspect until you have re-run it alone."
+    if [ "${RASK_E2E_ALLOW_CONCURRENT:-}" != "1" ]; then
+      exit 1
+    fi
+    echo "run-e2e-local: RASK_E2E_ALLOW_CONCURRENT=1 — starting alongside it anyway."
+  fi
+fi
+
 # shellcheck source=lib/build-failure.sh
 . "$root/scripts/lib/build-failure.sh"
 
@@ -88,16 +149,18 @@ dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --no
 # last. Clearing only obj/Release/net10.0-browser keeps obj/project.assets.json, so the restore below is
 # still incremental.
 #
-# bin/ is cleared alongside obj/. Be clear about what this does and does not do: it is NOT the fix, and
-# the gate still fails intermittently with it in place. It was added on an A/B that looked decisive at the
-# time (obj alone -> 0 files under publish/wwwroot/_rask, obj + bin -> 6) and has since been contradicted
-# by three sessions' worth of runs, including reproductions on branches that already had it. It is kept
-# only because it is cheap — one recompile of a project whose native relink dominates this step anyway.
+# bin/ is cleared alongside obj/. Be clear about what this does and does not do: it is NOT the fix for
+# #650. It was added on an A/B that looked decisive at the time (obj alone -> 0 files under
+# publish/wwwroot/_rask, obj + bin -> 6) and was then contradicted by three sessions' worth of runs,
+# including reproductions on branches that already had it. It is kept only because it is cheap — one
+# recompile of a project whose native relink dominates this step anyway — and because the TFM-intermediate
+# clear above it is load-bearing for the two-modes-into-one-obj/ reason given there.
 #
-# What #650 actually is, per the build log: after the no-native solution build above, this native publish's
-# bake RUNS and writes ZERO files for an app that plainly has scoped assets. So no amount of cleaning here
-# can help — there is nothing stale to clear, and the deciding variable is the preceding no-native build,
-# not this project's output. The fix belongs inside the bake and is still open.
+# #650 itself is fixed, below, by -nodeReuse:false; see the note on that publish for the mechanism. This
+# comment used to end by saying the bake wrote zero files for reasons no cleaning could address and that
+# the fix was "still open" — true when written, stale since, and directly contradicted by the note 20
+# lines down. BakeScopedAssetsTask now also fails the build rather than baking an empty bundle and
+# reporting success (see its zero-files Log.LogError), so the silent version of this cannot recur.
 #
 # Two traps when verifying anything in this area, both of which have already produced false confidence:
 # running the gate twice back to back does not distinguish these cases, since both runs do the same thing;
@@ -143,10 +206,26 @@ else
   echo "    fails with a missing-browser error: 'pwsh <path>/playwright.ps1 install chromium')"
 fi
 
-echo "==> Browser journey E2E (Rask.Examples.E2E.Tests)"
+# RASK_E2E_FILTER narrows the run while you are iterating on ONE journey. The publishes above still
+# happen — they are what makes the bundles the tests boot — but a single journey then costs one run
+# instead of the whole suite. Unset (the gate's own case) it runs everything, which is the only
+# setting the pre-push hook should ever use.
+#
+#   RASK_E2E_FILTER='FullyQualifiedName~PlaygroundExampleTests' scripts/run-e2e-local.sh
+e2e_filter="${RASK_E2E_FILTER:-FullyQualifiedName~Rask.Examples.E2E.Tests}"
+if [ -n "${RASK_E2E_FILTER:-}" ]; then
+  echo "==> Browser journey E2E (FILTERED: $e2e_filter)"
+  echo "    Not the full gate. Clear RASK_E2E_FILTER before trusting a green run."
+else
+  echo "==> Browser journey E2E (Rask.Examples.E2E.Tests)"
+fi
 dotnet test tests/Rask.Examples.E2E.Tests/bin/Release/net10.0/Rask.Examples.E2E.Tests.dll \
-  --filter "FullyQualifiedName~Rask.Examples.E2E.Tests" \
+  --filter "$e2e_filter" \
   --logger "console;verbosity=normal"
 
 echo
-echo "==> Browser E2E passed."
+if [ -n "${RASK_E2E_FILTER:-}" ]; then
+  echo "==> Browser E2E passed — FILTERED run ($e2e_filter), not the full gate."
+else
+  echo "==> Browser E2E passed."
+fi
