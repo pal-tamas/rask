@@ -39,6 +39,13 @@ them until tagged releases begin.
   faulted or ≥400. "Authenticated" is the union of the request principal and the post-render one,
   since a render can sign someone in.
 
+  **The one thing detection cannot see is now reported.** A component that pushes from a timer or an
+  `event` subscription shows the walk no need for a connection, so its page is judged static and its
+  updates then reach nobody. That cannot be detected up front — but the moment such a page asks to
+  re-render, the request itself is the symptom. Rask logs a warning under `Rask.Ssr` naming the
+  session, once per session, so a misjudged page announces itself instead of going quietly wrong. An
+  ordinary teardown is not reported, because noise is how a real warning gets ignored.
+
   **Off by default, and deliberately.** Detection can only observe what the render did; a component
   that pushes from a timer or an `event` subscription is invisible to any walk and would go quiet.
   In Development pages always keep their session, so `rask dev` hot reload is unaffected — which

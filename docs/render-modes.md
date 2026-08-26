@@ -127,6 +127,12 @@ Detection observes what the render *did*. A component that pushes updates from a
 `event` subscription wired in `OnMount` — work no render walk can observe — would be judged static
 and go quiet. `Rask.Dashboard`'s polling panels are exactly this shape.
 
+**It is reported when it happens, though.** A page served without a session that later asks to
+re-render has nowhere to send the update — and that request is the one observable symptom of this
+failure. Rask logs a warning naming the session under the `Rask.Ssr` category the first time it
+happens, so a misjudged page announces itself in your logs rather than going quietly wrong. It fires
+once per session; an ordinary teardown is not reported.
+
 That is why the feature is **off by default**, and why you should check the pages it changes before
 turning it on in production. In Development every page keeps its session, so `rask dev` hot reload
 is unaffected — which also means the static path is not exercised there yet.

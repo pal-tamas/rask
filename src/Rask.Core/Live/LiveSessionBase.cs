@@ -229,6 +229,16 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     /// <summary>Whether anything in the render needs a live connection.</summary>
     internal bool RequiresLiveSession => _interactivity != InteractivityReason.None;
 
+    void IRenderHandle.ReportLatePush() => OnLatePush();
+
+    /// <summary>
+    ///     A re-render was requested after the component left the tree. Ignored by default; a host
+    ///     that discards sessions for static pages overrides it to say so.
+    /// </summary>
+    protected virtual void OnLatePush()
+    {
+    }
+
     void IRenderHandle.ReportRequiresLiveSession(InteractivityReason reason) =>
         _interactivity |= reason;
 
