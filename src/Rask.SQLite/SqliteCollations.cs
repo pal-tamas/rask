@@ -42,6 +42,15 @@ namespace Rask.SQLite;
 /// file exactly as before.
 /// </para>
 /// <para>
+/// <b>Do not delete this when EF Core is upgraded.</b> The culture half is fixed upstream in EF Core
+/// 11.0.0 preview 1 (<a href="https://github.com/dotnet/efcore/issues/37432">dotnet/efcore#37432</a>),
+/// which adds <see cref="CultureInfo.InvariantCulture"/> to the parse — but the fix still uses
+/// <c>decimal.Parse</c>, not <c>TryParse</c>, so on EF 11 the collation continues to <b>throw, and take
+/// the process with it</b>, the moment a value that is not a number reaches the column. EF 11 fixes the
+/// first two bullets above and leaves the third; this registration is the only one that is total.
+/// Re-check <c>SqliteRelationalConnection.InitializeDbConnection</c> before removing it.
+/// </para>
+/// <para>
 /// It must run on <b>every</b> connection open, not once: Microsoft.Data.Sqlite pools connections and
 /// <c>Deactivate()</c> un-registers functions and collations when one is returned to the pool.
 /// </para>
