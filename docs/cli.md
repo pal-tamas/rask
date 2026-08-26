@@ -114,8 +114,15 @@ automation stays predictable.
 
 Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is initialized
 as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
-existing repository. `--no-bootstrap` swaps the `Bs*` components for plain elements against a small
-stylesheet in the app shell, and drops the `Rask.Bootstrap` reference.
+existing repository.
+
+**Styling is one axis with three answers, and plain is the default.** With neither flag, the generated
+pages are plain elements against a small stylesheet in the app shell — no CSS framework, nothing to
+learn before your first edit. `--bootstrap` renders them with `Rask.Bootstrap`'s `Bs*` components over
+Bootstrap 5.3, and `--tailwind` styles them with Tailwind CSS, compiled from your own source at build
+time (see [Tailwind](tailwind.md)). The two are mutually exclusive: asking for both is a usage error
+rather than a silent preference, and so is `--tailwind` on a template that does not support it yet —
+the browser-WASM ones, which have no styling axis of their own.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
@@ -172,6 +179,8 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | `--logs` | A [durable log store](logging.md) in a SQLite file of its own, so the application log survives a restart — buffered off the request thread, with retention by age and row count. The **only** battery that does *not* imply `--data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
 | `--ops` | An [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
 | `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
+| `--bootstrap` | Render the generated pages with `Rask.Bootstrap`'s `Bs*` components over Bootstrap 5.3, self-hosted (no CDN). |
+| `--tailwind` | Style the generated pages with Tailwind CSS, compiled from your own source at build time — no npm required. |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore`). |
@@ -194,7 +203,8 @@ useful than a page designed to reveal nothing.
 | `--auth` | ✅ | ✅ | ✅ | — |
 | `--pwa` | ✅ | ✅ | ✅ | — |
 | `--docker` | ✅ | ✅ | ✅ | ✅ |
-| `--tailwind` | ✅ | ✅ | ✅ | ✅ |
+| `--bootstrap` | ✅ | ✅ | ✅ | — |
+| `--tailwind` | ✅ | — | — | ✅ |
 | `--cqrs`, `--data` | ✅ | — | ✅ | ✅¹ |
 | `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | ✅ |
 | `--push` | ✅ | — | — | — |

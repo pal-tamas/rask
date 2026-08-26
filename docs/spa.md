@@ -330,7 +330,24 @@ is reported at compile time rather than on the wire.
 A message that is never sent anywhere — a job payload, an outbox event — should say so with
 `[LocalOnly]`, which exempts it from all of this.
 
+## Styling
+
+`--tailwind` works here too, and it works the way this ecosystem expects rather than the way the C#
+hosts do: `@tailwindcss/vite` and `tailwindcss` land in the client's own `package.json`, the plugin
+goes into its Vite config, and the entry stylesheet is one `@import "tailwindcss"`.
+
+```bash
+rask new Shop --template react --tailwind
+```
+
+The client already has Node, a bundler and a dev server with HMR, so routing its CSS through MSBuild
+— which is what [`Rask.Tailwind`](tailwind.md) does on a C# host — would be strictly worse. The
+scaffolded stylesheet **replaces** create-vite's starter CSS rather than sitting beside it: the
+starter styles the placeholder page the template has already overlaid away, and leaving it in would
+fight Tailwind's own reset.
+
 ## See also
 
+- [`docs/tailwind.md`](tailwind.md) — Tailwind on a C# host, with no npm at all.
 - [`docs/cqrs.md`](cqrs.md) — the mediator, the wire protocol, and authorization.
 - [`docs/cli.md`](cli.md) — `rask new`, `rask dev`, `rask deploy`.

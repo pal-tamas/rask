@@ -6,9 +6,9 @@ namespace Rask.Cli.Tests;
 ///     The styling axis: plain CSS by default, Bootstrap or Tailwind on request.
 /// </summary>
 /// <remarks>
-///     One choice with three answers rather than a pair of booleans. <c>--no-bootstrap --tailwind</c>
-///     would have had to mean something, and two flags that are really one question always end up with a
-///     state nobody designed.
+///     One choice with three answers rather than a pair of booleans: two flags that are really one
+///     question always end up with a combination nobody designed. <c>--bootstrap --tailwind</c> is a
+///     usage error for the same reason.
 /// </remarks>
 public sealed class StylingTests
 {

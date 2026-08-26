@@ -158,9 +158,9 @@ internal sealed record ServerBatteries
 ///     How a scaffolded project styles its pages.
 /// </summary>
 /// <remarks>
-///     One axis with three answers rather than a pair of booleans. <c>--no-bootstrap --tailwind</c> would
-///     have had to mean something, and every combination of two flags that are really one choice ends up
-///     with a state nobody designed.
+///     One axis with three answers rather than a pair of booleans. A <c>--bootstrap --tailwind</c>
+///     pair would have had to mean something, and every combination of two flags that are really one
+///     choice ends up with a state nobody designed.
 /// </remarks>
 internal enum Styling
 {

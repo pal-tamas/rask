@@ -260,7 +260,40 @@ them until tagged releases begin.
   case, where rendering a spinner would hide data the user already has. `IsLoading`, `IsFetching`,
   `IsSuccess` and the new `IsError` are derived from them.
 
+- **Tailwind CSS on every host, compiled by `dotnet build`** — `rask new --tailwind`, and a
+  `Rask.Tailwind` build-only package you can add to any project. No `package.json`, no
+  `node_modules`, no PostCSS and no npm: the build fetches Tailwind v4's standalone binary, verifies
+  it against the release's published checksum, and caches it per user at `~/.rask/tailwind`. Where
+  Tailwind publishes no standalone binary — win32-arm64, 32-bit ARM, FreeBSD — it falls back to a
+  project-local npm install of the same version — including the `wasm32-wasi` engine, which runs
+  anywhere Node does — so no platform is simply unsupported.
+
+  **Your C# is the source it scans.** A component's classes are ordinary string literals, so
+  `Div.Class("rounded-lg border p-6")` is found by v4's own source detection with nothing configured
+  — no `content` array to keep in step with where the components live, and no config file at all. The
+  build is incremental over the input sheet plus the project's `.cs`/`.razor`/`.html`, and skipped
+  entirely on a design-time build, so an IDE reloading a project never downloads a binary.
+
+  The version is **pinned, not floating**: a compiler is not a library, and a build that quietly
+  picked up a new one would change what your pages look like with nothing in the diff. Every failure
+  names the way out — the Node install line for this OS, the download URL and path when offline, and
+  `RaskTailwindBuild=false` to build the app without the stylesheet rather than be blocked. Documented
+  in [docs/tailwind.md](docs/tailwind.md).
+
+  On the front-end templates it uses `@tailwindcss/vite` instead: that project already has Node, a
+  bundler and HMR, and routing its CSS through MSBuild would be strictly worse.
+
 ### Changed
+- **Styling is one axis with three answers, and plain CSS is now the default.** `rask new` gave you
+  Bootstrap unless you passed `--no-bootstrap`, which made an opinion the thing you got by not
+  choosing. Now: nothing renders plain elements against a small stylesheet inlined in the app shell,
+  `--bootstrap` asks for `Rask.Bootstrap`, and `--tailwind` asks for Tailwind. **`--no-bootstrap` is
+  gone** — it was the negative half of a boolean pair that could not express three answers, and
+  `--bootstrap --tailwind` is a usage error rather than a silent preference, because picking a winner
+  would scaffold something the command line did not ask for. `--tailwind` on `wasm`/`wasm-hosted` is
+  refused for the same reason: those paths have no styling axis yet, and would have scaffolded plain
+  CSS while reporting success.
+
 - **The Bootstrap date and time pickers follow the visitor's culture instead of the server's.**
   `BsPickerBase` read `CultureInfo.CurrentCulture` for month names, weekday names and
   first-day-of-week — but nothing in Rask ever *set* it, so on a server every visitor got the

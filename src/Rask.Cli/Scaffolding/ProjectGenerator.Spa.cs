@@ -59,6 +59,15 @@ internal static partial class ProjectGenerator
             // starter CSS styles the placeholder page we have already overlaid away, and leaving it in
             // would fight Tailwind's own reset.
             files.Add(($"{NameToken}.Client/{framework.GlobalStylesheet}", SpaTailwindCss));
+
+            // Angular has no vite.config.ts to register a plugin in — its Vite config belongs to
+            // @angular/build, not to you — so it takes Tailwind through PostCSS, which the Angular
+            // builder reads on its own. Without this the packages are installed and nothing compiles
+            // the stylesheet: the app builds, and every utility class is missing.
+            if (!framework.WritesViteConfig)
+            {
+                files.Add(($"{NameToken}.Client/.postcssrc.json", SpaTailwindPostcssRc));
+            }
         }
 
         if (batteries.Data)
@@ -163,6 +172,21 @@ internal static partial class ProjectGenerator
         return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
     }
 
+    /// <summary>Tailwind's PostCSS adapter, for the scaffolders that own their own Vite config.</summary>
+    /// <remarks>
+    ///     Angular's builder reads <c>.postcssrc.json</c> from the project root with nothing pointing at
+    ///     it, which is the whole reason this works where a plugin registration cannot.
+    /// </remarks>
+    private const string SpaTailwindPostcssRc =
+        """
+        {
+          "plugins": {
+            "@tailwindcss/postcss": {}
+          }
+        }
+
+        """;
+
     /// <summary>The client's entry stylesheet when the project took Tailwind.</summary>
     /// <remarks>
     ///     One import, because that is all v4 needs. The Vite plugin detects the sources itself from the
@@ -233,7 +257,12 @@ internal static partial class ProjectGenerator
             // own mechanism in the one place the ecosystem's is better — and it would give up the
             // bundler's own hot reload for CSS.
             dependencies["tailwindcss"] = TailwindRange;
-            dependencies["@tailwindcss/vite"] = TailwindRange;
+
+            // Two different adapters for the same compiler: the Vite plugin where there is a Vite config
+            // to put it in, @tailwindcss/postcss where there is not (Angular). Installing the wrong one
+            // is silent — nothing reads it, and the build succeeds with no utilities in the output.
+            dependencies[framework.WritesViteConfig ? "@tailwindcss/vite" : "@tailwindcss/postcss"] =
+                TailwindRange;
         }
 
         if (framework.Key == "svelte" && root["scripts"] is JsonObject scripts)

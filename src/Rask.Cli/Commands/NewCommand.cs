@@ -19,6 +19,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly string _workingDirectory = workingDirectory;
 
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
+    /// <summary>Whether a template's generated project can be styled with Tailwind.</summary>
+    /// <remarks>
+    ///     Not a <see cref="FeatureFlags"/> entry: styling is its own axis, not a battery. The browser-WASM
+    ///     generators still collapse that axis to a bool, so they would scaffold plain CSS and report
+    ///     success — see https://github.com/pal-tamas/rask/issues/838.
+    /// </remarks>
+    private static bool SupportsTailwind(string templateKey) => templateKey is not ("wasm" or "wasm-hosted");
+
     internal static readonly string[] FeatureFlags =
     [
         "auth", "pwa", "cqrs", "data", "docker", "localization",
@@ -159,6 +167,24 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail($"Template '{template.Key}' does not support: {rejected}. Supported flags: {supported}.");
         }
 
+        // Refused rather than ignored. The browser-WASM paths collapse styling to a bool and would
+        // scaffold a plain project, so accepting the flag here would mean the CLI said yes and produced
+        // something else — the failure mode that costs the most to discover.
+        if (parsed.HasFlag("tailwind") && !SupportsTailwind(template.Key))
+        {
+            return Fail(
+                $"Template '{template.Key}' does not support --tailwind yet. Use --bootstrap, or leave it "
+                + "off for plain CSS.");
+        }
+
+        // Styling is one axis with three answers, so asking for two of them says nothing coherent.
+        // Picking a winner would scaffold something the command line did not ask for, and the wizard
+        // cannot produce this pair at all — only a hand-written command can.
+        if (parsed.HasFlag("bootstrap") && parsed.HasFlag("tailwind"))
+        {
+            return Fail("--bootstrap and --tailwind are alternatives; pass one, or neither for plain CSS.");
+        }
+
         var cultures = parsed.MultiOption("culture");
         if (cultures.Count > 0 && !template.SupportedFlags.Contains("localization"))
         {
@@ -197,6 +223,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 // Plain CSS is the default: it is the one answer that assumes nothing about what you are
                 // building. Bootstrap and Tailwind are both opinions, and neither should be what you get
                 // by not choosing.
+                // The pair is rejected above, so this order never has to arbitrate.
                 var styling = parsed.HasFlag("tailwind") ? Styling.Tailwind
                     : parsed.HasFlag("bootstrap") ? Styling.Bootstrap
                     : Styling.Plain;
@@ -346,14 +373,20 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // building.
         if (!parsed.HasFlag("bootstrap") && !parsed.HasFlag("tailwind"))
         {
-            var styling = prompt.Select(
-                "Styling",
-                [
-                    ("plain", "[bold]Plain CSS[/] [dim]— a small stylesheet the project owns, no framework[/]"),
-                    ("tailwind", "[bold]Tailwind[/] [dim]— utilities compiled from your own source, no npm needed[/]"),
-                    ("bootstrap", "[bold]Rask.Bootstrap[/] [dim]— Bs* components over Bootstrap 5.3, no CDN[/]"),
-                ],
-                "plain");
+            // Offered only where it works, so an interactive run cannot assemble the one combination
+            // the command line then refuses. Same predicate as the validation above, deliberately.
+            List<(string, string)> options =
+                [("plain", "[bold]Plain CSS[/] [dim]— a small stylesheet the project owns, no framework[/]")];
+
+            if (SupportsTailwind(templateKey))
+            {
+                options.Add(
+                    ("tailwind", "[bold]Tailwind[/] [dim]— utilities compiled from your own source, no npm needed[/]"));
+            }
+
+            options.Add(("bootstrap", "[bold]Rask.Bootstrap[/] [dim]— Bs* components over Bootstrap 5.3, no CDN[/]"));
+
+            var styling = prompt.Select("Styling", [.. options], "plain");
 
             if (styling != "plain")
             {

@@ -69,6 +69,8 @@ public static class GuideCatalog
             "bi-shuffle", "One Person Framework"),
         new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.",
             "bi-filetype-tsx", "One Person Framework"),
+        new("tailwind", "Tailwind CSS", "Tailwind v4 compiled by dotnet build — no npm, no config file.",
+            "bi-wind", "One Person Framework"),
         new("query", "Rask.Query", "The dispatcher wrapped in a cache: dedup, staleness, invalidation.",
             "bi-arrow-repeat", "One Person Framework"),
         new("jobs", "Background jobs", "Durable enqueued / delayed / recurring work on your database.",

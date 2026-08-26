@@ -63,8 +63,8 @@ public sealed class ProjectGeneratorBuildE2ETests
     }
 
     /// <summary>
-    /// <c>--no-bootstrap</c> swaps every generated page body for plain elements and drops the
-    /// Rask.Bootstrap reference. That is the one flag where the *code* differs rather than the wiring, so
+    /// Plain styling — what you get without <c>--bootstrap</c> — swaps every generated page body for plain
+    /// elements and drops the Rask.Bootstrap reference. That is the one flag where the *code* differs rather than the wiring, so
     /// it is the one a string assertion proves least about: the Bs-free bodies have to compile without the
     /// package that supplies <c>BsCard</c> and <c>BootstrapStyles</c>, on both the welcome page and the
     /// error page, and the reference has to actually be gone rather than merely unused.

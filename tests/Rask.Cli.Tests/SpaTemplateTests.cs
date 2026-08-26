@@ -25,6 +25,18 @@ public sealed class SpaTemplateTests
     private static bool Has(ScaffoldResult result, string endsWith) =>
         result.Files.Any(f => f.Path.Replace('\\', '/').EndsWith(endsWith, StringComparison.Ordinal));
 
+    /// <summary>Runs the package.json patch over a minimal stand-in for what the scaffolder writes.</summary>
+    /// <remarks>
+    ///     package.json is not ours — create-vite (or ng new) writes it and the generator patches it — so
+    ///     asking the result for the file finds nothing. The patch is the thing under test.
+    /// </remarks>
+    private static string PackageJson(ScaffoldResult result)
+    {
+        var patch = result.Patches.Single(p => p.Path.EndsWith("package.json", StringComparison.Ordinal));
+
+        return patch.Transform("""{ "dependencies": {}, "devDependencies": {}, "scripts": {} }""");
+    }
+
     [Fact]
     public void The_client_skeleton_comes_from_the_framework_s_own_scaffolder()
     {
@@ -425,6 +437,84 @@ public sealed class SpaTemplateTests
         Assert.Contains("'/_rask'", config, StringComparison.Ordinal);
     }
 
+
+    /// <summary>
+    ///     Every framework gets Tailwind through the adapter its own build can actually read.
+    /// </summary>
+    /// <remarks>
+    ///     The failure this pins is silent: install the wrong adapter and the packages are there, the
+    ///     stylesheet is there, the build succeeds — and every utility class is missing from the output.
+    ///     Nothing reports it, so only a test that looks at the wiring catches it.
+    /// </remarks>
+    [Fact]
+    public void Tailwind_uses_the_vite_plugin_where_there_is_a_vite_config_and_postcss_where_there_is_not()
+    {
+        foreach (var framework in SpaFramework.All)
+        {
+            var result = ProjectGenerator.GenerateSpa(
+                Root, "Shop", framework, new ServerBatteries { Styling = Styling.Tailwind }, "1.2.3");
+
+            var packageJson = PackageJson(result);
+            Assert.Contains("\"tailwindcss\"", packageJson, StringComparison.Ordinal);
+
+            if (framework.WritesViteConfig)
+            {
+                Assert.Contains("\"@tailwindcss/vite\"", packageJson, StringComparison.Ordinal);
+                Assert.DoesNotContain("@tailwindcss/postcss", packageJson, StringComparison.Ordinal);
+                Assert.False(Has(result, "/Shop.Client/.postcssrc.json"));
+
+                var config = Content(result, "/Shop.Client/vite.config.ts");
+                Assert.Contains("import tailwindcss from '@tailwindcss/vite'", config, StringComparison.Ordinal);
+                Assert.Contains("tailwindcss()", config, StringComparison.Ordinal);
+            }
+            else
+            {
+                // Angular: its Vite config belongs to @angular/build, so there is nowhere to register a
+                // plugin. The builder reads .postcssrc.json from the project root on its own.
+                Assert.Contains("\"@tailwindcss/postcss\"", packageJson, StringComparison.Ordinal);
+                Assert.DoesNotContain("@tailwindcss/vite", packageJson, StringComparison.Ordinal);
+                Assert.Contains(
+                    "@tailwindcss/postcss", Content(result, "/Shop.Client/.postcssrc.json"), StringComparison.Ordinal);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Tailwind replaces the scaffolder's own global stylesheet, at whatever name that one uses.
+    /// </summary>
+    /// <remarks>
+    ///     Not the same file in any two of them — <c>index.css</c>, <c>style.css</c>, <c>app.css</c>,
+    ///     <c>styles.css</c>. Overlaying the wrong name does not fail: the file lands beside the real one,
+    ///     nothing imports it, and the app builds with no Tailwind in it at all.
+    /// </remarks>
+    [Fact]
+    public void Tailwind_overwrites_the_stylesheet_the_entry_point_already_imports()
+    {
+        foreach (var framework in SpaFramework.All)
+        {
+            var result = ProjectGenerator.GenerateSpa(
+                Root, "Shop", framework, new ServerBatteries { Styling = Styling.Tailwind }, "1.2.3");
+
+            var sheet = Content(result, $"/Shop.Client/{framework.GlobalStylesheet}");
+            Assert.Contains("@import \"tailwindcss\";", sheet, StringComparison.Ordinal);
+
+            // v4 needs no config file and no content array: it detects the sources itself.
+            Assert.DoesNotContain("content:", sheet, StringComparison.Ordinal);
+            Assert.False(Has(result, "/Shop.Client/tailwind.config.js"));
+        }
+    }
+
+    [Fact]
+    public void Without_tailwind_no_client_carries_any_of_its_wiring()
+    {
+        foreach (var framework in SpaFramework.All)
+        {
+            var result = ProjectGenerator.GenerateSpa(Root, "Shop", framework, new ServerBatteries(), "1.2.3");
+
+            Assert.DoesNotContain("tailwind", PackageJson(result), StringComparison.OrdinalIgnoreCase);
+            Assert.False(Has(result, "/Shop.Client/.postcssrc.json"));
+        }
+    }
 
     [Fact]
     public void Angular_is_scaffolded_by_its_own_CLI()
