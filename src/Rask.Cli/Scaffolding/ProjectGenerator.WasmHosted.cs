@@ -125,6 +125,7 @@ internal static partial class ProjectGenerator
         if (cqrs)
         {
             sb.Append("using Rask.Cqrs.Client;\n");
+            sb.Append("using Rask.Query;\n");
         }
 
         if (auth)
@@ -159,6 +160,11 @@ internal static partial class ProjectGenerator
                 // request is same-origin, so the auth cookie rides it. A message this client owns end to
                 // end needs [LocalOnly], or it travels too. See docs/cqrs.md.
                 host.Services.AddRaskCqrsClient();
+
+                // Server state over that dispatcher: dedup, staleness, background refetch, invalidation.
+                // Worth more here than anywhere — every dispatch is a network round trip, so a component
+                // that refetches on each render is paying for it over the wire. See docs/query.md.
+                host.Services.AddRaskQuery();
 
                 """.TrimStart('\n'));
         }
@@ -526,8 +532,12 @@ internal static partial class ProjectGenerator
             : "";
 
         // The client half only. It has no idea an endpoint exists — it turns a dispatch into a request.
+        // Rask.Query rides along with it: a cache over the dispatcher is not a separate decision from
+        // having a dispatcher, and over a network transport it is the difference between one request and
+        // one per render.
         var cqrsRef = cqrs
             ? $"\n    <PackageReference Include=\"Rask.Cqrs.Client\" Version=\"{version}\"/>"
+              + $"\n    <PackageReference Include=\"Rask.Query\" Version=\"{version}\"/>"
             : "";
 
         return $"""

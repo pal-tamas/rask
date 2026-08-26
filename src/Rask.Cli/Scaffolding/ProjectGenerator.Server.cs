@@ -99,6 +99,11 @@ internal static partial class ProjectGenerator
         if (batteries.Cqrs)
         {
             packages.Add("Rask.Cqrs");
+
+            // Not a flag of its own. A dispatcher without a cache means every render refetches, and the
+            // first thing anyone building a page over IDispatcher needs is the thing that stops that —
+            // so it arrives wired rather than as something to discover in the docs later.
+            packages.Add("Rask.Query");
         }
 
         if (batteries.Data)
@@ -215,6 +220,11 @@ internal static partial class ProjectGenerator
             sb.Append("using Rask.WebPush;\n");
         }
 
+        if (batteries.Cqrs)
+        {
+            sb.Append("using Rask.Query;\n");
+        }
+
         if (batteries.Pwa)
         {
             sb.Append("using Rask.Core.Browser;\n");
@@ -305,6 +315,12 @@ internal static partial class ProjectGenerator
                 // this assembly (source-generated, reflection-free — trim/AOT-safe). Inject IDispatcher to send
                 // messages; add pipeline behaviors with o.AddOpenBehavior(...). See docs/cqrs.md.
                 builder.Services.AddRaskCqrs();
+
+                // Server state over that dispatcher: dedup, staleness, background refetch, invalidation.
+                // Inject IQueryClient and render a Query<T> instead of fetching in OnInitializedAsync —
+                // scoped per live session, so one visitor's results are never handed to another.
+                // See docs/query.md.
+                builder.Services.AddRaskQuery();
 
                 """.TrimStart('\n'));
         }

@@ -614,6 +614,16 @@ internal static class SpaClientSources
 
             @customElement('rask-greeting')
             export class RaskGreeting extends LitElement {
+              // Light DOM, on purpose. Lit renders into a shadow root by default, and page-level CSS does
+              // not cross one — so the app's stylesheet (Tailwind's included) would style everything on
+              // the page EXCEPT this component, with nothing reporting it. That trade buys encapsulation
+              // for a component that declares no `static styles` of its own, so it costs more than it
+              // gives here. Delete this to get the shadow root back, and move styling into `static
+              // styles` when you do.
+              protected createRenderRoot() {
+                return this
+              }
+
               @state()
               private accessor name = 'world'
 
