@@ -17,7 +17,7 @@ internal sealed record TemplateInfo(
 internal static class TemplateCatalog
 {
     /// <summary>Feature flags every web template supports.</summary>
-    private static readonly string[] WebFlags = ["auth", "pwa", "docker"];
+    private static readonly string[] WebFlags = ["auth", "pwa", "docker", "localization"];
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a

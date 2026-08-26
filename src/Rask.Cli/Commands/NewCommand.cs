@@ -21,7 +21,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
     internal static readonly string[] FeatureFlags =
     [
-        "auth", "pwa", "cqrs", "data", "docker",
+        "auth", "pwa", "cqrs", "data", "docker", "localization",
         "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops", "all-batteries",
     ];
 
@@ -40,6 +40,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     [
         "rask new Shop",
         "rask new Shop --template wasm --pwa",
+        "rask new Shop --culture en --culture hu",
         "rask new Api --template server --auth --docker",
         "rask new Blog --data --docker",
         "rask new Shop --all-batteries --auth --docker",
@@ -53,11 +54,13 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
+            .MultiOption("culture", valueHint: "tag", description: "A language to translate the UI into, repeatable (default: en). A BCP 47 tag — 'en', 'hu', 'pt-BR'. Implies --localization.")
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
             .Flag("cqrs", description: "Wire up Rask.Cqrs. On 'wasm-hosted' this also makes the client dispatch to the server — no HttpClient, no endpoints to write.")
             .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext your features map through (server only).")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
+            .Flag("localization", description: "Translate the UI: a Resources/Strings.{culture}.json per language compiled into typed members, the visitor's language negotiated from their request, and a switcher in the shell.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
             .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
             .Flag("no-bootstrap", description: "Render pages with plain elements and a small built-in stylesheet instead of Rask.Bootstrap.")
@@ -155,6 +158,31 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail($"Template '{template.Key}' does not support: {rejected}. Supported flags: {supported}.");
         }
 
+        var cultures = parsed.MultiOption("culture");
+        if (cultures.Count > 0 && !template.SupportedFlags.Contains("localization"))
+        {
+            return Fail($"Template '{template.Key}' does not support --culture.");
+        }
+
+        foreach (var tag in cultures)
+        {
+            if (!IsKnownCulture(tag))
+            {
+                return Fail(
+                    $"'{tag}' isn't a language tag this machine knows. Pass a BCP 47 tag like 'en', 'hu' or 'pt-BR'.");
+            }
+        }
+
+        // Rejected rather than quietly deduped: a repeated tag means the command line does not say what
+        // its author thought it said, and scaffolding two identical catalogs would hide that.
+        var duplicate = cultures
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(g => g.Count() > 1);
+        if (duplicate is not null)
+        {
+            return Fail($"--culture {duplicate.Key} was given more than once.");
+        }
+
         // Every template is generated directly by the CLI (server, wasm, wasm-hosted); the key here is one
         // of those three (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
@@ -170,30 +198,70 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 var bootstrap = !parsed.HasFlag("no-bootstrap");
                 return template.Key switch
                 {
-                    "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version, bootstrap),
+                    "wasm" => ProjectGenerator.GenerateWasm(
+                        dir, name, auth, pwa, docker, version, bootstrap,
+                        ToBatteries(requestedFlags, bootstrap, cultures).Normalized()),
                     // Push is cleared rather than rejected: an explicit --push on this template already
                     // fails fast against TemplateCatalog, so the only way to arrive here with it set is
                     // --all-batteries, and "every battery this template has" is the honest reading of that.
                     "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(
-                        dir, name, ToBatteries(requestedFlags, bootstrap) with { Push = false }, version),
-                    _ => ProjectGenerator.GenerateServer(dir, name, ToBatteries(requestedFlags, bootstrap), version),
+                        dir, name, ToBatteries(requestedFlags, bootstrap, cultures) with { Push = false }, version),
+                    _ => ProjectGenerator.GenerateServer(
+                        dir, name, ToBatteries(requestedFlags, bootstrap, cultures), version),
                 };
             },
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Whether this machine knows <paramref name="tag"/> as a culture.</summary>
+    /// <remarks>
+    /// <c>GetCultureInfo</c>, not <c>new CultureInfo(...)</c>: the constructor accepts arbitrary
+    /// well-formed junk when <c>PredefinedCulturesOnly</c> is off, so it would let a typo through to a
+    /// scaffolded catalog nobody ever sees translated.
+    /// </remarks>
+    private static bool IsKnownCulture(string tag)
+    {
+        if (string.IsNullOrWhiteSpace(tag))
+        {
+            return false;
+        }
+
+        try
+        {
+            return System.Globalization.CultureInfo.GetCultureInfo(tag.Trim()).Name.Length > 0;
+        }
+        catch (System.Globalization.CultureNotFoundException)
+        {
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     /// <summary>
     /// Maps the requested flag names onto the server template's battery set. <c>--all-batteries</c> expands to
     /// every DB-backed pillar, which is what the tutorial and the showcase sample use.
     /// </summary>
+    /// <remarks>
+    /// <c>--all-batteries</c> deliberately does NOT imply <c>--localization</c>. The batteries are the
+    /// back-end pillars a DB-backed app needs; localization is a decision about the app's user-facing
+    /// surface, and shipping a second language is a commitment to translating every string in it.
+    /// </remarks>
     internal static ServerBatteries ToBatteries(
         IReadOnlyCollection<string> flags,
-        bool bootstrap = true)
+        bool bootstrap = true,
+        IReadOnlyList<string>? cultures = null)
     {
         var all = flags.Contains("all-batteries");
         return new ServerBatteries
         {
             Bootstrap = bootstrap,
+            Localization = flags.Contains("localization"),
+            // Joined rather than kept as a list: ServerBatteries is a record, and a collection property
+            // would quietly turn its value equality into reference equality.
+            CultureList = cultures is { Count: > 0 } ? string.Join(",", cultures) : "",
             Auth = flags.Contains("auth"),
             Pwa = flags.Contains("pwa"),
             Cqrs = flags.Contains("cqrs"),
