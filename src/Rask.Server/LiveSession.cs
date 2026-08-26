@@ -410,6 +410,20 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         var waves = 0;
         while (quiescence.TrySnapshotPending(out var batch))
         {
+            // Work blocked on JavaScript cannot finish here, so waiting for it only burns the
+            // budget. A JS call made during a render queues onto a frame, and during the GET there
+            // is no client to send that frame to — the awaiting task completes once the socket is
+            // up, never before. A hook that reads browser storage to restore a session is exactly
+            // this shape, and it is idiomatic enough to appear in the framework's own auth sample.
+            //
+            // Stopping here costs nothing that waiting would have bought: the same page is already
+            // marked interactive by the interop itself, so it keeps its session and finishes over
+            // the socket precisely as it did before any of this existed.
+            if (JsInvokes.HasPending)
+            {
+                break;
+            }
+
             var remaining = deadline - DateTime.UtcNow;
             if (remaining <= TimeSpan.Zero || waves >= MaxQuiescenceWaves)
             {

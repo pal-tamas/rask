@@ -52,6 +52,23 @@ open for up to that long, so size it together with `MaxSessions` — the two mul
 returns immediately from the hook, so the response goes out and the loop keeps pushing over the
 socket, as it always did.
 
+**Work blocked on JavaScript is not waited on either**, and cannot be. A JS call made during a
+render queues onto a frame, and during the `GET` there is no client to send that frame to — so the
+awaiting task completes once the socket is up and never before. A hook that reads browser storage to
+restore a session is exactly this shape:
+
+```csharp
+protected override async Task OnMountAsync()
+{
+    var stored = await _protectedStorage.GetAsync<string>("token");   // needs the socket
+    // …
+}
+```
+
+The render stops waiting the moment it sees a queued JS call. Nothing is lost by that: such a page
+is already interactive *because* of the interop, so it keeps its session and finishes over the
+socket exactly as it did before. Waiting would only have spent the whole budget on every page load.
+
 ## A page that needs nothing live is served as a document
 
 Opt in with `RaskServerOptions.StaticPages`:

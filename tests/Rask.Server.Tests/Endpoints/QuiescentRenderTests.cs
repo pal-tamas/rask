@@ -1,3 +1,4 @@
+using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Server.Tests.Infrastructure;
 
@@ -50,6 +51,25 @@ public class QuiescentRenderTests
         // exactly as it does today.
         Assert.True(elapsed < TimeSpan.FromSeconds(5), $"took {elapsed}");
         Assert.Contains("still-loading", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Get_WhenTheHookAwaitsJavaScript_DoesNotBurnTheBudget()
+    {
+        // A JS call made during a render queues onto a frame, and during the GET there is no client
+        // to send that frame to — so the awaiting task completes once the socket is up and never
+        // before. Waiting for it buys nothing and costs the whole budget on EVERY page load. The
+        // framework's own JWT auth sample restores its session exactly this way, which is how this
+        // was found: every page of it took five seconds.
+        using var host = RaskTestHost.Create<JsInteropOnMountApp>(
+            configureServer: o => o.InitialRenderQuiescenceTimeout = TimeSpan.FromSeconds(5));
+
+        var started = DateTime.UtcNow;
+        var response = await host.Http.GetAsync("/");
+        var elapsed = DateTime.UtcNow - started;
+
+        response.EnsureSuccessStatusCode();
+        Assert.True(elapsed < TimeSpan.FromSeconds(2), $"took {elapsed}; the budget was spent waiting");
     }
 
     [Fact]
@@ -124,4 +144,15 @@ public sealed partial class NeverSettlesApp : Component
     }
 
     protected override Component? Render() => Div[_value ?? "still-loading"];
+}
+
+public sealed partial class JsInteropOnMountApp(IJSRuntime js) : Component
+{
+    protected override Component? HeadAssets => Title["js-on-mount"];
+
+    // Never completes during the GET: the call is queued for a frame that has no client yet.
+    protected override async Task OnMountAsync() =>
+        await js.InvokeAsync<string>("sessionStorage.getItem", "token");
+
+    protected override Component? Render() => Div["content"];
 }
