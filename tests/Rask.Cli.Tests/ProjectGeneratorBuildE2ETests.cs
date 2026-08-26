@@ -84,7 +84,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = ProjectGenerator.GenerateServer(
-                projectDir, name, new ServerBatteries { Bootstrap = false, Auth = auth }, version);
+                projectDir, name, new ServerBatteries { Styling = Styling.Plain, Auth = auth }, version);
 
             Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
 

@@ -53,7 +53,7 @@ internal static partial class ProjectGenerator
     // bucket a new project shares across its feature slices. The welcome home page is its own Features/Home
     // slice (see HomePageCs). With Bootstrap the styling comes from the CDN-free Rask.Bootstrap asset;
     // without it the shell carries a small baseline of its own, so an opted-out app is still presentable.
-    private static string AppShellCs(bool bootstrap) =>
+    private static string AppShellCs(Styling styling) =>
         $$"""
         using Rask.Core.Routing;
 
@@ -68,7 +68,7 @@ internal static partial class ProjectGenerator
                 Title["Company.RaskServer"],
                 Meta.Charset("utf-8"),
                 Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
-        {{(bootstrap ? BootstrapHead : BaselineHead)}}
+        {{StylingHead(styling)}}
             ];
 
             // The body's content. Rask emits the doctype, <html lang>, <head> and <body> around this —
@@ -76,6 +76,22 @@ internal static partial class ProjectGenerator
             protected override Component? Render() => Router;
         }
 
+        """;
+
+    /// <summary>The head contribution each styling choice needs.</summary>
+    private static string StylingHead(Styling styling) => styling switch
+    {
+        Styling.Bootstrap => BootstrapHead,
+        Styling.Tailwind => TailwindHead,
+        _ => BaselineHead,
+    };
+
+    // A plain <link> to what the build compiled. Nothing framework-specific: Rask.Tailwind writes
+    // wwwroot/css/app.css before the app builds, and every host already serves wwwroot.
+    private const string TailwindHead =
+        """
+                // Compiled from Styles/app.css by Rask.Tailwind, scanning this project's own source.
+                Link.Rel("stylesheet").Href("/css/app.css")
         """;
 
     private const string BootstrapHead =
@@ -115,7 +131,45 @@ internal static partial class ProjectGenerator
 
     // The welcome home page that teaches the CLI — a Features/Home slice, so a new project already models
     // the "screens are feature slices" convention the CLI generates into.
-    private static string HomePageCs(bool bootstrap) => bootstrap ? HomePageBootstrapCs : HomePageBaselineCs;
+    private static string HomePageCs(Styling styling) => styling switch
+    {
+        Styling.Bootstrap => HomePageBootstrapCs,
+        Styling.Tailwind => HomePageTailwindCs,
+        _ => HomePageBaselineCs,
+    };
+
+    // The same page in Tailwind utilities. Every class here is one Tailwind will find by scanning THIS
+    // FILE at build time — which is the whole mechanism, and the reason the page is worth scaffolding
+    // rather than leaving the stylesheet empty: it proves the loop end to end on the first build.
+    private const string HomePageTailwindCs =
+        """
+        using Rask.Core.Routing;
+
+        namespace Company.RaskServer.Features.Home;
+
+        [Route("/")]
+        public sealed partial class HomePage : Component
+        {
+            protected override Component? Render() =>
+                Main.Class("mx-auto max-w-xl px-4 py-10")[
+                    Div.Class("rounded-xl border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-700 dark:bg-slate-800")[
+                        H1.Class("mb-2 text-2xl font-semibold tracking-tight")["Hello, Rask! 👋"],
+                        P.Class("mb-4 text-slate-500 dark:text-slate-400")["Your app is ready. What to do next:"],
+                        Ul.Class("mb-4 list-disc space-y-1 pl-5")[
+                            Li[Code.Class("rounded bg-violet-100 px-1.5 py-0.5 text-violet-700")["rask dev"], " — run with hot reload"],
+                            Li[Code.Class("rounded bg-violet-100 px-1.5 py-0.5 text-violet-700")["rask db add Init"], " — create the database"],
+                            Li[A.Class("text-violet-600 underline underline-offset-2 hover:text-violet-500").Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"]]
+                        ],
+                        P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                            "Edit this page in ",
+                            Code.Class("rounded bg-slate-100 px-1.5 py-0.5 dark:bg-slate-700")["HomePage.cs"],
+                            " — Tailwind rebuilds the stylesheet from it on the next build."
+                        ]
+                    ]
+                ];
+        }
+
+        """;
 
     private const string HomePageBootstrapCs =
         """
@@ -386,6 +440,26 @@ internal static partial class ProjectGenerator
           <rect x="56" y="56" width="400" height="400" rx="88" fill="url(#g)"/>
           <path d="M300 120 L196 248 L256 248 L240 392 L356 236 L292 236 Z" fill="#ffffff"/>
         </svg>
+
+        """;
+}
+
+internal static partial class ProjectGenerator
+{
+    /// <summary>
+    ///     The stylesheet Tailwind compiles, and the only CSS file a Tailwind project starts with.
+    /// </summary>
+    /// <remarks>
+    ///     One import, because that is genuinely all v4 needs — no config file, no <c>content</c> array,
+    ///     no PostCSS. Tailwind detects the sources itself from the project directory, which is why the
+    ///     C# pages are scanned with nothing telling it to.
+    /// </remarks>
+    private const string TailwindInputCss =
+        """
+        @import "tailwindcss";
+
+        /* Your own CSS goes here. Anything below participates in the same build, so @apply and
+           @theme work, and the output still contains only what this project actually uses. */
 
         """;
 }

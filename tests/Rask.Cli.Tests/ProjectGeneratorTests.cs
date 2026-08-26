@@ -41,7 +41,9 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(WithHygiene(AlwaysPresent).Order(), files.Keys.Order());
 
-        Assert.Equal(["Rask.Server", "Rask.Bootstrap"], result.Packages);
+        // Just the framework. Plain CSS is the default, so no styling package is pulled in by not
+        // choosing one — Bootstrap and Tailwind are both opinions, and neither is what you get for free.
+        Assert.Equal(["Rask.Server"], result.Packages);
         // No opt-in artifacts leak in.
         Assert.DoesNotContain("Features/Auth/CredentialStore.cs", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
@@ -236,13 +238,19 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("Render() => Router;", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("public sealed partial class HomePage", shell, StringComparison.Ordinal);
 
-        // The welcome page is its own Features/Home slice, Bootstrap-styled (no scoped .css to pair with).
+        // The welcome page is its own Features/Home slice (no scoped .css to pair with).
         var home = files["Features/Home/HomePage.cs"];
         Assert.Contains("[Route(\"/\")]", home, StringComparison.Ordinal);
         Assert.Contains("public sealed partial class HomePage : Component", home, StringComparison.Ordinal);
-        Assert.Contains("BsCard", home, StringComparison.Ordinal);
+
         // The welcome copy points at the file it actually lives in.
-        Assert.Contains("Code[\"HomePage.cs\"]", home, StringComparison.Ordinal);
+        Assert.Contains("HomePage.cs", home, StringComparison.Ordinal);
+
+        // Whichever styling was asked for is what the page is written in — and each is a real starting
+        // point rather than a stripped-down version of another.
+        Assert.Contains("BsCard", Generate(styling: Styling.Bootstrap).Files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
+        Assert.Contains("rounded-xl", Generate(styling: Styling.Tailwind).Files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("BsCard", home, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -276,12 +284,17 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Csproj_pins_every_package_to_the_supplied_version()
     {
-        var (files, _) = Generate(cqrs: true);
+        // Bootstrap explicitly, so the pin is still checked on a styling package rather than only on the
+        // framework — the version has to be stamped on every reference the template emits, not most.
+        var (files, _) = Generate(cqrs: true, styling: Styling.Bootstrap);
         var csproj = files["App.csproj"];
 
         Assert.Contains("<PackageReference Include=\"Rask.Server\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"Rask.Bootstrap\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"Rask.Cqrs\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
+
+        var tailwind = Generate(styling: Styling.Tailwind).Files["App.csproj"];
+        Assert.Contains("<PackageReference Include=\"Rask.Tailwind\" Version=\"9.9.9\"/>", tailwind, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -415,8 +428,12 @@ public sealed class ProjectGeneratorTests
         }
 
         Assert.Contains("Rask.Server", result.Packages);
-        Assert.Contains("Rask.Bootstrap", result.Packages);
         Assert.Equal(cqrs, result.Packages.Contains("Rask.Cqrs"));
+
+        // Plain CSS is the default, so neither styling package is here unless it was asked for. This
+        // used to assert Rask.Bootstrap was ALWAYS present, which was the old default speaking.
+        Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
+        Assert.DoesNotContain("Rask.Tailwind", result.Packages);
 
         Assert.Equal(auth, files.ContainsKey("Features/Auth/CredentialStore.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
@@ -442,12 +459,13 @@ public sealed class ProjectGeneratorTests
     }
 
     private static (Dictionary<string, string> Files, ScaffoldResult Result) Generate(
-        bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false, bool data = false)
+        bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false, bool data = false,
+        Styling styling = Styling.Plain)
     {
         var result = ProjectGenerator.GenerateServer(
             Root,
             "App",
-            new ServerBatteries { Auth = auth, Pwa = pwa, Cqrs = cqrs, Data = data, Docker = docker },
+            new ServerBatteries { Auth = auth, Pwa = pwa, Cqrs = cqrs, Data = data, Docker = docker, Styling = styling },
             Version);
         return (Index(result), result);
     }

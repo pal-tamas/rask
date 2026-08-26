@@ -67,7 +67,9 @@ public sealed class ShopProvenanceTests
         var generated = ProjectGenerator.GenerateServer(
             "/generated",
             ProjectName,
-            NewCommand.ToBatteries(["all-batteries", "auth", "docker"]),
+            // The Shop sample is written in Bs* components, so the provenance check has to ask for the
+            // styling it actually uses. Plain CSS is the default now; it was Bootstrap when this was written.
+            NewCommand.ToBatteries(["all-batteries", "auth", "docker"], Styling.Bootstrap),
             version: "0.0.0");
 
         var sampleDirectory = SampleDirectory();

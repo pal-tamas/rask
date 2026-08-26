@@ -93,6 +93,27 @@
           IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
+  <!--
+    Rask auto-includes every **/*.css as a SCOPED stylesheet and expects a component of the same name
+    beside it (RASK015). The Tailwind input is a global stylesheet, not a scoped one, so it has to be
+    taken back out — precisely, by full path, rather than by turning the whole convention off with
+    RaskScopedCssAutoInclude=false, which would silently un-scope every other .css in the project.
+
+    A target rather than a bare ItemGroup because the removal has to happen AFTER Rask.Core.targets has
+    added it, and the order two packages' targets are imported in is not something to rely on.
+  -->
+  <Target Name="_RaskTailwindExcludeInputFromScopedCss"
+          BeforeTargets="CoreCompile"
+          Condition="'$(_RaskTailwindInput)' != ''">
+    <ItemGroup>
+      <!-- Both spellings: Rask.Core's glob adds it relative (Styles\app.css), but a project that named
+           the input by absolute path would have it that way instead. Remove matches on the item spec, so
+           one form does not cover the other. -->
+      <AdditionalFiles Remove="$(RaskTailwindInput)"/>
+      <AdditionalFiles Remove="$(_RaskTailwindInput)"/>
+    </ItemGroup>
+  </Target>
+
   <Target Name="_RaskTailwindBuild"
           BeforeTargets="BeforeBuild"
           DependsOnTargets="_RaskTailwindResolve;_RaskTailwindNpmInstall"

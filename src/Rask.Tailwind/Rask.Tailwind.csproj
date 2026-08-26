@@ -15,6 +15,18 @@
       is what lets this sit on a Server host, a WASM host, or a plain ASP.NET app equally.
     -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
+
+    <!-- It is only ever a build-time dependency: nothing at runtime references it, and it must not flow
+         transitively to whoever consumes the app. -->
+    <DevelopmentDependency>true</DevelopmentDependency>
+
+    <!--
+      No symbol package. The repo turns IncludeSymbols on for everything, and for a package with no
+      assembly the resulting .snupkg has nothing in it at all — which NuGet refuses as NU5017, AFTER
+      writing a perfectly good .nupkg. The failure names the main package and looks like it, which is
+      most of why it took a while to see.
+    -->
+    <IncludeSymbols>false</IncludeSymbols>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
 
@@ -31,6 +43,7 @@
 
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
+
   </ItemGroup>
 
 </Project>

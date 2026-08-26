@@ -288,7 +288,7 @@ internal static partial class ProjectGenerator
     {
         // Bootstrap is a C#-component library and this host renders no components; the front end owns its
         // own styling. Cqrs is cleared because Rask.Cqrs.Server supersedes it and both are listed by hand.
-        var packages = ServerPackages(batteries with { Bootstrap = false, Cqrs = false });
+        var packages = ServerPackages(batteries with { Styling = Styling.Plain, Cqrs = false });
         packages.Remove("Rask.Server");
         packages.Remove("Rask.Cqrs");
 

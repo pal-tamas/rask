@@ -18,8 +18,8 @@ internal static partial class ProjectGenerator
         {
             ($"{NameToken}.csproj", ServerCsproj(batteries, version)),
             ("Program.cs", ServerProgram(batteries)),
-            ("Features/Shared/App.cs", AppShellCs(batteries.Bootstrap)),
-            ("Features/Home/HomePage.cs", HomePageCs(batteries.Bootstrap)),
+            ("Features/Shared/App.cs", AppShellCs(batteries.Styling)),
+            ("Features/Home/HomePage.cs", HomePageCs(batteries.Styling)),
             ("Properties/launchSettings.json", LaunchSettings),
             ("appsettings.json", AppSettings),
             ("appsettings.Production.json", AppSettingsProduction),
@@ -42,7 +42,12 @@ internal static partial class ProjectGenerator
             files.Add(("Features/Push/PushSubscriptions.cs", PushSubscriptionsCs));
         }
 
-        files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs(batteries.Bootstrap)));
+        if (batteries.Tailwind)
+        {
+            files.Add(("Styles/app.css", TailwindInputCss));
+        }
+
+        files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs(batteries.Styling)));
 
         if (batteries.Pwa)
         {
@@ -73,6 +78,11 @@ internal static partial class ProjectGenerator
         if (batteries.Bootstrap)
         {
             packages.Add("Rask.Bootstrap");
+        }
+
+        if (batteries.Tailwind)
+        {
+            packages.Add("Rask.Tailwind");
         }
 
         if (batteries.Cqrs)
@@ -544,8 +554,13 @@ internal static partial class ProjectGenerator
     // through the app shell like any other page rather than looking like a framework error.
     // The error page's body, in Bs* components or plain elements — the only part of the page that
     // depends on whether the project took the component library.
-    private static string ErrorPageCs(bool bootstrap) =>
-        ErrorPageTemplate.Replace("{{body}}", bootstrap ? ErrorPageBootstrapBody : ErrorPageBaselineBody, StringComparison.Ordinal);
+    private static string ErrorPageCs(Styling styling) =>
+        ErrorPageTemplate.Replace(
+            "{{body}}",
+            // Tailwind shares the plain body: it is a handful of elements with no component library
+            // behind it either way, and a second copy would be two things to keep saying the same.
+            styling == Styling.Bootstrap ? ErrorPageBootstrapBody : ErrorPageBaselineBody,
+            StringComparison.Ordinal);
 
     private const string ErrorPageTemplate =
         """
