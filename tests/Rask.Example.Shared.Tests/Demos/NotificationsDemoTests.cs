@@ -7,8 +7,8 @@ using Rask.Example.Shared.Features;
 namespace Rask.Example.Shared.Tests.Demos;
 
 // The Notifications + Badge showcase: it injects INotifications/IBadge and renders a button row that drives
-// them. Assert the demo mounts its live buttons (the OS notification/badge behaviour is device-specific and
-// covered by the native backends, not here) so a regression in the wiring is caught without an E2E.
+// them. Assert the demo mounts its live buttons (the browser's notification/badge behaviour is
+// device-specific and not asserted here) so a regression in the wiring is caught without an E2E.
 public sealed class NotificationsDemoTests
 {
     [Fact]

@@ -129,8 +129,8 @@ internal static class RaskDiagnostics
     // without redirecting the process-global Console.Error stream.
     //
     // Carries the level and the category, which the event has always had and this always dropped. A host
-    // with a bridge installed never sees this — but the hosts WITHOUT one (WASM until now, Native, and
-    // any app that hasn't wired logging) got a bare sentence with no severity and no subsystem, so
+    // with a bridge installed never sees this — but a host WITHOUT one (WASM until now, and any app that
+    // hasn't wired logging) got a bare sentence with no severity and no subsystem, so
     // "framework said something" and "framework reported an error in the diff codec" read identically.
     // Fixing it here fixes it for every unbridged host at once, which a per-host bridge cannot.
     internal static string FormatDefault(RaskDiagnosticEvent e)

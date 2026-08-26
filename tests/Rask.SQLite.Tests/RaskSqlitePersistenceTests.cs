@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.SQLite.Tests;
 
-// Exercises the on-device data mechanism the native sample's SqliteTodoStore relies on: CRUD through the
+// Exercises the on-device data mechanism a SQLite-backed store relies on: CRUD through the
 // raw IRaskSqliteConnectionFactory against a real file database, and — the point of persistence — that
 // rows written on one connection are still there on a fresh one (as they would be after an app restart).
 public sealed class RaskSqlitePersistenceTests : IDisposable

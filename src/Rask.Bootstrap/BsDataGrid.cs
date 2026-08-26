@@ -1514,8 +1514,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
 
     // The query runs in-process, so it needs the store in-process. A browser has no database, so say that
     // plainly here rather than let it surface as a null DbContext or a trimmed-away LINQ provider far from the
-    // cause. Deliberately gated on Wasm rather than on "not Server": a native host CAN have a local SQLite
-    // DbContext, and there an IQueryable is perfectly reasonable.
+    // cause. Gated on Wasm specifically — the browser is the host that cannot hold a DbContext.
     internal static void EnsureQueryHost(RenderEngine engine)
     {
         if (engine == RenderEngine.Wasm)

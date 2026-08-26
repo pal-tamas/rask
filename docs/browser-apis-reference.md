@@ -211,16 +211,16 @@ exchange.
 
 <!-- demo:browser-signaling -->
 
-**`INotifications` + `IBadge`** — raise a local notification and set the app-icon badge from the page. In the
-the native app-icon badge) that a WebView cannot provide; on Server/WASM they use the browser's Notifications
-and Badging APIs (a badge only shows on an installed PWA). On iOS the badge is numeric-only.
+**`INotifications` + `IBadge`** — raise a local notification and set the app-icon badge from the page. They
+use the browser's Notifications and Badging APIs (a badge only shows on an installed PWA). On iOS the badge
+is numeric-only.
 
 <!-- demo:browser-notifications -->
 
 **`Shareable`** *(`Rask.Core` — all hosts)* — headless share: hand *your* element the `data-rask-share`
 attribute and its click opens the OS share sheet, on every host including Server (the shared client fires
-`navigator.share` in the click gesture, so the activation survives), upgrading to a native backend in the
-shell. For a code-driven share on the in-process hosts, inject **`IShare`** (`Rask.Client.Browser`) instead.
+`navigator.share` in the click gesture, so the activation survives). For a code-driven share on the
+WASM host, inject **`IShare`** (`Rask.Wasm.Browser`) instead.
 
 <!-- demo:browser-share -->
 

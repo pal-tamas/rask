@@ -30,9 +30,6 @@
     <!-- Rask.Server (and, transitively, the ASP.NET Core shared framework) so AuthBeforeRaskAnalyzer
          tests can resolve the real UseRask / UseAuthentication symbols in their test compilations. -->
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
-    <!-- Rask.Native so the NativeChromeInHtmlAnalyzer (RASK032) test can reference the real native chrome
-         components (NativeHeaderBar, NativeTabBar, …); the spine's internal ctors preclude defining a
-         NativeComponent subclass in the test source. -->
     <!-- The other two analyzer assemblies, referenced as plain libraries (not as analyzers) so
          DiagnosticDescriptorTests can enumerate the WHOLE RASK family by reflection. RASK028/029 live in
          Rask.Cqrs.Generators and RASK035 in Rask.Generators.Shared via Rask.Jobs.Generators; a

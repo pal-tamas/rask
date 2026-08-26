@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Live;
 
 // The C# Hot Reload → live re-render seam: a component-code edit under `dotnet watch` must re-execute
 // every component's Render() (busting cached subtrees) and re-render every tracked session. These pin the
-// two halves — MarkSubtreeDirtyForHotReload forces a cached child to re-run, and
+// two halves — MarkSubtreeDirtyInternal forces a cached child to re-run, and
 // RerenderAllForHotReloadAsync / the MetadataUpdateHandler drive registered sessions (resiliently, and
 // only when registered).
 //
@@ -18,7 +18,7 @@ namespace Rask.Core.Tests.Live;
 public class ComponentHotReloadTests
 {
     [Fact]
-    public void MarkSubtreeDirtyForHotReload_ForcesCachedChildToReExecute()
+    public void MarkSubtreeDirtyInternal_ForcesCachedChildToReExecute()
     {
         var sp = RenderHarness.EmptyServices();
         var child = new Counter();
@@ -28,7 +28,7 @@ public class ComponentHotReloadTests
         host.RenderAsLiveRoot(sp);
         Assert.Equal(1, child.RenderCount); // cached: the child's Render didn't re-run on the 2nd pass
 
-        Component.MarkSubtreeDirtyForHotReload(host);
+        Component.MarkSubtreeDirtyInternal(host);
         host.RenderAsLiveRoot(sp);
 
         Assert.Equal(2, child.RenderCount); // marked dirty → re-executes against the (would-be) new IL

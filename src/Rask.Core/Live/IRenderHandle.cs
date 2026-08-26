@@ -39,4 +39,25 @@ public interface IRenderHandle
     // The render engine, surfaced to components during render (via LiveRenderContext → Component.HostEngine).
     // Defaulted here so the interface stays non-breaking; concrete sessions override with their own fact.
     internal RenderEngine Engine => RenderEngine.Server;
+
+    // The session's culture, read fresh by LiveRenderContext at the top of every render walk.
+    //
+    // Pulled rather than pushed, and that is the whole point: LifecycleSyncContext deliberately calls
+    // ExecutionContext.SuppressFlow() so a continuation cannot inherit InHandlerScope, and since .NET
+    // Core CultureInfo.CurrentCulture lives in an AsyncLocal riding that same ExecutionContext. Anything
+    // that had to FLOW to the render thread — the ambient culture, or an AsyncLocal of our own — would
+    // be lost exactly there. Asking the session per walk is immune, because nothing has to survive.
+    internal System.Globalization.CultureInfo Culture => System.Globalization.CultureInfo.CurrentCulture;
+
+    // As above, for the language UI text renders in.
+    internal System.Globalization.CultureInfo UICulture => System.Globalization.CultureInfo.CurrentUICulture;
+
+    // Whether the culture above came from a SESSION or is merely the thread's.
+    //
+    // Load-bearing for <html lang>: without it, a render outside any session (a unit test, a static
+    // ToHtml) would report the machine's locale as the document language, turning lang="en" into
+    // lang="en-US" on a US machine. The process-wide RaskCulture.IsEnabled flag cannot answer this —
+    // it only says whether SOME host in this process configured cultures, which is not a fact about
+    // the render in front of you.
+    internal bool HasCulture => false;
 }

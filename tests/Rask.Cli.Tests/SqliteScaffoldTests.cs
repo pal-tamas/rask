@@ -27,7 +27,12 @@ public sealed class SqliteScaffoldTests
         var files = Generate("data");
 
         Assert.Contains("using Rask.SQLite;", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains(".UseRaskSqlite(connectionString)", files["Program.cs"], StringComparison.Ordinal);
+        // STRICT is on for a new app: it costs nothing at creation time and is awkward to adopt once
+        // there is data, so the scaffold is the one moment to choose it.
+        Assert.Contains(
+            ".UseRaskSqlite(connectionString, strictTables: true)",
+            files["Program.cs"],
+            StringComparison.Ordinal);
         Assert.Contains("Data Source=app.db", files["Program.cs"], StringComparison.Ordinal);
         Assert.Contains(
             "<PackageReference Include=\"Rask.SQLite.EntityFrameworkCore\"",

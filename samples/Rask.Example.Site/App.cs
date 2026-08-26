@@ -207,7 +207,7 @@ public partial class App : Component
         Section[
             Div.Class("wrap")[
                 Div.Class("sec-head reveal")[
-                    P.Class("eyebrow")["One component model · three hosts"],
+                    P.Class("eyebrow")["One component model · every host"],
                     H2["Write it once. Ship it where you need it."],
                     P["The identical C# component runs unchanged across every host — you choose the runtime per project, not per component."]
                 ],

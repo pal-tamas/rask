@@ -122,8 +122,8 @@ public static class RaskCqrsClientServiceCollectionExtensions
         });
     }
 
-    // An absolute BaseAddress means a client talking to a server elsewhere — the native case. Without
-    // one, the app's own origin is meant, which is what a browser client wants: the request is
+    // An absolute BaseAddress means a client talking to a server on another origin. Without one, the
+    // app's own origin is meant, which is what a browser client wants: the request is
     // same-origin, so the session cookie rides it and no CORS preflight is involved. The container's own
     // HttpClient carries that origin, and every Rask WASM template registers one.
     private static HttpClient ResolveHttpClient(IServiceProvider provider, RaskCqrsClientOptions options)
@@ -141,9 +141,9 @@ public static class RaskCqrsClientServiceCollectionExtensions
 
         throw new InvalidOperationException(
             "Rask.Cqrs.Client does not know where to send messages. Either set BaseAddress in "
-            + "AddRaskCqrsClient(o => o.BaseAddress = …) — which is what a native client does — or register "
-            + "an HttpClient whose BaseAddress is the app's own origin, which is what a browser client "
-            + "wants so its session cookie rides every request.");
+            + "AddRaskCqrsClient(o => o.BaseAddress = …) — which is what a client on another origin does — "
+            + "or register an HttpClient whose BaseAddress is the app's own origin, which is what a "
+            + "same-origin client wants so its session cookie rides every request.");
     }
 
     // Sentinel marking that AddRaskCqrsClient already ran on this collection.

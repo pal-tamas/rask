@@ -3,12 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
-using Rask.Client.Browser;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
@@ -44,18 +44,23 @@ public sealed class WasmHostBuilder
         // Transient user messages / toasts (a flash-message pattern). Singleton = one queue for the app instance
         // (the whole WASM app is a single session), so a message queued before a NavigateTo survives it.
         Services.AddSingleton<IToaster, Toaster>();
+
+        // Singleton, unlike the server's scoped registration: the whole WASM app is one visitor, so
+        // there is exactly one culture for its lifetime.
+        // Deferred to a factory so UseCulture can still be called after the builder is constructed —
+        // the ctor runs before the app's own configuration does.
+        Services.AddRaskCulture(o => _configureCulture?.Invoke(o), ServiceLifetime.Singleton);
         // Typed browser/device API wrappers, Singleton (one per app instance). Registered via the shared
-        // helpers (RaskBrowserApis / RaskClientBrowserApis / RaskWasmBrowserApis) so the interface → impl list
-        // lives in one place instead of duplicated across hosts. TryAdd inside the helpers means an app can
-        // pre-register a better implementation and win. WASM serves all three tiers: the transport-agnostic
-        // Core set, the in-process IShare, and the WASM-only device/handle set.
+        // helpers (RaskBrowserApis / RaskWasmBrowserApis) so the interface → impl list lives in one place
+        // instead of duplicated across hosts. TryAdd inside the helpers means an app can pre-register a
+        // better implementation and win. WASM serves both tiers: the transport-agnostic Core set, and the
+        // WASM-only set that needs a live document, a device chooser or a user gesture.
         Services.AddCoreBrowserApis(ServiceLifetime.Singleton);
-        Services.AddClientBrowserApis(ServiceLifetime.Singleton);
         Services.AddWasmBrowserApis(ServiceLifetime.Singleton);
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         // WasmAuthSignIn posts sign-out to the server, so it needs an HttpClient. Registering the sign-in
         // service without one made IAuthSignIn — a contract Rask.Core promises on every host — resolvable on
-        // Server and Native but a DI failure here, at the injection site, in any app that hadn't happened to
+        // Server but a DI failure here, at the injection site, in any app that hadn't happened to
         // register an HttpClient of its own. TryAdd, so an app that registers one (typed clients, a handler
         // chain, a different base address) still wins.
         //
@@ -76,11 +81,12 @@ public sealed class WasmHostBuilder
     }
 
     private WebAppManifest? _manifest;
+    private Action<RaskCultureOptions>? _configureCulture;
 
     // The wire-payload shape this app renders with, snapshotted from RaskLiveOptions in CreateDefault
     // and handed to the WasmLiveSession — a per-session value instead of the former process-global
     // LiveOptions.DiffMode static. WASM is single-threaded so it never raced, but carrying it on the
-    // session keeps all three hosts on one uniform mechanism.
+    // session keeps both hosts on one uniform mechanism.
     private LiveDiffMode _diffMode = LiveDiffMode.Auto;
 
     /// <summary>The DI container for the app. Register your services here before calling <see cref="RunAsync{TApp}" />.</summary>
@@ -100,6 +106,29 @@ public sealed class WasmHostBuilder
     public WasmHostBuilder UsePwa(WebAppManifest manifest)
     {
         _manifest = manifest;
+        return this;
+    }
+
+    /// <summary>
+    ///     The languages this app ships, and how a visitor's is chosen.
+    /// </summary>
+    /// <remarks>
+    ///     Leaving this uncalled keeps culture support off, and the app renders exactly as it did before:
+    ///     <c>&lt;html lang="en"&gt;</c> with no <c>dir</c>.
+    ///     <para>
+    ///         <b>A WASM app also needs ICU</b>, which Rask does not ship by default because it is roughly
+    ///         2.6 MB. Add <c>&lt;RaskGlobalization&gt;true&lt;/RaskGlobalization&gt;</c> to the project
+    ///         file. Without it every culture formats identically and only the invariant culture
+    ///         resolves — the app still runs, and says so once at startup rather than once per render.
+    ///     </para>
+    ///     <code>
+    ///     host.UseCulture(c => { c.SupportedCultures.Add("en"); c.SupportedCultures.Add("hu"); });
+    ///     </code>
+    /// </remarks>
+    public WasmHostBuilder UseCulture(Action<RaskCultureOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        _configureCulture = configure;
         return this;
     }
 
@@ -202,6 +231,10 @@ public sealed class WasmHostBuilder
         var routeState = provider.GetRequiredService<RouteState>();
         RouteSeeder.Seed(JSInterop.GetLocation(), routeState);
         Console.WriteLine($"[Rask.Wasm] initial path={routeState.Path}");
+
+        // The visitor's language, settled before the first render for the same reason the route is:
+        // painting in the wrong one and correcting it afterwards is a flash the visitor sees.
+        WasmCultureSeeder.Seed(provider);
 
         if (provider.GetService<IUserProvider>() is { } userProvider)
         {

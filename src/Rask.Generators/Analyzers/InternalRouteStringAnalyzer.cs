@@ -11,7 +11,7 @@ namespace Rask.Generators.Analyzers;
 // RASK033 — prefer the generated type-safe route URL over a hardcoded path for INTERNAL navigation.
 // Rask emits a `Routes.<Page>()` RouteUrl factory for every page's primary [Route] (see RoutesGenerator).
 // Passing the raw path string to internal navigation — `Navigator.NavigateTo("/todos")` or a `RouteUrl`
-// slot like `NavLink(Href: "/todos")` / `NativeTab(To: "/todos")` (string → RouteUrl implicit conversion)
+// slot like `NavLink(Href: "/todos")` / `BsNavItem.Href("/todos")` (string → RouteUrl implicit conversion)
 // — bypasses that safety: a renamed or removed [Route] leaves a dead link that still compiles.
 //
 // Only INTERNAL paths that map to a generated PARAMETERLESS route factory are flagged. External URLs

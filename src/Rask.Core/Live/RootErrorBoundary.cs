@@ -2,8 +2,7 @@ using Rask.Core.Components;
 
 namespace Rask.Core.Live;
 
-// The document root installed by Rask.Server.UseRask<TApp>, Rask.Wasm.WasmHostBuilder and the native
-// host. Two jobs:
+// The document root installed by Rask.Server.UseRask<TApp> and Rask.Wasm.WasmHostBuilder. Two jobs:
 //
 //  1. It COMPOSES THE PAGE SHELL around the App. The App renders straight into <body>; the doctype,
 //     <html>, <head> and <body> are the framework's, built here from the App's own Shell/HtmlLang/

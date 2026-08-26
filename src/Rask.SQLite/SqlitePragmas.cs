@@ -1,3 +1,4 @@
+using System.Data;
 using System.Globalization;
 using System.Text;
 using Microsoft.Data.Sqlite;
@@ -67,6 +68,21 @@ public static class SqlitePragmas
             Append(sb, "temp_store", TempStoreKeyword(tempStore));
         }
 
+        if (options.TrustedSchema is { } trustedSchema)
+        {
+            Append(sb, "trusted_schema", trustedSchema ? "ON" : "OFF");
+        }
+
+        if (options.CellSizeCheck is { } cellSizeCheck)
+        {
+            Append(sb, "cell_size_check", cellSizeCheck ? "ON" : "OFF");
+        }
+
+        if (options.AnalysisLimit is { } analysisLimit)
+        {
+            Append(sb, "analysis_limit", analysisLimit.ToString(CultureInfo.InvariantCulture));
+        }
+
         return sb.ToString();
     }
 
@@ -103,6 +119,49 @@ public static class SqlitePragmas
         await using var command = connection.CreateCommand();
         command.CommandText = script;
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs <c>PRAGMA optimize</c>, refreshing the query planner's statistics for indexes whose contents
+    /// have shifted since they were last analysed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// SQLite's planner chooses between indexes using the <c>sqlite_stat1</c> table, which is written by
+    /// <c>ANALYZE</c> and never updated on its own. A table that was small when it was last analysed —
+    /// or never analysed at all — keeps giving the planner stale numbers, and it starts choosing badly:
+    /// the classic symptom is a query that was instant in development crawling in production. SQLite's
+    /// own guidance is to run this before closing a long-lived connection, or periodically in a
+    /// long-running process, which is what the Entity Framework Core interceptor does on connection
+    /// close.
+    /// </para>
+    /// <para>
+    /// It is cheap and self-limiting: it analyses only what looks stale, bounded by
+    /// <see cref="SqlitePragmaOptions.AnalysisLimit"/>, and does nothing at all when nothing has changed.
+    /// Failures are swallowed — this is an optimisation, and a connection being torn down (or a database
+    /// momentarily locked by another writer) must not surface an error from it.
+    /// </para>
+    /// </remarks>
+    /// <param name="connection">An open SQLite connection.</param>
+    public static void Optimize(SqliteConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        if (connection.State != ConnectionState.Open)
+        {
+            return;
+        }
+
+        try
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA optimize;";
+            command.ExecuteNonQuery();
+        }
+        catch (SqliteException)
+        {
+            // Best-effort by design: see the remarks above.
+        }
     }
 
     private static void Append(StringBuilder sb, string pragma, string value)

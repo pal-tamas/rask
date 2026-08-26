@@ -61,7 +61,7 @@ public sealed class RemoteDispatchTests
     [Fact]
     public async Task The_per_request_hook_can_attach_credentials()
     {
-        // The native case: no ambient cookie, so the app puts its bearer token on every request.
+        // The token case: no ambient cookie, so the app puts its bearer token on every request.
         var handler = Handler(Json("""{"id":1,"name":"a"}"""));
         var dispatcher = Dispatcher(handler, o => o.ConfigureRequestAsync = (request, _) =>
         {

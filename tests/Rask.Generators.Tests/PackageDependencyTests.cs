@@ -78,7 +78,7 @@ public class PackageDependencyTests
     //
     // A missing step in release.yml means the package is never published; a missing one in nightly.yml means it
     // is never smoke-tested from a feed before the release. Matching on the csproj path is what both workflows
-    // are written in terms of, and it covers Rask.Native too, which each packs from a separate macOS job.
+    // are written in terms of.
     [Theory]
     [InlineData("release.yml")]
     [InlineData("nightly.yml")]
@@ -188,7 +188,7 @@ public class PackageDependencyTests
     [Fact]
     public void A_bundled_dll_ships_its_XML_docs_too()
     {
-        // Rask.Core and Rask.Client are IsPackable=false and reach consumers by being copied into a host
+        // Rask.Core and Rask.Html are IsPackable=false and reach consumers by being copied into a host
         // package's lib/ folder. Their XML doc file has to make the same trip: it is the ONLY way the
         // documentation on Component, Element and every element component reaches anyone consuming the
         // package. Drop the line and nothing breaks — the build is green, the API works, and every
@@ -316,7 +316,7 @@ public class PackageDependencyTests
 
     // The unpackable projects whose DLL this host packs into its own lib/ folder. Two mechanisms are in use
     // and both count: TfmSpecificPackageFile with a lib/ PackagePath (Rask.Server, Rask.Wasm) and
-    // BuildOutputInPackage (Rask.Native). A PrivateAssets="all" ProjectReference on its own does NOT count —
+    // BuildOutputInPackage. A PrivateAssets="all" ProjectReference on its own does NOT count —
     // the batteries take one to compile against Rask.Core without bundling it, relying on the host package
     // the consumer already has, so demanding they re-declare Core's dependencies would be noise.
     private static IReadOnlyList<string> BundledProjects(XDocument document, Dictionary<string, string> projects) =>
@@ -352,7 +352,7 @@ public class PackageDependencyTests
                 .Where(v => !string.IsNullOrEmpty(v))!,
             StringComparer.OrdinalIgnoreCase);
 
-    // A bundled project can itself bundle another (Rask.Client and Rask.Html both take Rask.Core), and the
+    // A bundled project can itself bundle another (Rask.Html takes Rask.Core), and the
     // host packs every one of their DLLs, so the whole chain's package references have to surface.
     private static IEnumerable<string> TransitivePackageReferences(string name, Dictionary<string, string> projects)
     {

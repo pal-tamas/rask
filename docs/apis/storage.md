@@ -8,7 +8,7 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-Values are strings — serialise your own objects. The WebView persists these on Native, so no native backend is needed.
+Values are strings — serialise your own objects.
 
 ## See also
 

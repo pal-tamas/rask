@@ -27,10 +27,16 @@ internal static partial class ProjectGenerator
                 // `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
                 // Add a `DbSet<T>` to AppDbContext per entity, then `rask db add <Name>` / `rask db update`
                 // to create and apply the migration.
+                //
+                // strictTables makes SQLite enforce each column's declared type instead of coercing whatever
+                // it is handed — without it the text "lots" stores happily in an INTEGER column and surfaces
+                // as a cast error much later. It applies to tables as they are created, so it costs nothing
+                // here and is awkward to adopt once there is data. Drop it if you need a column type outside
+                // SQLite's INT/INTEGER/REAL/TEXT/BLOB/ANY.
                 __ADDRASKDATA__
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-                    .UseRaskSqlite(connectionString)
+                    .UseRaskSqlite(connectionString, strictTables: true)
                     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
                 // Continuous backup. Litestream streams the write-ahead log to object storage, which is what

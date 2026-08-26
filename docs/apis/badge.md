@@ -8,11 +8,8 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-`setAppBadge` needs an installed PWA instance. In the native shell it resolves to the real app-icon badge:
-iOS uses `UNUserNotificationCenter.SetBadgeCount` (numeric only — there is no numberless dot, so `SetAsync(null)`
-maps to no badge); Android has no universal app-icon badge API, so the count rides a silent low-importance
-notification's number (`SetAsync(null)`/`SetAsync(0)` shows a plain dot, `ClearAsync` cancels it) — which means
-the Android badge needs `POST_NOTIFICATIONS` on API 33+, and the exact rendering is launcher-dependent.
+`setAppBadge` needs an installed PWA instance, and the exact rendering is platform-dependent — treat the badge
+as a hint, not a guaranteed surface.
 
 ## See also
 

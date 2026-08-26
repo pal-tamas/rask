@@ -66,6 +66,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
+| RASK032 | — | *Retired* — native chrome cannot sit inside an HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 | [RASK034](#rask034) | Warning | BsDataGrid column has no Field, so the column chooser can't show/hide or reorder it |
 | [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
@@ -81,6 +82,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 | [RASK046](#rask046) | Warning | Key must open a component's chain |
 | RASK047 | — | *retired* — routes are `[Route]` attribute arguments, constant by construction |
+| RASK048 | — | *Retired* — HTML cannot sit inside a native screen |
+| RASK049 | — | *Retired* — a `NativeWebView` set a `Url` and took children |
+| RASK050 | — | *Retired* — a native head was named on a web-only host |
+| [RASK051](#rask051) | Error | Translation catalog is malformed |
+| [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 
 ---
@@ -292,7 +298,7 @@ protected override Component? Render() => Router;
 ```
 
 **Fix:** return the body's content (usually `Router()`) and move the shell's pieces to the overrides
-that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<body class>` to `BodyClass`,
+that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<html dir>` to `HtmlDir`, `<body class>` to `BodyClass`,
 and a genuinely custom document to `Shell(head, body)`, which receives the framework's `<head>` and the
 rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
 `Doctype`/`Html`/`Head`/`Body` stay ordinary tag components for documents you build by hand
@@ -513,7 +519,7 @@ Rask generates a type-safe `RouteUrl` factory — `Routes.<Page>()` — for ever
 that safety: rename or remove the `[Route]` and the string becomes a silent dead link that still compiles,
 whereas `Routes.<Page>()` becomes a compile error you fix immediately. The analyzer flags a string literal
 passed to internal navigation — `Navigator.NavigateTo("…")` or any `RouteUrl` slot (`NavLink(Href: …)`,
-`BsNavItem.Href(…)`, `NativeTab.To(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
+`BsNavItem.Href(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
 the path maps to a generated parameterless factory.
 
 It deliberately leaves alone:
@@ -987,6 +993,117 @@ and the reconciliation note in [the live-rendering codec](architecture/live-rend
 *Retired.* It reported a `Page.Route` override that was not a compile-time constant. Routes are declared with
 `[Route("...")]`, whose argument is an attribute argument and therefore constant by construction, so the failure
 it guarded can no longer be written. The id is retired, not reused.
+
+## RASK032, RASK048, RASK049, RASK050
+*Retired.* All four guarded the native hosting model: native chrome inside an HTML tree (RASK032), HTML
+inside a native screen (RASK048), a `NativeWebView` that set a `Url` *and* took children (RASK049), and a
+native head named on a web-only host (RASK050). Rask is a web framework — `Rask.Native` and every type
+those rules mentioned are gone, so none of the mistakes they caught can be written any more. The ids are
+retired, not reused.
+
+## RASK051
+
+**Translation catalog is malformed** · Error
+
+A translation catalog is a JSON object whose values are text or further objects, named
+`Resources/{Family}.{culture}.json`. This fires when one cannot be read, or when it describes strings
+that would fail at runtime.
+
+```jsonc
+// Resources/Strings.en.json
+{
+  "Greeting": "Hello, {name}!",
+  "Home": { "Title": "Dashboard" }
+}
+```
+
+The reported cause names the file and the problem:
+
+| Cause | Why it is an error |
+|---|---|
+| a JSON syntax error, a duplicate key, a value that is not text or an object | nothing can be generated |
+| a key that is not a usable C# identifier | the member it would generate cannot be written |
+| an unclosed `{`, a stray `}`, a mix of `{0}` and `{name}` | the message cannot be turned into a format string |
+| a translation whose **placeholder set** differs from the neutral catalog's | `string.Format` throws `FormatException` the first time that string renders — in that one language only |
+| no catalog for the neutral language | nothing defines which keys exist |
+
+The placeholder rule is about the *set*, not the order: other languages reorder arguments, and naming
+placeholders is what makes that safe.
+
+```jsonc
+// Resources/Strings.hu.json — fine, the same names in a different order
+{ "M": "{b} majd {a}" }
+
+// ✗ RASK051 — {nev} is not {name}, so this would throw when a Hungarian visitor sees it
+{ "Greeting": "Szia, {nev}!" }
+```
+
+### Plural sets
+
+A key whose text depends on a count is written as an object carrying `$plural`:
+
+```jsonc
+{ "Cart": { "$plural": "count", "one": "{count} item", "other": "{count} items" } }
+```
+
+RASK051 also fires when such a set cannot produce correct grammar:
+
+| Cause | Why |
+|---|---|
+| Rask does not carry that language's plural rules | applying English rules would produce text that reads as broken to a native speaker, and nothing at runtime would say so |
+| the language's **residual** form is missing | it is the arm every unmatched count lands on |
+| a form the language never selects (`few` in English) | that text could never be shown |
+| a form that is not a CLDR category at all | it is a typo |
+| the key is a plural set in one language and a single string in another | they generate different members |
+
+**The residual is not always `other`.** Polish integers never select `other` — CLDR routes the residual
+to `many` — so a Polish catalog supplies `one`/`few`/`many` and requiring `other` there would mean
+writing text no visitor could ever see.
+
+```jsonc
+// Resources/Strings.pl.json — complete, and correctly has no "other"
+{ "Cart": { "$plural": "n", "one": "{n} plik", "few": "{n} pliki", "many": "{n} plików" } }
+```
+
+**Fix:** correct the file the message names. A JSON file in `Resources/` that is *not* a catalog needs
+no action — one without a culture tag in its name is ignored.
+
+## RASK052
+
+**Translation catalog disagrees with the neutral catalog** · Warning
+
+The neutral catalog defines which keys exist; a translation supplies their text. This fires when a
+translation is missing a key, or carries one the neutral catalog does not define.
+
+```jsonc
+// Resources/Strings.en.json
+{ "Save": "Save", "Cancel": "Cancel" }
+
+// Resources/Strings.hu.json
+{ "Save": "Mentés" }        // ⚠ RASK052 — no translation for 'Cancel'
+```
+
+A missing translation is a **warning**, not an error, because a partly translated app is the normal
+state of every real project: the neutral text is used until it is filled in, so the page works. The
+opposite case — a key only a translation has — is also a warning: it generates nothing and is almost
+always a rename that was applied to one file.
+
+A plural set is checked the same way: a translation missing a category **its own language**
+distinguishes is reported, and the residual form carries the page until it is filled in.
+
+```jsonc
+// Resources/Strings.ru.json — ⚠ RASK052, Russian also distinguishes "few"
+{ "Cart": { "$plural": "n", "one": "{n} файл", "many": "{n} файлов" } }
+```
+
+**Fix:** add the key, or delete it. To gate a release on complete translations, promote it:
+
+```ini
+# .editorconfig
+dotnet_diagnostic.RASK052.severity = error
+```
+
+Or silence it while translation is in progress with `= none`.
 
 ## RASK053
 

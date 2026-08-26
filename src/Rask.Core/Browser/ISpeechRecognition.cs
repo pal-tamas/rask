@@ -47,9 +47,7 @@ public sealed record RecognitionResult(string Transcript, bool IsFinal, double C
 ///     </para>
 ///     <para>
 ///         Browser support is Chromium-family (as <c>webkitSpeechRecognition</c>); gate on
-///         <see cref="IsSupportedAsync" />. In the <see href="../native.md">native shell</see> it resolves to a
-///         real OS backend (iOS <c>SFSpeechRecognizer</c> / Android <c>SpeechRecognizer</c>), which the WebView
-///         can't provide. Recognition needs microphone permission on every platform.
+///         <see cref="IsSupportedAsync" />. Recognition needs microphone permission on every platform.
 ///     </para>
 /// </remarks>
 public interface ISpeechRecognition

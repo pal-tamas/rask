@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -19,7 +20,7 @@ internal static class CssScoper
             sb.Append("r-");
             for (var i = 0; i < 4; i++)
             {
-                sb.Append(hash[i].ToString("x2"));
+                sb.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
             }
 
             return sb.ToString();

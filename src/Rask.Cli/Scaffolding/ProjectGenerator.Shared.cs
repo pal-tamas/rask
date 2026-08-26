@@ -101,7 +101,7 @@ internal static partial class ProjectGenerator
         """;
 
     // No CSS framework: a baseline inline in the shell rather than a stylesheet file, so it works the same
-    // on every template (a server app, a WASM bundle, a native WebView) with nothing extra to serve. Raw()
+    // on every template (a server app, a WASM bundle) with nothing extra to serve. Raw()
     // because CSS is not HTML — encoding it would break every selector containing > or &.
     private const string BaselineHead =
         """"

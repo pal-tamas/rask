@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Rask.Core;
+using Rask.Core.Globalization;
 
 namespace Rask.Bootstrap.Tests;
 
@@ -280,29 +281,105 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
         Assert.Contains("bs-time-item active\" data-rask-key=\"45\" aria-selected=\"true\" type=\"button\">45", html);
     }
 
-    // ---- Labels -----------------------------------------------------------------------------------
+    // ---- Chrome text ------------------------------------------------------------------------------
+    //
+    // The nav/column/clear accessible names used to be a per-INSTANCE record (BsPickerLabels) that every
+    // call site threaded through, so translating three pickers on one page meant repeating yourself
+    // three times. They now come from RaskStrings, which reads the visitor's language — an app supplies
+    // Resources/RaskStrings.{culture}.json once and every picker follows.
 
     [Fact]
-    public void Labels_Date_OverrideNavAndClearAriaLabels()
+    public void Chrome_text_defaults_to_the_frameworks_english()
     {
-        var html = Html(Us, () => BsDatePicker
-            .Value<DateOnly?>(Jul7)
-            .Labels(new BsPickerLabels { PreviousMonth = "Prev", NextMonth = "Fwd", Clear = "Wipe" }));
-        Assert.Contains("aria-label=\"Prev\"", html);
-        Assert.Contains("aria-label=\"Fwd\"", html);
-        Assert.Contains("aria-label=\"Wipe\"", html);
+        var html = Html(Us, () => BsDatePicker.Value<DateOnly?>(Jul7));
+
+        Assert.Contains("aria-label=\"Previous month\"", html);
+        Assert.Contains("aria-label=\"Next month\"", html);
     }
 
     [Fact]
-    public void Labels_Time_OverrideColumnAriaLabels()
+    public void Chrome_text_follows_a_registered_translation()
     {
-        var html = Html(Us, () => BsTimePicker
-            .Value(new TimeOnly(9, 30, 0))
-            .Seconds(true)
-            .Labels(new BsPickerLabels { Hour = "Std", Minute = "Min", Second = "Sek" }));
-        Assert.Contains("aria-label=\"Std\"", html);
-        Assert.Contains("aria-label=\"Min\"", html);
-        Assert.Contains("aria-label=\"Sek\"", html);
+        // ASCII on purpose: the serializer HTML-encodes non-ASCII, so a real Hungarian string arrives in
+        // the markup as numeric entities. That encoding is asserted on its own below; here the point is
+        // only that the app's text replaces the framework's.
+        using var _ = new FrameworkStrings(new Dictionary<RaskString, string>
+        {
+            [RaskString.PickerPreviousMonth] = "Elozo honap",
+            [RaskString.PickerNextMonth] = "Kovetkezo honap",
+        });
+
+        var html = Html(Us, () => BsDatePicker.Value<DateOnly?>(Jul7));
+
+        Assert.Contains("aria-label=\"Elozo honap\"", html);
+        Assert.Contains("aria-label=\"Kovetkezo honap\"", html);
+    }
+
+    [Fact]
+    public void Translated_text_is_HTML_encoded_like_any_other_text()
+    {
+        // Worth pinning: translations are ordinary text, so they go through the same encoder as
+        // everything else. Accented characters reach the markup as numeric entities rather than raw
+        // bytes — which is correct, and is why the tests around this one use ASCII.
+        using var _ = new FrameworkStrings(new Dictionary<RaskString, string>
+        {
+            [RaskString.PickerPreviousMonth] = "Előző hónap",
+        });
+
+        var html = Html(Us, () => BsDatePicker.Value<DateOnly?>(Jul7));
+
+        Assert.DoesNotContain("Előző", html, StringComparison.Ordinal);
+        Assert.Contains("&#x151;", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_string_the_app_did_not_translate_keeps_the_frameworks_english()
+    {
+        // A partial translation must not blank the rest of the chrome.
+        using var _ = new FrameworkStrings(new Dictionary<RaskString, string>
+        {
+            [RaskString.PickerPreviousMonth] = "Elozo honap",
+        });
+
+        var html = Html(Us, () => BsDatePicker.Value<DateOnly?>(Jul7));
+
+        Assert.Contains("aria-label=\"Elozo honap\"", html);
+        Assert.Contains("aria-label=\"Next month\"", html);
+    }
+
+    [Fact]
+    public void Time_column_headings_follow_a_registered_translation()
+    {
+        using var _ = new FrameworkStrings(new Dictionary<RaskString, string>
+        {
+            [RaskString.PickerHour] = "Ora",
+            [RaskString.PickerMinute] = "Perc",
+            [RaskString.PickerSecond] = "Masodperc",
+        });
+
+        var html = Html(Us, () => BsTimePicker.Value(new TimeOnly(9, 30, 0)).Seconds(true));
+
+        Assert.Contains("aria-label=\"Ora\"", html);
+        Assert.Contains("aria-label=\"Perc\"", html);
+        Assert.Contains("aria-label=\"Masodperc\"", html);
+    }
+
+    // Registers a translation for the duration of a test, and takes it away afterwards — the source is
+    // process-wide, so a leak would silently retranslate every later test in the run.
+    private sealed class FrameworkStrings : IRaskStringSource, IDisposable
+    {
+        private readonly Dictionary<RaskString, string> _text;
+
+        public FrameworkStrings(Dictionary<RaskString, string> text)
+        {
+            _text = text;
+            RaskStrings.UseSource(this);
+        }
+
+        public string? Get(RaskString key, string cultureTag) =>
+            _text.TryGetValue(key, out var value) ? value : null;
+
+        public void Dispose() => RaskStrings.ResetForTests();
     }
 
     private static int CountOccurrences(string haystack, string needle)

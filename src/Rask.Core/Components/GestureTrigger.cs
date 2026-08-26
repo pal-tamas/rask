@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
@@ -174,7 +175,9 @@ public sealed class MediaCaptureTrigger : Component
     // OnResult keeps the "granted"/"denied" vocabulary it always had.
     private async Task Dispatch(string? result)
     {
-        var started = int.TryParse(result, out var streamId);
+        // Invariant: the id is minted by JS and crosses the wire as a JS-formatted integer.
+        var started = int.TryParse(
+            result, NumberStyles.Integer, CultureInfo.InvariantCulture, out var streamId);
 
         if (started && OnStream is not null)
         {

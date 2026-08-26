@@ -106,20 +106,81 @@ The EF Core mapping lives in an `IEntityTypeConfiguration<Product>` (applied wit
 `ApplyConfigurationsFromAssembly`), keeping the domain free of persistence attributes. Value objects
 map onto columns with value converters.
 
-## Does SQLite support `decimal`? (the money gotcha)
+## Does SQLite support `decimal`?
 
-No — SQLite has no native decimal type. EF Core maps a `decimal` to a **TEXT** column and falls back
-to **REAL** for `ORDER BY` and aggregates, which is lossy and sorts lexicographically. The sample
-sidesteps this by modelling `Money` as **integer minor units (cents)** and mapping it to an `INTEGER`
-column with a converter:
+SQLite has no native decimal type, but a `decimal` works correctly through Rask — including the part
+that is broken upstream.
+
+EF Core stores a `decimal` as **TEXT** in a culture-invariant fixed-point format (`19.95`, never
+`19,95`, on every locale), so the value round-trips exactly. It never uses `REAL`, which would round —
+`0.1 + 0.2 ≠ 0.3`. Arithmetic, comparisons and `Sum`/`Average`/`Min`/`Max` all translate to SQL, via
+managed helper functions EF registers on the connection (`ef_add`, `ef_compare`, `ef_sum`, …). Sorting
+text numerically needs a *collating sequence*, so EF emits `ORDER BY "Price" COLLATE EF_DECIMAL`.
+
+**The upstream bug Rask fixes.** EF Core registers that collation as
+`decimal.Compare(decimal.Parse(x), decimal.Parse(y))` — with no `IFormatProvider`, so it parses the
+invariant text using the machine's `CurrentCulture`. The consequences depend on the server's locale:
+
+| Locale | `ORDER BY` on a `decimal` |
+| --- | --- |
+| `.` is the decimal separator (`en-US`, invariant) | correct |
+| `.` is the **group** separator (`de-DE`, `fr-FR`) | **silently mis-sorted** — `"19.95"` reads as `1995` |
+| `.` is neither (`en-HU`, `hu-HU`) | **the process dies** — `FormatException` |
+
+That last row is not a caught query error. The throw happens inside a native SQLite comparison
+callback, which a managed exception cannot be unwound across, so it terminates the process. The same
+crash occurs on any locale if a non-numeric value ever reaches the column — and SQLite's [dynamic
+typing](sqlite.md) permits exactly that.
+
+`UseRaskSqlite` re-registers `EF_DECIMAL` on every connection open with an invariant, total,
+non-throwing comparison, which is what EF's own generated SQL then uses. Nothing in the database file
+changes — no column type, no collation in the DDL, no migration — so ordering, `GROUP BY` and
+`DISTINCT` on a `decimal` are correct on every locale, and unparseable text sorts after the numbers
+instead of killing the app. You write `public decimal Price { get; set; }` and nothing else.
+
+**What the collation costs, and how to avoid paying it.** Correct is not free. Every comparison in the
+sort is a managed callback that marshals two strings out of SQLite, and a sort makes O(n log n) of them.
+Measured by [`SqliteDecimalOrderingBenchmarks`](../benchmarks/Rask.Benchmarks/SqliteDecimalOrderingBenchmarks.cs)
+over one WAL database, ordering every row of a table:
+
+| Rows | `decimal` (TEXT, collated) | integer minor units (`INTEGER`, indexed) |
+| ---: | ---: | ---: |
+| 1,000 | 2.0 ms · 699 KB allocated | 0.24 ms · 768 B |
+| 10,000 | 28.8 ms · 9.9 MB | 0.52 ms · 768 B |
+| 100,000 | 156 ms · 125 MB | 4.5 ms · 768 B |
+
+The time is ~35× at 100k rows; the allocation is the part that will find you first, since it is garbage
+the collection has to walk.
+
+**Index the collation and the cost disappears.** SQLite can serve an `ORDER BY` from an index only when
+the index sorts by the *same* collating sequence — otherwise the planner reports
+`USE TEMP B-TREE FOR ORDER BY` and does the sort anyway. Declaring the collation on the property puts
+`COLLATE EF_DECIMAL` in the column definition, and an index over that column inherits it, so the
+ordering is answered by an index scan with no comparisons at query time:
+
+```csharp
+entity.Property(p => p.Price).UseCollation("EF_DECIMAL");
+entity.HasIndex(p => p.Price);
+```
+
+One caveat, and it is the reason this is not the default: a column or index carrying `COLLATE
+EF_DECIMAL` in its DDL can only be read by a connection that has registered that collation. Rask's do;
+the `sqlite3` CLI does not, and will answer `no such collation sequence: EF_DECIMAL` for any query that
+uses it — and once an *index* carries it, writes from such a connection fail too. Plain `SELECT`s,
+`.schema`, `.dump` and Litestream are all unaffected, since they never invoke it.
+
+**Or prefer integer minor units.** For money on a large, frequently sorted table, model the amount as an
+**integer minor unit** count and map it to an `INTEGER` column, which sorts and aggregates natively, is
+indexable by any tool, and keeps the file portable:
 
 ```csharp
 entity.Property(p => p.Price)
     .HasConversion(money => money.Cents, cents => Money.FromCents(cents));
 ```
 
-Integer cents are exact, correctly sortable, and the conventional way to represent money anyway. The
-sample's integration tests assert the column is `INTEGER` and that values round-trip exactly.
+The sample does this, and its integration tests assert the column is `INTEGER` and that values
+round-trip exactly. It is also the conventional way to represent money. Reach for it when the shape of
+the data calls for it — not, any longer, to dodge a correctness problem.
 
 ## Schema & seeding
 

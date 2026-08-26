@@ -5,9 +5,9 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests;
 
 // The Server end of the cross-host parity gate. RaskHostContracts.All is the set Rask.Core promises resolves
-// on every host; this asserts AddRask actually serves all of it. The sibling tests in Rask.Wasm.Tests and
-// Rask.Native.Tests make the identical assertion against their own bootstraps, so a contract can only be
-// added to Core once every host can serve it.
+// on every host; this asserts AddRask actually serves all of it. The sibling test in Rask.Wasm.Tests makes
+// the identical assertion against its own bootstrap, so a contract can only be added to Core once every
+// host can serve it.
 //
 // Resolution, not registration: a descriptor whose own dependencies are missing looks registered and still
 // throws at the injection site, which is exactly how the WASM host shipped an IAuthSignIn that needed an

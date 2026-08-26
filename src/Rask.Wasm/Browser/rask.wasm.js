@@ -2825,23 +2825,23 @@ window.__raskSync = window.__raskSync || (() => {
 
 
 // Dev-only "hot reload applied" indicator, spliced from Rask.Core/Resources/rask-hotreload.js — the
-// same source the Server and Native clients use. It exposes window.__raskHotReloadPill; here the
+// same source the Server client uses. It exposes window.__raskHotReloadPill; here the
 // notification arrives through the hotReloadApplied() export below rather than over a socket, because
 // a WASM app has no Rask server to push it a frame.
-// Dev-only "hot reload applied" indicator — one implementation, spliced into all three transports
-// (Server rask.js, WASM rask.wasm.js, Native rask.native.js) at their hot-reload splice marker.
+// Dev-only "hot reload applied" indicator — one implementation, spliced into both transports
+// (Server rask.js, WASM rask.wasm.js) at their hot-reload splice marker.
 //
 // Deliberately does not spell that marker out: this file's text is substituted *for* it, so a literal
 // copy here would survive into every built artifact and read as a marker the splice had missed.
 //
 // It lives here rather than in each dialect because the transports differ in how the *notification*
 // arrives — Server pushes a {"type":"hotReload"} frame over the socket, WASM calls the exported
-// hotReloadApplied() through JSImport, Native evaluates a call over the WebView bridge — but what
-// happens next is identical, and three copies of a pill would drift.
+// hotReloadApplied() through JSImport — but what happens next is identical, and two copies of a pill
+// would drift.
 //
 // Wrapped in its own IIFE so its locals cannot collide with the enclosing dialect (the Server client
-// is one big IIFE with its own `const`s; WASM and Native splice at module top level). The single
-// export is window.__raskHotReloadPill, which is how each transport reaches it.
+// is one big IIFE with its own `const`s; WASM splices at module top level). The single export is
+// window.__raskHotReloadPill, which is how each transport reaches it.
 (function () {
     "use strict";
 
@@ -2915,9 +2915,9 @@ var devErrorCount = 0;
 var devErrorLastLogged = "";
 
 // The dev gate, read from the document rather than from a host-local variable, so this one source works
-// in all three runtimes. The Server stamps `data-rask-dev` onto <body> per request (LivePayload
-// .InjectRootAttr); the WASM and Native runtimes set it at boot from their host's own answer, because
-// they render client-side and no server ever touches their <body>.
+// in both runtimes. The Server stamps `data-rask-dev` onto <body> per request (LivePayload
+// .InjectRootAttr); the WASM runtime sets it at boot from its host's own answer, because it renders
+// client-side and no server ever touches its <body>.
 function devErrorEnabled() {
     var b = document.body;
     return !!(b && b.hasAttribute("data-rask-dev"));
@@ -3294,11 +3294,11 @@ function headAssetsReady() {
 
 // Scoped-CSS FOUC gating: CSS_FOUC_GUARD_MS + waitForUnappliedHeadCss (diff path) +
 // preloadNewHeadStylesheets (full-HTML path) — spliced from Rask.Core/Resources/rask-scoped.js,
-// shared with rask.js + rask.native.js.
+// shared with rask.js.
 // rask-scoped.js — scoped-CSS FOUC (flash-of-unstyled-content) gating, shared by all three clients.
 //
 // Spliced (at "// @@RASK_SCOPED@@") into the Server runtime (rask.js), the WASM runtime
-// (rask.wasm.js) and the native runtime (rask.native.js). A newly mounted component ships its
+// (rask.wasm.js). A newly mounted component ships its
 // scoped stylesheet as a keyed <link href="/_rask/a/{hash}.css" data-rask-key="rsk-…">; without
 // this gate the swapped body paints before that just-inserted sheet parses + applies, flashing
 // unstyled. Both entry points return a Promise the host chains its render commit on (or null when
@@ -3310,7 +3310,7 @@ function headAssetsReady() {
 // NOTE: the scoped-JS `Rask.*` invoke gate (trackHeadAsset / ensureRaskNamespacePoll /
 // beginInvokeJS deferral) is deliberately NOT here — it has genuinely diverged between the Server
 // (skips rsk- assets, 5s timeout) and WASM (tracks rsk- scripts, 30s backstop) hosts, so it stays
-// inline per host until a dedicated reconciliation pass. See docs/native.md roadmap.
+// inline per host until a dedicated reconciliation pass.
 
 // Hard cap on how long a render defers the body swap waiting for a newly mounted page's scoped
 // stylesheet to apply. A warm, content-addressed /_rask/a/{hash}.css load resolves in a few ms;
@@ -3550,22 +3550,17 @@ export function hotReloadApplied() {
     if (window.__raskHotReloadPill) window.__raskHotReloadPill();
 }
 
-// The input[type=file] ref registry (rask-files.js), shared with the native client — it was local to this
-// file, which is precisely why file input worked on WASM and silently did nothing on a native head.
-// Shared file-input plumbing for every in-process host (WASM and Native), spliced at @@RASK_FILES@@.
+// The input[type=file] ref registry (rask-files.js), shared with the Server client.
+// Shared file-input plumbing for the in-process host, spliced at @@RASK_FILES@@.
 //
 // An <input type=file> hands JS a live File object that cannot cross the interop boundary, so the client
 // keeps the File here and ships only metadata plus a short ref. .NET reads the bytes back a chunk at a time
 // through that ref, which is what lets RaskFile.OpenReadStream be a real Stream instead of a whole file
 // buffered into a render payload.
 //
-// This lived in rask.wasm.js and made file input a WASM-only capability by accident: the native client had
-// no registry, so a shared component's file handler silently received nothing on a native head. Anything
-// Rask.Core promises on every host has to live in a module every host splices — this one.
-//
-// Two readers because the hosts reach it differently: WASM re-exports raskReadFileChunk through a [JSImport]
-// that marshals a Uint8Array directly, while the Native host has no such bridge and goes through IJSRuntime,
-// which is JSON — hence the base64 variant, reached by identifier as window.__raskFiles.readChunkBase64.
+// It lives in a module every host splices, rather than in rask.wasm.js, because anything Rask.Core promises
+// on every host has to be reachable from every host. WASM re-exports raskReadFileChunk through a [JSImport]
+// that marshals a Uint8Array directly.
 
 const raskFileRegistry = new Map();
 
@@ -3605,25 +3600,6 @@ async function raskReadFileChunk(ref, offset, length) {
     if (end <= offset) return new Uint8Array();
     const buf = await file.slice(offset, end).arrayBuffer();
     return new Uint8Array(buf);
-}
-
-async function raskReadFileChunkBase64(ref, offset, length) {
-    const bytes = await raskReadFileChunk(ref, offset, length);
-    // Built one bounded slice at a time: String.fromCharCode.apply over a whole chunk blows the argument
-    // limit on large reads, and a per-byte string concat is quadratic. 8KB keeps both away.
-    let binary = "";
-    const step = 8192;
-    for (let i = 0; i < bytes.length; i += step) {
-        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + step));
-    }
-    return btoa(binary);
-}
-
-// The identifier the Native host's IJSRuntime resolves. Harmless on WASM, which uses its [JSImport] export.
-if (typeof window !== "undefined") {
-    window.__raskFiles = {
-        readChunkBase64: raskReadFileChunkBase64
-    };
 }
 
 
@@ -3680,6 +3656,40 @@ function decodeBase64(b64) {
 
 export function getLocation() {
     return stripBase(location.pathname) + location.search;
+}
+
+// The visitor's language signals, read in one synchronous call so the culture is settled before the
+// first render rather than corrected in a second frame.
+//
+// No regex literals in here on purpose: this file is spliced and minified by RaskMinifyJs, whose
+// tokenizer does not reliably distinguish a regex literal from division. Plain string work is not
+// worth a mis-parse that would only show up in a published bundle.
+export function getCultureSignals() {
+    let cookie = null;
+    try {
+        const parts = document.cookie ? document.cookie.split("; ") : [];
+        const prefix = ".AspNetCore.Culture=";
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i].indexOf(prefix) === 0) {
+                cookie = decodeURIComponent(parts[i].slice(prefix.length));
+                break;
+            }
+        }
+    } catch (e) {
+        // A document with cookies disabled throws on access rather than answering empty.
+    }
+    let query = null;
+    try {
+        query = new URLSearchParams(location.search).get("culture");
+    } catch (e) {
+    }
+    return JSON.stringify({
+        query: query,
+        cookie: cookie,
+        languages: (navigator.languages && navigator.languages.length)
+            ? Array.prototype.slice.call(navigator.languages)
+            : (navigator.language ? [navigator.language] : []),
+    });
 }
 
 export function getBaseAddress() {
@@ -4057,7 +4067,7 @@ function raskNotePendingFormState(el) {
     }
 }
 
-// What a `change` frame reports for a control, in one place for all three hosts — same reasoning as the
+// What a `change` frame reports for a control, in one place for both hosts — same reasoning as the
 // recorder above, which exists because each host carried its own hand-copied copy and they drifted.
 //
 // `value` keeps exactly the meaning it had, so nothing downstream changes shape. `values` is added only
@@ -5309,18 +5319,18 @@ document.addEventListener("click", (e) => {
 
 // rAF-coalesced input & scroll dispatch (inputPending/flushInputsNow/queueInput + the input and
 // scroll listeners) — spliced from Rask.Core/Resources/rask-input.js, shared with rask.js +
-// rask.native.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
+// rask.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
 // rask-input.js — rAF-coalesced input & scroll dispatch, shared by all three client runtimes.
 //
 // Spliced (at "// @@RASK_INPUT@@") into the Server runtime (rask.js), the WASM runtime
-// (rask.wasm.js) and the native runtime (rask.native.js) so the three clients can never drift.
+// (rask.wasm.js) so the two clients can never drift.
 // It relies only on three symbols every host defines in the surrounding scope: `send(payload)`,
 // `inRoot(el)` and the global `document` (plus the standard requestAnimationFrame/
 // cancelAnimationFrame). This module MUST be spliced BEFORE rask-events.js, whose keyboard handler
 // calls flushInputsNow().
 //
 // Written in modern-ES (const/let/arrow), matching rask-dom.js / rask-morph.js — the other shared
-// modules already spliced into all three hosts. No export/import, no backslash regex literals (the
+// modules already spliced into both hosts. No export/import, no backslash regex literals (the
 // splice is a raw string .Replace).
 
 // Input events fire per keystroke — on fast typing that's 5–10 messages over the
@@ -5685,25 +5695,13 @@ document.addEventListener("keyup", function (e) { raskSendKey(e, "data-rask-on-k
 // ----- Share (client-only) ---------------------------------------------------
 // ShareButton emits data-rask-share="{json}". The share MUST run inside the click's own call stack so the
 // browser's transient user activation is still live — a server round-trip would lose it, which is exactly
-// why this is handled on the client and not dispatched to C#. In a native shell we upgrade to the injected
-// native bridge (window.__raskNative, no activation needed); otherwise we fall back to navigator.share.
+// why this is handled on the client and not dispatched to C#.
 // Unsupported browsers (e.g. desktop Firefox) simply no-op.
 document.addEventListener("click", function (e) {
     var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-share]") : null;
     if (!t || !inRoot(t)) { return; }
     var raw = t.getAttribute("data-rask-share");
     if (!raw) { return; }
-    var nativeCaps = window.__raskNative;
-    if (nativeCaps && typeof nativeCaps.has === "function" && nativeCaps.has("share") &&
-        typeof nativeCaps.invoke === "function") {
-        var payload;
-        try { payload = JSON.parse(raw); } catch (err) { return; }
-        // invoke returns a promise now; a rejected share (user cancelled, unsupported payload) is not an
-        // error worth surfacing here, but an unhandled rejection would be.
-        var shared = nativeCaps.invoke("share", "share", payload);
-        if (shared && shared["catch"]) { shared["catch"](function () {}); }
-        return;
-    }
     if (navigator.share) {
         var data;
         try { data = JSON.parse(raw); } catch (err) { return; }

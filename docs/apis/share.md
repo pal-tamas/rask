@@ -4,16 +4,16 @@
 
 - **Wraps:** Web Share API
 - **MDN:** [Navigator.share](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share)
-- **Home:** `Rask.Client.Browser` (WASM + Native)
+- **Home:** `Rask.Wasm.Browser` (WASM)
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
-Imperative sharing needs transient activation, so it's WASM+Native only. On Server, use the headless `Shareable` component, whose click fires the share inside the gesture.
+Imperative sharing needs transient activation, so it's WASM-only. On Server, use the headless `Shareable` component, whose click fires the share inside the gesture.
 
 > 🟡 On the Server host this is reachable declaratively via the planned gesture bridge, not as an injected service.
 
 ## See also
 
-- Source: [`IShare.cs`](../../src/Rask.Client/Browser/IShare.cs)
+- Source: [`IShare.cs`](../../src/Rask.Wasm/Browser/IShare.cs)
 - [Capability matrix](../browser-capabilities.md)
 - [Browser APIs — the narrative map](../browser-apis.md)

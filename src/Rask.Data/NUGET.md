@@ -54,4 +54,20 @@ entries at all. It is opt-in because it runs **no** `ISaveChangesInterceptor` â€
 columns itself, but entities carrying domain events are rejected rather than silently losing them, and
 anything it cannot map faithfully throws and names the reason.
 
+## Non-overlapping ranges
+
+A booking, a lease, a price valid for a period: two rows must not cover the same point. SQLite has no
+`EXCLUDE` constraint and a `UNIQUE` index only stops *identical* rows, so declare the rule on the model
+instead:
+
+```csharp
+modelBuilder.Entity<Booking>()
+    .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.RoomId);
+```
+
+Ranges are half-open (`[lo, hi)`), so `100-200` and `200-300` are neighbours rather than a conflict. With
+`Rask.SQLite.EntityFrameworkCore`'s `UseRaskSqlite(...)`, migrations emit the triggers that enforce it and a
+violating save throws `RangeOverlapException`. Enforcement lives in the database, so raw SQL is bound by it
+too.
+
 Part of the [Rask](https://github.com/pal-tamas/rask) framework. MIT licensed.

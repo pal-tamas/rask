@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Rask.Core.Live;
@@ -28,7 +29,9 @@ public sealed record ScrollEvent(int ScrollTop, int ClientHeight, int ScrollHeig
         {
             JsonValueKind.Number when v.TryGetInt32(out var i) => i,
             JsonValueKind.Number => (int)v.GetDouble(),
-            JsonValueKind.String when int.TryParse(v.GetString(), out var i) => i,
+            // Invariant: scroll offsets cross the wire as JS-formatted numbers.
+            JsonValueKind.String when int.TryParse(
+                v.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var i) => i,
             _ => 0
         };
     }

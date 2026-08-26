@@ -20,7 +20,7 @@ let basePath = null;
 // @@RASK_WASM_API@@
 
 // Dev-only "hot reload applied" indicator, spliced from Rask.Core/Resources/rask-hotreload.js — the
-// same source the Server and Native clients use. It exposes window.__raskHotReloadPill; here the
+// same source the Server client uses. It exposes window.__raskHotReloadPill; here the
 // notification arrives through the hotReloadApplied() export below rather than over a socket, because
 // a WASM app has no Rask server to push it a frame.
 // @@RASK_HOTRELOAD@@
@@ -171,7 +171,7 @@ function headAssetsReady() {
 
 // Scoped-CSS FOUC gating: CSS_FOUC_GUARD_MS + waitForUnappliedHeadCss (diff path) +
 // preloadNewHeadStylesheets (full-HTML path) — spliced from Rask.Core/Resources/rask-scoped.js,
-// shared with rask.js + rask.native.js.
+// shared with rask.js.
 // @@RASK_SCOPED@@
 
 function maybeDrainPendingInvokes() {
@@ -349,8 +349,7 @@ export function hotReloadApplied() {
     if (window.__raskHotReloadPill) window.__raskHotReloadPill();
 }
 
-// The input[type=file] ref registry (rask-files.js), shared with the native client — it was local to this
-// file, which is precisely why file input worked on WASM and silently did nothing on a native head.
+// The input[type=file] ref registry (rask-files.js), shared with the Server client.
 // @@RASK_FILES@@
 
 // The [JSImport] on the .NET side binds to this module export, so the export has to be declared here (an ES
@@ -406,6 +405,40 @@ function decodeBase64(b64) {
 
 export function getLocation() {
     return stripBase(location.pathname) + location.search;
+}
+
+// The visitor's language signals, read in one synchronous call so the culture is settled before the
+// first render rather than corrected in a second frame.
+//
+// No regex literals in here on purpose: this file is spliced and minified by RaskMinifyJs, whose
+// tokenizer does not reliably distinguish a regex literal from division. Plain string work is not
+// worth a mis-parse that would only show up in a published bundle.
+export function getCultureSignals() {
+    let cookie = null;
+    try {
+        const parts = document.cookie ? document.cookie.split("; ") : [];
+        const prefix = ".AspNetCore.Culture=";
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i].indexOf(prefix) === 0) {
+                cookie = decodeURIComponent(parts[i].slice(prefix.length));
+                break;
+            }
+        }
+    } catch (e) {
+        // A document with cookies disabled throws on access rather than answering empty.
+    }
+    let query = null;
+    try {
+        query = new URLSearchParams(location.search).get("culture");
+    } catch (e) {
+    }
+    return JSON.stringify({
+        query: query,
+        cookie: cookie,
+        languages: (navigator.languages && navigator.languages.length)
+            ? Array.prototype.slice.call(navigator.languages)
+            : (navigator.language ? [navigator.language] : []),
+    });
 }
 
 export function getBaseAddress() {
@@ -660,7 +693,7 @@ document.addEventListener("click", (e) => {
 
 // rAF-coalesced input & scroll dispatch (inputPending/flushInputsNow/queueInput + the input and
 // scroll listeners) — spliced from Rask.Core/Resources/rask-input.js, shared with rask.js +
-// rask.native.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
+// rask.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
 // @@RASK_INPUT@@
 
 document.addEventListener("change", (e) => {

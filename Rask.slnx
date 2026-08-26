@@ -13,9 +13,6 @@
         <Project Path="samples/Rask.Example.Auth.WasmJwt.Host/Rask.Example.Auth.WasmJwt.Host.csproj"/>
         <Project Path="samples/Rask.Example.EfCore/Rask.Example.EfCore.csproj"/>
         <Project Path="samples/Rask.Example.Playground/Rask.Example.Playground.csproj"/>
-        <!-- Rask.Example.Native / .Native.Server multi-target net10.0-ios;net10.0-android (mobile workloads)
-             so they are excluded here — the Ubuntu solution build can't restore them. Built by the macOS
-             `native` CI job, and the on-device Appium E2E (tests/Rask.Native.Appium.Tests) drives them. -->
         <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj"/>
         <Project Path="samples/Rask.Example.Shop/Rask.Example.Shop.csproj"/>
         <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj"/>
@@ -29,7 +26,6 @@
         <Project Path="src/Rask.Bootstrap/Rask.Bootstrap.csproj"/>
         <Project Path="src/Rask.Cache/Rask.Cache.csproj"/>
         <Project Path="src/Rask.Cli/Rask.Cli.csproj"/>
-        <Project Path="src/Rask.Client/Rask.Client.csproj"/>
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
         <Project Path="src/Rask.Cqrs/Rask.Cqrs.csproj"/>
         <Project Path="src/Rask.Cqrs.Generators/Rask.Cqrs.Generators.csproj"/>
@@ -70,7 +66,6 @@
         <Project Path="tests/Rask.Bootstrap.Tests/Rask.Bootstrap.Tests.csproj"/>
         <Project Path="tests/Rask.Cache.Tests/Rask.Cache.Tests.csproj"/>
         <Project Path="tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj"/>
-        <Project Path="tests/Rask.Client.Tests/Rask.Client.Tests.csproj"/>
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Tests/Rask.Cqrs.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Generators.Tests/Rask.Cqrs.Generators.Tests.csproj"/>

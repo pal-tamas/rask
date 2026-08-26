@@ -10,11 +10,9 @@ Run the app you're changing with `rask dev`. It wraps `dotnet watch run`, so an 
 `Render()`, a scoped `.css`/`.js`, a `[Route]` template or a CQRS handler is applied to the running
 process and every open session repaints in place — a "Hot reload applied" pill confirms it. Edits the
 runtime can't apply (adding a type, changing a signature) restart the app instead, and the page reloads
-itself. [What hot-reloads](cli.md#what-hot-reloads) has the full list, including what doesn't: a native app
-running in-process on a device has no watch channel and must be restarted — though a Native + Server
-shell hot-reloads like a browser, because that is what it is. WASM is covered — the host serves
-the client's build output for the session, since a published bundle is trimmed and could never apply an
-update.
+itself. [What hot-reloads](cli.md#what-hot-reloads) has the full list, including what doesn't. WASM is
+covered — the host serves the client's build output for the session, since a published bundle is trimmed
+and could never apply an update.
 
 When something breaks, it says what broke. A save that doesn't compile shows the compiler errors in the
 page — not "Reconnecting…" — and clears itself once the code builds; an exception from a handler or an
@@ -78,9 +76,8 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 
 ## CI
 
-- `ci.yml` — the deterministic benchmark byte-gates and a native compile gate (both native samples ×
-  android/ios). **Tests do not run in CI** — the unit/integration suite and the E2E suites run locally
-  (see below).
+- `ci.yml` — the deterministic benchmark byte-gates. **Tests do not run in CI** — the unit/integration
+  suite and the E2E suites run locally (see below).
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load, ~36s), then every test except the browser E2E. The full pass earns its
@@ -94,16 +91,14 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   `.githooks/pre-commit` hook runs it whenever a commit stages code (enable hooks with
   `git config core.hooksPath .githooks`; bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`).
 - **E2E runs locally, enforced before push.** The browser-journey E2E
-  (`tests/Rask.Examples.E2E.Tests`, Playwright) and the on-device native E2E
-  (`tests/Rask.Native.Appium.Tests`, Appium) were moved out of the CI pipeline. Run the browser gate
-  with `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
+  (`tests/Rask.Examples.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
+  `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
   with `git config core.hooksPath .githooks`; bypass with `git push --no-verify` or `RASK_SKIP_E2E=1`).
-  The on-device native suite needs an emulator/simulator + Appium — run it manually (see
 - **The CLI build gate runs locally, enforced before push.** `scripts/run-cli-build-e2e.sh` is the only
   thing proving the code the CLI *writes* actually compiles — every other CLI test asserts on generated
   strings. It packs this commit's Rask packages to a local feed, scaffolds every `rask new` flag
-  combination (see the [tutorial](tutorial/00-overview.md)
-  walk-through, then builds each one with `-warnaserror`. Because it packs 15 packages and runs several
+  combination (see the [tutorial](tutorial/00-overview.md) walk-through), then builds each one with
+  `-warnaserror`. Because it packs 15 packages and runs several
   full builds it is too slow for the pre-commit loop, so the `.githooks/pre-push` hook runs it instead
   (bypass with `git push --no-verify` or `RASK_SKIP_CLI_BUILD_E2E=1`). The gates are opted into by
   `RASK_CLI_BUILD_E2E=1`, which the script exports; without it every case reports **SKIPPED** rather than

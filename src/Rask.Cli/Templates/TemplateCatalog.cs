@@ -22,7 +22,7 @@ internal static class TemplateCatalog
     ///     features, every template understands them, and the parser handles them before this list is
     ///     consulted.
     /// </remarks>
-    private static readonly string[] WebFlags = ["auth", "pwa", "docker"];
+    private static readonly string[] WebFlags = ["auth", "pwa", "docker", "localization"];
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a
@@ -52,8 +52,6 @@ internal static class TemplateCatalog
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags],
                 StringComparer.Ordinal)),
-        new("native", "Rask native mobile app (iOS + Android)",
-            new HashSet<string>(StringComparer.Ordinal)),
         // The TypeScript front-end templates, one per framework: a client on an ASP.NET host, talking to
         // it over generated TypeScript. --cqrs is not listed because it is not optional here — the wire IS
         // the template, and a flag you cannot turn off is a worse thing to advertise than no flag at all.

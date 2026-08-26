@@ -70,8 +70,8 @@ public enum GanttViewMode
 
 /// <summary>
 ///     A Gantt chart, wrapping the third-party <see href="https://github.com/frappe/gantt">frappe-gantt</see>
-///     library (MIT, vendored under <c>wwwroot/lib/frappe-gantt</c>). Renders on both transports and on the
-///     Native hosts, because everything host-specific is funnelled through <see cref="IJSRuntime" /> and
+///     library (MIT, vendored under <c>wwwroot/lib/frappe-gantt</c>). Renders on both transports, because
+///     everything host-specific is funnelled through <see cref="IJSRuntime" /> and
 ///     <see cref="RaskLiveOptions.PathBase" />.
 /// </summary>
 /// <remarks>
@@ -247,8 +247,11 @@ public sealed partial class Gantt : Component
         return JsonSerializer.Serialize(payload, GanttJsonContext.Default.GanttJsOptions);
     }
 
-    // The WASM showcase runs InvariantGlobalization, so pin the culture rather than inheriting the
-    // ambient one — an ISO date is the contract with the library either way.
+    // Invariant because an ISO date is the wire contract with the JS library — not because of how any
+    // particular host happens to be built. (This used to blame the showcase running
+    // InvariantGlobalization; that is now a per-app opt-in, and the reasoning never depended on it.)
+    // A culture-sensitive format here would hand Gantt.js a date it cannot read the moment a visitor
+    // arrived in a locale that writes dates differently.
     private static string ToIso(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private static bool TryParseIsoDate(string value, out DateOnly date)

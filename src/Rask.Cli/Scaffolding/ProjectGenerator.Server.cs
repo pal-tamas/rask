@@ -55,6 +55,17 @@ internal static partial class ProjectGenerator
             files.Add(("wwwroot/offline.html", OfflineHtml));
         }
 
+        if (batteries.Localization)
+        {
+            // One catalog per language. The FIRST is the neutral one: it defines which keys exist, and
+            // its text is what a visitor sees until a translation is filled in.
+            var languages = batteries.Cultures.ToArray();
+            for (var i = 0; i < languages.Length; i++)
+            {
+                files.Add(($"Resources/Strings.{languages[i]}.json", StringsCatalog(i == 0)));
+            }
+        }
+
         if (batteries.Docker)
         {
             files.Add(("Dockerfile", Dockerfile(batteries)));
@@ -212,7 +223,35 @@ internal static partial class ProjectGenerator
         sb.Append(DatabaseAndBatteryUsings(batteries));
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
-        sb.Append("builder.Services.AddRask();\n");
+        if (batteries.Localization)
+        {
+            // Configured on the EXISTING AddRask call rather than a second one. A second
+            // AddRask(configureCulture: ...) compiles and reads correctly, but the options are
+            // registered with TryAddSingleton, so the first (empty) registration wins and the app
+            // silently ships with no languages at all.
+            var languages = string.Join(", ", batteries.Cultures.Select(c => $"\"{c}\""));
+            sb.Append($$"""
+                // The languages this app ships. The FIRST is the default a visitor falls back to when
+                // nothing else matches. Their language is negotiated per request -- ?culture= beats a
+                // remembered cookie, which beats the browser's Accept-Language -- and then belongs to
+                // their session, so it survives every render over the live socket.
+                //
+                // Text comes from Resources/Strings.{culture}.json, compiled into typed members: a
+                // missing key is a build error rather than a blank on the page (docs/diagnostics.md).
+                builder.Services.AddRask(configureCulture: c =>
+                {
+                    foreach (var language in new[] { {{languages}} })
+                    {
+                        c.SupportedCultures.Add(language);
+                    }
+                });
+
+                """);
+        }
+        else
+        {
+            sb.Append("builder.Services.AddRask();\n");
+        }
         sb.Append("""
 
             // A liveness/readiness endpoint (mapped below) — `rask deploy` probes it to gate the blue-green
@@ -795,6 +834,30 @@ internal static partial class ProjectGenerator
     /// doesn't need a new Dockerfile — while the binary is only worth carrying once there is a database to
     /// replicate.
     /// </remarks>
+    /// <summary>
+    /// A starter catalog. The neutral one carries the app's English; a translation starts as a copy so
+    /// the keys line up and the build tells you which ones still need doing (RASK052).
+    /// </summary>
+    private static string StringsCatalog(bool neutral) =>
+        neutral
+            ? """
+              {
+                "AppTitle": "Welcome to Rask",
+                "Greeting": "Hello, {name}!",
+                "Items": { "$plural": "count", "one": "{count} item", "other": "{count} items" }
+              }
+              """
+            : """
+              // Translated text for this language. The keys come from the neutral catalog; one that is
+              // missing here is a warning (RASK052) and falls back to the neutral text, so a
+              // half-finished translation still renders.
+              {
+                "AppTitle": "Welcome to Rask",
+                "Greeting": "Hello, {name}!",
+                "Items": { "$plural": "count", "one": "{count} item", "other": "{count} items" }
+              }
+              """;
+
     private static string Dockerfile(ServerBatteries batteries)
     {
         return Splice(Splice(DockerfileTemplate, "@@LITESTREAM@@", batteries.Data ? LitestreamLayer : null),

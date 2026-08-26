@@ -39,8 +39,7 @@ Know what you're buying:
   component — a session-pinned context, the thing short-lived-`DbContext` guidance warns about. The async way
   below has no such constraint.
 - **Server hosts only.** The query runs in-process, so it needs the database in-process. A WASM app has no
-  database and throws on first render, with the fix in the message. (A native host with a local SQLite
-  `DbContext` is fine.)
+  database and throws on first render, with the fix in the message.
 - **It blocks.** `Count()` and `ToList()` run inside the synchronous render, so a sort or page click holds a
   request thread for two round-trips. That's fine for an admin list screen. If it isn't fine for you, use the
   async way below — it's the same feature with the `await` in your hands.

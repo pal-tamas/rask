@@ -8,7 +8,7 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅
 
-`navigator.vibrate` is Android-Chromium only and absent in iOS WKWebView; the native backend works on both (iOS maps to a single system vibration).
+`navigator.vibrate` is Android-Chromium only and absent in iOS Safari.
 
 ## See also
 

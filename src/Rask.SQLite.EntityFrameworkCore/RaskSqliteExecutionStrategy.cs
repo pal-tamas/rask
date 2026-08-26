@@ -10,7 +10,7 @@ namespace Rask.SQLite;
 /// <see cref="SqliteBusyRetryOptions.PollInterval"/> — not exponential backoff — awaited between
 /// attempts (so the thread is freed while waiting), giving up after
 /// <see cref="SqliteBusyRetryOptions.Timeout"/>. Registered for you by
-/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?, Action{SqliteBusyRetryOptions}?)"/>
+/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?, Action{SqliteBusyRetryOptions}?, bool)"/>
 /// when you pass <c>configureRetry</c>.
 /// </summary>
 /// <remarks>

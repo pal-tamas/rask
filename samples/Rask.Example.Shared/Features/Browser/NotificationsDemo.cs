@@ -4,8 +4,8 @@ namespace Rask.Example.Shared.Features;
 
 /// <summary>
 ///     <see cref="INotifications" /> + <see cref="IBadge" /> — raise a local notification and set the app-icon
-///     badge from the page. Both work on every host; in the native shell they resolve to real OS backends
-///     (UNUserNotificationCenter / NotificationManager and the native app-icon badge), which a WebView can't do.
+///     badge from the page. Both work on every host, through the browser's Notifications and Badging APIs
+///     (a badge only shows on an installed PWA).
 /// </summary>
 public sealed partial class NotificationsDemo(INotifications notifications, IBadge badge) : Component
 {

@@ -5,8 +5,8 @@
 //   * destroy(host) — drop the instance and clear the host.
 //
 // frappe-gantt is vendored under wwwroot/lib/frappe-gantt (MIT). It's an ordinary UMD bundle: loading it
-// sets a `Gantt` global. Vendored rather than CDN-loaded so the showcase works offline, under the GitHub
-// Pages sub-path, and inside the Native hosts.
+// sets a `Gantt` global. Vendored rather than CDN-loaded so the showcase works offline and under the
+// GitHub Pages sub-path.
 
 const ASSEMBLY = "Rask.Example.Shared";
 
@@ -15,8 +15,7 @@ const charts = new WeakMap();
 let loadPromise = null;
 
 // Resolve the library's URL from the PathBase the .NET side passes in, rather than from document.baseURI:
-// PathBase is what's correct behind a reverse proxy (Server), under /rask/ (WASM on Pages), and on Native,
-// where the WebView interceptor serves _content/ out of the app bundle.
+// PathBase is what's correct behind a reverse proxy (Server) and under /rask/ (WASM on Pages).
 function libUrl(pathBase, file) {
     return `${pathBase || ""}/_content/Rask.Example.Shared/lib/frappe-gantt/${file}`;
 }

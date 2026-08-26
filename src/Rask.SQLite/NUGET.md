@@ -5,6 +5,11 @@
 shared `mmap_size`, and a capped `journal_size_limit` — to **every** SQLite connection, so your app
 gets correct, concurrent, production-ready SQLite by default instead of the lock-prone stock config.
 
+It also hardens the connection: `trusted_schema=OFF` so a schema cannot invoke arbitrary functions
+from a view or index expression, `cell_size_check=ON` so a corrupt page is caught as it is read, and a
+bounded `PRAGMA optimize` (`SqlitePragmas.Optimize`) to keep the query planner's statistics from going
+stale — the usual reason a query that was instant in development crawls in production.
+
 Standalone and lean: it depends only on `Microsoft.Data.Sqlite` and is **reflection-free**, so it is
 fine under trimming/AOT and on mobile. You do **not** need the rest of Rask to use it.
 

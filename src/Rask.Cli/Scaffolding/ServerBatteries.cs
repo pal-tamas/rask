@@ -10,6 +10,26 @@ namespace Rask.Cli.Scaffolding;
 /// </remarks>
 internal sealed record ServerBatteries
 {
+    /// <summary>Translate the UI: per-language catalogs, a negotiated culture, and a switcher.</summary>
+    public bool Localization { get; init; }
+
+    /// <summary>
+    /// The languages to scaffold a catalog for, comma-joined and ordered — the first is the default that
+    /// negotiation falls back to.
+    /// </summary>
+    /// <remarks>
+    /// A <b>string</b> rather than a list, and that is not a style choice. This type is a record, so a
+    /// collection property would silently degrade its synthesized value equality to reference equality:
+    /// two batteries describing the same languages would compare unequal, and the tests that compare
+    /// battery values would start failing in some later, unrelated change. <see cref="Cultures"/> is the
+    /// readable view.
+    /// </remarks>
+    public string CultureList { get; init; } = "";
+
+    /// <summary>The configured languages, in order.</summary>
+    public IEnumerable<string> Cultures =>
+        CultureList.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
     /// <summary>Cookie authentication: login + members pages and a demo credential store.</summary>
     /// <summary>
     ///     How the generated pages are styled.
@@ -118,11 +138,18 @@ internal sealed record ServerBatteries
         // The dashboard reads AddRaskDashboard<TContext>, so it needs a context for the same reason the
         // pillars do — even on an app that has no pillars yet, where it still shows the system panel.
         var data = Data || AnyDbPillar || AnySqliteOps || Ops;
+
+        // Naming a language is asking for localization; asking for localization with no language named
+        // means English, which is what an app gets before it adds a second one.
+        var localization = Localization || CultureList.Length > 0;
+
         return this with
         {
             Data = data,
             Cqrs = Cqrs || data,
             Pwa = Pwa || Push,
+            Localization = localization,
+            CultureList = localization && CultureList.Length == 0 ? "en" : CultureList,
         };
     }
 }

@@ -58,8 +58,48 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
     protected virtual RenderEngine EngineCore => RenderEngine.Server;
 
+    // The session's culture, read by LiveRenderContext at the top of every render walk. Resolved once in
+    // the constructor rather than per walk: the service is scoped to this session, so the instance never
+    // changes — only the culture inside it does.
+    System.Globalization.CultureInfo IRenderHandle.Culture =>
+        _culture?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
+
+    System.Globalization.CultureInfo IRenderHandle.UICulture =>
+        _culture?.UICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
+
+    // Only once the app has actually named a language. An unconfigured culture service reports no
+    // supported cultures and sits on the invariant culture, which is not a document language.
+    bool IRenderHandle.HasCulture => _culture is { Supported.Count: > 0 };
+
     // Called at the very start of each render walk (before the tree is serialized). Base is a no-op.
     protected virtual void OnBeforeRenderWalk() { }
+
+    // A language switch has to repaint everything, so the whole tree is marked dirty before re-rendering.
+    //
+    // Belt AND braces, deliberately. Reading Component.Culture already marks that component as depending
+    // on ambient state, which alone would invalidate its cache entry — but only for components that read
+    // culture THROUGH Rask. A component formatting with CultureInfo.CurrentCulture directly is invisible
+    // to that marking and would otherwise keep serving a cached subtree in the previous language.
+    private void OnCultureChanged()
+    {
+        Component.MarkSubtreeDirtyInternal(View);
+        _ = RequestRenderAsync();
+    }
+
+    // Unhooks the culture subscription. Called by each host's Dispose: the service outlives a
+    // per-session tree on WASM (where it is a singleton), so leaving the handler attached would keep a
+    // disposed session's tree reachable and re-render it.
+    protected void DetachCulture()
+    {
+        if (_culture is not null)
+        {
+            _culture.Changed -= OnCultureChanged;
+        }
+    }
+
+    // The session's culture service, or null when the app configured no cultures. Held so the session
+    // can unsubscribe on dispose, and so the render walk never pays a service resolution.
+    private readonly Globalization.IRaskCulture? _culture;
 
     protected LiveSessionBase(Component view, IServiceProvider services, LiveDiffMode diffMode)
     {
@@ -67,6 +107,15 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         Services = services;
         DiffMode = diffMode;
         view.RenderHandle = this;
+
+        // Only when an app actually configured cultures — otherwise this costs nothing and the whole
+        // subsystem stays inert (see RaskCulture.IsEnabled).
+        if (Globalization.RaskCulture.IsEnabled
+            && services.GetService(typeof(Globalization.IRaskCulture)) is Globalization.IRaskCulture culture)
+        {
+            _culture = culture;
+            _culture.Changed += OnCultureChanged;
+        }
         // RootErrorBoundary wraps the user's App; forward the handle to the inner so its
         // StateHasChanged() reaches the session even before the first GetOrCreate would attach it.
         if (view is RootErrorBoundary root)
@@ -147,7 +196,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         {
             try
             {
-                Component.MarkSubtreeDirtyForHotReload(session.View);
+                Component.MarkSubtreeDirtyInternal(session.View);
                 await session.RequestRenderAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -268,9 +317,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     ///     A sealed session-resume record to attach to the payload being written, or <c>null</c> for none.
     /// </summary>
     /// <remarks>
-    ///     Only the ASP.NET host overrides this. A WASM or native app IS the process holding its session,
-    ///     so there is no other host for a record to be redeemed on and nothing to carry — the base returns
-    ///     null and those hosts pay a null check per frame. Named "Take" because an override is expected to
+    ///     Only the ASP.NET host overrides this. A WASM app IS the process holding its session, so there is
+    ///     no other host for a record to be redeemed on and nothing to carry — the base returns null and
+    ///     that host pays a null check per frame. Named "Take" because an override is expected to
     ///     mark the record as issued: it is called once per payload and must not hand out the same record
     ///     on every subsequent frame.
     /// </remarks>

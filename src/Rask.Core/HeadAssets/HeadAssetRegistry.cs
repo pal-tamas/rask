@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Rask.Core.Components;
 using Rask.Core.Live;
@@ -374,6 +375,6 @@ internal sealed class HeadAssetRegistry
             hash *= 16777619u;
         }
 
-        return hash.ToString("x8");
+        return hash.ToString("x8", CultureInfo.InvariantCulture);
     }
 }

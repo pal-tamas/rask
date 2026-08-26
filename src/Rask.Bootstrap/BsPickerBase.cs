@@ -1,4 +1,5 @@
 using Rask.Core.Forms;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Html.Components;
 
@@ -32,14 +33,10 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
     /// <summary>The text shown while nothing is chosen.</summary>
     public string? Placeholder { get; set; }
 
-    // Localizable accessible names for the picker chrome (month-nav buttons, time-column headings, clear
-    // button) that has no CultureInfo source. Null → English defaults. See BsPickerLabels.
-
-    /// <summary>The picker's user-visible strings, for translation.</summary>
-    public BsPickerLabels? Labels { get; set; }
-
-    // The labels to render with — the caller's overrides, or the shared English default.
-    private protected BsPickerLabels PickerLabels => Labels ?? BsPickerLabels.Default;
+    // The picker's chrome text — the month-nav buttons, the time-column headings, the clear button —
+    // now comes from RaskStrings, which reads the visitor's language like everything else. It used to
+    // be a per-INSTANCE record every call site had to thread through, which is why translating three
+    // pickers on one page meant repeating yourself three times.
 
     // Popover visibility — pure live-diff view state, opened on focus, closed by the backdrop or Escape.
     // The value itself lives in the bound model / controlled Value, never here.
@@ -81,10 +78,13 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
             ? Nullable.GetUnderlyingType(acc.PropertyType) ?? acc.PropertyType
             : Underlying;
 
-    // Display/parse culture. CurrentCulture drives month/weekday names and first-day-of-week; the bound
-    // value still round-trips invariant ISO because we write the typed value, never a formatted string.
-    private protected static System.Globalization.CultureInfo Culture =>
-        System.Globalization.CultureInfo.CurrentCulture;
+    // Display/parse culture: month and weekday names, and first-day-of-week. The bound value still
+    // round-trips invariant ISO, because a picker writes the typed value and never a formatted string.
+    //
+    // Inherited from Component now rather than declared here. That is the whole point of the change:
+    // this used to read CultureInfo.CurrentCulture, which on a server is the process locale — so every
+    // visitor of a multi-user app got the SERVER's month names. Component.Culture is the session's, and
+    // reading it also marks the picker as culture-dependent so a language switch repaints it.
 
     // The native-input fallback for Native:true — the SAME core <input> BsInput renders (a
     // type=date|time|datetime-local bound to a string round-tripped by FormatValue/StringChangeHandler),
@@ -205,7 +205,7 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
             ? BsCloseButton
                 .Class(BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
                     Position.TranslateMiddleY, Margin.End(2), "bs-picker-clear", Open ? "bs-clear-open" : null))
-                .AriaLabel(PickerLabels.Clear)
+                .AriaLabel(RaskStrings.Get(RaskString.PickerClear, "Clear"))
                 .OnClickAsync(clearAsync)
             : null;
 

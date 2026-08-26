@@ -8,7 +8,6 @@ public sealed class TemplateCatalogTests
     [InlineData("server")]
     [InlineData("wasm")]
     [InlineData("wasm-hosted")]
-    [InlineData("native")]
     public void Resolves_each_known_template_by_key(string key)
     {
         Assert.True(TemplateCatalog.TryGet(key, out var template));
@@ -57,12 +56,22 @@ public sealed class TemplateCatalogTests
         Assert.DoesNotContain("data", wasm.SupportedFlags);
     }
 
+    /// <summary>
+    ///     The native template is gone with the native hosting model — Rask is a web framework.
+    /// </summary>
+    /// <remarks>
+    ///     Removing the host packages left this catalog entry behind, and a catalog entry is the whole
+    ///     contract: it is what <c>--template</c> validates against, what the wizard lists, and what shell
+    ///     completion offers. The generator's switch had no native arm, so it fell through to the default
+    ///     one — <c>rask new Field --template native</c> announced "Creating Rask native mobile app (iOS +
+    ///     Android)", wrote an ASP.NET host, and signed off with "Created Field (Rask server app)". Nothing
+    ///     threw, so nothing caught it. Assert the absence, because the presence is what shipped.
+    /// </remarks>
     [Fact]
-    public void Native_supports_no_web_feature_flags()
+    public void The_native_template_is_gone()
     {
-        TemplateCatalog.TryGet("native", out var native);
-
-        Assert.Empty(native.SupportedFlags);
+        Assert.False(TemplateCatalog.TryGet("native", out _));
+        Assert.DoesNotContain("native", TemplateCatalog.Keys, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -238,3 +238,15 @@ dotnet_naming_style.begins_with_i.required_prefix = I
 dotnet_naming_style.begins_with_i.required_suffix =
 dotnet_naming_style.begins_with_i.word_separator =
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
+
+# CA1305 (IFormatProvider) is promoted to an error for Rask.Core only, and deliberately NOT via
+# AnalysisLevel: raising that surfaces ~33 further CA findings at once (see Directory.Build.props).
+# EnableNETAnalyzers and TreatWarningsAsErrors are already on, so this one severity line activates
+# the rule on its own.
+#
+# It matters here because Rask.Core stringifies and parses values that cross the wire — reconciliation
+# keys, DOM event payloads, field-path indices. Those are wire formats and must stay invariant even
+# when a render runs under a user's culture; an unqualified ToString/TryParse is how that regresses.
+# Display formatting is the opposite case and passes a culture explicitly.
+[src/Rask.Core/**.cs]
+dotnet_diagnostic.CA1305.severity = error

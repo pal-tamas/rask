@@ -184,10 +184,21 @@ public abstract partial class Component : RaskMarkup
     // (16 B) on EVERY node in a mounted tree — a bad trade against a rare ToString on reused nodes,
     // and this is a footprint-focused path. Non-keyed nodes (the majority) hit the null short-circuit
     // and allocate nothing.
+    //
+    // Every non-string arm formats with InvariantCulture. The key is stringified into data-rask-key and
+    // baked into the HTML the client already holds, so a culture-sensitive spelling breaks keyed
+    // reconciliation at the moment the culture changes: under sv-SE a negative int renders with U+2212
+    // MINUS SIGN rather than '-', and a decimal/DateTime key re-spells entirely. int/long/Guid lead
+    // because they are the documented common keys and stay a direct call; IFormattable catches
+    // decimal/double/DateTime/DateOnly/TimeOnly and formattable enums.
     internal string? KeyString => Key switch
     {
         null => null,
         string s => s,
+        int i => i.ToString(CultureInfo.InvariantCulture),
+        long l => l.ToString(CultureInfo.InvariantCulture),
+        Guid g => g.ToString(),
+        IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
         var k => k.ToString(),
     };
 
@@ -514,12 +525,32 @@ public abstract partial class Component : RaskMarkup
     internal Component? CachedHeadInternal => _live?.CachedHead;
     internal void MarkReadsAmbientStateInternal() => SetFlag(FlagReadsAmbientState, true);
 
+    // Test seam: whether this component read something the render cache cannot see (context,
+    // edit context, culture). Paired with the setter above so a test can assert the marking
+    // happened without reaching into the flag bits.
+    internal bool ReadsAmbientStateInternal => _readsAmbientState;
+
     /// <summary>
     ///     The <c>lang</c> attribute for the document's <c>&lt;html&gt;</c> element. Read off the root
     ///     component only — Rask builds the shell around whatever the root renders. Return <c>null</c> to
     ///     emit no <c>lang</c> at all.
     /// </summary>
-    protected virtual string? HtmlLang => "en";
+    /// <remarks>
+    ///     Follows the session's language once the app configures cultures, and is otherwise exactly
+    ///     <c>"en"</c> as before. The fallback is literal rather than "whatever the machine's locale
+    ///     says" on purpose: reporting the ambient culture would turn <c>lang="en"</c> into
+    ///     <c>lang="en-US"</c> on any US-locale machine and change the HTML of every app that never
+    ///     asked for localization.
+    /// </remarks>
+    protected virtual string? HtmlLang => Globalization.RaskCulture.HtmlLang ?? "en";
+
+    /// <summary>
+    ///     The <c>dir</c> attribute for the document's <c>&lt;html&gt;</c> element. Defaults to
+    ///     <c>"rtl"</c> for a right-to-left session culture and <c>null</c> otherwise, which emits no
+    ///     attribute at all — left-to-right is HTML's own default, so writing it would only add bytes
+    ///     to every page.
+    /// </summary>
+    protected virtual string? HtmlDir => Globalization.RaskCulture.HtmlDir;
 
     /// <summary>
     ///     The <c>class</c> attribute for the document's <c>&lt;body&gt;</c> element (theming hooks,
@@ -552,7 +583,7 @@ public abstract partial class Component : RaskMarkup
     ///     </para>
     /// </summary>
     protected virtual Component Shell(Component head, Component body) =>
-        Html.Lang(HtmlLang)[head, Body.Class(BodyClass)[body]];
+        Html.Lang(HtmlLang).Dir(HtmlDir)[head, Body.Class(BodyClass)[body]];
 
     // The host's entry into the escape hatch above: RootErrorBoundary composes the document around the
     // App, so it needs to reach the App's override. Kept internal because Shell is a user-facing
@@ -565,6 +596,24 @@ public abstract partial class Component : RaskMarkup
     ///     <see cref="IsServer" /> / <see cref="IsWasm" />.
     /// </summary>
     protected RenderEngine HostEngine => LiveRenderContext.CurrentSync?.Engine ?? RenderEngine.Server;
+
+    /// <summary>
+    ///     The culture to format dates, numbers and currency with for the visitor rendering this
+    ///     component.
+    /// </summary>
+    /// <remarks>
+    ///     Unlike <see cref="HostEngine" />, which is fixed for the session, culture can change while the
+    ///     app is running — so reading it marks this component as depending on ambient state, which opts
+    ///     its subtree out of the clean-subtree render cache. Without that, switching language would
+    ///     leave cached subtrees on screen still rendered in the old one.
+    /// </remarks>
+    protected System.Globalization.CultureInfo Culture => Globalization.RaskCulture.Current;
+
+    /// <summary>The language to render this component's text in. Marks ambient state, as <see cref="Culture" /> does.</summary>
+    protected System.Globalization.CultureInfo UICulture => Globalization.RaskCulture.CurrentUI;
+
+    /// <summary>Whether the visitor's language is written right-to-left. Marks ambient state.</summary>
+    protected bool IsRightToLeft => Globalization.RaskCulture.IsRightToLeft;
 
     /// <summary><c>true</c> when rendered server-side over a live connection (<see cref="RenderEngine.Server" />).</summary>
     protected bool IsServer => HostEngine == RenderEngine.Server;
@@ -1811,9 +1860,9 @@ public abstract partial class Component : RaskMarkup
     {
         Span<char> buf = stackalloc char[12];
         buf[0] = 'h';
-        return n.TryFormat(buf[1..], out var written)
+        return n.TryFormat(buf[1..], out var written, provider: CultureInfo.InvariantCulture)
             ? new string(buf[..(1 + written)])
-            : "h" + n;
+            : "h" + n.ToString(CultureInfo.InvariantCulture);
     }
 
     // ---- Clean-subtree handler round-trip (see CachedSubtree.Handlers) -----------------------------
@@ -1910,6 +1959,11 @@ public abstract partial class Component : RaskMarkup
         }
 
         using var __dispatchScope = DispatchServicesScope.Push(services);
+
+        // A handler runs outside any render walk, so there is no LiveRenderContext to read the culture
+        // from — push it here, from the same service provider, so code the handler calls formats and
+        // parses in the visitor's culture rather than the machine's.
+        using var __cultureScope = Globalization.RaskCultureScope.PushFrom(services);
 
         // When the host supplied a cancellable dispatch token (a handler timeout is configured), make
         // owner.CancellationToken observe it during this handler by publishing a token linked with the
@@ -2393,7 +2447,7 @@ public abstract partial class Component : RaskMarkup
     // render re-executes each Render() — including cached subtrees — against the freshly-applied IL. A
     // component with no LiveState has never rendered (no cache to bust), so it's skipped. Called from
     // LiveSessionBase.RerenderAllForHotReload under `dotnet watch`; best-effort (the caller swallows).
-    internal static void MarkSubtreeDirtyForHotReload(Component root)
+    internal static void MarkSubtreeDirtyInternal(Component root)
     {
         var seen = new HashSet<Component>();
         Visit(root, seen);

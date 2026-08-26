@@ -21,7 +21,11 @@
          showcase remains trim-full + zero-IL; this isolation is exactly why the playground is a separate
          sub-app). ICU is still dropped: Roslyn and the playground format nothing culture-sensitive. -->
     <PublishTrimmed>false</PublishTrimmed>
-    <InvariantGlobalization Condition=" '$(WasmBuildNative)' != 'false' ">true</InvariantGlobalization>
+    <!-- ICU is dropped: this app formats nothing culture-sensitive, so the ~2.6 MB of icudt*.dat is
+         pure payload. Owned by Rask.Wasm.targets now rather than set here — RaskGlobalization is the
+         one property, and it also handles PredefinedCulturesOnly, which defaults to true under
+         invariant globalization and makes CultureInfo.GetCultureInfo("hu-HU") throw rather than fall
+         back. Set <RaskGlobalization>true</RaskGlobalization> to ship ICU. -->
     <!-- Ship managed assemblies as plain PE, not WebCIL. The in-browser compiler downloads the shipped
          _framework assemblies and hands them to Roslyn as MetadataReferences, and Roslyn can only read a
          PE/COFF image — it cannot parse the WebCIL wrapper the WASM SDK emits by default. -->
@@ -61,9 +65,6 @@
          shared library would. Microsoft.JSInterop likewise, for IJSRuntime in the editor interop. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <!-- Rask.Wasm also references Rask.Client with PrivateAssets="all" and needs it at runtime, so an app
-         referencing the host by ProjectReference (rather than the NuGet package) must pull it in directly. -->
-    <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
     <!-- Typed Bootstrap primitives for the IDE chrome (topbar buttons/badge/theme toggle), so the
          playground shares the same Bs* component language + the shared design tokens as the docs. Bundles
          Bootstrap's CSS as static web assets under _content/Rask.Bootstrap — negligible next to the

@@ -30,6 +30,7 @@ using Rask.Core.Browser;
 using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
+using Rask.Core.Globalization;
 using Rask.Core.HotReload;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
@@ -105,10 +106,23 @@ public static partial class RaskEndpointExtensions
     ///     the framework's prior hardcoded defaults apply. Bind from configuration with
     ///     <c>AddRask(configureServer: o =&gt; config.GetSection("Rask").Bind(o))</c>.
     /// </param>
+    /// <param name="configureCulture">
+    ///     The languages this app ships, and how a visitor's is chosen. Leaving it unset — the default —
+    ///     keeps culture support off, and the rendered document is byte-for-byte what it was before:
+    ///     <c>&lt;html lang="en"&gt;</c> with no <c>dir</c>.
+    ///     <code>
+    ///     services.AddRask(configureCulture: c =&gt;
+    ///     {
+    ///         c.SupportedCultures.Add("en");   // the first entry is the default
+    ///         c.SupportedCultures.Add("hu");
+    ///     });
+    ///     </code>
+    /// </param>
     /// <returns>The same <paramref name="services" /> instance, for chaining.</returns>
     public static IServiceCollection AddRask(this IServiceCollection services,
         Action<RaskLiveOptions>? configure = null,
-        Action<RaskServerOptions>? configureServer = null)
+        Action<RaskServerOptions>? configureServer = null,
+        Action<RaskCultureOptions>? configureCulture = null)
     {
         // Per-app live runtime options. The framework default for DiffMode is LiveDiffMode.Auto, so a
         // fresh `AddRask()` ships the diff codec out of the box. Override:
@@ -212,15 +226,20 @@ public static partial class RaskEndpointExtensions
         // Transient user messages / toasts (a flash-message pattern). Scoped = one queue per session, so a
         // message queued before a client-side NavigateTo survives the navigation and shows once on arrival.
         services.AddScoped<IToaster, Toaster>();
+
+        // Scoped: a DI scope on the server IS a live session, and so a visitor. Registered even when
+        // the app configured nothing, because IRaskCulture is a host contract; without a configured
+        // culture this is inert. Negotiating one from the request arrives in a later change.
+        services.AddRaskCulture(configureCulture, ServiceLifetime.Scoped);
         // Typed browser/device API wrappers — the transport-agnostic Core set, Scoped (one per WebSocket
         // session). Registered via the shared helper (RaskBrowserApis) so the interface → impl list lives in
-        // one place instead of being duplicated across the Server/WASM/Native hosts. TryAdd inside the helper
+        // one place instead of being duplicated across the Server and WASM hosts. TryAdd inside the helper
         // lets an app pre-register a better implementation and win. The PWA members (IWebPush, INotifications,
         // IBadge, IWakeLock) are included; their JS helpers ship in the Server client only under AddRaskPwa.
         // The remaining browser APIs are intentionally NOT registered on Server: they need transient user
         // activation, a live document/handle, or the installed-PWA instance the WebSocket round-trip loses,
-        // so they are provided only by the in-process hosts — IShare in Rask.Client (WASM + Native, native
-        // backend swappable) and the WASM-only set (see RaskWasmBrowserApis). Server can still reach the
+        // so they are provided only by the WASM host (IShare and the rest of the WASM-only set — see
+        // RaskWasmBrowserApis). Server can still reach the
         // activation-gated APIs declaratively via GestureTrigger — see docs/browser-capabilities.md.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
         services.AddScoped<AuthSignIn>();
@@ -301,7 +320,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>
-    ///     <see cref="AddRask(IServiceCollection, Action{RaskLiveOptions}, Action{RaskServerOptions})" />
+    ///     <see cref="AddRask(IServiceCollection, Action{RaskLiveOptions}, Action{RaskServerOptions}, Action{RaskCultureOptions})" />
     ///     under a name only this package defines — for an app that references <b>both</b> hosts.
     ///     <para>
     ///         <c>Rask.Wasm.Hosting</c> declares an <c>AddRask(this IServiceCollection)</c> as well, and
@@ -480,6 +499,19 @@ public static partial class RaskEndpointExtensions
             var routeState = session.Services.GetRequiredService<RouteState>();
             routeState.Path = path;
             routeState.Query = AdaptQuery(httpContext.Request.Query);
+
+            // The visitor's language, seeded from the request alongside their identity and route, and
+            // BEFORE the first render below — so the page is built in their language rather than
+            // rendered in the default and corrected in a second frame they would see flash.
+            if (ServerCultureNegotiation.TryNegotiate(
+                    httpContext.Request, httpContext.RequestServices, out var culture))
+            {
+                ServerCultureNegotiation.Apply(session.Services, culture);
+                ServerCultureNegotiation.Persist(
+                    httpContext.Response,
+                    culture,
+                    httpContext.RequestServices.GetRequiredService<RaskCultureOptions>());
+            }
             // Render the GET shell and seed both baselines: the dedup baseline so a no-op
             // click after hello dedups against the HTML the browser already has (mirroring
             // WASM's InitialRenderAsync / `_lastAppliedHtml`), AND the diff-codec frame
@@ -634,8 +666,14 @@ public static partial class RaskEndpointExtensions
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
                     ctx.RequestAborted, drain.HardStopping);
                 var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
+
+                // Negotiated here, from the upgrade request, because that is the last point at which its
+                // headers and cookies exist. It is only USED if this socket ends up rebuilding a session
+                // (the resume path), which happens in a fresh DI scope much later.
+                ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var wsCulture);
+
                 await RunSocketLoop(ws, store, limits, wsUser, resume, appFactory, linked.Token,
-                    drain.HardStopping);
+                    drain.HardStopping, wsCulture);
             }));
 
         var script = LoadEmbeddedScript();
@@ -784,7 +822,7 @@ public static partial class RaskEndpointExtensions
 
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
         ClaimsPrincipal wsUser, SessionResumeSupport resume, Func<IServiceProvider, Component> appFactory,
-        CancellationToken ct, CancellationToken stopping)
+        CancellationToken ct, CancellationToken stopping, CultureNegotiation resumeCulture = default)
     {
         using var abortReg = stopping.Register(() =>
         {
@@ -972,6 +1010,14 @@ public static partial class RaskEndpointExtensions
                         // which re-stamps data-rask-root — see LiveSessionBase's full-payload path.
                         session.AttachSocket(ws, ct);
                         session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
+
+                        // A resumed session is a NEW DI scope, so its culture starts at the app default.
+                        // Without this the visitor's language would silently reset the first time the
+                        // host restarted under them — the one moment resume exists to hide.
+                        if (resumeCulture.Culture is not null)
+                        {
+                            ServerCultureNegotiation.Apply(session.Services, resumeCulture);
+                        }
                         await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
                         continue;
                     }

@@ -163,6 +163,20 @@ internal static partial class JSInterop
     public static partial string GetBaseAddress();
 
     /// <summary>
+    ///     The visitor's language signals — <c>?culture=</c>, the culture cookie and
+    ///     <c>navigator.languages</c> — as one JSON object.
+    /// </summary>
+    /// <remarks>
+    ///     Synchronous, and all three in a single call, deliberately. The culture has to be settled
+    ///     BEFORE the first render, and an async probe would either delay the first paint or let the app
+    ///     paint in the wrong language and correct itself in a second frame the visitor would see. That
+    ///     also rules out <c>INavigatorInfo.LanguageAsync()</c>, which is async by design — and on the
+    ///     Server host is a socket round trip.
+    /// </remarks>
+    [JSImport("getCultureSignals", ModuleName)]
+    public static partial string GetCultureSignals();
+
+    /// <summary>
     ///     Browser sub-path prefix derived from <c>&lt;base href&gt;</c>. Returns the
     ///     directory portion (e.g. <c>"/Rask/"</c> when hosted at <c>/Rask/index.html</c>
     ///     or <c>"/"</c> at the origin root). <see cref="WasmHostBuilder.CreateDefault()" />
@@ -219,6 +233,9 @@ internal static partial class JSInterop
     public static void ApplyRender(Span<byte> payload) { }
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
+
+    /// <summary>No browser, so no signals — the app falls back to its configured default culture.</summary>
+    public static string GetCultureSignals() => "{}";
     public static void PushHistory(string url, bool replace) { }
 
     public static string GetBasePath() => "/";

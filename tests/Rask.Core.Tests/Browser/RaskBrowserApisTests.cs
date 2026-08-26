@@ -4,9 +4,9 @@ using Rask.Core.Browser;
 namespace Rask.Core.Tests.Browser;
 
 // The shared registration helper (RaskBrowserApis) is the single home for the browser/device interface →
-// impl map that the Server/WASM/Native hosts used to duplicate. These tests pin the exact Core set, its
-// lifetimes, and the native-first rule: because the helper uses TryAdd, a backend registered first (by a
-// native platform or the app) wins and the JS-backed wrapper is only the fallback.
+// impl map that the Server and WASM hosts used to duplicate. These tests pin the exact Core set, its
+// lifetimes, and the fallback rule: because the helper uses TryAdd, a backend the app registers first wins
+// and the JS-backed wrapper is only the fallback.
 public class RaskBrowserApisTests
 {
     // The 38 transport-agnostic wrappers AddCoreBrowserApis must register — service type → default impl.
@@ -110,23 +110,23 @@ public class RaskBrowserApisTests
 
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
 
-        // IShare lives in Rask.Client; the WASM-only device set lives in Rask.Wasm. Neither is in the Core tier.
+        // IShare and the WASM-only device set both live in Rask.Wasm. Neither is in the Core tier.
         Assert.DoesNotContain(services, d => d.ServiceType.Name is "IShare" or "IFullscreen" or "ISerial");
     }
 
     [Fact]
-    public void AddBrowserApi_IsFallbackOnly_ANativeBackendRegisteredFirstWins()
+    public void AddBrowserApi_IsFallbackOnly_AnAppSuppliedBackendRegisteredFirstWins()
     {
         var services = new ServiceCollection();
 
-        // A native platform (or the app) registers its backend first...
-        services.AddSingleton<IClipboard, FakeNativeClipboard>();
+        // The app registers its own backend first...
+        services.AddSingleton<IClipboard, FakeAppClipboard>();
         // ...then the framework wires the JS-backed fallbacks.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
 
         var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IClipboard));
-        Assert.Equal(typeof(FakeNativeClipboard), descriptor.ImplementationType);
-        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime); // the native registration's lifetime, untouched
+        Assert.Equal(typeof(FakeAppClipboard), descriptor.ImplementationType);
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime); // the app registration's lifetime, untouched
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class RaskBrowserApisTests
         Assert.Equal(typeof(Clipboard), descriptor.ImplementationType);
     }
 
-    private sealed class FakeNativeClipboard : IClipboard
+    private sealed class FakeAppClipboard : IClipboard
     {
         public ValueTask WriteTextAsync(string text) => default;
 

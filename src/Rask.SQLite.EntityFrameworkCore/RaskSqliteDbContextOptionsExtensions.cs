@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Rask.SQLite;
 
@@ -27,11 +28,19 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// read-then-write transaction in <see cref="SqliteConnectionExtensions.BeginImmediate"/> to avoid the
     /// deferred-upgrade deadlock.
     /// </param>
+    /// <param name="strictTables">
+    /// When <see langword="true"/>, tables are created as SQLite <c>STRICT</c> tables so the store
+    /// enforces each column's declared type rather than coercing whatever it is handed. Off by default:
+    /// strictness is a property of the table, so turning it on affects newly created tables only, and a
+    /// model with an explicit <c>HasColumnType(...)</c> outside SQLite's six allowed type names will be
+    /// rejected at creation time. See <see cref="RaskSqliteStrictMigrationsSqlGenerator"/>.
+    /// </param>
     public static DbContextOptionsBuilder UseRaskSqlite(
         this DbContextOptionsBuilder optionsBuilder,
         string connectionString,
         Action<SqlitePragmaOptions>? configure = null,
-        Action<SqliteBusyRetryOptions>? configureRetry = null)
+        Action<SqliteBusyRetryOptions>? configureRetry = null,
+        bool strictTables = false)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
         ArgumentException.ThrowIfNullOrEmpty(connectionString);
@@ -53,7 +62,23 @@ public static class RaskSqliteDbContextOptionsExtensions
 
         options.Validate();
 
+        // EF Core resolves exactly one IMigrationsSqlGenerator, so this is a single choice rather than two
+        // replacements: registering a strict generator and a range-exclusion generator separately would keep
+        // only whichever was replaced last, silently dropping the other feature. Which one is wanted depends
+        // on the flag, so the combination has a type of its own. Range-exclusion DDL is inert unless an
+        // entity declares HasNonOverlappingRange — the generator finds no spec to emit.
+        if (strictTables)
+        {
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteStrictRangeExclusionSqlGenerator>();
+        }
+        else
+        {
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteRangeExclusionSqlGenerator>();
+        }
+
         return optionsBuilder
+            // Inert too: it only reacts to the error the range-exclusion triggers raise.
+            .AddInterceptors(new RaskSqliteRangeExclusionInterceptor())
             .UseSqlite(connectionString, sqlite =>
             {
                 if (retryEnabled)
@@ -71,7 +96,7 @@ public static class RaskSqliteDbContextOptionsExtensions
 
     /// <summary>
     /// The strongly-typed overload of
-    /// <see cref="UseRaskSqlite(DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?, Action{SqliteBusyRetryOptions}?)"/>, so
+    /// <see cref="UseRaskSqlite(DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?, Action{SqliteBusyRetryOptions}?, bool)"/>, so
     /// <c>new DbContextOptionsBuilder&lt;TContext&gt;().UseRaskSqlite(cs).Options</c> keeps its
     /// <see cref="DbContextOptions{TContext}"/> type.
     /// </summary>
@@ -79,10 +104,12 @@ public static class RaskSqliteDbContextOptionsExtensions
         this DbContextOptionsBuilder<TContext> optionsBuilder,
         string connectionString,
         Action<SqlitePragmaOptions>? configure = null,
-        Action<SqliteBusyRetryOptions>? configureRetry = null)
+        Action<SqliteBusyRetryOptions>? configureRetry = null,
+        bool strictTables = false)
         where TContext : DbContext
     {
-        UseRaskSqlite((DbContextOptionsBuilder)optionsBuilder, connectionString, configure, configureRetry);
+        UseRaskSqlite(
+            (DbContextOptionsBuilder)optionsBuilder, connectionString, configure, configureRetry, strictTables);
         return optionsBuilder;
     }
 }

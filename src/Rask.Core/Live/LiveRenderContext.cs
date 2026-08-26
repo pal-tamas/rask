@@ -21,6 +21,8 @@ public sealed class LiveRenderContext : IDisposable
     [ThreadStatic] private static LiveRenderContext? _syncCurrent;
 
     private readonly LiveRenderContext? _previousSync;
+    private readonly System.Globalization.CultureInfo? _pinnedCulture;
+    private readonly System.Globalization.CultureInfo? _pinnedUICulture;
     private readonly Stack<ErrorBoundary> _boundaryStack = new();
     private readonly Dictionary<ObjectKey, EditContext> _currentEditContexts;
     private readonly IRenderHandle? _handle;
@@ -63,6 +65,21 @@ public sealed class LiveRenderContext : IDisposable
         _previousSync = _syncCurrent;
         _current.Value = this;
         _syncCurrent = this;
+
+        Culture = _handle?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
+        UICulture = _handle?.UICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
+        HasCulture = _handle?.HasCulture ?? false;
+
+        // Pin the ambient culture for the walk, so code that formats through CultureInfo.CurrentCulture
+        // — including code Rask does not own, and BsDataGrid's linguistic string sort, which reaches
+        // Comparer<T>.Default and has no seam to route through — agrees with the session.
+        if (Globalization.RaskCulture.IsEnabled)
+        {
+            _pinnedCulture = System.Globalization.CultureInfo.CurrentCulture;
+            _pinnedUICulture = System.Globalization.CultureInfo.CurrentUICulture;
+            System.Globalization.CultureInfo.CurrentCulture = Culture;
+            System.Globalization.CultureInfo.CurrentUICulture = UICulture;
+        }
     }
 
     internal bool IsActive { get; private set; } = true;
@@ -93,6 +110,17 @@ public sealed class LiveRenderContext : IDisposable
     // Component.HostEngine. Constant for the session → safe to read from Render() without the render-cache
     // ambient-state opt-out.
     internal RenderEngine Engine => _handle?.Engine ?? RenderEngine.Server;
+
+    // The culture for this walk, snapshotted in the constructor from the session. A field, not a
+    // forward to the handle: one walk must render in ONE culture even if a handler switches it
+    // mid-flight, or a page could come out half-translated.
+    internal System.Globalization.CultureInfo Culture { get; }
+
+    internal System.Globalization.CultureInfo UICulture { get; }
+
+    // Whether Culture/UICulture above came from the session rather than from the thread. See
+    // IRenderHandle.HasCulture.
+    internal bool HasCulture { get; }
 
     public IServiceProvider? Services { get; }
 
@@ -153,6 +181,21 @@ public sealed class LiveRenderContext : IDisposable
         IsActive = false;
         _current.Value = _previous;
         _syncCurrent = _previousSync;
+
+        // Restore the pin only if this walk's culture is still the one in effect. An async render can
+        // release its thread at an await and resume elsewhere, so Dispose may run on a thread this
+        // context never pinned — writing there would stamp a foreign value onto an unrelated thread.
+        if (_pinnedCulture is not null
+            && ReferenceEquals(System.Globalization.CultureInfo.CurrentCulture, Culture))
+        {
+            System.Globalization.CultureInfo.CurrentCulture = _pinnedCulture;
+        }
+
+        if (_pinnedUICulture is not null
+            && ReferenceEquals(System.Globalization.CultureInfo.CurrentUICulture, UICulture))
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = _pinnedUICulture;
+        }
     }
 
     internal ContextScope PushScope(Component instance)

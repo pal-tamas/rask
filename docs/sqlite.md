@@ -24,7 +24,7 @@ product** — app, data, and background work — with nothing to rent or wire to
 [Limitations & when to outgrow SQLite](#limitations--when-to-outgrow-sqlite) for the honest edges.
 
 > Two packages: **`Rask.SQLite`** is the pragma engine — it depends only on `Microsoft.Data.Sqlite`, is
-> reflection-free, and so works server-side, on mobile, and under trimming/AOT.
+> reflection-free, and so works under trimming/AOT.
 > **`Rask.SQLite.EntityFrameworkCore`** adds the one-line `UseRaskSqlite(...)` for EF Core (and pulls in
 > `Microsoft.EntityFrameworkCore.Sqlite`). Neither needs the rest of Rask.
 
@@ -71,6 +71,9 @@ The defaults are the battle-tested production set for a web-facing SQLite databa
 | `mmap_size` | `128 MiB` | memory-mapped I/O |
 | `journal_size_limit` | `64 MiB` | cap WAL growth |
 | `temp_store` | *unset* | left on disk by default; opt in with `SqliteTempStore.Memory` |
+| `trusted_schema` | `OFF` | a schema can carry function calls in views, triggers, index expressions and `CHECK` constraints; `OFF` allows only functions marked innocuous |
+| `cell_size_check` | `ON` | catches a corrupt b-tree page as it is read, instead of letting the damage reach your results |
+| `analysis_limit` | `400` | bounds `PRAGMA optimize` to a few milliseconds per index |
 
 Override any of them, or set one to `null` to leave SQLite's own default:
 
@@ -83,6 +86,72 @@ o.UseRaskSqlite($"Data Source={dbPath}", p =>
     p.MmapSize = null;                  // leave SQLite's default
 });
 ```
+
+## Keeping the query planner honest — `PRAGMA optimize`
+
+SQLite picks between indexes using statistics in `sqlite_stat1`, and **nothing updates that table on
+its own**. A table that was small when it was last analysed — or was never analysed at all — keeps
+handing the planner stale numbers, and it starts choosing badly. The classic symptom is a query that
+was instant in development crawling in production against real data.
+
+SQLite's own guidance is to run `PRAGMA optimize` before closing a long-lived connection, or
+periodically in a long-running process. Rask's EF Core interceptor does it on `ConnectionClosing`,
+which for a pooled connection means every return to the pool. It is cheap and self-limiting: it
+analyses only what looks stale, bounded by `analysis_limit`, and does nothing when nothing has
+changed. It is also best-effort — a connection being torn down must never fail because of an
+optimisation — so errors from it are swallowed.
+
+Raw ADO.NET users can call it directly:
+
+```csharp
+SqlitePragmas.Optimize(connection);
+```
+
+Set `AnalysisLimit = null` to switch the whole thing off, or `0` for no sampling limit (which on a
+large table can take a long time).
+
+## STRICT tables — making the store enforce your types
+
+SQLite is dynamically typed. A column's type is an *affinity*, a preference, not a rule: the text
+`"lots"` stores happily in an `INTEGER` column, and comes back later as a cast error, a mis-ordered
+index, or a silently wrong result. EF Core's model keeps your C# honest, but nothing stops a direct
+`INSERT`, an admin tool, a migration script or a legacy row from putting anything anywhere.
+
+[STRICT tables](https://sqlite.org/stricttables.html) (SQLite 3.37+) close that off — the write is
+rejected at the source instead. EF Core has no support for them, so Rask supplies a migrations SQL
+generator:
+
+```csharp
+o.UseRaskSqlite(connectionString, strictTables: true);
+```
+
+```sql
+CREATE TABLE "Products" (
+    "Id"    INTEGER NOT NULL CONSTRAINT "PK_Products" PRIMARY KEY AUTOINCREMENT,
+    "Price" TEXT NOT NULL,
+    "Name"  TEXT NOT NULL
+) STRICT;
+```
+
+```text
+sqlite> INSERT INTO Products (Price, Name) VALUES (9.95, 'ok');      -- fine
+sqlite> UPDATE Products SET Id = 'lots';
+Runtime error: cannot store TEXT value in INTEGER column Products.Id
+```
+
+**What it costs.** Every column must declare one of exactly six types — `INT`, `INTEGER`, `REAL`,
+`TEXT`, `BLOB`, `ANY`. EF Core's default SQLite types are all in that set, so a normal model needs no
+changes; an explicit `HasColumnType("VARCHAR(50)")` does. Rask checks this while generating the DDL and
+names the table and column at fault, rather than leaving you with SQLite's own message, which names
+only the type. Use `ANY` to exempt a single column.
+
+**It is off by default, and on for new apps.** Strictness is a property of a table, decided when the
+table is created — so turning it on affects tables created from then on, needs no migration, and
+converting an existing table means rebuilding it. `rask new --data` therefore scaffolds it on, where it
+is free; an existing database is the case where you have to weigh it.
+
+`decimal` is unaffected: it is `TEXT` in SQLite, which STRICT allows, and it still orders through the
+[invariant collation](data-access.md#does-sqlite-support-decimal).
 
 ## Why it hooks connection-open (not startup)
 
@@ -594,44 +663,11 @@ All three packages run in a container — with the same care the platform sectio
 - **Single writer.** Don't scale the service to multiple replicas writing the same database
   (`docker compose --scale`, K8s `replicas > 1`) — run one instance.
 
-## SQLite on mobile (Rask.Native)
-
-directly — and `Rask.SQLite`'s pragmas (WAL, `foreign_keys`, `busy_timeout`) all apply on the device's
-real sandbox filesystem. Two things make the **base `Rask.SQLite` package** the right choice here:
-
-- **Reflection-free → AOT-safe.** iOS device builds are fully ahead-of-time compiled, and EF Core's
-  `Expression.Compile` crashes there unless you force the Mono interpreter. The raw `AddRaskSqlite`
-  path uses only `Microsoft.Data.Sqlite` — no `Expression.Compile`, no reflection — so it just works.
-- **Lean.** No Entity Framework Core in the app bundle. (If you do want EF Core on device, add
-  `Rask.SQLite.EntityFrameworkCore` and set `<MtouchInterpreter>-all</MtouchInterpreter>` for iOS.)
-
-Register it in the platform head, pointing the database at the app sandbox, **before** `RunLocalAsync`:
-
-```csharp
-// Platforms/iOS/AppDelegate.cs or Platforms/Android/MainActivity.cs
-var dbPath = Path.Combine(
-    System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
-    "app.db");
-host.Services.AddRaskSqlite($"Data Source={dbPath}");
-host.Services.AddSingleton<IMyStore, SqliteMyStore>();   // your data service over IRaskSqliteConnectionFactory
-
-_app = await host.RunLocalAsync<MyApp>(webView);
-```
-
-The runnable reference is `samples/Rask.Example.Native`, whose **Todos** tab is backed by a
-`SqliteTodoStore` on device: the same shared page uses a transient in-memory store on Server/WASM and
-the SQLite store on mobile, so adding a todo, killing the app, and relaunching shows it persisted.
-
-> Backup on mobile: use a snapshot (SQLite's Online Backup API) into the sandbox or shared storage —
-> **not** Litestream, which spawns a child process (impossible on iOS). WAL still works on-device;
-> `Environment.SpecialFolder.LocalApplicationData` maps to the app sandbox (iOS `Library/`, Android
-> `filesDir`), which is local storage, so the locking WAL needs is fine.
-
 ## SQLite in the browser? (WASM)
 
 SQLite runs in the browser — `Microsoft.Data.Sqlite` and EF Core on top of it, in the tab, with no server
-involved. What does **not** belong there is `Rask.SQLite` itself: that package is a **server- and
-mobile-side** one, and deliberately so. Its whole value is the production pragma set — WAL,
+involved. What does **not** belong there is `Rask.SQLite` itself: that package is a **server-side**
+one, and deliberately so. Its whole value is the production pragma set — WAL,
 `busy_timeout`, `synchronous` — which tames **concurrent** access to a file database. A browser app has
 one connection and no concurrency to tame, so those pragmas buy it nothing.
 
@@ -654,8 +690,8 @@ already wraps:
   needs a Worker — see [Where OPFS fits](#where-opfs-fits)). Reach for it if
   the client-side database is the point of the app rather than a local cache of one.
 
-For a **server** app, none of this changes the advice: keep SQLite behind the server (or on device with
-`Rask.Native`) and let the client talk to it through an API. The browser database is for apps that must
+For a **server** app, none of this changes the advice: keep SQLite behind the server and let the client
+talk to it through an API. The browser database is for apps that must
 work offline or own their data locally — not a way to avoid having a server.
 
 > **It does run, though: the [playground's tutorial](playground.md#the-guided-tutorial) does exactly
@@ -751,19 +787,30 @@ not just asserted in prose.
 - **Local disk only.** Never put the database on a network filesystem (NFS/CIFS/SMB) — SQLite's file
   locking is unreliable there and can corrupt the file, and WAL needs real shared memory. Use local disk or
   a single-attach block/named volume, one writer process.
-- **Dynamic typing.** SQLite uses *type affinity*, not strict types: it will happily store the text
-  `"lots"` in an `INTEGER` column. EF Core's model gives you type safety in C#, but the store itself won't
-  enforce it if something writes to it directly.
+- **Dynamic typing** *(fixable)*. SQLite uses *type affinity*, not strict types: it will happily store
+  the text `"lots"` in an `INTEGER` column. EF Core's model gives you type safety in C#, but the store
+  itself won't enforce it if something writes to it directly — unless you turn on
+  [STRICT tables](#strict-tables--making-the-store-enforce-your-types), which `rask new` does for you.
 - **No native `decimal` or `DateTimeOffset`.** Storage classes are `INTEGER`/`REAL`/`TEXT`/`BLOB`/`NULL`
   only. To preserve precision, **EF Core stores a `decimal` as `TEXT`** (not `REAL`, which would round —
-  `0.1 + 0.2 ≠ 0.3`). The value round-trips exactly, but a TEXT column doesn't sort or aggregate
-  *numerically* in SQL, so server-side `ORDER BY` / `Sum` / `Average` on a decimal is unreliable (EF Core
-  warns). For money, store integer minor units instead (the EF Core sample's `Money` value object stores
-  cents) — it sorts and sums correctly. EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to
-  `TEXT` — mind text-sort ordering.
+  `0.1 + 0.2 ≠ 0.3`), in a culture-invariant format — `19.95`, never `19,95`, whatever the server's
+  locale. Arithmetic, comparisons and `Sum`/`Average`/`Min`/`Max` translate through managed helpers EF
+  registers on the connection; ordering translates to `ORDER BY "x" COLLATE EF_DECIMAL`. **EF's own
+  `EF_DECIMAL` parses that invariant text under `CurrentCulture`**, so on `de-DE` it mis-sorts and on
+  `en-HU` it throws inside a native callback and kills the process — [`UseRaskSqlite` replaces it with an
+  invariant one](data-access.md#does-sqlite-support-decimal), changing nothing in the file. Correct is
+  not free, though: each comparison is a managed callback, so sorting 100k decimals costs ~156 ms and
+  125 MB against ~4.5 ms and 768 B for an indexed `INTEGER` column — [index the collation, or count
+  minor units](data-access.md#does-sqlite-support-decimal). EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to `TEXT` —
+  mind text-sort ordering.
 - **Limited `ALTER TABLE`.** SQLite can add/rename/drop columns but not, say, change a column's type or
   constraints in place — EF Core migrations rebuild the table (create → copy → drop → rename) for those,
   which is slower and briefly locks the table.
+- **No exclusion constraints.** There is no `EXCLUDE … WITH &&`, and a `UNIQUE` index cannot express
+  "these two ranges must not overlap" — it only stops *identical* rows. Rask closes this one:
+  [`HasNonOverlappingRange`](data.md#non-overlapping-ranges) declares the rule on the model and the
+  migration emits the trigger pair that enforces it, re-emitting it after the table rebuilds above (which
+  would otherwise drop it along with the original table).
 - **No server-side surface.** It's an in-process library, not a server: no network endpoint, no
   users/roles/`GRANT`, no stored procedures, no `LISTEN/NOTIFY`. Access control and connection management
   are the app's job.

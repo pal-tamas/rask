@@ -31,6 +31,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.SQLite\Rask.SQLite.csproj"/>
+    <!-- HasNonOverlappingRange declares the rule as provider-agnostic model metadata in Rask.Data; this
+         package holds the SQLite half that turns it into triggers. -->
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
 
 </Project>

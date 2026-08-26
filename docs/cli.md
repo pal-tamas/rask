@@ -98,8 +98,7 @@ rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
-rask new Field --template native     # a native iOS + Android app
-rask new Kiosk --template native --platform android   # Android only
+rask new Shop --tailwind             # Tailwind instead of plain CSS
 ```
 
 Run `rask` (or `rask new`) with no project name and — on a terminal — it walks you through a short
@@ -107,11 +106,6 @@ wizard: the project name, an arrow-key **project type** picker, **styling** (Ras
 elements), whether to add a **Dockerfile**, and a checklist of **batteries** you toggle with space. A
 database picker follows if anything you ticked needs one. It then scaffolds exactly as if you'd passed
 the flags.
-
-Picking `native` asks its own two questions instead: where the UI comes from, and which platforms to
-target. Everything else on that path is skipped, because the native template has no component library,
-no Dockerfile and no batteries — and the summary lists only what was actually decided, rather than
-reporting defaults for questions it never asked.
 
 The wizard **fills gaps rather than re-asking**: anything already on the command line is kept and its
 question skipped, so `rask new --template wasm --auth` asks only for the name. Piped or in a script (no
@@ -164,7 +158,7 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, `native`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
+| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
 | `--auth` | Scaffold a cookie login/session (web templates). |
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
@@ -179,8 +173,6 @@ Add pages and components to taste — the [tutorial](tutorial/00-overview.md) sh
 | `--ops` | An [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
 | `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
-| `--platform` | The `native` template only, repeatable: `ios`, `android`, or both (the default when omitted). Only the platforms you name get a target framework, a manifest and a head — an unselected platform leaves no files behind. |
-| `--host` | The `native` template only: **where the UI comes from**. `native` (default) runs your components on the device, so the app works offline and an edit costs a restart. `server` and `wasm-hosted` scaffold **both halves as one solution** — the Rask app *and* a `{name}.Mobile` project carrying the heads that point at it — so the UI ships when you deploy rather than when the store approves. The two heads are the same (the WebView takes a trusted origin and doesn't care what serves it); what differs is what survives losing the network, because a live server renders over a WebSocket while a published WASM bundle keeps working once loaded. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore`). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
@@ -197,20 +189,20 @@ useful than a page designed to reveal nothing.
 
 ### Which template supports which flag
 
-| Flag | `server` | `wasm` | `wasm-hosted` | `native` | front-end |
-| --- | :-: | :-: | :-: | :-: | :-: |
-| `--auth` | ✅ | ✅ | ✅ | — | — |
-| `--pwa` | ✅ | ✅ | ✅ | — | — |
-| `--docker` | ✅ | ✅ | ✅ | — | ✅ |
-| `--cqrs`, `--data` | ✅ | — | ✅ | — | ✅¹ |
-| `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | — | ✅ |
-| `--push` | ✅ | — | — | — | — |
+| Flag | `server` | `wasm` | `wasm-hosted` | front-end |
+| --- | :-: | :-: | :-: | :-: |
+| `--auth` | ✅ | ✅ | ✅ | — |
+| `--pwa` | ✅ | ✅ | ✅ | — |
+| `--docker` | ✅ | ✅ | ✅ | ✅ |
+| `--tailwind` | ✅ | ✅ | ✅ | ✅ |
+| `--cqrs`, `--data` | ✅ | — | ✅ | ✅¹ |
+| `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | ✅ |
+| `--push` | ✅ | — | — | — |
+| `--all-batteries` | ✅ | — | ✅ | ✅ |
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--cqrs` is accepted but changes
 nothing. `--auth` and `--pwa` are refused rather than half-scaffolded: both need work on the client
 (a React login flow, a service worker through `vite-plugin-pwa`) that the template does not write yet.
-| `--all-batteries` | ✅ | — | ✅ | — |
-| `--host`, `--platform` (see below) | — | — | — | ✅ |
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
 combination that is then rejected. On the command line, asking for one is a usage error that names both
@@ -287,7 +279,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native, react, preact, vue, angular, solid, svelte, lit.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 
@@ -325,9 +317,8 @@ rask dev -- --my-app-flag            # everything after -- goes to the app
 `rask dev` runs `dotnet watch run`, so editing a component's `Render()` (or a scoped `.css` / `.js`) and
 saving re-renders the open page live — see [what hot-reloads](#what-hot-reloads) below.
 
-It finds the project for you. In a **wasm-hosted** solution it picks the `.Server` host (the client is
-built into it); in a **native** app it refuses, because `dotnet watch` cannot drive a simulator or
-emulator, and points you at `dotnet build "-t:Build;Run" -f net10.0-android` instead.
+It finds the project for you: in a **wasm-hosted** solution it picks the `.Server` host (the client is
+built into it).
 
 In a **react** solution it runs **two** processes: `dotnet watch` for the host, and the bundler's own
 dev server for the client. The browser talks to the **bundler**, on `http://localhost:5173`, and the
@@ -380,14 +371,8 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | **Changing a signature** — a new factory parameter, a changed method signature | ⚠️ Rude edit → restart. |
 | Renaming a job or outbox event type | ✅ Applied. The old name stops resolving too. |
 
-Two things it does not cover:
+One thing it does not cover:
 
-- **A native app on a device has no watch channel.** `dotnet watch` cannot drive a simulator or a device,
-  and applying new IL to one needs a device-side delta agent that .NET doesn't ship — so `rask dev`
-  refuses a native project and points at `dotnet build "-t:Build;Run"` instead. Restart a
-  the exception**: that head loads a remote Rask Server, so it is a browser as far as hot reload is
-  concerned — point it at your dev machine and `rask dev` on the *server* project repaints the device
-  exactly as it does a browser tab.
 - **A rude edit is not announced.** `dotnet watch` restarts the process, so nothing in Rask observes the
   edit; what you see is the app coming back and the page reloading.
 
@@ -399,7 +384,7 @@ loop, which is most of the wait. `--no-hot-reload` and `--once` keep the publish
 
 In Development you get a small "Hot reload applied" pill in the corner when an edit lands, so a save that
 changed nothing visible is distinguishable from one that didn't apply. It is never present in production,
-and it looks and behaves the same on every transport — Server, WASM and native share one implementation.
+and it looks and behaves the same on both transports — Server and WASM share one implementation.
 
 ### When the build fails
 
