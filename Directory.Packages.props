@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageVersion Include="CliWrap" Version="3.10.4" />
+    <PackageVersion Include="CliWrap" Version="3.10.5" />
     <PackageVersion Include="ColorCode.HTML" Version="2.0.15" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
