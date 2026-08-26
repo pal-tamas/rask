@@ -17,12 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <!-- Rask.Client (IShare) is a runtime dep of the WASM host, which registers it in
-         WasmHostBuilder. The host bundles it into its package lib/ (PrivateAssets="all"),
-         so downstream package consumers get it; in-repo, an app referencing the host by ProjectReference
-         doesn't, and a WASM app needs it in the boot assembly manifest. Reference it here (as with
-         Rask.Core) so every showcase host surfaces it. Unused by this project's code; loaded by the host. -->
-    <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.DataAnnotations\Rask.Validation.DataAnnotations.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>

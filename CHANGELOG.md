@@ -81,6 +81,32 @@ them until tagged releases begin.
 
 ### Removed
 
+- **`Rask.Client` is gone; `IShare` moves to `Rask.Wasm.Browser`.** The package existed to hold what
+  "BOTH the WASM and Native hosts provide but the Server host cannot" — its own `.csproj` said so. With
+  the native hosting model removed there was no second host, so it was an assembly, a DI tier, a test
+  project, a solution entry, a bundled DLL/XML pair in the `Rask.Wasm` nupkg and a `ProjectReference` in
+  six samples, all to carry **one interface**.
+
+  `IShare` was never really a third tier. It is a WASM-only wrapper by exactly the criterion
+  `Rask.Wasm.Browser` already documents — it needs transient user activation, which the Server's
+  WebSocket round-trip loses — so it now sits beside `IFullscreen`, `ISerial` and the rest, registered by
+  `AddWasmBrowserApis`. `AddClientBrowserApis` and `RaskClientBrowserApis` are removed; the WASM host
+  registers two tiers instead of three.
+
+  **Breaking:** `Rask.Client.Browser.IShare` / `Share` are now `Rask.Wasm.Browser.IShare` / `Share`.
+  Update the `using`. Pre-1.0, so no shim.
+
+  It also deletes a wart the samples carried. `Rask.Wasm` referenced `Rask.Client` with
+  `PrivateAssets="all"`, which kept it out of the nuspec dependency list but meant an in-repo app
+  referencing the host by `ProjectReference` did *not* get it — and a WASM app needs it in the boot
+  assembly manifest. Every WASM sample therefore carried a `ProjectReference` it never compiled against,
+  with a comment explaining why. `IShare` now ships inside `Rask.Wasm.dll`, which those samples already
+  reference, so the reference and the explanation both go.
+
+  `ShareTests` moved to `Rask.Wasm.Tests` (whose `FakeJsRuntime` was byte-identical to the one it left
+  behind), and the TryAdd-fallback assertion moved with it into `RaskWasmBrowserApisTests`, where the
+  "registers nothing beyond the pinned set" guard now covers `IShare` too. Closes #823.
+
 - **The native hosting model is gone. Rask is a web framework.** `Rask.Native` and `Rask.Chrome` are
   deleted, along with the `native` CLI template (and its `--host` / `--platform` options), both native
   samples, the WebView spike, the Appium suite, the macOS CI/pack jobs, and the native guides. This is a

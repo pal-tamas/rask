@@ -27,9 +27,6 @@
     <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
          so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
     <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
-    <!-- Rask.Client: the in-process client APIs (IShare). Bundled into lib/ below like
-         Rask.Core (PrivateAssets="all" keeps it out of the nuspec dependency list). -->
-    <ProjectReference Include="..\Rask.Client\Rask.Client.csproj" PrivateAssets="all"/>
     <!--
       Build-order-only dependency on the MSBuild task project. Rask.Wasm.Tasks compiles
       Rask.Wasm.Tasks.dll and (via its CopyTaskAssemblyToRaskWasmBuild target) drops it into
@@ -214,19 +211,6 @@
                               PackagePath="lib/net10.0/"
                               Condition=" '$(TargetFramework)' == 'net10.0' "/>
       <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.xml"
-                              PackagePath="lib/net10.0-browser1.0/"
-                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
-      <!-- Rask.Client.dll/.xml bundled next to Rask.Core.dll (same PrivateAssets="all" reasoning). -->
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.dll"
-                              PackagePath="lib/net10.0/"
-                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.dll"
-                              PackagePath="lib/net10.0-browser1.0/"
-                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.xml"
-                              PackagePath="lib/net10.0/"
-                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.xml"
                               PackagePath="lib/net10.0-browser1.0/"
                               Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
       <!-- Rask.Html.dll/.xml — the HTML/SVG element family, bundled on the same terms as Rask.Core. -->

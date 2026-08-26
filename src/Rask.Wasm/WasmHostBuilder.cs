@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
-using Rask.Client.Browser;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
@@ -45,12 +44,11 @@ public sealed class WasmHostBuilder
         // (the whole WASM app is a single session), so a message queued before a NavigateTo survives it.
         Services.AddSingleton<IToaster, Toaster>();
         // Typed browser/device API wrappers, Singleton (one per app instance). Registered via the shared
-        // helpers (RaskBrowserApis / RaskClientBrowserApis / RaskWasmBrowserApis) so the interface → impl list
-        // lives in one place instead of duplicated across hosts. TryAdd inside the helpers means an app can
-        // pre-register a better implementation and win. WASM serves all three tiers: the transport-agnostic
-        // Core set, the in-process IShare, and the WASM-only device/handle set.
+        // helpers (RaskBrowserApis / RaskWasmBrowserApis) so the interface → impl list lives in one place
+        // instead of duplicated across hosts. TryAdd inside the helpers means an app can pre-register a
+        // better implementation and win. WASM serves both tiers: the transport-agnostic Core set, and the
+        // WASM-only set that needs a live document, a device chooser or a user gesture.
         Services.AddCoreBrowserApis(ServiceLifetime.Singleton);
-        Services.AddClientBrowserApis(ServiceLifetime.Singleton);
         Services.AddWasmBrowserApis(ServiceLifetime.Singleton);
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         // WasmAuthSignIn posts sign-out to the server, so it needs an HttpClient. Registering the sign-in

@@ -18,7 +18,7 @@ namespace Rask.Html.Components;
 ///     Web Share (<c>navigator.share</c>) is available on mobile Safari, Android Chrome and Edge — not
 ///     desktop Firefox; an unsupported browser no-ops (feature-detect if you need a fallback). For a
 ///     <b>code-driven</b> share (a lifecycle hook, after an <c>await</c>) on the in-process WASM host,
-///     inject <c>IShare</c> from <c>Rask.Client.Browser</c> instead.
+///     inject <c>IShare</c> from <c>Rask.Wasm.Browser</c> instead.
 /// </remarks>
 public sealed partial class Shareable : Component
 {

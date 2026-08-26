@@ -220,7 +220,7 @@ is numeric-only.
 **`Shareable`** *(`Rask.Core` — all hosts)* — headless share: hand *your* element the `data-rask-share`
 attribute and its click opens the OS share sheet, on every host including Server (the shared client fires
 `navigator.share` in the click gesture, so the activation survives). For a code-driven share on the
-in-process host, inject **`IShare`** (`Rask.Client.Browser`) instead.
+WASM host, inject **`IShare`** (`Rask.Wasm.Browser`) instead.
 
 <!-- demo:browser-share -->
 
