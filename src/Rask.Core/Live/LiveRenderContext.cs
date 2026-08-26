@@ -377,6 +377,27 @@ public sealed class LiveRenderContext : IDisposable
     ///     arriving. <c>Rask.Query</c> is the caller; see its <c>Query{T}.Data</c> getter.
     ///     <para>Null when nothing is rendering, which is the normal case off the render path.</para>
     /// </remarks>
+    /// <summary>
+    ///     Hand the current server render a task it must wait for before serving its HTML.
+    /// </summary>
+    /// <remarks>
+    ///     For work that a render depends on but no lifecycle hook returns — a data-cache fetch
+    ///     started inside a client and observed through a property read, where the host has no other
+    ///     way to see it. Outside a server render this is a no-op, so a caller need not know whether
+    ///     one is running.
+    ///     <para>
+    ///         The caller decides what is worth waiting for. Registering work whose result is already
+    ///         on screen would make every cache hit pay full latency to change nothing.
+    ///     </para>
+    /// </remarks>
+    internal static void AwaitBeforeFirstPaint(Task work)
+    {
+        if (work is { IsCompleted: false })
+        {
+            QuiescenceScope.Current?.TrackExternal(work);
+        }
+    }
+
     internal static Component? ObserveAmbientState()
     {
         var context = CurrentSync;

@@ -31,7 +31,11 @@ internal sealed class QuiescenceScope : IDisposable
 
     [ThreadStatic] private static QuiescenceScope? _syncCurrent;
 
-    private readonly List<(Task Wrapped, Component Owner)> _pending = new();
+    private readonly List<(Task Wrapped, Component? Owner)> _pending = new();
+
+    // External work is registered from a property read, which happens many times per render for the
+    // same task, so it is deduped by identity rather than appended each time.
+    private readonly HashSet<Task> _externalSeen = new();
     private readonly object _lock = new();
     private bool _disposed;
 
@@ -92,7 +96,29 @@ internal sealed class QuiescenceScope : IDisposable
     ///     to the nearest <c>ErrorBoundary</c> by the caller; re-observing them here would either
     ///     throw out of the wait or double-report.
     /// </remarks>
-    internal void Track(Task task, Component owner)
+    /// <summary>
+    ///     Record work the render depends on that no lifecycle hook returned — see
+    ///     <c>LiveRenderContext.AwaitBeforeFirstPaint</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Held with no owning component, deliberately. Such work is typically shared — one cache
+    ///     entry serving several readers — so dropping it when any one of them unmounts would be
+    ///     wrong for the rest. The pass budget is what bounds it instead.
+    /// </remarks>
+    internal void TrackExternal(Task task)
+    {
+        lock (_lock)
+        {
+            if (_disposed || !_externalSeen.Add(task))
+            {
+                return;
+            }
+        }
+
+        Track(task, owner: null);
+    }
+
+    internal void Track(Task task, Component? owner)
     {
         var wrapped = task.ContinueWith(
             static _ => { },
@@ -133,7 +159,8 @@ internal sealed class QuiescenceScope : IDisposable
             var live = new List<Task>(_pending.Count);
             foreach (var (wrapped, owner) in _pending)
             {
-                if (!owner.IsUnmountedInternal)
+                // A null owner is unowned work (see TrackExternal) and always counts as live.
+                if (owner is null || !owner.IsUnmountedInternal)
                 {
                     live.Add(wrapped);
                 }

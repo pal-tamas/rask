@@ -1,3 +1,4 @@
+using Rask.Core.Live;
 namespace Rask.Query;
 
 /// <summary>
@@ -286,9 +287,28 @@ public sealed class Query<TResult> : IDisposable
     /// </remarks>
     private void Touch()
     {
-        if (!_disposed)
+        if (_disposed)
         {
-            _readers.Observe();
+            return;
+        }
+
+        _readers.Observe();
+
+        // A server render serves the HTML the browser will hold, so a query with nothing to show yet
+        // has to be waited for or the page ships its spinner — the first paint, and the whole
+        // document a crawler sees. The fetch is started inside the client and never returned to a
+        // lifecycle hook, so the host cannot see it any other way; handing it over here, at the read,
+        // waits for exactly the queries this page actually displays.
+        //
+        // Only when there is nothing to show. A query serving cached data while it revalidates has
+        // real content to render and its refresh lands over the live connection — waiting for that
+        // would make every cache hit pay full latency to change nothing. Retries need no special
+        // case: the task completes when the policy gives up, and the host's own budget bounds it.
+        if (StatusOf(_entry) == QueryStatus.Pending
+            && FetchStatusOf(_entry) == FetchStatus.Fetching
+            && _entry.InFlight is { } inFlight)
+        {
+            LiveRenderContext.AwaitBeforeFirstPaint(inFlight);
         }
     }
 

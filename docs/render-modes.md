@@ -69,6 +69,34 @@ The render stops waiting the moment it sees a queued JS call. Nothing is lost by
 is already interactive *because* of the interop, so it keeps its session and finishes over the
 socket exactly as it did before. Waiting would only have spent the whole budget on every page load.
 
+### Rask.Query
+
+A query is waited for too. `Rask.Query` starts its fetch inside the client rather than returning it
+from a lifecycle hook, so the render hands it over at the point a component reads it — which means
+the `GET` waits for exactly the queries that page actually displays:
+
+```csharp
+public sealed partial class Orders(IQueryClient client) : Component
+{
+    private readonly Query<Order[]> _orders = client.Query(new GetOrders());
+
+    protected override Component? Render() =>
+        _orders.IsLoading ? P["Loading…"] : Ul[_orders.Data!.Select(o => Li[o.Ref])];
+}
+```
+
+That page serves its orders, not its spinner.
+
+Only a query with **nothing to show** holds the response. One that is disabled
+(`QueryOptions.Enabled = false`) is pending but has nothing coming, so waiting for it would spend the
+whole budget to change nothing. One that is serving cached data while it revalidates has real content
+to render and its refresh lands over the live connection. A retry needs no special case: the fetch
+task completes when the policy gives up, and the budget bounds it either way.
+
+Worth knowing when reasoning about cache hits: `IQueryClient` is registered **scoped**, which on the
+Server host means one cache per session. Every initial `GET` therefore starts cold — stale-while-
+revalidate only arises after a navigation inside a live session, never on a first paint.
+
 ## A page that needs nothing live is served as a document
 
 Opt in with `RaskServerOptions.StaticPages`:
