@@ -257,6 +257,14 @@ them until tagged releases begin.
   each enqueuing another round of JS interop. Intermediate waves also promote neither the diff
   baseline nor the dedup baseline — only the HTML actually served is what the browser holds.
 
+  **A `Rask.Query` query is waited for as well.** It starts its fetch inside the client rather than
+  returning it from a lifecycle hook, so nothing the host could see would have told it to wait — a
+  query-backed page would have served its spinner as the first paint, which is the exact problem this
+  change exists to fix, unsolved for the framework's own way of fetching data. The render hands the
+  in-flight fetch over where a component reads it, so the `GET` waits for exactly the queries that
+  page displays. Only a query with nothing to show holds the response: one that is disabled, or one
+  serving cached data while it revalidates, does not.
+
   **Work blocked on JavaScript is not waited on**, and cannot be: a JS call made during a render
   queues onto a frame, and during the `GET` there is no client to send it to, so the awaiting task
   completes once the socket is up and never before. A hook that reads browser storage to restore a
