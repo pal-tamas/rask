@@ -524,7 +524,11 @@ public static partial class RaskEndpointExtensions
             // WASM's InitialRenderAsync / `_lastAppliedHtml`), AND the diff-codec frame
             // baseline so the FIRST interactive WS render ships a diff instead of the whole
             // document. See LiveSession.RenderInitialRoot.
-            var html = session.RenderInitialRoot();
+            // Awaited, so a page that loads its data in OnMountAsync ships that data rather than
+            // its placeholder. Falls back to the synchronous render when the budget is disabled.
+            var html = await session
+                .RenderInitialRootAsync(limits.InitialRenderQuiescenceTimeout)
+                .ConfigureAwait(false);
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.

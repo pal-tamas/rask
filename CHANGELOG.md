@@ -165,6 +165,36 @@ them until tagged releases begin.
   survived review: asserting presence cannot see a generator that never reads the value. The guard was
   verified by reintroducing the defect and watching it fail on `(wasm, localization)` before the fix
   went back in — the same bug class `--template native` was, and the same one it now catches.
+### Added
+
+- **The initial `GET` now waits for a page's async data before serving its HTML.** `OnMountAsync`
+  is fire-and-forget: the render walk starts it, keeps walking, and the continuation paints later
+  over the live connection. That is right once a socket exists and wrong for the first response,
+  where "later" is after the bytes have already gone — so a page that loaded its data in
+  `OnMountAsync` served its `"Loading…"` placeholder as the first paint, and as the entire document
+  every crawler, cache and uptime check ever saw.
+
+  Nothing tracked the hooks' tasks, so there was nothing to await. There is now, and the `GET`
+  renders in **waves**: render, wait for what that render started, render again. A wave is the right
+  unit because resolved data mounts new components which start their own work — a page whose list
+  loads and whose rows then load is two waves, not one longer wait.
+
+  Bounded by `RaskServerOptions.InitialRenderQuiescenceTimeout` (default 5&#160;seconds;
+  `TimeSpan.Zero` restores the old behaviour). Blowing the budget is not an error: the page is
+  served as it stands and keeps its live session, so the load finishes over the socket exactly as
+  before. A slow page does hold a request open for up to that long, so size it together with the
+  session cap — the two multiply.
+
+  Waves after the first render `publishOnly`, which is not an optimisation: every component has
+  already rendered once, so a normal wave would re-fire `OnRendered` on all of them, once per wave,
+  each enqueuing another round of JS interop. Intermediate waves also promote neither the diff
+  baseline nor the dedup baseline — only the HTML actually served is what the browser holds.
+
+  Work whose owning component was unmounted mid-pass is dropped rather than awaited: a placeholder
+  replaced by the data it was waiting for leaves the tree, and its abandoned fetch would otherwise
+  hold the response open for the full budget. Work deliberately detached from the hook — a polling
+  loop started with `_ = LoopAsync()`, as `PollingPanel` does — is not waited on at all, and still
+  reaches the browser through the live connection as it always did.
 
 ### Changed
 - **BREAKING: `rask new` includes the batteries. Auth and styling are the only things it asks you.**
@@ -245,7 +275,6 @@ them until tagged releases begin.
 
   A faulted render still wins with `500`, and an app that declares its own catch-all `[Route]` is
   deliberately serving those paths, so it stays `200`.
->>>>>>> 77e1a775 (feat(routing): answer a real 404 when a path falls through to the not-found page)
 
 ### Added
 - **A gate that the compiled Tailwind stylesheet reaches the *published* output.** Every other Tailwind
