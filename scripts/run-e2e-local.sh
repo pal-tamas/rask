@@ -88,16 +88,18 @@ dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --no
 # last. Clearing only obj/Release/net10.0-browser keeps obj/project.assets.json, so the restore below is
 # still incremental.
 #
-# bin/ is cleared alongside obj/. Be clear about what this does and does not do: it is NOT the fix, and
-# the gate still fails intermittently with it in place. It was added on an A/B that looked decisive at the
-# time (obj alone -> 0 files under publish/wwwroot/_rask, obj + bin -> 6) and has since been contradicted
-# by three sessions' worth of runs, including reproductions on branches that already had it. It is kept
-# only because it is cheap — one recompile of a project whose native relink dominates this step anyway.
+# bin/ is cleared alongside obj/. Be clear about what this does and does not do: it is NOT the fix for
+# #650. It was added on an A/B that looked decisive at the time (obj alone -> 0 files under
+# publish/wwwroot/_rask, obj + bin -> 6) and was then contradicted by three sessions' worth of runs,
+# including reproductions on branches that already had it. It is kept only because it is cheap — one
+# recompile of a project whose native relink dominates this step anyway — and because the TFM-intermediate
+# clear above it is load-bearing for the two-modes-into-one-obj/ reason given there.
 #
-# What #650 actually is, per the build log: after the no-native solution build above, this native publish's
-# bake RUNS and writes ZERO files for an app that plainly has scoped assets. So no amount of cleaning here
-# can help — there is nothing stale to clear, and the deciding variable is the preceding no-native build,
-# not this project's output. The fix belongs inside the bake and is still open.
+# #650 itself is fixed, below, by -nodeReuse:false; see the note on that publish for the mechanism. This
+# comment used to end by saying the bake wrote zero files for reasons no cleaning could address and that
+# the fix was "still open" — true when written, stale since, and directly contradicted by the note 20
+# lines down. BakeScopedAssetsTask now also fails the build rather than baking an empty bundle and
+# reporting success (see its zero-files Log.LogError), so the silent version of this cannot recur.
 #
 # Two traps when verifying anything in this area, both of which have already produced false confidence:
 # running the gate twice back to back does not distinguish these cases, since both runs do the same thing;
@@ -143,10 +145,26 @@ else
   echo "    fails with a missing-browser error: 'pwsh <path>/playwright.ps1 install chromium')"
 fi
 
-echo "==> Browser journey E2E (Rask.Examples.E2E.Tests)"
+# RASK_E2E_FILTER narrows the run while you are iterating on ONE journey. The publishes above still
+# happen — they are what makes the bundles the tests boot — but a single journey then costs one run
+# instead of the whole suite. Unset (the gate's own case) it runs everything, which is the only
+# setting the pre-push hook should ever use.
+#
+#   RASK_E2E_FILTER='FullyQualifiedName~PlaygroundExampleTests' scripts/run-e2e-local.sh
+e2e_filter="${RASK_E2E_FILTER:-FullyQualifiedName~Rask.Examples.E2E.Tests}"
+if [ -n "${RASK_E2E_FILTER:-}" ]; then
+  echo "==> Browser journey E2E (FILTERED: $e2e_filter)"
+  echo "    Not the full gate. Clear RASK_E2E_FILTER before trusting a green run."
+else
+  echo "==> Browser journey E2E (Rask.Examples.E2E.Tests)"
+fi
 dotnet test tests/Rask.Examples.E2E.Tests/bin/Release/net10.0/Rask.Examples.E2E.Tests.dll \
-  --filter "FullyQualifiedName~Rask.Examples.E2E.Tests" \
+  --filter "$e2e_filter" \
   --logger "console;verbosity=normal"
 
 echo
-echo "==> Browser E2E passed."
+if [ -n "${RASK_E2E_FILTER:-}" ]; then
+  echo "==> Browser E2E passed — FILTERED run ($e2e_filter), not the full gate."
+else
+  echo "==> Browser E2E passed."
+fi

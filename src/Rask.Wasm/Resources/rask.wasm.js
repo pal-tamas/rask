@@ -290,6 +290,10 @@ export function setExports(exports) {
     if (!ok) {
         console.error("[Rask] setExports: the .NET Dispatch export is unreachable — no event will "
             + "reach the app. Exports:", exports);
+        // And say so on the page. An app whose Dispatch is unreachable boots, paints, and then
+        // ignores every click, which reads as a UI bug rather than as the build problem it is.
+        bootFailed("The app's .NET event dispatcher is unreachable, so nothing on the page will "
+            + "respond. This usually means Rask.Wasm.dll was trimmed away or failed to load.");
     }
     // Initial sweep for Head-declared external assets emitted by the browser's
     // index.html (and any subsequent applyRender will re-sweep so morph-added
@@ -333,9 +337,27 @@ export function applyRender(payload) {
         reply = JSON.parse(_payloadDecoder.decode(payload.slice()));
     } catch (e) {
         console.error("[Rask] applyRender: malformed payload", e);
+        // Dropping a frame mid-session loses one update; dropping the FIRST one means the document
+        // is never morphed and the boot screen stays up for ever. bootFailed decides which of the
+        // two this is — it does nothing once the app has painted.
+        bootFailed("The first frame from the app could not be read.", String(e));
         return;
     }
     handle(reply);
+}
+
+/**
+ * Report a failure that leaves the app unusable, to whatever surface the shell's bootstrap
+ * installed. main.js owns the rendering (it is loaded by every shell, including ones written
+ * before this existed, and it is reachable even when this module is not); this is the seam the
+ * rest of the framework — and .NET, via the `bootFailed` JSImport — reaches it through.
+ *
+ * A no-op when the page has already painted, and when a shell has no bootstrap of ours at all.
+ */
+export function bootFailed(message, detail) {
+    const report = globalThis.__raskBootFailed;
+    if (typeof report === "function") report(message, detail);
+    else console.error(`[Rask] boot failed: ${message}`, detail ?? "");
 }
 
 // Dev-only. Called from .NET (WasmHotReloadBridge) once the hot-reload coordinator has finished

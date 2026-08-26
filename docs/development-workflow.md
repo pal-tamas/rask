@@ -24,6 +24,12 @@ it under a real `dotnet watch`, edits a file, and asserts the change reached the
 without it being torn down. It's opt-in (`RASK_WATCH_E2E=1`); run it when you touch the hot-reload
 coordinator, the scoped-asset registry, the generated registries, or `rask dev`.
 
+`scripts/run-wasm-watch-e2e.sh` is the browser half of the same thing, opt-in on `RASK_WASM_WATCH_E2E=1`.
+Both are run by `.githooks/pre-push` when a push touches the hot-reload path (bypass with
+`RASK_SKIP_WATCH_E2E=1`). The WASM one used to be invoked by nothing at all: its tests live in the E2E
+project, so the browser gate's namespace-wide filter *selected* them and they then reported **SKIPPED**,
+because only this script sets the variable that enables them. Green on every push, never once run.
+
 ## The definition-of-done gate
 
 Every change passes this gate before a PR (the `rask-ship` skill):
@@ -94,6 +100,10 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   (`tests/Rask.Examples.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
   `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
   with `git config core.hooksPath .githooks`; bypass with `git push --no-verify` or `RASK_SKIP_E2E=1`).
+  While iterating on **one** journey, narrow the run with `RASK_E2E_FILTER` — the sample publishes still
+  happen (they are what the tests boot), but you pay for one journey instead of the whole suite:
+  `RASK_E2E_FILTER='FullyQualifiedName~PlaygroundExampleTests' scripts/run-e2e-local.sh`. It says loudly
+  that the run was filtered, because a narrowed green is not the gate.
 - **The CLI build gate runs locally, enforced before push.** `scripts/run-cli-build-e2e.sh` is the only
   thing proving the code the CLI *writes* actually compiles — every other CLI test asserts on generated
   strings. It packs this commit's Rask packages to a local feed, scaffolds every `rask new` flag

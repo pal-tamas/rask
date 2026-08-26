@@ -8,6 +8,35 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A browser-WASM app that fails to start now says so, instead of spinning for ever.** `main.js` was
+  four bare top-level `await`s with no `try` anywhere and no global rejection handler, and nothing ever
+  removed the splash screen explicitly — it disappeared as a side effect of the first successful morph.
+  So *every* way of failing to mount looked the same: a 404 on `_framework`, a wrong content type, an
+  import-map/SRI drift, an empty scoped-asset bake, and a genuinely slow connection were one symptom.
+  The first sign was a Playwright locator timing out after 90–120 seconds against a boot screen, which
+  names nothing and reads as a hang.
+
+  The splash screen is now replaced by **which step failed and the exception, verbatim**, with the same
+  text in the console. Three callers share the one surface: this module's own per-step catch,
+  `rask.wasm.js` (the first frame being unreadable, and an unreachable `Dispatch` export — an app that
+  boots and then ignores every click), and .NET through a new `bootFailed` JSImport, because only the
+  managed side still has the exception — to JS a startup failure is an opaque rejected promise out of
+  `runMain`. `WasmHostBuilder.RunAsync` reports and then **rethrows**, so nothing is swallowed.
+
+  **It never paints over a working page.** Once the app has mounted the boot surface goes silent for
+  good and the root error boundary owns errors, because turning a recoverable error into a full-screen
+  failure would be worse than the bug this fixes. The failure state carries a `[data-rask-boot-error]`
+  hook, so a broken boot fails an E2E in seconds with a reason attached.
+
+  The markup and CSS live in `main.js` rather than in the page shell deliberately: there are several
+  shells — the framework's, the samples', the one `rask new` writes — they have already drifted, and a
+  user may write their own. Owning it in the one file all of them load means no shell can be missing it.
+
+- **`RASK_E2E_FILTER` narrows a browser-gate run to one journey.** The filter was hard-coded, so
+  iterating on a single failing journey cost the whole suite — including two emscripten relinks — every
+  attempt. A filtered run says loudly that it was filtered, in both its header and its final line: a
+  narrowed green is not the gate.
+
 - **A localization guide, a live demo, and a browser journey step.** `docs/localization.md` covers the
   whole feature end to end — how a visitor's language is chosen, why URLs stay culture-neutral, typed
   catalogs, plurals, what deliberately stays invariant, right-to-left, and the WASM ICU trade-off — and
@@ -408,6 +437,21 @@ them until tagged releases begin.
   `SqlitePragmas.Optimize(connection)` directly.
 
 ### Fixed
+
+- **The WASM hot-reload gate was run by nothing, and reported green.** `scripts/run-wasm-watch-e2e.sh`
+  existed but no hook invoked it. `WasmWatchHotReloadTests` lives in the browser E2E project, so that
+  gate's namespace-wide filter *did* select the class — and it then reported **SKIPPED**, because the
+  tests are opt-in on `RASK_WASM_WATCH_E2E=1` and only the orphaned script sets it. Every push passed a
+  gate that had never executed. `.githooks/pre-push` now runs both halves of the hot-reload gate, and
+  the path filter that decides when covers `src/Rask.Wasm`'s client files too.
+
+- **`scripts/run-e2e-local.sh` contradicted itself about #650.** One comment said the empty scoped-asset
+  bake was unfixable by cleaning and "still open"; twenty lines later another said `-nodeReuse:false`
+  *is* the fix, with a mechanism (MSBuild reuses worker nodes, `Assembly.LoadFrom` throws on a reused
+  one, the bake writes nothing and reports success) and a measurement (3 failures in 4 consecutive
+  publishes on identical inputs). The second is correct and the first predates it; the stale half is
+  gone. `BakeScopedAssetsTask` also fails the build now rather than baking an empty bundle silently, so
+  the version of this that cost the most to find cannot recur.
 
 - **Everything Rask puts on the wire now formats and parses invariantly, whatever culture the process
   is in.** Rask has no culture concept yet, so every one of these paths inherited the machine's locale
