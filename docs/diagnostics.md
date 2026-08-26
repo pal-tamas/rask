@@ -1038,6 +1038,33 @@ placeholders is what makes that safe.
 { "Greeting": "Szia, {nev}!" }
 ```
 
+### Plural sets
+
+A key whose text depends on a count is written as an object carrying `$plural`:
+
+```jsonc
+{ "Cart": { "$plural": "count", "one": "{count} item", "other": "{count} items" } }
+```
+
+RASK051 also fires when such a set cannot produce correct grammar:
+
+| Cause | Why |
+|---|---|
+| Rask does not carry that language's plural rules | applying English rules would produce text that reads as broken to a native speaker, and nothing at runtime would say so |
+| the language's **residual** form is missing | it is the arm every unmatched count lands on |
+| a form the language never selects (`few` in English) | that text could never be shown |
+| a form that is not a CLDR category at all | it is a typo |
+| the key is a plural set in one language and a single string in another | they generate different members |
+
+**The residual is not always `other`.** Polish integers never select `other` — CLDR routes the residual
+to `many` — so a Polish catalog supplies `one`/`few`/`many` and requiring `other` there would mean
+writing text no visitor could ever see.
+
+```jsonc
+// Resources/Strings.pl.json — complete, and correctly has no "other"
+{ "Cart": { "$plural": "n", "one": "{n} plik", "few": "{n} pliki", "many": "{n} plików" } }
+```
+
 **Fix:** correct the file the message names. A JSON file in `Resources/` that is *not* a catalog needs
 no action — one without a culture tag in its name is ignored.
 
@@ -1060,6 +1087,14 @@ A missing translation is a **warning**, not an error, because a partly translate
 state of every real project: the neutral text is used until it is filled in, so the page works. The
 opposite case — a key only a translation has — is also a warning: it generates nothing and is almost
 always a rename that was applied to one file.
+
+A plural set is checked the same way: a translation missing a category **its own language**
+distinguishes is reported, and the residual form carries the page until it is filled in.
+
+```jsonc
+// Resources/Strings.ru.json — ⚠ RASK052, Russian also distinguishes "few"
+{ "Cart": { "$plural": "n", "one": "{n} файл", "many": "{n} файлов" } }
+```
 
 **Fix:** add the key, or delete it. To gate a release on complete translations, promote it:
 

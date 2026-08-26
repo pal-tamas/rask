@@ -16,4 +16,11 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- So the plural-rule table can be asserted directly. It is grammar rather than code: a test
+         that only read the generator's OUTPUT would confirm the table is applied consistently
+         without ever checking that it is right. -->
+    <InternalsVisibleTo Include="Rask.Generators.Tests"/>
+  </ItemGroup>
+
 </Project>
