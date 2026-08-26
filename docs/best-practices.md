@@ -194,9 +194,10 @@ mistake, the rule notes the ID.
   (which runs on every keystroke). For an event-handler mutation, do the work and reload; the awaited
   handler re-renders on completion automatically. See [data access](data-access.md).
 - **Keep EF Core on the Server.** The SQLite provider isn't a fit for the trimmed WASM runtime — a
-  WASM app should reach data through an API. Watch the [SQLite `decimal`
-  gotcha](data-access.md#does-sqlite-support-decimal-the-money-gotcha): model money as integer minor
-  units, not `decimal`.
+  WASM app should reach data through an API. A [`decimal` is safe to use](data-access.md#does-sqlite-support-decimal):
+  `UseRaskSqlite` fixes the upstream collation bug that otherwise mis-sorts it on `de-DE` and crashes
+  the process on `en-HU`. Model money as integer minor units when the table is large and often sorted,
+  for the native `INTEGER` index — not to dodge a correctness problem.
 
 ## JavaScript interop & refs
 

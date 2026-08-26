@@ -6,6 +6,13 @@ interceptor applying the production pragma set — WAL, `synchronous=NORMAL`,
 `foreign_keys=ON`, a `busy_timeout`, `mmap_size`, `journal_size_limit` — to every connection the context
 opens.
 
+It also makes `decimal` correct. EF Core stores one as invariant TEXT and sorts it with a collating
+sequence it registers as `decimal.Parse(x)` — with no `IFormatProvider`, so it reads that invariant text
+under the machine's `CurrentCulture`. On `de-DE` an `ORDER BY` silently mis-sorts (`"19.95"` parses as
+`1995`); on `en-HU` it throws inside a native callback that cannot be unwound and **takes the process
+down**. `UseRaskSqlite` re-registers the collation invariantly on every open, changing nothing in the
+database file — no column type, no DDL, no migration.
+
 Split out from `Rask.SQLite` so apps that only use the raw `Microsoft.Data.Sqlite` path (or run on
 mobile / under AOT, where you don't want EF Core) can stay lean.
 
@@ -31,6 +38,22 @@ o.UseRaskSqlite($"Data Source={dbPath}", p =>
     p.CacheSize = -20_000;   // negative ⇒ KiB, so 20 MB
 });
 ```
+
+## STRICT tables
+
+SQLite is dynamically typed: the text `"lots"` stores happily in an `INTEGER` column and surfaces as a
+cast error much later. Pass `strictTables: true` and tables are created as
+[STRICT tables](https://sqlite.org/stricttables.html), so the store rejects the write instead:
+
+```csharp
+o.UseRaskSqlite($"Data Source={dbPath}", strictTables: true);
+```
+
+Every column must then declare one of `INT`, `INTEGER`, `REAL`, `TEXT`, `BLOB` or `ANY` — EF Core's
+defaults all qualify, so a normal model needs no changes, and an explicit `HasColumnType(...)` outside
+that set is reported against the table and column it came from. Strictness is decided when a table is
+created, so this needs no migration and affects tables created from then on; `rask new --data`
+scaffolds it on, where it is free.
 
 ## Busy-retry for `SaveChanges`
 

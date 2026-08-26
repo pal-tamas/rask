@@ -3,10 +3,12 @@ namespace Rask.Example.EfCore.Features.Catalog.Shared;
 // Value object for a price. The validation rule lives here and is reused verbatim by the inline
 // form validator (Input(..., Validate: Money.Validate)) and by FromDecimal — one source of truth.
 //
-// Money is stored as integer minor units (cents). SQLite has no native decimal type: EF Core
-// would map a decimal to a TEXT column and fall back to REAL for ORDER BY / aggregates, which is
-// lossy and sorts lexicographically. An INTEGER cents column is exact, correctly sortable, and is
-// the conventional way to model money — so the value object earns its keep.
+// Money is stored as integer minor units (cents). SQLite has no native decimal type, so EF Core maps
+// a decimal to a TEXT column and orders it through a collating sequence — correct under Rask (see
+// docs/data-access.md), but every comparison is a managed callback, and sorting 100k of them costs
+// ~156 ms and 125 MB against ~4.5 ms and 768 B for an indexed INTEGER column. Cents are exact, sort
+// and aggregate natively, index for any tool, and are the conventional way to model money anyway — so
+// the value object earns its keep. This is a modelling choice now, not a workaround.
 public readonly record struct Money
 {
     public const decimal MaxAmount = 1_000_000m;

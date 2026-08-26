@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -78,9 +79,31 @@ public sealed class SqliteLimitationsTests : IDisposable
         using var read = new PriceContext(_dbPath);
         Assert.Equal(19.95m, read.Prices.Single().Amount);
 
-        // ...but the raw column is TEXT — numeric ORDER BY / SUM don't translate on it.
+        // ...and the raw column really is TEXT. Arithmetic, comparisons and Sum/Average/Min/Max still
+        // translate — EF Core registers managed ef_add/ef_compare/ef_sum/… helpers for them — and an
+        // ORDER BY is emitted as `COLLATE EF_DECIMAL` so the text sorts numerically. What that rests on
+        // is pinned by Decimal_ordering_depends_on_an_EF_registered_collation below.
         using var raw = Open();
         Assert.Equal("text", Scalar(raw, "SELECT typeof(Amount) FROM Prices"));
+    }
+
+    [Fact]
+    public void Decimal_ordering_depends_on_an_EF_registered_collation()
+    {
+        using var ctx = new PriceContext(_dbPath);
+
+        // Sorting TEXT numerically needs a collation, so EF Core emits one rather than a bare ORDER BY.
+        var sql = ctx.Prices.OrderBy(p => p.Amount).ToQueryString();
+        Assert.Contains("COLLATE EF_DECIMAL", sql, StringComparison.Ordinal);
+
+        // EF registers EF_DECIMAL as decimal.Compare(decimal.Parse(x), decimal.Parse(y)) — with no
+        // IFormatProvider. The stored text is invariant, so on a locale where '.' is the GROUP separator
+        // the comparison reads a different number than the one stored, and where '.' is neither
+        // separator it throws inside a native callback that cannot be unwound, taking the process with
+        // it. Rask replaces the collation with an invariant, total one (see SqliteCollations); this
+        // asserts the upstream mechanism directly rather than through SQLite, which would abort the host.
+        Assert.Equal(1995m, decimal.Parse("19.95", new CultureInfo("de-DE")));
+        Assert.Throws<FormatException>(() => decimal.Parse("19.95", new CultureInfo("en-HU")));
     }
 
     [Fact]

@@ -83,6 +83,7 @@ internal sealed class RaskSqliteConnectionFactory : IRaskSqliteConnectionFactory
         if (e.CurrentState == ConnectionState.Open && sender is SqliteConnection connection)
         {
             SqlitePragmas.Apply(connection, _options);
+            SqliteCollations.Apply(connection);
         }
     }
 }
