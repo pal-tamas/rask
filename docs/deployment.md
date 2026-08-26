@@ -41,7 +41,7 @@ Dockerfile below (override with `--dockerfile`).
 - **Durable SQLite database.** Every deploy runs a fresh container, so the database can't live inside it.
   `rask deploy` mounts a per-app named volume and points the app at it (`ConnectionStrings:App` →
   `Data Source=/data/app.db`), so your data persists across redeploys; the old container is stopped
-  gracefully (SIGTERM) before removal so in-flight writes are checkpointed first. The `rask new --docker`
+  gracefully (SIGTERM) before removal so in-flight writes are checkpointed first. The `rask new`
   Dockerfile prepares a writable `/data`; a custom Dockerfile needs the same
   (`RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`). Pair it with `Rask.SQLite.Litestream` to also
   stream the database off the box for machine-loss recovery.
@@ -282,9 +282,9 @@ The three web templates take an opt-in `--docker` flag that drops a production-r
 `Dockerfile` (+ `.dockerignore`) into the generated project:
 
 ```bash
-rask new MyApp --docker                          # Kestrel app → aspnet:10.0 runtime image
-rask new MyApp --template wasm --docker           # static WASM bundle → nginx:alpine
-rask new MyApp --template wasm-hosted --docker    # WASM client + host → aspnet:10.0 runtime image
+rask new MyApp                                   # Kestrel app → aspnet:10.0 runtime image
+rask new MyApp --template wasm                   # static WASM bundle → nginx:alpine
+rask new MyApp --template wasm-hosted            # WASM client + host → aspnet:10.0 runtime image
 ```
 
 Without `--docker` no container files are emitted.

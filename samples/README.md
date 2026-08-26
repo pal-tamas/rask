@@ -8,7 +8,7 @@ feature tour; the **auth** samples are focused, production-shaped login flows; a
 
 | Project | What it is | Run |
 |---------|------------|-----|
-| [`Rask.Example.Shop`](Rask.Example.Shop) | **Every OPF battery in one app** — data, CQRS, outbox, jobs, mail, cache, production SQLite, snapshots, Litestream, Web Push, auth, Docker. Scaffolded with `rask new --all-batteries`; the feature slices are written the way the tutorial teaches them. Its `/ops` page shows every pillar's state in the one SQLite file. | `dotnet run --project samples/Rask.Example.Shop` |
+| [`Rask.Example.Shop`](Rask.Example.Shop) | **Every OPF battery in one app** — data, CQRS, outbox, jobs, mail, cache, production SQLite, snapshots, Litestream, Web Push, auth, Docker. Scaffolded with `rask new Rask.Example.Shop --auth --bootstrap` — every battery is standard now; the feature slices are written the way the tutorial teaches them. Its `/ops` page shows every pillar's state in the one SQLite file. | `dotnet run --project samples/Rask.Example.Shop` |
 | [`Rask.Example.EfCore`](Rask.Example.EfCore) | A smaller slice of the same story: SQLite + EF Core with transactional mail and a database-backed cache. | `dotnet run --project samples/Rask.Example.EfCore` |
 | [`Rask.Example.Sqlite`](Rask.Example.Sqlite) | `UseRaskSqlite` vs plain `UseSqlite` — what the production pragmas actually change. | `dotnet run --project samples/Rask.Example.Sqlite` |
 

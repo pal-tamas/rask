@@ -15,7 +15,7 @@ public sealed class SqliteScaffoldTests
     private const string Version = "9.9.9";
 
     private static Dictionary<string, string> Generate(params string[] flags) =>
-        ProjectGenerator.GenerateServer(Root, "App", NewCommand.ToBatteries(flags), Version).Files
+        ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
             .ToDictionary(
                 f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
                 f => f.Content,
@@ -43,7 +43,7 @@ public sealed class SqliteScaffoldTests
     [Fact]
     public void Sqlite_keeps_all_of_it()
     {
-        var files = Generate("all-batteries");
+        var files = Generate("data", "snapshots");
         var program = files["Program.cs"];
 
         Assert.Contains("AddRaskSqliteLitestream", program, StringComparison.Ordinal);
@@ -66,10 +66,12 @@ public sealed class SqliteScaffoldTests
     [Fact]
     public void The_next_steps_name_the_database_file_the_migration_lands_in()
     {
-        var next = ProjectGenerator.GenerateServer(Root, "App", NewCommand.ToBatteries(["data"]), Version).Notes;
+        var next = ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(["data"]), Version).Notes;
 
         Assert.NotNull(next);
         Assert.Contains("rask db update", next, StringComparison.Ordinal);
         Assert.Contains("app.db", next, StringComparison.Ordinal);
+        // Not the FIRST migration any more — `rask new` creates and applies that itself.
+        Assert.DoesNotContain("rask db add Init", next, StringComparison.Ordinal);
     }
 }

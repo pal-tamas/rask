@@ -13,7 +13,7 @@ public sealed class ErrorPageScaffoldTests
     private const string Version = "9.9.9";
 
     private static Dictionary<string, string> Generate(params string[] flags) =>
-        ProjectGenerator.GenerateServer(Root, "App", NewCommand.ToBatteries(flags), Version).Files
+        ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
             .ToDictionary(
                 f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
                 f => f.Content,
@@ -22,7 +22,7 @@ public sealed class ErrorPageScaffoldTests
     [Theory]
     [InlineData]
     [InlineData("auth")]
-    [InlineData("all-batteries")]
+    [InlineData("data", "jobs", "ops", "push", "logs")]
     public void Every_server_app_gets_an_error_page(params string[] flags)
     {
         // Not a battery and not opt-in: without it an unhandled exception is a bare 500 with an empty body.

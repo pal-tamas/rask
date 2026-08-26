@@ -127,15 +127,28 @@ internal sealed class Prompt(IConsole console)
     /// values in the order they were offered. Selecting nothing is allowed and yields an empty list.
     /// </summary>
     /// <remarks>
-    /// This is the shape a long list of independent opt-ins wants. Asking the same thing as a run of
+    /// This is the shape a long list of independent choices wants. Asking the same thing as a run of
     /// yes/no questions makes the user answer every one to reach the one they came for, and gives them no
     /// view of the whole menu at once.
+    ///
+    /// <para>
+    /// <paramref name="selected"/> pre-ticks entries, which turns the question from "what would you like?"
+    /// into "anything you don't want?". Both the fall-back on a closed input and the empty-options case
+    /// return it unchanged, so the answer to a question that could not be asked is what was already true
+    /// rather than nothing.
+    /// </para>
     /// </remarks>
-    public IReadOnlyList<string> MultiSelect(string label, IReadOnlyList<(string Value, string Label)> options)
+    public IReadOnlyList<string> MultiSelect(
+        string label,
+        IReadOnlyList<(string Value, string Label)> options,
+        IReadOnlyCollection<string>? selected = null)
     {
+        var preselected = selected ?? [];
+        List<string> fallback = [.. options.Select(o => o.Value).Where(preselected.Contains)];
+
         if (!Interactive || options.Count == 0)
         {
-            return [];
+            return fallback;
         }
 
         var prompt = new MultiSelectionPrompt<string>()
@@ -143,12 +156,20 @@ internal sealed class Prompt(IConsole console)
             .NotRequired()
             .PageSize(Math.Max(3, Math.Min(options.Count + 1, 15)))
             .InstructionsText("[dim](space to toggle, enter to accept, nothing selected is fine)[/]")
-            .AddChoices(options.Select(o => o.Value))
             .UseConverter(value => LabelOf(options, value, @default: null));
+
+        foreach (var option in options)
+        {
+            var item = prompt.AddChoice(option.Value);
+            if (preselected.Contains(option.Value))
+            {
+                item.Select();
+            }
+        }
 
         // Spectre returns the values in selection order; re-project through the offered order so the
         // resulting command line reads the same however the user clicked through the list.
-        var chosen = Show(prompt, (List<string>)[]);
+        var chosen = Show(prompt, fallback);
         return [.. options.Select(o => o.Value).Where(chosen.Contains)];
     }
 

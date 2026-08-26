@@ -12,7 +12,7 @@ for automatic Let's Encrypt HTTPS, swapping the new container in only after a `/
 
 - A Linux box you can SSH into (any cheap VPS), and a DNS **A record** for your domain pointing at it.
 - The `Dockerfile` from Chapter 1's `--docker` flag (already in the project). No Dockerfile? Add one with
-  `rask new … --docker` next time, or write a standard .NET one — `rask deploy` just builds it.
+  `rask new` writes one by default, or write a standard .NET one — `rask deploy` just builds it.
 
 ## 2. First deploy (bare box → live HTTPS)
 
@@ -59,7 +59,7 @@ Two layers keep the SQLite database safe, and you should understand both:
   writes are checkpointed first rather than killed — inside a
   [budget](../deployment.md#the-shutdown-ladder) that also covers open pages, running jobs and queued
   email. *(Bringing your own Dockerfile? Give the runtime a
-  writable `/data`: `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`. The one `rask new --docker`
+  writable `/data`: `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`. The one `rask new`
   scaffolds already does this.)*
 - **Off the box — Litestream.** The volume survives redeploys; Litestream (Chapter 8) survives losing the
   *box*, streaming the database off-site continuously so you can restore onto a new machine.

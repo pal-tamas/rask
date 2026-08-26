@@ -24,13 +24,13 @@ public sealed partial class InstallTabs : Component
     private Component Terminal() => _active switch
     {
         1 => Pre[Code[
-            Span.Class("cmt")["# standalone browser-WASM SPA (add --pwa for offline)\n"],
+            Span.Class("cmt")["# standalone browser-WASM SPA, installable and offline\n"],
             Line("$", " dotnet tool install -g Rask.Cli"),
-            Line("$", " rask new MyApp --template wasm --pwa"),
+            Line("$", " rask new MyApp --template wasm"),
             Span.Class("prompt")["$"], " cd MyApp && rask dev"
         ]],
         _ => Pre[Code[
-            Span.Class("cmt")["# ASP.NET live-server app\n"],
+            Span.Class("cmt")["# ASP.NET live-server app, batteries included\n"],
             Line("$", " dotnet tool install -g Rask.Cli"),
             Line("$", " rask new MyApp"),
             Span.Class("prompt")["$"], " cd MyApp && rask dev"

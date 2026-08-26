@@ -1,5 +1,6 @@
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
+using Rask.Cli.Templates;
 
 namespace Rask.Cli.Tests;
 
@@ -67,9 +68,10 @@ public sealed class ShopProvenanceTests
         var generated = ProjectGenerator.GenerateServer(
             "/generated",
             ProjectName,
-            // The Shop sample is written in Bs* components, so the provenance check has to ask for the
-            // styling it actually uses. Plain CSS is the default now; it was Bootstrap when this was written.
-            NewCommand.ToBatteries(["all-batteries", "auth", "docker"], Styling.Bootstrap),
+            // Exactly `rask new Rask.Example.Shop --auth --bootstrap`: the batteries are the defaults now,
+            // so the sample is the CLI's plain output plus the two things it still asks you — auth, and the
+            // Bs* styling the sample is written in.
+            NewCommand.ToBatteries(TemplateCatalog.Default, [], Styling.Bootstrap, auth: true),
             version: "0.0.0");
 
         var sampleDirectory = SampleDirectory();

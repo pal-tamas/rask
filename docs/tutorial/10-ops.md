@@ -105,7 +105,7 @@ table you can `SELECT` from, and now you've proved it.
 
 For the parts you'd rather not hand-roll, `Rask.Dashboard` ships the same idea finished: `/_rask` with the
 queue rows behind each counter, the error that caused each dead letter, a one-click retry, a log tail, and
-the pragmas you read above. `rask new --ops` (included in `--all-batteries`, so your Shop already has it)
+the pragmas you read above. `rask new` wires it in by default, so your Shop already has it —
 wires it in two lines:
 
 ```csharp

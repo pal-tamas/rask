@@ -43,8 +43,8 @@ public sealed partial class OrderReceipt : Component
 
 ## 2. It's already wired
 
-`--all-batteries` already registered mail in Chapter 1, so there is nothing to add. Had you scaffolded
-without it, these are the two lines to add yourself:
+Chapter 1's `rask new` already registered mail, so there is nothing to add. Had you scaffolded with
+`--no-mail`, these are the two lines to add yourself:
 
 - `builder.Services.AddRaskMail<AppDbContext>(…)` in `Program.cs`, and
 - the mail table mapped with `modelBuilder.AddRaskMail();` in `OnModelCreating`.

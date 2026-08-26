@@ -7,6 +7,69 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING: `rask new` includes the batteries. Auth and styling are the only things it asks you.**
+  `rask new MyApp` now scaffolds every battery the chosen template supports — a SQLite database, the
+  CQRS mediator, background jobs, transactional email, a cache, a transactional outbox, scheduled
+  snapshots, continuous backup, a durable log store, the operator dashboard, an installable PWA with
+  Web Push, a production Dockerfile, and the localization machinery. Wiring, not sample pages: there is
+  still nothing to delete before you start.
+
+  Auth stays opt-in (`--auth`) and styling stays its own three-answer axis (plain, `--bootstrap`,
+  `--tailwind`), because those two change what the app *is* rather than what it can do. A login wall in
+  front of a project you are about to show someone is a decision.
+
+  **The positive battery flags are removed, not kept as no-ops.** `--data`, `--cqrs`, `--pwa`, `--jobs`,
+  `--mail`, `--cache`, `--outbox`, `--push`, `--snapshots`, `--logs`, `--ops`, `--docker`,
+  `--localization` and `--all-batteries` now fail with the answer rather than being accepted and
+  disregarded — this repository has treated an accepted-but-ignored flag as a bug class ever since
+  `--template native`, and a flag that turns on something already on is exactly that:
+
+  ```console
+  $ rask new Shop --data
+  --data is on by default now, so there is nothing to turn on. Pass --no-data to leave it out.
+  ```
+
+  **Each battery has a `--no-`**, and turning one off takes with it everything that cannot work without
+  it: `--no-data` also drops jobs, mail, cache, outbox, snapshots and the dashboard; `--no-cqrs` also
+  drops the database, since every scaffolded feature dispatches through the mediator; `--no-pwa` also
+  drops Web Push, which subscribes through the service worker. `--no-logs` drops nothing else — the log
+  store owns a database of its own. There is deliberately no `--minimal`: taking three things out reads
+  as three flags, and the command line then says which three.
+
+  The default set is `template.SupportedFlags` minus `auth`, so there is no per-template default list to
+  drift. A `wasm` project gets the PWA and the Dockerfile; a `wasm-hosted` one gets everything but Web
+  Push; a front-end template gets the database stack and the Dockerfile. Turning off something a
+  template never had is a usage error naming what it does support.
+
+  This reverses a direction this log has held for a while — plain CSS over Bootstrap, `--database`
+  removed, localization kept out of `--all-batteries`. The reasoning still applies to the two things
+  left as questions. It does not apply to the rest: a durable outbox is not an opinion about your app,
+  it is the thing you would otherwise wire by hand on the day you discover you needed it.
+
+- **BREAKING: `rask new` creates and applies the first migration.** `rask new Shop && cd Shop && dotnet
+  run` now serves the app.
+
+  This is not a convenience. The database-backed pillars keep their state in tables that only exist once
+  a migration has been applied, their processors are hosted services, and a faulted `BackgroundService`
+  stops the host — so an unmigrated app does not warn, it exits. That was an opt-in edge case with a
+  printed warning while `--data` was opt-in; as a default it would have been the first `dotnet run` of
+  every new project.
+
+  It delegates to `rask db`, so it installs the EF Core tools on first use and adds
+  `Microsoft.EntityFrameworkCore.Design` exactly as `rask db add` would, and the project ends up in the
+  state `rask db add Init && rask db update` leaves it in. The git repository is initialized *after*,
+  so `Migrations/` lands in the initial commit. `--no-restore` skips it, and a failure is reported as a
+  warning plus the two commands to run rather than as a failed scaffold — the files on disk are correct
+  either way.
+
+- **The wizard asks about auth, and its battery checklist arrives fully ticked.** Bare `rask` now walks
+  name → project type → styling → auth → batteries, and the checklist starts with everything selected:
+  space unticks what you don't want, and pressing enter through it gives you the same project a bare
+  `rask new` does. The standalone Dockerfile question and the snapshots follow-up are gone — both are
+  entries in the list now. Unticking an entry becomes the `--no-<battery>` on the command line the
+  wizard replays, so what it runs is still exactly what you could have typed.
+
 ### Added
 - **A browser-WASM app that fails to start now says so, instead of spinning for ever.** `main.js` was
   four bare top-level `await`s with no `try` anywhere and no global rejection handler, and nothing ever
@@ -74,17 +137,18 @@ them until tagged releases begin.
 
 - **`rask new --culture en --culture hu` scaffolds a localized app.** `--culture` is repeatable and
   names the languages; the **first is the default** a visitor falls back to. `--localization` on its own
-  means English, which is the shape an app grows a second language into. Both are supported on
-  `server`, `wasm` and `wasm-hosted`.
+  means English, which is the shape an app grows a second language into. Supported on `server`; the
+  WASM templates advertised it and scaffolded nothing, so they no longer offer it
+  ([#846](https://github.com/pal-tamas/rask/issues/846)).
 
   The scaffold writes one `Resources/Strings.{culture}.json` per language — the translations start as a
   copy of the neutral catalog, so the build immediately reports what still needs doing (RASK052) rather
   than the app quietly rendering English where a key was forgotten — and it includes a plural key,
   which is the part nobody guesses the shape of.
 
-  **`--all-batteries` deliberately does not imply it.** The batteries are the back-end pillars a
-  DB-backed app needs; shipping a second language is a commitment to translating every string in the
-  app, which is not a decision a convenience flag should make.
+  Localization is now part of what a bare `rask new` gives you — see below. Shipping a *second*
+  language is still a commitment nothing decides for you; what comes as standard is one language and
+  the machinery, so adding Hungarian later is a `--culture` rather than a refactor of every string.
 
   An unknown tag is rejected naming it (`'zz-ZZ' isn't a language tag this machine knows`), and a
   repeated one is rejected rather than deduped — a repeat means the command line does not say what its
