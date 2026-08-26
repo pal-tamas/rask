@@ -183,6 +183,57 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
         Assert.DoesNotContain("COLLATE", ddl, StringComparison.OrdinalIgnoreCase);
     }
 
+    // docs/data-access.md tells people to declare the collation on the property and index it, so the
+    // ordering is served by an index scan instead of a sort full of managed comparisons. This is that
+    // snippet, compiled and run: the DDL carries the collation and the planner uses the index without
+    // falling back to a temp b-tree.
+    [Fact]
+    public async Task An_index_declaring_the_collation_serves_the_ordering_without_a_sort()
+    {
+        await using (var context = new IndexedDbContext(
+            new DbContextOptionsBuilder<IndexedDbContext>()
+                .UseRaskSqlite($"Data Source={_dbPath}")
+                .Options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Rows.AddRange(Unsorted.Select(a => new ProbeRow { Amount = a }));
+            await context.SaveChangesAsync();
+
+            var ordered = await context.Rows.OrderBy(r => r.Amount).Select(r => r.Amount).ToListAsync();
+            Assert.Equal(Ascending, ordered);
+        }
+
+        await using var connection = new SqliteConnection($"Data Source={_dbPath}");
+        await connection.OpenAsync();
+        SqliteCollations.Apply(connection);
+
+        await using (var ddl = connection.CreateCommand())
+        {
+            // The collation lands on the COLUMN definition; the index need not repeat it, because an
+            // index over a bare column inherits that column's collating sequence.
+            ddl.CommandText = "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'Rows'";
+            var tableSql = (string?)await ddl.ExecuteScalarAsync();
+            Assert.Contains($"COLLATE {SqliteCollations.Decimal}", tableSql ?? "", StringComparison.Ordinal);
+        }
+
+        await using var plan = connection.CreateCommand();
+        plan.CommandText =
+            $"EXPLAIN QUERY PLAN SELECT \"Amount\" FROM \"Rows\" ORDER BY \"Amount\" COLLATE {SqliteCollations.Decimal}";
+        await using var reader = await plan.ExecuteReaderAsync();
+
+        var detail = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            detail.Add(reader.GetString(reader.GetOrdinal("detail")));
+        }
+
+        var joined = string.Join(" | ", detail);
+        Assert.Contains("USING", joined, StringComparison.Ordinal);
+        Assert.Contains("INDEX", joined, StringComparison.Ordinal);
+        // The whole point: no sort, so none of the managed comparisons run at query time.
+        Assert.DoesNotContain("TEMP B-TREE", joined, StringComparison.OrdinalIgnoreCase);
+    }
+
     private ProbeDbContext NewContext() =>
         new(new DbContextOptionsBuilder<ProbeDbContext>()
             .UseRaskSqlite($"Data Source={_dbPath}")
@@ -248,5 +299,17 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
         public int Id { get; set; }
 
         public decimal Amount { get; set; }
+    }
+
+    private sealed class IndexedDbContext(DbContextOptions<IndexedDbContext> options) : DbContext(options)
+    {
+        public DbSet<ProbeRow> Rows => Set<ProbeRow>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // Verbatim from docs/data-access.md.
+            modelBuilder.Entity<ProbeRow>().Property(p => p.Amount).UseCollation(SqliteCollations.Decimal);
+            modelBuilder.Entity<ProbeRow>().HasIndex(p => p.Amount);
+        }
     }
 }

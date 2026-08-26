@@ -798,9 +798,10 @@ not just asserted in prose.
   registers on the connection; ordering translates to `ORDER BY "x" COLLATE EF_DECIMAL`. **EF's own
   `EF_DECIMAL` parses that invariant text under `CurrentCulture`**, so on `de-DE` it mis-sorts and on
   `en-HU` it throws inside a native callback and kills the process — [`UseRaskSqlite` replaces it with an
-  invariant one](data-access.md#does-sqlite-support-decimal), changing nothing in the file. For money on
-  a large, frequently sorted table, integer minor units in an `INTEGER` column still sort and aggregate
-  natively and index usefully. EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to `TEXT` —
+  invariant one](data-access.md#does-sqlite-support-decimal), changing nothing in the file. Correct is
+  not free, though: each comparison is a managed callback, so sorting 100k decimals costs ~156 ms and
+  125 MB against ~4.5 ms and 768 B for an indexed `INTEGER` column — [index the collation, or count
+  minor units](data-access.md#does-sqlite-support-decimal). EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to `TEXT` —
   mind text-sort ordering.
 - **Limited `ALTER TABLE`.** SQLite can add/rename/drop columns but not, say, change a column's type or
   constraints in place — EF Core migrations rebuild the table (create → copy → drop → rename) for those,
