@@ -77,6 +77,14 @@ public sealed class BootFailureReportingTests
     ///     that — and painting a full-screen failure panel over a working page would turn a recoverable
     ///     error into a dead app.
     /// </summary>
+    /// <remarks>
+    ///     "Painted" is a flag <c>rask.wasm.js</c> sets when it applies a frame, and the fixture models it
+    ///     that way — with the splash element still connected, which is what the real morph leaves behind.
+    ///     The first version of this asked the DOM instead ("is the splash element gone?"), and the fixture
+    ///     agreed with it, because both encoded the same unchecked assumption about the morph. Every WASM
+    ///     journey then failed against an app whose own console said <c>first render applied</c>. The
+    ///     browser gate caught it; this test could not, because it was asking the same wrong question.
+    /// </remarks>
     [SkippableFact]
     public void Once_the_app_has_painted_the_boot_surface_stays_silent()
     {

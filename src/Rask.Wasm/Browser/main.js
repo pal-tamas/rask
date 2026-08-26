@@ -91,8 +91,14 @@ function reportBootFailure(message, detail) {
     // artefact will find, and it is the only channel left if the DOM work below throws.
     console.error(`[Rask] boot failed: ${message}`, detail ?? "");
 
-    // Once the app has painted, the boot screen is gone and the morph owns the document.
-    // A later failure belongs to the running app, not to boot — never paint over a live page.
+    // Once the app has painted, a later failure belongs to the running app rather than to boot, and the
+    // root error boundary owns it — never paint a full-screen failure over a working page.
+    //
+    // Read from a flag rask.wasm.js sets when it applies a frame, NOT from whether the splash element is
+    // still in the document. The morph patches the existing document in place, so that element stays
+    // connected after a perfectly good first render; believing otherwise made every WASM journey report
+    // a boot failure against an app whose console said "first render applied".
+    if (globalThis.__raskPainted) return;
     if (!boot?.isConnected) return;
     // First failure wins. A boot failure usually cascades (the throw, then the rejection that
     // follows it, then the never-painted check below), and the first one is the cause.
@@ -198,11 +204,15 @@ rask.setExports(raskWasmExports);
 
 await step("The app threw while starting.", () => runMain());
 
-// runMain resolves only once Program.cs's `await host.RunAsync<App>()` has returned, and the first
-// frame is pushed synchronously from inside it — so by now the morph has replaced the document and
-// this element is detached. Still attached means the app finished starting without ever painting,
-// which is otherwise indistinguishable from a hang.
-if (boot?.isConnected) {
+// runMain resolves only once Program.cs's `await host.RunAsync<App>()` has returned, and the first frame
+// is pushed synchronously from inside it — so by now a frame has been applied and rask.wasm.js has set
+// this flag. Its absence means the app finished starting without ever painting, which is otherwise
+// indistinguishable from a hang.
+//
+// Asked of the render path rather than of the DOM. The obvious-looking test — "is the splash element
+// still in the document" — is wrong, because the morph patches the document in place and leaves it
+// connected, so it reports a boot failure for every successful boot.
+if (!globalThis.__raskPainted) {
     reportBootFailure(
         "The app finished starting but never rendered. Check that Program.cs awaits "
         + "host.RunAsync<App>() and that the app has a route for this URL.");

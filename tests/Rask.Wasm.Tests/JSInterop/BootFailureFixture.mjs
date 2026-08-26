@@ -70,11 +70,16 @@ console.error = (...args) => {
     consoleErrors.push(args.map(String).join(" "));
 };
 
-// What "the app mounted" means to main.js: the morph replaced the document, so the boot element it
-// captured at import time is no longer connected. The runMain stub below does exactly that and
-// nothing else, so the negative control exercises the real check rather than a proxy for it.
+// What "the app mounted" means: rask.wasm.js applied a frame and set __raskPainted. It does NOT mean the
+// splash element went away — the morph patches the existing document in place, so the element main.js
+// captured at import time is still connected afterwards.
+//
+// This fixture originally modelled mounting as `boot.isConnected = false`, which was an assumption about
+// the morph that nothing had checked. main.js was written against that assumption and reported a boot
+// failure for every successful boot; the browser gate caught it, the fixture did not, because the
+// fixture encoded the same belief as the code. So the element deliberately stays connected here.
 globalThis.__raskFixtureMounted = () => {
-    boot.isConnected = false;
+    globalThis.__raskPainted = true;
 };
 
 // --- stub ./_framework/dotnet.js -----------------------------------------------------------

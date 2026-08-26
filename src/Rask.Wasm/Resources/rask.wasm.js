@@ -531,6 +531,12 @@ function applyNavScroll(history) {
 
 function handle(reply) {
     if (!reply || typeof reply !== "object") return;
+    // The app has painted. Set HERE, by the code that actually does it, because it is the only place
+    // that knows: the morph patches the existing document in place rather than replacing it, so the
+    // splash element main.js captured at import time is still connected afterwards and DOM state cannot
+    // be read as "did we render". Inferring it from that element instead is what made every WASM journey
+    // report a boot failure over an app that had rendered perfectly well.
+    globalThis.__raskPainted = true;
     // A development fault the app survived, riding the render payload (see the Server runtime for why
     // it is a field rather than a frame). Applied before either render path: the panel is a sibling of
     // the app, so it must not wait on the render queue.
