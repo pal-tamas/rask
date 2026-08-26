@@ -260,6 +260,34 @@ them until tagged releases begin.
   case, where rendering a spinner would hide data the user already has. `IsLoading`, `IsFetching`,
   `IsSuccess` and the new `IsError` are derived from them.
 
+- **The front-end templates take `--pwa` and `--push`.** A TypeScript SPA is now installable and can
+  receive Web Push from its ASP.NET host: `rask new Shop --template react --push`. The manifest, the
+  icon and the service worker land in the client's own `public/`, which every bundler copies to the
+  bundle root — so they work under the dev server as well as in a build. A host-served worker would
+  404 during `rask dev`, where the browser talks to Vite and only `/_rask` is proxied, and a service
+  worker that 404s once is not retried.
+
+  **Installable and push-capable, not offline**, which is the same honest claim the Server template
+  makes. The worker handles `push` and `notificationclick` and nothing else: the bundler fingerprints
+  its assets and rewrites `index.html` every build, so a hand-rolled app-shell cache would serve a
+  stale shell pointing at hashed files that no longer exist. `vite-plugin-pwa` owns the build and can
+  say what it cached; this does not pretend to.
+
+  Both URLs written into `index.html` are **root-absolute**, which matters more in a SPA than in a
+  server-rendered app: one document is served at every route, so a relative manifest href 404s on any
+  deep link, and `register("rask-sw.js")` would take its scope from that path — controlling one
+  sub-tree and never seeing a push, with nothing reporting either failure.
+
+  `--push` also vendors `src/rask/push.ts`, typed against what the host binds. It exists as a file
+  rather than a snippet in the docs because of one line: `PushSubscription.toJSON()` nests the keys as
+  `{ endpoint, keys: { p256dh, auth } }` while the server binds a flat
+  `PushSubscription(Endpoint, P256dh, Auth)`. Posting the browser's shape **still answers 204** —
+  `endpoint` binds, both keys arrive null, and every later send fails to encrypt for a subscription
+  that looked like it registered.
+
+  `--auth` stays refused on these templates: a sign-in flow has to be written in the framework's own
+  idiom, and scaffolding half of one is worse than saying no.
+
 - **Tailwind CSS on every host, compiled by `dotnet build`** — `rask new --tailwind`, and a
   `Rask.Tailwind` build-only package you can add to any project. No `package.json`, no
   `node_modules`, no PostCSS and no npm: the build fetches Tailwind v4's standalone binary, verifies

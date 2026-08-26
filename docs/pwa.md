@@ -33,11 +33,14 @@ Start a new app with the **`--pwa`** option:
 rask new MyApp --template wasm --pwa          # standalone browser-WASM PWA (full offline)
 rask new MyApp --template wasm-hosted --pwa   # WASM PWA + ASP.NET host (full offline)
 rask new MyApp --pwa                          # installable + push-capable Server app (not offline)
+rask new MyApp --template react --pwa         # installable + push-capable TypeScript SPA (not offline)
 ```
 
 The WASM templates scaffold a manifest + icon and register Rask's default service worker from
 `index.html`. The Server template calls `AddRaskPwa(...)`, which serves the manifest + service worker
-and registers it for you, plus a static `offline.html`. To add PWA to an existing app, follow the steps
+and registers it for you, plus a static `offline.html`. A [front-end template](spa.md) puts all three
+in the client's own `public/` instead — the bundler copies them to the bundle root, so they work under
+its dev server as well as in a build, which a host-served worker would not. To add PWA to an existing app, follow the steps
 below — the [manifest](#installable--the-web-app-manifest) and, for WASM,
 [service-worker registration](#offline--the-service-worker); for Server, just
 [`AddRaskPwa`](#pwa-on-the-server-host).

@@ -346,8 +346,58 @@ scaffolded stylesheet **replaces** create-vite's starter CSS rather than sitting
 starter styles the placeholder page the template has already overlaid away, and leaving it in would
 fight Tailwind's own reset.
 
+## Installable, and push-capable
+
+`--pwa` makes the app installable; `--push` adds Web Push from the ASP.NET host.
+
+```bash
+rask new Shop --template react --push     # --push implies --pwa
+```
+
+Three files land in the client's `public/`, which every bundler copies to the bundle root verbatim:
+`manifest.webmanifest`, `icon.svg`, and `rask-sw.js` — the service worker. `index.html` is patched
+with the manifest link and the registration. All of it is the **client's**, so it works under the dev
+server too; a host-served worker would 404 during `rask dev`, where the browser talks to Vite and only
+`/_rask` is proxied — and a service worker that 404s once is not retried.
+
+**Installable and push-capable, not offline.** The worker handles `push` and `notificationclick` and
+nothing else. There is deliberately no app-shell cache: the bundler fingerprints every asset and
+rewrites `index.html` each build, so a hand-rolled cache would serve a stale shell pointing at hashed
+files that no longer exist — an app that breaks on deploy and heals only after an unregister. Reach
+for `vite-plugin-pwa` when you want the offline half; it owns the build and can say what it cached.
+
+Both URLs the patch writes are **root-absolute**, which matters more here than in a server-rendered
+app. A SPA serves one document at every route, so a relative `manifest.webmanifest` would resolve
+against the current path — 404 on any deep link — and `register("rask-sw.js")` would take its scope
+from that path, controlling one sub-tree and never seeing a push.
+
+### The subscription
+
+`--push` also vendors `src/rask/push.ts`, the one browser API worth generating: the endpoints and the
+payload belong to your host, not to the platform.
+
+```ts
+import { subscribeToPush, unsubscribeFromPush } from './rask/push'
+
+await subscribeToPush()      // null if unsupported, unconfigured, or denied
+```
+
+It calls three endpoints the host maps: `GET /_push/key` for the **public** VAPID key, and
+`POST /_push/{subscribe,unsubscribe}`. The private key signs and never leaves the server.
+
+The reason it is a vendored file rather than a snippet in this page is one line of it.
+`PushSubscription.toJSON()` nests the keys — `{ endpoint, keys: { p256dh, auth } }` — while the host
+binds a flat `PushSubscription(Endpoint, P256dh, Auth)`. Post the browser's shape as-is and the
+request **still answers 204**: `endpoint` binds, both keys arrive null, and every later send fails to
+encrypt for a subscription that looked like it registered. `push.ts` flattens it.
+
+Generate a key pair with `VapidKeys.Generate()` and put it in user-secrets; until you do, `/_push/key`
+answers with an empty key and `subscribeToPush()` returns `null` rather than throwing. See
+[Web Push](pwa.md).
+
 ## See also
 
 - [`docs/tailwind.md`](tailwind.md) — Tailwind on a C# host, with no npm at all.
+- [`docs/pwa.md`](pwa.md) — manifests, service workers and Web Push across every host.
 - [`docs/cqrs.md`](cqrs.md) — the mediator, the wire protocol, and authorization.
 - [`docs/cli.md`](cli.md) — `rask new`, `rask dev`, `rask deploy`.

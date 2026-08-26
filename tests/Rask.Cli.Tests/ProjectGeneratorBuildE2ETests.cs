@@ -269,21 +269,26 @@ public sealed class ProjectGeneratorBuildE2ETests
     ///     </para>
     /// </remarks>
     [SkippableTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Generated_react_solution_builds(bool data)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    // --push reaches the .Server half: the Rask.WebPush reference, the VAPID block, a re-namespaced
+    // PushSubscriptions.cs and app.MapPushSubscriptions(). All four are C#, and a namespace rewritten
+    // into the wrong project is a compile error nothing else in the suite would see.
+    [InlineData(false, true)]
+    public async Task Generated_react_solution_builds(bool data, bool push)
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
-        var name = data ? "RE2EData" : "RE2ENone";
+        var name = push ? "RE2EPush" : data ? "RE2EData" : "RE2ENone";
         var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
         var projectDir = Path.Combine(temp, name);
         try
         {
             var result = ProjectGenerator.GenerateSpa(
-                projectDir, name, SpaFramework.React, new ServerBatteries { Data = data }, version);
+                projectDir, name, SpaFramework.React,
+                new ServerBatteries { Data = data, Push = push }.Normalized(), version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
