@@ -39,6 +39,11 @@
   <ItemGroup>
     <CompilerVisibleProperty Include="RaskScopedJsAutoInclude"/>
     <CompilerVisibleProperty Include="RaskBuilderEntryInjection"/>
+    <!-- The language a catalog's keys are DEFINED in, and whose text is used when a translation is
+         missing. Falls back to $(NeutralLanguage) and then to "en". -->
+    <CompilerVisibleProperty Include="RaskNeutralLanguage"/>
+    <!-- The generated catalog class lands in the app's own namespace. -->
+    <CompilerVisibleProperty Include="RootNamespace"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
@@ -55,6 +60,28 @@
     rask.wasm.js, main.js, rask-morph.js, rask-scoped.js) don't get vacuumed up by
     consumers' builds. Opt out entirely with <RaskScopedJsAutoInclude>false</…>.
   -->
+  <!--
+    Translation catalogs: Resources/{Family}.{culture}.json, handed to TranslationCatalogGenerator as
+    <AdditionalFiles> so it can emit compile-checked members for their keys.
+
+    Scoped to Resources/ rather than the whole project, because a JSON file anywhere else is an app's
+    own data and has nothing to do with translation. Every catalog carries a culture tag in its name —
+    including the neutral language's — which is what keeps a sibling Resources/seed-data.json out of
+    the generator without needing a diagnostic to explain why it was ignored.
+
+    Opt out with <RaskTranslationsAutoInclude>false</RaskTranslationsAutoInclude> and add the files by
+    hand, exactly as the scoped-CSS/JS globs allow.
+  -->
+  <PropertyGroup>
+    <RaskNeutralLanguage Condition=" '$(RaskNeutralLanguage)' == '' ">$(NeutralLanguage)</RaskNeutralLanguage>
+    <RaskNeutralLanguage Condition=" '$(RaskNeutralLanguage)' == '' ">en</RaskNeutralLanguage>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(RaskTranslationsAutoInclude)' != 'false' ">
+    <AdditionalFiles Include="Resources\**\*.json"
+                     Exclude="@(AdditionalFiles);bin\**;obj\**;node_modules\**;wwwroot\**"/>
+  </ItemGroup>
+
   <ItemGroup Condition=" '$(RaskScopedJsAutoInclude)' != 'false' ">
     <AdditionalFiles Include="**\*.js"
                      Exclude="@(AdditionalFiles);bin\**;obj\**;node_modules\**;wwwroot\**;Resources\**;Browser\**"/>

@@ -22,6 +22,22 @@ internal static class GeneratorDriverFixture
     public static GeneratorRun Run(
         (string Path, string Source)[] sources,
         IIncrementalGenerator generator,
+        (string Path, string Contents)[]? additionalTexts = null) =>
+        Run(sources, [generator], additionalTexts);
+
+    /// <summary>
+    ///     Runs SEVERAL generators over one compilation, so their outputs are compiled together.
+    /// </summary>
+    /// <remarks>
+    ///     Needed whenever the question is whether generated code BINDS rather than whether it was
+    ///     emitted. Asserting on the generated text alone is a false negative in this repo: inside a
+    ///     markup host the factory generator injects builder entries as members of the host type, and
+    ///     ordinary member lookup beats the namespace-level names another generator produced. Only a
+    ///     combined compilation can show which one a call site actually resolves to.
+    /// </remarks>
+    public static GeneratorRun Run(
+        (string Path, string Source)[] sources,
+        IIncrementalGenerator[] generators,
         (string Path, string Contents)[]? additionalTexts = null)
     {
         var trees = sources
@@ -39,7 +55,7 @@ internal static class GeneratorDriverFixture
                 nullableContextOptions: NullableContextOptions.Enable));
 
         var driver = CSharpGeneratorDriver
-            .Create(generator)
+            .Create(generators)
             .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest));
 
         if (additionalTexts is { Length: > 0 })
