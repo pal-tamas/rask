@@ -21,17 +21,43 @@ namespace Rask.Query;
 /// </remarks>
 /// <example>
 ///     <code>
-///     [Invalidates(typeof(GetOrders), typeof(GetOrderCount))]
+///     [Invalidates(typeof(GetOrders), typeof(GetOrderCount))]   // two messages
+///     [Invalidates("orders")]                                    // everything under that prefix
 ///     public sealed record ShipOrder(Guid Id) : ICommand;
 ///     </code>
 /// </example>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
 public sealed class InvalidatesAttribute : Attribute
 {
     /// <summary>Names the query message types this command makes out of date.</summary>
+    /// <remarks>
+    ///     Several types are several prefixes — each one invalidates every entry for that message,
+    ///     whatever its arguments.
+    /// </remarks>
     /// <param name="queryTypes">The query message types to refetch after this command succeeds.</param>
-    public InvalidatesAttribute(params Type[] queryTypes) => QueryTypes = queryTypes;
+    public InvalidatesAttribute(params Type[] queryTypes)
+    {
+        QueryTypes = queryTypes;
+        KeyPrefix = [];
+    }
+
+    /// <summary>Names a key prefix this command makes out of date.</summary>
+    /// <remarks>
+    ///     Several strings are ONE prefix of several parts, not several prefixes — the asymmetry with the
+    ///     type form is deliberate, because each reads the way its own thing is written:
+    ///     <c>[Invalidates(typeof(A), typeof(B))]</c> names two messages, <c>[Invalidates("orders",
+    ///     "summary")]</c> names one path. Repeat the attribute for more than one.
+    /// </remarks>
+    /// <param name="keyPrefix">The parts of the key prefix to invalidate.</param>
+    public InvalidatesAttribute(params string[] keyPrefix)
+    {
+        QueryTypes = [];
+        KeyPrefix = keyPrefix;
+    }
 
     /// <summary>The query message types this command makes out of date.</summary>
     public IReadOnlyList<Type> QueryTypes { get; }
+
+    /// <summary>The parts of the key prefix this command makes out of date, if any.</summary>
+    public IReadOnlyList<string> KeyPrefix { get; }
 }

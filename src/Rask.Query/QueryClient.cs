@@ -23,9 +23,15 @@ internal sealed class QueryClient : IQueryClient
         ArgumentNullException.ThrowIfNull(message);
         return new Query<TResult>(
             this,
-            new QueryKey(message.GetType(), message, null),
+            MessageKey.For(message),
             options ?? QueryOptions.Default,
             DispatchFetch(message));
+    }
+
+    public Query<TResult> Query<TResult>(IQuery<TResult> message, QueryKey key, QueryOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        return new Query<TResult>(this, key, options ?? QueryOptions.Default, DispatchFetch(message));
     }
 
     public Query<TResult> Query<TResult>(
@@ -34,10 +40,18 @@ internal sealed class QueryClient : IQueryClient
         QueryOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
+        return Query(QueryKey.Of(key), fetch, options);
+    }
+
+    public Query<TResult> Query<TResult>(
+        QueryKey key,
+        Func<CancellationToken, Task<TResult>> fetch,
+        QueryOptions? options = null)
+    {
         ArgumentNullException.ThrowIfNull(fetch);
         return new Query<TResult>(
             this,
-            new QueryKey(typeof(TResult), null, key),
+            key,
             options ?? QueryOptions.Default,
             async ct => await fetch(ct).ConfigureAwait(false));
     }
@@ -50,7 +64,7 @@ internal sealed class QueryClient : IQueryClient
         ArgumentNullException.ThrowIfNull(message);
 
         var settings = options ?? QueryOptions.Default;
-        var key = new QueryKey(message.GetType(), message, null);
+        var key = MessageKey.For(message);
         var entry = GetOrAdd(key);
         entry.RequireGcTime(settings.GcTime);
 
@@ -116,13 +130,26 @@ internal sealed class QueryClient : IQueryClient
     public void Invalidate(Type queryType)
     {
         ArgumentNullException.ThrowIfNull(queryType);
-        InvalidateWhere(key => key.Group == queryType);
+        Invalidate(MessageKey.ForType(queryType));
     }
 
     public void Invalidate(string key)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
-        InvalidateWhere(candidate => candidate.Name == key);
+        Invalidate(QueryKey.Of(key));
+    }
+
+    public void Invalidate(QueryKey key, bool exact = false)
+    {
+        // Prefix by default, exact on request — TanStack's rule, and the reason a key is ordered at all:
+        // invalidating ["orders"] should reach every list and every detail beneath it.
+        InvalidateWhere(candidate => exact ? candidate == key : candidate.Matches(key));
+    }
+
+    public void Invalidate(Func<QueryKey, bool> predicate)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        InvalidateWhere(predicate);
     }
 
     public void InvalidateAll() => InvalidateWhere(_ => true);
@@ -130,8 +157,11 @@ internal sealed class QueryClient : IQueryClient
     public void SetData<TResult>(IQuery<TResult> message, TResult data)
     {
         ArgumentNullException.ThrowIfNull(message);
-        GetOrAdd(new QueryKey(message.GetType(), message, null)).Succeeded(data, _time.GetUtcNow());
+        SetData(MessageKey.For(message), data);
     }
+
+    public void SetData<TResult>(QueryKey key, TResult data) =>
+        GetOrAdd(key).Succeeded(data, _time.GetUtcNow());
 
     /// <summary>Dispatches a void command, for a Mutation that owns the surrounding state.</summary>
     internal Task DispatchCommandAsync(ICommand command, CancellationToken cancellationToken) =>
@@ -152,7 +182,7 @@ internal sealed class QueryClient : IQueryClient
     {
         lock (_gate)
         {
-            if (_entries.TryGetValue(new QueryKey(message.GetType(), message, null), out var entry)
+            if (_entries.TryGetValue(MessageKey.For(message), out var entry)
                 && entry.HasData)
             {
                 data = (TResult?)entry.Data;
@@ -375,14 +405,20 @@ internal sealed class QueryClient : IQueryClient
     /// </remarks>
     internal void InvalidateDeclared(object command)
     {
-        if (command.GetType().GetCustomAttribute<InvalidatesAttribute>() is not { } declaration)
+        // GetCustomAttributes, plural: the attribute allows multiples so a command can name both the
+        // message types it affects and a key prefix, and reading only the first would silently honour one
+        // of them.
+        foreach (var declaration in command.GetType().GetCustomAttributes<InvalidatesAttribute>())
         {
-            return;
-        }
+            foreach (var queryType in declaration.QueryTypes)
+            {
+                Invalidate(queryType);
+            }
 
-        foreach (var queryType in declaration.QueryTypes)
-        {
-            Invalidate(queryType);
+            if (declaration.KeyPrefix.Count > 0)
+            {
+                Invalidate(QueryKey.Of([.. declaration.KeyPrefix]));
+            }
         }
     }
 }

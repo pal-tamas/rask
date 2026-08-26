@@ -32,6 +32,31 @@ them until tagged releases begin.
 
 
 ### Added
+- **`Rask.Query` keys are TanStack-shaped: ordered, and matched by prefix.** A key was a flat
+  `(Type, message, name)` struct compared for equality, so invalidation was all-or-one — every
+  `GetOrders`, one named string, or everything, and nothing in between. `QueryKey` is now public and
+  ordered, and `Invalidate` matches a **prefix**, so `QueryKey.Of("orders")` refreshes every list and
+  every detail written beneath it, across message types.
+
+  **You still rarely write one.** A message keys itself as `[typeof(GetOrders), message]` — records
+  give structural equality for free, so the same query in two components is one entry with nothing to
+  keep in sync. The `Type` comes first deliberately: it survives a rename, cannot collide across
+  namespaces, and can never be mistaken for a hand-written string part, so derived and hand-written
+  keys share one cache safely. `Invalidate<GetOrders>()` is now a prefix match rather than a special
+  case, and still refreshes page one and page seven alike.
+
+  **Order matters across parts and not inside them**, which is TanStack's rule exactly:
+  `["orders", "list"]` is not `["list", "orders"]`, but `QueryKey.Fields` sorts on construction, so
+  two components writing the same filter in a different order share one entry. A `Fields` part in a
+  filter is matched as a **subset**, so `Fields(("status", "done"))` reaches every page of the done
+  ones. Built from named pairs rather than reflected off an anonymous type, because reflection there
+  would warn under the trimmer on a WASM publish.
+
+  `Invalidate(predicate)` covers what a prefix cannot say, `Query<T>.Key` is public so a component can
+  invalidate its own entry, and `[Invalidates]` now takes a string key prefix as well as message types
+  — several types are several prefixes, several strings are one path, and the attribute allows
+  multiples so a command can declare both.
+
 - **`Rask.Query` keeps the previous page on screen while the next loads.**
   `QueryOptions.KeepPreviousData` holds the current result across a re-key, and
   `Query<T>.IsPlaceholderData` says so, so a component can grey the rows instead of pretending they

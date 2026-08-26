@@ -12,6 +12,15 @@ public sealed record ShipOrder(int Id) : ICommand;
 
 public sealed record UnrelatedCommand(int Id) : ICommand;
 
+/// <summary>Declares a key PREFIX rather than a message type.</summary>
+[Invalidates("orders")]
+public sealed record ArchiveEverything(int Id) : ICommand;
+
+/// <summary>Declares both, which the attribute allows because it is AllowMultiple.</summary>
+[Invalidates(typeof(GetProfile))]
+[Invalidates("orders")]
+public sealed record SweepingChange(int Id) : ICommand;
+
 /// <summary>
 ///     A dispatcher that counts what it was asked to do and can be made to fail or to block, so a test
 ///     can observe deduplication and staleness rather than infer them from timing.

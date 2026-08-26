@@ -32,6 +32,22 @@ public interface IQueryClient
     Query<TResult> Query<TResult>(IQuery<TResult> message, QueryOptions? options = null);
 
     /// <summary>
+    ///     The same, under a key you choose — for putting a query into a hierarchy that spans message
+    ///     types, so one <see cref="Invalidate(QueryKey, bool)" /> can reach all of them.
+    /// </summary>
+    /// <example>
+    ///     <code>
+    ///     client.Query(new GetOrders(page), QueryKey.Of("orders", "list", QueryKey.Fields(("page", page))));
+    ///     client.Invalidate(QueryKey.Of("orders"));   // lists and details alike
+    ///     </code>
+    /// </example>
+    /// <typeparam name="TResult">What the query returns.</typeparam>
+    /// <param name="message">The query to run and cache.</param>
+    /// <param name="key">The key to cache it under, instead of the one the message derives.</param>
+    /// <param name="options">Freshness and lifetime; TanStack's defaults when omitted.</param>
+    Query<TResult> Query<TResult>(IQuery<TResult> message, QueryKey key, QueryOptions? options = null);
+
+    /// <summary>
     ///     The same, for data that does not arrive through CQRS — a third-party HTTP call, a file read.
     /// </summary>
     /// <remarks>
@@ -45,6 +61,16 @@ public interface IQueryClient
     /// <param name="options">Freshness and lifetime; TanStack's defaults when omitted.</param>
     Query<TResult> Query<TResult>(
         string key,
+        Func<CancellationToken, Task<TResult>> fetch,
+        QueryOptions? options = null);
+
+    /// <summary>The same, under a multi-part key, so it can share a prefix with everything related to it.</summary>
+    /// <typeparam name="TResult">What the function returns.</typeparam>
+    /// <param name="key">The key to cache it under.</param>
+    /// <param name="fetch">Runs when the entry is missing or stale.</param>
+    /// <param name="options">Freshness and lifetime; TanStack's defaults when omitted.</param>
+    Query<TResult> Query<TResult>(
+        QueryKey key,
         Func<CancellationToken, Task<TResult>> fetch,
         QueryOptions? options = null);
 
@@ -126,9 +152,30 @@ public interface IQueryClient
     /// <param name="queryType">The query message type to invalidate.</param>
     void Invalidate(Type queryType);
 
-    /// <summary>Marks the named function-form entry stale.</summary>
-    /// <param name="key">The key given when the query was created.</param>
+    /// <summary>Marks the named function-form entry, and anything beneath it, stale.</summary>
+    /// <param name="key">The first part of the key given when the query was created.</param>
     void Invalidate(string key);
+
+    /// <summary>
+    ///     Marks every entry whose key <em>starts with</em> <paramref name="key" /> stale.
+    /// </summary>
+    /// <remarks>
+    ///     Prefix matching is the point of an ordered key: <c>QueryKey.Of("orders")</c> reaches every list
+    ///     and every detail beneath it, which a flat key cannot express. A
+    ///     <see cref="QueryKey.Fields" /> part inside the filter is matched as a <em>subset</em>, so
+    ///     <c>Fields(("status", "done"))</c> reaches every page of the done ones.
+    /// </remarks>
+    /// <param name="key">The prefix to match.</param>
+    /// <param name="exact">Match the whole key instead, so only that one entry is affected.</param>
+    void Invalidate(QueryKey key, bool exact = false);
+
+    /// <summary>Marks every entry whose key satisfies <paramref name="predicate" /> stale.</summary>
+    /// <remarks>
+    ///     The escape hatch for what a prefix cannot say. Prefer a key that expresses the relationship —
+    ///     a predicate is invisible to anyone reading the query's own declaration.
+    /// </remarks>
+    /// <param name="predicate">Decides, per cached key, whether that entry is now out of date.</param>
+    void Invalidate(Func<QueryKey, bool> predicate);
 
     /// <summary>Marks every entry in this session's cache stale.</summary>
     void InvalidateAll();
@@ -141,4 +188,10 @@ public interface IQueryClient
     /// <param name="message">The query whose entry to write.</param>
     /// <param name="data">The result to store.</param>
     void SetData<TResult>(IQuery<TResult> message, TResult data);
+
+    /// <summary>Writes a result into the entry under <paramref name="key" /> without fetching.</summary>
+    /// <typeparam name="TResult">What the query returns.</typeparam>
+    /// <param name="key">The entry to write.</param>
+    /// <param name="data">The result to store.</param>
+    void SetData<TResult>(QueryKey key, TResult data);
 }

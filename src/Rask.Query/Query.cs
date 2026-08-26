@@ -217,7 +217,7 @@ public sealed class Query<TResult> : IDisposable
         ArgumentNullException.ThrowIfNull(message);
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var key = new QueryKey(message.GetType(), message, null);
+        var key = MessageKey.For(message);
         if (key == _key)
         {
             return;
@@ -318,5 +318,10 @@ public sealed class Query<TResult> : IDisposable
 
     internal QueryEntry Entry => _entry;
 
-    internal QueryKey Key => _key;
+    /// <summary>The key this query is currently watching.</summary>
+    /// <remarks>
+    ///     Public so a component can invalidate its own entry without restating how the key is built —
+    ///     <c>client.Invalidate(query.Key, exact: true)</c>.
+    /// </remarks>
+    public QueryKey Key => _key;
 }
