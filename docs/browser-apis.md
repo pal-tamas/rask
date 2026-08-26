@@ -17,24 +17,21 @@ plus `IWakeLock` and `IWebPush`, which get their own pages under **PWA** because
 Server transport can't give them. (The six activation-gated ones appear in both: as gesture components
 under Browser APIs, and as injectable services under PWA.)
 
-## Three homes, one rule
+## Two homes, one rule
 
 - **`Rask.Core.Browser`** — APIs that work on **every host** (Server + WASM). Registered by both.
-- **`Rask.Client.Browser`** — APIs the **in-process** WASM host can run but Server can't: they need
-  *transient* user activation, preserved only when the interop call runs inside the click's own call
-  stack, which the Server's WebSocket round-trip loses.
-- **`Rask.Wasm.Browser`** — browser-only APIs (the installed-PWA instance / live document / browser-only
-  device APIs). Registered only by the WASM host.
+- **`Rask.Wasm.Browser`** — APIs only the WASM host can run: they need the installed-PWA instance, a live
+  document, a device chooser, or *transient* user activation — preserved only when the interop call runs
+  inside the click's own call stack, which the Server's WebSocket round-trip loses.
 
-> **The rule:** shared-everywhere APIs live in `Rask.Core.Browser`; in-process ones in
-> `Rask.Client.Browser`; browser-only ones in `Rask.Wasm.Browser`. A host simply doesn't register a
-> service it can't provide.
+> **The rule:** shared-everywhere APIs live in `Rask.Core.Browser`, WASM-only ones in
+> `Rask.Wasm.Browser`. A host simply doesn't register a service it can't provide.
 
 Sharing shows the split cleanly. The **declarative, headless** `Shareable` (Rask.Core) hands *your* markup
 a `data-rask-share` attribute and the shared client fires `navigator.share` *inside the click gesture* — no
 round-trip, so activation survives — so it works on **every** host, Server included. The **imperative**
-`IShare` (Rask.Client) lets you share from code (a lifecycle hook, after an `await`), which only the
-in-process WASM host can do, so it lives one tier down.
+`IShare` (Rask.Wasm.Browser) lets you share from code (a lifecycle hook, after an `await`), which only the
+WASM host can do, so it lives in the WASM-only home.
 
 Inject through the **constructor** (not a settable property — that would become a required chain
 parameter) and call from an **event handler or lifecycle hook**, never from `Render()`:

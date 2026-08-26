@@ -6,8 +6,8 @@ namespace Rask.Core.Browser;
 
 /// <summary>
 ///     Central registration for the typed browser/device API wrappers. Each host calls the tier helper for
-///     the wrappers it can serve (Server → <see cref="AddCoreBrowserApis" />; WASM → all three tiers),
-///     instead of hand-maintaining the interface → impl list in several places.
+///     the wrappers it can serve (Server → <see cref="AddCoreBrowserApis" />; WASM → both tiers), instead
+///     of hand-maintaining the interface → impl list in several places.
 /// </summary>
 /// <remarks>
 ///     Every wrapper is registered with <see cref="ServiceCollectionDescriptorExtensions.TryAdd(IServiceCollection,ServiceDescriptor)" />,

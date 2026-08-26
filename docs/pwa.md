@@ -367,7 +367,7 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**. The Serv
 > the service-worker registration and needs a client-side runtime to wake into, which a WebSocket-rendered
 > app does not have. The honest framing: *installable + push + native-feel, not an offline app.* (Sharing
 > still works on Server via the headless `Shareable` in `Rask.Core`, which fires `navigator.share` in the
-> click gesture; the imperative `IShare` lives in `Rask.Client`, WASM only.)
+> click gesture; the imperative `IShare` lives in `Rask.Wasm.Browser`, WASM only.)
 
 ---
 
@@ -376,9 +376,8 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**. The Serv
 Typed wrappers for the browser APIs that make a web app feel native. Everything in `Rask.Core.Browser`
 works on **both transports** (and is registered on Server too) — including the PWA APIs `IWebPush`,
 `INotifications`, `IBadge`, `IWakeLock`, and the headless declarative `Shareable` *(all hosts)*. The
-imperative `*(WASM)*` ones (`IShare`) live in `Rask.Client.Browser` and run on the in-process WASM host;
-the other `*(WASM)*` ones live in `Rask.Wasm.Browser`. Both need a live user gesture or the installed-app
-instance the Server round-trip can't carry, so neither is registered on Server.
+`*(WASM)*` ones — `IShare` and the device/handle set — live in `Rask.Wasm.Browser`. They need a live user
+gesture or the installed-app instance the Server round-trip can't carry, so none is registered on Server.
 
 | Capability | Service | Use |
 | --- | --- | --- |

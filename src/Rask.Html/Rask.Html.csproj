@@ -19,7 +19,7 @@
     MEMBER of the markup host, not a name imported from a namespace, so `Div.Class("x")` resolves with no
     per-file using wherever the component lives.
 
-    Like Rask.Core and Rask.Client this is IsPackable=false: the DLL is bundled into the Rask.Server /
+    Like Rask.Core this is IsPackable=false: the DLL is bundled into the Rask.Server /
     Rask.Wasm package lib/ folders rather than published on its own. Both hosts render HTML, so both
     carry it.
   -->

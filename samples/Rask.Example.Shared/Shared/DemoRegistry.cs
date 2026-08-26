@@ -127,7 +127,7 @@ public static partial class DemoRegistry
                 + "data-rask-share attribute to spread onto it. The shared client fires navigator.share inside "
                 + "the click gesture, so the transient user activation survives even on the Server transport "
                 + "(an imperative round-trip would lose it), and it works on every host. For a code-driven "
-                + "share on the in-process host, inject IShare from Rask.Client.Browser.")
+                + "share on the WASM host, inject IShare from Rask.Wasm.Browser.")
                 .Result(ShareDemo),
             ["browser-gesture-bridge"] = () => CodeSample
                 .Files(["GestureBridgeDemo.cs"])

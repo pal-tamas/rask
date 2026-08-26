@@ -10,7 +10,7 @@ namespace Rask.Core.Browser;
 /// <remarks>
 ///     The shared payload for both ways to share: the all-host headless <c>Shareable</c> component (which
 ///     fires <c>navigator.share</c> client-side inside the click gesture, so it works on every host including
-///     Server) and the in-process imperative <c>IShare</c> in <c>Rask.Client.Browser</c> (call it from any
+///     Server) and the imperative <c>IShare</c> in <c>Rask.Wasm.Browser</c> (call it from any
 ///     handler on the WASM host). Lives in <c>Rask.Core.Browser</c> because both paths — and every host —
 ///     use it.
 /// </remarks>
