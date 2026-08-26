@@ -18,10 +18,11 @@
     <RunAOTCompilation Condition=" '$(RaskWasmAot)' != 'true' and '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
-    <!-- Gated off the fast no-native build (-p:WasmBuildNative=false): the SDK forces a native
-         relink when InvariantGlobalization=true, so the two conflict, and it's irrelevant when
-         no WASM runtime is produced. -->
-    <InvariantGlobalization Condition=" '$(WasmBuildNative)' != 'false' ">true</InvariantGlobalization>
+    <!-- ICU is dropped: this app formats nothing culture-sensitive, so the ~2.6 MB of icudt*.dat is
+         pure payload. Owned by Rask.Wasm.targets now rather than set here — RaskGlobalization is the
+         one property, and it also handles PredefinedCulturesOnly, which defaults to true under
+         invariant globalization and makes CultureInfo.GetCultureInfo("hu-HU") throw rather than fall
+         back. Set <RaskGlobalization>true</RaskGlobalization> to ship ICU. -->
     <NoWarn>$(NoWarn);IL2104</NoWarn>
   </PropertyGroup>
 

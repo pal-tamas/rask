@@ -3658,6 +3658,40 @@ export function getLocation() {
     return stripBase(location.pathname) + location.search;
 }
 
+// The visitor's language signals, read in one synchronous call so the culture is settled before the
+// first render rather than corrected in a second frame.
+//
+// No regex literals in here on purpose: this file is spliced and minified by RaskMinifyJs, whose
+// tokenizer does not reliably distinguish a regex literal from division. Plain string work is not
+// worth a mis-parse that would only show up in a published bundle.
+export function getCultureSignals() {
+    let cookie = null;
+    try {
+        const parts = document.cookie ? document.cookie.split("; ") : [];
+        const prefix = ".AspNetCore.Culture=";
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i].indexOf(prefix) === 0) {
+                cookie = decodeURIComponent(parts[i].slice(prefix.length));
+                break;
+            }
+        }
+    } catch (e) {
+        // A document with cookies disabled throws on access rather than answering empty.
+    }
+    let query = null;
+    try {
+        query = new URLSearchParams(location.search).get("culture");
+    } catch (e) {
+    }
+    return JSON.stringify({
+        query: query,
+        cookie: cookie,
+        languages: (navigator.languages && navigator.languages.length)
+            ? Array.prototype.slice.call(navigator.languages)
+            : (navigator.language ? [navigator.language] : []),
+    });
+}
+
 export function getBaseAddress() {
     // The app root (origin + base path), NOT document.baseURI. document.baseURI reflects the
     // *current* SPA route once the app has navigated (the <base> element is not in the live DOM
