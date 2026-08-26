@@ -175,12 +175,14 @@ public sealed class SpaTemplateTests
     {
         Assert.True(TemplateCatalog.TryGet("react", out var template));
 
-        // --auth and --pwa both need work on the CLIENT — a login flow in React, a service worker through
-        // vite-plugin-pwa — that this template does not write. Accepting them and scaffolding half of one
-        // is worse than saying no.
+        // --auth still needs work on the CLIENT this template does not write — a sign-in flow in the
+        // framework's own idiom — and accepting it to scaffold half of one is worse than saying no.
         Assert.DoesNotContain("auth", template.SupportedFlags);
-        Assert.DoesNotContain("pwa", template.SupportedFlags);
-        Assert.DoesNotContain("push", template.SupportedFlags);
+
+        // --pwa and --push are honoured: the manifest, the service worker and the subscription call are
+        // the client's own files, and none of them needs a login.
+        Assert.Contains("pwa", template.SupportedFlags);
+        Assert.Contains("push", template.SupportedFlags);
         Assert.Contains("data", template.SupportedFlags);
         Assert.Contains("docker", template.SupportedFlags);
     }
@@ -514,6 +516,174 @@ public sealed class SpaTemplateTests
             Assert.DoesNotContain("tailwind", PackageJson(result), StringComparison.OrdinalIgnoreCase);
             Assert.False(Has(result, "/Shop.Client/.postcssrc.json"));
         }
+    }
+
+    // What create-vite's react-ts template actually writes, indentation and all. The patch is applied to
+    // somebody else's file, so the fixture has to be their file rather than a tidy stand-in.
+    private const string ViteIndexHtml =
+        """
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>shop-client</title>
+          </head>
+          <body>
+            <div id="root"></div>
+            <script type="module" src="/src/main.tsx"></script>
+          </body>
+        </html>
+        """;
+
+    /// <summary>
+    ///     Both URLs the patch writes are root-absolute, and that is the whole point of them.
+    /// </summary>
+    /// <remarks>
+    ///     A SPA serves one index.html at every route. Relative URLs would resolve against the current
+    ///     path, so the manifest 404s on any deep link and the service worker takes its scope from
+    ///     <c>/orders/</c> instead of <c>/</c> — registering fine, controlling one sub-tree, and never
+    ///     seeing a push. Nothing reports either failure.
+    /// </remarks>
+    [Fact]
+    public void The_manifest_and_service_worker_are_referenced_from_the_origin_root()
+    {
+        var patched = ProjectGenerator.LinkManifestAndServiceWorker(ViteIndexHtml);
+
+        Assert.Contains("""<link href="/manifest.webmanifest" rel="manifest"/>""", patched, StringComparison.Ordinal);
+        Assert.Contains("""register("/rask-sw.js")""", patched, StringComparison.Ordinal);
+
+        // The negative half: no bare relative form survived anywhere in the document.
+        Assert.DoesNotContain("href=\"manifest.webmanifest", patched, StringComparison.Ordinal);
+        Assert.DoesNotContain("""register("rask-sw.js")""", patched, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_patch_lands_inside_the_head_aligned_with_its_siblings()
+    {
+        var patched = ProjectGenerator.LinkManifestAndServiceWorker(ViteIndexHtml);
+
+        // A manifest link outside <head> is ignored by every browser, silently.
+        var link = patched.IndexOf("rel=\"manifest\"", StringComparison.Ordinal);
+        var headEnd = patched.IndexOf("</head>", StringComparison.Ordinal);
+        Assert.InRange(link, 0, headEnd);
+
+        // Aligned with the <title> above it (4 spaces), not with the </head> below it (2).
+        Assert.Contains("\n    <link href=\"/manifest.webmanifest\"", patched, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Patching_a_document_twice_changes_nothing_the_second_time()
+    {
+        var once = ProjectGenerator.LinkManifestAndServiceWorker(ViteIndexHtml);
+
+        Assert.Equal(once, ProjectGenerator.LinkManifestAndServiceWorker(once), StringComparer.Ordinal);
+    }
+
+    /// <summary>A document this does not understand is left exactly as it was found.</summary>
+    /// <remarks>
+    ///     The head-less case is not hypothetical: it is what a scaffolder's template looks like the day it
+    ///     changes shape. Appending blindly would move the failure from "no PWA" to "broken document".
+    ///     The empty and newline-only cases are the ones that threw while this was being written — the
+    ///     backward scan started ON the newline it was looking for and took an empty slice.
+    /// </remarks>
+    [Theory]
+    [InlineData("<html><body>nothing to patch</body></html>")]
+    [InlineData("")]
+    [InlineData("\n")]
+    public void A_document_with_no_head_to_patch_is_returned_unchanged(string html)
+    {
+        Assert.Equal(html, ProjectGenerator.LinkManifestAndServiceWorker(html), StringComparer.Ordinal);
+    }
+
+    /// <summary>A document whose head closes with nothing above it still patches rather than throwing.</summary>
+    /// <remarks>
+    ///     These are the inputs that threw while this was being written: the backward search for a sibling
+    ///     to copy the indentation from started ON the newline that ended the line it was looking for, took
+    ///     an empty slice, and asked for a negative length. It surfaced as an unhandled exception out of
+    ///     `rask new`, after the project had already been written to disk.
+    /// </remarks>
+    [Theory]
+    [InlineData("</head>")]
+    [InlineData("\n</head>")]
+    [InlineData("<head>\n\n</head>")]
+    [InlineData("<head>\r\n  <title>x</title>\r\n</head>")]
+    public void A_head_with_nothing_to_align_against_is_patched_without_throwing(string html)
+    {
+        var patched = ProjectGenerator.LinkManifestAndServiceWorker(html);
+
+        Assert.Contains("rel=\"manifest\"", patched, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pwa_writes_the_manifest_the_icon_and_the_service_worker_into_the_bundle_root()
+    {
+        foreach (var framework in SpaFramework.All)
+        {
+            var result = ProjectGenerator.GenerateSpa(
+                Root, "Shop", framework, new ServerBatteries { Pwa = true }, "1.2.3");
+
+            // public/ because every bundler copies it verbatim to the bundle root — so these are reachable
+            // at / in a build AND under the dev server, where only /_rask is proxied to the host.
+            Assert.True(Has(result, "/Shop.Client/public/manifest.webmanifest"));
+            Assert.True(Has(result, "/Shop.Client/public/icon.svg"));
+            Assert.True(Has(result, "/Shop.Client/public/rask-sw.js"));
+
+            var worker = Content(result, "/Shop.Client/public/rask-sw.js");
+            Assert.Contains("addEventListener(\"push\"", worker, StringComparison.Ordinal);
+            Assert.Contains("notificationclick", worker, StringComparison.Ordinal);
+
+            // Deliberately no app-shell cache: the bundler fingerprints its assets and rewrites index.html
+            // every build, so a cached shell would point at hashed files that no longer exist.
+            Assert.DoesNotContain("caches.open", worker, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
+    ///     <c>--push</c> reaches both halves, and the client half is typed against what the host binds.
+    /// </summary>
+    [Fact]
+    public void Push_scaffolds_the_client_helper_and_the_hosts_endpoints()
+    {
+        var result = ProjectGenerator.GenerateSpa(
+            Root, "Shop", SpaFramework.React, new ServerBatteries { Push = true }.Normalized(), "1.2.3");
+
+        var client = Content(result, "/Shop.Client/src/rask/push.ts");
+        Assert.Contains("/_push/key", client, StringComparison.Ordinal);
+        Assert.Contains("/_push/subscribe", client, StringComparison.Ordinal);
+        Assert.Contains("/_push/unsubscribe", client, StringComparison.Ordinal);
+
+        // The flattening is the reason this file is vendored rather than described in a README. The
+        // browser nests { endpoint, keys: { p256dh, auth } }; the host binds a flat record. Post the
+        // nested shape and the request still answers 204 with both keys null, and every send after it
+        // fails to encrypt for a subscription that looked like it registered.
+        Assert.Contains("p256dh:", client, StringComparison.Ordinal);
+        Assert.Contains("auth:", client, StringComparison.Ordinal);
+
+        var store = Content(result, "/Shop.Server/Features/Push/PushSubscriptions.cs");
+        // Re-namespaced into the .Server project, which is the half with the endpoints on it.
+        Assert.Contains("namespace Shop.Server.Features.Push;", store, StringComparison.Ordinal);
+        Assert.Contains("MapPushSubscriptions", store, StringComparison.Ordinal);
+
+        // Mapped before UseRaskSpa, which ends the pipeline with a fallback to index.html — an endpoint
+        // added after it would answer HTML instead of JSON.
+        var program = Content(result, "/Shop.Server/Program.cs");
+        Assert.InRange(
+            program.IndexOf("app.MapPushSubscriptions();", StringComparison.Ordinal),
+            0,
+            program.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Without_pwa_no_client_carries_a_service_worker_or_a_manifest_link()
+    {
+        var result = ProjectGenerator.GenerateSpa(Root, "Shop", SpaFramework.React, new ServerBatteries(), "1.2.3");
+
+        Assert.False(Has(result, "/Shop.Client/public/rask-sw.js"));
+        Assert.False(Has(result, "/Shop.Client/public/manifest.webmanifest"));
+        Assert.False(Has(result, "/Shop.Client/src/rask/push.ts"));
+        Assert.DoesNotContain(result.Patches, patch => patch.Path.EndsWith("index.html", StringComparison.Ordinal));
     }
 
     [Fact]

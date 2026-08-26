@@ -201,18 +201,19 @@ useful than a page designed to reveal nothing.
 | Flag | `server` | `wasm` | `wasm-hosted` | front-end |
 | --- | :-: | :-: | :-: | :-: |
 | `--auth` | ✅ | ✅ | ✅ | — |
-| `--pwa` | ✅ | ✅ | ✅ | — |
+| `--pwa` | ✅ | ✅ | ✅ | ✅ |
 | `--docker` | ✅ | ✅ | ✅ | ✅ |
 | `--bootstrap` | ✅ | ✅ | ✅ | — |
 | `--tailwind` | ✅ | — | — | ✅ |
 | `--cqrs`, `--data` | ✅ | — | ✅ | ✅¹ |
 | `--jobs`, `--mail`, `--cache`, `--outbox`, `--snapshots`, `--logs`, `--ops` | ✅ | — | ✅ | ✅ |
-| `--push` | ✅ | — | — | — |
+| `--push` | ✅ | — | — | ✅ |
 | `--all-batteries` | ✅ | — | ✅ | ✅ |
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--cqrs` is accepted but changes
-nothing. `--auth` and `--pwa` are refused rather than half-scaffolded: both need work on the client
-(a React login flow, a service worker through `vite-plugin-pwa`) that the template does not write yet.
+nothing. `--auth` is refused rather than half-scaffolded: a sign-in flow has to be written in the
+framework's own idiom, and the template does not write one yet. `--pwa` and `--push` are honoured —
+see [TypeScript front ends](spa.md#installable-and-push-capable).
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
 combination that is then rejected. On the command line, asking for one is a usage error that names both
