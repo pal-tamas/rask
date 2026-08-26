@@ -26,10 +26,13 @@ internal abstract class RaskJSRuntimeBase : JSRuntime
     {
         var invoke = new PendingJsInvoke(taskId, identifier, argsJson, (int)resultType, targetInstanceId);
 
-        // A page that calls into JavaScript needs the connection that carries the call. Marked on
-        // both branches below: a queued invoke and an immediately dispatched one are equally
-        // undeliverable to a document served with no runtime attached.
-        CurrentHost.MarkRequiresLiveSession(InteractivityReason.JsInterop);
+        // A page that calls into JavaScript needs the connection that carries the call. Marked via
+        // the render context, NOT CurrentHost: that property throws when there is no session, and
+        // reaching for it here made an interop call outside one fail before it could dispatch.
+        // The context is the right scope regardless — a call made during the initial render is
+        // exactly what makes that page interactive, and a call made outside one has no initial
+        // render left to classify.
+        LiveRenderContext.CurrentSync?.MarkRequiresLiveSession(InteractivityReason.JsInterop);
 
         // Mid-render (e.g. an OnRenderedAsync hook focusing a dialog as it opens): queue onto the
         // current frame so the client runs it AFTER applyDiff — i.e. against the committed DOM. This
