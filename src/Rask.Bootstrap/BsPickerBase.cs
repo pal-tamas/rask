@@ -81,10 +81,13 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
             ? Nullable.GetUnderlyingType(acc.PropertyType) ?? acc.PropertyType
             : Underlying;
 
-    // Display/parse culture. CurrentCulture drives month/weekday names and first-day-of-week; the bound
-    // value still round-trips invariant ISO because we write the typed value, never a formatted string.
-    private protected static System.Globalization.CultureInfo Culture =>
-        System.Globalization.CultureInfo.CurrentCulture;
+    // Display/parse culture: month and weekday names, and first-day-of-week. The bound value still
+    // round-trips invariant ISO, because a picker writes the typed value and never a formatted string.
+    //
+    // Inherited from Component now rather than declared here. That is the whole point of the change:
+    // this used to read CultureInfo.CurrentCulture, which on a server is the process locale — so every
+    // visitor of a multi-user app got the SERVER's month names. Component.Culture is the session's, and
+    // reading it also marks the picker as culture-dependent so a language switch repaints it.
 
     // The native-input fallback for Native:true — the SAME core <input> BsInput renders (a
     // type=date|time|datetime-local bound to a string round-tripped by FormatValue/StringChangeHandler),

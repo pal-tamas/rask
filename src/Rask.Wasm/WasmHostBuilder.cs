@@ -8,6 +8,7 @@ using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
@@ -43,6 +44,10 @@ public sealed class WasmHostBuilder
         // Transient user messages / toasts (a flash-message pattern). Singleton = one queue for the app instance
         // (the whole WASM app is a single session), so a message queued before a NavigateTo survives it.
         Services.AddSingleton<IToaster, Toaster>();
+
+        // Singleton, unlike the server's scoped registration: the whole WASM app is one visitor, so
+        // there is exactly one culture for its lifetime.
+        Services.AddRaskCulture(lifetime: ServiceLifetime.Singleton);
         // Typed browser/device API wrappers, Singleton (one per app instance). Registered via the shared
         // helpers (RaskBrowserApis / RaskWasmBrowserApis) so the interface → impl list lives in one place
         // instead of duplicated across hosts. TryAdd inside the helpers means an app can pre-register a

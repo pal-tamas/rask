@@ -55,6 +55,10 @@ public static class RaskHostContracts
         typeof(IDownloadSink),
         // The interop runtime every Core browser wrapper is built on.
         typeof(IJSRuntime),
+        // The visitor's language. Registered by every host even when the app configured no cultures,
+        // so a component can take it in its constructor without first asking whether localization is
+        // switched on — an unconfigured one simply reports no supported cultures.
+        typeof(Globalization.IRaskCulture),
     ];
 
     /// <summary>
