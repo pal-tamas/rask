@@ -65,6 +65,13 @@ them until tagged releases begin.
   every other tool still reads the file exactly as before. Re-registration happens on each open because
   Microsoft.Data.Sqlite's pool runs `Deactivate()` on return, which un-registers collations.
 
+  Correct is not free, and the cost is now measured rather than guessed: each comparison is a managed
+  callback, so ordering 100k decimals takes ~156 ms and allocates 125 MB, against ~4.5 ms and 768 B for
+  an indexed `INTEGER` column (`SqliteDecimalOrderingBenchmarks`). It is avoidable — declaring
+  `UseCollation("EF_DECIMAL")` on the property lets an index serve the ordering with no comparisons at
+  query time, at the cost of a DDL that only a connection registering the collation can query. Both are
+  documented, and the documented snippet is compiled and run by a test.
+
   Arithmetic, comparisons and `Sum`/`Average`/`Min`/`Max` were never affected — those translate through
   EF's `ef_add`/`ef_compare`/`ef_sum`/… helpers, which take typed `decimal` parameters. `docs/sqlite.md`
   and `docs/data-access.md` claimed EF "falls back to REAL for `ORDER BY` and aggregates" and that "EF
