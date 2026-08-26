@@ -32,6 +32,7 @@ using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Globalization;
 using Rask.Core.HotReload;
+using Rask.Core.Http;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
@@ -40,6 +41,7 @@ using Rask.Html.Components;
 using Rask.Server.Authentication;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
+using Rask.Server.Http;
 using Rask.Server.JSInterop;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
@@ -218,6 +220,8 @@ public static partial class RaskEndpointExtensions
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
+        services.AddScoped<ServerPageResponse>();
+        services.AddScoped<IPageResponse>(sp => sp.GetRequiredService<ServerPageResponse>());
         // The declared state bag (docs/lifecycle.md). Scoped = one per live session, like RouteState. A
         // session's component tree can't be serialized, so it can't be moved or saved; what an app names
         // here is what survives the session being rebuilt somewhere else.
@@ -524,11 +528,51 @@ public static partial class RaskEndpointExtensions
             // WASM's InitialRenderAsync / `_lastAppliedHtml`), AND the diff-codec frame
             // baseline so the FIRST interactive WS render ships a diff instead of the whole
             // document. See LiveSession.RenderInitialRoot.
-            // Awaited, so a page that loads its data in OnMountAsync ships that data rather than
-            // its placeholder. Falls back to the synchronous render when the budget is disabled.
-            var html = await session
-                .RenderInitialRootAsync(limits.InitialRenderQuiescenceTimeout)
-                .ConfigureAwait(false);
+            // The page may shape the response only while this render is running. Closed in the
+            // finally so a later event handler — which runs long after these bytes are gone —
+            // throws instead of setting a status nobody will ever read.
+            var pageResponse = session.Services.GetRequiredService<ServerPageResponse>();
+            var navigator = session.Services.GetRequiredService<Navigator>();
+            pageResponse.Phase = PageResponsePhase.Initial;
+            string html;
+            // Navigation is legal for the duration of this render and becomes a real redirect
+            // below, so a page can decide on load that the user belongs elsewhere using the same
+            // NavigateTo it would call from a handler. Closed straight after, so a background
+            // render cannot navigate a request that no longer exists.
+            using (navigator.EnterInitialRender())
+            {
+                try
+                {
+                    // Awaited, so a page that loads its data in OnMountAsync ships that data rather
+                    // than its placeholder. Falls back to the synchronous render when disabled.
+                    html = await session
+                        .RenderInitialRootAsync(limits.InitialRenderQuiescenceTimeout)
+                        .ConfigureAwait(false);
+                }
+                finally
+                {
+                    pageResponse.Phase = PageResponsePhase.None;
+                }
+            }
+
+            // A page that navigated during its own render is telling us the user belongs somewhere
+            // else. Answering 302 costs one response instead of a whole page the client immediately
+            // navigates away from — and unlike a client-side hop, a crawler and a cache both
+            // understand it. The session goes too: nothing will ever connect to this page.
+            if (navigator.TryConsumeHistory(out var redirectUrl, out _))
+            {
+                store.Remove(session.Id);
+                httpContext.Response.StatusCode = StatusCodes.Status302Found;
+                // Sanitized on the way out even though NavigateTo takes a local path by contract:
+                // this value reaches a Location header, and a header is exactly where an unchecked
+                // path becomes an open redirect.
+                httpContext.Response.Headers.Location =
+                    LiveOptions.PathBase + LocalUrl.Sanitize(redirectUrl);
+                // Never cacheable. A redirect computed from runtime state — a flag, a tenant, an
+                // experiment — that a browser pinned would be unrecoverable without changing the URL.
+                httpContext.Response.Headers.CacheControl = "no-store";
+                return;
+            }
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.
@@ -547,6 +591,13 @@ public static partial class RaskEndpointExtensions
             if (session.LastRenderFaulted)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            }
+            else if (pageResponse.Status is { } pageStatus)
+            {
+                // Below the faulted check on purpose: a page that threw does not get to claim it
+                // succeeded, and the error document is what is actually being served. Above the
+                // not-found check so a page can deliberately answer 200 there (a soft 404).
+                httpContext.Response.StatusCode = pageStatus;
             }
             else if (notFoundPage is not null && session.LastRenderMounted(notFoundPage))
             {
