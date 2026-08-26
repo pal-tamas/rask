@@ -296,7 +296,7 @@ protected override Component? Render() => Router;
 ```
 
 **Fix:** return the body's content (usually `Router()`) and move the shell's pieces to the overrides
-that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<body class>` to `BodyClass`,
+that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<html dir>` to `HtmlDir`, `<body class>` to `BodyClass`,
 and a genuinely custom document to `Shell(head, body)`, which receives the framework's `<head>` and the
 rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
 `Doctype`/`Html`/`Head`/`Body` stay ordinary tag components for documents you build by hand
