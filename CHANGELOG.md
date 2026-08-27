@@ -9,15 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
-- **`[PageRender]` lets a page or a component override the automatic render decision.** Nothing needs
+- **`[RenderMode]` lets a page or a component override the automatic render decision.** Nothing needs
   it: how far a page climbs is detected from its render. It exists for what detection cannot see.
 
-  `PageRenderMode.Interactive` keeps a live connection for a page whose render showed no need for one
+  `RenderMode.Interactive` keeps a live connection for a page whose render showed no need for one
   — a component driven by a timer or an `event` subscription does nothing a walk can observe. It is
   honoured from **anywhere** in the tree and is `Inherited`, so a base component declares the need
   once and every page built on it gets it without its author knowing to.
 
-  `PageRenderMode.Static` serves a page as a document even where the app has not enabled static pages
+  `RenderMode.Static` serves a page as a document even where the app has not enabled static pages
   at all. It is honoured only on the routed page or the app root — an arbitrary helper deep in a tree
   forcing a whole page static would be a very quiet way to break it — and it is a **request, not a
   command**: a page that turns out to need a connection keeps it, and the contradiction is logged
@@ -239,7 +239,6 @@ them until tagged releases begin.
 
   A faulted render still wins with `500`, and an app that declares its own catch-all `[Route]` is
   deliberately serving those paths, so it stays `200`.
->>>>>>> 77e1a775 (feat(routing): answer a real 404 when a path falls through to the not-found page)
 
 ### Added
 - **A gate that the compiled Tailwind stylesheet reaches the *published* output.** Every other Tailwind

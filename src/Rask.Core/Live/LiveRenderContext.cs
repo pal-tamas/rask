@@ -210,7 +210,7 @@ public sealed class LiveRenderContext : IDisposable
         // shows one — the shape of anything driven by a timer or an event subscription. Honoured from
         // anywhere in the tree on purpose: that is what lets a base component say it once and every
         // page built on it inherit the need without its author knowing to.
-        if (PageRenderModes.Of(type) == PageRenderMode.Interactive)
+        if (DeclaredRenderModes.Of(type) == RenderMode.Interactive)
         {
             _handle?.ReportRequiresLiveSession(InteractivityReason.Declared);
         }

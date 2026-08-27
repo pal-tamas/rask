@@ -13,7 +13,7 @@ namespace Rask.Server.Tests.Configuration;
 // is biased towards keeping a connection — a page wrongly judged interactive behaves exactly as it
 // always has, while one wrongly judged static loses its interactivity silently. The attribute is for
 // what detection cannot see.
-public class PageRenderAttributeTests
+public class RenderModeAttributeTests
 {
     [Fact]
     public async Task AComponentDeclaringInteractive_KeepsThePageLive()
@@ -95,7 +95,7 @@ public sealed partial class UsesADeclaredChildApp : Component
 }
 
 // The shape detection cannot see: no handler, no form, no ref, no JS call — it pushes on a timer.
-[PageRender(PageRenderMode.Interactive)]
+[RenderMode(RenderMode.Interactive)]
 public partial class DeclaredPusher : Component
 {
     protected override Component? Render() => Span["pushes-later"];
@@ -112,14 +112,14 @@ public sealed partial class StaticDeclaringApp : Component
 }
 
 [Route("/declared-static")]
-[PageRender(PageRenderMode.Static)]
+[RenderMode(RenderMode.Static)]
 public sealed partial class DeclaredStaticPage : Component
 {
     protected override Component? Render() => Div["just-content"];
 }
 
 [Route("/declared-static-with-button")]
-[PageRender(PageRenderMode.Static)]
+[RenderMode(RenderMode.Static)]
 public sealed partial class DeclaredStaticButContradictoryPage : Component
 {
     private int _count;
