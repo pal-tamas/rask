@@ -8,6 +8,35 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`--tailwind` on a front-end template no longer strips the app's styling and put nothing back.**
+  The scaffolded stylesheet replaces the one `create-vite` (or `ng new`) wrote, and until now that
+  replacement was a single `@import "tailwindcss";`. Part of the file being replaced does style the
+  placeholder page the template has already overlaid away — but the rest styles `body`, `h1` and `p`
+  **by tag**, and those tags are exactly what the starter still renders. Tailwind's preflight then
+  reset whatever the browser had left, and the starter's markup carries no utility classes at all, so
+  nothing replaced any of it: `rask new Shop --template react --tailwind` rendered as unstyled HTML,
+  visibly **worse** than the same command without the flag
+  ([#859](https://github.com/pal-tamas/rask/issues/859)).
+
+  The stylesheet now carries a base layer styling the elements all seven starters render — ordinary
+  utilities applied by element rather than spelled out in `class` attributes, because the markup is
+  byte-identical whether or not you passed the flag. Move a rule into your own markup and delete it;
+  that is the same page.
+
+  **Why every check was green.** `SpaTailwindBuildE2ETests` injects its own probe class and asserts it
+  survives into the emitted CSS — a real question, and the one that caught Angular's missing adapter in
+  #839. But a pipeline fed its own input can only prove the machine runs, never that anything is
+  plugged into it. Two assertions now check the *shipped* page: that the emitted CSS styles a bare
+  `main` and a bare `button` with declarations Tailwind's preflight does not set, so the starter's own
+  base layer is what has to have produced them. Verified by reverting the stylesheet and watching them
+  fail before putting it back.
+
+  Also drops `import './App.css'` from the React, Preact and Solid starters. That file is `create-vite`'s
+  demo styling — `.counter`, `.hero`, `#next-steps` — and this overlay replaces the page that used those
+  selectors, so it was loaded and matched nothing in every scaffolded project, Tailwind or not. Angular
+  keeps its `styleUrl`: `ng new` writes an empty `app.css`, which is the idiomatic place for component
+  styles rather than dead CSS.
+
 - **The Angular Tailwind gate no longer skips itself into looking green.** `ng new` carries its own
   Node floor, above Vite's, and refuses below it. `SpaTailwindBuildE2ETests` caught that refusal and
   turned it into a skip — so on a machine whose `PATH` resolved an older Node than the one installed,

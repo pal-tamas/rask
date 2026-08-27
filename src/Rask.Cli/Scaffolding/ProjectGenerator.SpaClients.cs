@@ -16,6 +16,16 @@ namespace Rask.Cli.Scaffolding;
 ///         genuinely differ — Solid and Svelte take a <em>thunk</em> so the options re-read their
 ///         reactive source, React does not, and Lit hands the client down through a custom element.
 ///     </para>
+///     <para>
+///         None of them imports the scaffolder's per-component demo stylesheet (create-vite's
+///         <c>App.css</c> / <c>app.css</c>). That file styles the placeholder page — <c>.counter</c>,
+///         <c>.hero</c>, <c>#next-steps</c> — and this overlay replaces that page entirely, so every one
+///         of its selectors matches nothing. It was loaded and dead in every scaffolded project. The
+///         GLOBAL stylesheet is a different file and stays: it styles <c>body</c> and the headings by
+///         tag, which the overlay does still render. Angular is the exception and keeps its
+///         <c>styleUrl</c> — <c>ng new</c> writes an empty <c>app.css</c>, which is the idiomatic place
+///         to put component styles rather than dead demo CSS.
+///     </para>
 /// </remarks>
 internal static class SpaClientSources
 {
@@ -78,7 +88,6 @@ internal static class SpaClientSources
             import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
             import { raskMutation, raskQuery } from './rask/query'
             import { getGreeting, recordVisit } from './rask/messages'
-            import './App.css'
 
             export default function App() {
               const [name, setName] = useState('world')
@@ -159,7 +168,6 @@ internal static class SpaClientSources
             import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
             import { raskMutation, raskQuery } from './rask/query'
             import { getGreeting, recordVisit } from './rask/messages'
-            import './app.css'
 
             export function App() {
               const [name, setName] = useState('world')
@@ -267,7 +275,6 @@ internal static class SpaClientSources
             import { useMutation, useQuery, useQueryClient } from '@tanstack/solid-query'
             import { raskMutation, raskQuery } from './rask/query'
             import { getGreeting, recordVisit } from './rask/messages'
-            import './App.css'
 
             export default function App() {
               const [name, setName] = createSignal('world')

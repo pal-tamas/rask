@@ -506,6 +506,63 @@ public sealed class SpaTemplateTests
         }
     }
 
+    /// <summary>
+    ///     The Tailwind stylesheet styles every element the starter actually renders.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Overwriting the scaffolder's stylesheet is only half a job. That file was styling
+    ///         <c>body</c>, <c>h1</c> and the rest BY TAG, and the overlay still renders those tags — so a
+    ///         replacement that is just <c>@import "tailwindcss";</c> takes the page's styling away and
+    ///         lets preflight reset what the browser had left. <c>--tailwind</c> then produced a visibly
+    ///         worse page than no flag at all, and every check stayed green
+    ///         (<see href="https://github.com/pal-tamas/rask/issues/859" />).
+    ///     </para>
+    ///     <para>
+    ///         Driven off the markup rather than a hand-kept list: an element the starters render is read
+    ///         out of their own source here, so adding one to the markup and forgetting to style it fails
+    ///         this test instead of shipping. The classless markup is asserted too — that is the premise
+    ///         the base layer rests on, and if it ever stops holding, styling by element is the wrong
+    ///         answer and this should be reconsidered rather than quietly extended.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void Tailwind_styles_the_elements_the_starter_renders()
+    {
+        string[] elements = ["main", "h1", "label", "input", "button"];
+
+        foreach (var framework in SpaFramework.All)
+        {
+            var result = ProjectGenerator.GenerateSpa(
+                Root, "Shop", framework, new ServerBatteries { Styling = Styling.Tailwind }, "1.2.3");
+
+            var sheet = Content(result, $"/Shop.Client/{framework.GlobalStylesheet}");
+            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
+
+            // Matched on the trimmed line rather than on indentation, so re-indenting the stylesheet is
+            // not a test failure. A selector opening a block is what is being looked for.
+            var rules = sheet.Split('\n').Select(line => line.Trim()).ToHashSet(StringComparer.Ordinal);
+
+            // The premise. Utilities reach this markup by element or not at all.
+            Assert.DoesNotContain("class=", markup, StringComparison.Ordinal);
+            Assert.DoesNotContain("className=", markup, StringComparison.Ordinal);
+
+            foreach (var element in elements)
+            {
+                Assert.Contains($"<{element}", markup, StringComparison.Ordinal);
+
+                Assert.True(
+                    rules.Contains($"{element} {{"),
+                    $"[{framework.Key}] the starter renders <{element}> and the Tailwind stylesheet has no "
+                    + $"rule for it, so that element ships unstyled — preflight having removed whatever the "
+                    + "browser gave it.");
+            }
+
+            // Rules alone would pass with an empty body; the utilities are the point.
+            Assert.Contains("@apply", sheet, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public void Without_tailwind_no_client_carries_any_of_its_wiring()
     {
