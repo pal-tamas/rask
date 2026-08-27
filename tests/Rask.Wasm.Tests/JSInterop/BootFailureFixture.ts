@@ -19,9 +19,29 @@ import {pathToFileURL} from "node:url";
 const [mainJsPath, scenario] = process.argv.slice(2);
 
 // --- stub DOM -------------------------------------------------------------------------------
-function makeStubElement(tag) {
-    const attrs = new Map();
-    const el = {
+//
+// Deliberately a stub rather than jsdom: what is under test is what main.js paints when boot fails,
+// and the three outcomes above are produced by controlling what `dotnet.create()` does — not by
+// anything a real DOM would contribute.
+interface StubElement {
+    tagName: string;
+    _children: StubElement[];
+    textContent: string;
+    className: string;
+    style: Record<string, string>;
+    hidden: boolean;
+    isConnected: boolean;
+    hasAttribute(name: string): boolean;
+    getAttribute(name: string): string | null;
+    setAttribute(name: string, value: string): void;
+    appendChild(child: StubElement): StubElement;
+    replaceChildren(...children: StubElement[]): void;
+    querySelector(selector: string): StubElement | null;
+}
+
+function makeStubElement(tag: string): StubElement {
+    const attrs = new Map<string, string>();
+    const el: StubElement = {
         tagName: String(tag).toUpperCase(),
         _children: [],
         textContent: "",
@@ -29,44 +49,53 @@ function makeStubElement(tag) {
         style: {},
         hidden: false,
         isConnected: true,
-        hasAttribute: name => attrs.has(name),
-        getAttribute: name => (attrs.has(name) ? attrs.get(name) : null),
-        setAttribute: (name, value) => attrs.set(name, String(value)),
-        appendChild: child => {
+        hasAttribute: (name: string) => attrs.has(name),
+        getAttribute: (name: string) => attrs.get(name) ?? null,
+        setAttribute: (name: string, value: string) => void attrs.set(name, String(value)),
+        appendChild: (child: StubElement) => {
             el._children.push(child);
             return child;
         },
-        replaceChildren: (...children) => {
+        replaceChildren: (...children: StubElement[]) => {
             el._children = children;
         },
-        querySelector: sel => el._children.find(c => `.${c.className}` === sel) ?? null
+        querySelector: (sel: string) => el._children.find(c => `.${c.className}` === sel) ?? null,
     };
     return el;
 }
+
+/** The globals the boot module reaches for, which Node does not have. */
+const globals = globalThis as unknown as {
+    document: unknown;
+    window: unknown;
+    addEventListener: (type: string, fn: (event: unknown) => void) => void;
+    __raskPainted?: boolean;
+    __raskBootFailed?: (message: string, detail?: string) => void;
+};
 
 const boot = makeStubElement("div");
 boot.className = "rask-boot";
 
 const head = makeStubElement("head");
-globalThis.document = {
+globals.document = {
     head,
     body: makeStubElement("body"),
-    createElement: tag => makeStubElement(tag),
-    querySelector: sel => (sel === ".rask-boot" ? boot : null),
+    createElement: (tag: string) => makeStubElement(tag),
+    querySelector: (sel: string) => (sel === ".rask-boot" ? boot : null),
     addEventListener: () => {
     }
 };
-globalThis.window = globalThis;
+globals.window = globalThis;
 
-const listeners = new Map();
-globalThis.addEventListener = (type, fn) => {
+const listeners = new Map<string, ((event: unknown) => void)[]>();
+globals.addEventListener = (type: string, fn: (event: unknown) => void) => {
     if (!listeners.has(type)) listeners.set(type, []);
-    listeners.get(type).push(fn);
+    listeners.get(type)!.push(fn);
 };
 
-const consoleErrors = [];
+const consoleErrors: string[] = [];
 const realError = console.error;
-console.error = (...args) => {
+console.error = (...args: unknown[]) => {
     consoleErrors.push(args.map(String).join(" "));
 };
 
@@ -78,8 +107,8 @@ console.error = (...args) => {
 // the morph that nothing had checked. main.js was written against that assumption and reported a boot
 // failure for every successful boot; the browser gate caught it, the fixture did not, because the
 // fixture encoded the same belief as the code. So the element deliberately stays connected here.
-globalThis.__raskFixtureMounted = () => {
-    globalThis.__raskPainted = true;
+(globals as { __raskFixtureMounted?: () => void }).__raskFixtureMounted = () => {
+    globals.__raskPainted = true;
 };
 
 // --- stub ./_framework/dotnet.js -----------------------------------------------------------
@@ -135,6 +164,6 @@ process.stdout.write(JSON.stringify({
     consoleErrors,
     unhandledRejectionHandlerRegistered: (listeners.get("unhandledrejection") ?? []).length > 0,
     errorHandlerRegistered: (listeners.get("error") ?? []).length > 0,
-    bootFailedHookExposed: typeof globalThis.__raskBootFailed === "function"
+    bootFailedHookExposed: typeof globals.__raskBootFailed === "function"
 }) + "\n");
 console.error = realError;

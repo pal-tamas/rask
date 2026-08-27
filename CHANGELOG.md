@@ -595,6 +595,17 @@ them until tagged releases begin.
   the TypeScript, and what is asked of a built artifact is what minification preserves — the globals
   .NET reaches by name, and the string literals a gate keys on.
 
+- **`commitlint.config.mjs` is `commitlint.config.ts`.** The action's image carries the jiti-based
+  TypeScript loader, so it needs nothing from this repository — but its config resolution falls back
+  to conventional defaults *silently* when the path does not exist, so a rename that missed the
+  workflow would have left a green gate enforcing none of these rules. A test pins the two together.
+
+- **The two WASM Node fixtures are TypeScript**, with narrow declarations for the four Node modules
+  they use rather than `@types/node` — which would mean npm in a build that deliberately has none.
+  Converting them caught a wrong call: the head-asset fixture passes `beginInvokeJS` a task id and a
+  target instance id, both of which are strings because they cross the JSExport boundary as .NET
+  longs.
+
 ### Removed
 - **`build/Rask.MinifyJs.targets`** and the `@@RASK_*@@` splice markers, along with the
   `_RaskBuildClientJs`, `_RaskSpliceClientJs` and `_RaskMinifyClientJs` targets and

@@ -19,4 +19,8 @@ jobs:
       - name: Lint PR commits
         uses: wagoid/commitlint-github-action@v6
         with:
-          configFile: commitlint.config.mjs
+          # Must name the file that exists. The action does `existsSync(configFile)` and, when it
+          # is false, silently falls back to @commitlint/config-conventional with NO error — so a
+          # rename here that misses the workflow leaves a green gate enforcing defaults instead of
+          # this repo's rules. CommitlintConfigTests pins the two together.
+          configFile: commitlint.config.ts

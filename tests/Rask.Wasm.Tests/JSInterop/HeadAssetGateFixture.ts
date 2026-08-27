@@ -35,10 +35,44 @@ if (!bundlePath) {
 }
 
 // ----- Minimal browser stubs -----
-function makeStubElement(tagName) {
-    const attrs = new Map();
-    const listeners = new Map();
-    const el = {
+//
+// Deliberately a stub rather than jsdom: the gate is about the ORDER in which a Head-declared asset
+// finishes loading relative to a Rask.* invoke, and that ordering is what the fixture drives by
+// dispatching load/error itself. A real browser would decide it.
+interface StubElement {
+    nodeType: number;
+    tagName: string;
+    _children: StubElement[];
+    parentNode: StubElement | null;
+    textContent: string;
+    readonly rel: string;
+    readonly src: string;
+    readonly href: string;
+    id: string;
+    text: string;
+    hasAttribute(name: string): boolean;
+    getAttribute(name: string): string | null;
+    setAttribute(name: string, value: string): void;
+    removeAttribute(name: string): void;
+    addEventListener(type: string, fn: (event: unknown) => void): void;
+
+    /** Fires a load/error the fixture controls the timing of; the whole point of the stub. */
+    _dispatch(type: string): void;
+
+    appendChild(child: StubElement): StubElement;
+    readonly attributes: { name: string; value: string }[];
+
+    /** Only the head carries one, assigned below. */
+    querySelectorAll?: (selector: string) => StubElement[];
+
+    /** Only the render root is asked this, by the event router's in-root check. */
+    contains?: (node: unknown) => boolean;
+}
+
+function makeStubElement(tagName: string): StubElement {
+    const attrs = new Map<string, string>();
+    const listeners = new Map<string, ((event: unknown) => void)[]>();
+    const el: StubElement = {
         nodeType: 1,
         tagName: tagName.toUpperCase(),
         _children: [],
@@ -56,28 +90,28 @@ function makeStubElement(tagName) {
         get id() {
             return attrs.get("id") ?? "";
         },
-        set id(v) {
+        set id(v: string) {
             attrs.set("id", String(v));
         },
         get text() {
             return el.textContent;
         },
-        set text(v) {
+        set text(v: string) {
             el.textContent = String(v);
         },
-        hasAttribute: (name) => attrs.has(name),
-        getAttribute: (name) => (attrs.has(name) ? attrs.get(name) : null),
-        setAttribute: (name, value) => attrs.set(name, String(value)),
-        removeAttribute: (name) => attrs.delete(name),
-        addEventListener: (type, fn) => {
+        hasAttribute: (name: string) => attrs.has(name),
+        getAttribute: (name: string) => attrs.get(name) ?? null,
+        setAttribute: (name: string, value: string) => void attrs.set(name, String(value)),
+        removeAttribute: (name: string) => void attrs.delete(name),
+        addEventListener: (type: string, fn: (event: unknown) => void) => {
             if (!listeners.has(type)) listeners.set(type, []);
-            listeners.get(type).push(fn);
+            listeners.get(type)!.push(fn);
         },
-        _dispatch: (type) => {
+        _dispatch: (type: string) => {
             const fns = listeners.get(type) || [];
             for (const fn of fns.slice()) fn({type, target: el});
         },
-        appendChild: (child) => {
+        appendChild: (child: StubElement) => {
             el._children.push(child);
             child.parentNode = el;
             return child;
@@ -89,7 +123,7 @@ function makeStubElement(tagName) {
     return el;
 }
 
-function selectorMatches(el, selector) {
+function selectorMatches(el: StubElement, selector: string): boolean {
     if (selector === "script[src]") {
         return el.tagName === "SCRIPT" && el.hasAttribute("src");
     }
@@ -100,8 +134,8 @@ function selectorMatches(el, selector) {
 }
 
 const head = makeStubElement("head");
-head.querySelectorAll = (selector) => {
-    const parts = selector.split(",").map(s => s.trim());
+head.querySelectorAll = (selector: string) => {
+    const parts = selector.split(",").map(part => part.trim());
     return head._children.filter(c => parts.some(p => selectorMatches(c, p)));
 };
 
@@ -109,48 +143,69 @@ const body = makeStubElement("body");
 body.contains = () => false;
 body.setAttribute("data-rask-root", "");
 
-globalThis.document = {
+/**
+ * The browser globals the bundle reaches for, none of which Node has.
+ *
+ * One `unknown`-typed view rather than a cast at each assignment: every one of these is a partial
+ * fake, and saying so once keeps the assignments below reading as the list of things the bundle
+ * needs — which is what a reader of this fixture is here for.
+ */
+const globals = globalThis as unknown as {
+    document: unknown;
+    window: unknown;
+    addEventListener: () => void;
+    performance: unknown;
+    location: unknown;
+    history: unknown;
+    cancelAnimationFrame: () => void;
+    requestAnimationFrame: () => number;
+    crypto?: unknown;
+    setTimeout: (fn: () => void, delay?: number) => number;
+    Rask?: Record<string, Record<string, (...args: never[]) => unknown>>;
+};
+
+globals.document = {
     head,
     body,
     documentElement: {tagName: "HTML"},
-    getElementById: (id) => head._children.find(c => c.getAttribute("id") === id) || null,
-    createElement: (tag) => makeStubElement(tag),
-    querySelector: (sel) => {
+    getElementById: (id: string) => head._children.find(c => c.getAttribute("id") === id) || null,
+    createElement: (tag: string) => makeStubElement(tag),
+    querySelector: (sel: string) => {
         if (sel === "[data-rask-root]") return body;
         return null;
     },
     addEventListener: () => {
     }
 };
-globalThis.window = globalThis;
+globals.window = globalThis;
 // The bundle wires top-level `window.addEventListener("popstate", ...)` and a
 // few `document.addEventListener(...)` handlers at module init. Provide
 // no-op stubs so the import doesn't fault — the gate scenarios under test
 // never dispatch any of these events.
-globalThis.addEventListener = () => {
+globals.addEventListener = () => {
 };
-globalThis.performance = {getEntriesByName: () => []};
-globalThis.location = {pathname: "/", search: ""};
-globalThis.history = {
+globals.performance = {getEntriesByName: () => []};
+globals.location = {pathname: "/", search: ""};
+globals.history = {
     replaceState: () => {
     }, pushState: () => {
     }
 };
-globalThis.cancelAnimationFrame = () => {
+globals.cancelAnimationFrame = () => {
 };
-globalThis.requestAnimationFrame = () => 0;
+globals.requestAnimationFrame = () => 0;
 // Node already exposes a (getter-only) `crypto` global on v19+; skip the
 // override if one is present so the assignment doesn't fault here.
-if (typeof globalThis.crypto === "undefined") {
-    globalThis.crypto = {randomUUID: () => "stub-uuid"};
+if (typeof globals.crypto === "undefined") {
+    globals.crypto = {randomUUID: () => "stub-uuid"};
 }
 
 // Capture the gate's 5-second safety timeout so the test can fire it on
 // demand instead of waiting 5 real seconds.
-const capturedSafetyTimeouts = [];
-const realSetTimeout = globalThis.setTimeout;
-globalThis.setTimeout = (fn, delay) => {
-    if (delay >= 1000) {
+const capturedSafetyTimeouts: (() => void)[] = [];
+const realSetTimeout = globals.setTimeout;
+globals.setTimeout = (fn: () => void, delay?: number) => {
+    if ((delay ?? 0) >= 1000) {
         capturedSafetyTimeouts.push(fn);
         return capturedSafetyTimeouts.length;
     }
@@ -159,18 +214,26 @@ globalThis.setTimeout = (fn, delay) => {
 
 // ----- Load the bundle -----
 const bundleSource = readFileSync(bundlePath, "utf8");
-const moduleUrl = "data:text/javascript;base64," + Buffer.from(bundleSource).toString("base64");
-const mod = await import(moduleUrl);
+// btoa rather than Buffer: it is standard, so the fixture needs no further Node declarations.
+const moduleUrl = "data:text/javascript;base64," + btoa(unescape(encodeURIComponent(bundleSource)));
+const mod = await import(moduleUrl) as {
+    applyRender(bytes: Uint8Array): void;
+    setExports(exports: unknown): void;
+    // Mirrors the export in rask.wasm.ts. taskId and targetInstanceId are STRINGS: they cross the
+    // JSExport boundary as .NET longs, which JS cannot hold exactly.
+    beginInvokeJS(taskId: string, identifier: string, argsJson: string | null, resultType: number,
+                  targetInstanceId: string): void;
+};
 
 // ----- Helpers -----
 const encoder = new TextEncoder();
 
-function applyRenderJson(reply) {
+function applyRenderJson(reply: unknown) {
     mod.applyRender(encoder.encode(JSON.stringify(reply)));
 }
 
-function flushMicrotasks() {
-    return new Promise(resolve => realSetTimeout(resolve, 0));
+function flushMicrotasks(): Promise<void> {
+    return new Promise<void>(resolve => realSetTimeout(() => resolve(), 0));
 }
 
 // ----- Scenario: 'error' event on a Head-declared script -----
@@ -209,9 +272,10 @@ applyRenderJson({jsHash: "test-hash", jsText: "// scoped-js bundle stub"});
 
 // Capture console.warn so we can assert the gate emits a diagnostic when
 // a Head asset terminates without successfully defining its global.
-const capturedWarnings = [];
-const realConsoleWarn = console.warn;
-console.warn = (...args) => {
+// The gate warns when a Head asset terminates without defining its global; the diagnostic is
+// part of the contract, so it is captured and asserted rather than merely suppressed.
+const capturedWarnings: string[] = [];
+console.warn = (...args: unknown[]) => {
     capturedWarnings.push(args.map(String).join(" "));
     // Suppress in test output to keep stderr clean.
 };
@@ -222,25 +286,31 @@ console.warn = (...args) => {
 // when it's defined — undefined-deref no longer surfaces as an
 // uncaught TypeError.
 let invokeFired = false;
-let invokeSawHljs = null;
-let invokeThrew = null;
-globalThis.Rask = {
+let invokeSawHljs: boolean | null = null;
+let invokeThrew: string | null = null;
+// The scoped-asset namespace the gate parks Rask.* invokes against, standing in for what a
+// component's own compiled asset would register.
+const scoped = globalThis as unknown as {
+    Rask: Record<string, Record<string, () => void>>;
+    hljs?: { highlightElement(el: unknown): void };
+};
+scoped.Rask = {
     CodeSample: {
         rendered: function () {
             invokeFired = true;
-            invokeSawHljs = typeof globalThis.hljs !== "undefined";
+            invokeSawHljs = typeof scoped.hljs !== "undefined";
             try {
                 // Mirrors the post-fix CodeSample.js: guard, then call. The
                 // gate's drain is correct (queued invokes must eventually run
                 // so the page doesn't hang); the *user code* is what makes
                 // the page survive a failed asset.
-                if (typeof globalThis.hljs === "undefined"
-                    || typeof globalThis.hljs.highlightElement !== "function") {
+                if (typeof scoped.hljs === "undefined"
+                    || typeof scoped.hljs.highlightElement !== "function") {
                     return;
                 }
-                globalThis.hljs.highlightElement({});
+                scoped.hljs.highlightElement({});
             } catch (e) {
-                invokeThrew = e.message;
+                invokeThrew = e instanceof Error ? e.message : String(e);
             }
         }
     }
@@ -270,6 +340,6 @@ process.stdout.write(JSON.stringify({
     // Diagnostic emitted by the gate's 'error' path — must name the URL so
     // the developer can trace the consequent un-highlighted DOM back to the
     // asset that failed.
-    warnedAboutFailedAsset: capturedWarnings.some(w =>
+    warnedAboutFailedAsset: capturedWarnings.some((w: string) =>
         w.includes("[Rask]") && w.includes("highlight.min.js") && w.includes("error"))
 }) + "\n");
