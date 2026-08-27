@@ -334,7 +334,7 @@ A message that is never sent anywhere — a job payload, an outbox event — sho
 
 `--tailwind` works here too, and it works the way this ecosystem expects rather than the way the C#
 hosts do: `@tailwindcss/vite` and `tailwindcss` land in the client's own `package.json`, the plugin
-goes into its Vite config, and the entry stylesheet is one `@import "tailwindcss"`.
+goes into its Vite config, and the entry stylesheet imports Tailwind.
 
 ```bash
 rask new Shop --template react --tailwind
@@ -342,9 +342,29 @@ rask new Shop --template react --tailwind
 
 The client already has Node, a bundler and a dev server with HMR, so routing its CSS through MSBuild
 — which is what [`Rask.Tailwind`](tailwind.md) does on a C# host — would be strictly worse. The
-scaffolded stylesheet **replaces** create-vite's starter CSS rather than sitting beside it: the
-starter styles the placeholder page the template has already overlaid away, and leaving it in would
-fight Tailwind's own reset.
+scaffolded stylesheet **replaces** create-vite's starter CSS rather than sitting beside it, because
+leaving it in would fight Tailwind's own reset.
+
+Replacing it is only half the job, though, and the half that is easy to get wrong. Part of that
+starter CSS styles the placeholder page the template has already overlaid away — but the rest styles
+`body`, `h1` and `p` **by tag**, and those tags are exactly what the starter still renders. So the
+stylesheet Rask writes puts that styling back, in a base layer:
+
+```css
+@import "tailwindcss";
+
+@layer base {
+  h1 {
+    @apply text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+  }
+  /* …and the other elements the starter renders */
+}
+```
+
+These are ordinary utilities, applied by element instead of spelled out in a `class` attribute —
+the starter's markup is the same file whether or not you passed `--tailwind`. Move any rule into
+your own markup and delete it; that is the same page. Delete the layer entirely and the page renders
+as unstyled text, because Tailwind's preflight removes the browser's defaults on purpose.
 
 ## Installable, and push-capable
 

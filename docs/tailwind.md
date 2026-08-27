@@ -134,9 +134,12 @@ MSBuild instead would be strictly worse. The C# side of the solution is untouche
 rask new Shop --template react --tailwind
 ```
 
-The generated global stylesheet **replaces** create-vite's starter CSS rather than sitting beside it:
-the starter styles the placeholder page the template has already overlaid away, and leaving it in
-would fight Tailwind's own reset.
+The generated global stylesheet **replaces** create-vite's starter CSS rather than sitting beside it,
+because leaving it in would fight Tailwind's own reset. It carries a `@layer base` as well as the
+import: part of the file being replaced styles the placeholder page the template overlaid away, but
+the rest styles `body`, `h1` and `p` **by tag**, and those tags are what the starter still renders.
+Import alone and preflight leaves the page as unstyled text. See
+[Styling](spa.md#styling) for what that layer contains and how to move it into your own markup.
 
 ## See also
 

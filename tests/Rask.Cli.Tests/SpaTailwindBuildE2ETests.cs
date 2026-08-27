@@ -141,6 +141,19 @@ public sealed class SpaTailwindBuildE2ETests
             // through as literal text.
             Assert.Contains("box-sizing", emitted, StringComparison.Ordinal);
             Assert.DoesNotContain("@import \"tailwindcss\"", emitted, StringComparison.Ordinal);
+
+            // Everything above is satisfied by the PROBE, which this test injects itself — so it proves
+            // the compiler runs on what it is handed, and nothing about the page the user opens. That gap
+            // shipped: the starter's markup carries no classes, `--tailwind` replaced the scaffolder's
+            // stylesheet with a bare @import, and preflight then reset the tags that stylesheet had been
+            // styling. The flag produced a WORSE-looking page than no flag at all, with every check green
+            // (https://github.com/pal-tamas/rask/issues/859).
+            //
+            // The starter now styles its own elements from the base layer, and these are what say so.
+            // Layout on `main` and a radius on `button`: preflight sets neither, so a rule carrying them
+            // is the starter's own and not something Tailwind would have emitted regardless.
+            AssertStarterRule(emitted, "main", "display:flex", frameworkKey);
+            AssertStarterRule(emitted, "button", "border-radius", frameworkKey);
         }
         finally
         {
@@ -164,5 +177,52 @@ public sealed class SpaTailwindBuildE2ETests
         Assert.True(File.Exists(file), $"[{frameworkKey}] expected an entry component at {file}.");
 
         File.AppendAllText(file, $"\n// tailwind probe: {Probe}\n");
+    }
+
+    /// <summary>Where a selector can begin: right after the previous rule's brace, or at the start.</summary>
+    private static readonly char[] SelectorStops = ['{', '}'];
+
+    /// <summary>
+    ///     Asserts the emitted CSS carries a rule whose selector is the BARE element and whose body holds
+    ///     <paramref name="declaration" />.
+    /// </summary>
+    /// <remarks>
+    ///     Rule by rule rather than by substring, because Tailwind's preflight emits element selectors of
+    ///     its own — <c>emitted.Contains("button")</c> is true even with the starter's whole base layer
+    ///     dropped, which is precisely the state this is here to catch. Pairing the selector with a
+    ///     declaration preflight does not set is what makes the check mean something.
+    /// </remarks>
+    private static void AssertStarterRule(string css, string element, string declaration, string frameworkKey)
+    {
+        for (var open = css.IndexOf('{', StringComparison.Ordinal); open >= 0;
+             open = css.IndexOf('{', open + 1))
+        {
+            var close = css.IndexOf('}', open + 1);
+            var nested = css.IndexOf('{', open + 1);
+
+            // A wrapper — @layer, @media, @supports. Its inner rules are reached on their own pass, so
+            // stepping over it here would skip exactly the rules being looked for: Tailwind v4 emits the
+            // base layer as a real `@layer base { … }`.
+            if (close < 0 || (nested >= 0 && nested < close))
+            {
+                continue;
+            }
+
+            var boundary = open == 0 ? -1 : css.LastIndexOfAny(SelectorStops, open - 1);
+            var selector = css[(boundary + 1)..open];
+            var body = css[(open + 1)..close].Replace(" ", string.Empty, StringComparison.Ordinal);
+
+            if (body.Contains(declaration, StringComparison.Ordinal)
+                && selector.Split(',').Any(part => part.Trim() == element))
+            {
+                return;
+            }
+        }
+
+        Assert.Fail(
+            $"[{frameworkKey}] the emitted CSS styles no bare '{element}' with '{declaration}', so the "
+            + "starter's own base layer never reached the output. Tailwind compiles (the probe above "
+            + "proved that), but the page the template ships renders unstyled — which is worse than the "
+            + $"same project without --tailwind. Emitted {css.Length} bytes of CSS.");
     }
 }
