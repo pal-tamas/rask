@@ -84,5 +84,17 @@ if [ "$status" -ne 0 ]; then
   exit "$status"
 fi
 
+# A case that did not run is not a case that passed, and "Skipped" scrolls past in a log this long.
+# The env-gating every case carries is already satisfied here (RASK_CLI_BUILD_E2E=1, exported above), so
+# a skip inside THIS gate is rare and worth a sentence — it means something declined to run for a reason
+# nobody has looked at yet. Reported rather than fatal: some skips are legitimately environmental, and an
+# allow-list of "expected" ones is exactly the sort of thing that quietly stops meaning anything.
+skipped="$(grep -E '^[[:space:]]*Skipped ' "$log" || true)"
+if [ -n "$skipped" ]; then
+  echo
+  echo "==> $(printf '%s\n' "$skipped" | wc -l | tr -d ' ') case(s) SKIPPED — a gate that does not run is not a gate:"
+  printf '%s\n' "$skipped" | sed 's/^[[:space:]]*/    /'
+fi
+
 echo
 echo "==> CLI build gate passed."

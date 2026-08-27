@@ -78,7 +78,12 @@ fi
 # it packs 19 packages and runs several full builds, and only the CLI's generators, the packages a
 # generated project references, or the tutorial it reproduces can change its answer. Running it on
 # every push (a docs typo, a Bootstrap component) is minutes of tax for a foregone conclusion.
-generator_paths='^(src/Rask\.Cli/(Scaffolding|Templates)/|src/Rask\.[A-Za-z.]+/|docs/tutorial/|Directory\.Packages\.props|tests/Rask\.Cli\.Tests/(CliBuildE2E|ProjectGeneratorBuildE2ETests|TutorialWalkthroughE2ETests)\.cs)'
+# The test-file arm matches *BuildE2ETests by SHAPE rather than by name. A hand-listed set rots
+# silently: SpaTailwindBuildE2ETests arrived with the SPA Tailwind proof and was never added, so nothing
+# in this push could trigger the gate that runs it — the filter is itself one of the ways a gate stops
+# running without saying so. run-cli-build-e2e.sh is here for the same reason: a change to the gate
+# script must run the gate.
+generator_paths='^(src/Rask\.Cli/(Scaffolding|Templates)/|src/Rask\.[A-Za-z.]+/|docs/tutorial/|Directory\.Packages\.props|scripts/run-cli-build-e2e\.sh|tests/Rask\.Cli\.Tests/([A-Za-z.]*BuildE2ETests|CliBuildE2E|TutorialWalkthroughE2ETests)\.cs)'
 
 if [ "${RASK_SKIP_CLI_BUILD_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_CLI_BUILD_E2E=1 set — skipping the CLI build gate."
