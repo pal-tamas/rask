@@ -8,6 +8,28 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **The browser gate no longer needs PowerShell, and no longer skips itself quietly when it is
+  missing.** `scripts/run-e2e-local.sh` installed the Playwright browsers by shelling out to
+  `pwsh <path>/playwright.ps1 install chromium`, and skipped that step whenever `pwsh` was absent.
+  On Linux that is the ordinary case rather than the edge one — PowerShell is in neither Fedora's nor
+  Debian's repositories — so the notice went into the middle of the thousands of build lines the gate
+  prints from `.githooks/pre-push`, and the suite failed minutes later with a missing-browser error
+  naming the browsers instead of the skipped install
+  ([#867](https://github.com/pal-tamas/rask/issues/867)).
+
+  The dependency was never real: `playwright.ps1` is six lines that load `Microsoft.Playwright.dll` and
+  call its `Main`, and the same package ships `.playwright/node/<rid>/node` alongside
+  `.playwright/package/cli.js` — the driver the binding launches at runtime. `rask_playwright_driver`
+  (`scripts/lib/playwright.sh`) resolves that pair, and `scripts/playwright.sh` wraps it for humans:
+  `scripts/playwright.sh install chromium`, `scripts/playwright.sh show-trace <file>`. That is also the
+  version-correct route rather than a workaround — it installs the browser revisions the pinned
+  `Microsoft.Playwright` asks for, which `npx playwright install` does not guarantee.
+
+  Resolution is table-tested (`scripts/tests/playwright.test.sh`) across the three rid directories this
+  runs on and every way the lookup can come back empty, because a resolver that quietly finds nothing is
+  what produced the original silent skip. The gate now resolves in the `if` condition and installs in the
+  body: `set -e` is suspended inside a condition, so running the install there would have swallowed a
+  failed download into the else branch and continued having installed nothing.
 - **The Node floor is now enforced, not just documented.** `RaskSpaMinimumNode` was described in
   `Rask.Spa.Hosting.props` as the version "the probe reports anything older" against, and `docs/spa.md`
   told you to set it "if you want the build to insist on more than Rask does". Nothing compared against
