@@ -203,14 +203,31 @@ and the layout follows.
 
 ## WASM and ICU
 
-A WASM app needs culture data, and Rask does **not** ship it by default because it is roughly 2.6 MB:
+A WASM app needs culture data, and Rask does **not** ship it by default, because it is the one part of
+this feature you can measure on the download. `rask new --template wasm --culture hu` sets it for you;
+add it by hand to an app that grows a second language later:
 
 ```xml
 <RaskGlobalization>true</RaskGlobalization>
 ```
 
-Without it every culture formats identically and only the invariant culture resolves. The app still
-runs and says so once at startup rather than once per render.
+Measured on the WASM showcase, publishing the same trimmed app with and without it:
+
+| | raw | brotli (what a host serves) |
+| --- | --- | --- |
+| without ICU | 12.44 MB | 3.28 MB |
+| with ICU | 16.36 MB | 4.33 MB |
+| **cost** | **+3.92 MB** | **+1.05 MB (+32%)** |
+
+Roughly a third of that is the `icudt*.dat` files themselves; the rest is a larger `dotnet.native.wasm`
+and `System.Private.CoreLib`, because turning globalization on brings back runtime code that invariant
+mode trims away. That is why localization is opt-in on the browser templates and standard on `server`,
+where the runtime already carries ICU and it costs nothing.
+
+Without it every culture formats identically and only the invariant culture resolves — and because
+Rask's resolver refuses to let a culture *pose* as supported when the data isn't there, an app that
+configures languages without ICU starts with an empty supported-language list and says so once at
+startup rather than once per render.
 
 **Translated text works either way** — lookup is keyed on a language tag rather than a `CultureInfo`,
 so an app can ship three languages with no ICU at all. Only date/number *formatting* falls back.
