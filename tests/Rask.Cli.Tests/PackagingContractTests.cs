@@ -96,6 +96,104 @@ public sealed class PackagingContractTests
         Assert.Equal(@"build\", item.Attribute("PackagePath")?.Value);
     }
 
+    /// <summary>
+    ///     Every MSBuild task assembly a packed <c>.targets</c> will try to load, paired with the package
+    ///     that has to ship it.
+    /// </summary>
+    /// <remarks>
+    ///     Derived from the <c>UsingTask</c> that loads it rather than hand-listed, so a package that
+    ///     grows a task is covered the day it does. Hand-kept lists are how the neighbouring gates rotted
+    ///     — <c>Rask.Tailwind</c> was absent from <c>CliBuildE2E.FeedPackages</c> from the day it shipped,
+    ///     and it is one of the three packages this finds.
+    /// </remarks>
+    public static TheoryData<string, string> PackedTaskAssemblies()
+    {
+        const string here = "$(MSBuildThisFileDirectory)";
+        var data = new TheoryData<string, string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var dir in Directory.EnumerateDirectories(Path.Combine(_repoRoot, "src"))
+                     .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            var package = Path.GetFileName(dir);
+            var targets = Path.Combine(dir, "build", $"{package}.targets");
+
+            if (!File.Exists(targets) || !File.Exists(Path.Combine(dir, $"{package}.csproj")))
+            {
+                continue;
+            }
+
+            foreach (var task in XDocument.Load(targets).Descendants("UsingTask"))
+            {
+                var assembly = task.Attribute("AssemblyFile")?.Value ?? string.Empty;
+
+                if (assembly.StartsWith(here, StringComparison.Ordinal)
+                    && assembly.EndsWith(".dll", StringComparison.Ordinal)
+                    && seen.Add(package + "/" + assembly))
+                {
+                    data.Add(package, assembly[here.Length..]);
+                }
+            }
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    ///     A task assembly produced during the build is packed by NAME, never left to <c>build\**</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A glob is expanded at project <b>evaluation</b>, before any target runs — including the
+    ///         build of the <c>ProjectReference</c> that produces the DLL. On a tree where it is not
+    ///         already on disk the glob matches nothing, <c>dotnet pack</c> <b>succeeds</b>, and the
+    ///         package ships with a <c>UsingTask</c> pointing at a file that is not in it. The consumer
+    ///         fails with MSB4062; packing again on the same machine is correct, because the first build
+    ///         left the DLL behind — so it reads as flakiness rather than as a fact about ordering
+    ///         (<see href="https://github.com/pal-tamas/rask/issues/852" />).
+    ///     </para>
+    ///     <para>
+    ///         A literal <c>Include</c> needs the file only when the item is copied, which is after the
+    ///         reference has built. It also turns the failure loud: a genuinely missing file is NU5019
+    ///         and a non-zero pack, verified by pointing one at a name nothing produces.
+    ///     </para>
+    ///     <para>
+    ///         Structural, like the rest of this class, and for the same reason — the defect exists only
+    ///         on the far side of a <c>dotnet pack</c>, and only on a tree that has not built yet, which
+    ///         no in-repo build ever is by the time a suite runs.
+    ///     </para>
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(PackedTaskAssemblies))]
+    public void A_generated_task_assembly_is_packed_by_name_rather_than_left_to_a_glob(string package, string dll)
+    {
+        var csproj = XDocument.Load(Path.Combine(_repoRoot, "src", package, $"{package}.csproj"));
+        var packItems = csproj.Descendants("None")
+            .Where(e => (e.Attribute("Include")?.Value ?? string.Empty)
+                .StartsWith(@"build\", StringComparison.Ordinal))
+            .ToArray();
+
+        var literal = packItems.SingleOrDefault(e => e.Attribute("Include")?.Value == $@"build\{dll}");
+
+        Assert.True(
+            literal is not null,
+            $"{package}.csproj leaves build/{dll} to a glob, but build/{package}.targets loads it with a "
+            + "UsingTask. A glob is expanded at evaluation, before the ProjectReference that produces the "
+            + "DLL has built — so on a tree where it is not already on disk, pack SUCCEEDS and ships a "
+            + $"package whose UsingTask points at a file that is not in it. Add: <None Include=\"build\\{dll}\" "
+            + "Pack=\"true\" PackagePath=\"build\\\"/>.");
+
+        Assert.Equal("true", literal!.Attribute("Pack")?.Value);
+        Assert.Equal(@"build\", literal.Attribute("PackagePath")?.Value);
+
+        // Any glob beside it must exclude the DLL, or once the file IS on disk it is collected twice.
+        foreach (var glob in packItems.Where(e =>
+                     (e.Attribute("Include")?.Value ?? string.Empty).Contains('*', StringComparison.Ordinal)))
+        {
+            Assert.Contains(dll, glob.Attribute("Exclude")?.Value ?? string.Empty, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public void Rask_Core_does_not_pretend_to_pack_its_own_build_integration()
     {
