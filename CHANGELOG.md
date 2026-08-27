@@ -291,7 +291,7 @@ them until tagged releases begin.
   build generates the second project into `obj/` and drives it. It compiles the app's own sources: the
   same `App.cs`, the same pages, minus `Program.cs` (it gets a generated entry point) and minus
   `Server/**`, the convention for code that only exists on the server. A page that cannot move to the
-  browser goes there, and RASK054 says which those are.
+  browser goes there, and RASK055 says which those are.
 
   Publish-only. `dotnet run` is untouched, because a bundle takes minutes to link and buys nothing in
   development, where the page is server-live and hot-reloaded.
@@ -359,7 +359,7 @@ them until tagged releases begin.
   If the paint throws, the document has already changed hands and nothing is driving it, so the
   fallback is a full page load — one slow navigation rather than a link that does nothing.
 
-- **RASK054 reports a page that cannot run in the browser.** A routed page injecting something that
+- **RASK055 reports a page that cannot run in the browser.** A routed page injecting something that
   only exists in the server process — Entity Framework's `DbContext` or `IDbContextFactory<T>`, or
   anything from `Rask.Server` — stays server-live rather than moving into WebAssembly.
 
@@ -638,6 +638,10 @@ them until tagged releases begin.
   default root, so a caller with no opinion gets the right place instead of a 27 MB unpack into a
   directory named by the empty string.
 
+### Changed
+- **The scoped-JavaScript diagnostic is RASK055.** `main` took RASK054 for "Page cannot run in the
+  browser" while this work was in flight, and two descriptors cannot share an id.
+
 ### Fixed
 - **Two regressions the conversion introduced, both invisible in a hand review.**
 
@@ -681,7 +685,7 @@ them until tagged releases begin.
   is the only place this is visible — an in-repo `ProjectReference` puts everything on an ordinary
   path. It asserts both directions, that the annotation was stripped rather than the raw `.ts`
   registered, that the emitted form is still the one `ScopedAssetRegistry` parses, and that a `.js`
-  sibling stops a consumer's build with RASK054.
+  sibling stops a consumer's build with RASK055.
 
 ### Removed
 - **`build/Rask.MinifyJs.targets`** and the `@@RASK_*@@` splice markers, along with the
@@ -723,7 +727,7 @@ them until tagged releases begin.
   precisely what would keep that from being an error.
 
 ### Changed
-- **BREAKING: scoped component assets are TypeScript. A `.js` sibling is a build error (RASK054).**
+- **BREAKING: scoped component assets are TypeScript. A `.js` sibling is a build error (RASK055).**
   `Counter.cs` now pairs with `Counter.ts`, which Rask compiles before the browser sees it and
   registers on `window.Rask["Counter"]` exactly as before. Migrating is the rename and nothing else —
   TypeScript is a superset of JavaScript, so an existing ES module is already valid; add annotations

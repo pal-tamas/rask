@@ -654,7 +654,7 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// <para>
     /// Both directions again. The positive proves the chain end to end, down to the emitted registration
     /// containing the compiled body — a compile that silently produced nothing would still register a
-    /// class, so the assertion is on the CONTENT. The negative proves RASK054 actually fires for a consumer:
+    /// class, so the assertion is on the CONTENT. The negative proves RASK055 actually fires for a consumer:
     /// the whole point of the no-opt-out decision is that a <c>.js</c> sibling stops the build, and a rule
     /// that only fires in-repo would be the decision in name only.
     /// </para>
@@ -729,15 +729,15 @@ public sealed class ProjectGeneratorBuildE2ETests
             // `export { ... }` clause and register nothing at all, silently, in the browser only.
             Assert.Contains("export function scopedProbe(", emitted, StringComparison.Ordinal);
 
-            // Negative control. A .js sibling is RASK054, which has no opt-out — so a consumer who was
+            // Negative control. A .js sibling is RASK055, which has no opt-out — so a consumer who was
             // writing scoped JavaScript yesterday is told, rather than finding their asset ignored.
             fs.WriteAllText(Path.Combine(projectDir, "Features", "Home", "HomePage.js"), "export function stale() {}");
 
             var (strayExit, strayOutput) = await CliBuildE2E.RunDotnet($"build \"{csproj}\" -m:1");
             Assert.True(
                 strayExit != 0,
-                $"[wasm={wasm}] a .js sibling built cleanly — RASK054 never fired for a consumer.{CliBuildE2E.Diagnostics(strayOutput)}");
-            Assert.Contains("RASK054", strayOutput, StringComparison.Ordinal);
+                $"[wasm={wasm}] a .js sibling built cleanly — RASK055 never fired for a consumer.{CliBuildE2E.Diagnostics(strayOutput)}");
+            Assert.Contains("RASK055", strayOutput, StringComparison.Ordinal);
         }
         finally
         {

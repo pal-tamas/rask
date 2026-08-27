@@ -55,7 +55,7 @@ internal static class GeneratorDriverFixture
     /// <param name="scopedTs">The author's <c>.ts</c> files, as (path, COMPILED contents).</param>
     /// <param name="strayJs">
     ///     Paths for <c>RaskStrayScopedJs</c> — the <c>.js</c> siblings MSBuild found but never
-    ///     compiled, which is how RASK054 is reported without csc ever opening them.
+    ///     compiled, which is how RASK055 is reported without csc ever opening them.
     /// </param>
     public static GeneratorRun RunScoped(
         (string Path, string Source)[] sources,

@@ -169,7 +169,7 @@ internal static partial class ProjectGenerator
     ///     </para>
     ///     <para>
     ///         <c>noEmit</c>, because tsgo writes the output and it writes it elsewhere. An editor that
-    ///         decided to emit would drop a <c>.js</c> beside the <c>.ts</c> — which is RASK054, and a
+    ///         decided to emit would drop a <c>.js</c> beside the <c>.ts</c> — which is RASK055, and a
     ///         confusing way to meet it.
     ///     </para>
     /// </remarks>

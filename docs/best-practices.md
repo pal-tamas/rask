@@ -207,7 +207,7 @@ mistake, the rule notes the ID.
 - **Inject `IJSRuntime` through the constructor and call from a hook or handler** — interop is only
   live once the session is up (after `OnMount`, or inside handlers). One scoped `{Component}.css` /
   `{Component}.ts` sits next to `{Component}.cs` and is auto-included and isolated; orphan or
-  ambiguous assets are **RASK015–018**, a `.js` sibling is **RASK054**, and two scoped components sharing a simple type name
+  ambiguous assets are **RASK015–018**, a `.js` sibling is **RASK055**, and two scoped components sharing a simple type name
   collide at `window.Rask[Name]` (**RASK020**).
 - **Put global styles in `wwwroot`, not a scoped CSS file.** Scoped CSS has no opt-out selector, so a
   brand palette, `:root` variables, shell tags, or Bootstrap belong in a plain stylesheet linked from

@@ -92,7 +92,7 @@ public class ActionableDiagnosticMessageTests
     }
 
     /// <summary>
-    ///     RASK054 names the file, the component, and the exact rename that fixes it.
+    ///     RASK055 names the file, the component, and the exact rename that fixes it.
     /// </summary>
     /// <remarks>
     ///     The remedy is the whole point of this one. "Scoped JavaScript is no longer supported"
@@ -115,7 +115,7 @@ public class ActionableDiagnosticMessageTests
             [],
             strayJs: ["/proj/Widgets/Counter.js"]);
 
-        var message = run.Diagnostics.First(d => d.Id == "RASK054").GetMessage();
+        var message = run.Diagnostics.First(d => d.Id == "RASK055").GetMessage();
         Assert.Contains(" — ", message, StringComparison.Ordinal);
         Assert.Contains("Counter.js", message, StringComparison.Ordinal);
         Assert.Contains("'Counter.ts'", message, StringComparison.Ordinal);

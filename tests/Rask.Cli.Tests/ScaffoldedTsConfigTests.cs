@@ -57,7 +57,7 @@ public class ScaffoldedTsConfigTests
         var options = document.RootElement.GetProperty("compilerOptions");
 
         // An editor or a stray `tsc` in this directory that decided to emit would write a .js beside
-        // the .ts — which is RASK054, and a confusing way to meet it. tsgo writes the real output, to
+        // the .ts — which is RASK055, and a confusing way to meet it. tsgo writes the real output, to
         // obj/, with flags of its own.
         Assert.True(options.GetProperty("noEmit").GetBoolean(), "the scaffolded tsconfig must not emit.");
 

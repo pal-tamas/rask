@@ -275,7 +275,7 @@ export function getBasePath() {
     // This is the same fix the Server runtime's own getBasePath already carries, for the same reason
     // and against the same failure. The two had simply diverged; the takeover is where the divergence
     // shows, since it is the one arrangement that runs this code on a server-rendered document.
-    const baseEl = document.querySelector("base[href]");
+    const baseEl = document.querySelector<HTMLBaseElement>("base[href]");
     if (!baseEl) {
         basePath = "/";
         return basePath;

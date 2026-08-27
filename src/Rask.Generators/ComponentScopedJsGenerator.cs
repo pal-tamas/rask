@@ -81,7 +81,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         helpLinkUri: DiagnosticHelp.Link("RASK020"));
 
     private static readonly DiagnosticDescriptor Rask054 = new(
-        "RASK054",
+        "RASK055",
         "Scoped JavaScript is no longer supported",
         "'{0}' sits beside component '{1}', and Rask no longer compiles or registers a scoped '.js' file — rename it "
         + "to '{1}.ts'. The body needs no change: TypeScript is a superset of JavaScript, so an existing module is "
@@ -93,7 +93,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                      + "ignored, because a scoped script that stops being registered does not fail — it produces a "
                      + "component whose window.Rask methods are simply absent, which surfaces as a control that does "
                      + "nothing.",
-        helpLinkUri: DiagnosticHelp.Link("RASK054"));
+        helpLinkUri: DiagnosticHelp.Link("RASK055"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -320,7 +320,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    ///     RASK054 — a <c>.js</c> sitting where a scoped asset would go.
+    ///     RASK055 — a <c>.js</c> sitting where a scoped asset would go.
     /// </summary>
     /// <remarks>
     ///     <para>

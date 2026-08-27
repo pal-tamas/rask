@@ -1,7 +1,7 @@
 # JavaScript interop: element refs, scoped CSS & TypeScript
 
 Reaching the DOM and shipping component-scoped styles and scripts. Scoped scripts are
-TypeScript; a `.js` sibling is refused at build time (RASK054). The same code runs on
+TypeScript; a `.js` sibling is refused at build time (RASK055). The same code runs on
 both transports — Server (WebSocket) and WASM (`JSImport`/`JSExport`).
 
 ## On this page
@@ -87,7 +87,7 @@ becomes callable as `Rask.ElementRefDemo.width`. Two scoped components that shar
 simple type name collide at `window.Rask[Name]` — **RASK020** warns about this
 (RASK017 / RASK018 cover orphan / ambiguous `.ts`).
 
-**A `.js` sibling is a build error — [RASK054](diagnostics.md#rask054).** TypeScript is a superset of
+**A `.js` sibling is a build error — [RASK055](diagnostics.md#rask055).** TypeScript is a superset of
 JavaScript, so migrating an existing scoped script is the rename and nothing else; add annotations at
 whatever pace suits you. The reason it is an error rather than a quiet fallback is that the failure
 has nowhere else to surface: an unregistered scoped script leaves `window.Rask["Name"]` with no
@@ -123,7 +123,7 @@ so the staged copy is what makes `window.Rask` and `window.DotNet` resolve while
 appears after the first build — before that, expect your editor not to know them yet.
 
 `noEmit` is set deliberately. An editor that decided to emit would write a `.js` beside your `.ts`,
-and that is [RASK054](diagnostics.md#rask054) — a confusing way to meet it.
+and that is [RASK055](diagnostics.md#rask055) — a confusing way to meet it.
 
 ---
 

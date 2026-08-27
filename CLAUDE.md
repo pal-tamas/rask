@@ -88,5 +88,5 @@ started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–054 are documented in `docs/diagnostics.md`
-  (RASK030/032/042/047/048/049/050 are retired and not to be recycled; RASK055 is next).
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–055 are documented in `docs/diagnostics.md`
+  (RASK030/032/042/047/048/049/050 are retired and not to be recycled; RASK056 is next).

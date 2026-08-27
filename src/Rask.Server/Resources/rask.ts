@@ -83,14 +83,14 @@ import "../../Rask.Core/Resources/rask-events.js";
     // The handover lands on a navigation deliberately. A fresh mount is what a navigation already does,
     // so there is no live state to carry across — the problem that makes mid-page handovers hard simply
     // does not arise here.
-    function tryTakeOver(url, isPop) {
+    function tryTakeOver(url: URL, isPop: boolean): boolean {
         const paint = window.__raskWasmPaint;
         if (typeof paint !== "function") return false;
 
         // Hand off BEFORE painting. The browser runtime is about to write this document, and this one
         // must have stopped sending by then — otherwise a frame already in flight lands on a page it no
         // longer owns and overwrites what the new runtime just drew.
-        window.__raskHandOff();
+        window.__raskHandOff?.();
 
         // The server would normally have moved history as part of its navigation reply. It is not
         // answering any more, so this runtime moves it on the way out. A popstate has already moved.

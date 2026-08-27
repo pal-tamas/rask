@@ -126,7 +126,7 @@ public class ComponentScopedJsGeneratorTests
     }
 
     /// <summary>
-    ///     RASK054 fires for a `.js` sitting where a scoped asset would go.
+    ///     RASK055 fires for a `.js` sitting where a scoped asset would go.
     /// </summary>
     [Fact]
     public void Rask054_FiresForAJsSiblingOfAComponent()
@@ -144,14 +144,14 @@ public class ComponentScopedJsGeneratorTests
             [],
             strayJs: ["/proj/Counter.js"]);
 
-        Assert.Contains(run.Diagnostics, d => d.Id == "RASK054");
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK055");
     }
 
     /// <summary>
     ///     A `.js` with no component of that name beside it is somebody else's file, and is left alone.
     /// </summary>
     /// <remarks>
-    ///     This is the case that decides where RASK054 lives. MSBuild can only see the filesystem, so
+    ///     This is the case that decides where RASK055 lives. MSBuild can only see the filesystem, so
     ///     the best rule it could apply is "a .js next to a .cs" — which breaks a consumer whose
     ///     `Helpers.cs` is an ordinary static class and whose `Helpers.js` is a vendored script, with
     ///     no opt-out to reach for. Keying on "beside a Component subclass of that name" is semantic,
@@ -174,7 +174,7 @@ public class ComponentScopedJsGeneratorTests
             [],
             strayJs: ["/proj/vendor-widget.js", "/proj/Helpers.js"]);
 
-        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK054");
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK055");
     }
 
     /// <summary>

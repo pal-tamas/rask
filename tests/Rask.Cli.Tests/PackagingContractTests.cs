@@ -167,17 +167,33 @@ public sealed class PackagingContractTests
     [MemberData(nameof(PackedTaskAssemblies))]
     public void A_generated_task_assembly_is_packed_by_name_rather_than_left_to_a_glob(string package, string dll)
     {
-        var csproj = XDocument.Load(Path.Combine(_repoRoot, "src", package, $"{package}.csproj"));
-        var packItems = csproj.Descendants("None")
+        // Where the literal has to be depends on who packs this project's build folder.
+        //
+        // Most projects pack their own. Rask.Core does not — it is IsPackable=false and its build
+        // integration is packed INTO every host package by src/RaskCoreBuildPack.targets. A pack item
+        // in Rask.Core.csproj would pack nothing, and satisfying this guard that way would be the same
+        // false signal Rask_Core_does_not_pretend_to_pack_its_own_build_integration exists to forbid.
+        // The guarantee is unchanged either way: some literal Include names the DLL, so it is
+        // collected when the item is copied rather than when the project is evaluated.
+        var unpackable = File.ReadAllText(Path.Combine(_repoRoot, "src", package, $"{package}.csproj"))
+            .Contains("<IsPackable>false</IsPackable>", StringComparison.Ordinal);
+
+        var owner = unpackable ? "RaskCoreBuildPack.targets" : $"{package}.csproj";
+        var ownerPath = unpackable
+            ? Path.Combine(_repoRoot, "src", "RaskCoreBuildPack.targets")
+            : Path.Combine(_repoRoot, "src", package, $"{package}.csproj");
+
+        var packItems = XDocument.Load(ownerPath).Descendants("None")
             .Where(e => (e.Attribute("Include")?.Value ?? string.Empty)
-                .StartsWith(@"build\", StringComparison.Ordinal))
+                .Contains(@"build\", StringComparison.Ordinal))
             .ToArray();
 
-        var literal = packItems.SingleOrDefault(e => e.Attribute("Include")?.Value == $@"build\{dll}");
+        var literal = packItems.SingleOrDefault(e =>
+            (e.Attribute("Include")?.Value ?? string.Empty).EndsWith($@"build\{dll}", StringComparison.Ordinal));
 
         Assert.True(
             literal is not null,
-            $"{package}.csproj leaves build/{dll} to a glob, but build/{package}.targets loads it with a "
+            $"{owner} leaves build/{dll} to a glob, but build/{package}.targets loads it with a "
             + "UsingTask. A glob is expanded at evaluation, before the ProjectReference that produces the "
             + "DLL has built — so on a tree where it is not already on disk, pack SUCCEEDS and ships a "
             + $"package whose UsingTask points at a file that is not in it. Add: <None Include=\"build\\{dll}\" "
@@ -246,7 +262,7 @@ public sealed class PackagingContractTests
         Assert.Contains(typeGlobs, g => g is not null && g.EndsWith("rask-globals.d.ts", StringComparison.Ordinal));
 
         // An author's .js must never reach csc: Rask no longer compiles one, and the only reason it
-        // is globbed at all is so the generator can name it in RASK054.
+        // is globbed at all is so the generator can name it in RASK055.
         //
         // EndsWith rather than Contains, because `Resources\**\*.json` contains ".js" — the classic
         // substring assertion that matches the thing it was meant to exclude.

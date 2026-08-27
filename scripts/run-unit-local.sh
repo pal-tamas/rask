@@ -60,18 +60,15 @@ dotnet format Rask.slnx --verify-no-changes --no-restore
 # malformed TypeScript would ship green.
 #
 # Cached under artifacts/, so the install is a one-off rather than a per-run download.
-# The generated TypeScript is compiled by tsgo, which the test fetches through npx at a pinned version
-# (npx caches it, so only the first run downloads). The rest of this gate deliberately needs no node —
-# the build passes -p:RaskSpaBuild=false — so when npx is absent the check is excluded here, LOUDLY.
-# What must not happen is the third option: a test that quietly reports success without ever having run
-# a type-checker, which is how a generator emitting malformed TypeScript would ship green.
+# The generated TypeScript is compiled by tsgo, which the test fetches as a checksum-verified binary at
+# a pinned version, cached per user. This whole gate needs no node — the build passes
+# -p:RaskSpaBuild=false — and now neither does the type check, so it always runs. What must not happen
+# is a test that quietly reports success without ever having run a type-checker, which is how a
+# generator emitting malformed TypeScript would ship green.
+# Nothing to exclude any more: the check fetches tsgo itself, as a checksum-verified binary, the same
+# way the framework build does. It used to be skipped when npx was absent — and a check whose first
+# question is "is the tooling here?" is one that eventually answers no and stops running.
 tsc_filter=""
-if ! command -v npx >/dev/null 2>&1; then
-  echo "run-unit-local: WARNING — npx is not on PATH, so the generated TypeScript was NOT type-checked." >&2
-  echo "  Install Node.js to run that check, or run it directly with:" >&2
-  echo "    RASK_TSC=<path-to>/tsgo dotnet test tests/Rask.Spa.Tasks.Tests --filter TypeScriptCompiles" >&2
-  tsc_filter="&FullyQualifiedName!~TypeScriptCompiles"
-fi
 
 echo "==> Unit & integration tests (excludes the browser E2E)"
 # --blame-crash: when a test host dies below the managed layer, the run reports "Test host process

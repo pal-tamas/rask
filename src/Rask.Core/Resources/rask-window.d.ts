@@ -9,6 +9,23 @@
 // Kept narrow on purpose: only what the framework's own modules read or write from another module.
 
 interface Window {
+    /**
+     * Stops this runtime sending, so a browser runtime can take the document over.
+     *
+     * Installed by the Server runtime at boot and called from its own navigation path, immediately
+     * before the browser runtime paints — a frame still in flight would otherwise land on a page this
+     * runtime no longer owns and overwrite what the new one just drew.
+     */
+    __raskHandOff?: () => void;
+
+    /**
+     * Published by a PREPARED browser runtime: hands it the page, at the given app-relative URL.
+     *
+     * Undefined until that runtime has booted, which is the whole point — it is checked per
+     * navigation rather than once, so a bundle that never arrives changes nothing.
+     */
+    __raskWasmPaint?: (url?: string | null) => Promise<void> | void;
+
     /** Set by rask-hotreload; called by each host when a hot-reload notification arrives. */
     __raskHotReloadPill?: () => void;
 
