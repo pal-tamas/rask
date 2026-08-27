@@ -5310,6 +5310,13 @@ async function send(payload) {
     }
 }
 
+// The island runtime (Rask.Islands) is a separate, opt-in module and cannot see `send` in this scope.
+// It must not open a channel of its own either: here that would mean an HTTP round trip to a server
+// that may not exist, when the handler it wants is already in this tab's .NET runtime. Going through
+// this bridge keeps an island callback a direct JSExport call, exactly like a DOM handler.
+globalThis.__raskHost = globalThis.__raskHost || {};
+globalThis.__raskHost.send = send;
+
 document.addEventListener("click", (e) => {
     if (e.defaultPrevented) return;
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

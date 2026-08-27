@@ -1,46 +1,57 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Xunit;
 
-namespace Rask.Core.Tests.Live;
+namespace Rask.TestSupport;
 
 /// <summary>
-///     Runs a <c>.mjs</c> fixture in a node subprocess and hands back the JSON line it printed.
+///     Runs a <c>.mjs</c> fixture in a node subprocess and returns the JSON line it printed.
 /// </summary>
 /// <remarks>
-///     Shared by the morph fixtures, which exercise the production
-///     <c>Rask.Core/Resources/rask-morph.js</c> rather than a C# re-implementation of it — the client
-///     morph is real shipped code with real bugs, and a port would only pin the port.
+///     For the client-side code Rask actually ships — the morph, the island runtime. These fixtures
+///     exercise the production <c>.js</c> against a stub DOM rather than a C# port of it, because a
+///     port would only ever pin the port.
 /// </remarks>
-internal static class NodeFixtureRunner
+public static class NodeFixture
 {
     /// <summary>
-    ///     Runs <paramref name="fixtureFileName" /> from <c>tests/Rask.Core.Tests/Live</c>, or returns
-    ///     null when there is no node on PATH.
+    ///     Runs <paramref name="fixture" />, passing each of <paramref name="arguments" /> as an
+    ///     absolute path.
     /// </summary>
+    /// <param name="fixture">The fixture script, as a repo-relative path.</param>
+    /// <param name="arguments">Repo-relative paths handed to the fixture, in order.</param>
+    /// <returns>The parsed JSON line, or null when there is no node on PATH.</returns>
     /// <remarks>
     ///     A missing node is not a failure: these fixtures are a second line of defence behind the
-    ///     browser E2E, and Rask.Core itself needs no JavaScript toolchain to build or test. But the
-    ///     skip is announced rather than silent — xUnit 2.x has no runtime skip, so a bare `return`
+    ///     browser E2E, and none of the .NET projects need a JavaScript toolchain to build or test. But
+    ///     the skip is announced rather than silent — xUnit 2.x has no runtime skip, so a bare return
     ///     reports as a PASS, and a gate that quietly stops running is worse than one that fails.
     /// </remarks>
-    public static JsonDocument? Run(string fixtureFileName)
+    public static JsonDocument? Run(string fixture, params string[] arguments)
     {
         var node = ResolveNode();
         if (node is null)
         {
             Console.WriteLine(
-                $"NodeFixtureRunner: no 'node' on PATH — {fixtureFileName} did NOT run. "
+                $"NodeFixture: no 'node' on PATH — {fixture} did NOT run. "
                 + "The browser E2E covers the user-observable side.");
             return null;
         }
 
         var repoRoot = LocateRepoRoot();
-        var fixture = Path.Combine(repoRoot, "tests", "Rask.Core.Tests", "Live", fixtureFileName);
-        var morph = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-morph.js");
-        Assert.True(File.Exists(fixture), $"Fixture script missing: {fixture}");
-        Assert.True(File.Exists(morph), $"Morph source missing: {morph}");
 
-        var psi = new ProcessStartInfo(node, $"\"{fixture}\" \"{morph}\"")
+        var fixturePath = Path.Combine(repoRoot, fixture.Replace('/', Path.DirectorySeparatorChar));
+        Assert.True(File.Exists(fixturePath), $"Fixture script missing: {fixturePath}");
+
+        var argv = new List<string> { Quote(fixturePath) };
+        foreach (var argument in arguments)
+        {
+            var path = Path.Combine(repoRoot, argument.Replace('/', Path.DirectorySeparatorChar));
+            Assert.True(File.Exists(path), $"Fixture argument missing: {path}");
+            argv.Add(Quote(path));
+        }
+
+        var psi = new ProcessStartInfo(node, string.Join(" ", argv))
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -64,6 +75,8 @@ internal static class NodeFixtureRunner
 
         return JsonDocument.Parse(jsonLine!);
     }
+
+    private static string Quote(string path) => $"\"{path}\"";
 
     private static string? ResolveNode()
     {

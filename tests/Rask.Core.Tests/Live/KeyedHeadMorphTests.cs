@@ -24,7 +24,7 @@ public sealed class KeyedHeadMorphTests
     [Fact]
     public void KeyedHeadMorph_AgainstSdkInjectedHead_DoesNotThrow_AndConverges()
     {
-        using var doc = NodeFixtureRunner.Run("KeyedHeadMorphFixture.mjs");
+        using var doc = NodeFixture.Run("tests/Rask.Core.Tests/Live/KeyedHeadMorphFixture.mjs", "src/Rask.Core/Resources/rask-morph.js");
         if (doc is null)
         {
             return;

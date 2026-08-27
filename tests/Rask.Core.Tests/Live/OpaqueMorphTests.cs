@@ -15,7 +15,7 @@ public sealed class OpaqueMorphTests
     [Fact]
     public void Morph_OpaqueHost_KeepsForeignChildrenAndStillUpdatesProps()
     {
-        using var doc = NodeFixtureRunner.Run("OpaqueMorphFixture.mjs");
+        using var doc = NodeFixture.Run("tests/Rask.Core.Tests/Live/OpaqueMorphFixture.mjs", "src/Rask.Core/Resources/rask-morph.js");
         if (doc is null)
         {
             return;
@@ -41,7 +41,7 @@ public sealed class OpaqueMorphTests
         // The negative control, and the reason the test above is worth having. Identical shapes with
         // the marker off: the morph really does trim the whole subtree. Without this, a boundary that
         // silently stopped working would still look green.
-        using var doc = NodeFixtureRunner.Run("OpaqueMorphFixture.mjs");
+        using var doc = NodeFixture.Run("tests/Rask.Core.Tests/Live/OpaqueMorphFixture.mjs", "src/Rask.Core/Resources/rask-morph.js");
         if (doc is null)
         {
             return;

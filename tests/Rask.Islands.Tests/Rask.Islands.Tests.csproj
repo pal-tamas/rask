@@ -43,6 +43,8 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Islands\Rask.Islands.csproj"/>
+    <!-- For NodeFixture: the client runtime is exercised as the JavaScript it ships, in node. -->
+    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <!-- The island generator has to RUN here: it is what turns the [Island] classes below into host
          elements, and the markup-host entries are injected per compilation. -->
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
