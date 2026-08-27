@@ -2,10 +2,9 @@ namespace Rask.Core.Tests.Resources;
 
 /// <summary>
 ///     Source-level contract for the lagging-frame guards the change dispatch arms. Structural
-///     assertions over the shipped <c>.js</c>, for the same reason as
-///     <see cref="ShutdownClientContractTests" />: the host runtimes are IIFEs that boot against a live
-///     document and still carry unsubstituted <c>@@RASK_*@@</c> splice markers in the Resources copy, so
-///     they cannot be executed in Node. The behaviour of the guards themselves is covered by
+///     assertions over the shipped TypeScript, for the same reason as
+///     <see cref="ShutdownClientContractTests" />: the host entry points boot against a live document, so
+///     they cannot be executed in Node the way the shared modules can. The behaviour of the guards themselves is covered by
 ///     MorphValueGuardTests / MorphCheckedGuardTests / MorphSelectedGuardTests, which do run the shared
 ///     modules; what is pinned here is that the hosts actually ARM them, which nothing else would catch.
 /// </summary>

@@ -4,9 +4,9 @@ namespace Rask.Core.Tests.Resources;
 ///     Source-level contract for the build-status poll (#603) — the client half of "a compile error should
 ///     look like a compile error, not like a dropped connection".
 ///     <para>
-///         Structural, for the same reason as <see cref="HotReloadClientContractTests" />: <c>rask.js</c> is
-///         an IIFE that boots a socket against a live document and still carries its <c>@@RASK_*@@</c>
-///         markers in the Resources copy, so it cannot be loaded in Node. The behavioural proof is manual —
+///         Structural, for the same reason as <see cref="HotReloadClientContractTests" />:
+///         <c>rask.ts</c> is a host entry point that boots a socket against a live document, so it
+///         cannot be loaded in Node the way the shared modules can. The behavioural proof is manual —
 ///         break a file under <c>rask dev</c> and look. What is pinned here is what would fail <i>silently</i>:
 ///         a poll that never stops, a hard-coded endpoint, or a production page that polls localhost.
 ///     </para>
@@ -17,7 +17,7 @@ public class BuildStatusClientContractTests
 
     private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
 
-    /// <summary>The single implementation every transport splices in.</summary>
+    /// <summary>The single implementation every transport imports.</summary>
     private static string SharedJs => Read("src", "Rask.Core", "Resources", "rask-deverror.ts");
 
     [Fact]

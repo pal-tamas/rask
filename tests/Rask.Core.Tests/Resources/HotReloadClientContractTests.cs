@@ -28,7 +28,7 @@ public class HotReloadClientContractTests
     private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
     private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.ts");
 
-    /// <summary>The single implementation every transport splices in.</summary>
+    /// <summary>The single implementation every transport imports.</summary>
     private static string SharedJs => Read("src", "Rask.Core", "Resources", "rask-hotreload.ts");
 
     /// <summary>

@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!--
+      This project has no scoped component assets. Its .ts files are the browser fixtures below, so
+      the scoped-TS glob must not claim them and RASK017 must not ask them to name a component they
+      are not paired with.
+    -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -58,5 +64,39 @@
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
+
+  <!--
+    Browser fixtures. BrowserFixtures/*.ts are entry points that publish a framework module on
+    `window` so a Playwright test can drive it directly, for behaviour only a real browser has — the
+    live selectedOptions list, the split between an option's `selected` attribute and its property.
+
+    Bundled during the BUILD, so one that no longer compiles fails the build with the compiler's
+    message rather than a journey with a ReferenceError.
+
+    iife, not esm: the test injects the bundle with AddScriptTagAsync, and a module script would defer
+    past the point the test starts driving it.
+  -->
+  <ItemGroup>
+    <_RaskBrowserFixture Include="BrowserFixtures\*.ts"/>
+    <_RaskBrowserFixtureDependency Include="..\..\src\Rask.Core\Resources\*.ts"
+                                   Exclude="..\..\src\Rask.Core\Resources\*.d.ts"/>
+  </ItemGroup>
+
+  <Target Name="_RaskBundleBrowserFixtures" AfterTargets="Build"
+          Inputs="@(_RaskBrowserFixture);@(_RaskBrowserFixtureDependency)"
+          Outputs="@(_RaskBrowserFixture->'$(OutDir)browser-fixtures/%(Filename).js')">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)browser-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;%(_RaskBrowserFixture.FullPath)&quot; --bundle --format=iife --target=es2020 --log-level=warning --outfile=&quot;$(OutDir)browser-fixtures/%(_RaskBrowserFixture.Filename).js&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
 
 </Project>

@@ -137,7 +137,7 @@ work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only API
 Under the hood: storage/clipboard methods are plain function calls; `navigator.onLine` and
 `localStorage.length` are *property* reads the client returns directly; and the callback-based
 `getCurrentPosition` is wrapped in a Promise by the framework helper `__raskApi.geolocation`. That
-helper (and `__raskEl`) lives in `src/Rask.Core/Resources/rask-api.js` and is spliced into both
+helper (and `__raskEl`) lives in `src/Rask.Core/Resources/rask-api.ts` and is imported by both
 client runtimes at build time, so the two transports never drift. `GeolocationPosition` is rooted
 for the WASM trimmer by the framework, so it deserializes correctly in a `PublishTrimmed` app.
 

@@ -4,7 +4,7 @@ namespace Rask.Core.Tests.Resources;
 ///     Source-level contract for the graceful-shutdown affordances in the client runtimes. Structural
 ///     assertions over the shipped <c>.js</c>, for the same reason as
 ///     <see cref="HotReloadClientContractTests" />: <c>rask.js</c> is an IIFE that boots a WebSocket
-///     against a live document and still carries its unsubstituted <c>@@RASK_*@@</c> splice markers in
+///     against a live document in
 ///     the Resources copy, so it cannot be executed in Node. What is worth pinning here are the
 ///     invariants that fail silently — a branch that falls through, a gate that shouldn't be there, a
 ///     restore that never gets consumed.

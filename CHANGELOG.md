@@ -606,6 +606,17 @@ them until tagged releases begin.
   target instance id, both of which are strings because they cross the JSExport boundary as .NET
   longs.
 
+- **Documentation caught up with the runtime.** `docs/architecture/live-rendering-codec.md` described
+  the splice, its marker names, and the two constraints it imposed — no `export`/`import`, and hoisted
+  `function` declarations so splice order could not matter. All three are gone. `getting-started.md`,
+  `cli.md`, `js-interop-runtime.md`, `composition-callbacks-context.md`, `llms.txt`, the benchmark
+  baselines and `rask dev`'s own console line named the scoped-asset convention or a framework source
+  as `.js`.
+
+  References to the SERVED artifacts are unchanged and still correct: `/rask/rask.js`,
+  `Browser/main.js`, `rask-sw.js` and the scoped-asset bundle are all still JavaScript at runtime.
+  Only the authoring language changed.
+
 ### Removed
 - **`build/Rask.MinifyJs.targets`** and the `@@RASK_*@@` splice markers, along with the
   `_RaskBuildClientJs`, `_RaskSpliceClientJs` and `_RaskMinifyClientJs` targets and

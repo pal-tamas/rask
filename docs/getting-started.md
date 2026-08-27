@@ -113,7 +113,7 @@ WASM templates differ mainly in `Program.cs`):
   references, source generators) and the local run profile (URLs, environment).
 
 That's the whole starter app — no example `Counter` or `Weather` pages to clean up. You'll add your own
-screens next; a **scoped `.css`** or **`.js`** file is as easy as dropping `{Component}.css` next to a
+screens next; a **scoped `.css`** or **`.ts`** file is as easy as dropping `{Component}.css` next to a
 `{Component}.cs` (same folder, same base name) — its selectors apply only to that component, no leaks.
 
 ## 4. Your first component
@@ -362,7 +362,7 @@ The snags you're most likely to hit on a fresh project:
   SDK (`dotnet --version` must be ≥ `10.0`) or, for WASM, the workload — install it with
   `dotnet workload install wasm-tools`.
 
-- **A scoped `.css` / `.js` file isn't taking effect.** The sibling file must sit in the **same folder**
+- **A scoped `.css` / `.ts` file isn't taking effect.** The sibling file must sit in the **same folder**
   as its component and share the **base name** (`Card.cs` ↔ `Card.css`). A mismatch is a build error
   (`RASK015`–`RASK018`) — check the build output.
 

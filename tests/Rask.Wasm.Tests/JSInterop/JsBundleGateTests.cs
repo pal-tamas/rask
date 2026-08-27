@@ -85,6 +85,31 @@ public sealed class JsBundleGateTests
     }
 
     [Fact]
+    public void TheBundleDoesNotTraceToTheConsole()
+    {
+        // The copy the browser actually downloads. `console.log` in a shipped runtime writes to every
+        // visitor's console, and the payloads here carry whatever the user typed — so a trace left in
+        // by accident is a privacy problem, not an untidiness.
+        //
+        // Asserted on the bundle rather than only on the sources it was built from: this project
+        // references Rask.Wasm, so the bundle is built before this runs. The source halves live in
+        // ClientConsoleContractTests, which cannot make that guarantee.
+        var bundle = ReadBrowserBundle();
+
+        var offenders = bundle
+            .Split('\n')
+            .Select((text, i) => (Line: i + 1, Text: text))
+            .Where(l => l.Text.Contains("console.log", StringComparison.Ordinal))
+            .Select(l => $"  rask.wasm.js:{l.Line}: {l.Text.Trim()}")
+            .ToArray();
+
+        Assert.True(
+            offenders.Length == 0,
+            "The built WASM bundle traces to console.log, which ships to production:"
+            + Environment.NewLine + string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
     public void TheBundleShipsTheGate()
     {
         // The one thing worth asking of the built artifact, and the only kind of thing that can be

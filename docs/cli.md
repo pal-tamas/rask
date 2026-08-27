@@ -411,7 +411,7 @@ rask dev --urls http://localhost:5005
 rask dev -- --my-app-flag            # everything after -- goes to the app
 ```
 
-`rask dev` runs `dotnet watch run`, so editing a component's `Render()` (or a scoped `.css` / `.js`) and
+`rask dev` runs `dotnet watch run`, so editing a component's `Render()` (or a scoped `.css` / `.ts`) and
 saving re-renders the open page live — see [what hot-reloads](#what-hot-reloads) below.
 
 It finds the project for you: in a **wasm-hosted** solution it picks the `.Server` host (the client is
@@ -459,7 +459,7 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | Edit | What happens |
 | --- | --- |
 | A component's `Render()`, or anything it calls | ✅ Applied live; the page repaints in place. |
-| A scoped `.css` / `.js` sibling | ✅ Applied live; the bundle URL changes and the `<link>` is swapped. |
+| A scoped `.css` / `.ts` sibling | ✅ Applied live; the bundle URL changes and the `<link>` is swapped. |
 | Deleting a scoped `.css` | ✅ The rules disappear from the page. |
 | A `[Route]` template | ✅ The route table is rebuilt. |
 | A CQRS command/query/notification handler body | ✅ The next dispatch runs the new code. |

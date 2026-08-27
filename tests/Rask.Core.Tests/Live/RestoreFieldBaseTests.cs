@@ -19,7 +19,7 @@ namespace Rask.Core.Tests.Live;
 //
 // Exercises the production rask-morph.ts in a Node subprocess with a stub DOM, alongside
 // MorphValueGuardTests. The merge decision and the converge send live in rask.js — an IIFE that boots a
-// WebSocket and still carries its unsubstituted splice markers — so those are covered by E2E instead.
+// WebSocket and is a host entry point that boots a socket against a live document — so those are covered by E2E instead.
 public sealed class RestoreFieldBaseTests
 {
     [Fact]
