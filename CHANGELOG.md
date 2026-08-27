@@ -167,6 +167,19 @@ them until tagged releases begin.
   went back in — the same bug class `--template native` was, and the same one it now catches.
 ### Added
 
+- **A WASM app can now boot without painting**, through `WasmHostBuilder.PrepareAsync` and
+  `PaintAsync`. `RunAsync` is unchanged and still does both, which is every standalone WASM app.
+
+  The split is what a browser takeover needs. An app arriving into a page another runtime is still
+  driving has to be ready to render and *not* render, or two runtimes write the same document at
+  once. `PrepareAsync` settles the expensive part — services, the session, the route, the culture —
+  while the visitor is still reading the server-rendered page, and stops at the line that paints.
+  `PaintAsync` crosses it, once the handover has happened.
+
+  Painting with nothing prepared throws and names the missing half. The failure it replaces is a
+  silent freeze: a handover to a runtime that never prepared would leave the page still with no
+  indication why.
+
 - **RASK054 reports a page that cannot run in the browser.** A routed page injecting something that
   only exists in the server process — Entity Framework's `DbContext` or `IDbContextFactory<T>`, or
   anything from `Rask.Server` — stays server-live rather than moving into WebAssembly.

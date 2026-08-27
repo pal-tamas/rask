@@ -180,6 +180,54 @@ public sealed class WasmHostBuilder
         return builder;
     }
 
+    // Set by PrepareAsync, consumed by PaintAsync. A field rather than a return value because the
+    // caller crossing this boundary is JavaScript, which cannot hold a .NET session reference.
+    private WasmLiveSession? _prepared;
+
+    /// <summary>
+    ///     Boots the app to the point of rendering and stops, so the first paint can be triggered
+    ///     later by <see cref="PaintAsync" />.
+    /// </summary>
+    /// <remarks>
+    ///     For a page another runtime is currently driving. Services, the session, the route and the
+    ///     culture are all settled up front — the expensive part, and the part worth doing while the
+    ///     visitor is still reading the server-rendered page — but nothing is written to the document
+    ///     until the handover. Painting on arrival would put two runtimes into one DOM.
+    /// </remarks>
+    /// <typeparam name="TApp">The root <see cref="Component" />, as for <see cref="RunAsync{TApp}" />.</typeparam>
+    public async Task PrepareAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
+        where TApp : Component
+    {
+        try
+        {
+            await BootAsync<TApp>(paint: false).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            ReportBootFailure(ex);
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///     Renders the app prepared by <see cref="PrepareAsync{TApp}" />, taking the document over.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Nothing was prepared.</exception>
+    public async Task PaintAsync()
+    {
+        if (_prepared is not { } session)
+        {
+            throw new InvalidOperationException(
+                "PaintAsync has nothing to paint: call PrepareAsync first, and await it. A prepared app "
+                + "holds its first render precisely so the caller decides when the document changes "
+                + "hands, so the two calls are always a pair.");
+        }
+
+        _prepared = null;
+        var payload = await session.InitialRenderAsync().ConfigureAwait(false);
+        Console.WriteLine($"[Rask.Wasm] takeover render payload bytes={payload.Length}");
+    }
+
     /// <summary>
     ///     Boots the app: imports the JS bridge, auto-detects the path base from <c>&lt;base href&gt;</c>,
     ///     builds the service provider, instantiates <typeparamref name="TApp" /> (wrapped in a root error
@@ -212,7 +260,8 @@ public sealed class WasmHostBuilder
 
     /// <summary>The boot sequence proper. See <see cref="RunAsync{TApp}" />, which reports its failures.</summary>
     private async Task
-        BootAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
+        BootAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+            bool paint = true)
         where TApp : Component
     {
         Console.WriteLine($"[Rask.Wasm] Rask {RaskVersion.Current} (WASM) starting");
@@ -281,6 +330,17 @@ public sealed class WasmHostBuilder
         // repainted from there; this only adds the "applied" indicator. No-op unless the runtime
         // supports metadata updates, which a trimmed (published) bundle does not.
         HotReload.WasmHotReloadBridge.Subscribe();
+
+        // Everything above prepares; this line paints. The split is what a takeover needs: an app
+        // arriving into a page another runtime is still driving must be ready to render and NOT render,
+        // or two runtimes would write the same document at once. PrepareAsync stops here and hands back
+        // a handle; RunAsync goes straight through, which is every standalone WASM app.
+        if (!paint)
+        {
+            _prepared = session;
+            Console.WriteLine("[Rask.Wasm] prepared; holding the first render until asked");
+            return;
+        }
 
         // InitialRenderAsync builds and pushes the first frame to JS itself (zero-copy applyRender);
         // the returned bytes are just for the diagnostic below.
