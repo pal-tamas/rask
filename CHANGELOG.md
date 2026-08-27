@@ -524,6 +524,39 @@ them until tagged releases begin.
   loop started with `_ = LoopAsync()`, as `PollingPanel` does — is not waited on at all, and still
   reaches the browser through the live connection as it always did.
 
+### Added
+- **A TypeScript toolchain that needs no npm and no Node.** `Rask.TypeScript.Tasks` resolves the two
+  native binaries Rask needs to turn TypeScript into something a browser runs — **esbuild** to bundle
+  and **tsgo** (the Go build of the TypeScript compiler) to emit and to type-check — fetching each
+  once into `~/.rask/typescript`, verified against the SHA-512 its registry publishes.
+
+  Both are distributed as npm packages, and neither needs npm to run: an npm package is a gzipped
+  tarball at a predictable URL, and these two contain a statically linked Go executable. So the
+  written promise stays true — `NUGET.md`, `docs/tailwind.md` and `scripts/run-unit-local.sh` all say
+  some form of "no npm required", and this is the first piece of the TypeScript migration rather than
+  the exception to them. `RaskTypeScriptBuild=false` turns the whole thing off,
+  `RaskTypeScriptOffline=true` refuses to fetch and fails naming the file and the URL to put there,
+  and `RaskTypeScriptRegistry` points the fetch at a mirror.
+
+  The pins live in `build/Rask.TypeScript.props` and a test resolves *those* versions and runs the
+  binaries, so a bump naming a version the registry does not have fails in the unit gate rather than
+  in somebody's first build. Unlike Tailwind there is no npm fallback and no musl variant, both
+  deliberately: these tools publish a native build for every platform they support at all, and their
+  Linux binary is static, so it runs on Alpine unchanged.
+
+  **Two facts about the tools are now pinned by tests, because both are invisible until they are
+  not.** esbuild always hoists declarations into a trailing `export { … }` clause — even with no
+  bundling and no minification — and `ScopedAssetRegistry` finds a component's methods by matching
+  `export function NAME(` at a line start, so an esbuild-compiled scoped asset would register **no
+  methods at all** on `window.Rask[Name]`: no error, at runtime, in the browser only. tsgo's emit
+  preserves the inline form. That is why the toolchain is two binaries and which one compiles what.
+
+  Unpacking is done here rather than by shelling out to `tar`: `System.Formats.Tar` arrived in .NET 7
+  and this assembly targets netstandard2.0 to load inside MSBuild, and the `tar` on Windows disagrees
+  with GNU tar about flags and about how it reports failure. The reader refuses any archive entry
+  that escapes its destination, which matters more than usual for a file about to be marked
+  executable and run by the build.
+
 ### Changed
 - **The Node floor moves to 22.12, and the scaffolded SPA image installs the current LTS.** The floor
   was 20.19, described as "Vite's own". Vite actually asks for `^20.19.0 || >=22.12.0` — a range with a
