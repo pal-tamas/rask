@@ -186,8 +186,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             var result = hosted
                 ? ProjectGenerator.GenerateWasmHosted(projectDir, name, batteries, version)
                 : ProjectGenerator.GenerateWasm(
-                    projectDir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version,
-                    batteries.Bootstrap, batteries);
+                    projectDir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version, batteries);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)

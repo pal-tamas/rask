@@ -178,7 +178,7 @@ public class LocalizationScaffoldTests
     {
         var result = key == "wasm"
             ? ProjectGenerator.GenerateWasm(
-                "/out", "Demo", batteries.Auth, batteries.Pwa, batteries.Docker, "1.0.0", bootstrap: false, batteries)
+                "/out", "Demo", batteries.Auth, batteries.Pwa, batteries.Docker, "1.0.0", batteries)
             : ProjectGenerator.GenerateWasmHosted("/out", "Demo", batteries, "1.0.0");
 
         return result.Files.Single(f => f.Path == path).Content;
