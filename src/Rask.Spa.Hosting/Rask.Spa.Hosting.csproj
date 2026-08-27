@@ -49,7 +49,24 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="build\**" Pack="true" PackagePath="build\"/>
+    <!--
+      The generated task assembly is named EXPLICITLY, and excluded from the glob beside it, because
+      a glob is expanded at project EVALUATION — before any target runs, including the build of the
+      ProjectReference above that produces this DLL. On a tree where it is not already on disk the
+      glob matches nothing, and `dotnet pack` then SUCCEEDS and ships a package whose <UsingTask>
+      points at a file that is not in it; the consumer fails with MSB4062, and a second pack on the
+      same machine is correct because the first build left the DLL behind (#852).
+
+      A literal Include needs the file only when the item is copied, which is after the reference has
+      built — so the DLL is collected, and if it is ever genuinely missing the pack FAILS instead of
+      quietly shipping without it. That is the real repair: the failure mode stops being silent.
+
+      The glob stays for build/*.props and build/*.targets, which are committed and so cannot be
+      missing at evaluation — keeping it means a new committed import still ships without anyone
+      remembering to list it.
+    -->
+    <None Include="build\**" Exclude="build\Rask.Spa.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\Rask.Spa.Tasks.dll" Pack="true" PackagePath="build\"/>
     <!--
       The TypeScript client, shipped as source the way Rask.Wasm ships Browser/main.js. It is written
       into a scaffolded client by `rask new` and refreshed on build while its header line is intact,
