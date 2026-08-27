@@ -9,7 +9,7 @@
 //
 // You own this file. It is refreshed on build only while the header line above is intact.
 
-import type { IslandAdapter, IslandProps } from './adapter'
+import type { IslandAdapter, IslandProps, IslandSlots } from './adapter'
 
 /**
  * Wraps a custom element as an island adapter.
@@ -19,9 +19,22 @@ import type { IslandAdapter, IslandProps } from './adapter'
  */
 export function litIsland(tag: string): IslandAdapter<HTMLElement> {
   return {
-    mount(element, props) {
+    mount(element, props, slots) {
       const node = document.createElement(tag)
       assign(node, props)
+
+      // The one runtime where slots need no adoption trick: a custom element projects its LIGHT DOM
+      // children through <slot>, so appending them is all there is to it. The nodes stay ordinary
+      // children of the element — nothing clones them, nothing re-renders them.
+      for (const name of Object.keys(slots ?? {})) {
+        const fragment = (slots as IslandSlots)[name]
+        if (name !== 'default') {
+          // Named projection is an attribute on each child, which is how <slot name="..."> matches.
+          for (const child of [...fragment.children]) child.setAttribute('slot', name)
+        }
+        node.appendChild(fragment)
+      }
+
       element.appendChild(node)
       return node
     },

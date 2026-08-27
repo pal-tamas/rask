@@ -428,9 +428,25 @@ public sealed class IslandGenerator : IIncrementalGenerator
         if (!island.DeclaresHydration)
         {
             sb.AppendLine("    /// <summary>When the adapter mounts. Defaults to as soon as the chunk has loaded.</summary>");
+            sb.AppendLine("    /// <remarks>");
+            sb.AppendLine("    ///     The initializer is load-bearing, not decoration: a non-nullable property with no");
+            sb.AppendLine("    ///     initializer is a REQUIRED chain step (RASK038), which would force every island call");
+            sb.AppendLine("    ///     site in every app to spell out .Hydration(...) for a value that has an obvious default.");
+            sb.AppendLine("    /// </remarks>");
             sb.AppendLine("    public global::Rask.Islands.IslandHydration Hydration { get; set; }");
+            sb.AppendLine("        = global::Rask.Islands.IslandHydration.Load;");
             sb.AppendLine();
         }
+
+        sb.AppendLine("    /// <summary>Groups children into the slot templates the adapter mounts them from.</summary>");
+        sb.AppendLine("    /// <remarks>");
+        sb.AppendLine("    ///     Reached because an opaque component takes the serializer's virtual children walk rather");
+        sb.AppendLine("    ///     than its ChildrenArray fast path — that path skips RenderChildren entirely, and the");
+        sb.AppendLine("    ///     indexer produces exactly the array it fast-paths on.");
+        sb.AppendLine("    /// </remarks>");
+        sb.AppendLine("    protected override global::System.Collections.Generic.IEnumerable<global::Rask.Core.Component?> RenderChildren() =>");
+        sb.AppendLine("        global::Rask.Islands.IslandSlots.Wrap(Children);");
+        sb.AppendLine();
 
         sb.AppendLine("    /// <summary>Boots the client runtime. Deduplicated across every island on the page.</summary>");
         sb.AppendLine("    protected override global::Rask.Core.Component? HeadAssets =>");

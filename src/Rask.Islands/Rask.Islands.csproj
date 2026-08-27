@@ -24,6 +24,19 @@
          Consumers get both from whichever host package they already reference. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
     <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
+    <!--
+      The generator has to RUN here, not merely be available to consumers. A referenced library's
+      components cannot be reached from a chain unless that library publishes its own
+      RaskEntries{Assembly} class — which is what this emits. Without it IslandSlot compiles, ships,
+      and is simply unreachable at every call site, with nothing reporting why.
+
+      It also publishes the required-property assembly attributes RASK038 reads across an assembly
+      boundary: metadata cannot distinguish `string Named` from `string Named = ""`, so a consumer
+      cannot re-derive which chain steps are mandatory.
+    -->
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <ItemGroup>

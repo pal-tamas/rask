@@ -45,8 +45,40 @@ function makeEl(tagName, attrs) {
         },
         removeAttribute: (n) => a.delete(n),
         appendChild: (node) => { kids.push(node); node.parentNode = el; return node; },
-        remove: () => { el.isConnected = false; },
-        querySelectorAll: (sel) => kids.filter((k) => k.tagName === sel.toUpperCase()),
+        remove: () => {
+            // Detach from the parent as a real remove() does, not just flip a flag — otherwise a test
+            // asserting the node is gone passes on a runtime that never removed it.
+            el.isConnected = false;
+            const siblings = el.parentNode && el.parentNode._kids;
+            if (siblings) {
+                const i = siblings.indexOf(el);
+                if (i >= 0) siblings.splice(i, 1);
+            }
+            el.parentNode = null;
+        },
+        querySelectorAll: (sel) => {
+            // Enough for the runtime's two queries: a tag name, or template[data-rask-slot].
+            const wantTemplate = sel.startsWith("template");
+            const out = [];
+            const walk = (n) => {
+                for (const k of n._kids || []) {
+                    if (wantTemplate ? (k.tagName === "TEMPLATE" && k.hasAttribute("data-rask-slot"))
+                                     : k.tagName === sel.toUpperCase()) out.push(k);
+                    walk(k);
+                }
+            };
+            walk(el);
+            return out;
+        },
+        closest: (sel) => {
+            let n = el;
+            while (n) {
+                if (n.tagName === sel.toUpperCase()) return n;
+                n = n.parentNode;
+            }
+            return null;
+        },
+        content: null,
         _kids: kids,
     };
     return el;
@@ -70,10 +102,13 @@ const log = [];
 let mountedProps = null;
 let handleSeq = 0;
 
+let mountedSlots = null;
+
 const adapter = {
-    mount(element, props) {
+    mount(element, props, slots) {
         log.push("mount");
         mountedProps = props;
+        mountedSlots = slots;
         return {id: ++handleSeq};
     },
     update(handle, props) {
@@ -115,6 +150,9 @@ const island = makeEl("rask-island", {
     module: "./Chart.tsx",
     props: JSON.stringify({heading: "Revenue", onPointClick: {$h: "c7:3"}}),
 });
+const slotTemplate = makeEl("template", {"data-rask-slot": "footer"});
+slotTemplate.content = {_kids: [makeEl("BUTTON", {}, "Save")]};
+island.appendChild(slotTemplate);
 body.appendChild(island);
 
 const stop = runtime.start(globalThis.document);
@@ -151,4 +189,8 @@ process.stdout.write(JSON.stringify({
     headingAfterUpdate: mountedProps && mountedProps.heading,
     dispatched,
     requested,
+    // Slots must reach the adapter by name, and the template must be GONE from the DOM afterwards —
+    // left behind, it would show the same content twice the moment the framework rendered its own.
+    slotNames: mountedSlots ? Object.keys(mountedSlots) : [],
+    templateRemoved: island._kids.every((k) => k.tagName !== "TEMPLATE"),
 }) + "\n");

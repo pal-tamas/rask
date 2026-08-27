@@ -141,6 +141,43 @@ Chart.Series(_points).Hydration(IslandHydration.Visible)
 | `Visible` | On `IntersectionObserver` — the chunk is not even **fetched** until the island is scrolled to. |
 | `None` | Never. Server markup only, and no JavaScript is requested at all. |
 
+## Slots
+
+An island can wrap Rask-rendered content, so replacing a component in the middle of a tree does not
+strand its descendants:
+
+```csharp
+Panel.Heading("Sales")[
+    IslandSlot.Named("footer")[ BsButton["Save"] ],
+    Table.Rows(_rows),                              // the default slot
+]
+```
+
+Anything not assigned to a named slot goes to `default`, which the front end receives as `children`:
+
+```tsx
+export default function Panel({ heading, children, footer }: PanelProps) {
+  return <section><h2>{heading}</h2>{children}<footer>{footer}</footer></section>
+}
+```
+
+It is called `IslandSlot`, not `Slot`, because `Slot` is already the HTML `<slot>` element in
+`Rask.Html.Components` and a colliding name does not compile.
+
+**How the content travels.** The server renders each slot into an inert
+`<template data-rask-slot="…">`, so Rask-owned nodes cannot flash on screen between first paint and
+the island mounting. On mount the client lifts each template into a fragment, removes it, and hands
+it to the adapter — which decides where its framework wants the nodes. React renders an empty
+container and adopts into it via a ref, so React has no children to reconcile there. Lit needs no
+trick at all: a custom element projects its light-DOM children through `<slot>` natively.
+
+> **Slot content is placed once, at mount.** If the C# that produced it re-renders, the island keeps
+> showing what it was given. That is the genuinely hard half: the diff addresses DOM nodes by
+> `childNodes` index from the document, so once an adapter has moved slot nodes into its own tree,
+> every path Rask holds into them is wrong. Making it live needs slot updates addressed by marker
+> rather than by path — a subtree morph scoped to `[data-rask-slot]` — which is not built yet. Until
+> then, prefer props for anything that changes, and slots for structure that does not.
+
 ## The diff boundary
 
 Rask's live runtime diffs the server's render against the browser's DOM. An island's subtree is
@@ -193,9 +230,9 @@ what to create — a custom element registers its own tag and nothing about the 
 
 ## What is not here yet
 
-- **Slots.** An island is a leaf: it cannot yet wrap Rask-rendered children. That needs a fourth
-  adapter function to adopt existing DOM, because React, Vue, Solid and Svelte all expect to *create*
-  what they render.
+- **Live slot updates.** Slot content is placed once, at mount. When the C# that produced it
+  re-renders, the island does not yet see the new content — see [Slots](#slots) for why that is the
+  hard half.
 - **Vue, Svelte, Angular.** The adapter seam is three functions wide and the client runtime imports no
   framework, so these are additive. Angular is viable through standalone components plus
   `createApplication()`, which needs no root component and no NgModule; its build is the real cost,

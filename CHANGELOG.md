@@ -59,6 +59,15 @@ them until tagged releases begin.
   a `package.json`** — that single probe is the gate, so an island-free app, and one whose islands are
   all `.razor`, never learns this package has a build step.
 
+  **Slots.** An island can wrap Rask-rendered content, so replacing a component mid-tree does not
+  strand its descendants: `Panel[ IslandSlot.Named("footer")[…], Table.Rows(_rows) ]`. The server
+  renders each slot into an inert `<template data-rask-slot="…">` — so Rask-owned nodes cannot flash
+  between first paint and mount — and the client lifts it into a fragment the adapter places. React
+  adopts into an empty ref'd container it never renders children into; Lit needs no trick, because a
+  custom element projects light-DOM children through `<slot>` natively. Slot content is placed once,
+  at mount: making it live needs updates addressed by marker rather than by DOM path, since the diff
+  addresses nodes positionally and an adapter has moved them by then.
+
   New diagnostics RASK055–RASK058. (RASK051 and RASK052 were already taken by translations, despite
   `CLAUDE.md` listing them free.)
 

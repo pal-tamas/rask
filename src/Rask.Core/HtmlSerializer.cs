@@ -360,7 +360,12 @@ internal static class HtmlSerializer
                 sb.Append('>');
                 using (el.EnterChildrenScopeInternal())
                 {
-                    if (el.ChildrenArray is { } childArray)
+                    // The ChildrenArray fast path SKIPS RenderChildren(), so a component that rewrites
+                    // its own children (an island wrapping them into slot templates) would be silently
+                    // ignored for the common case — the indexer produces exactly this array. Opaque
+                    // components take the virtual walk instead; `opaque` was already read above, so
+                    // nothing new is computed on the hot path and every other component is unaffected.
+                    if (!opaque && el.ChildrenArray is { } childArray)
                     {
                         // Index walk over the backing Component[] — no enumerator allocation.
                         for (var i = 0; i < childArray.Length; i++)
