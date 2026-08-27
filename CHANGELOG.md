@@ -71,6 +71,32 @@ them until tagged releases begin.
   wizard replays, so what it runs is still exactly what you could have typed.
 
 ### Added
+- **A gate that the compiled Tailwind stylesheet reaches the *published* output.** Every other Tailwind
+  check stops at "it builds", and a build succeeding is the one thing a missing-from-publish failure
+  would not disturb: the compiler runs, emits the CSS, the build is green, and the app ships with a
+  `<link>` to a 404. `TailwindPublishE2ETests` publishes a scaffolded `server` and `wasm` app into a
+  directory that did not previously exist — `dotnet publish` does not clean its output, so a stale
+  `app.css` would make a broken publish look fine — and asserts the file is there and non-empty.
+
+  Written to prove a bug that **turned out not to exist**: the theory was that `Rask.Tailwind` writing
+  `wwwroot/css/app.css` at `BeforeBuild` would miss the SDK's evaluation-time `wwwroot/**` glob and never
+  be published. Two independent checks say otherwise — a minimal `Sdk.Web` project doing exactly that
+  publishes the file, and this gate passes on both templates with nothing fixed. Static-web-asset
+  discovery enumerates during the build, after `BeforeBuild`. The gate is kept because the behaviour is
+  worth pinning either way, and because nothing else in the suite looks past the build.
+
+- **A test that the two Tailwind version pins agree.** The C# host path downloads a pinned standalone
+  binary (`RaskTailwindVersion`); the front-end templates write an npm range (`TailwindRange`). A comment
+  said the two must not drift and nothing enforced it. The check is that the range *accepts* the pinned
+  version, not that the strings match — they are deliberately different shapes.
+
+- **A guard that every package a template references can be restored from the build gate's feed.**
+  `CliBuildE2E.FeedPackages` is what the build gates pack and restore against, so a package missing from
+  it means no case exercising it can exist — and nothing says so; the gate silently covers less than it
+  appears to. `Rask.Tailwind` was missing until the Tailwind work added it, which is why no Tailwind
+  build case could have been written before then. Runs unconditionally, because a check on an opt-in gate
+  must not itself be opt-in.
+
 - **A browser-WASM app that fails to start now says so, instead of spinning for ever.** `main.js` was
   four bare top-level `await`s with no `try` anywhere and no global rejection handler, and nothing ever
   removed the splash screen explicitly — it disappeared as a side effect of the first successful morph.
@@ -623,6 +649,14 @@ them until tagged releases begin.
   `SqlitePragmas.Optimize(connection)` directly.
 
 ### Fixed
+
+- **The Tailwind build no longer treats `node_modules` as its own source.** Only `obj/` and `bin/` were
+  excluded from the up-to-date check, so on the npm fallback path — which installs `node_modules` into
+  the project directory — every vendored `.html` file became a build input for a tree Tailwind does not
+  scan.
+
+- **A doc comment claimed `rask new --tailwind` warms the Tailwind binary cache.** No such code exists;
+  the first build of a scaffolded app is what populates it.
 
 - **The WASM hot-reload gate was run by nothing, and reported green.** `scripts/run-wasm-watch-e2e.sh`
   existed but no hook invoked it. `WasmWatchHotReloadTests` lives in the browser E2E project, so that
