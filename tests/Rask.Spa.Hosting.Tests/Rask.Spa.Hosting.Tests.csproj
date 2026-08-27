@@ -5,6 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+
+    <!--
+      TypeScript/inference.check.ts is a type-level fixture compiled by tsgo in its own test, not a
+      scoped component asset. See the same opt-out, and the same reason, in Rask.Spa.Hosting.csproj.
+    -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
   <ItemGroup>

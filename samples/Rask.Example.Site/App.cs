@@ -239,7 +239,7 @@ public partial class App : Component
                 ],
                 Div.Class("feat reveal")[
                     Feature("⌁", "Source generators", "A chain surface per component — ", Code["BsCard.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
-                    Feature("◑", "Scoped CSS & JS", "Drop a sibling ", Code["{Component}.css"], "/", Code[".js"], ". Auto-scoped, no leaks, no class-name discipline — a mismatch is a build error."),
+                    Feature("◑", "Scoped CSS & TypeScript", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks, no class-name discipline — a mismatch is a build error."),
                     Feature("▤", "Forms & validation", Code["Form<T>"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators."),
                     Feature("⚿", "Auth, four ways", "Cookie & JWT on both Server and WASM, route guards, and an ", Code["--auth"], " template switch. Identity, Keycloak, Auth0, OIDC."),
                     Feature("⇄", "CQRS", "Source-generated, trim-safe queries, commands, notifications and pipeline behaviors via ", Code["AddRaskCqrs()"], " — standalone, zero reflection."),

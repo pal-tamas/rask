@@ -37,7 +37,17 @@
     leave a project unable to build a component at all.
   -->
   <ItemGroup>
-    <CompilerVisibleProperty Include="RaskScopedJsAutoInclude"/>
+    <CompilerVisibleProperty Include="RaskScopedTsAutoInclude"/>
+    <!--
+      The stray .js files found beside components, as one ';'-joined string, so the generator can
+      raise RASK054 without those files ever entering @(AdditionalFiles) — csc must not open or hash
+      a file the framework no longer compiles.
+
+      A string rather than an item list on purpose: the generator's incremental pipeline caches on
+      value equality, and an ImmutableArray compares by reference, so a list here would re-run the
+      generator on every keystroke. It is split inside the generator instead.
+    -->
+    <CompilerVisibleProperty Include="RaskStrayScopedJs"/>
     <CompilerVisibleProperty Include="RaskBuilderEntryInjection"/>
     <!-- The language a catalog's keys are DEFINED in, and whose text is used when a translation is
          missing. Falls back to $(NeutralLanguage) and then to "en". -->
@@ -51,15 +61,6 @@
                      Exclude="@(AdditionalFiles);bin\**;obj\**;node_modules\**;wwwroot\**"/>
   </ItemGroup>
 
-  <!--
-    Scoped-JS sibling files — every `.js` file in the project tree is registered as
-    <AdditionalFiles> so ComponentScopedJsGenerator can pair it with its component
-    class (`Counter.cs` ↔ `Counter.js`). A `.js` file with no matching Component
-    subclass in the same folder raises RASK017 at build time. Resources\** and
-    Browser\** are excluded so the framework's own runtime scripts (rask.js,
-    rask.wasm.js, main.js, rask-morph.js, rask-scoped.js) don't get vacuumed up by
-    consumers' builds. Opt out entirely with <RaskScopedJsAutoInclude>false</…>.
-  -->
   <!--
     Translation catalogs: Resources/{Family}.{culture}.json, handed to TranslationCatalogGenerator as
     <AdditionalFiles> so it can emit compile-checked members for their keys.
@@ -82,10 +83,205 @@
                      Exclude="@(AdditionalFiles);bin\**;obj\**;node_modules\**;wwwroot\**"/>
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(RaskScopedJsAutoInclude)' != 'false' ">
-    <AdditionalFiles Include="**\*.js"
-                     Exclude="@(AdditionalFiles);bin\**;obj\**;node_modules\**;wwwroot\**;Resources\**;Browser\**"/>
+  <PropertyGroup>
+    <!--
+      The pinned TypeScript toolchain. tsgo (the Go build of the TypeScript compiler) emits scoped
+      assets; esbuild bundles the framework's own runtime, where a bundle is the point.
+
+      It has to be tsgo here and not esbuild, and the reason is not a preference. esbuild always
+      hoists declarations into a trailing `export { … }` clause — with an esm format, with no
+      bundling and no minification, unconditionally. ScopedAssetRegistry finds a component's methods
+      by matching `export function NAME(` at a line start, so an esbuild-compiled scoped asset
+      registers NO methods on window.Rask[Name]: no build error, no runtime error, just a control
+      that does nothing. tsgo's emit preserves the inline form. Both behaviours are pinned by tests
+      in Rask.TypeScript.Tasks.Tests.
+
+      Pinned rather than floating for reproducibility, and because @typescript/native-preview
+      publishes dated development builds to its `latest` tag.
+    -->
+    <RaskTsgoVersion Condition="'$(RaskTsgoVersion)' == ''">7.0.0-dev.20260707.2</RaskTsgoVersion>
+    <RaskEsbuildVersion Condition="'$(RaskEsbuildVersion)' == ''">0.28.2</RaskEsbuildVersion>
+
+    <RaskTypeScriptRegistry Condition="'$(RaskTypeScriptRegistry)' == ''">https://registry.npmjs.org</RaskTypeScriptRegistry>
+    <RaskTypeScriptOffline Condition="'$(RaskTypeScriptOffline)' == ''">false</RaskTypeScriptOffline>
+    <RaskTypeScriptBuild Condition="'$(RaskTypeScriptBuild)' == ''">true</RaskTypeScriptBuild>
+
+    <!-- The language level the emitted JavaScript targets. Browsers, not Node. -->
+    <RaskScopedTsTarget Condition="'$(RaskScopedTsTarget)' == ''">es2020</RaskScopedTsTarget>
+
+    <!--
+      Shared by every project for this user, and outside any repository: tsgo unpacks to ~27 MB,
+      which inside obj/ is re-downloaded by every clean and committed by somebody eventually.
+    -->
+    <RaskTypeScriptCacheRoot Condition="'$(RaskTypeScriptCacheRoot)' == '' AND '$(OS)' == 'Windows_NT'">$(LOCALAPPDATA)\rask\typescript</RaskTypeScriptCacheRoot>
+    <RaskTypeScriptCacheRoot Condition="'$(RaskTypeScriptCacheRoot)' == ''">$(HOME)/.rask/typescript</RaskTypeScriptCacheRoot>
+
+    <!--
+      Compiled output lands under obj/, so `dotnet clean` removes it, it never appears in the source
+      tree, and it can never be mistaken for the sibling .js that RASK054 forbids.
+    -->
+    <_RaskScopedTsOutDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/ts'))/</_RaskScopedTsOutDir>
+
+    <!--
+      Whether any of this happens. Design-time builds are excluded for the reason Rask.Tailwind
+      records: an IDE reloading a project must never download a binary or shell out to a compiler.
+      That is safe here because the generator needs only PATHS to pair components and report
+      RASK017/018/020/054 — the compiled text is needed solely for the registration string, and no
+      user code references the class that holds it. Before the first real build the text is simply
+      absent, which the generator already skips rather than mistaking for an empty asset.
+    -->
+    <_RaskScopedTsDoBuild Condition="'$(RaskScopedTsAutoInclude)' != 'false' AND '$(RaskTypeScriptBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'">true</_RaskScopedTsDoBuild>
+  </PropertyGroup>
+
+  <!--
+    Scoped-TypeScript sibling files — every `.ts` file in the project tree is compiled and its
+    OUTPUT registered as <AdditionalFiles>, so ComponentScopedJsGenerator can pair it with its
+    component class (`Counter.cs` and `Counter.ts`). A `.ts` with no matching Component subclass in
+    the same folder raises RASK017, reported at the `.ts` rather than at the generated file nobody
+    wrote. Resources\** and Browser\** are excluded so the framework's own runtime scripts don't get
+    vacuumed up by consumers' builds, and `.d.ts` because it compiles to an empty file the generator
+    would silently skip. Opt out entirely with <RaskScopedTsAutoInclude>false</…>.
+
+    A sibling `.js` is no longer compiled or registered: it raises RASK054. It is globbed all the
+    same, into a list that never becomes <AdditionalFiles>, purely so the generator can name the
+    file in that error.
+
+    Both globs are at EVALUATION time rather than inside a target, and that is load-bearing: the
+    compile target's Inputs reference the .ts list, and a target's Inputs attribute does not expand
+    wildcards — it treats the pattern as a literal filename, decides it does not exist, and rebuilds
+    every time. %(RecursiveDir) is only populated because the ** is in this Include.
+  -->
+  <ItemGroup Condition=" '$(RaskScopedTsAutoInclude)' != 'false' ">
+    <_RaskScopedTs Include="**\*.ts"
+                   Exclude="bin\**;obj\**;node_modules\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts"/>
+
+    <!--
+      Ambient declarations — the way to describe a third-party library with no node_modules to take
+      typings from. They are compiled ALONGSIDE the scoped files rather than instead of them: tsgo
+      loads exactly the files it is given plus what they import, so a `.d.ts` that nothing imports
+      is simply not seen, and every `declare` in it goes unnoticed while the file it describes fails
+      to type-check. They emit nothing, so they never become an AdditionalFile.
+    -->
+    <_RaskScopedTsTypes Include="**\*.d.ts"
+                        Exclude="bin\**;obj\**;node_modules\**;wwwroot\**;Browser\**"/>
+
+    <!--
+      Rask's own globals (window.DotNet, window.Rask), shipped with the build integration rather
+      than left for each app to redeclare. Without it every project calling a [JSInvokable] would
+      hand-write the same interface, and they would drift.
+    -->
+    <_RaskScopedTsTypes Include="$(MSBuildThisFileDirectory)rask-globals.d.ts"
+                        Condition="Exists('$(MSBuildThisFileDirectory)rask-globals.d.ts')"/>
+
+    <!-- Never becomes <AdditionalFiles>. It exists only to feed RASK054. -->
+    <_RaskStrayScopedJs Include="**\*.js"
+                        Exclude="bin\**;obj\**;node_modules\**;wwwroot\**;Resources\**;Browser\**"/>
+
+    <!--
+      `dotnet watch` collects @(Compile), @(EmbeddedResource), the project file and Razor content —
+      it does NOT collect @(AdditionalFiles) or @(None). A scoped asset is a None item, so until
+      these lines existed `rask dev` did not react to a scoped edit at all, despite saying it did.
+      The .css entry fixes the same long-standing gap for stylesheets.
+    -->
+    <Watch Include="@(_RaskScopedTs)"/>
   </ItemGroup>
+
+  <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
+    <Watch Include="**\*.css" Exclude="bin\**;obj\**;node_modules\**;wwwroot\**"/>
+  </ItemGroup>
+
+  <UsingTask TaskName="Rask.TypeScript.Tasks.ResolveTypeScriptToolTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.TypeScript.Tasks.dll"
+             Condition="Exists('$(MSBuildThisFileDirectory)Rask.TypeScript.Tasks.dll')"/>
+
+  <Target Name="_RaskResolveTsgo"
+          Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' ">
+    <ResolveTypeScriptToolTask Tool="tsgo"
+                               Version="$(RaskTsgoVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskTsgoPath"/>
+    </ResolveTypeScriptToolTask>
+  </Target>
+
+  <!--
+    One process for N files rather than N processes: a launch dominates a few milliseconds of
+    transpile. Inputs/Outputs give partial incremental build, so inside the body @(_RaskScopedTs) is
+    already narrowed to the out-of-date subset and one changed .ts recompiles one file.
+
+    noCheck: this is the emit, not the gate. Type errors are reported by a `tsgo` noEmit pass over the
+    whole project in the test gate, where a failure is loud and attributable; making every ordinary
+    build pay for a full check would be a tax on the inner loop for a verdict it already has.
+
+    rootDir keeps the emitted tree parallel to the source tree, which is what makes the
+    AdditionalFiles transform below resolve. The two must agree; a test pins that they do.
+  -->
+  <Target Name="_RaskCompileScopedTs"
+          DependsOnTargets="_RaskResolveTsgo"
+          Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' "
+          Inputs="@(_RaskScopedTs);@(_RaskScopedTsTypes)"
+          Outputs="@(_RaskScopedTs->'$(_RaskScopedTsOutDir)%(RecursiveDir)%(Filename).js')">
+    <!--
+      _RaskTsgoPath is deliberately NOT in the Condition above, however natural that reads. A
+      target's Condition is evaluated BEFORE its DependsOnTargets run, so it would test a property
+      _RaskResolveTsgo has not set yet, be false every time, and skip the compile silently — leaving
+      csc pointed at output files that were never written. That cost a build to find; the same rule
+      is recorded in Rask.Spa.Hosting.targets.
+    -->
+    <Error Condition=" '$(_RaskTsgoPath)' == '' "
+           Text="Rask.TypeScript: the TypeScript compiler was not resolved, so the scoped .ts files in this project cannot be compiled. Set RaskTypeScriptBuild=false to build without them."/>
+    <MakeDir Directories="$(_RaskScopedTsOutDir)"/>
+    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(MSBuildProjectDirectory)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!--
+    BeforeTargets is GenerateMSBuildEditorConfigFileShouldRun, not CoreCompile, and the difference
+    matters. GenerateMSBuildEditorConfigFile is itself BeforeTargets="BeforeCompile;CoreCompile", so
+    two peers both hooked on CoreCompile order by import discovery — a coin flip, and losing it means
+    the RaskTsSource metadata never reaches the generator. It fails by producing NO metadata rather
+    than an error, so the symptom would be every component silently losing its scoped asset. The
+    Razor SDK hooks the same target for the same reason. CoreCompile stays as a floor for when the
+    editorconfig target does not run at all.
+
+    The AdditionalFiles entry is a TRANSFORM of the .ts list, not a glob over obj/. A wildcard would
+    resolve to nothing on a clean build, silently; a transform is a literal include that MSBuild does
+    not stat. It also self-prunes — a deleted .ts drops out of the list, so a stale compiled file is
+    never handed to csc.
+
+    Two steps, because a transform recomputes well-known metadata but PRESERVES custom metadata:
+    tagging the .ts item first is what carries RaskTsSource onto the .js item.
+  -->
+  <Target Name="_RaskAddCompiledScopedTs"
+          BeforeTargets="GenerateMSBuildEditorConfigFileShouldRun;CoreCompile"
+          DependsOnTargets="_RaskCompileScopedTs"
+          Condition=" '$(RaskScopedTsAutoInclude)' != 'false' ">
+    <ItemGroup>
+      <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="RaskTsSource"/>
+
+      <_RaskScopedTsTagged Include="@(_RaskScopedTs)">
+        <RaskTsSource>%(FullPath)</RaskTsSource>
+      </_RaskScopedTsTagged>
+
+      <_RaskCompiledScopedJs Include="@(_RaskScopedTsTagged->'$(_RaskScopedTsOutDir)%(RecursiveDir)%(Filename).js')"/>
+
+      <!--
+        Filtered to files that are actually on disk. csc does not tolerate an AdditionalFile that is
+        missing — it is CS2001, "source file could not be found", which fails the build naming a
+        path under obj/ that the author never wrote. That happens whenever the compile did not run:
+        a design-time build (excluded on purpose, so an IDE reload never shells out to a compiler)
+        or RaskTypeScriptBuild=false. In both cases the right outcome is no registration, not a
+        broken build, and the generator already treats absent content as "nothing to register".
+      -->
+      <AdditionalFiles Include="@(_RaskCompiledScopedJs)"
+                       Condition="Exists('%(_RaskCompiledScopedJs.FullPath)')"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <RaskStrayScopedJs>@(_RaskStrayScopedJs->'%(FullPath)')</RaskStrayScopedJs>
+    </PropertyGroup>
+  </Target>
 
   <!--
     ONE copy of the Rask analyzer payload, however many host packages are referenced.

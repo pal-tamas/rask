@@ -16,13 +16,22 @@ internal static class SyntaxHighlighter
     // ColorCode ships no shell lexer, so register our own (see BashLanguage) once, up front.
     private static readonly ILanguage Shell = new BashLanguage();
 
-    static SyntaxHighlighter() => Languages.Load(Shell);
+    // Nor a TypeScript one. Aliasing .ts onto JavaScript would render every type annotation as an
+    // undistinguished identifier, on the very pages that teach people to write them.
+    private static readonly ILanguage TypeScript = new TypeScriptLanguage();
+
+    static SyntaxHighlighter()
+    {
+        Languages.Load(Shell);
+        Languages.Load(TypeScript);
+    }
 
     // Maps a file extension (".cs") OR a markdown fence info-string ("csharp"/"bash"/"html"…) to a
     // ColorCode language, or null when we don't tokenize it (rendered as plain, HTML-encoded text by the
     // caller). Guides also use `razor`/`jsonc`, which ColorCode has no lexer for — they stay plain.
     public static ILanguage? LanguageFor(string key) => key.ToLowerInvariant() switch
     {
+        ".ts" or "ts" or "typescript" => TypeScript,
         ".js" or "js" or "javascript" => Languages.JavaScript,
         ".css" or "css" => Languages.Css,
         ".cs" or "cs" or "csharp" or "c#" => Languages.CSharp,

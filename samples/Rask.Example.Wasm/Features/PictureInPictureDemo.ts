@@ -1,10 +1,10 @@
-// Scoped JS for PictureInPictureDemo. Picture-in-Picture needs a *playing* video with real frames, and
-// this showcase ships no video file — so we synthesize one: draw an animated canvas and pipe
-// canvas.captureStream() into the <video> (resolved from the ElementRef before this runs). Resolves once
-// the video is playing, so the C# side can then request the miniplayer.
+// Scoped TypeScript for PictureInPictureDemo. Picture-in-Picture needs a *playing* video with real
+// frames, and this showcase ships no video file — so we synthesize one: draw an animated canvas and
+// pipe canvas.captureStream() into the <video> (resolved from the ElementRef before this runs).
+// Resolves once the video is playing, so the C# side can then request the miniplayer.
 let started = false;
 
-export function start(video) {
+export function start(video: HTMLVideoElement | null): Promise<void> {
     if (!video || started) {
         return Promise.resolve();
     }
@@ -13,9 +13,16 @@ export function start(video) {
     const canvas = document.createElement("canvas");
     canvas.width = 320;
     canvas.height = 180;
+
+    // getContext returns null when the context type is unsupported or the canvas is already bound
+    // to a different one. Bailing beats letting every ctx call below throw on null.
     const ctx = canvas.getContext("2d");
+    if (!ctx) {
+        return Promise.resolve();
+    }
+
     let t = 0;
-    const draw = () => {
+    const draw = (): void => {
         t += 0.03;
         ctx.fillStyle = "#1b1033";
         ctx.fillRect(0, 0, canvas.width, canvas.height);

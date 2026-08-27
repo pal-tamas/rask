@@ -25,7 +25,7 @@ public sealed partial class CodeSample : Component
     public new string? Title { get; set; }
 
     // The demo source files to show, in tab order, as bare embedded-resource leaf names
-    // (e.g. ["ElementRefDemo.cs", "ElementRefDemo.js"]). Each file gets its own tab labelled
+    // (e.g. ["ElementRefDemo.cs", "ElementRefDemo.ts"]). Each file gets its own tab labelled
     // with the file name; the syntax-highlight language is inferred from the extension. The
     // first file is the active tab. The verbatim text is read on demand via EmbeddedSource so
     // the snippet always compiles and never drifts from what actually runs.
@@ -49,6 +49,7 @@ public sealed partial class CodeSample : Component
         var ext = Path.GetExtension(file).ToLowerInvariant();
         var codeClass = ext switch
         {
+            ".ts" => "language-typescript",
             ".js" => "language-javascript",
             ".css" => "language-css",
             ".cs" => "language-csharp",

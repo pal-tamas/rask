@@ -35,7 +35,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     {
         var js = new FakeJsRuntime();
         var host = new LiveHost(
-            () => CodeSample.Files(["ElementRefDemo.js"]),
+            () => CodeSample.Files(["ElementRefDemo.ts"]),
             TestServices.Default(js: js));
 
         var html = host.RenderAsLiveRoot();
@@ -68,7 +68,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     public void Render_MultiFile_ShowsFilenameTabs_FirstActive_OnlyActivePane()
     {
         var host = new LiveHost(
-            () => CodeSample.Files(["ElementRefDemo.cs", "ElementRefDemo.js"]),
+            () => CodeSample.Files(["ElementRefDemo.cs", "ElementRefDemo.ts"]),
             TestServices.Default(js: new FakeJsRuntime()));
 
         var html = host.RenderAsLiveRoot();
@@ -77,7 +77,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
         Assert.Contains("sample-tabs", html);
         Assert.Contains("sample-tab active", html);
         Assert.Contains(">ElementRefDemo.cs</button>", html);
-        Assert.Contains(">ElementRefDemo.js</button>", html);
+        Assert.Contains(">ElementRefDemo.ts</button>", html);
         // Only the active (first, C#) pane is rendered — the JS pane appears after a tab switch.
         Assert.Contains("language-csharp", html);
         Assert.DoesNotContain("language-javascript", html);
@@ -87,7 +87,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     public void EmbeddedSource_ReadsRealFileText()
     {
         // The real scoped JS the ElementRef sample shows must be readable from the manifest.
-        var js = EmbeddedSource.Read("ElementRefDemo.js");
+        var js = EmbeddedSource.Read("ElementRefDemo.ts");
         Assert.Contains("getBoundingClientRect", js);
     }
 

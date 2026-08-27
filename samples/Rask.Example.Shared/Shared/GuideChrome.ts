@@ -1,14 +1,21 @@
-// Scoped JS for GuideChrome, exposed as Rask.GuideChrome.spy / .stop. Everything here is client-only —
-// scroll-spy highlighting and smooth in-page scrolling never touch the server. The C# side hands over
-// the guide root ElementRef (resolved to the live element by the runtime reviver) on mount, and again on
-// unmount so we can disconnect the observer. State is kept off the DOM in a WeakMap keyed by the root, so
-// SPA navigation between guides sets up a fresh observer and drops the old one without leaking.
+// Scoped TypeScript for GuideChrome, exposed as Rask.GuideChrome.spy / .stop. Everything here is
+// client-only — scroll-spy highlighting and smooth in-page scrolling never touch the server. The C#
+// side hands over the guide root ElementRef (resolved to the live element by the runtime reviver) on
+// mount, and again on unmount so we can disconnect the observer. State is kept off the DOM in a
+// WeakMap keyed by the root, so SPA navigation between guides sets up a fresh observer and drops the
+// old one without leaking.
 
-const state = new WeakMap();
+/** What `spy` set up for one guide root, so `stop` can take it all down again. */
+interface GuideState {
+    observer: IntersectionObserver | null;
+    links: Map<string, HTMLAnchorElement[]>;
+}
+
+const state = new WeakMap<HTMLElement, GuideState>();
 
 // Highlights the "On this page" / Chapters link whose section is currently in view, and wires smooth
 // scrolling for every in-page anchor. Idempotent per root (a re-mount replaces the previous observer).
-export function spy(root) {
+export function spy(root: HTMLElement | null): void {
     if (!root) {
         return;
     }
@@ -16,16 +23,23 @@ export function spy(root) {
     stop(root);
 
     // Every anchor that points at an in-page section, keyed by its target id.
-    const links = new Map();
-    root.querySelectorAll('a[href^="#"]').forEach((a) => {
-        const id = decodeURIComponent(a.getAttribute('href').slice(1));
+    const links = new Map<string, HTMLAnchorElement[]>();
+    root.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((a) => {
+        // The selector guarantees the attribute is present, but getAttribute is still typed
+        // string | null — and `?? ''` here is what keeps the empty-id guard below meaningful
+        // rather than a crash one line earlier.
+        const id = decodeURIComponent((a.getAttribute('href') ?? '').slice(1));
         if (!id) {
             return;
         }
-        if (!links.has(id)) {
-            links.set(id, []);
+
+        let anchors = links.get(id);
+        if (!anchors) {
+            anchors = [];
+            links.set(id, anchors);
         }
-        links.get(id).push(a);
+
+        anchors.push(a);
         // Smooth-scroll in-page instead of letting the SPA router or a hard jump handle the hash.
         a.addEventListener('click', onAnchorClick);
     });
@@ -36,15 +50,15 @@ export function spy(root) {
     // rendered, so it landed nowhere. Runs on every mount; a no-op when there is no hash / no target.
     scrollToHash();
 
-    const headings = Array.from(root.querySelectorAll('.markdown-body :is(h2, h3)[id]'));
+    const headings = Array.from(root.querySelectorAll<HTMLElement>('.markdown-body :is(h2, h3)[id]'));
     if (headings.length === 0) {
         state.set(root, { observer: null, links });
         return;
     }
 
     // Track which headings are on screen; the topmost visible one is the "current" section.
-    const onScreen = new Set();
-    const setActive = (id) => {
+    const onScreen = new Set<Element>();
+    const setActive = (id: string): void => {
         links.forEach((anchors, key) => {
             const on = key === id;
             anchors.forEach((a) => a.classList.toggle('active', on));
@@ -75,9 +89,9 @@ export function spy(root) {
 }
 
 // Disconnects the observer and unbinds the anchor handlers for a guide root (called on unmount).
-export function stop(root) {
-    const entry = root && state.get(root);
-    if (!entry) {
+export function stop(root: HTMLElement | null): void {
+    const entry = root ? state.get(root) : undefined;
+    if (!entry || !root) {
         return;
     }
 
@@ -88,7 +102,7 @@ export function stop(root) {
     state.delete(root);
 }
 
-function scrollToHash() {
+function scrollToHash(): void {
     const id = decodeURIComponent(location.hash.slice(1));
     if (!id) {
         return;
@@ -103,8 +117,11 @@ function scrollToHash() {
     requestAnimationFrame(() => requestAnimationFrame(() => target.scrollIntoView({ block: 'start' })));
 }
 
-function onAnchorClick(event) {
-    const href = event.currentTarget.getAttribute('href');
+function onAnchorClick(event: Event): void {
+    // currentTarget is EventTarget | null on the base Event; this handler is only ever bound to the
+    // anchors collected above, so the narrowing is a statement of that fact rather than a guess.
+    const anchor = event.currentTarget as HTMLAnchorElement | null;
+    const href = anchor?.getAttribute('href');
     if (!href || href.charAt(0) !== '#') {
         return;
     }

@@ -2,7 +2,41 @@
 // counter and install tabs are pure Rask state. `init` is called once from App.OnRenderedAsync with
 // the hero <canvas> (an ElementRef revived to the real DOM node).
 
-export function init(canvas) {
+/** One spark thrown off when a packet lands. */
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  col: string;
+  r: number;
+}
+
+/** The expanding circle at an impact point. */
+interface Ring {
+  x: number;
+  y: number;
+  r: number;
+  life: number;
+  col: string;
+}
+
+/** A short-lived text label that drifts upward and fades. */
+interface Flash {
+  x: number;
+  y: number;
+  txt: string;
+  col: string;
+  life: number;
+}
+
+/** One sampled position of the bolt, oldest first. */
+interface TrailPoint {
+  x: number;
+}
+
+export function init(canvas: HTMLCanvasElement | null): void {
   wireThemeToggle();
   wireReveals();
   wireBars();
@@ -12,23 +46,23 @@ export function init(canvas) {
 // ---- theme toggle: the pre-boot snippet (index.html) sets the initial theme from localStorage/OS;
 // this stamps BOTH data-theme and data-bs-theme on <html> and persists the choice so it carries across
 // the site, docs and playground on the same origin. ----
-function wireThemeToggle() {
-  var btn = document.getElementById('themeToggle');
+function wireThemeToggle(): void {
+  const btn = document.getElementById('themeToggle');
   if (!btn) return;
   btn.addEventListener('click', function () {
-    var root = document.documentElement;
-    var cur = root.getAttribute('data-theme');
+    const root = document.documentElement;
+    let cur = root.getAttribute('data-theme');
     if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    var next = cur === 'dark' ? 'light' : 'dark';
+    const next = cur === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
     root.setAttribute('data-bs-theme', next);
-    try { localStorage.setItem('rask-theme', next); } catch (e) { /* private mode: session-only */ }
+    try { localStorage.setItem('rask-theme', next); } catch { /* private mode: session-only */ }
   });
 }
 
 // ---- scroll reveals ----
-function wireReveals() {
-  var io = new IntersectionObserver(function (entries) {
+function wireReveals(): void {
+  const io = new IntersectionObserver(function (entries) {
     entries.forEach(function (e) {
       if (!e.isIntersecting) return;
       e.target.classList.add('in');
@@ -39,14 +73,16 @@ function wireReveals() {
 }
 
 // ---- benchmark bars grow when scrolled into view ----
-function wireBars() {
-  var wrap = document.getElementById('bars');
+function wireBars(): void {
+  const wrap = document.getElementById('bars');
   if (!wrap) return;
-  var io = new IntersectionObserver(function (entries) {
+  const io = new IntersectionObserver(function (entries) {
     entries.forEach(function (e) {
       if (!e.isIntersecting) return;
       wrap.classList.add('run');
-      wrap.querySelectorAll('.bar').forEach(function (bar) { bar.style.height = bar.dataset.h + 'px'; });
+      // HTMLElement, not Element: `style` and `dataset` are what this touches, and neither exists
+      // on the base Element the untyped version was handed.
+      wrap.querySelectorAll<HTMLElement>('.bar').forEach(function (bar) { bar.style.height = bar.dataset.h + 'px'; });
       io.unobserve(wrap);
     });
   }, { threshold: 0.3 });
@@ -54,23 +90,29 @@ function wireBars() {
 }
 
 // ---- hero wire visualization: the packet race ----
-function wireHeroCanvas(canvas) {
+function wireHeroCanvas(canvas: HTMLCanvasElement | null): void {
   if (!canvas) return;
-  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var ctx = canvas.getContext('2d');
-  var W = canvas.width, H = canvas.height;
-  function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Narrowed once, into a binding the whole body can use unqualified. TypeScript does not carry a
+  // narrowing into hoisted `function` declarations — they could be called before the guard ran — so
+  // the alternative is a non-null assertion on all forty-odd ctx uses below.
+  const maybeCtx = canvas.getContext('2d');
+  if (!maybeCtx) return;
+  const ctx: CanvasRenderingContext2D = maybeCtx;
+  const W = canvas.width, H = canvas.height;
+  function css(n: string): string { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 
-  var LB = H * 0.30;          // top lane — a full-page payload
-  var LR = H * 0.72;          // bottom lane — Rask's minimal diff
-  var X0 = 36, X1 = W - 36, span = X1 - X0;
-  var RASK_SPD = 0.60;        // ~1.7 s per crossing
-  var BLZ_SPD = 0.165;        // ~6 s — a lumbering, heavy payload
+  const LB = H * 0.30;          // top lane — a full-page payload
+  const LR = H * 0.72;          // bottom lane — Rask's minimal diff
+  const X0 = 36, X1 = W - 36, span = X1 - X0;
+  const RASK_SPD = 0.60;        // ~1.7 s per crossing
+  const BLZ_SPD = 0.165;        // ~6 s — a lumbering, heavy payload
 
-  var trail = [], particles = [], rings = [], flashes = [];
-  var prevR = 0, prevB = 0, t0 = null, last = null;
+  let trail: TrailPoint[] = [];
+  const particles: Particle[] = [], rings: Ring[] = [], flashes: Flash[] = [];
+  let prevR = 0, prevB = 0, t0: number | null = null, last = 0;
 
-  function roundRect(x, y, w, h, r) {
+  function roundRect(x: number, y: number, w: number, h: number, r: number): void {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -79,37 +121,37 @@ function wireHeroCanvas(canvas) {
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   }
-  function wire(y) {
+  function wire(y: number): void {
     ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(X0, y); ctx.lineTo(X1, y); ctx.stroke();
     ctx.fillStyle = css('--muted');
     ctx.beginPath(); ctx.arc(X0, y, 3.5, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.arc(X1, y, 3.5, 0, 7); ctx.fill();
   }
-  function burst(x, y, col, n, speed) {
-    for (var i = 0; i < n; i++) {
-      var ang = Math.random() * Math.PI * 2;
-      var sp = speed * (0.25 + Math.random() * 0.75);
+  function burst(x: number, y: number, col: string, n: number, speed: number): void {
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const sp = speed * (0.25 + Math.random() * 0.75);
       particles.push({ x: x, y: y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - speed * 0.15,
                        life: 1, col: col, r: 1 + Math.random() * 2.2 });
     }
     rings.push({ x: x, y: y, r: 4, life: 1, col: col });
   }
-  function blazorBlock(x) {
-    var col = css('--blazor');
-    var w = 56, h = 26, xx = x - w / 2, yy = LB - h / 2;
+  function blazorBlock(x: number): void {
+    const col = css('--blazor');
+    const w = 56, h = 26, xx = x - w / 2, yy = LB - h / 2;
     ctx.save();
     ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(0,0,0,.55)';
     ctx.fillStyle = col; roundRect(xx, yy, w, h, 5); ctx.fill();
     ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
-    for (var s = 1; s < 5; s++) { ctx.beginPath(); ctx.moveTo(xx + w * s / 5, yy + 4); ctx.lineTo(xx + w * s / 5, yy + h - 4); ctx.stroke(); }
+    for (let s = 1; s < 5; s++) { ctx.beginPath(); ctx.moveTo(xx + w * s / 5, yy + 4); ctx.lineTo(xx + w * s / 5, yy + h - 4); ctx.stroke(); }
     ctx.restore();
   }
-  function raskBolt(x) {
-    var col = css('--accent');
+  function raskBolt(x: number): void {
+    const col = css('--accent');
     ctx.save(); ctx.lineCap = 'round';
-    for (var i = 1; i < trail.length; i++) {
-      var a = i / trail.length;
+    for (let i = 1; i < trail.length; i++) {
+      const a = i / trail.length;
       ctx.globalAlpha = a * 0.85; ctx.strokeStyle = col; ctx.lineWidth = a * 8;
       ctx.beginPath(); ctx.moveTo(trail[i - 1].x, LR); ctx.lineTo(trail[i].x, LR); ctx.stroke();
     }
@@ -121,17 +163,17 @@ function wireHeroCanvas(canvas) {
     ctx.beginPath(); ctx.arc(x, LR, 2.4, 0, 7); ctx.fill();
     ctx.restore();
   }
-  function stepFx(dt) {
-    for (var i = rings.length - 1; i >= 0; i--) {
-      var rg = rings[i]; rg.r += 120 * dt; rg.life -= dt * 1.5;
+  function stepFx(dt: number): void {
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const rg = rings[i]; rg.r += 120 * dt; rg.life -= dt * 1.5;
       if (rg.life <= 0) { rings.splice(i, 1); continue; }
       ctx.save(); ctx.globalAlpha = Math.max(0, rg.life) * 0.6;
       ctx.strokeStyle = rg.col; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.r, 0, 7); ctx.stroke(); ctx.restore();
     }
     ctx.save();
-    for (var j = particles.length - 1; j >= 0; j--) {
-      var p = particles[j];
+    for (let j = particles.length - 1; j >= 0; j--) {
+      const p = particles[j];
       p.x += p.vx * dt * 60; p.y += p.vy * dt * 60; p.vy += 46 * dt; p.life -= dt * 1.35;
       if (p.life <= 0) { particles.splice(j, 1); continue; }
       ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.col;
@@ -140,8 +182,8 @@ function wireHeroCanvas(canvas) {
     }
     ctx.restore();
     ctx.save();
-    for (var k = flashes.length - 1; k >= 0; k--) {
-      var f = flashes[k]; f.life -= dt * 0.85; f.y -= 20 * dt;
+    for (let k = flashes.length - 1; k >= 0; k--) {
+      const f = flashes[k]; f.life -= dt * 0.85; f.y -= 20 * dt;
       if (f.life <= 0) { flashes.splice(k, 1); continue; }
       ctx.globalAlpha = Math.max(0, f.life); ctx.fillStyle = f.col;
       ctx.font = '700 13px ui-monospace, monospace'; ctx.textAlign = 'center';
@@ -149,7 +191,7 @@ function wireHeroCanvas(canvas) {
     }
     ctx.restore();
   }
-  function labels() {
+  function labels(): void {
     ctx.textAlign = 'left';
     ctx.fillStyle = css('--muted'); ctx.font = '11px ui-monospace, monospace';
     ctx.fillText('Full page · 24 KB', X0, LB - 22);
@@ -157,20 +199,20 @@ function wireHeroCanvas(canvas) {
     ctx.fillText('Rask diff · 41 B', X0, LR + 28);
   }
 
-  function frame(ts) {
+  function frame(ts: number): void {
     if (t0 === null) { t0 = ts; last = ts; }
-    var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
-    var el = (ts - t0) / 1000;
+    const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+    const el = (ts - t0) / 1000;
     ctx.clearRect(0, 0, W, H);
     wire(LB); wire(LR);
 
-    var bph = (el * BLZ_SPD) % 1;
+    const bph = (el * BLZ_SPD) % 1;
     blazorBlock(X0 + bph * span);
     if (bph < prevB) burst(X1, LB, css('--blazor'), 12, 55);
     prevB = bph;
 
-    var rph = (el * RASK_SPD) % 1;
-    var rx = X0 + rph * span;
+    const rph = (el * RASK_SPD) % 1;
+    const rx = X0 + rph * span;
     if (rph < prevR) {
       trail = [{ x: rx }];
       burst(X1, LR, css('--accent'), 24, 150);
@@ -189,7 +231,7 @@ function wireHeroCanvas(canvas) {
     ctx.clearRect(0, 0, W, H); wire(LB); wire(LR);
     blazorBlock(X0 + 0.34 * span);
     trail = [];
-    for (var q = 0; q < 16; q++) trail.push({ x: X0 + (0.5 + q * 0.028) * span });
+    for (let q = 0; q < 16; q++) trail.push({ x: X0 + (0.5 + q * 0.028) * span });
     raskBolt(X0 + 0.94 * span);
     rings.push({ x: X1, y: LR, r: 12, life: 0.85, col: css('--accent') });
     stepFx(0.016); labels();

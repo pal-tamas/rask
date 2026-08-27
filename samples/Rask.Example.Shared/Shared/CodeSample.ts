@@ -1,7 +1,7 @@
-// Scoped JS for CodeSample, exposed as Rask.CodeSample.copy. The C# side passes the raw
-// (un-highlighted) source of the active tab plus an ElementRef to the copy button; the
-// runtime reviver resolves the ref to the live element before this runs.
-export async function copy(text, btn) {
+// Scoped TypeScript for CodeSample, exposed as Rask.CodeSample.copy. The C# side passes the raw
+// (un-highlighted) source of the active tab plus an ElementRef to the copy button; the runtime
+// reviver resolves the ref to the live element before this runs.
+export async function copy(text: string, btn: HTMLElement | null): Promise<void> {
     try {
         await navigator.clipboard.writeText(text);
     } catch {
@@ -27,7 +27,10 @@ export async function copy(text, btn) {
 
     // Flash "Copied!" for a moment, then restore — transient UI state lives on the client
     // so it never costs a server round-trip or a re-render.
-    const label = btn.querySelector('.sample-copy-text');
+    //
+    // The label is typed as the base Element rather than HTMLElement: querySelector returns
+    // Element | null, and textContent is what this touches, which Element already has.
+    const label: Element | null = btn.querySelector('.sample-copy-text');
     const previous = label ? label.textContent : null;
     btn.classList.add('copied');
     if (label) {

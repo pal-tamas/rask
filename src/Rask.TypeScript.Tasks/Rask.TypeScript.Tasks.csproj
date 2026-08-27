@@ -24,6 +24,18 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
   </ItemGroup>
 
+  <!--
+    Deploy next to Rask.Core.targets, which is the file that declares the <UsingTask>. Rask.Core is
+    IsPackable=false and its build/ folder is packed into EVERY host package by
+    src/RaskCoreBuildPack.targets, so this one copy reaches Rask.Server and Rask.Wasm alike — and
+    $(MSBuildThisFileDirectory) resolves identically for an in-repo consumer and for a NuGet one,
+    which gets build/ verbatim. Same arrangement as Rask.Tailwind.Tasks and Rask.Spa.Tasks.
+  -->
+  <Target Name="CopyTaskAssemblyToRaskCoreBuild" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Core\build\"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.TypeScript.Tasks.Tests"/>
   </ItemGroup>

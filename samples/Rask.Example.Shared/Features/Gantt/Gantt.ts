@@ -1,30 +1,45 @@
-// Scoped JS for the Gantt component — the browser half of wrapping a third-party DOM library.
+// Scoped TypeScript for the Gantt component — the browser half of wrapping a third-party DOM library.
 //   * mount(host, id, pathBase, optionsJson) — load frappe-gantt, draw the chart into the host, and
 //     forward its callbacks to the [JSInvokable]s in GanttInterop.
 //   * update(host, optionsJson) — push new tasks / a new view mode at the live instance.
 //   * destroy(host) — drop the instance and clear the host.
 //
 // frappe-gantt is vendored under wwwroot/lib/frappe-gantt (MIT). It's an ordinary UMD bundle: loading it
-// sets a `Gantt` global. Vendored rather than CDN-loaded so the showcase works offline and under the
+// sets a `Gantt` global, described in the sibling frappe-gantt.d.ts because there is no node_modules to
+// take typings from. Vendored rather than CDN-loaded so the showcase works offline and under the
 // GitHub Pages sub-path.
 
 const ASSEMBLY = "Rask.Example.Shared";
 
+/** What the .NET side sends over as `optionsJson`. */
+interface GanttComponentOptions {
+    viewMode: string;
+    tasks: GanttTask[];
+    holidays: GanttHoliday[];
+}
+
+/** One live chart, plus enough of its current state to tell a real change from a no-op. */
+interface ChartEntry {
+    chart: GanttChart;
+    viewMode: string;
+    tasksJson: string;
+}
+
 // One instance per host element. A WeakMap, so a host that goes away with the page doesn't pin its chart.
-const charts = new WeakMap();
-let loadPromise = null;
+const charts = new WeakMap<HTMLElement, ChartEntry>();
+let loadPromise: Promise<typeof GanttChart> | null = null;
 
 // Resolve the library's URL from the PathBase the .NET side passes in, rather than from document.baseURI:
 // PathBase is what's correct behind a reverse proxy (Server) and under /rask/ (WASM on Pages).
-function libUrl(pathBase, file) {
+function libUrl(pathBase: string | null, file: string): string {
     return `${pathBase || ""}/_content/Rask.Example.Shared/lib/frappe-gantt/${file}`;
 }
 
-function loadGantt(pathBase) {
+function loadGantt(pathBase: string | null): Promise<typeof GanttChart> {
     if (globalThis.Gantt) return Promise.resolve(globalThis.Gantt);
     if (loadPromise) return loadPromise;
 
-    loadPromise = new Promise((resolve, reject) => {
+    loadPromise = new Promise<typeof GanttChart>((resolve, reject) => {
         // The stylesheet goes into <head> at runtime, so it isn't part of any .NET render. Rask notices
         // foreign head nodes and preserves them across re-renders on its own — that's the behaviour this
         // very demo sits under in docs/js-interop.md, and why there's no marking code here.
@@ -35,7 +50,18 @@ function loadGantt(pathBase) {
 
         const script = document.createElement("script");
         script.src = libUrl(pathBase, "frappe-gantt.umd.js");
-        script.onload = () => resolve(globalThis.Gantt);
+        script.onload = () => {
+            // The bundle sets the global as a side effect of running. If it somehow did not, reject
+            // rather than resolving undefined — otherwise the failure surfaces later as "Lib is not a
+            // constructor", pointing at the call site instead of at the load.
+            const lib = globalThis.Gantt;
+            if (lib) {
+                resolve(lib);
+            } else {
+                loadPromise = null;
+                reject(new Error("frappe-gantt loaded but set no global"));
+            }
+        };
         script.onerror = () => {
             // Drop the failed attempt and take the half-loaded tags with it. Memoizing a rejected promise
             // would turn one flaky fetch into a permanently broken chart for the rest of the page's life,
@@ -57,11 +83,11 @@ function loadGantt(pathBase) {
 // The marker is the opt-out: the reconciler skips marked from-side nodes, so the host pairs as empty.
 // Mark the library's children, never the host itself — the host IS in the render tree, and marking it
 // would make the morph treat it as missing and append a duplicate.
-function markManaged(host) {
-    for (const child of host.children) child.setAttribute("data-rask-managed", "");
+function markManaged(host: HTMLElement): void {
+    for (const child of Array.from(host.children)) child.setAttribute("data-rask-managed", "");
 }
 
-function toLibTasks(options) {
+function toLibTasks(options: GanttComponentOptions): GanttTask[] {
     return options.tasks.map((t) => ({
         id: t.id,
         name: t.name,
@@ -73,15 +99,19 @@ function toLibTasks(options) {
 
 // frappe-gantt keys holidays by the CSS colour to paint them with; weekends are its default entry, so
 // keep that and add ours alongside rather than replacing it.
-function toLibHolidays(options) {
-    const holidays = { "var(--g-weekend-highlight-color)": "weekend" };
+function toLibHolidays(options: GanttComponentOptions): GanttHolidays {
+    const holidays: GanttHolidays = { "var(--g-weekend-highlight-color)": "weekend" };
     if (options.holidays.length > 0) {
         holidays["#ffd7d7"] = options.holidays.map((h) => ({ date: h.date, label: h.label }));
     }
     return holidays;
 }
 
-export async function mount(host, id, pathBase, optionsJson) {
+export async function mount(
+    host: HTMLElement | null,
+    id: string,
+    pathBase: string | null,
+    optionsJson: string): Promise<void> {
     if (!host) return;
     // A host that already carries a chart means a *new* component instance landed on the same element
     // (the .NET side rebuilt it — e.g. its position among its parent's children shifted). Rebuild rather
@@ -89,8 +119,8 @@ export async function mount(host, id, pathBase, optionsJson) {
     // component that no longer renders, so it would ignore every later prop change.
     if (charts.has(host)) destroy(host);
 
-    const options = JSON.parse(optionsJson);
-    let Lib;
+    const options = JSON.parse(optionsJson) as GanttComponentOptions;
+    let Lib: typeof GanttChart;
     try {
         Lib = await loadGantt(pathBase);
     } catch {
@@ -131,11 +161,11 @@ export async function mount(host, id, pathBase, optionsJson) {
     markManaged(host);
 }
 
-export function update(host, optionsJson) {
-    const entry = host && charts.get(host);
-    if (!entry) return;
+export function update(host: HTMLElement | null, optionsJson: string): void {
+    const entry = host ? charts.get(host) : undefined;
+    if (!entry || !host) return;
 
-    const options = JSON.parse(optionsJson);
+    const options = JSON.parse(optionsJson) as GanttComponentOptions;
     const tasks = toLibTasks(options);
     const tasksJson = JSON.stringify(tasks);
 
@@ -157,7 +187,7 @@ export function update(host, optionsJson) {
     markManaged(host);
 }
 
-export function destroy(host) {
+export function destroy(host: HTMLElement | null): void {
     if (!host || !charts.has(host)) return;
     // The library has no destroy() of its own, so drop our reference and clear what it drew. The host
     // itself belongs to the .NET render tree — leave it in place.
@@ -169,9 +199,9 @@ export function destroy(host) {
 // sees. toISOString() would convert that to UTC and shift the calendar day for every user who isn't on
 // UTC (a bar dropped on the 8th coming back as the 9th, or the 7th, depending on which side you're on),
 // so format the local fields instead and let the .NET side read them as an unzoned timestamp.
-function localIso(date) {
+function localIso(date: Date): string {
     if (!(date instanceof Date)) return String(date);
-    const pad = (n) => String(n).padStart(2, "0");
+    const pad = (n: number): string => String(n).padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
         + `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }

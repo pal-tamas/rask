@@ -524,6 +524,60 @@ them until tagged releases begin.
   loop started with `_ = LoopAsync()`, as `PollingPanel` does — is not waited on at all, and still
   reaches the browser through the live connection as it always did.
 
+### Changed
+- **BREAKING: scoped component assets are TypeScript. A `.js` sibling is a build error (RASK054).**
+  `Counter.cs` now pairs with `Counter.ts`, which Rask compiles before the browser sees it and
+  registers on `window.Rask["Counter"]` exactly as before. Migrating is the rename and nothing else —
+  TypeScript is a superset of JavaScript, so an existing ES module is already valid; add annotations
+  at whatever pace suits you.
+
+  **Why an error rather than a quiet fallback.** A scoped script that stops being registered does not
+  fail. `window.Rask["Name"]` simply has no methods on it, so every call from C# resolves to nothing
+  and the component renders a control that does nothing — no build error, no startup error, nothing
+  in the console. There is no later point at which that surfaces usefully, so it surfaces at the
+  build.
+
+  **It fires only for a real scoped asset**: a `.js` beside a non-abstract, non-generic `Component`
+  subclass of that name, which is exactly the set of files that worked as scoped JavaScript before.
+  A `Helpers.js` next to an ordinary static `Helpers.cs`, or anything under `wwwroot/`, is somebody
+  else's file and is left alone. That test needs the compilation, which is why the diagnostic lives in
+  the generator rather than in MSBuild — a filesystem rule would break those consumers with no opt-out
+  to reach for.
+
+  Compilation is **tsgo**, the Go build of the TypeScript compiler, fetched once as a native binary
+  and checksum-verified. **No npm, no Node, no `node_modules`** — the same arrangement Tailwind
+  already uses, so `dotnet build` remains all anyone needs. `RaskTypeScriptBuild=false` turns it off;
+  `RaskTypeScriptOffline=true` refuses to fetch and fails naming the file to put in place.
+
+  It has to be tsgo and not esbuild, and that is not a preference. **esbuild always hoists
+  declarations into a trailing `export { … }` clause** — with an esm format, with no bundling and no
+  minification — and `ScopedAssetRegistry` finds a component's methods by matching
+  `export function NAME(` at a line start. An esbuild-compiled scoped asset would therefore register
+  no methods at all, silently, in the browser only. tsgo's emit preserves the inline form. Both
+  behaviours are pinned by tests that run the real binaries.
+
+  Ordinary builds compile without type-checking, so the inner loop is not taxed for a verdict that
+  belongs in a gate; the repository's own unit gate runs `tsgo --noEmit --strict` over every scoped
+  file it has.
+
+  Rask now ships **ambient declarations for its own browser globals** (`window.DotNet`,
+  `window.Rask`), compiled alongside every consumer's scoped files — so calling a `[JSInvokable]`
+  needs no declaration of your own. For a third-party library, a narrow `.d.ts` beside your code is
+  compiled with it; `samples/Rask.Example.Shared/Features/Gantt/frappe-gantt.d.ts` is a worked
+  example of describing only what you actually call.
+
+  `RaskScopedJsAutoInclude` is now `RaskScopedTsAutoInclude`. RASK017, RASK018 and RASK020 keep their
+  ids and meanings, are reworded for TypeScript, and now **report at the `.ts`** rather than at
+  `Location.None` — previously they could name a generated file under `obj/` that the author never
+  wrote.
+
+### Fixed
+- **`rask dev` now actually reacts to a scoped asset edit.** It has always said "Edits to Render(),
+  scoped .css/.js apply live", and for the scoped files that was not true: `dotnet watch` collects
+  `@(Compile)`, `@(EmbeddedResource)` and the project file, while a scoped asset is a `None` item and
+  nothing in the build added it to `@(Watch)`. Both `.ts` and `.css` are now watched, so the promise
+  holds. Found while wiring the TypeScript compile, and unrelated to it.
+
 ### Added
 - **A TypeScript toolchain that needs no npm and no Node.** `Rask.TypeScript.Tasks` resolves the two
   native binaries Rask needs to turn TypeScript into something a browser runs — **esbuild** to bundle

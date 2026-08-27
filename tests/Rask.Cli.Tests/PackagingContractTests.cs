@@ -217,14 +217,78 @@ public sealed class PackagingContractTests
             .ToList();
 
         Assert.Contains(@"**\*.css", globs);
-        Assert.Contains(@"**\*.js", globs);
+
+        // Scoped TypeScript reaches the generator by a different route than CSS, so the assertion has
+        // to follow it. The .ts is globbed into a private item, compiled to obj/, and only the OUTPUT
+        // becomes an AdditionalFile — carrying the source path as metadata. Asserting on the glob
+        // alone would stay green if the AdditionalFiles contribution were dropped, and every consumer
+        // would silently lose scoped assets with a build that still succeeds.
+        var privateGlobs = targets.Descendants("_RaskScopedTs")
+            .Select(e => e.Attribute("Include")?.Value)
+            .ToList();
+
+        Assert.Contains(@"**\*.ts", privateGlobs);
+        Assert.Contains(globs, g => g is not null && g.Contains("_RaskCompiledScopedJs", StringComparison.Ordinal));
+
+        var metadata = targets.Descendants("CompilerVisibleItemMetadata")
+            .Select(e => (e.Attribute("Include")?.Value, e.Attribute("MetadataName")?.Value))
+            .ToList();
+
+        Assert.Contains(("AdditionalFiles", "RaskTsSource"), metadata);
+
+        // The framework's own ambient declarations have to be compiled alongside a consumer's scoped
+        // files, or every app calling a [JSInvokable] has to redeclare window.DotNet itself.
+        var typeGlobs = targets.Descendants("_RaskScopedTsTypes")
+            .Select(e => e.Attribute("Include")?.Value)
+            .ToList();
+
+        Assert.Contains(@"**\*.d.ts", typeGlobs);
+        Assert.Contains(typeGlobs, g => g is not null && g.EndsWith("rask-globals.d.ts", StringComparison.Ordinal));
+
+        // An author's .js must never reach csc: Rask no longer compiles one, and the only reason it
+        // is globbed at all is so the generator can name it in RASK054.
+        //
+        // EndsWith rather than Contains, because `Resources\**\*.json` contains ".js" — the classic
+        // substring assertion that matches the thing it was meant to exclude.
+        Assert.DoesNotContain(globs, g => g is not null && g.EndsWith(".js", StringComparison.Ordinal));
 
         var visible = targets.Descendants("CompilerVisibleProperty")
             .Select(e => e.Attribute("Include")?.Value)
             .ToList();
 
-        Assert.Contains("RaskScopedJsAutoInclude", visible);
+        Assert.Contains("RaskScopedTsAutoInclude", visible);
+        Assert.Contains("RaskStrayScopedJs", visible);
         Assert.Contains("RaskBuilderEntryInjection", visible);
+    }
+
+    /// <summary>
+    ///     The TypeScript compile ships with the build integration, and pack fails loudly if it does not.
+    /// </summary>
+    /// <remarks>
+    ///     A <c>&lt;None Include&gt;</c> of an absent file packs nothing and reports nothing, so the
+    ///     first sign of a missing task assembly would be MSB4062 in a consumer's build, naming a file
+    ///     they have never heard of. That is the same shape as #544, which hid for a year.
+    /// </remarks>
+    [Fact]
+    public void The_typescript_compiler_task_ships_with_the_build_integration()
+    {
+        var pack = XDocument.Load(Path.Combine(_repoRoot, "src", "RaskCoreBuildPack.targets"));
+
+        var packed = pack.Descendants("None")
+            .Where(e => e.Attribute("Pack")?.Value == "true")
+            .Select(e => e.Attribute("Include")?.Value ?? string.Empty)
+            .ToList();
+
+        Assert.Contains(packed, p => p.EndsWith("Rask.TypeScript.Tasks.dll", StringComparison.Ordinal));
+        Assert.Contains(packed, p => p.EndsWith("rask-globals.d.ts", StringComparison.Ordinal));
+
+        // And the guard that turns a missing one into an error at pack time rather than at a
+        // consumer's first build.
+        var guarded = pack.Descendants("Error")
+            .Select(e => e.Attribute("Condition")?.Value ?? string.Empty)
+            .ToList();
+
+        Assert.Contains(guarded, c => c.Contains("Rask.TypeScript.Tasks.dll", StringComparison.Ordinal));
     }
 
     /// <summary>

@@ -96,7 +96,7 @@ the page). It's a craft project built in the open, deep on Roslyn source generat
 
 - **One component model, two hosts** — the same C# component runs Server (live diff over WS) or WASM.
 - **Markup is a chain** — a Roslyn generator emits `Div.Class("card")`, `Counter.Start(3)` and type-safe routes, so the IDE lists every step and a missing one is a compile error.
-- **Scoped CSS & JS** — sibling `Component.css`/`Component.js`, content-addressed and cached.
+- **Scoped CSS & TypeScript** — sibling `Component.css`/`Component.ts`, compiled with no npm, content-addressed and cached.
 - **Routing, lifecycle, forms, validation, auth** — batteries included, no JavaScript required.
 - **Toast messages** — inject `IToaster` for transient messages that survive a client-side navigation.
 - **Tiny live updates** — a minimal edit-op diff ships instead of the whole page.

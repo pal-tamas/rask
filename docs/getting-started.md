@@ -81,7 +81,7 @@ lists the `rask` commands you'll use next. The starter app is deliberately minim
 page — so there's nothing to delete before you start building.
 
 > **Edit-and-refresh with hot reload.** Run `rask dev` instead of `dotnet run` for a live inner loop: edit
-> a component's `Render()` (or its scoped `.css`/`.js`), a `[Route]` template, or a CQRS handler and save —
+> a component's `Render()` (or its scoped `.css`/`.ts`), a `[Route]` template, or a CQRS handler and save —
 > **C# Hot Reload** applies the change to the running app and Rask re-renders the open session in place, no
 > manual rebuild or browser refresh. A small "Hot reload applied" pill confirms it landed. Edits the
 > runtime can't apply (adding a type, changing a signature) restart the app instead, and the page reloads

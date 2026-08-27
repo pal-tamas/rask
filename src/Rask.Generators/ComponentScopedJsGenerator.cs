@@ -12,53 +12,88 @@ using Microsoft.CodeAnalysis.Text;
 namespace Rask.Generators;
 
 /// <summary>
-///     Pairs sibling <c>.js</c> files with their component classes (e.g.
-///     <c>Counter.cs</c> ↔ <c>Counter.js</c>) and emits a module initializer that
-///     registers the JS source into <c>ScopedJsRegistry</c>. The author writes
-///     idiomatic ES-module syntax (<c>export function mount(el) { ... }</c>); the
-///     registry wraps the body in a <c>Rask.scoped.register(...)</c> call at runtime.
+///     Pairs sibling <c>.ts</c> files with their component classes (e.g.
+///     <c>Counter.cs</c> ↔ <c>Counter.ts</c>) and emits a module initializer that registers the
+///     compiled JavaScript into <c>ScopedAssetRegistry</c>. The author writes idiomatic TypeScript
+///     (<c>export function mount(el: HTMLElement) { … }</c>); the registry wraps the body at runtime
+///     and exposes each export on <c>window.Rask["Counter"]</c>.
 /// </summary>
+/// <remarks>
+///     <para>
+///         The generator never sees the TypeScript. A source generator cannot run a compiler, so
+///         <c>Rask.Core.targets</c> compiles each sibling <c>.ts</c> to <c>obj/…/rask/ts/</c> before
+///         <c>CoreCompile</c> and hands the OUTPUT over as an <c>AdditionalFile</c>, tagged with the
+///         path it came from.
+///     </para>
+///     <para>
+///         Everything therefore keys off <b>that tag</b>, not off the file it is handed. Pairing a
+///         component with the compiled path would look for <c>Counter.cs</c> inside <c>obj/</c> and
+///         match nothing, and a diagnostic reported against it would name a generated file the
+///         author never wrote.
+///     </para>
+/// </remarks>
 [Generator(LanguageNames.CSharp)]
 public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
 {
     private const string ComponentFullName = "Rask.Core.Component";
 
+    /// <summary>The metadata carrying the <c>.ts</c> a compiled file came from.</summary>
+    private const string SourceMetadataKey = "build_metadata.AdditionalFiles.RaskTsSource";
+
+    /// <summary>The <c>.js</c> files found beside components, which Rask no longer compiles.</summary>
+    private const string StrayJsPropertyKey = "build_property.RaskStrayScopedJs";
+
     private static readonly DiagnosticDescriptor Rask017 = new(
         "RASK017",
-        "Orphan scoped-JS file",
-        "Scoped-JS file '{0}' has no matching component class — add a Component subclass named '{1}' in the "
+        "Orphan scoped-TS file",
+        "Scoped-TS file '{0}' has no matching component class — add a Component subclass named '{1}' in the "
         + "same folder, rename the file to match one, or set "
-        + "<RaskScopedJsAutoInclude>false</RaskScopedJsAutoInclude> if it is a plain wwwroot script",
+        + "<RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude> if it is a plain wwwroot script",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "As RASK015, for a '{Name}.js' sibling: scoped JS is matched by file name and folder, so a script "
-                     + "with no component of that name beside it is registered against nothing.",
+        description: "As RASK015, for a '{Name}.ts' sibling: scoped TypeScript is matched by file name and folder, so "
+                     + "a script with no component of that name beside it is registered against nothing.",
         helpLinkUri: DiagnosticHelp.Link("RASK017"));
 
     private static readonly DiagnosticDescriptor Rask018 = new(
         "RASK018",
-        "Ambiguous scoped-JS match",
-        "Scoped-JS file '{0}' matches multiple component classes named '{1}': {2}. Move one to disambiguate.",
+        "Ambiguous scoped-TS match",
+        "Scoped-TS file '{0}' matches multiple component classes named '{1}': {2}. Move one to disambiguate.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "As RASK016, for scoped JS: two components of the same name in one folder make the pairing "
-                     + "arbitrary.",
+        description: "As RASK016, for scoped TypeScript: two components of the same name in one folder make the "
+                     + "pairing arbitrary.",
         helpLinkUri: DiagnosticHelp.Link("RASK018"));
 
     private static readonly DiagnosticDescriptor Rask020 = new(
         "RASK020",
-        "Scoped-JS simple-name collision",
-        "Two or more components with scoped JS share the simple type name '{0}': {1}. The browser-side namespace key window.Rask[\"{0}\"] is shared by all of them and the last registration silently wins. Rename one, move it to a differently-named sibling, or expose your exports under a sub-namespace inside the JS file. Promote to error in csproj with <WarningsAsErrors>RASK020</WarningsAsErrors>.",
+        "Scoped-TS simple-name collision",
+        "Two or more components with scoped TypeScript share the simple type name '{0}': {1}. The browser-side namespace key window.Rask[\"{0}\"] is shared by all of them and the last registration silently wins. Rename one, move it to a differently-named sibling, or expose your exports under a sub-namespace inside the TypeScript file. Promote to error in csproj with <WarningsAsErrors>RASK020</WarningsAsErrors>.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "Scoped JS is exposed to the browser as window.Rask['Name'], keyed on the component's SIMPLE name "
-                     + "— so two components of the same name in different namespaces share one key and the last one "
-                     + "registered wins, silently. Promote to an error with "
+        description: "Scoped TypeScript is exposed to the browser as window.Rask['Name'], keyed on the component's "
+                     + "SIMPLE name — so two components of the same name in different namespaces share one key and the "
+                     + "last one registered wins, silently. Promote to an error with "
                      + "<WarningsAsErrors>RASK020</WarningsAsErrors>.",
         helpLinkUri: DiagnosticHelp.Link("RASK020"));
+
+    private static readonly DiagnosticDescriptor Rask054 = new(
+        "RASK054",
+        "Scoped JavaScript is no longer supported",
+        "'{0}' sits beside component '{1}', and Rask no longer compiles or registers a scoped '.js' file — rename it "
+        + "to '{1}.ts'. The body needs no change: TypeScript is a superset of JavaScript, so an existing module is "
+        + "already valid, and it is compiled before the browser sees it.",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Error,
+        true,
+        description: "Scoped component assets are TypeScript. A '.js' sibling is left where it is rather than quietly "
+                     + "ignored, because a scoped script that stops being registered does not fail — it produces a "
+                     + "component whose window.Rask methods are simply absent, which surfaces as a control that does "
+                     + "nothing.",
+        helpLinkUri: DiagnosticHelp.Link("RASK054"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -71,14 +106,39 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             .Where(static c => c is not null)
             .Select(static (c, _) => c!.Value);
 
-        var jsFiles = context.AdditionalTextsProvider
+        // Combining with the options provider re-runs this on every keystroke, because the provider
+        // is not equatable. That is only acceptable because the Select immediately projects into an
+        // equatable record struct, so everything downstream still caches on content — the same
+        // mitigation ComponentFactoryGenerator uses. Returning the provider itself, or an
+        // ImmutableArray (which compares by reference), would silently re-run the whole generator
+        // for every character typed.
+        var assets = context.AdditionalTextsProvider
             .Where(static f => f.Path.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
-            .Select(static (f, ct) => new JsFile(f.Path, f.GetText(ct)?.ToString() ?? string.Empty));
+            .Combine(context.AnalyzerConfigOptionsProvider)
+            .Select(static (pair, ct) =>
+            {
+                var (file, options) = pair;
+                options.GetOptions(file).TryGetValue(SourceMetadataKey, out var source);
+                return new ScopedAsset(
+                    source ?? string.Empty,
+                    file.GetText(ct)?.ToString() ?? string.Empty);
+            })
 
-        var combined = components.Collect().Combine(jsFiles.Collect());
+            // A compiled scoped asset always carries the .ts it came from. Anything else in
+            // @(AdditionalFiles) that happens to be a .js belongs to another package and is not
+            // ours to register — the old .js glob would have claimed it.
+            .Where(static a => a.SourcePath.EndsWith(".ts", StringComparison.OrdinalIgnoreCase));
+
+        var strayJs = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+        {
+            options.GlobalOptions.TryGetValue(StrayJsPropertyKey, out var value);
+            return value ?? string.Empty;
+        });
+
+        var combined = components.Collect().Combine(assets.Collect()).Combine(strayJs);
 
         context.RegisterSourceOutput(combined,
-            static (spc, t) => Emit(spc, t.Left, t.Right));
+            static (spc, t) => Emit(spc, t.Left.Left, t.Left.Right, t.Right));
     }
 
     private static ComponentInfo? GetComponentInfo(GeneratorSyntaxContext ctx)
@@ -129,13 +189,9 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     private static void Emit(
         SourceProductionContext spc,
         ImmutableArray<ComponentInfo> components,
-        ImmutableArray<JsFile> jsFiles)
+        ImmutableArray<ScopedAsset> assets,
+        string strayJs)
     {
-        if (jsFiles.IsDefaultOrEmpty)
-        {
-            return;
-        }
-
         var byDirAndName = new Dictionary<string, List<ComponentInfo>>(StringComparer.OrdinalIgnoreCase);
         foreach (var c in components)
         {
@@ -150,31 +206,33 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             list.Add(c);
         }
 
-        var pairs = new List<(ComponentInfo Component, string Js)>();
+        ReportStrayJavaScript(spc, byDirAndName, strayJs);
+
+        if (assets.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        var pairs = new List<(ComponentInfo Component, string Js, string SourcePath)>();
         var emittedFqns = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var js in jsFiles)
+        foreach (var asset in assets)
         {
-            if (string.IsNullOrWhiteSpace(js.Contents))
-            {
-                continue;
-            }
-
-            var stem = Path.GetFileNameWithoutExtension(js.Path);
+            var stem = Path.GetFileNameWithoutExtension(asset.SourcePath);
             if (string.IsNullOrEmpty(stem))
             {
                 continue;
             }
 
-            var dir = NormalizeDirectory(js.Path);
+            var dir = NormalizeDirectory(asset.SourcePath);
             var key = MakeKey(dir, stem);
 
             if (!byDirAndName.TryGetValue(key, out var matches) || matches.Count == 0)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
                     Rask017,
-                    Location.None,
-                    js.Path,
+                    SourceLocation(asset.SourcePath),
+                    asset.SourcePath,
                     stem));
                 continue;
             }
@@ -184,10 +242,19 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                 var fqns = string.Join(", ", matches.Select(m => m.FullyQualifiedName));
                 spc.ReportDiagnostic(Diagnostic.Create(
                     Rask018,
-                    Location.None,
-                    js.Path,
+                    SourceLocation(asset.SourcePath),
+                    asset.SourcePath,
                     stem,
                     fqns));
+                continue;
+            }
+
+            // Whitespace-only content is skipped AFTER pairing, so an empty file still reports
+            // RASK017/018 rather than vanishing. It is also the state every scoped asset is in
+            // before the first real build — a design-time build does not run the compiler — so
+            // this must not be an error.
+            if (string.IsNullOrWhiteSpace(asset.Contents))
+            {
                 continue;
             }
 
@@ -197,7 +264,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                 continue;
             }
 
-            pairs.Add((match, js.Contents));
+            pairs.Add((match, asset.Contents, asset.SourcePath));
         }
 
         if (pairs.Count == 0)
@@ -209,7 +276,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         // components in different namespaces with the same simple type name compete for
         // the same window.Rask[{SimpleName}] slot; the last registration wins silently.
         // This catches the collision at build time so users get a chance to rename or
-        // namespace their JS-side exports before runtime surprises hit.
+        // namespace their exports before runtime surprises hit.
         var bySimpleName = pairs
             .GroupBy(p => p.Component.TypeName, StringComparer.Ordinal)
             .Where(g => g.Count() > 1);
@@ -219,7 +286,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                 collisionGroup.Select(p => p.Component.FullyQualifiedName));
             spc.ReportDiagnostic(Diagnostic.Create(
                 Rask020,
-                Location.None,
+                SourceLocation(collisionGroup.First().SourcePath),
                 collisionGroup.Key,
                 fqns));
         }
@@ -236,12 +303,12 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
 
-        foreach (var (component, js) in pairs.OrderBy(p => p.Component.FullyQualifiedName, StringComparer.Ordinal))
+        foreach (var pair in pairs.OrderBy(p => p.Component.FullyQualifiedName, StringComparer.Ordinal))
         {
             sb.Append("        global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterJs(typeof(")
-                .Append(component.FullyQualifiedName)
+                .Append(pair.Component.FullyQualifiedName)
                 .Append("), ");
-            AppendVerbatimStringLiteral(sb, js);
+            AppendVerbatimStringLiteral(sb, pair.Js);
             sb.AppendLine(");");
         }
 
@@ -251,6 +318,69 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         spc.AddSource("__RaskScopedJsRegistration.g.cs",
             SourceText.From(sb.ToString(), Encoding.UTF8));
     }
+
+    /// <summary>
+    ///     RASK054 — a <c>.js</c> sitting where a scoped asset would go.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Raised here rather than from MSBuild, and the reason is false positives. MSBuild can
+    ///         only see the filesystem, so its rule would be "a <c>.js</c> beside a <c>.cs</c>" —
+    ///         which breaks a consumer whose <c>Foo.cs</c> is an ordinary static class and whose
+    ///         <c>Foo.js</c> is a vendored script, with no opt-out to reach for. That is the same
+    ///         over-reach that made the old <c>.js</c> glob accumulate its wwwroot/Resources/Browser
+    ///         exclusions.
+    ///     </para>
+    ///     <para>
+    ///         Here the test is semantic: a <c>.js</c> beside a non-abstract, non-generic
+    ///         <c>Component</c> subclass of that name. That is exactly the set of files that worked
+    ///         as scoped JavaScript yesterday, so nothing else can be caught by it.
+    ///     </para>
+    /// </remarks>
+    private static void ReportStrayJavaScript(
+        SourceProductionContext spc,
+        Dictionary<string, List<ComponentInfo>> byDirAndName,
+        string strayJs)
+    {
+        if (strayJs.Length == 0)
+        {
+            return;
+        }
+
+        foreach (var path in strayJs.Split(';'))
+        {
+            if (path.Length == 0)
+            {
+                continue;
+            }
+
+            var stem = Path.GetFileNameWithoutExtension(path);
+            if (string.IsNullOrEmpty(stem))
+            {
+                continue;
+            }
+
+            var key = MakeKey(NormalizeDirectory(path), stem);
+            if (!byDirAndName.TryGetValue(key, out var matches) || matches.Count == 0)
+            {
+                continue;
+            }
+
+            spc.ReportDiagnostic(Diagnostic.Create(Rask054, SourceLocation(path), path, stem));
+        }
+    }
+
+    /// <summary>
+    ///     A location in a file that is not part of the compilation.
+    /// </summary>
+    /// <remarks>
+    ///     The alternative is <c>Location.None</c>, which is what these diagnostics used while they
+    ///     described a file csc had open. Now that the file handed to csc is generated output in
+    ///     <c>obj/</c>, "no location" would leave an error about <c>Counter.ts</c> with nothing to
+    ///     click and nothing to blame.
+    /// </remarks>
+    private static Location SourceLocation(string path) =>
+        Location.Create(path, new TextSpan(0, 0), new LinePositionSpan(default, default));
 
     private static string NormalizeDirectory(string path)
     {
@@ -281,5 +411,11 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
 
     private readonly record struct ComponentInfo(string TypeName, string FullyQualifiedName, string FilePath);
 
-    private readonly record struct JsFile(string Path, string Contents);
+    /// <summary>One compiled scoped asset: where it came from, and what it compiled to.</summary>
+    /// <remarks>
+    ///     <c>SourcePath</c> is the author's <c>.ts</c> and drives every decision — pairing, and the
+    ///     location of every diagnostic. <c>Contents</c> is the compiled JavaScript and is only ever
+    ///     written into the registration.
+    /// </remarks>
+    private readonly record struct ScopedAsset(string SourcePath, string Contents);
 }

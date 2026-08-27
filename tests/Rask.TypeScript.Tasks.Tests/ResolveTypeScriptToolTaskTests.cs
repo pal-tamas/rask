@@ -375,7 +375,15 @@ public class ResolveTypeScriptToolTaskTests
         }
     }
 
-    /// <summary>Reads the pins out of the props file so the test and the build cannot disagree.</summary>
+    /// <summary>
+    ///     Reads the pins out of the build integration, so the test and the build cannot disagree.
+    /// </summary>
+    /// <remarks>
+    ///     <c>Rask.Core.targets</c> is the single source: it is the file that ships to consumers
+    ///     inside every host package, so a pin stated anywhere else would be a second copy that can
+    ///     drift. Reading it here is what makes "the pinned versions actually resolve" a fact this
+    ///     gate establishes rather than a claim.
+    /// </remarks>
     private static (string Esbuild, string Tsgo) ReadPinnedVersions()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -386,8 +394,10 @@ public class ResolveTypeScriptToolTaskTests
 
         Assert.NotNull(directory);
 
-        var props = XDocument.Load(Path.Combine(directory!.FullName, "build", "Rask.TypeScript.props"));
-        string Read(string name) => props.Descendants()
+        var targets = XDocument.Load(
+            Path.Combine(directory!.FullName, "src", "Rask.Core", "build", "Rask.Core.targets"));
+
+        string Read(string name) => targets.Descendants()
             .Single(e => e.Name.LocalName == name)
             .Value;
 

@@ -20,6 +20,28 @@
   <ItemGroup>
     <None Include="..\Rask.Core\build\Rask.Core.targets"
           Pack="true" PackagePath="build\" Visible="false"/>
+
+    <!--
+      The TypeScript compile task, loaded by the <UsingTask> in Rask.Core.targets. It rides along
+      here rather than in its own package because scoped assets are a core feature with no opt-in:
+      a component's sibling .ts has to compile wherever Rask.Core.targets is imported, so the glob,
+      the compile and the task assembly have to arrive together or not at all.
+
+      Unlike the .targets above, this file IS copied into the source tree (by
+      Rask.TypeScript.Tasks.csproj, after its build) and is gitignored. That asymmetry is fine
+      because a task assembly is not an entry point: nothing imports it, so an in-repo copy cannot
+      double-fire the way a stray build/Rask.Core.targets would.
+    -->
+    <None Include="..\Rask.Core\build\Rask.TypeScript.Tasks.dll"
+          Pack="true" PackagePath="build\" Visible="false"/>
+
+    <!--
+      The ambient declarations for Rask's own browser globals, compiled alongside every consumer's
+      scoped TypeScript. Without it a component calling a [JSInvokable] would have to redeclare
+      window.DotNet in its own app, and every app's copy would drift from the next.
+    -->
+    <None Include="..\Rask.Core\build\rask-globals.d.ts"
+          Pack="true" PackagePath="build\" Visible="false"/>
   </ItemGroup>
 
   <!--
@@ -33,6 +55,14 @@
            Text="Rask.Core.targets not found at '..\Rask.Core\build\Rask.Core.targets' — it must ship in this package's build/ folder, or consumers get no scoped CSS/JS and no RaskScopedJsAutoInclude/RaskBuilderEntryInjection opt-outs." />
     <Error Condition="!Exists('build\$(PackageId).targets')"
            Text="build\$(PackageId).targets is missing — NuGet auto-imports only build/&lt;PackageId&gt;.{props,targets}, so without it the packed build/Rask.Core.targets is never imported by a consumer." />
+    <!--
+      Same failure mode, one package later: a <None Include> of an absent DLL packs nothing and says
+      nothing, and the first sign would be MSB4062 ("could not load the ResolveTypeScriptToolTask
+      task") in a consumer's build, naming a file they have never heard of. It is absent whenever
+      Rask.TypeScript.Tasks has not been built into src/Rask.Core/build/ yet.
+    -->
+    <Error Condition="!Exists('..\Rask.Core\build\Rask.TypeScript.Tasks.dll')"
+           Text="Rask.TypeScript.Tasks.dll is not in src/Rask.Core/build/ — build src/Rask.TypeScript.Tasks first (its CopyTaskAssemblyToRaskCoreBuild target puts it there). Without it the packed Rask.Core.targets declares a &lt;UsingTask&gt; pointing at nothing, and every consumer with a scoped .ts fails with MSB4062." />
   </Target>
 
 </Project>

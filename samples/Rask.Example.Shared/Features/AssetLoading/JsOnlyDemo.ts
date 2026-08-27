@@ -2,7 +2,7 @@
 // runs once and the closure retains state.
 let count = 0;
 
-export function bump() {
+export function bump(): number {
     count += 1;
     return count;
 }
