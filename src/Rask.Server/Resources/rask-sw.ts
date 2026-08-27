@@ -1,7 +1,7 @@
 // Rask default service worker (Server) — the SW a Rask Server PWA needs, served at {PathBase}/rask-sw.js
 // only when PWA is opted into (AddRaskPwa). It does two jobs:
 //   1. Web Push: shows the pushed notification and focuses/opens a window on click (IWebPush) — the
-//      shared rask-sw-shared.js handlers spliced in at the marker below.
+//      shared rask-sw-shared handlers, imported below.
 //   2. Offline fallback: when a navigation fails offline, serve a static offline page.
 //
 // CRITICAL: unlike the WASM SW, this MUST NOT cache navigations / replay an app shell. A page that keeps
@@ -18,6 +18,15 @@
 //
 // The offline page is resolved relative to the SW's own scope ({PathBase}/), so no base-path injection is
 // needed: under a sub-path deploy it still points at {PathBase}/offline.html.
+
+// See the note in rask-sw-shared.ts: the webworker lib types `self` as the generic WorkerGlobalScope,
+// where `registration`, `clients` and `skipWaiting` do not exist.
+declare const self: ServiceWorkerGlobalScope & typeof globalThis;
+
+// The push + notificationclick handlers, shared with the WASM worker. Imported for side effects —
+// it registers its own listeners. This replaces the @@RASK_SW@@ splice marker: the dependency is now
+// stated in the file that has it rather than assembled by an MSBuild string replace.
+import "../../Rask.Core/Resources/rask-sw-shared.js";
 
 const RASK_OFFLINE_CACHE = "rask-offline-v1";
 const OFFLINE_URL = new URL("offline.html", self.registration.scope).href;
@@ -43,8 +52,17 @@ self.addEventListener("fetch", (event) => {
     // for navigations, so going straight to offline.html would bury a perfectly good cached copy of the
     // very page the user asked for — which is exactly what a cacheable static page leaves behind.
     event.respondWith(
-        fetch(event.request).catch(() =>
-            caches.match(event.request).then((hit) => hit || caches.match(OFFLINE_URL))));
+        fetch(event.request).catch(async () => {
+            const cached = await caches.match(event.request) ?? await caches.match(OFFLINE_URL);
+
+            // Both matches resolve to undefined when there is no cached copy AND the install-time add
+            // failed (offline on first load, or no offline.html deployed). respondWith requires a
+            // Response, so answer with a real one rather than letting the promise reject into an
+            // opaque network error.
+            return cached ?? new Response(
+                "Offline.",
+                { status: 503, headers: { "Content-Type": "text/plain" } });
+        }));
 });
 
-// @@RASK_SW@@
+export {};

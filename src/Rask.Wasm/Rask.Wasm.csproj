@@ -171,20 +171,31 @@
   </Target>
 
   <!--
-    Assemble the served service worker the same way as rask.wasm.js: splice the Core shared push /
-    notificationclick handlers (rask-sw-shared.js, at @@RASK_SW@@) into the WASM SW template
-    (Resources/rask-sw.js, which holds the offline app-shell strategy) and write the result to the
-    tracked, served Browser/rask-sw.js. Edit Resources/rask-sw.js, not Browser/rask-sw.js.
+    Resources/rask-sw.ts holds the WASM worker's offline app-shell strategy and background-sync
+    forwarding, and IMPORTS the Core shared push / notificationclick handlers; esbuild bundles the two
+    into the served Browser/rask-sw.js. Replaces an MSBuild string-replace over a @@RASK_SW@@ marker,
+    so the dependency is stated in the file that has it and checked by the compiler.
+
+    Edit Resources/rask-sw.ts, never Browser/rask-sw.js — the latter is generated output that happens
+    to be tracked.
+
+    Deliberately NOT minified, unlike the Server worker's embedded copy. This output is tracked in
+    git, and a file whose contents depend on $(Configuration) would flip between Debug and Release on
+    every build and show up as a spurious change in `git status`.
   -->
-  <Target Name="_RaskSpliceServiceWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths"
-          Inputs="Resources\rask-sw.js;..\Rask.Core\Resources\rask-sw-shared.js"
+  <Target Name="_RaskBundleServiceWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          Inputs="Resources\rask-sw.ts;..\Rask.Core\Resources\rask-sw-shared.ts"
           Outputs="Browser\rask-sw.js">
-    <PropertyGroup>
-      <_RaskSwTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-sw.js'))</_RaskSwTemplate>
-      <_RaskSwSharedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-sw-shared.js'))</_RaskSwSharedBody>
-      <_RaskSwJs>$(_RaskSwTemplate.Replace('// @@RASK_SW@@', '$(_RaskSwSharedBody)'))</_RaskSwJs>
-    </PropertyGroup>
-    <WriteLinesToFile File="Browser\rask-sw.js" Lines="$(_RaskSwJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-sw.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(MSBuildProjectDirectory)/Browser/rask-sw.js&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 
   <!--

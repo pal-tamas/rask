@@ -2,16 +2,19 @@
 //   1. Offline app shell: a network-first runtime cache (fresh when online, cached when offline),
 //      with navigations falling back to the cached page shell so deep links work offline.
 //   2. Web Push: shows the pushed notification and focuses/opens a window on click (IWebPush) —
-//      shared with the Server SW via the spliced rask-sw-shared.js handlers below.
+//      shared with the Server SW via the imported rask-sw-shared handlers.
 //   3. Background Sync: forwards a woken-up sync/periodicsync tag to the open clients (IBackgroundSync).
 //      WASM-only, so it stays here rather than in the shared handlers.
 //
-// This file is generated: Resources/rask-sw.js (this template) has the Core shared handlers spliced
-// in at the marker below, and the assembled result is written to Browser/rask-sw.js (the served,
-// tracked artifact). Edit this template, not Browser/rask-sw.js.
-//
 // Registered by the page shell (see the WASM templates' / example's index.html) or by
 // IWebPush.RegisterServiceWorkerAsync(). Bring your own SW (pass a URL) to customize.
+
+// See the note in rask-sw-shared.ts: the webworker lib types `self` as the generic WorkerGlobalScope.
+declare const self: ServiceWorkerGlobalScope & typeof globalThis;
+
+// Replaces the @@RASK_SW@@ splice marker — imported for its side effects, which register the push
+// and notificationclick listeners.
+import "../../Rask.Core/Resources/rask-sw-shared.js";
 
 const RASK_CACHE = "rask-cache-v1";
 
@@ -25,6 +28,7 @@ self.addEventListener("fetch", (event) => {
     if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) {
         return;
     }
+
     event.respondWith((async () => {
         const cache = await caches.open(RASK_CACHE);
         try {
@@ -50,7 +54,7 @@ self.addEventListener("fetch", (event) => {
     })());
 });
 
-// Background Sync (driven by IBackgroundSync). Deliberately NOT in rask-sw-shared.js: a Server app
+// Background Sync (driven by IBackgroundSync). Deliberately NOT in rask-sw-shared.ts: a Server app
 // renders over a WebSocket and has no client-side runtime to hand a woken-up event to, so shipping this
 // handler in the Server SW would advertise a capability that cannot fire there.
 //
@@ -59,15 +63,26 @@ self.addEventListener("fetch", (event) => {
 // not in this worker, so C# runs only while a client is alive. The handler therefore forwards the tag to
 // every open client and resolves. With no client open the registration is consumed unseen — which is
 // exactly why IBackgroundSync tells you to re-request your tags at boot.
-const raskForwardSync = (event, kind) => event.waitUntil(
-    self.clients.matchAll({type: "window", includeUncontrolled: true}).then((clients) => {
-        for (let i = 0; i < clients.length; i++) {
-            clients[i].postMessage({rask: kind, tag: event.tag});
+
+/**
+ * The shape both sync events share. Neither is in lib.webworker yet, so the tag is stated here
+ * rather than asserted at each call site.
+ */
+interface SyncLikeEvent extends ExtendableEvent {
+    readonly tag: string;
+}
+
+const raskForwardSync = (event: SyncLikeEvent, kind: "sync" | "periodicsync"): void => event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+        for (const client of clients) {
+            client.postMessage({ rask: kind, tag: event.tag });
         }
     })
 );
 
-self.addEventListener("sync", (event) => raskForwardSync(event, "sync"));
-self.addEventListener("periodicsync", (event) => raskForwardSync(event, "periodicsync"));
+// Cast at the boundary: lib.webworker declares neither "sync" nor "periodicsync" in its event map,
+// so the listener's argument arrives as a bare Event. Confined to these two lines.
+self.addEventListener("sync", (event) => raskForwardSync(event as SyncLikeEvent, "sync"));
+self.addEventListener("periodicsync", (event) => raskForwardSync(event as SyncLikeEvent, "periodicsync"));
 
-// @@RASK_SW@@
+export {};

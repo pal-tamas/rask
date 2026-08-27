@@ -61,6 +61,50 @@ public class ScopedTypeScriptTypeCheckTests
     }
 
     /// <summary>
+    ///     Type-checks the framework's own service workers, which the scoped scan cannot reach.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>Resources/</c> is excluded from the scoped glob — those files are Rask's own runtime,
+    ///         not a consumer's component assets — so without this they would be the one body of
+    ///         TypeScript in the repository that nothing checks. The framework holding itself to a
+    ///         lower standard than it holds its users to is the exact failure this migration exists to
+    ///         remove.
+    ///     </para>
+    ///     <para>
+    ///         A separate pass because the LIB is different: a service worker runs in a
+    ///         ServiceWorkerGlobalScope, so it needs <c>webworker</c> where a component's scoped file
+    ///         needs <c>dom</c>. The two cannot be checked in one compilation — their globals conflict.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void TheFrameworksServiceWorkers_TypeCheck()
+    {
+        var root = RepositoryRoot();
+        var tsgo = ResolveTsgo();
+
+        string[] workers =
+        [
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-sw-shared.ts"),
+            Path.Combine(root, "src", "Rask.Server", "Resources", "rask-sw.ts"),
+            Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask-sw.ts"),
+        ];
+
+        foreach (var worker in workers)
+        {
+            Assert.True(File.Exists(worker), $"'{worker}' is missing — the list here has gone stale");
+        }
+
+        var arguments = string.Join(" ", workers.Select(w => $"\"{w}\""))
+                        + " --noEmit --strict --target es2020 --module esnext --moduleResolution bundler"
+                        + " --lib es2020,webworker";
+
+        var (exitCode, output) = Run(tsgo, arguments);
+
+        Assert.True(exitCode == 0, "The framework's service workers did not type-check:" + Environment.NewLine + output);
+    }
+
+    /// <summary>
     ///     Every project directory holding at least one scoped <c>.ts</c>, with its files.
     /// </summary>
     /// <remarks>

@@ -525,6 +525,40 @@ them until tagged releases begin.
   reaches the browser through the live connection as it always did.
 
 ### Changed
+- **The service workers are TypeScript, bundled by esbuild instead of spliced by MSBuild.** Both
+  Rask's workers — the Server one (offline fallback) and the WASM one (offline app shell, background
+  sync) — now `import` the shared push / notificationclick handlers instead of having them pasted in
+  at a `// @@RASK_SW@@` marker by an MSBuild `String.Replace`. The dependency is stated in the file
+  that has it and checked by a compiler, rather than assembled by a target that could not tell
+  whether the marker was still there.
+
+  The Server worker's embedded copy is now **genuinely minified** in Release. What it replaces could
+  only strip comments and blank lines: it had no regex-literal state at all, despite a doc comment
+  claiming that "regex literals stay untouched", and three source files carried comments working
+  around it (`// no regex literals here — the MSBuild client-JS splice mangles backslashes`). Those
+  constraints are gone. The WASM worker's output stays unminified because it is tracked in git, where
+  a file whose bytes depend on `$(Configuration)` would show up as a spurious change on every build.
+
+  Two real defects surfaced while converting, both of which the old arrangement could not have
+  reported: the Server worker's offline fallback could hand `respondWith` an `undefined` when the
+  install-time cache add had failed (offline on first load, or no `offline.html` deployed), which
+  surfaces as an opaque network error rather than a page; and the sync-forwarding handler's event was
+  never typed, so nothing checked that `event.tag` existed. Both are now stated and checked.
+
+  The framework's own TypeScript is type-checked by the same gate as everyone else's, in its own
+  pass: a service worker runs in a `ServiceWorkerGlobalScope` and needs the `webworker` lib where a
+  component's scoped file needs `dom`, and the two cannot share a compilation. Rask holding itself to
+  a lower standard than it holds its users to is the failure this migration exists to remove.
+
+### Fixed
+- **The TypeScript task assembly is now built before anything needs it.** `Rask.Core` takes a
+  build-order-only reference on `Rask.TypeScript.Tasks`, the same arrangement `Rask.Wasm` has with
+  `Rask.Wasm.Tasks`. Without it the assembly existed only on a machine that had already built that
+  project: a clean clone would evaluate the `<UsingTask>` `Exists()` guard as false, skip the compile
+  target, and produce an app whose scoped TypeScript silently never compiled — and the guard is
+  precisely what would keep that from being an error.
+
+### Changed
 - **BREAKING: scoped component assets are TypeScript. A `.js` sibling is a build error (RASK054).**
   `Counter.cs` now pairs with `Counter.ts`, which Rask compiles before the browser sees it and
   registers on `window.Rask["Counter"]` exactly as before. Migrating is the rename and nothing else —
