@@ -449,7 +449,12 @@ internal static class WireShape
 
     // [JsonPropertyName] wins where it is present, so a contract that already pinned its wire names keeps
     // them. Otherwise camelCase, matching what every other JSON producer in the ecosystem defaults to.
-    private static string WireName(IPropertySymbol property)
+    //
+    // Public because the island generator names props with it too. A second implementation of "what is
+    // this property called on the wire" would drift from this one, and the drift would land in the gap
+    // between the C# that writes the JSON and the TypeScript that declares it — a runtime bug that
+    // type-checks on both sides.
+    public static string WireName(IPropertySymbol property)
     {
         foreach (var attribute in property.GetAttributes())
         {

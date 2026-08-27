@@ -16,6 +16,17 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
   </ItemGroup>
 
+  <!--
+    The island generator classifies prop types with the same wire model the CQRS codecs use, and emits
+    their TypeScript with the same emitter. Shared as source rather than by assembly reference — an
+    analyzer referencing another analyzer would have to ship it, and a type reaching a consumer through
+    two packages is emitted twice.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Generators.Shared\WireShape.cs" Link="Shared\WireShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\TypeScriptEmitter.cs" Link="Shared\TypeScriptEmitter.cs"/>
+  </ItemGroup>
+
   <ItemGroup>
     <!-- So the plural-rule table can be asserted directly. It is grammar rather than code: a test
          that only read the generator's OUTPUT would confirm the table is applied consistently
