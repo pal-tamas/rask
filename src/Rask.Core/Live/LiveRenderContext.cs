@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Rask.Core.Forms;
 using Rask.Core.HeadAssets;
+using Rask.Core.Rendering;
 using Rask.Core.ScopedAssets;
 using ErrorBoundary = Rask.Core.Components.ErrorBoundary;
 using RouteRenderState = Rask.Core.Routing.RouteRenderState;
@@ -204,6 +205,15 @@ public sealed class LiveRenderContext : IDisposable
         // Record the type unconditionally — MountedTypes is a public per-render contract populated for
         // every user component (with or without assets), so it can't be short-circuited.
         MountedTypes.Add(type);
+
+        // A component may declare that it needs a live connection even though nothing in its render
+        // shows one — the shape of anything driven by a timer or an event subscription. Honoured from
+        // anywhere in the tree on purpose: that is what lets a base component say it once and every
+        // page built on it inherit the need without its author knowing to.
+        if (PageRenderModes.Of(type) == PageRenderMode.Interactive)
+        {
+            _handle?.ReportRequiresLiveSession(InteractivityReason.Declared);
+        }
 
         // The by-type scope lookup, however, always misses when no component has registered scoped CSS
         // (the common case), so skip the ConcurrentDictionary probe behind a cheap IsEmpty check.
