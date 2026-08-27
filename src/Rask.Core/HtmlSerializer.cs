@@ -129,7 +129,7 @@ internal static class HtmlSerializer
             {
                 var end = i + f.SubtreeLength;
                 var start = sb.Length;
-                var frameIdx = writer.OpenElement(f.Name!, f.Value, f.SelfClosing, start);
+                var frameIdx = writer.OpenElement(f.Name!, f.Value, f.SelfClosing, start, f.Opaque);
                 sb.Append('<').Append(f.Name);
 
                 // Leading Attribute frames = this element's attributes, in emit order.
@@ -147,6 +147,16 @@ internal static class HtmlSerializer
 
                     writer.Attribute(a.Name!, a.Value);
                     j++;
+                }
+
+                // Island boundary marker, in the same position Serialize writes it. Like the scoped-CSS
+                // marker below it rides the frame rather than an Attribute frame, so replay has to
+                // re-emit it explicitly — and it must, because this HTML is what the full-document
+                // morph reconciles against. Dropping it here loses the boundary for exactly the
+                // subtrees the retained cache is best at holding: the clean, unchanging ones.
+                if (f.Opaque)
+                {
+                    sb.Append(" data-rask-opaque");
                 }
 
                 // Scoped-CSS marker rides the Element frame's Value (Serialize appends it after the
@@ -312,13 +322,24 @@ internal static class HtmlSerializer
                 var scopeId = live?.CurrentScopeId;
                 var isShell = _shellTags.Contains(tagName);
                 var elementStart = sb.Length;
+                var opaque = el.OpaqueSubtreeInternal;
                 var elementFrameIdx = frames?.OpenElement(tagName,
                     scopeId is not null && !isShell ? scopeId : null,
                     el.SelfClosingInternal,
-                    elementStart) ?? -1;
+                    elementStart,
+                    opaque) ?? -1;
 
                 sb.Append('<').Append(tagName);
                 el.WriteAttributesInternal(sb);
+
+                // Framework-emitted, so it sits with data-{scopeId} after the component's own
+                // attributes rather than in the documented user-attribute order. The frame flag above
+                // is what the diff reads; this is what the client morph reads, and the full-HTML
+                // fallback is a separate path to the same DOM — both need telling.
+                if (opaque)
+                {
+                    sb.Append(" data-rask-opaque");
+                }
 
                 if (scopeId is not null && !isShell)
                 {

@@ -249,8 +249,19 @@ public abstract partial class Component : RaskMarkup
     protected virtual string? TagName => null;
     protected virtual bool SelfClosing => false;
 
+    // True when everything below this component's element is owned by something that is not Rask —
+    // a React root, a Lit element, a Blazor renderer (see Rask.Islands). The live diff must then
+    // treat the subtree as a single opaque node: it is reconciled by its own framework, on its own
+    // schedule, and patching into it means two writers on one subtree. That failure does not throw;
+    // it corrupts on the next parent re-render, which is why the marker is carried on the frame
+    // (FrameDiffer skips by SubtreeLength) AND written into the HTML as data-rask-opaque (the
+    // client morph refuses to descend). Both are needed — the diff and the full-HTML fallback are
+    // separate paths to the same DOM.
+    protected virtual bool OpaqueSubtree => false;
+
     internal string? TagNameInternal => TagName;
     internal bool SelfClosingInternal => SelfClosing;
+    internal bool OpaqueSubtreeInternal => OpaqueSubtree;
 
     // Nearest enclosing ErrorBoundary, stamped during the render walk (HtmlSerializer
     // default branch). Async lifecycle continuations + dispatcher catch sites consult this
@@ -1425,7 +1436,8 @@ public abstract partial class Component : RaskMarkup
                 Name = f.Name,
                 Value = f.Value,
                 SubtreeLength = f.SubtreeLength,
-                SelfClosing = f.SelfClosing
+                SelfClosing = f.SelfClosing,
+                Opaque = f.Opaque
             };
         }
 

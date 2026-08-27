@@ -4236,6 +4236,17 @@ function morph(from, to) {
             if (!raskShouldSuppressChecked(from, checked) && from.checked !== checked) from.checked = checked;
         }
     }
+    // An island's subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.Islands).
+    // Attributes above still sync, which is exactly how a changed `props` reaches the adapter; the
+    // children never do. Pairing them would let a full-document morph (scoped-CSS delivery, reconnect,
+    // any untrusted structural op) delete DOM that renderer owns and is about to reuse — and because
+    // the server renders an island as an EMPTY element, `tc` is empty here, so the positional walk
+    // below would trim every mounted node. Distinct from data-rask-managed, which skips a node as a
+    // sibling; this one keeps the node and stops at its border.
+    if (from.hasAttribute && (from.hasAttribute("data-rask-opaque") || to.hasAttribute("data-rask-opaque"))) {
+        return;
+    }
+
     // Reconciling the live <head>: before pairing children, tag anything a third-party library injected
     // (see the note above _raskHeadObserver) as data-rask-managed so the skip below preserves it. The
     // observer is installed lazily on the first head morph — library injections happen after boot.

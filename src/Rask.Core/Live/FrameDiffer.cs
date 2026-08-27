@@ -371,6 +371,22 @@ public static class FrameDiffer
                         newFrames, ref newChildStart, newChildEnd,
                         path, domSlot, output);
 
+                    // An opaque element's DOM belongs to a foreign renderer — React, Lit, Blazor (see
+                    // Rask.Islands). Its attributes still diff above, which is how changed props reach
+                    // the adapter; its children never do. Recursing here would put two writers on one
+                    // subtree, and that does not throw — it corrupts the moment the parent re-renders.
+                    //
+                    // Either side being opaque is enough. A tag change already routes to the replace
+                    // path above, so an opacity mismatch at a matched slot is not a case we should be
+                    // patching into on the strength of one side's word.
+                    if (oldFrame.Opaque || newFrame.Opaque)
+                    {
+                        oi += oldFrame.SubtreeLength;
+                        ni += newFrame.SubtreeLength;
+                        domSlot++;
+                        break;
+                    }
+
                     // Recurse into children. Push domSlot onto path, then diff inside.
                     path.Add(domSlot);
                     DiffSiblings(oldFrames, oldChildStart, oldChildEnd,

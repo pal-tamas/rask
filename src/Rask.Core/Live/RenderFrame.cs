@@ -92,6 +92,15 @@ public struct RenderFrame
     public bool SelfClosing;
 
     /// <summary>
+    ///     For <see cref="RenderFrameKind.Element" />: whether everything below this element is owned
+    ///     by a foreign renderer (see <c>Rask.Islands</c>). <see cref="FrameDiffer" /> compares such an
+    ///     element's attributes and then skips its whole subtree by <see cref="SubtreeLength" />,
+    ///     because those nodes belong to React/Lit/Blazor and are reconciled on their schedule, not
+    ///     ours. Packs into the padding beside <see cref="SelfClosing" />, so the frame does not grow.
+    /// </summary>
+    public bool Opaque;
+
+    /// <summary>
     ///     UTF-16 character offset into the rendered HTML string at which this
     ///     frame's serialized output begins. Set by <see cref="FrameWriter" /> at
     ///     <c>Open*</c> time; the matching <see cref="HtmlEnd" /> is set at <c>Close*</c>
@@ -125,6 +134,11 @@ public struct LeanFrame
     public int SubtreeLength;
     public RenderFrameKind Kind;
     public bool SelfClosing;
+
+    // Retained with the snapshot rather than recomputed: replay writes frames straight back into the
+    // live FrameWriter, so a dropped flag would silently un-protect a cached island's subtree and let
+    // the next diff patch into React's DOM.
+    public bool Opaque;
 }
 
 /// <summary>
@@ -170,7 +184,7 @@ public sealed class FrameWriter : IDisposable
     ///     can pass it back to <see cref="CloseElement" /> to patch in the subtree length
     ///     and the HTML byte range.
     /// </summary>
-    public int OpenElement(string tag, string? scopeId, bool selfClosing, int htmlStart)
+    public int OpenElement(string tag, string? scopeId, bool selfClosing, int htmlStart, bool opaque = false)
     {
         var idx = Reserve();
         _buffer[idx] = new RenderFrame
@@ -179,6 +193,7 @@ public sealed class FrameWriter : IDisposable
             Name = tag,
             Value = scopeId,
             SelfClosing = selfClosing,
+            Opaque = opaque,
             SubtreeLength = 1,
             HtmlStart = htmlStart
         };
