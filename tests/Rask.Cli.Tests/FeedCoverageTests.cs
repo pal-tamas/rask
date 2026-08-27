@@ -1,3 +1,5 @@
+using System.Reflection;
+using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
@@ -81,7 +83,27 @@ public sealed class FeedCoverageTests
             Snapshots = true,
             Logs = true,
             Ops = true,
+            Wasm = true,
+            Localization = true,
+            CultureList = "en",
         };
+
+        // The set above is hand-written, and a hand-written set of everything is exactly what goes
+        // stale — which is the failure this whole file exists to catch, one level up. So it checks
+        // itself: every flag `rask new` understands must be switched on here, or a new battery gets
+        // added, references a package nobody packs, and every build gate keeps passing without ever
+        // restoring it.
+        var uncovered = NewCommand.FeatureFlags
+            .Where(flag => typeof(ServerBatteries)
+                .GetProperty(flag, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
+                ?.GetValue(batteries) is not true)
+            .ToArray();
+
+        Assert.True(
+            uncovered.Length == 0,
+            $"rask new understands --{string.Join(", --", uncovered)}, which this test leaves off. A "
+            + "battery that is never switched on here can pull in a package the local feed does not "
+            + "pack, and nothing would say so.");
 
         AssertFeedCovers(
             ProjectGenerator.GenerateServer(Root, "App", batteries, Version), "the server template with every battery");

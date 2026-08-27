@@ -151,6 +151,11 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.Dashboard");
         }
 
+        if (batteries.Wasm)
+        {
+            packages.Add("Rask.Wasm.Hosting");
+        }
+
         return packages;
     }
 
@@ -169,6 +174,15 @@ internal static partial class ProjectGenerator
         // told not to, so without this a scaffolded app can't be built offline — and errors outright on a
         // RID with no published asset. The binary belongs on the server (--docker copies it into the
         // image), not in everyone's build.
+        // The one-project build. `dotnet publish` generates a second project into obj/ carrying the
+        // WebAssembly SDK, compiles this app's own sources into it, and publishes the bundle into
+        // wwwroot. `dotnet run` is untouched -- a bundle takes minutes to link and buys nothing in
+        // development, where the page is server-live and hot-reloaded.
+        var browserRungProperty = batteries.Wasm
+            ? "\n    <!-- Publish a browser bundle from this same project: see docs/render-modes.md. -->"
+              + "\n    <RaskBrowserRung>true</RaskBrowserRung>"
+            : "";
+
         var litestreamProperty = batteries.Data
             ? "\n    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->"
               + "\n    <RaskLitestreamDownload>false</RaskLitestreamDownload>"
@@ -180,7 +194,7 @@ internal static partial class ProjectGenerator
           <PropertyGroup>
             <TargetFramework>net10.0</TargetFramework>
             <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>{litestreamProperty}
+            <Nullable>enable</Nullable>{browserRungProperty}{litestreamProperty}
           </PropertyGroup>
 
           <ItemGroup>
@@ -224,6 +238,11 @@ internal static partial class ProjectGenerator
             sb.Append("using Rask.Core.Browser;\n");
         }
 
+        if (batteries.Wasm)
+        {
+            sb.Append("using Rask.Wasm.Hosting;\n");
+        }
+
         sb.Append(DatabaseAndBatteryUsings(batteries));
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
@@ -234,6 +253,9 @@ internal static partial class ProjectGenerator
             // registered with TryAddSingleton, so the first (empty) registration wins and the app
             // silently ships with no languages at all.
             var languages = string.Join(", ", batteries.Cultures.Select(c => $"\"{c}\""));
+            // Configured on the SAME call for the same reason the cultures are: the options are
+            // registered with TryAddSingleton, so a second AddRask would be dropped on the floor.
+            var browserRung = batteries.Wasm ? "configureServer: o => o.RenderModes.Wasm = true, " : "";
             sb.Append($$"""
                 // The languages this app ships. The FIRST is the default a visitor falls back to when
                 // nothing else matches. Their language is negotiated per request -- ?culture= beats a
@@ -242,7 +264,7 @@ internal static partial class ProjectGenerator
                 //
                 // Text comes from Resources/Strings.{culture}.json, compiled into typed members: a
                 // missing key is a build error rather than a blank on the page (docs/diagnostics.md).
-                builder.Services.AddRask(configureCulture: c =>
+                builder.Services.AddRask({{browserRung}}configureCulture: c =>
                 {
                     foreach (var language in new[] { {{languages}} })
                     {
@@ -252,9 +274,24 @@ internal static partial class ProjectGenerator
 
                 """);
         }
+        else if (batteries.Wasm)
+        {
+            sb.Append("builder.Services.AddRask(configureServer: o => o.RenderModes.Wasm = true);\n");
+        }
         else
         {
             sb.Append("builder.Services.AddRask();\n");
+        }
+
+        if (batteries.Wasm)
+        {
+            sb.Append("""
+
+                // Serves the browser bundle this project publishes into wwwroot. Registered here and
+                // mapped below, before UseRouting.
+                builder.Services.AddRaskWasmHost();
+
+                """.TrimStart('\n'));
         }
         sb.Append("""
 
@@ -435,6 +472,24 @@ internal static partial class ProjectGenerator
             sb.Append("// Mapped before UseRask: its catch-all serves the SPA for anything unmatched, so a minimal API\n");
             sb.Append("// registered after it would never be reached.\n");
             sb.Append("app.MapPushSubscriptions();\n\n");
+        }
+
+        if (batteries.Wasm)
+        {
+            sb.Append("""
+                // The browser bundle, served from this app's own wwwroot.
+                //
+                // BEFORE UseRouting, and UseRouting written out rather than left implicit -- both matter.
+                // Routing selects an endpoint before the static-file middleware runs, and that middleware
+                // steps aside when one is already selected, so mapping the bundle afterwards lets the
+                // Rask catch-all answer /_framework/*.wasm with text/html -- which the browser reports as
+                // a broken WebAssembly module, nowhere near the ordering that caused it. And
+                // WebApplication inserts UseRouting at the START of the pipeline when nobody calls it,
+                // which would put routing ahead of this line however early it appears.
+                app.UseRaskWasmAssets();
+                app.UseRouting();
+
+                """.TrimStart('\n'));
         }
 
         sb.Append("""

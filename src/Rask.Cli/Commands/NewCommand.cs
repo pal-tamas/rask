@@ -22,7 +22,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// <summary>Every template-scoped flag <c>rask new</c> understands — the batteries plus <c>auth</c>.</summary>
     internal static readonly string[] FeatureFlags =
     [
-        "auth", "pwa", "cqrs", "data", "docker", "localization",
+        "auth", "wasm", "pwa", "cqrs", "data", "docker", "localization",
         "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops",
     ];
 
@@ -37,13 +37,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// same reasoning that keeps <see cref="TemplateCatalog"/> derived from <see cref="SpaFramework.All"/>.
     ///
     /// <para>
-    /// Auth is the one battery left off, because it is the only one that changes what the app <em>is</em>
-    /// rather than what it can do: a login wall in front of a project you are about to show someone is a
-    /// decision, not a convenience. Styling is the other decision, and it is its own axis.
+    /// Auth and wasm are the two left off, because they are the ones that change what the app <em>is</em>
+    /// rather than what it can do. A login wall in front of a project you are about to show someone is a
+    /// decision, not a convenience; and shipping a browser bundle makes every publish link a WebAssembly
+    /// runtime and starts moving pages off the server. Styling is the third decision, and its own axis.
     /// </para>
     /// </remarks>
     internal static readonly string[] BatteryFlags =
-        [.. FeatureFlags.Where(f => f != "auth")];
+        [.. FeatureFlags.Where(f => f is not ("auth" or "wasm"))];
 
     /// <summary>The <c>--no-*</c> spelling of a battery.</summary>
     internal static string OffFlag(string battery) => "no-" + battery;
@@ -63,6 +64,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     [
         "rask new Shop",
         "rask new Shop --auth --bootstrap",
+        "rask new Shop --wasm",
         "rask new Shop --culture en --culture hu",
         "rask new Shop --template wasm",
         "rask new Blog --no-push --no-ops",
@@ -78,7 +80,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
             .MultiOption("culture", valueHint: "tag", description: "A language to translate the UI into, repeatable (default: en). A BCP 47 tag — 'en', 'hu', 'pt-BR'. Implies --localization.")
-            .Flag("auth", description: "Add cookie authentication (login + members pages). The one battery that is off by default.")
+            .Flag("auth", description: "Add cookie authentication (login + members pages). Off by default, like --wasm.")
+            .Flag("wasm", description: "Also publish a browser bundle from this project, so an eligible page moves into WebAssembly once it has downloaded. Publish takes minutes longer; `dotnet run` is unaffected.")
             .Flag("bootstrap", description: "Render pages with Rask.Bootstrap's Bs* components over Bootstrap 5.3.")
             .Flag("tailwind", description: "Style with Tailwind CSS, compiled from your own source at build time (no npm needed).")
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
@@ -182,6 +185,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // the --no-* set. Auth is the exception in both directions: off by default, and asked for by name.
         var off = BatteryFlags.Where(flag => parsed.HasFlag(OffFlag(flag))).ToArray();
         var auth = parsed.HasFlag("auth");
+        var wasm = parsed.HasFlag("wasm");
 
         // Turning off something this template never had is a mistake worth naming: it means the command
         // line was written against a different template, and silently accepting it would hide that.
@@ -267,7 +271,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             : parsed.HasFlag("bootstrap") ? Styling.Bootstrap
             : Styling.Plain;
 
-        var batteries = ToBatteries(template, off, styling, cultures, auth);
+        var batteries = ToBatteries(template, off, styling, cultures, auth, wasm);
 
         // Every template is generated directly by the CLI; the key here is one the catalog knows
         // (validated by TemplateCatalog.TryGet).
@@ -419,6 +423,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Localization = on.Contains("localization"),
             CultureList = cultures is { Count: > 0 } ? string.Join(",", cultures) : "",
             Auth = on.Contains("auth"),
+            Wasm = on.Contains("wasm"),
             Pwa = on.Contains("pwa"),
             Cqrs = on.Contains("cqrs"),
             Data = on.Contains("data"),
@@ -438,7 +443,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         IReadOnlyCollection<string> off,
         Styling styling = Styling.Plain,
         IReadOnlyList<string>? cultures = null,
-        bool auth = false)
+        bool auth = false,
+        bool wasm = false)
     {
         bool On(string battery) =>
             template.SupportedFlags.Contains(battery)
@@ -449,6 +455,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         {
             Styling = styling,
             Auth = auth,
+            // Like auth: asked for by name, and only honoured by a template that can host it.
+            Wasm = wasm && template.SupportedFlags.Contains("wasm"),
             // Set here rather than left to Normalized(), because Reduced() runs first and clears the
             // culture list of anything whose localization is off — so an opt-in template's --culture would
             // be thrown away before the up-cascade ever saw it.
@@ -540,13 +548,24 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
         }
 
-        // Auth gets a question of its own because it is the one battery that is off by default. Everything
-        // else on the list is already on, so the checklist below is about taking things away; mixing the
-        // one thing you add into a list of things you remove would read as the opposite of what it does.
+        // Auth and the browser rung get questions of their own because they are the two that are off by
+        // default. Everything else on the list is already on, so the checklist below is about taking
+        // things away; mixing the things you ADD into a list of things you remove would read as the
+        // opposite of what it does.
         if (!parsed.HasFlag("auth") && template.SupportedFlags.Contains("auth")
             && prompt.Confirm("Add [bold]authentication[/] — login, sessions, members pages?", @default: false))
         {
             filled.Add("--auth");
+        }
+
+        // The cost is named in the question. It is the one answer here that makes every later publish
+        // minutes slower, and finding that out afterwards is worse than being asked.
+        if (!parsed.HasFlag("wasm") && template.SupportedFlags.Contains("wasm")
+            && prompt.Confirm(
+                "Also run pages in the [bold]browser[/] — publishes a WebAssembly bundle (slower publish)?",
+                @default: false))
+        {
+            filled.Add("--wasm");
         }
 
         // Pre-ticked, because this is what a bare `rask new` already gives you. The question is "anything
@@ -629,7 +648,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             : Styling.Plain;
         var off = BatteryFlags.Where(f => args.Contains("--" + OffFlag(f), StringComparer.Ordinal)).ToArray();
         var batteries = ToBatteries(
-            template, off, styling, auth: args.Contains("--auth", StringComparer.Ordinal));
+            template, off, styling,
+            auth: args.Contains("--auth", StringComparer.Ordinal),
+            wasm: args.Contains("--wasm", StringComparer.Ordinal));
 
         var on = BatteryFlags.Where(f => f != "docker" && Includes(batteries, f)).ToArray();
 

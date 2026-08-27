@@ -93,6 +93,7 @@ rask                                 # the wizard, from a blank slate
 rask new                             # the same wizard
 rask new MyApp                       # everything: a server app with the whole stack wired
 rask new MyApp --auth                # + a cookie login, sessions, and members pages
+rask new MyApp --wasm                # + a browser bundle, published from this same project
 rask new MyApp --bootstrap           # Bs* components instead of plain CSS
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
@@ -107,11 +108,15 @@ SQLite database, CQRS, background jobs, transactional email, a cache, a transact
 backups, a durable log store, the operator dashboard, an installable PWA with Web Push, a Dockerfile,
 and the localization machinery. Not a sample page to delete: the wiring, ready for your first feature.
 
-**Two things are left to you**, because they are the two that change what the app *is* rather than what
-it can do:
+**Three things are left to you**, because they are the ones that change what the app *is* rather than
+what it can do:
 
 - **auth** — `--auth` adds a cookie login, sessions and members pages. A login wall in front of a
   project you are about to show someone is a decision, so it is asked rather than assumed.
+- **the browser rung** — `--wasm` publishes a browser bundle beside the server from the same project,
+  so an eligible page moves into WebAssembly once it has downloaded
+  ([render modes](render-modes.md)). Off by default because every publish then links a WebAssembly
+  runtime, which takes minutes; `dotnet run` is unaffected.
 - **styling** — plain CSS by default, `--bootstrap` or `--tailwind` instead.
 
 On the browser-WASM templates there is a third, for the same reason: `--culture <tag>` adds
@@ -213,7 +218,8 @@ commands to run rather than failing: the files on disk are correct either way.
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
 | `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
-| `--auth` | Scaffold a cookie login/session (web templates). **The one battery that is off by default.** |
+| `--auth` | Scaffold a cookie login/session (web templates). **Off by default**, like `--wasm`. |
+| `--wasm` | Also publish a browser bundle from this project (server template), so an eligible page moves into WebAssembly once it has downloaded — see [render modes](render-modes.md). Publish takes minutes longer; `dotnet run` is unaffected. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator — and [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
 | `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
@@ -271,6 +277,7 @@ default list: the default set *is* the column.
 | Docker | ✅ | ✅ | ✅ | ✅ |
 | localization | ✅ | opt-in² | opt-in² | — |
 | `--auth` *(opt-in)* | ✅ | ✅ | ✅ | — |
+| `--wasm` *(opt-in)* | ✅ | — | — | — |
 | `--bootstrap` | ✅ | ✅ | ✅ | — |
 | `--tailwind` | ✅ | ✅ | ✅ | ✅ |
 

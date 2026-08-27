@@ -166,6 +166,15 @@ them until tagged releases begin.
   verified by reintroducing the defect and watching it fail on `(wasm, localization)` before the fix
   went back in — the same bug class `--template native` was, and the same one it now catches.
 
+- **A finished render pass could still collect the next one's work.** `QuiescenceScope.Dispose` clears
+  its thread-static slot only on whatever thread it runs on, which after an `await` is routinely not the
+  thread the pass began on — so a finished scope stayed visible to the next render on that pool thread,
+  which then tracked its work into the dead scope and served a placeholder for data it never waited for.
+
+  Silent rather than loud: the response is a perfectly ordinary 200. It needs enough concurrency to
+  recycle a thread between renders, so it surfaced as an intermittent test failure that passed every
+  time in isolation.
+
 - **`UseRaskWasmAssets` served the bundle's `index.html` at the app's root.** Turning the SPA fallback
   off removed the `MapFallback` but left `UseDefaultFiles`, which rewrites a request for `/` to
   `/index.html` — so every visitor arriving at the home page of the app that was supposed to be
@@ -211,6 +220,18 @@ them until tagged releases begin.
   Painting with nothing prepared throws and names the missing half. The failure it replaces is a
   silent freeze: a handover to a runtime that never prepared would leave the page still with no
   indication why.
+
+- **`rask new --wasm`** scaffolds the one-project build: the `RaskBrowserRung` property, the
+  `Rask.Wasm.Hosting` reference, `RenderModes.Wasm`, `AddRaskWasmHost()`, and `UseRaskWasmAssets()`
+  mapped before an explicitly written `UseRouting()`.
+
+  It joins `--auth` as the second thing `rask new` asks rather than assumes — both change what the app
+  *is* rather than what it can do, and the browser rung makes every publish link a WebAssembly runtime.
+  The wizard names that cost in the question.
+
+  `UseRouting()` is written out rather than left implicit, deliberately: `WebApplication` inserts it at
+  the *start* of the pipeline, which would put routing ahead of the assets middleware however early
+  that line appeared, and the Rask catch-all would then answer `/_framework/*.wasm` with `text/html`.
 
 - **The one-project build.** `<RaskBrowserRung>true</RaskBrowserRung>` makes `dotnet publish` emit both
   halves of the app from one authored project: the server host, and a browser bundle published into its
