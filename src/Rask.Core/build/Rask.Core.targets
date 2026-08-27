@@ -121,6 +121,7 @@
       tree, and it can never be mistaken for the sibling .js that RASK054 forbids.
     -->
     <_RaskScopedTsOutDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/ts'))/</_RaskScopedTsOutDir>
+    <_RaskScopedTsTypesDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/types'))/</_RaskScopedTsTypesDir>
 
     <!--
       Whether any of this happens. Design-time builds are excluded for the reason Rask.Tailwind
@@ -217,6 +218,32 @@
     rootDir keeps the emitted tree parallel to the source tree, which is what makes the
     AdditionalFiles transform below resolve. The two must agree; a test pins that they do.
   -->
+  <!--
+    Stages Rask's ambient declarations where an EDITOR can find them.
+    <![CDATA[
+      obj/rask/types/rask-globals.d.ts
+    ]]>
+    The build itself does not need this — it passes the packaged copy to tsgo by absolute path. An
+    editor does: the real file lives in the NuGet cache under a versioned directory, which no
+    tsconfig.json can name, so without a staged copy a scoped .ts gets red squiggles on `window.Rask`
+    and `window.DotNet` while the build is perfectly green. Type checking a developer only gets from
+    the gate is most of the guarantee thrown away.
+
+    The tsconfig.json `rask new` writes includes this path. It is under obj/ so it is already
+    gitignored and already removed by a clean.
+  -->
+  <Target Name="_RaskStageScopedTsTypes"
+          AfterTargets="_RaskCompileScopedTs"
+          Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' "
+          Inputs="$(MSBuildThisFileDirectory)rask-globals.d.ts"
+          Outputs="$(_RaskScopedTsTypesDir)rask-globals.d.ts">
+    <MakeDir Directories="$(_RaskScopedTsTypesDir)"/>
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)rask-globals.d.ts"
+          DestinationFolder="$(_RaskScopedTsTypesDir)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(MSBuildThisFileDirectory)rask-globals.d.ts')"/>
+  </Target>
+
   <Target Name="_RaskCompileScopedTs"
           DependsOnTargets="_RaskResolveTsgo"
           Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' "

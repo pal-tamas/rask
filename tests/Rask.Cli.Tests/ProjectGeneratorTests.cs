@@ -16,6 +16,9 @@ public sealed class ProjectGeneratorTests
         "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
         "Features/Shared/ErrorPage.cs",
         "Properties/launchSettings.json", "appsettings.json", "appsettings.Production.json",
+        // For the editor, not the build: scoped TypeScript is compiled by tsgo with explicit flags,
+        // but without a tsconfig an author gets no checking and no completion while writing it.
+        "tsconfig.json",
     ];
 
     // Demo content `rask new` used to scaffold and deliberately no longer does — a new project ships one
@@ -482,6 +485,8 @@ public sealed class ProjectGeneratorTests
     [
         "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
         "wwwroot/index.html", "runtimeconfig.template.json",
+        // For the editor, not the build — see AlwaysPresent.
+        "tsconfig.json",
     ];
 
     [Fact]

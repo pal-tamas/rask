@@ -1744,7 +1744,7 @@ import "../../Rask.Core/Resources/rask-events.js";
             const fd = new FormData(form);
             fd.forEach((v, k) => {
                 // File parts are carried by fileFields above, under a ref rather than inline.
-            if (typeof v !== "string") return;
+                if (typeof v !== "string") return;
                 obj[k] = String(v);
             });
             if (Object.keys(fileFields).length > 0) obj.__files = fileFields;

@@ -617,6 +617,17 @@ them until tagged releases begin.
   `Browser/main.js`, `rask-sw.js` and the scoped-asset bundle are all still JavaScript at runtime.
   Only the authoring language changed.
 
+- **`rask new` writes a `tsconfig.json`, and the build stages Rask's ambient declarations where an
+  editor can find them.** The build reads neither: it hands tsgo an explicit file list and explicit
+  flags, which is what keeps the emitted form the one `ScopedAssetRegistry` parses. Without them an
+  author got no checking and no completion for `window.Rask` or `window.DotNet` while writing a
+  scoped asset, and met the type system only when the gate ran — most of the guarantee thrown away.
+
+  `rask-globals.d.ts` ships inside the NuGet package, under a versioned cache directory no tsconfig
+  can name, so the build copies it to `obj/rask/types` and the tsconfig includes that. The two have
+  to agree on one path and nothing about the build would notice if they stopped, so a test pins them
+  together.
+
 ### Fixed
 - **Scoped TypeScript paired against nothing in any project under a symlinked path**, which on macOS
   is every project in a temp directory. A component's path reaches the generator from Roslyn, and a

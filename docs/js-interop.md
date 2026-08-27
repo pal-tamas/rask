@@ -111,6 +111,20 @@ calling a `[JSInvokable]` needs no declaration of your own. For a third-party li
 alongside your scoped files. `samples/Rask.Example.Shared/Features/Gantt/frappe-gantt.d.ts` is a
 worked example.
 
+### What your editor reads
+
+`rask new` writes a `tsconfig.json`. **The build never reads it** — Rask hands `tsgo` an explicit
+file list and explicit flags, which is what keeps the emitted form the one the asset registry parses.
+It is there so your editor checks what the gate checks, with the same `strict`.
+
+Its `include` covers `obj/rask/types`, where the build stages Rask's ambient declarations. The real
+file ships inside the NuGet package, under a versioned cache directory no `tsconfig.json` can name,
+so the staged copy is what makes `window.Rask` and `window.DotNet` resolve while you are typing. It
+appears after the first build — before that, expect your editor not to know them yet.
+
+`noEmit` is set deliberately. An editor that decided to emit would write a `.js` beside your `.ts`,
+and that is [RASK054](diagnostics.md#rask054) — a confusing way to meet it.
+
 ---
 
 ## Delivery & caching
