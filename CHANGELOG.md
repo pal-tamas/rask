@@ -628,6 +628,16 @@ them until tagged releases begin.
   to agree on one path and nothing about the build would notice if they stopped, so a test pins them
   together.
 
+- **The SPA contract type-check no longer needs Node.** It resolved tsgo through `npx`, which was the
+  only way before Rask had a resolver of its own — so the one gate that proves the generated
+  TypeScript compiles depended on Node.js being installed on a machine where nothing else about the
+  repository does. It now fetches the same checksum-verified binary the build does. A gate whose
+  first question is "is the tooling here?" is one that eventually answers no and stops running.
+
+  `ResolveTypeScriptToolTask.CacheRoot` is no longer `[Required]`: left empty it falls back to the
+  default root, so a caller with no opinion gets the right place instead of a 27 MB unpack into a
+  directory named by the empty string.
+
 ### Fixed
 - **Scoped TypeScript paired against nothing in any project under a symlinked path**, which on macOS
   is every project in a temp directory. A component's path reaches the generator from Roslyn, and a

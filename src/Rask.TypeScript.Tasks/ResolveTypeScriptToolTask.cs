@@ -47,7 +47,11 @@ public sealed class ResolveTypeScriptToolTask : Task
     public string Version { get; set; } = string.Empty;
 
     /// <summary>Where fetched tools live. Shared by every project for this user.</summary>
-    [Required]
+    /// <remarks>
+    ///     No longer <c>[Required]</c>: left empty it falls back to the default root, so a caller with
+    ///     no opinion gets the right place rather than a failure or, worse, a 27 MB unpack into a
+    ///     directory named by the empty string.
+    /// </remarks>
     public string CacheRoot { get; set; } = string.Empty;
 
     /// <summary>The registry to fetch from. Overridable for a mirror or an internal proxy.</summary>
@@ -81,6 +85,15 @@ public sealed class ResolveTypeScriptToolTask : Task
                 + $"({RuntimeInformation.OSDescription}, {RuntimeInformation.ProcessArchitecture}), so Rask "
                 + "cannot compile TypeScript here. Set RaskTypeScriptBuild=false to build without it.");
             return false;
+        }
+
+        // An omitted CacheRoot means the caller has no opinion, not that the cache belongs in a
+        // directory named by the empty string — which is what Path.Combine would produce, putting a
+        // 27 MB unpack wherever the process happened to be running.
+        if (string.IsNullOrWhiteSpace(CacheRoot))
+        {
+            CacheRoot = TypeScriptTools.DefaultCacheRoot(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         }
 
         var directory = TypeScriptTools.CacheDirectory(CacheRoot, tool, Version, packageName);
