@@ -55,9 +55,12 @@ internal static partial class ProjectGenerator
 
         if (batteries.Tailwind)
         {
-            // Replaces the scaffolder's demo stylesheet rather than sitting beside it: create-vite's
-            // starter CSS styles the placeholder page we have already overlaid away, and leaving it in
-            // would fight Tailwind's own reset.
+            // Replaces the scaffolder's demo stylesheet rather than sitting beside it: leaving it in
+            // would fight Tailwind's own reset. It is only PART of that file that styles the placeholder
+            // page we overlaid away, though — the rest styles body, h1 and p by TAG, and those tags are
+            // exactly what the starter still renders. So the replacement has to put that styling back
+            // (SpaTailwindCss does, in its base layer) or --tailwind ships a worse-looking page than
+            // no flag at all.
             files.Add(($"{NameToken}.Client/{framework.GlobalStylesheet}", SpaTailwindCss));
 
             // Angular has no vite.config.ts to register a plugin in — its Vite config belongs to
@@ -500,12 +503,66 @@ internal static partial class ProjectGenerator
 
     /// <summary>The client's entry stylesheet when the project took Tailwind.</summary>
     /// <remarks>
-    ///     One import, because that is all v4 needs. The Vite plugin detects the sources itself from the
-    ///     project, so there is no content array to keep in step with where the components live.
+    ///     <para>
+    ///         One import, because that is all v4 needs to compile: the Vite plugin detects the sources
+    ///         itself from the project, so there is no content array to keep in step with where the
+    ///         components live.
+    ///     </para>
+    ///     <para>
+    ///         The base layer is not decoration. This file REPLACES the stylesheet the scaffolder wrote,
+    ///         and that one was styling <c>body</c>, <c>h1</c> and the rest by tag — so a bare import
+    ///         takes the page's styling away, and Tailwind's preflight then resets whatever the browser
+    ///         had left. The starter's markup carries no classes and is byte-identical in both styling
+    ///         modes, so the utilities have to reach it by element or not at all. Without this,
+    ///         <c>--tailwind</c> renders a visibly worse page than the same command without it.
+    ///     </para>
+    ///     <para>
+    ///         Every rule is <c>@apply</c> over elements all seven starters already use — the same
+    ///         utilities you would write in the markup, gathered in one place. Move any of them into a
+    ///         <c>class</c> attribute and delete the rule: that is the same page.
+    ///     </para>
     /// </remarks>
     private const string SpaTailwindCss =
         """
         @import "tailwindcss";
+
+        /* Tailwind's preflight removes the browser's default look on purpose, so a page carrying no
+           utilities renders as unstyled text. These rules give the starter a deliberate one. They are
+           ordinary utilities applied by element: move any of them into a class attribute in your own
+           markup and delete the rule — the page does not change. */
+        @layer base {
+          body {
+            @apply bg-white text-slate-700 antialiased dark:bg-slate-950 dark:text-slate-300;
+          }
+
+          main {
+            @apply mx-auto flex max-w-lg flex-col items-start gap-4 px-6 py-16;
+          }
+
+          h1 {
+            @apply text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+          }
+
+          label {
+            @apply flex items-center gap-2 text-sm font-medium;
+          }
+
+          input {
+            @apply rounded-md border border-slate-300 px-3 py-1.5 text-base text-inherit
+                   focus:border-slate-500 focus:outline-none
+                   dark:border-slate-700 dark:bg-slate-900;
+          }
+
+          button {
+            @apply rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white
+                   hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50
+                   dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300;
+          }
+
+          [role="alert"] {
+            @apply text-red-600 dark:text-red-400;
+          }
+        }
 
         """;
 
