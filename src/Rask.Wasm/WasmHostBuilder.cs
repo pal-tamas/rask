@@ -263,12 +263,11 @@ public sealed class WasmHostBuilder
     {
         try
         {
-            // Decided here rather than asked of the app. The same App class is a standalone WASM app
-            // on an empty page and a takeover on a server-rendered one, and which it is depends on
-            // where it was loaded — a fact Program.cs cannot know and should not have to branch on.
-            // A live server runtime stamps __raskOwner when it attaches; finding it means this page
-            // already has someone driving it, and painting would put two runtimes in one document.
-            await BootAsync<TApp>(paint: JSInterop.GetOwner() != "server").ConfigureAwait(false);
+            // null = "decide from the document once the JS bridge is up". Deliberately NOT read here:
+            // GetOwner is a JSImport into the rask module, and that module is imported by the first
+            // line of BootAsync — asking before it aborts the whole .NET runtime with "ES6 module rask
+            // was not imported yet", which presents as the app failing to start.
+            await BootAsync<TApp>(paint: null).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -287,13 +286,19 @@ public sealed class WasmHostBuilder
     /// <summary>The boot sequence proper. See <see cref="RunAsync{TApp}" />, which reports its failures.</summary>
     private async Task
         BootAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
-            bool paint = true)
+            bool? paint = true)
         where TApp : Component
     {
         Console.WriteLine($"[Rask.Wasm] Rask {RaskVersion.Current} (WASM) starting");
         Console.WriteLine("[Rask.Wasm] importing rask.wasm.js …");
         await JSInterop.ImportJsModuleAsync().ConfigureAwait(false);
         Console.WriteLine("[Rask.Wasm] rask.wasm.js imported");
+
+        // The paint decision, taken here because this is the earliest point it CAN be taken: reading
+        // the document's owner goes through the module imported on the line above. A live server
+        // runtime stamps __raskOwner when it attaches, so finding it means this page already has
+        // someone driving it and painting would put two runtimes into one document.
+        var shouldPaint = paint ?? JSInterop.GetOwner() != "server";
 
         // Auto-detect the app's sub-path from <base href> so head-emitted asset
         // URLs (e.g. /Rask/_rask/a/{hash}.css for a GH Pages deploy at /Rask/)
@@ -361,7 +366,7 @@ public sealed class WasmHostBuilder
         // arriving into a page another runtime is still driving must be ready to render and NOT render,
         // or two runtimes would write the same document at once. PrepareAsync stops here and hands back
         // a handle; RunAsync goes straight through, which is every standalone WASM app.
-        if (!paint)
+        if (!shouldPaint)
         {
             _prepared = session;
             _preparedServices = provider;

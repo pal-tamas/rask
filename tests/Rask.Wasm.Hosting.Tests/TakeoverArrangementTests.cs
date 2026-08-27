@@ -28,15 +28,23 @@ namespace RaskTakeover.Tests;
 /// </remarks>
 public class TakeoverArrangementTests
 {
-    [Fact]
-    public async Task TheServerStillRendersItsPages()
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/some/page")]
+    public async Task TheServerStillRendersItsPages(string path)
     {
         // The whole point. Calling the SPA form here would shadow every server-rendered page with
         // index.html, and the visitor would never see server-rendered HTML at all.
+        //
+        // "/" is here because leaving it out is what let a real bug through: this asserted only a deep
+        // path, which has no index.html to be rewritten to, so it passed while the home page — the one
+        // every visitor lands on first — served the bundle's SPA shell instead of the app. A static
+        // pipeline shadows the root by a different mechanism (UseDefaultFiles) than it shadows
+        // everything else (MapFallback), so testing one proves nothing about the other.
         using var bundle = new FakeBundleDirectory();
         await using var host = await CreateAsync(bundle.Path);
 
-        var body = await host.Http.GetStringAsync("/some/page");
+        var body = await host.Http.GetStringAsync(path);
 
         Assert.Contains("server-rendered", body);
         Assert.DoesNotContain("fake", body);

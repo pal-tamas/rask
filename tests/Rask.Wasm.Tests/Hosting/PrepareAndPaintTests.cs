@@ -86,6 +86,25 @@ public sealed class PrepareAndPaintTests
         Assert.Equal(0, JSInterop.PublishPaintCount);
     }
 
+    [Fact]
+    public async Task TheOwnerIsReadOnlyAfterTheJsBridgeIsUp()
+    {
+        // Regression, and one a browser found rather than this suite. Reading the owner is a JSImport
+        // into the rask module; asking before that module is imported asserts inside the runtime and
+        // aborts it, so the whole app fails to start with a message pointing at the module rather than
+        // at the call that was too early. Every other JSImport in the boot path shares the hazard.
+        JSInterop.ResetCallOrder();
+
+        var builder = WasmHostBuilder.CreateDefault();
+        await builder.RunAsync<Blank>();
+
+        Assert.True(JSInterop.ModuleImportOrder > 0, "the JS bridge was never imported");
+        Assert.True(JSInterop.GetOwnerOrder > 0, "the document owner was never read");
+        Assert.True(
+            JSInterop.ModuleImportOrder < JSInterop.GetOwnerOrder,
+            "the owner was read before the JS bridge was imported, which aborts the runtime in a browser");
+    }
+
     private sealed class Blank : Component
     {
         protected override Component? Render() => null;

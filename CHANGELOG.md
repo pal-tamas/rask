@@ -166,6 +166,23 @@ them until tagged releases begin.
   verified by reintroducing the defect and watching it fail on `(wasm, localization)` before the fix
   went back in — the same bug class `--template native` was, and the same one it now catches.
 
+- **`UseRaskWasmAssets` served the bundle's `index.html` at the app's root.** Turning the SPA fallback
+  off removed the `MapFallback` but left `UseDefaultFiles`, which rewrites a request for `/` to
+  `/index.html` — so every visitor arriving at the home page of the app that was supposed to be
+  rendering it got the bundle's boot shell instead.
+
+  A static pipeline shadows the root by a different mechanism than it shadows everything else, so the
+  test covering a deep path passed while the one path every visitor lands on first was broken. Both
+  are now covered.
+
+- **A WASM app read the document's owner before its JS bridge was imported.** The check that decides
+  whether to paint or prepare goes through the `rask` ES6 module, and asking before that module is
+  imported asserts inside the runtime and aborts it: the app failed to start, with a message naming
+  the module rather than the call that was too early.
+
+  The non-browser stubs now record call order, so the same mistake is a failing unit test instead of
+  something only a browser can catch.
+
 - **The browser runtime derived a bogus path base on a page with no `<base href>`.** It read
   `document.baseURI`, which with no `<base>` element is the document's own URL — so a page at
   `/realtime/BTC` yielded a base path of `/realtime/`, breaking every asset URL, the seeded route and

@@ -261,12 +261,21 @@ public static class RaskWasmEndpointExtensions
             app.UseResponseCompression();
         }
 
-        app.UseDefaultFiles(new DefaultFilesOptions
+        // Only when this host owns its root. UseDefaultFiles rewrites a request for "/" to
+        // "/index.html", so leaving it on in assets-only mode hands the bundle's SPA shell to every
+        // visitor arriving at the home page of the app that is supposed to be rendering it — the exact
+        // shadowing the assets-only form exists to avoid, reintroduced one layer down. The MapFallback
+        // is the obvious half of that; this rewrite is the half that hides, because it affects one
+        // path and every other route keeps working.
+        if (serveIndexFallback)
         {
-            FileProvider = fileProvider,
-            RequestPath = pathBaseNormalized,
-            DefaultFileNames = new[] { "index.html" }
-        });
+            app.UseDefaultFiles(new DefaultFilesOptions
+            {
+                FileProvider = fileProvider,
+                RequestPath = pathBaseNormalized,
+                DefaultFileNames = new[] { "index.html" }
+            });
+        }
 
         app.UseStaticFiles(new StaticFileOptions
         {

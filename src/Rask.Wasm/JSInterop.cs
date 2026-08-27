@@ -280,7 +280,24 @@ internal static partial class JSInterop
 #else
     // Non-browser stubs. Used by the test project so the pure-logic code paths can be exercised
     // without a JS runtime. None of the non-browser stubs perform real interop.
-    public static Task ImportJsModuleAsync() => Task.CompletedTask;
+
+    // Call ordering, recorded so the tests can catch what only a browser could otherwise catch. Every
+    // JSImport below asserts in the browser if the rask module has not been imported yet, and that
+    // assert aborts the whole .NET runtime — it surfaces as "the app failed to start", nowhere near
+    // the call that was too early. Here the same mistake is a comparison of two integers.
+    private static int _seq;
+
+    public static int ModuleImportOrder { get; private set; }
+
+    public static int GetOwnerOrder { get; private set; }
+
+    internal static void ResetCallOrder() => (_seq, ModuleImportOrder, GetOwnerOrder) = (0, 0, 0);
+
+    public static Task ImportJsModuleAsync()
+    {
+        ModuleImportOrder = ++_seq;
+        return Task.CompletedTask;
+    }
 
     public static Task Dispatch(byte[] json)
     {
@@ -296,7 +313,11 @@ internal static partial class JSInterop
     /// </summary>
     public static string Owner { get; set; } = string.Empty;
 
-    public static string GetOwner() => Owner;
+    public static string GetOwner()
+    {
+        GetOwnerOrder = ++_seq;
+        return Owner;
+    }
 
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
