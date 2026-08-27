@@ -210,6 +210,53 @@ public sealed class PackagingContractTests
         }
     }
 
+    /// <summary>
+    ///     No <c>UsingTask</c> for a generated task assembly is gated on that assembly existing.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A <c>UsingTask</c> Condition is evaluated at project EVALUATION, which precedes the
+    ///         build-order edge that produces the DLL. On a clean checkout the condition is false, the
+    ///         task is never registered, and the first project that uses it fails with MSB4036 — "the
+    ///         task was not found" — naming a task nobody wrote.
+    ///     </para>
+    ///     <para>
+    ///         Structural, and it has to be: a tree that has built once has the DLL on disk, so the
+    ///         guard is true and everything passes. The failure exists only on a machine that has never
+    ///         built this repository, which no local run ever is by the time a suite executes. It cost
+    ///         a red CI job on a green branch, on a rule this repository had already written down in
+    ///         Rask.Wasm.targets.
+    ///     </para>
+    ///     <para>
+    ///         Registering unconditionally is safe because AssemblyFile-based UsingTasks load lazily —
+    ///         only when the task is invoked — and every target that invokes one is itself conditioned
+    ///         on there being work to do.
+    ///     </para>
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(PackedTaskAssemblies))]
+    public void A_generated_task_assembly_is_registered_unconditionally(string package, string dll)
+    {
+        var targets = Path.Combine(_repoRoot, "src", package, "build", $"{package}.targets");
+        var declaration = XDocument.Load(targets).Descendants("UsingTask")
+            .SingleOrDefault(e => (e.Attribute("AssemblyFile")?.Value ?? string.Empty)
+                .EndsWith(dll, StringComparison.Ordinal));
+
+        Assert.True(declaration is not null, $"build/{package}.targets no longer declares a UsingTask for {dll}.");
+
+        // A condition on a PROPERTY is fine — $(RaskWasm) is known at evaluation and says nothing about
+        // what is on disk. What must not appear is a test of the DLL itself.
+        var condition = declaration!.Attribute("Condition")?.Value ?? string.Empty;
+
+        Assert.False(
+            condition.Contains("Exists(", StringComparison.Ordinal),
+            $"build/{package}.targets gates its UsingTask for {dll} on the file existing. That is "
+            + "evaluated before the build-order edge that produces the DLL, so on a clean checkout the "
+            + "task is never registered and the first project to use it fails with MSB4036 — while any "
+            + "tree that has already built passes, which is what makes it invisible locally. Register "
+            + "it unconditionally; an AssemblyFile UsingTask loads lazily.");
+    }
+
     [Fact]
     public void Rask_Core_does_not_pretend_to_pack_its_own_build_integration()
     {

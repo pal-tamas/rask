@@ -191,9 +191,25 @@
     <Watch Include="**\*.css" Exclude="bin\**;obj\**;node_modules\**;wwwroot\**"/>
   </ItemGroup>
 
+  <!--
+    Do NOT gate this UsingTask on Exists(...Rask.TypeScript.Tasks.dll) — the same rule
+    Rask.Wasm.targets states for its own task, and for the same reason.
+
+    A UsingTask Condition is evaluated at project-EVALUATION time, which precedes the build-order
+    edge (Rask.Core's ReferenceOutputAssembly="false" reference to Rask.TypeScript.Tasks) that
+    produces and copies the DLL here. The DLL is a generated artifact and gitignored, so on a clean
+    checkout the condition is false, the task is never registered, and the first project with a
+    scoped .ts fails with MSB4036 — "the task was not found" — naming a task nobody wrote. A tree
+    that has already built once has the DLL on disk and passes, which is what makes this invisible
+    locally and fatal in CI.
+
+    AssemblyFile-based UsingTasks load lazily, only when the task is invoked, and _RaskResolveTsgo
+    below runs only for a project that actually has scoped TypeScript. So registering
+    unconditionally is safe: a project with no .ts never loads it, and one that does gets MSB4062
+    naming the missing file rather than a phantom task.
+  -->
   <UsingTask TaskName="Rask.TypeScript.Tasks.ResolveTypeScriptToolTask"
-             AssemblyFile="$(MSBuildThisFileDirectory)Rask.TypeScript.Tasks.dll"
-             Condition="Exists('$(MSBuildThisFileDirectory)Rask.TypeScript.Tasks.dll')"/>
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.TypeScript.Tasks.dll"/>
 
   <Target Name="_RaskResolveTsgo"
           Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' ">

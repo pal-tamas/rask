@@ -643,6 +643,16 @@ them until tagged releases begin.
   browser" while this work was in flight, and two descriptors cannot share an id.
 
 ### Fixed
+- **The scoped-TypeScript task was never registered on a clean checkout.** The `<UsingTask>` was gated
+  on `Exists(...Rask.TypeScript.Tasks.dll)`, and a `UsingTask` Condition is evaluated at project
+  EVALUATION — before the build-order edge that produces the DLL. On a machine that had never built
+  this repository the task went unregistered and the first project with a scoped `.ts` failed with
+  MSB4036, naming a task nobody wrote; any tree that had already built passed, which is what kept it
+  out of every local run.
+
+  `Rask.Wasm.targets` already carried this rule in as many words for its own task. A test now enforces
+  it across every generated task assembly, and fails when the guard is put back.
+
 - **Two regressions the conversion introduced, both invisible in a hand review.**
 
   The interop task id changed type on the wire. `forceDispatchJsInvoke` did
