@@ -60,13 +60,54 @@ takeover on a server-rendered one; `RunAsync` reads which of those it is from th
 paints or prepares. Whether a given *page* is eligible is decided per page — one reaching a database
 stays server-live, and [RASK054](diagnostics.md#rask054) says so at the call site.
 
+### One project
+
+The two halves need different SDKs — `Microsoft.NET.Sdk.Web` on `net10.0` for the server,
+`Microsoft.NET.Sdk.WebAssembly` on `net10.0-browser` for the browser — and a `.csproj` carries exactly
+one. So the build generates the second project and drives it, rather than asking you to maintain a
+parallel project whose only job is to compile the same files again:
+
+```xml
+<PropertyGroup>
+  <RaskBrowserRung>true</RaskBrowserRung>
+</PropertyGroup>
+```
+
+```csharp
+builder.Services.AddRask(configureServer: o => o.RenderModes.Wasm = true);
+builder.Services.AddRaskWasmHost();
+
+var app = builder.Build();
+app.UseRaskWasmAssets();   // before UseRouting; no path — the bundle is published into wwwroot
+app.UseRouting();
+app.UseRask<App>();
+```
+
+That is the whole wiring. `dotnet publish` produces one server app whose `wwwroot` carries the browser
+bundle; `dotnet run` is untouched, because a bundle takes minutes to link and buys nothing in
+development where the page is server-live and hot-reloaded.
+
+The companion is generated into `obj/`, never opened, and rebuilt each publish. It compiles **the app's
+own sources** — the same `App.cs`, the same pages — with two exclusions:
+
+| Excluded | Why |
+|---|---|
+| `Program.cs` | It is the server's entry point. The companion gets a generated one that calls `RunAsync<App>()`. |
+| `Server/**` | The convention for code that only exists on the server. |
+
+So a page that cannot run in the browser goes under `Server/`, and
+[RASK054](diagnostics.md#rask054) tells you which those are. Anything else compiles into both halves
+from one copy, which is what keeps them from drifting.
+
+Set `<RaskBrowserRootComponent>` if your root component is not `{RootNamespace}.App`.
+
 > **Publish the bundle with `WasmFingerprintAssets=false`.** The WebAssembly SDK otherwise
 > content-hashes the framework files and maps them through an import map it writes into the bundle's
 > own `index.html` — a document nobody loads here, because the page comes from the server. Without
 > the map, `_framework/dotnet.js` resolves to a path that exists in a build output and not in a
 > publish, so the bundle boots locally and 404s in production. Turned off, the framework files sit at
 > their literal paths and need no map; cache-busting is then the server's, which it is already
-> equipped for in a way a static host is not.
+> equipped for in a way a static host is not. The one-project build sets this for you.
 
 ### A page that knows better
 

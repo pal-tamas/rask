@@ -212,6 +212,20 @@ them until tagged releases begin.
   silent freeze: a handover to a runtime that never prepared would leave the page still with no
   indication why.
 
+- **The one-project build.** `<RaskBrowserRung>true</RaskBrowserRung>` makes `dotnet publish` emit both
+  halves of the app from one authored project: the server host, and a browser bundle published into its
+  `wwwroot`. `UseRaskWasmAssets()` now takes no path in that arrangement.
+
+  The two halves need different SDKs — `Microsoft.NET.Sdk.Web` on `net10.0` and
+  `Microsoft.NET.Sdk.WebAssembly` on `net10.0-browser` — and a `.csproj` carries exactly one, so the
+  build generates the second project into `obj/` and drives it. It compiles the app's own sources: the
+  same `App.cs`, the same pages, minus `Program.cs` (it gets a generated entry point) and minus
+  `Server/**`, the convention for code that only exists on the server. A page that cannot move to the
+  browser goes there, and RASK054 says which those are.
+
+  Publish-only. `dotnet run` is untouched, because a bundle takes minutes to link and buys nothing in
+  development, where the page is server-live and hot-reloaded.
+
 - **`RenderModes.Wasm` works.** Turning it on makes a live page fetch the browser bundle once it goes
   idle and stand a browser runtime up beside itself; the next navigation renders there and the socket
   closes. `RenderModes.WasmBundle` says where the boot module is served, default `/main.js`, resolved

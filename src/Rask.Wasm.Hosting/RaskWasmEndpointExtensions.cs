@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Routing;
@@ -164,6 +165,18 @@ public static class RaskWasmEndpointExtensions
         LiveOptions.PathBase = pathBaseNormalized;
 
         var resolved = bundlePath ?? WasmAppBundle.ResolveFromAssembly(Assembly.GetEntryAssembly());
+
+        // Assets-only has one more place to look: this host's own web root. The one-project build
+        // publishes the browser half straight into it, so there is no separate bundle directory to
+        // point at and no metadata stamp to read — the bundle is simply part of this app's output.
+        //
+        // Deliberately NOT extended to the SPA form. There a missing bundle is a real misconfiguration
+        // that the guard below reports; silently falling back to a wwwroot that happens to exist would
+        // turn it into an app that boots to a 404 with nothing saying why.
+        if (!serveIndexFallback && string.IsNullOrEmpty(resolved))
+        {
+            resolved = endpoints.ServiceProvider.GetService<IWebHostEnvironment>()?.WebRootPath;
+        }
         var bundleDir = string.IsNullOrEmpty(resolved) || !Directory.Exists(resolved) ? null : resolved;
 
         // Publish the bundle to Core BEFORE anything maps the shared /_rask/a/{hash} route. Rask.Server
