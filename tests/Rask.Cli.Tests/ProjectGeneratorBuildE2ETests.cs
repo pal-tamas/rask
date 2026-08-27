@@ -150,6 +150,68 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
+    /// <summary>
+    /// A localized browser-WASM project, compiled for real.
+    /// </summary>
+    /// <remarks>
+    /// The part no unit test can reach. Emitting the catalogs is only half of it: the typed <c>Strings</c>
+    /// members come from a source generator fed by an <c>&lt;AdditionalFiles&gt;</c> glob that
+    /// <c>Rask.Core.targets</c> owns, and nothing had ever run that path on a <c>net10.0-browser</c> TFM
+    /// where the compilation is trimmed, invariant-globalization-adjacent and built by the WebAssembly SDK
+    /// rather than the web one. A compile is the only thing that proves the catalog reached the generator
+    /// and that <c>&lt;RaskGlobalization&gt;</c> did not upset the rest of the build (#846).
+    /// </remarks>
+    [SkippableTheory]
+    [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
+    public async Task Generated_localized_wasm_project_builds(string templateKey)
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        var hosted = templateKey == "wasm-hosted";
+        var name = hosted ? "WHLocE2E" : "WLocE2E";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            _ = TemplateCatalog.TryGet(templateKey, out var template);
+
+            // Two languages rather than one, because a single neutral catalog would not exercise the
+            // fallback the second one is there to prove (RASK052 on a key it does not carry).
+            var batteries = NewCommand.ToBatteries(template, [], cultures: ["en", "hu"]);
+            Assert.True(batteries.Localization, "--culture did not turn localization on for " + templateKey);
+
+            var result = hosted
+                ? ProjectGenerator.GenerateWasmHosted(projectDir, name, batteries, version)
+                : ProjectGenerator.GenerateWasm(
+                    projectDir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version, batteries);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            var target = hosted
+                ? Path.Combine(projectDir, name + ".Client", name + ".Client.csproj")
+                : Path.Combine(projectDir, name + ".csproj");
+
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{target}\" -warnaserror -m:1");
+            Assert.True(
+                exit == 0,
+                $"[{templateKey}] a localized WASM project failed to build.{CliBuildE2E.Diagnostics(output)}");
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
+
     // wasm build-affecting flags are auth/pwa (docker only adds files) → 2² = 4 combinations.
     public static IEnumerable<object[]> WasmBuildAffectingCombinations()
     {

@@ -306,7 +306,7 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("nothing to change for: --no-cqrs", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("It supports: auth, docker, pwa.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("It supports: auth, docker, localization, pwa.", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>

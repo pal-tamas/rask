@@ -57,13 +57,7 @@ internal static partial class ProjectGenerator
 
         if (batteries.Localization)
         {
-            // One catalog per language. The FIRST is the neutral one: it defines which keys exist, and
-            // its text is what a visitor sees until a translation is filled in.
-            var languages = batteries.Cultures.ToArray();
-            for (var i = 0; i < languages.Length; i++)
-            {
-                files.Add(($"Resources/Strings.{languages[i]}.json", StringsCatalog(i == 0)));
-            }
+            files.AddRange(StringCatalogs([.. batteries.Cultures]));
         }
 
         if (batteries.Docker)

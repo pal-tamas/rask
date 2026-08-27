@@ -572,12 +572,27 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         for (var i = 0; i < catalogs.Count; i++)
         {
             var catalog = catalogs[i];
-            if (!catalog.Entries.TryGetValue(key, out var localised) || !localised.IsPlural)
+            if (ReferenceEquals(catalog, neutralCatalog)
+                || !catalog.Entries.TryGetValue(key, out var localised)
+                || !localised.IsPlural)
             {
                 continue;
             }
 
-            var arm = ReferenceEquals(catalog, neutralCatalog) ? "_" : i.ToString();
+            AppendArm(i.ToString(), catalog, localised);
+        }
+
+        // The neutral arm goes LAST, and is the reason this loop skips it above rather than emitting it
+        // in catalog order like everything else. `_` matches everything, so an arm after it is
+        // unreachable and the compiler says so (CS8510) — and catalogs are sorted by tag, so a neutral
+        // that sorts first shadows every later language. "en" + "hu" is exactly that shape, which is
+        // what `rask new --culture en --culture hu` scaffolds on every template.
+        AppendArm("_", neutralCatalog, entry);
+
+        sb.AppendLine($"{pad}    }};");
+
+        void AppendArm(string arm, Catalog catalog, CatalogEntry localised)
+        {
             sb.AppendLine($"{pad}        {arm} => __Plural.{PluralMethod(catalog.CultureTag)}({parameter}) switch");
             sb.AppendLine($"{pad}        {{");
 
@@ -596,8 +611,6 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             sb.AppendLine($"{pad}            _ => {Literal(MessageParser.Parse(localised.Forms[residual]).Format)},");
             sb.AppendLine($"{pad}        }},");
         }
-
-        sb.AppendLine($"{pad}    }};");
         sb.AppendLine($"{pad}    return string.Format(");
         sb.AppendLine($"{pad}        global::Rask.Core.Globalization.RaskCulture.Current, __format, {parameter});");
         sb.AppendLine($"{pad}}}");
