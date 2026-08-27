@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <RootNamespace>Rask.Islands</RootNamespace>
+
+    <PackageId>Rask.Islands</PackageId>
+    <Title>Rask — Foreign Components</Title>
+    <Description>Lets a .tsx, .jsx or Lit component be an ordinary Rask component. Mark a component [Island], drop the front-end file beside it, and its props are declared in C# — the generator emits the TypeScript interface the file imports, so renaming a C# property stops the front end compiling. The live diff treats the island's subtree as opaque, because those nodes belong to its own renderer.</Description>
+    <PackageTags>web component framework wasm net10 react lit islands typescript interop</PackageTags>
+
+    <!-- Razor SDK for its static-web-asset pipeline only (no .razor files), same as Rask.Bootstrap:
+         it is what puts wwwroot/rask-islands.js on a URL both hosts resolve identically, in-repo and
+         from the packed NuGet. Set explicitly so those two agree. -->
+    <StaticWebAssetBasePath>_content/Rask.Islands</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all" — Rask.Core and Rask.Html are IsPackable=false, so without it the nuspec
+         would list dependencies on packages that exist on no feed and every restore fails NU1101.
+         Consumers get both from whichever host package they already reference. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Islands.Tests"/>
+  </ItemGroup>
+
+</Project>

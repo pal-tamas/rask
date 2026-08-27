@@ -47,6 +47,7 @@ dotnet add package Rask.Server            # server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
 dotnet add package Rask.Spa.Hosting       # host a built TypeScript SPA on ASP.NET
+dotnet add package Rask.Islands           # let a .tsx or Lit component be a Rask component
 dotnet add package Rask.Tailwind          # Tailwind CSS on any host, no npm required
 ```
 
