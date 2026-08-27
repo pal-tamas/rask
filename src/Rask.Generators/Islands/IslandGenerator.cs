@@ -223,7 +223,7 @@ public sealed class IslandGenerator : IIncrementalGenerator
 
         var runtime = marker.NamedArguments
             .Where(n => n.Key == "Runtime")
-            .Select(n => n.Value.Value as int?)
+            .Select(n => n.Value)
             .FirstOrDefault();
 
         var module = explicitModule ?? $"./{type.Name}.tsx";
@@ -322,18 +322,47 @@ public sealed class IslandGenerator : IIncrementalGenerator
         };
     }
 
-    private static string Runtime(int? declared, string module) => declared switch
+    /// <summary>The wire spelling of the island's runtime.</summary>
+    /// <remarks>
+    ///     Resolved by enum member NAME rather than by its underlying number. The generator targets
+    ///     netstandard2.0 and cannot reference the package it generates against, so the value arrives
+    ///     as a boxed int — and matching on that would silently remap every island the day someone
+    ///     inserts a member into <c>IslandRuntime</c>. A name cannot drift that way.
+    /// </remarks>
+    private static string Runtime(TypedConstant declared, string module)
     {
-        2 => "lit",
-        1 => "react",
-        // Inferred from the module's extension. A .ts file says nothing — a Lit component is ordinary
-        // TypeScript — so anything that is not explicitly JSX has to name its runtime, and React is the
-        // right default for the extensions that do.
-        _ => module.EndsWith(".tsx", StringComparison.OrdinalIgnoreCase)
-             || module.EndsWith(".jsx", StringComparison.OrdinalIgnoreCase)
-            ? "react"
-            : "react",
-    };
+        switch (EnumMemberName(declared))
+        {
+            case "Lit":
+                return "lit";
+            case "React":
+                return "react";
+        }
+
+        // Infer. React is the only runtime an extension can imply: .tsx and .jsx are unambiguous,
+        // while a .ts says nothing at all — a Lit component is ordinary TypeScript, which is why Lit
+        // has to name its runtime rather than being guessed at from the file.
+        return "react";
+    }
+
+    /// <summary>The name of the enum member a <see cref="TypedConstant" /> holds, or null.</summary>
+    private static string? EnumMemberName(TypedConstant constant)
+    {
+        if (constant.Type is not INamedTypeSymbol { TypeKind: TypeKind.Enum } type || constant.Value is null)
+        {
+            return null;
+        }
+
+        foreach (var member in type.GetMembers().OfType<IFieldSymbol>())
+        {
+            if (member.HasConstantValue && Equals(member.ConstantValue, constant.Value))
+            {
+                return member.Name;
+            }
+        }
+
+        return null;
+    }
 
     private static string Emit(IslandModel island)
     {
