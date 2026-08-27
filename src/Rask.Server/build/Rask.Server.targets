@@ -12,4 +12,9 @@
   <Import Project="$(MSBuildThisFileDirectory)Rask.Core.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Core.targets') "/>
 
+  <!-- The one-project build: generates and drives the browser half on publish. Gates itself on
+       RaskBrowserRung, so importing it unconditionally costs an app that has not opted in nothing. -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Server.Browser.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Server.Browser.targets') "/>
+
 </Project>

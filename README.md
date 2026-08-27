@@ -55,8 +55,13 @@ rask deploy --host root@box --domain shop.example.com      # ship it: bare box �
 Every step is a first-party command, and every stateful pillar it touches — auth, jobs, mail, cache,
 events — rides the app's own SQLite database. Run `rask` with no arguments for a wizard.
 
-> **Prerequisites:** the .NET 10 SDK (`dotnet --version` ≥ `10.0`) and the `wasm-tools` workload for the
-> WASM templates.
+> **Prerequisites:** the .NET 10 SDK (`dotnet --version` ≥ `10.0`) and the `wasm-tools` workload for
+> anything that builds a browser bundle — the WASM templates, and `--wasm` on a server app.
+
+Want the pages to run in the browser too? `rask new Shop --wasm` publishes a WebAssembly bundle from
+that same project, and a page that can run client-side moves there once it has downloaded — no second
+project, no separate build. Until then, and for any page that reaches a database, it stays live over the
+socket. See [render modes](docs/render-modes.md).
 
 Prefer React? `rask new Shop --template react` scaffolds a Vite client on an ASP.NET host, with the
 front end's TypeScript generated from your C# message records on every build — so

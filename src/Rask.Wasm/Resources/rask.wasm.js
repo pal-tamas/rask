@@ -258,7 +258,25 @@ function ensureRaskNamespacePoll() {
 // page URL like /index.html yields "/" (not "/index.html/").
 export function getBasePath() {
     if (basePath !== null) return basePath;
-    const p = new URL(document.baseURI).pathname;
+
+    // Read the <base href> ELEMENT, not document.baseURI. With no <base> present, baseURI is the
+    // current document's own URL, so a page at /realtime/BTC yields a bogus "/realtime/" base that
+    // breaks every asset URL, the seeded route, and getBaseAddress below.
+    //
+    // A standalone WASM app never hit this: its shell always carries <base href="/">, and baseURI
+    // then equals that element's href, so the two readings agree. A takeover does hit it, because the
+    // page comes from the server and server-rendered pages carry no <base> at all.
+    //
+    // This is the same fix the Server runtime's own getBasePath already carries, for the same reason
+    // and against the same failure. The two had simply diverged; the takeover is where the divergence
+    // shows, since it is the one arrangement that runs this code on a server-rendered document.
+    const baseEl = document.querySelector("base[href]");
+    if (!baseEl) {
+        basePath = "/";
+        return basePath;
+    }
+
+    const p = new URL(baseEl.href, location.href).pathname;
     const last = p.lastIndexOf("/");
     basePath = last < 0 ? "/" : p.slice(0, last + 1);
     return basePath;
@@ -279,6 +297,29 @@ function prependBase(url) {
 
 // Called from main.js once `getAssemblyExports` is available so the JS event
 // handlers below can dispatch into .NET via the JSExport surface.
+/**
+ * Which runtime owns this document. The server runtime sets __raskOwner when it attaches, so its
+ * presence is how a booting browser runtime learns it is arriving into a page it must not paint over.
+ */
+export function getOwner() {
+    return globalThis.__raskOwner ?? "";
+}
+
+/**
+ * Publish the handover seam: the function a live server runtime calls to give this one the page.
+ *
+ * Also raises __raskPrepared, which main.js reads. Its never-painted check exists because an app that
+ * finishes starting without rendering is otherwise indistinguishable from a hang — but a prepared app
+ * not painting is the entire point, and reporting a boot failure for it would put a full-screen error
+ * over a perfectly good server-rendered page.
+ */
+export function publishPaint() {
+    globalThis.__raskPrepared = true;
+    globalThis.__raskWasmPaint = function (url) {
+        return dotnetExports.Rask.Wasm.JSInterop.Paint(url ?? null);
+    };
+}
+
 export function setExports(exports) {
     dotnetExports = exports;
     root = document.querySelector("[data-rask-root]") || document.body;

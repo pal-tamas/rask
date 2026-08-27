@@ -23,6 +23,18 @@ internal sealed record ServerBatteries
     public bool Localization { get; init; }
 
     /// <summary>
+    ///     Publish a browser bundle alongside the server, so an eligible page moves into WebAssembly
+    ///     once it has downloaded.
+    /// </summary>
+    /// <remarks>
+    ///     Off by default, and off for the same reason auth is: it changes what the app <em>is</em>
+    ///     rather than what it can do. Every publish then links a WebAssembly runtime, which takes
+    ///     minutes, and pages start leaving the server — neither is something to hand someone who did
+    ///     not ask.
+    /// </remarks>
+    public bool Wasm { get; init; }
+
+    /// <summary>
     /// The languages to scaffold a catalog for, comma-joined and ordered — the first is the default that
     /// negotiation falls back to.
     /// </summary>

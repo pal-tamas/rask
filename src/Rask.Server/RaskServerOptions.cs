@@ -65,6 +65,17 @@ public sealed class RaskServerOptions
     public TimeSpan UnconnectedSessionGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
+    ///     Which rungs of the render ladder this app uses — static documents, streaming, a live
+    ///     WebSocket, the browser runtime — and the budget the initial render waits under.
+    /// </summary>
+    /// <remarks>
+    ///     Every rung is automatic; this is the ceiling, for an app that wants one it will never use
+    ///     turned off rather than merely unused. A combination that cannot serve a working page
+    ///     throws when the host is built.
+    /// </remarks>
+    public RaskRenderModes RenderModes { get; } = new();
+
+    /// <summary>
     ///     If a connected WebSocket sends no inbound frame for this long, the server closes it. The
     ///     session itself survives under <see cref="SessionGracePeriod" /> for reconnect, so this only
     ///     reclaims the idle socket (and its receive loop), not the component tree. Bounds a silently
@@ -181,6 +192,11 @@ public sealed class RaskServerOptions
     /// </summary>
     internal void Validate()
     {
+        // First: a contradictory ladder means no page can work at all, which is worth saying before
+        // any cap detail. A host that refuses to start is far cheaper to diagnose than a page that
+        // silently does nothing in production.
+        RenderModes.Validate();
+
         if (MaxInboundFrameBytes <= 0)
         {
             throw new ArgumentOutOfRangeException(

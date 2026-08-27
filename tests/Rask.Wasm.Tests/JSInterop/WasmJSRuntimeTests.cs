@@ -10,6 +10,11 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 // browser. (Calls made DURING a render queue onto the session frame instead — see the shared
 // RaskJSRuntimeBase; that post-commit path is covered end-to-end by the WASM E2E journey.) Tests
 // share the JSInterop static singleton (_runtime), so the class runs sequentially.
+// Shares JSInterop's process-wide statics with everything else in this collection. A full boot
+// rebinds _session, _runtime and _hostedServices, so running alongside a class that set them up for
+// itself swaps the bindings out from under it — which surfaced as an unrelated JS round-trip test
+// failing in the full suite and passing on its own.
+[Collection("WasmSession")]
 public sealed class WasmJSRuntimeTests
 {
     [Fact]

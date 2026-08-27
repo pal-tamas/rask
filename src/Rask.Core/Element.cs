@@ -454,6 +454,9 @@ public abstract partial class Element : Component
         if (Ref is { } elementRef)
         {
             AppendAttr(sb, "data-", "rask-ref", elementRef.Id);
+            // A ref exists to be handed to JavaScript, and reaching JavaScript needs a connection.
+            // A page holding one is never static, even if it carries no handler at all.
+            LiveRenderContext.CurrentSync?.MarkRequiresLiveSession(InteractivityReason.ElementRef);
         }
 
         // Drag-and-drop: a universal attribute (draggable) plus the data-rask-on-drag* handler

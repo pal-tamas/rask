@@ -103,6 +103,37 @@ public static class LivePayload
     }
 
     /// <summary>
+    ///     Stamps where the browser bundle's boot module lives, as <c>data-rask-wasm</c>, so the live
+    ///     runtime can fetch it once the page is idle and stand a browser runtime up beside itself.
+    /// </summary>
+    /// <remarks>
+    ///     Separate from the session id because it is a property of the app rather than of the
+    ///     session, and absent entirely unless the app has turned the browser rung on. A page carrying
+    ///     no such attribute never asks for a bundle, which is what keeps this free for every app that
+    ///     does not use it.
+    /// </remarks>
+    public static string InjectWasmBundleAttr(string html, string? bootModuleUrl)
+    {
+        if (string.IsNullOrEmpty(bootModuleUrl))
+        {
+            return html;
+        }
+
+        var i = IndexOfBodyOpen(html);
+        if (i < 0)
+        {
+            return html;
+        }
+
+        var insertAt = i + "<body".Length;
+        var attribute = " data-rask-wasm=\"" + HtmlEncoder.Default.Encode(bootModuleUrl) + "\"";
+        return string.Concat(
+            html.AsSpan(0, insertAt),
+            attribute.AsSpan(),
+            html.AsSpan(insertAt));
+    }
+
+    /// <summary>
     ///     Stamps the session id onto <c>&lt;body&gt;</c> as <c>data-rask-root</c>, and in development
     ///     also <c>data-rask-dev</c> — the flag the client requires before it will act on any dev-only
     ///     frame. Production HTML never carries it, so those branches are unreachable there even if a

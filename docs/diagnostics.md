@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK053)
+# Rask diagnostics (RASK001–RASK054)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -88,6 +88,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK051](#rask051) | Error | Translation catalog is malformed |
 | [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
+| [RASK054](#rask054) | Info | Page cannot run in the browser |
 
 ---
 
@@ -1155,3 +1156,48 @@ vocabulary at once.
 > This diagnostic only fires in a project that references a remote transport (`Rask.Cqrs.Client` or
 > `Rask.Cqrs.Server`). An app using `Rask.Cqrs` purely in-process generates no codecs, so none of these
 > constraints apply to its messages.
+
+## RASK054
+
+**Page cannot run in the browser** · Info
+
+A routed page injects something that only exists in the server process, so it stays server-live and
+will not move into WebAssembly.
+
+**This is not a fault.** The page is correct, and for most apps this describes every data page. It is
+Info rather than a warning for exactly that reason — a warning on each of them would be noise nobody
+reads. The diagnostic exists so that *"why did this page not move?"* has an answer at the call site
+rather than only in a runtime log.
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+
+[Route("/orders")]
+// ℹ RASK054 — a DbContext cannot exist in a browser, so this page stays server-live
+public sealed partial class Orders(IDbContextFactory<AppDb> db) : Component
+{
+    protected override Component? Render() => /* … */;
+}
+```
+
+**To make the page eligible**, reach the same data through something that already crosses the wire —
+a `Rask.Query` query or a CQRS message, both of which are dispatched remotely by default:
+
+```csharp
+[Route("/orders")]
+public sealed partial class Orders(IQueryClient client) : Component   // no diagnostic
+{
+    private readonly Query<Order[]> _orders = client.Query(new GetOrders());
+
+    protected override Component? Render() => /* … */;
+}
+```
+
+**What it looks at.** Constructor parameters of a component carrying `[Route]`. It does not report a
+shared component that injects a server-only type — that is a property of whichever page uses it, and
+pointing at the component would name a file whose author cannot see which page is affected.
+
+**The list of server-only types is short and deliberately not exhaustive:** Entity Framework's
+`DbContext` and `IDbContextFactory<T>`, and anything from the `Rask.Server` assembly. It names what
+this framework hands people rather than everything that could fail in a browser, because the analyzer
+compiles against the server half and has no view of what a browser build references.
