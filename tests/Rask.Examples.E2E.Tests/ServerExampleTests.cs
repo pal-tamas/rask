@@ -25,6 +25,40 @@ public sealed class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFi
             SignalingRelay = true,
         }));
 
+    // The seam a browser takeover rests on. Both hosts splice the same delegated-event listeners, so a
+    // browser runtime booting while the server one is still live would answer every click twice — once
+    // over the socket and once in WebAssembly. __raskHandOff is how the server runtime stands down.
+    [Fact]
+    public Task HandOff_StopsTheServerRuntimeDrivingThePage() => RunAsync(async () =>
+    {
+        // Counted rather than inspected: rask.js keeps its socket in a closure, so the only honest way
+        // to prove it did not come back is to watch the browser open one. A leaked handover shows up
+        // here as a second socket, which is precisely what the reconnect ladder would do.
+        var sockets = 0;
+        Page.WebSocket += (_, _) => Interlocked.Increment(ref sockets);
+
+        await Page.GotoAsync("/");
+        await Expect(Page.Locator("[data-rask-root]")).ToHaveCountAsync(1);
+        await Expect(Page.Locator("[data-show]")).ToHaveCountAsync(0);
+
+        Assert.Equal("server", await Page.EvaluateAsync<string>("() => window.__raskOwner"));
+        var beforeHandOff = Volatile.Read(ref sockets);
+
+        await Page.EvaluateAsync("() => window.__raskHandOff()");
+
+        Assert.Equal("wasm", await Page.EvaluateAsync<string>("() => window.__raskOwner"));
+
+        // Past the reconnect ladder's first rung with margin. If the handover leaked into
+        // scheduleReconnect, the browser has opened another socket by now.
+        await Task.Delay(2500);
+        Assert.Equal(beforeHandOff, Volatile.Read(ref sockets));
+
+        // And the overlay stays down: this is not a disconnection the user has to see. The element is
+        // always in the DOM and toggled by data-show, so presence proves nothing — absence of the
+        // attribute is the assertion.
+        await Expect(Page.Locator("[data-show]")).ToHaveCountAsync(0);
+    });
+
     // Server PWA: the app is installable (manifest linked + served with app-rooted URLs, SW
     // auto-registers) and the Server PWA showcase page renders. The critical assertion is the offline
     // fallback — an offline navigation must serve the static offline.html, NOT a dead cached session

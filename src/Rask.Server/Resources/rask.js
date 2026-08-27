@@ -24,6 +24,30 @@
     let root = document.querySelector("[data-rask-root]");
     if (!root) return;
 
+    // Which runtime owns this document. Both hosts splice the same delegated-event listeners, so if a
+    // browser runtime boots while this one is still live every click is answered twice — once over the
+    // socket and once in WebAssembly. One writer, checked by both.
+    window.__raskOwner = "server";
+
+    // Set when a browser runtime has taken this document over. Deliberately NOT the sessionExpired
+    // latch, which is the right shape but shows the reconnect overlay and turns its button into a
+    // reload: a handover is meant to be invisible, and there is nothing for the user to retry.
+    let handedOff = false;
+
+    // Called by the browser runtime once it is booted and ready to drive this page. Stops this runtime
+    // sending, stops it reconnecting, and closes the socket normally so the server frees the session
+    // rather than holding it for the reconnect grace.
+    window.__raskHandOff = function () {
+        if (handedOff) return;
+        handedOff = true;
+        window.__raskOwner = "wasm";
+        try {
+            if (ws) ws.close(1000, "handoff");
+        } catch (e) {
+            /* already closing */
+        }
+    };
+
     // Development-only affordances gate on this. The server stamps data-rask-dev onto <body> only
     // when the app is in Development AND running under `dotnet watch`, so in production the flag is
     // absent and every branch below it is unreachable — even if a dev frame somehow arrived.
@@ -342,6 +366,9 @@
     }
 
     function scheduleReconnect(e) {
+        // A handed-off socket closed because we asked it to. Reconnecting would rebuild a session for a
+        // page another runtime is now driving, and both would then answer the same clicks.
+        if (handedOff) return;
         if (reconnectTimer !== null || sessionExpired) return;
         // Close code 1001 is "going away" — the drain's own close handshake. It is the belt to the
         // shutdown frame's braces: if the frame was missed (sent while this socket was mid-render, say),
@@ -1431,6 +1458,10 @@
     scanHeadAssets();
 
     function send(payload) {
+        // Dropped, never queued. Once another runtime owns this document the socket is gone for good,
+        // so queueing would grow a buffer nothing will ever drain — and would deliver a burst of stale
+        // events if anything ever reconnected.
+        if (handedOff) return;
         if (suppressEvents) return;
         stampSeq(payload);
         const msg = JSON.stringify(payload);
