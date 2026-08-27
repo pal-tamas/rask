@@ -167,8 +167,27 @@ them until tagged releases begin.
   went back in — the same bug class `--template native` was, and the same one it now catches.
 ### Added
 
+- **The render ladder is configurable from `Program.cs`** through `RaskServerOptions.RenderModes` —
+  `Static`, `Streaming`, `ServerInteractivity`, `Wasm`, and the `QuiescenceTimeout` the initial
+  render waits under. Every rung stays automatic; these are a ceiling, for an app that wants one it
+  will never use turned off rather than merely unused.
+
+  This replaces the two switches that had grown up separately and inconsistently: `StaticPages` was a
+  bool and quiescence was disabled by setting a timeout to zero. Defaults are unchanged behaviour, so
+  an app that configures nothing notices nothing.
+
+  Turning `ServerInteractivity` off means a page is served as HTML and becomes interactive only once
+  the browser bundle boots — no WebSocket ever opened, which is the offline-first and edge-hosted
+  arrangement. It requires `Wasm`, since otherwise a page with a handler could answer it through
+  neither transport.
+
+  **A combination that cannot serve a working page throws when the host is built**, and so does
+  turning on a rung that is not implemented yet. A switch that reads as supported and quietly does
+  nothing leaves an app looking configured for something it is not doing, and a page that silently
+  fails in production is far more expensive than a host that refuses to start.
+
 - **A page that needs nothing live can now be served as a plain document** — no session, no
-  WebSocket, no runtime script, and cacheable. Opt in with `RaskServerOptions.StaticPages`.
+  WebSocket, no runtime script, and cacheable. Opt in with `RaskServerOptions.RenderModes.Static`.
 
   Every `GET` used to mint a DI scope and a component tree, hold them for ten seconds against
   `MaxSessions`, and answer `Cache-Control: no-store` because the shell carries the session id. For
@@ -253,7 +272,7 @@ them until tagged releases begin.
   unit because resolved data mounts new components which start their own work — a page whose list
   loads and whose rows then load is two waves, not one longer wait.
 
-  Bounded by `RaskServerOptions.InitialRenderQuiescenceTimeout` (default 5&#160;seconds;
+  Bounded by `RaskServerOptions.RenderModes.QuiescenceTimeout` (default 5&#160;seconds;
   `TimeSpan.Zero` restores the old behaviour). Blowing the budget is not an error: the page is
   served as it stands and keeps its live session, so the load finishes over the socket exactly as
   before. A slow page does hold a request open for up to that long, so size it together with the

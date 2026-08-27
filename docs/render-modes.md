@@ -8,6 +8,39 @@ it. There is no hydration step: the ids in the served HTML *are* the event bindi
 
 What changed is everything around that render.
 
+## Turning a rung off
+
+Every rung is automatic — a page climbs as far as it needs to and no further, and nothing here has
+to be set for an app to work. The switches are a **ceiling**, for an app that wants a rung it will
+never use turned off rather than merely unused:
+
+```csharp
+builder.Services.AddRask(configureServer: o =>
+{
+    o.RenderModes.Static = true;                 // serve a page needing nothing live as a document
+    o.RenderModes.ServerInteractivity = true;    // the WebSocket (default)
+    o.RenderModes.Streaming = false;             // not implemented yet
+    o.RenderModes.Wasm = false;                  // not implemented yet
+    o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(5);
+});
+```
+
+Defaults are today's behaviour exactly: server-interactive, no static pages, no streaming, no browser
+runtime. An app that configures nothing notices nothing.
+
+**Turning `ServerInteractivity` off** means a page is served as HTML and becomes interactive only
+once the browser bundle boots — no WebSocket is ever opened. That is the offline-first and
+edge-hosted arrangement, and it requires `Wasm`, because otherwise a page with a handler would have
+no way to answer it at all.
+
+**A combination that cannot serve a working page throws when the host is built**, naming what is off
+and what to do. A contradiction is a configuration mistake, and a host that refuses to start is far
+cheaper to diagnose than a page that silently does nothing in production. Turning on a rung that is
+not implemented yet throws for the same reason: a switch that reads as supported and quietly does
+nothing leaves an app looking configured for something it is not doing.
+
+A page can opt **down** from this ceiling with its own attribute. It cannot opt above it.
+
 ## The initial GET waits for your data
 
 `OnMountAsync` is fire-and-forget by design: the render walk starts it, keeps walking, and the
@@ -40,7 +73,7 @@ list loads and whose rows then load is two waves, not one longer wait.
 ```csharp
 builder.Services.AddRask(configureServer: o =>
 {
-    o.InitialRenderQuiescenceTimeout = TimeSpan.FromSeconds(5); // default; Zero disables the wait
+    o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(5); // default; Zero disables the wait
 });
 ```
 
@@ -99,10 +132,10 @@ revalidate only arises after a navigation inside a live session, never on a firs
 
 ## A page that needs nothing live is served as a document
 
-Opt in with `RaskServerOptions.StaticPages`:
+Opt in with `RenderModes.Static`:
 
 ```csharp
-builder.Services.AddRask(configureServer: o => o.StaticPages = true);
+builder.Services.AddRask(configureServer: o => o.RenderModes.Static = true);
 ```
 
 A page with no event handler, no form, no element `Ref` and no call into JavaScript is inert once it

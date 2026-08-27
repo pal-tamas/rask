@@ -312,7 +312,7 @@ the `Upgrade`/`Connection` headers (most do by default; for nginx set `proxy_set
 "/myapp")` and route `/myapp/*` to the container.
 
 **Caching in front of the app.** Every page used to be `Cache-Control: no-store`, because the shell
-carries a session id. With [`StaticPages`](render-modes.md) on, a page that needs nothing live is
+carries a session id. With [`RenderModes.Static`](render-modes.md) on, a page that needs nothing live is
 served without one and becomes browser-cacheable (`private, max-age=0, must-revalidate`), which is
 what restores instant back/forward. It stays `private`, so a shared cache or CDN still holds nothing —
 deliberately: the framework will not put a page in a shared cache on your behalf. Anything
