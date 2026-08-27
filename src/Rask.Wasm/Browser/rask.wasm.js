@@ -3481,6 +3481,14 @@ function prependBase(url) {
 // Called from main.js once `getAssemblyExports` is available so the JS event
 // handlers below can dispatch into .NET via the JSExport surface.
 /**
+ * Which runtime owns this document. The server runtime sets __raskOwner when it attaches, so its
+ * presence is how a booting browser runtime learns it is arriving into a page it must not paint over.
+ */
+export function getOwner() {
+    return globalThis.__raskOwner ?? "";
+}
+
+/**
  * Publish the handover seam: the function a live server runtime calls to give this one the page.
  *
  * Also raises __raskPrepared, which main.js reads. Its never-painted check exists because an app that

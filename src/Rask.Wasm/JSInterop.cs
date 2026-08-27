@@ -204,6 +204,17 @@ internal static partial class JSInterop
     [JSImport("bootFailed", ModuleName)]
     public static partial void BootFailed(string message, string? detail);
 
+    /// <summary>
+    ///     Which runtime currently owns this document: <c>"server"</c> when a live server runtime is
+    ///     driving it, empty when nothing is.
+    /// </summary>
+    /// <remarks>
+    ///     Read at boot so <c>RunAsync</c> can decide whether to paint. A standalone WASM app owns an
+    ///     empty page and paints; the same app arriving into a server-rendered page prepares instead.
+    /// </remarks>
+    [JSImport("getOwner", ModuleName)]
+    public static partial string GetOwner();
+
     [JSImport("getLocation", ModuleName)]
     public static partial string GetLocation();
 
@@ -279,6 +290,14 @@ internal static partial class JSInterop
     }
 
     public static void ApplyRender(Span<byte> payload) { }
+    /// <summary>
+    ///     Stands in for the browser's <c>__raskOwner</c>, so the tests can drive the paint/prepare
+    ///     decision. Empty by default — no document, so no other runtime owns it and boot paints.
+    /// </summary>
+    public static string Owner { get; set; } = string.Empty;
+
+    public static string GetOwner() => Owner;
+
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
 

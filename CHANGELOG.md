@@ -180,6 +180,19 @@ them until tagged releases begin.
   silent freeze: a handover to a runtime that never prepared would leave the page still with no
   indication why.
 
+- **`RunAsync` now decides for itself whether to paint.** The same `App` class is a standalone WASM
+  app on an empty page and a takeover arriving into a server-rendered one, and which it is depends on
+  where it was loaded — a fact `Program.cs` cannot know and no longer has to branch on. A live server
+  runtime stamps the document when it attaches; finding that stamp, boot prepares instead of painting.
+
+  Painting there is the failure being prevented: two runtimes writing one document and both answering
+  the same click, which presents as duplicated actions rather than as anything resembling a boot
+  problem. `PrepareAsync` remains as the explicit form.
+
+  The check reads an explicit owner rather than treating pre-existing markup as someone else's, because
+  every WASM app boots into a shell with a splash screen in it — inferring from content would leave
+  every standalone app unpainted.
+
 - **A prepared WASM app publishes its own handover seam.** `PrepareAsync` raises
   `window.__raskWasmPaint`, which is how a live server runtime discovers that a browser runtime is
   standing ready to take the page. The app calls `PrepareAsync<App>()` and nothing else.

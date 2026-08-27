@@ -263,7 +263,12 @@ public sealed class WasmHostBuilder
     {
         try
         {
-            await BootAsync<TApp>().ConfigureAwait(false);
+            // Decided here rather than asked of the app. The same App class is a standalone WASM app
+            // on an empty page and a takeover on a server-rendered one, and which it is depends on
+            // where it was loaded — a fact Program.cs cannot know and should not have to branch on.
+            // A live server runtime stamps __raskOwner when it attaches; finding it means this page
+            // already has someone driving it, and painting would put two runtimes in one document.
+            await BootAsync<TApp>(paint: JSInterop.GetOwner() != "server").ConfigureAwait(false);
         }
         catch (Exception ex)
         {

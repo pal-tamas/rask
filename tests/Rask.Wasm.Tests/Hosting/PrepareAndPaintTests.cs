@@ -40,6 +40,47 @@ public sealed class PrepareAndPaintTests
         Assert.Equal(1, JSInterop.PublishPaintCount);
     }
 
+    [Fact]
+    public async Task BootingIntoAServerDrivenPage_PreparesInsteadOfPainting()
+    {
+        // The DX the whole ladder rests on: one App class, one Program.cs, and no branch. Whether this
+        // is a standalone WASM app on an empty page or a takeover arriving into a server-rendered one
+        // depends on where it was loaded — which Program.cs cannot know. RunAsync reads the document's
+        // owner and decides.
+        //
+        // Painting here is the failure being prevented: two runtimes writing one document, each
+        // answering the same click, which presents as duplicated actions rather than as a boot problem.
+        JSInterop.ResetPublishPaintCount();
+        JSInterop.Owner = "server";
+        try
+        {
+            var builder = WasmHostBuilder.CreateDefault();
+            await builder.RunAsync<Blank>();
+
+            // Publishing the seam is what a prepare does and a paint does not, so it is the observable
+            // difference between the two paths.
+            Assert.Equal(1, JSInterop.PublishPaintCount);
+        }
+        finally
+        {
+            JSInterop.Owner = string.Empty;
+        }
+    }
+
+    [Fact]
+    public async Task BootingIntoAPageNobodyOwns_Paints()
+    {
+        // The standalone case, and the reason the check reads an explicit owner rather than treating
+        // any pre-existing markup as someone else's: every WASM app boots into a shell with a splash
+        // screen in it, and mistaking that for a live runtime would leave every standalone app unpainted.
+        JSInterop.ResetPublishPaintCount();
+
+        var builder = WasmHostBuilder.CreateDefault();
+        await builder.RunAsync<Blank>();
+
+        Assert.Equal(0, JSInterop.PublishPaintCount);
+    }
+
     private sealed class Blank : Component
     {
         protected override Component? Render() => null;
