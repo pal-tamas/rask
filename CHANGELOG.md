@@ -165,6 +165,21 @@ them until tagged releases begin.
   survived review: asserting presence cannot see a generator that never reads the value. The guard was
   verified by reintroducing the defect and watching it fail on `(wasm, localization)` before the fix
   went back in — the same bug class `--template native` was, and the same one it now catches.
+
+- **The browser runtime derived a bogus path base on a page with no `<base href>`.** It read
+  `document.baseURI`, which with no `<base>` element is the document's own URL — so a page at
+  `/realtime/BTC` yielded a base path of `/realtime/`, breaking every asset URL, the seeded route and
+  the `HttpClient` base address.
+
+  No standalone WASM app could hit it: every page shell — the framework's, the templates' and the
+  samples' — carries `<base href="/">`, and `baseURI` then equals that element's href, so the two
+  readings agree. A takeover does hit it, because the page comes from the server and server-rendered
+  pages carry no `<base>` at all.
+
+  The Server runtime already carried this exact fix, against the same failure, in its own copy of the
+  function. The two had simply diverged, and the takeover is the one arrangement that runs the browser
+  copy on a server-rendered document.
+
 ### Added
 
 - **A WASM app can now boot without painting**, through `WasmHostBuilder.PrepareAsync` and

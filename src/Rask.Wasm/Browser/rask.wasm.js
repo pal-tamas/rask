@@ -3459,7 +3459,25 @@ function ensureRaskNamespacePoll() {
 // page URL like /index.html yields "/" (not "/index.html/").
 export function getBasePath() {
     if (basePath !== null) return basePath;
-    const p = new URL(document.baseURI).pathname;
+
+    // Read the <base href> ELEMENT, not document.baseURI. With no <base> present, baseURI is the
+    // current document's own URL, so a page at /realtime/BTC yields a bogus "/realtime/" base that
+    // breaks every asset URL, the seeded route, and getBaseAddress below.
+    //
+    // A standalone WASM app never hit this: its shell always carries <base href="/">, and baseURI
+    // then equals that element's href, so the two readings agree. A takeover does hit it, because the
+    // page comes from the server and server-rendered pages carry no <base> at all.
+    //
+    // This is the same fix the Server runtime's own getBasePath already carries, for the same reason
+    // and against the same failure. The two had simply diverged; the takeover is where the divergence
+    // shows, since it is the one arrangement that runs this code on a server-rendered document.
+    const baseEl = document.querySelector("base[href]");
+    if (!baseEl) {
+        basePath = "/";
+        return basePath;
+    }
+
+    const p = new URL(baseEl.href, location.href).pathname;
     const last = p.lastIndexOf("/");
     basePath = last < 0 ? "/" : p.slice(0, last + 1);
     return basePath;
