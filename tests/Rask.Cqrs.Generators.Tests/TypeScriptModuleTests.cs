@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Rask.Generators.Shared;
 
 namespace Rask.Cqrs.Generators.Tests;
 

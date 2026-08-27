@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 
-namespace Rask.Cqrs.Generators;
+namespace Rask.Generators.Shared;
 
 /// <summary>How a type is encoded on the wire.</summary>
 internal enum WireKind
