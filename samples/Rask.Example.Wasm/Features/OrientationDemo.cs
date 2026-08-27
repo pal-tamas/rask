@@ -49,6 +49,11 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
         }
         catch (Exception ex)
         {
+            // Say so on the line the reader is actually looking at. Leaving _current at its "(read to
+            // see)" placeholder made a thrown read identical to a click that never landed — for the
+            // visitor and for the E2E alike, which asserts on this element. A demo whose button appears
+            // to do nothing when it fails teaches the wrong lesson twice over.
+            _current = "read failed";
             _status = "Failed: " + ex.Message;
         }
     }
@@ -58,8 +63,12 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
         try
         {
             await orientation.LockAsync(to);
-            _status = $"Locked to {to}";
+            // Read back AFTER claiming the lock, and claim it last: Read owns _status on its failure
+            // path, so setting the lock's status first let a failed read-back overwrite it with
+            // "Failed: …" — reporting a lock that had in fact succeeded as one that had not. The read
+            // failing is still visible, on the line that belongs to it.
             await Read();
+            _status = $"Locked to {to}";
         }
         catch (Exception ex)
         {

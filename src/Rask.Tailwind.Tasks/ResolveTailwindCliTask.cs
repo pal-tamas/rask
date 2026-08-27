@@ -32,7 +32,7 @@ namespace Rask.Tailwind.Tasks;
 ///         no published asset — hence <c>RaskLitestreamDownload=false</c>. Three things make this
 ///         different: it is fetched <b>once</b> into a per-user cache rather than per build, the version
 ///         is <b>pinned</b> rather than floating, and <c>RaskTailwindBuild=false</c> turns it off
-///         entirely. <c>rask new --tailwind</c> also warms the cache while it is already online.
+///         entirely. The first build of a scaffolded app is what populates the cache.
 ///     </para>
 /// </remarks>
 public sealed class ResolveTailwindCliTask : Task

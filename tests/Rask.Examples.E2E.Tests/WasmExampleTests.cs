@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Examples.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -80,10 +81,24 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
         await Page.Locator("#orientation-read").ClickAsync();
-        // After reading, the current-orientation code shows either "<Type> (<angle>°)" or "not supported"
-        // — both differ from the idle placeholder.
-        await Expect(Page.Locator("#orientation-current")).Not.ToContainTextAsync("read to see",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Assert the OUTCOME, not the absence of the placeholder.
+        //
+        // This used to be Not.ToContainText("read to see"), which passes on anything that is not the
+        // idle text — including the demo's own "read failed". So the moment the demo started reporting
+        // a thrown read (#810), a negative assertion would have started passing on the failure it
+        // exists to catch. Same shape as the substring trap where "connected" matches "disconnected":
+        // a negative assertion is satisfied by outcomes nobody enumerated.
+        //
+        // Matching the two legitimate shapes instead — "<type> (<angle>°)" or "not supported" — means a
+        // failure prints what the element actually said, so "read failed" and a click that never landed
+        // stop producing the same red. That distinction is the whole point of the issue.
+        // The type is the OrientationType enum's name — "LandscapePrimary", not the web platform's
+        // "landscape-primary". The first version of this regex assumed the latter and failed against
+        // 'LandscapePrimary (0°)', which is the assertion earning its keep on its first run: the old
+        // Not.ToContainText("read to see") would have passed on that too, and on anything else.
+        await Expect(Page.Locator("#orientation-current")).ToHaveTextAsync(
+            new Regex(@"^(?:[A-Za-z][A-Za-z-]* \(-?\d+°\)|not supported)$"),
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
     });
 
     // The WASM-only Fullscreen page (FullscreenDemo) — verify it routes and renders. Real fullscreen
