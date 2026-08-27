@@ -184,6 +184,10 @@ public sealed class WasmHostBuilder
     // caller crossing this boundary is JavaScript, which cannot hold a .NET session reference.
     private WasmLiveSession? _prepared;
 
+    // Captured beside the session for the same reason: PaintAsync may need to re-seed the route, and
+    // the only handle JavaScript can pass back across the boundary is a string.
+    private IServiceProvider? _preparedServices;
+
     /// <summary>
     ///     Boots the app to the point of rendering and stops, so the first paint can be triggered
     ///     later by <see cref="PaintAsync" />.
@@ -212,8 +216,12 @@ public sealed class WasmHostBuilder
     /// <summary>
     ///     Renders the app prepared by <see cref="PrepareAsync{TApp}" />, taking the document over.
     /// </summary>
+    /// <param name="url">
+    ///     The page to paint, as a root-relative URL. Optional: omitted, the prepared route is used,
+    ///     which is the page the runtime booted on.
+    /// </param>
     /// <exception cref="InvalidOperationException">Nothing was prepared.</exception>
-    public async Task PaintAsync()
+    public async Task PaintAsync(string? url = null)
     {
         if (_prepared is not { } session)
         {
@@ -223,7 +231,20 @@ public sealed class WasmHostBuilder
                 + "hands, so the two calls are always a pair.");
         }
 
+        var services = _preparedServices;
         _prepared = null;
+        _preparedServices = null;
+
+        // A takeover lands on a NAVIGATION, so the page to paint is almost never the page prepared:
+        // the runtime booted quietly on whatever the visitor was reading, and takes over when they
+        // click through to the next one. Re-seeding here rather than at prepare time is what lets the
+        // bundle finish downloading whenever it finishes — it does not have to guess where the
+        // visitor will go, and the prepared route stays correct if it turns out they never leave.
+        if (url is not null && services?.GetService<RouteState>() is { } routeState)
+        {
+            RouteSeeder.Seed(url, routeState);
+        }
+
         var payload = await session.InitialRenderAsync().ConfigureAwait(false);
         Console.WriteLine($"[Rask.Wasm] takeover render payload bytes={payload.Length}");
     }
@@ -338,6 +359,7 @@ public sealed class WasmHostBuilder
         if (!paint)
         {
             _prepared = session;
+            _preparedServices = provider;
             Console.WriteLine("[Rask.Wasm] prepared; holding the first render until asked");
             return;
         }

@@ -59,6 +59,44 @@ public sealed class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFi
         await Expect(Page.Locator("[data-show]")).ToHaveCountAsync(0);
     });
 
+    // The takeover decision: with a browser runtime standing ready, the next navigation goes to it
+    // instead of over the socket. This drives the client half — the .NET half's pairing guard is a unit
+    // test, and a real bundle booting into a live page is what the one-project build will make testable.
+    [Fact]
+    public Task Takeover_HandsTheNextNavigationToTheBrowserRuntime() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/");
+        await Expect(Page.Locator("[data-rask-root]")).ToHaveCountAsync(1);
+        Assert.True(await Page.Locator("a[data-rask-nav]").CountAsync() > 0);
+
+        // Stands in for a prepared WASM runtime. What is under test is the decision rask.js makes at a
+        // navigation, not the runtime it hands to.
+        await Page.EvaluateAsync(
+            "() => { window.__raskPainted = []; window.__raskWasmPaint = (u) => window.__raskPainted.push(u); }");
+
+        // Clicked through the DOM rather than Playwright's actionability path on purpose: the subject is
+        // the delegated handler, so a real element's visibility or an overlay above it is noise here.
+        var expected = await Page.EvaluateAsync<string>("""
+            () => {
+                const a = document.querySelector("a[data-rask-nav]");
+                const u = new URL(a.getAttribute("href"), location.href);
+                a.click();
+                return u.pathname + u.search + u.hash;
+            }
+            """);
+
+        // The browser runtime was asked to paint the page navigated TO — not the page prepared on.
+        await Page.WaitForFunctionAsync("() => window.__raskPainted.length === 1");
+        Assert.Equal(expected, await Page.EvaluateAsync<string>("() => window.__raskPainted[0]"));
+
+        // The server runtime stood down rather than also answering.
+        Assert.Equal("wasm", await Page.EvaluateAsync<string>("() => window.__raskOwner"));
+
+        // And history moved, which the server's navigation reply would otherwise have done. Without
+        // this the visitor sees the new page under the old URL, and reload or share gives the wrong one.
+        Assert.Equal(expected, new Uri(Page.Url).PathAndQuery);
+    });
+
     // Server PWA: the app is installable (manifest linked + served with app-rooted URLs, SW
     // auto-registers) and the Server PWA showcase page renders. The critical assertion is the offline
     // fallback — an offline navigation must serve the static offline.html, NOT a dead cached session

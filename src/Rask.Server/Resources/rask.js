@@ -48,6 +48,45 @@
         }
     };
 
+    // A prepared browser runtime publishes __raskWasmPaint; until it does, this is undefined and every
+    // navigation goes over the socket exactly as before. Checked per navigation rather than once at
+    // boot, because the bundle finishes downloading whenever it finishes: the page must never wait for
+    // it, and must behave identically if it never arrives at all.
+    //
+    // The handover lands on a navigation deliberately. A fresh mount is what a navigation already does,
+    // so there is no live state to carry across — the problem that makes mid-page handovers hard simply
+    // does not arise here.
+    function tryTakeOver(url, isPop) {
+        const paint = window.__raskWasmPaint;
+        if (typeof paint !== "function") return false;
+
+        // Hand off BEFORE painting. The browser runtime is about to write this document, and this one
+        // must have stopped sending by then — otherwise a frame already in flight lands on a page it no
+        // longer owns and overwrites what the new runtime just drew.
+        window.__raskHandOff();
+
+        // The server would normally have moved history as part of its navigation reply. It is not
+        // answering any more, so this runtime moves it on the way out. A popstate has already moved.
+        if (!isPop) {
+            try {
+                history.pushState({}, "", url.href);
+            } catch (e) {
+                /* opaque origin — the paint below is still correct, only the URL bar lags */
+            }
+        }
+
+        try {
+            paint(stripBase(url.pathname) + url.search + url.hash);
+        } catch (e) {
+            // The handover already happened, so nothing is driving this document. A full page load is
+            // the only honest recovery: the server renders the page fresh and the visitor pays one slow
+            // navigation, rather than clicking a link that does nothing.
+            console.error("[rask] takeover failed; falling back to a full page load", e);
+            location.assign(url.href);
+        }
+        return true;
+    }
+
     // Development-only affordances gate on this. The server stamps data-rask-dev onto <body> only
     // when the app is in Development AND running under `dotnet watch`, so in production the flag is
     // absent and every branch below it is unreachable — even if a dev frame somehow arrived.
@@ -1516,6 +1555,11 @@
         }
         if (url.origin !== location.origin) return;
         e.preventDefault();
+
+        // The takeover point. Checked before flushing inputs, because a handover renders the target
+        // page fresh — there is no server session left to receive this page's pending input values.
+        if (tryTakeOver(url, false)) return;
+
         // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
         // the new page commits (the fragment is not sent to the server).
         _pendingScrollHash = url.hash || "";
@@ -1525,6 +1569,7 @@
     });
 
     window.addEventListener("popstate", () => {
+        if (tryTakeOver(new URL(location.href), true)) return;
         flushInputsNow();
         beginNav();
         send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});

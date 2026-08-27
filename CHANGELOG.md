@@ -180,6 +180,23 @@ them until tagged releases begin.
   silent freeze: a handover to a runtime that never prepared would leave the page still with no
   indication why.
 
+- **A navigation now hands the page to the browser runtime, when one is standing ready.** Once a
+  prepared WASM runtime publishes itself, the next client-side navigation renders there instead of
+  going over the WebSocket: the server runtime stands down, and the browser paints the page being
+  navigated *to*.
+
+  Landing the handover on a navigation is what makes it cheap. A fresh mount is what a navigation
+  already does, so no live state has to survive the crossing — the problem that makes a mid-page
+  handover hard does not arise.
+
+  Readiness is checked per navigation rather than once at boot, because the bundle finishes
+  downloading whenever it finishes. The page never waits for it, and behaves identically if it never
+  arrives at all. `PaintAsync` therefore takes the target URL: the runtime booted quietly on whatever
+  the visitor was reading, and does not have to guess where they will go next.
+
+  If the paint throws, the document has already changed hands and nothing is driving it, so the
+  fallback is a full page load — one slow navigation rather than a link that does nothing.
+
 - **RASK054 reports a page that cannot run in the browser.** A routed page injecting something that
   only exists in the server process — Entity Framework's `DbContext` or `IDbContextFactory<T>`, or
   anything from `Rask.Server` — stays server-live rather than moving into WebAssembly.
