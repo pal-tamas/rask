@@ -592,7 +592,7 @@ public static partial class RaskEndpointExtensions
             // tree force a whole page static would be a very quiet way to break it.
             var declaredStatic = notFoundPage is null
                                  && chain.Count > 0
-                                 && PageRenderModes.Of(chain[^1]) == PageRenderMode.Static;
+                                 && DeclaredRenderModes.Of(chain[^1]) == RenderMode.Static;
 
             var interactive = !(staticPages || declaredStatic)
                               || session.RequiresLiveSession
@@ -611,7 +611,7 @@ public static partial class RaskEndpointExtensions
                 RaskDiagnostics.Report(
                     RaskLogLevel.Warning,
                     "Rask.Ssr",
-                    $"{chain[^1].Name} declares [PageRender(PageRenderMode.Static)] but its render needs a "
+                    $"{chain[^1].Name} declares [RenderMode(RenderMode.Static)] but its render needs a "
                     + $"live connection ({session.InteractivityReasons}), so it kept one. Serving it static "
                     + "would have left that part of the page inert. Remove the attribute, or remove what "
                     + "needs the connection.");

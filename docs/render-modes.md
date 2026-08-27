@@ -48,7 +48,7 @@ cannot see.
 
 ```csharp
 // Pushes on a timer. Nothing in its render says so, so nothing would mark it.
-[PageRender(PageRenderMode.Interactive)]
+[RenderMode(RenderMode.Interactive)]
 public abstract partial class PollingPanel : Component { }
 ```
 
@@ -58,7 +58,7 @@ without its author knowing to. The attribute is `Inherited`, so a subclass carri
 
 ```csharp
 [Route("/pricing")]
-[PageRender(PageRenderMode.Static)]
+[RenderMode(RenderMode.Static)]
 public sealed partial class Pricing : Component { }
 ```
 
