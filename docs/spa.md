@@ -42,17 +42,29 @@ CLI also has its own Node floor, higher than Vite's; it says so itself if yours 
 
 ### Which Node
 
-**Use the current LTS.** The build's own floor is Vite's — 20.19 — because that is genuinely the
-oldest Node the six Vite templates run on, and refusing a version that works would be a worse default
-than letting you use it. But the scaffolders move faster than the floor does: Angular's CLI already
-requires a Node newer than several releases that satisfy Rask, and it is the CLI that will tell you,
-not Rask.
+**Use the current LTS.**
 
 ```bash
 nvm install --lts && nvm alias default 'lts/*'
 ```
 
-Set `RaskSpaMinimumNode` if you want the build to insist on more than Rask does.
+The build's own floor is **22.12**, and the build enforces it — an older Node fails with
+`RASKSPA005` naming the version it found, rather than reaching `vite` and failing there with an
+`engines` error nobody reads.
+
+That number is not arbitrary. Vite asks for `^20.19.0 || >=22.12.0`, which is a range with a hole in
+it: 21.x and 22.0–22.11 satisfy neither arm. 22.12 is the lowest version that satisfies it with no
+hole — and the lowest still on a line Node patches, since Node 20 "Iron" reached end of life on
+2026-03-24. A floor is a minimum rather than a recommendation, which is why it sits below what Rask
+actually recommends: the scaffolded `Dockerfile` installs the current **Active LTS** (24 "Krypton"),
+and so should you.
+
+The scaffolders move faster than the floor does, and Angular's CLI moves fastest of all — 22.1.6 asks
+for `^22.22.3 || ^24.15.0 || >=26.0.0`, well above anything Rask insists on. It enforces that itself
+and says so in its own words; Rask does not try to track it.
+
+Set `RaskSpaMinimumNode` if you want the build to insist on more than Rask does — it is a real
+comparison, so raising it raises the bar.
 
 **TanStack Router comes wired up for React and Solid**, because those are the two adapters it ships.
 The routes are declared in code, in `src/router.tsx`, rather than through the file-based plugin —
@@ -304,6 +316,7 @@ app.UseRaskSpa(configure: options =>
 | `RaskSpaDistDir` | `dist` | The bundler's output. Angular nests it: `dist/<app>/browser`. |
 | `RaskSpaGeneratedDir` | `src/rask` | Where the generated contracts land, inside the client. |
 | `RaskSpaBuild` | `true` | `false` skips node entirely. |
+| `RaskSpaMinimumNode` | `22.12.0` | The Node floor the build enforces, as `RASKSPA005`. |
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskEmitTypeScript` | on when a client is resolved | Whether the contracts are generated at all. `false` also lifts the TypeScript requirement — see [above](#typescript-only). |
 | `RaskSpaTypeScriptConfig` | `tsconfig.json` | The client's TypeScript config, relative to the client. Its presence is what RASKSPA004 checks. |

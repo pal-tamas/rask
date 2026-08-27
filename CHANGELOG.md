@@ -8,6 +8,24 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **The Node floor is now enforced, not just documented.** `RaskSpaMinimumNode` was described in
+  `Rask.Spa.Hosting.props` as the version "the probe reports anything older" against, and `docs/spa.md`
+  told you to set it "if you want the build to insist on more than Rask does". Nothing compared against
+  it: the property was interpolated into the RASKSPA001 *node did not run* message and read nowhere
+  else, and `_RaskSpaNodeVersion` was captured out of the probe and dropped. So a too-old Node sailed
+  past the probe, reached `vite`, and failed with the `engines` error the probe exists to prevent —
+  and setting `RaskSpaMinimumNode` insisted on nothing at all
+  ([#863](https://github.com/pal-tamas/rask/issues/863)).
+
+  The probe now parses what `node --version` reported and compares it, failing with **RASKSPA005**
+  naming both the version found and the floor required. A version string it cannot parse (a nightly
+  carries a prerelease suffix) is skipped rather than failed: a build that works today should not start
+  failing over a string this package could not read, and npm still gets its say.
+
+  Covered by tests that run the shipped `build/*.props`/`*.targets` through a real MSBuild in both
+  directions — a gate that always fails is not a gate — because a substring assertion over the targets
+  file cannot tell an enforced floor from an interpolated one. Both mention the property.
+
 - **A package that ships an MSBuild task now packs that task by name, so it cannot pack without it.**
   `Rask.Spa.Hosting`, `Rask.Wasm` and `Rask.Tailwind` each collect a generated `*.Tasks.dll` with
   `<None Include="build\**">`, ordered by a build-only `ProjectReference` that produces it. That
@@ -167,6 +185,21 @@ them until tagged releases begin.
   went back in — the same bug class `--template native` was, and the same one it now catches.
 
 ### Changed
+- **The Node floor moves to 22.12, and the scaffolded SPA image installs the current LTS.** The floor
+  was 20.19, described as "Vite's own". Vite actually asks for `^20.19.0 || >=22.12.0` — a range with a
+  hole in it, since 21.x and 22.0–22.11 satisfy neither arm — so 20.19 let a build through that Vite
+  would still refuse. 22.12 is the lowest version that satisfies the range with no hole, and the lowest
+  on a line Node still patches: Node 20 "Iron" reached end of life on 2026-03-24.
+
+  A floor is a minimum rather than a recommendation, so the two numbers now differ on purpose. The
+  `--docker` Dockerfile for `rask new --template <front-end>` installs NodeSource **24.x** ("Krypton",
+  the Active LTS) instead of 22.x, and `docs/spa.md` says which is which. Angular's CLI sets its own
+  floor far above both (`^22.22.3 || ^24.15.0 || >=26.0.0` as of 22.1.6) and enforces it itself.
+
+  **Breaking for a build on Node 20.19–20.x**, which was already end-of-life: install the current LTS
+  (`nvm install --lts`), or set `RaskSpaMinimumNode` back down — it is a real comparison now, so
+  lowering it lowers the bar.
+
 - **BREAKING: `rask new` includes the batteries. Auth and styling are the only things it asks you.**
   `rask new MyApp` now scaffolds every battery the chosen template supports — a SQLite database, the
   CQRS mediator, background jobs, transactional email, a cache, a transactional outbox, scheduled

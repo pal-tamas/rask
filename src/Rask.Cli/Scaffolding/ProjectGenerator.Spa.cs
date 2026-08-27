@@ -125,7 +125,7 @@ internal static partial class ProjectGenerator
                     "npx",
                     framework.Scaffolder(name),
                     $"Scaffolding the {framework.DisplayName} client with {framework.ScaffolderName}…",
-                    "Install Node.js 20.19 or newer from https://nodejs.org "
+                    "Install Node.js 22.12 or newer — ideally the current LTS — from https://nodejs.org "
                     + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; "
                     + "Linux: your distro's nodejs package)."),
             ],
@@ -923,7 +923,7 @@ internal static partial class ProjectGenerator
         # Node, for the client build the Rask.Spa.Hosting targets run during `dotnet publish`.
         RUN apt-get update \
          && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
-         && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+         && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
          && apt-get install -y --no-install-recommends nodejs \
          && rm -rf /var/lib/apt/lists/*
 
