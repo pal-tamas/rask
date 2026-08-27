@@ -199,6 +199,17 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 $"Template '{template.Key}' has nothing to change for: {rejected}. It supports: {supported}.");
         }
 
+        // A --no- for something this template already leaves out would be accepted and change nothing —
+        // the same accepted-and-disregarded shape as the flags above, just arriving from the other side.
+        var alreadyOff = off.Where(template.OptInFlags.Contains).ToArray();
+        if (alreadyOff.Length > 0)
+        {
+            return Fail(
+                $"Template '{template.Key}' already leaves out {string.Join(", ", alreadyOff.Select(f => "--" + OffFlag(f)))}: "
+                + "it is opt-in here rather than standard, because the ICU it needs adds about a megabyte "
+                + "to the bundle. Pass --culture <tag> to turn it on.");
+        }
+
         // The generated TypeScript contracts ARE the mediator's wire on these templates, so there is no
         // project left without it. Refused rather than ignored, for the same reason --tailwind is below:
         // a flag the CLI accepts and then disregards is the most expensive kind to discover.
@@ -314,6 +325,16 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                     + "Pass --no-<battery> to leave one out, e.g. --no-push.";
             }
 
+            // Ahead of the general case, which would say "on by default now" — true on the templates that
+            // include it as standard, and a lie on the browser ones where it is opt-in.
+            if (name.Equals("localization", StringComparison.Ordinal))
+            {
+                return "--localization is gone. It is included by default on the templates that ship it as "
+                    + "standard, where --no-localization leaves it out; on the browser-WASM templates it is "
+                    + "opt-in because ICU adds about a megabyte to the bundle. Either way --culture <tag> "
+                    + "is how you name a language.";
+            }
+
             if (Array.IndexOf(BatteryFlags, name) >= 0)
             {
                 return $"--{name} is on by default now, so there is nothing to turn on. "
@@ -419,13 +440,20 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         IReadOnlyList<string>? cultures = null,
         bool auth = false)
     {
-        bool On(string battery) => template.SupportedFlags.Contains(battery) && !off.Contains(battery);
+        bool On(string battery) =>
+            template.SupportedFlags.Contains(battery)
+            && !template.OptInFlags.Contains(battery)
+            && !off.Contains(battery);
 
         return new ServerBatteries
         {
             Styling = styling,
             Auth = auth,
-            Localization = On("localization"),
+            // Set here rather than left to Normalized(), because Reduced() runs first and clears the
+            // culture list of anything whose localization is off — so an opt-in template's --culture would
+            // be thrown away before the up-cascade ever saw it.
+            Localization = On("localization")
+                || (template.SupportedFlags.Contains("localization") && cultures is { Count: > 0 }),
             // Joined rather than kept as a list: ServerBatteries is a record, and a collection property
             // would quietly turn its value equality into reference equality.
             CultureList = cultures is { Count: > 0 } ? string.Join(",", cultures) : "",
@@ -522,19 +550,34 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         // Pre-ticked, because this is what a bare `rask new` already gives you. The question is "anything
-        // you don't want?", and unticking an entry becomes the --no-<battery> that says so.
+        // you don't want?", and unticking an entry becomes the --no-<battery> that says so. A battery this
+        // template supports but leaves out is offered UNticked, so the list still shows everything on
+        // offer and the checklist stays the one place that says what you are getting.
         var offered = BatteryFlags.Where(template.SupportedFlags.Contains).ToArray();
+        var standard = offered.Where(f => !template.OptInFlags.Contains(f)).ToArray();
 
-        // A command line that already turned a battery off has answered this question — don't re-ask it.
-        var batteriesGiven = BatteryFlags.Any(f => parsed.HasFlag(OffFlag(f)));
+        // A command line that already answered this — either way round — is not re-asked.
+        var batteriesGiven = BatteryFlags.Any(f => parsed.HasFlag(OffFlag(f)))
+            || parsed.MultiOption("culture").Count > 0;
         if (!batteriesGiven && offered.Length > 0)
         {
             var kept = prompt.MultiSelect(
-                "Batteries [dim](all on — space to untick)[/]",
+                offered.Length == standard.Length
+                    ? "Batteries [dim](all on — space to untick)[/]"
+                    : "Batteries [dim](space to tick or untick)[/]",
                 [.. offered.Select(f => (f, $"[bold]{f}[/] [dim]— {BatteryDescriptions[f]}[/]"))],
-                selected: offered);
+                selected: standard);
 
-            filled.AddRange(offered.Except(kept).Select(f => "--" + OffFlag(f)));
+            filled.AddRange(standard.Except(kept).Select(f => "--" + OffFlag(f)));
+
+            // An opt-in battery has no --no- to emit, so ticking it has to add the flag that turns it on.
+            // Localization's is the language it would translate into, and English is the shape an app
+            // grows a second one into.
+            if (kept.Contains("localization") && !standard.Contains("localization"))
+            {
+                filled.Add("--culture");
+                filled.Add("en");
+            }
         }
 
         WriteWizardSummary(filled, template);

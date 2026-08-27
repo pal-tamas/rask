@@ -38,6 +38,71 @@ them until tagged releases begin.
   every case carries is already satisfied inside that gate, so a skip there means something declined to
   run for a reason nobody has looked at — worth a sentence, and the guard for the next silent non-run.
 
+- **A plural key in a second language failed to compile.** Any app with a plural key and two languages
+  whose neutral sorts alphabetically first — `en` + `hu`, `en` + `fr`, `en` + `pl` — produced generated
+  code the compiler rejected with **CS8510, "the pattern is unreachable"**. The neutral catalog is the
+  `_` arm of the generated switch expression, `_` matches everything, and it was emitted in catalog
+  order rather than last, so every language sorting after the neutral one was shadowed.
+
+  This is what `rask new --culture en --culture hu` scaffolds on **every** template, server included,
+  and the scaffolded catalog carries a plural key — so the second language shipped in
+  [#837](https://github.com/pal-tamas/rask/issues/837) never built. Plain (non-plural) keys were always
+  fine: they emit the neutral arm last already, which is what this now matches.
+
+  It survived because nothing in the repository ever compiled two catalogs — the only one in the tree is
+  the Shop sample's single English file, and the generator tests asserted on the generated *text* rather
+  than compiling it. The `en` + `pl` test walked straight through the bug and stayed green; it now
+  asserts the output compiles, alongside a case per ordering. Found by the CLI build gate, which is the
+  first thing here to compile a two-language project.
+
+### Added
+- **`rask new --template wasm --culture hu` actually localizes the app now.** Both browser templates
+  advertised `localization`, accepted `--culture`, reported success and scaffolded *nothing*: neither
+  generator ever read `Localization` or `Cultures`, so the parameter carrying them was passed in and
+  dropped on the floor. #849 struck the flag off both templates rather than leave a silent no-op;
+  this puts it back, doing the job
+  ([#846](https://github.com/pal-tamas/rask/issues/846)).
+
+  A localized WASM project now gets one `Resources/Strings.<culture>.json` per language — in the
+  `.Client` project on `wasm-hosted`, which is the half that renders anything — plus the
+  `host.UseCulture(...)` registration that tells the runtime which languages there are to choose
+  between. The negotiation itself already worked: a visitor's language is settled from `?culture=` → a
+  remembered cookie → `navigator.languages` → the app's default, before the first render.
+
+  **And it ships ICU**, which is what made this more than emitting two files. A browser runtime built
+  without culture data also has `PredefinedCulturesOnly` on, where `GetCultureInfo` cannot produce
+  anything but the invariant culture — so Rask's resolver rejects *every* configured language and the
+  app boots with an empty supported-language list and a startup warning. Catalogs without
+  `<RaskGlobalization>` would have been the same no-op wearing a different costume.
+
+- **Localization is opt-in on the browser templates, and standard on `server`.** It is the one battery
+  that is not simply "everything the template supports", and it earns the exception on a number rather
+  than a preference. Publishing the WASM showcase both ways:
+
+  | | raw | brotli (what a host serves) |
+  | --- | --- | --- |
+  | without ICU | 12.44 MB | 3.28 MB |
+  | with ICU | 16.36 MB | 4.33 MB |
+  | **cost** | **+3.92 MB** | **+1.05 MB (+32%)** |
+
+  A battery is wiring you would otherwise write by hand. A third more download for a feature most apps
+  never use is an opinion about your app, which is the line `--auth` and styling already sit on. On
+  `server` the runtime carries ICU regardless, so there it costs nothing and stays standard.
+
+  `--culture <tag>` is the opt-in, because naming a language is the thing you actually want to say.
+  `--no-localization` on a browser template is **refused** rather than accepted as already-true, and
+  `--localization` now explains both halves instead of claiming it is on everywhere.
+
+- **A guard that would have caught this, stated once for every template and flag.** `rask new`'s
+  contract is now asserted as: *for every template and every flag it advertises, flipping that flag
+  either changes the project it generates or is refused as a usage error — never accepted and quietly
+  ignored.* 101 pairs, driven through the real command against an in-memory filesystem.
+
+  The suite already asserted which templates *support* which flags, and that is exactly how this bug
+  survived review: asserting presence cannot see a generator that never reads the value. The guard was
+  verified by reintroducing the defect and watching it fail on `(wasm, localization)` before the fix
+  went back in — the same bug class `--template native` was, and the same one it now catches.
+
 ### Changed
 - **BREAKING: `rask new` includes the batteries. Auth and styling are the only things it asks you.**
   `rask new MyApp` now scaffolds every battery the chosen template supports — a SQLite database, the
@@ -207,8 +272,8 @@ them until tagged releases begin.
 
 - **`rask new --culture en --culture hu` scaffolds a localized app.** `--culture` is repeatable and
   names the languages; the **first is the default** a visitor falls back to. `--localization` on its own
-  means English, which is the shape an app grows a second language into. Supported on `server`; the
-  WASM templates advertised it and scaffolded nothing, so they no longer offer it
+  means English, which is the shape an app grows a second language into. Supported on `server`, `wasm`
+  and `wasm-hosted` — on the browser pair as an opt-in rather than as standard, see below
   ([#846](https://github.com/pal-tamas/rask/issues/846)).
 
   The scaffold writes one `Resources/Strings.{culture}.json` per language — the translations start as a

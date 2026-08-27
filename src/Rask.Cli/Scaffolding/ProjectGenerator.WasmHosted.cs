@@ -22,6 +22,10 @@ internal static partial class ProjectGenerator
         // forces it to Plain — so this axis belongs to the browser project alone.
         var styling = batteries.Styling;
 
+        // The UI lives in the .Client, so its language does too — the .Server here is a static-file host
+        // that renders nothing and has no catalog to carry.
+        string[] cultures = batteries.Localization ? [.. batteries.Cultures] : [];
+
         var files = new List<(string Path, string Content)>
         {
             // Shared — the class library both the Client and the Server reference.
@@ -29,8 +33,9 @@ internal static partial class ProjectGenerator
             ($"{NameToken}.Shared/Contracts.cs", auth ? WasmHostedSharedContractsAuth : WasmHostedSharedContracts),
 
             // Client — the browser-WASM SPA (shell in Features/Shared, welcome page in Features/Home).
-            ($"{NameToken}.Client/{NameToken}.Client.csproj", WasmHostedClientCsproj(styling, version, batteries.Cqrs)),
-            ($"{NameToken}.Client/Program.cs", WasmHostedClientProgram(auth, pwa, batteries.Cqrs)),
+            ($"{NameToken}.Client/{NameToken}.Client.csproj",
+                WasmHostedClientCsproj(styling, version, batteries.Cqrs, cultures.Length > 0)),
+            ($"{NameToken}.Client/Program.cs", WasmHostedClientProgram(auth, pwa, batteries.Cqrs, cultures)),
             ($"{NameToken}.Client/Features/Shared/App.cs", WasmHostedClientAppShell(styling)),
             ($"{NameToken}.Client/Features/Home/HomePage.cs", WasmHostedClientHomePage(styling)),
             ($"{NameToken}.Client/wwwroot/index.html", WasmIndexHtml(pwa)),
@@ -74,6 +79,8 @@ internal static partial class ProjectGenerator
             files.Add(($"{NameToken}.Client/wwwroot/icon.svg", IconSvg));
         }
 
+        files.AddRange(StringCatalogs(cultures, $"{NameToken}.Client/"));
+
         if (batteries.Data)
         {
             // The database lives in the .Server project, not the .Client and not the .Shared: it is the
@@ -116,7 +123,7 @@ internal static partial class ProjectGenerator
     private static string WasmHostedClientHomePage(Styling styling) =>
         HomePageCs(styling).Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
 
-    private static string WasmHostedClientProgram(bool auth, bool pwa, bool cqrs)
+    private static string WasmHostedClientProgram(bool auth, bool pwa, bool cqrs, IReadOnlyList<string> cultures)
     {
         var sb = new StringBuilder();
         sb.Append($"using {NameToken}.Client.Features.Shared;\n"); // App lives in the client's Features/Shared bucket.
@@ -149,6 +156,8 @@ internal static partial class ProjectGenerator
             host.Services.AddSingleton(_ => new HttpClient { BaseAddress = new Uri(WasmHostBuilder.BaseAddress) });
 
             """.TrimStart('\n'));
+
+        sb.Append(WasmUseCulture(cultures));
 
         if (cqrs)
         {
@@ -519,7 +528,7 @@ internal static partial class ProjectGenerator
     // Shares the WebAssembly SDK property block with the standalone `wasm` template (WasmSdkPropertyGroup in
     // ProjectGenerator.Wasm.cs) so the two can't drift. The hosted client differs only in referencing the
     // Shared project (and never the --auth JSInterop/Authorization refs — hosted auth is cookie-based).
-    private static string WasmHostedClientCsproj(Styling styling, string version, bool cqrs)
+    private static string WasmHostedClientCsproj(Styling styling, string version, bool cqrs, bool localization)
     {
         var bootstrapRef = styling == Styling.Bootstrap
             ? $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>"
@@ -543,7 +552,7 @@ internal static partial class ProjectGenerator
         return $"""
         <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
-        {WasmSdkPropertyGroup}
+        {WasmSdkPropertyGroup(localization)}
 
           <ItemGroup>
             <PackageReference Include="Rask.Wasm" Version="{version}"/>{bootstrapRef}{tailwindRef}{cqrsRef}

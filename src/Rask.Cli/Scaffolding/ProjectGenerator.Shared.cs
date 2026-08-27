@@ -53,6 +53,24 @@ internal static partial class ProjectGenerator
     // bucket a new project shares across its feature slices. The welcome home page is its own Features/Home
     // slice (see HomePageCs). With Bootstrap the styling comes from the CDN-free Rask.Bootstrap asset;
     // without it the shell carries a small baseline of its own, so an opted-out app is still presentable.
+    /// <summary>
+    /// One catalog per language, under the <c>Resources/</c> directory <c>Rask.Core.targets</c> globs into
+    /// <c>&lt;AdditionalFiles&gt;</c> — which is why this works unchanged on a browser-WASM project.
+    /// </summary>
+    /// <remarks>
+    /// The FIRST language is the neutral one: it defines which keys exist, and its text is what a visitor
+    /// sees until a translation is filled in. <paramref name="prefix"/> re-homes the whole set into a
+    /// sub-project, which is what the <c>wasm-hosted</c> client needs.
+    /// </remarks>
+    private static IEnumerable<(string Path, string Content)> StringCatalogs(
+        IReadOnlyList<string> cultures, string prefix = "")
+    {
+        for (var i = 0; i < cultures.Count; i++)
+        {
+            yield return ($"{prefix}Resources/Strings.{cultures[i]}.json", StringsCatalog(i == 0));
+        }
+    }
+
     private static string AppShellCs(Styling styling) =>
         $$"""
         using Rask.Core.Routing;

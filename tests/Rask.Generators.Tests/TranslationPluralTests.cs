@@ -52,8 +52,53 @@ public class TranslationPluralTests
         // be asking for text no visitor could ever see.
         var code = Generated(polish);
         Assert.Empty(polish.RunResult.Diagnostics);
+
+        // This assertion is the one that was missing. Everything above passes on output that does not
+        // compile, and en+pl is exactly the ordering that did not — see the test below.
+        Assert.Empty(polish.GeneratedCompileErrors());
         Assert.Contains("__Plural.En", code, StringComparison.Ordinal);
         Assert.Contains("__Plural.Pl", code, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A plural key in an app whose neutral language sorts <em>before</em> a translation.
+    /// </summary>
+    /// <remarks>
+    /// The neutral catalog is the <c>_</c> arm of the generated switch expression, and <c>_</c> matches
+    /// everything — so emitting it in catalog order makes every arm after it unreachable, which is a
+    /// compile error (CS8510) rather than a subtle runtime wrong-text bug. Catalogs are sorted by tag,
+    /// so this fires whenever the neutral language sorts first: <c>en</c> + <c>hu</c>, <c>en</c> +
+    /// <c>fr</c>, <c>en</c> + <c>pl</c>. That is what <c>rask new --culture en --culture hu</c>
+    /// scaffolds on every template, and the scaffolded catalog carries a plural key.
+    ///
+    /// <para>
+    /// It went unseen because nothing in this repository compiled two catalogs — the tests grepped the
+    /// generated text, and the only catalog in the tree is the Shop sample's single English one.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData("hu", "{count} elem", "{count} elem")]
+    [InlineData("fr", "{count} article", "{count} articles")]
+    public void The_neutral_arm_is_emitted_last_so_a_later_language_stays_reachable(
+        string tag, string one, string other)
+    {
+        var run = Run(
+            ("/p/Resources/Strings.en.json",
+                """{ "Items": { "$plural": "count", "one": "{count} item", "other": "{count} items" } }"""),
+            ($"/p/Resources/Strings.{tag}.json",
+                $$"""{ "Items": { "$plural": "count", "one": "{{one}}", "other": "{{other}}" } }"""));
+
+        Assert.Empty(run.RunResult.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        // The default arm is last, so the translated arm above it can still be selected.
+        var code = Generated(run);
+        var translated = code.IndexOf($"__Plural.{char.ToUpperInvariant(tag[0])}{tag.Substring(1)}(count)", StringComparison.Ordinal);
+        var neutral = code.IndexOf("_ => __Plural.En(count)", StringComparison.Ordinal);
+        Assert.True(translated >= 0, "the translated language got no arm at all");
+        Assert.True(
+            neutral > translated,
+            "the neutral '_' arm precedes the translated arm, so the translation is unreachable");
     }
 
     [Fact]
