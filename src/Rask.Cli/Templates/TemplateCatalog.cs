@@ -8,7 +8,31 @@ namespace Rask.Cli.Templates;
 internal sealed record TemplateInfo(
     string Key,
     string DisplayName,
-    IReadOnlySet<string> SupportedFlags);
+    IReadOnlySet<string> SupportedFlags,
+    IReadOnlySet<string>? OptIn = null)
+{
+    private static readonly IReadOnlySet<string> NoneOptIn = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Batteries this template supports but does <em>not</em> switch on by default — the exceptions to
+    /// "everything the template supports".
+    /// </summary>
+    /// <remarks>
+    /// There is one, and it earns the exception by costing something the user can measure: localization on
+    /// a browser-WASM template needs ICU in the bundle, which is about a megabyte of extra download
+    /// (+32% on the showcase, measured brotli-to-brotli on a published trimmed build). A battery is
+    /// wiring you would otherwise write by hand; a third more download for a feature most apps never use
+    /// is an opinion about the app, and the two things are exactly what auth and styling are separated
+    /// for. The framework's own <c>RaskGlobalization</c> default says the same thing.
+    ///
+    /// <para>
+    /// Supported, so the flag still does real work — this is not the <c>--template native</c> shape where
+    /// a flag is accepted and disregarded. On these templates <c>--culture &lt;tag&gt;</c> is what turns
+    /// it on, and <c>--no-localization</c> is refused as already-true rather than accepted.
+    /// </para>
+    /// </remarks>
+    public IReadOnlySet<string> OptInFlags { get; } = OptIn ?? NoneOptIn;
+}
 
 /// <summary>
 /// The set of templates <c>rask new</c> can create, kept in one place so both the command and its tests
@@ -23,15 +47,14 @@ internal static class TemplateCatalog
     ///     consulted.
     ///
     ///     <para>
-    ///     <c>localization</c> is not here either, and that is a correction rather than an omission: the
-    ///     browser-WASM generators never read <c>Localization</c> or <c>Cultures</c>, so both templates
-    ///     accepted the flag and scaffolded no catalogs, no negotiation and no switcher. Advertising it
-    ///     was harmless while it was opt-in and rare; with the batteries on by default it would have made
-    ///     every WASM project claim a language it does not have. Listed on <c>server</c> alone until the
-    ///     WASM half exists — https://github.com/pal-tamas/rask/issues/846.
+    ///     <c>localization</c> is here for all three, which it was not between #849 and #846: the
+    ///     browser-WASM generators used to accept the flag and scaffold no catalogs and no negotiation, so
+    ///     it was struck off both WASM templates rather than left as a silent no-op. They emit both now,
+    ///     plus the ICU the browser needs to resolve a culture at all, so the flag means the same thing on
+    ///     every template that lists it.
     ///     </para>
     /// </remarks>
-    private static readonly string[] WebFlags = ["auth", "pwa", "docker"];
+    private static readonly string[] WebFlags = ["auth", "pwa", "docker", "localization"];
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a
@@ -41,14 +64,19 @@ internal static class TemplateCatalog
     private static readonly string[] DatabaseFlags =
         ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "ops"];
 
+    /// <summary>The browser templates ship localization, but only when asked — see <see cref="TemplateInfo.OptInFlags"/>.</summary>
+    private static readonly IReadOnlySet<string> LocalizationIsOptIn =
+        new HashSet<string>(["localization"], StringComparer.Ordinal);
+
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
         new("server", "Rask Server app",
             new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags, "push", "localization"],
+                [.. WebFlags, .. DatabaseFlags, "push"],
                 StringComparer.Ordinal)),
         new("wasm", "Rask browser-WASM SPA",
-            new HashSet<string>(WebFlags, StringComparer.Ordinal)),
+            new HashSet<string>(WebFlags, StringComparer.Ordinal),
+            LocalizationIsOptIn),
         // Same batteries as server, minus --push: Web Push needs the subscribe endpoints AND a service
         // worker that posts to them, and in this template those live in two different projects. It is a
         // real feature rather than a wiring gap, so it is left out rather than half-scaffolded.
@@ -60,7 +88,8 @@ internal static class TemplateCatalog
         new("wasm-hosted", "Rask WASM + ASP.NET host",
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags],
-                StringComparer.Ordinal)),
+                StringComparer.Ordinal),
+            LocalizationIsOptIn),
         // The TypeScript front-end templates, one per framework: a client on an ASP.NET host, talking to
         // it over generated TypeScript. CQRS is listed but never optional here — the wire IS the template,
         // so the generator forces it on and --no-cqrs is refused rather than silently ignored.

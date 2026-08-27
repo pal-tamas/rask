@@ -102,8 +102,8 @@ rask new Shop --template react       # a React client on an ASP.NET host (needs 
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
 ```
 
-**Batteries are included.** `rask new MyApp` gives you everything the template supports — a SQLite
-database, CQRS, background jobs, transactional email, a cache, a transactional outbox, scheduled
+**Batteries are included.** `rask new MyApp` gives you everything the template carries as standard — a
+SQLite database, CQRS, background jobs, transactional email, a cache, a transactional outbox, scheduled
 backups, a durable log store, the operator dashboard, an installable PWA with Web Push, a Dockerfile,
 and the localization machinery. Not a sample page to delete: the wiring, ready for your first feature.
 
@@ -113,6 +113,11 @@ it can do:
 - **auth** — `--auth` adds a cookie login, sessions and members pages. A login wall in front of a
   project you are about to show someone is a decision, so it is asked rather than assumed.
 - **styling** — plain CSS by default, `--bootstrap` or `--tailwind` instead.
+
+On the browser-WASM templates there is a third, for the same reason: `--culture <tag>` adds
+localization, which is supported there but not standard, because naming a language means shipping ICU
+and that is about a megabyte of extra download. See
+[which template supports which flag](#which-template-supports-which-flag) below.
 
 Everything else has a `--no-` to leave it out: `--no-jobs`, `--no-push`, `--no-ops`, and so on. There is
 no `--minimal`; taking three things out reads as three flags, and you can see from the command line
@@ -220,7 +225,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
 | `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. |
-| `--no-localization` | Leave out the string catalogs, the negotiated language, and the switcher. Can't be combined with `--culture`. |
+| `--no-localization` | Leave out the `Resources/Strings.<culture>.json` catalogs and the `AddRask(configureCulture:)` registration that negotiates a visitor's language. Can't be combined with `--culture`. On the WASM templates localization is opt-in rather than standard, so there is nothing to turn off and this is refused — pass `--culture` to turn it *on*. |
 | `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
 | `--bootstrap` | Render the generated pages with `Rask.Bootstrap`'s `Bs*` components over Bootstrap 5.3, self-hosted (no CDN). |
 | `--tailwind` | Style the generated pages with Tailwind CSS, compiled from your own source at build time — no npm required. |
@@ -264,7 +269,7 @@ default list: the default set *is* the column.
 | PWA | ✅ | ✅ | ✅ | ✅ |
 | Web Push | ✅ | — | — | ✅ |
 | Docker | ✅ | ✅ | ✅ | ✅ |
-| localization | ✅ | — | — | — |
+| localization | ✅ | opt-in² | opt-in² | — |
 | `--auth` *(opt-in)* | ✅ | ✅ | ✅ | — |
 | `--bootstrap` | ✅ | ✅ | ✅ | — |
 | `--tailwind` | ✅ | ✅ | ✅ | ✅ |
@@ -272,10 +277,20 @@ default list: the default set *is* the column.
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
 rather than ignored. `--auth` is left out rather than half-scaffolded: a sign-in flow has to be written
 in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
-scaffolded there — see [TypeScript front ends](spa.md#installable-and-push-capable). Localization is
-missing from the WASM columns for a different reason — the generators don't read it yet
-([#846](https://github.com/pal-tamas/rask/issues/846)), so the flag is refused rather than accepted and
-silently dropped.
+scaffolded there — see [TypeScript front ends](spa.md#installable-and-push-capable).
+
+² Localization works on the browser templates, but is not part of what a bare `rask new` gives you
+there. Naming a language means shipping ICU, and ICU is roughly **a megabyte of extra download** — on
+the WASM showcase, a published trimmed bundle goes from 3.28 MB to 4.33 MB brotli (+32%). A battery is
+wiring you would otherwise write by hand; a third more download for a feature most apps never use is an
+opinion about your app, which is the same line auth and styling sit on. So `--culture hu` turns it on
+and pays for it knowingly:
+
+```console
+$ rask new Shop --template wasm --culture en --culture hu
+```
+
+On the `server` template ICU is already in the runtime, so it costs nothing and comes as standard.
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
 combination that is then rejected. On the command line, turning off something a template never had is a
@@ -283,7 +298,7 @@ usage error that names both halves:
 
 ```console
 $ rask new X --template wasm --no-data
-Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker, pwa.
+Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker, localization, pwa.
 ```
 
 The database-backed batteries need an ASP.NET host to put a database in, which the `server` template is

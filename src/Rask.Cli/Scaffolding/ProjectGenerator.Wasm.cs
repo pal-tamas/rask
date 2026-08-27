@@ -9,15 +9,18 @@ internal static partial class ProjectGenerator
     public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa,
         bool docker, string version, ServerBatteries? batteries = null)
     {
-        // Read off the batteries rather than taken as a second parameter beside them. Styling is one axis
+        // Both read off the batteries rather than taken as parameters beside them. Styling is one axis
         // with three answers; a bool alongside a ServerBatteries that already carries Styling is two
-        // sources for one decision, and the caller that set only one of them is the bug.
+        // sources for one decision, and the caller that set only one of them is the bug. Localization is
+        // the same argument plus a list: until #846 this parameter was accepted and never looked at, so
+        // the template took --culture and scaffolded nothing.
         var styling = (batteries ?? new ServerBatteries()).Styling;
+        string[] cultures = batteries?.Localization == true ? [.. batteries.Cultures] : [];
 
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", WasmCsproj(auth, styling, version)),
-            ("Program.cs", WasmProgram(auth, pwa)),
+            ($"{NameToken}.csproj", WasmCsproj(auth, styling, version, cultures.Length > 0)),
+            ("Program.cs", WasmProgram(auth, pwa, cultures)),
             // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
             ("Features/Shared/App.cs", AppShellCs(styling)),
             ("Features/Home/HomePage.cs", HomePageCs(styling)),
@@ -44,6 +47,8 @@ internal static partial class ProjectGenerator
             files.Add(("Styles/app.css", TailwindInputCss));
         }
 
+        files.AddRange(StringCatalogs(cultures));
+
         if (docker)
         {
             files.Add(("Dockerfile", WasmDockerfile));
@@ -55,7 +60,7 @@ internal static partial class ProjectGenerator
 
         var scaffoldFiles = Materialize(targetDirectory, name, files);
 
-        return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker))
+        return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker, cultures.Length > 0))
         {
             Packages = styling switch
             {
@@ -76,10 +81,42 @@ internal static partial class ProjectGenerator
     // ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin holds the two in sync.
     internal const string AspNetCoreFrameworkVersion = "10.0.11";
 
-    // The WebAssembly SDK <PropertyGroup> — byte-identical for the standalone `wasm` template and the
-    // `wasm-hosted` client project. Shared here so the two csproj builders (WasmCsproj and
-    // WasmHostedClientCsproj) can never drift.
-    internal const string WasmSdkPropertyGroup =
+    /// <summary>
+    /// The WebAssembly SDK <c>&lt;PropertyGroup&gt;</c> — byte-identical for the standalone <c>wasm</c>
+    /// template and the <c>wasm-hosted</c> client project apart from the one globalization line, which
+    /// follows whether the app names a language. Shared so the two csproj builders (<c>WasmCsproj</c> and
+    /// <c>WasmHostedClientCsproj</c>) cannot drift.
+    /// </summary>
+    internal static string WasmSdkPropertyGroup(bool localization) =>
+        WasmSdkPropertyGroupTemplate.Replace("@@GLOBALIZATION@@", localization
+            ? GlobalizationOn
+            : GlobalizationOff, StringComparison.Ordinal);
+
+    // ICU stops being optional the moment the app names a culture. Under invariant globalization
+    // PredefinedCulturesOnly is on, GetCultureInfo("en") cannot produce anything but the invariant
+    // culture, and Rask's resolver therefore rejects every configured language — so the app would boot
+    // with an EMPTY supported list and warn about it on every start. Scaffolding the catalogs without
+    // this property is the no-op this template was corrected for (#846), not a cheaper version of it.
+    private const string GlobalizationOn =
+        """
+        <!-- This app names a language, so it ships ICU. Rask.Wasm.targets turns this one property into
+                 InvariantGlobalization=false + PredefinedCulturesOnly=false + full (not EFIGS) ICU.
+                 It costs roughly a megabyte on the wire; docs/localization.md has the measurement. -->
+            <RaskGlobalization>true</RaskGlobalization>
+        """;
+
+    // Left as a commented-out one-liner rather than dropped: an app grows a second language later, and
+    // `rask new --culture` is not the only way to get there.
+    private const string GlobalizationOff =
+        """
+        <!-- ICU is dropped by default. Uncomment to ship it, which you need as soon as the app formats
+                 dates, numbers or currency per culture, or shows text in more than one language. One
+                 property: it also clears PredefinedCulturesOnly, which otherwise defaults to true here and
+                 makes CultureInfo.GetCultureInfo("hu-HU") throw rather than fall back. -->
+            <!-- <RaskGlobalization>true</RaskGlobalization> -->
+        """;
+
+    private const string WasmSdkPropertyGroupTemplate =
         """
           <PropertyGroup>
             <TargetFramework>net10.0-browser</TargetFramework>
@@ -104,12 +141,7 @@ internal static partial class ProjectGenerator
                  module initialiser, which emits a [DynamicDependency] per registered page. -->
             <PublishTrimmed>true</PublishTrimmed>
             <TrimMode>full</TrimMode>
-            <!-- ICU (~2.6 MB of icudt*.dat) is dropped by default. Uncomment to ship it, which you
-                 need as soon as the app formats dates, numbers or currency per culture, or shows
-                 text in more than one language. One property: it also sets PredefinedCulturesOnly,
-                 which otherwise defaults to true here and makes CultureInfo.GetCultureInfo("hu-HU")
-                 throw rather than fall back. -->
-            <!-- <RaskGlobalization>true</RaskGlobalization> -->
+            @@GLOBALIZATION@@
             <!-- IL2104 comes from Microsoft.JSInterop's reflection-driven [JSInvokable] scanner; apps
                  that only INVOKE JS never hit it. If you mark methods [JSInvokable], add a
                  [DynamicDependency] on them (standard Blazor WASM mitigation) instead of suppressing. -->
@@ -117,7 +149,7 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
         """;
 
-    private static string WasmCsproj(bool auth, Styling styling, string version)
+    private static string WasmCsproj(bool auth, Styling styling, string version, bool localization)
     {
         var stylingRef = styling switch
         {
@@ -138,7 +170,7 @@ internal static partial class ProjectGenerator
         return $"""
         <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
-        {WasmSdkPropertyGroup}
+        {WasmSdkPropertyGroup(localization)}
 
           <ItemGroup>
             <PackageReference Include="Rask.Wasm" Version="{version}"/>{stylingRef}{authRefs}
@@ -149,7 +181,7 @@ internal static partial class ProjectGenerator
         """;
     }
 
-    private static string WasmProgram(bool auth, bool pwa)
+    private static string WasmProgram(bool auth, bool pwa, IReadOnlyList<string> cultures)
     {
         var sb = new StringBuilder();
         sb.Append("using Company.RaskServer.Features.Shared;\n"); // App lives in the Features/Shared bucket.
@@ -202,6 +234,8 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
+        sb.Append(WasmUseCulture(cultures));
+
         if (auth)
         {
             sb.Append("""
@@ -225,7 +259,44 @@ internal static partial class ProjectGenerator
         return sb.ToString();
     }
 
-    private static string WasmNextSteps(string name, bool docker)
+    /// <summary>
+    /// The <c>host.UseCulture</c> block, or nothing at all when the app names no language.
+    /// </summary>
+    /// <remarks>
+    /// The browser half of localization: the runtime already negotiates a visitor's language before the
+    /// first render (<c>?culture=</c> → cookie → <c>navigator.languages</c> → the app's default), and this
+    /// is the call that tells it which languages there are to choose between. Paired with
+    /// <c>&lt;RaskGlobalization&gt;</c> in the csproj, without which no named culture resolves at all.
+    /// </remarks>
+    internal static string WasmUseCulture(IReadOnlyList<string> cultures)
+    {
+        if (cultures.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var languages = string.Join(", ", cultures.Select(culture => $"\"{culture}\""));
+        return $$"""
+
+            // The languages this app ships. The FIRST is the default a visitor falls back to when nothing
+            // else matches. In the browser their language is negotiated ?culture= -> a remembered cookie ->
+            // navigator.languages -> that default, and is settled BEFORE the first render.
+            //
+            // Text comes from Resources/Strings.{culture}.json, compiled into typed members: a missing key
+            // is a build error rather than a blank on the page (docs/diagnostics.md). The csproj ships ICU
+            // for this -- see <RaskGlobalization> there, without which none of these names resolve.
+            host.UseCulture(c =>
+            {
+                foreach (var language in new[] { {{languages}} })
+                {
+                    c.SupportedCultures.Add(language);
+                }
+            });
+
+            """.TrimStart('\n');
+    }
+
+    private static string WasmNextSteps(string name, bool docker, bool localization)
     {
         var steps = new StringBuilder();
         steps.Append("Created ").Append(name).Append(" (Rask browser-WASM SPA).\n\nNext steps:\n");
@@ -234,6 +305,16 @@ internal static partial class ProjectGenerator
         if (docker)
         {
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:80 …\n");
+        }
+
+        if (localization)
+        {
+            // Said here rather than left to be discovered from a bundle report: this is the one battery on
+            // this template that costs download rather than only code, and the number is why it is opt-in.
+            steps.Append(
+                "\nTranslations live in Resources/Strings.<culture>.json and compile to typed members.\n"
+                + "Naming a language ships ICU (<RaskGlobalization> in the csproj), which adds roughly a\n"
+                + "megabyte to the published bundle — drop the property to get it back. See docs/localization.md.\n");
         }
 
         return steps.ToString();
