@@ -31,7 +31,9 @@ internal static class CliBuildE2E
         "Rask.Wasm",                        // wasm + wasm-hosted templates
         "Rask.Wasm.Hosting",                // wasm-hosted template
         "Rask.Bootstrap",                   // every template with --bootstrap
+        "Rask.Tailwind",                    // every template with --tailwind (build-only; no runtime assembly)
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
+        "Rask.Query",                       // wired by default wherever --cqrs is
         "Rask.Cqrs.Client",                 // wasm-hosted --cqrs: the browser half of remote dispatch
         "Rask.Cqrs.Server",                 // wasm-hosted --cqrs: the endpoint half
         "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
@@ -187,6 +189,37 @@ internal static class CliBuildE2E
         }
 
         throw new InvalidOperationException("Could not locate the repo root (Rask.slnx) from the test base directory.");
+    }
+
+    /// <summary>Runs any executable, for the scaffolders and bundlers that are not <c>dotnet</c>.</summary>
+    /// <remarks>
+    ///     Arguments are passed through <c>ArgumentList</c> rather than joined into a string, so a path with
+    ///     a space in it (a temp directory on some machines) does not silently split into two arguments.
+    /// </remarks>
+    internal static async Task<(int Exit, string Output)> RunProcess(
+        string fileName, IReadOnlyList<string> arguments, string workingDirectory)
+    {
+        var psi = new ProcessStartInfo(fileName)
+        {
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        foreach (var argument in arguments)
+        {
+            psi.ArgumentList.Add(argument);
+        }
+
+        psi.Environment["CI"] = "true";
+
+        using var process = Process.Start(psi)!;
+        var stdout = await process.StandardOutput.ReadToEndAsync();
+        var stderr = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        return (process.ExitCode, stdout + stderr);
     }
 
     internal static async Task<(int Exit, string Output)> RunDotnet(string arguments)

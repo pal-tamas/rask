@@ -492,12 +492,97 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(WithHygiene(WasmAlwaysPresent).Order(), files.Keys.Order());
 
-        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
+        Assert.Equal(["Rask.Wasm"], result.Packages);
         Assert.Contains("Microsoft.NET.Sdk.WebAssembly", files["App.csproj"], StringComparison.Ordinal);
         // A standalone SPA never carries the auth/pwa/docker opt-ins by default.
         Assert.DoesNotContain("Features/Auth/Auth.cs", files.Keys);
         Assert.DoesNotContain("wwwroot/icon.svg", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
+    }
+
+    /// <summary>The styling axis reaches the browser-WASM template, all three answers.</summary>
+    /// <remarks>
+    ///     It did not until #838: this generator took a <c>bool bootstrap</c> beside a ServerBatteries that
+    ///     already carried Styling, so <c>--tailwind</c> scaffolded a plain project and reported success.
+    ///     One parameter now, read off the batteries — two sources for one decision is the bug.
+    /// </remarks>
+    /// <summary>The query cache arrives with the dispatcher, not behind a flag of its own.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         A dispatcher without a cache means every render refetches, so the first thing anyone
+    ///         building a page over <c>IDispatcher</c> needs is the thing that stops that. Shipping it as
+    ///         an opt-in made it discoverable only by reading the docs — which is how a package ends up
+    ///         written, tested, documented and unused.
+    ///     </para>
+    ///     <para>
+    ///         Tied to <c>--cqrs</c> rather than always-on because it wraps a dispatcher: with no messages
+    ///         to send there is nothing for it to cache.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void The_query_cache_rides_along_with_cqrs()
+    {
+        var with = ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries { Cqrs = true }, Version);
+        var files = Index(with);
+
+        Assert.Contains("Rask.Query", with.Packages);
+        Assert.Contains("<PackageReference Include=\"Rask.Query\"", files["App.csproj"], StringComparison.Ordinal);
+
+        // Registered as well as referenced: a package reference with no AddRaskQuery() is a dependency
+        // the app carries and cannot use.
+        Assert.Contains("builder.Services.AddRaskQuery();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("using Rask.Query;", files["Program.cs"], StringComparison.Ordinal);
+
+        // And not otherwise — an app with no dispatcher has nothing to wrap.
+        var without = ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version);
+
+        Assert.DoesNotContain("Rask.Query", without.Packages);
+        Assert.DoesNotContain(
+            "AddRaskQuery", Index(without)["Program.cs"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_hosted_client_gets_the_query_cache_with_its_remote_dispatcher()
+    {
+        var result = ProjectGenerator.GenerateWasmHosted(
+            Root, "App", new ServerBatteries { Cqrs = true }, Version);
+        var files = Index(result);
+
+        // Asserted on the csproj rather than on ScaffoldResult.Packages: that list is the summary the
+        // CLI prints, and for this template it names the three framework packages only — Rask.Cqrs.Client
+        // is absent from it too. The csproj is what restore reads.
+        //
+        // The client half, where every dispatch is a network round trip — so a component that refetches
+        // on each render pays for it over the wire.
+        Assert.Contains(
+            "<PackageReference Include=\"Rask.Query\"", files["App.Client/App.Client.csproj"], StringComparison.Ordinal);
+        Assert.Contains("host.Services.AddRaskQuery();", files["App.Client/Program.cs"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Wasm_honours_all_three_styling_answers()
+    {
+        var plain = ProjectGenerator.GenerateWasm(
+            Root, "App", auth: false, pwa: false, docker: false, Version, new ServerBatteries());
+        Assert.Equal(["Rask.Wasm"], plain.Packages);
+        Assert.DoesNotContain("Styles/app.css", Index(plain).Keys);
+
+        var bootstrap = ProjectGenerator.GenerateWasm(
+            Root, "App", auth: false, pwa: false, docker: false, Version,
+            new ServerBatteries { Styling = Styling.Bootstrap });
+        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], bootstrap.Packages);
+
+        var tailwind = ProjectGenerator.GenerateWasm(
+            Root, "App", auth: false, pwa: false, docker: false, Version,
+            new ServerBatteries { Styling = Styling.Tailwind });
+        var files = Index(tailwind);
+
+        Assert.Equal(["Rask.Wasm", "Rask.Tailwind"], tailwind.Packages);
+        Assert.Contains("@import \"tailwindcss\";", files["Styles/app.css"], StringComparison.Ordinal);
+        Assert.Contains("Rask.Tailwind", files["App.csproj"], StringComparison.Ordinal);
+
+        // The head has to point at what the build writes, or the stylesheet is compiled and never served.
+        Assert.Contains("/css/app.css", files["Features/Shared/App.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -546,7 +631,9 @@ public sealed class ProjectGeneratorTests
 
         Assert.Contains("public sealed partial class HomePage : Component", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
 
-        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
+        // Plain is what you get by not choosing, here as everywhere else — so the base package set is
+        // Rask.Wasm alone. Bootstrap and Tailwind are covered by their own case below.
+        Assert.Equal(["Rask.Wasm"], result.Packages);
         Assert.Equal(auth, files.ContainsKey("Features/Auth/Auth.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));

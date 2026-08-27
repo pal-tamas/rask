@@ -137,9 +137,8 @@ existing repository.
 pages are plain elements against a small stylesheet in the app shell — no CSS framework, nothing to
 learn before your first edit. `--bootstrap` renders them with `Rask.Bootstrap`'s `Bs*` components over
 Bootstrap 5.3, and `--tailwind` styles them with Tailwind CSS, compiled from your own source at build
-time (see [Tailwind](tailwind.md)). The two are mutually exclusive: asking for both is a usage error
-rather than a silent preference, and so is `--tailwind` on a template that does not support it yet —
-the browser-WASM ones, which have no styling axis of their own.
+time (see [Tailwind](tailwind.md)). Every template takes all three. The two flags are mutually
+exclusive: asking for both is a usage error rather than a silent preference.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
@@ -211,7 +210,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
 | `--auth` | Scaffold a cookie login/session (web templates). **The one battery that is off by default.** |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
-| `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator. |
+| `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator — and [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
 | `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
 | `--no-jobs` | Leave out durable background jobs (`AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`). |
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
@@ -262,20 +261,21 @@ default list: the default set *is* the column.
 | --- | :-: | :-: | :-: | :-: |
 | database, CQRS | ✅ | — | ✅ | ✅¹ |
 | jobs, mail, cache, outbox, snapshots, logs, ops | ✅ | — | ✅ | ✅ |
-| PWA | ✅ | ✅ | ✅ | — |
-| Web Push | ✅ | — | — | — |
+| PWA | ✅ | ✅ | ✅ | ✅ |
+| Web Push | ✅ | — | — | ✅ |
 | Docker | ✅ | ✅ | ✅ | ✅ |
 | localization | ✅ | — | — | — |
 | `--auth` *(opt-in)* | ✅ | ✅ | ✅ | — |
 | `--bootstrap` | ✅ | ✅ | ✅ | — |
-| `--tailwind` | ✅ | — | — | ✅ |
+| `--tailwind` | ✅ | ✅ | ✅ | ✅ |
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
-rather than ignored. `--auth` and the PWA are left out rather than half-scaffolded: both need work on
-the client (a React login flow, a service worker through `vite-plugin-pwa`) that the template does not
-write yet. Localization is missing from the WASM columns for a different reason — the generators don't
-read it yet ([#846](https://github.com/pal-tamas/rask/issues/846)), so the flag is refused rather than
-accepted and silently dropped.
+rather than ignored. `--auth` is left out rather than half-scaffolded: a sign-in flow has to be written
+in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
+scaffolded there — see [TypeScript front ends](spa.md#installable-and-push-capable). Localization is
+missing from the WASM columns for a different reason — the generators don't read it yet
+([#846](https://github.com/pal-tamas/rask/issues/846)), so the flag is refused rather than accepted and
+silently dropped.
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
 combination that is then rejected. On the command line, turning off something a template never had is a

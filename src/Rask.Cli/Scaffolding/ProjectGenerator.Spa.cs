@@ -70,6 +70,32 @@ internal static partial class ProjectGenerator
             }
         }
 
+        if (batteries.Pwa)
+        {
+            // public/ rather than anything the host serves: every bundler copies it to the bundle root
+            // verbatim, so these are reachable at / in a production build AND under the dev server. A
+            // host-served service worker would 404 during `rask dev`, where the browser talks to Vite and
+            // only /_rask is proxied — and a service worker that 404s once is not retried.
+            files.Add(($"{NameToken}.Client/public/manifest.webmanifest", SpaManifest));
+            files.Add(($"{NameToken}.Client/public/icon.svg", IconSvg));
+            files.Add(($"{NameToken}.Client/public/rask-sw.js", SpaServiceWorker));
+        }
+
+        if (batteries.Push)
+        {
+            files.Add(($"{NameToken}.Client/src/rask/push.ts", SpaPushClient));
+
+            // The same store and endpoints the server template scaffolds, re-namespaced into the .Server
+            // project. Shared rather than copied: /_push/subscribe binding a flat PushSubscription is the
+            // contract push.ts is written against, and two copies of it would be two places to drift.
+            files.Add((
+                $"{NameToken}.Server/Features/Push/PushSubscriptions.cs",
+                PushSubscriptionsCs.Replace(
+                    $"namespace {NameToken}.Features.Push;",
+                    $"namespace {NameToken}.Server.Features.Push;",
+                    StringComparison.Ordinal)));
+        }
+
         if (batteries.Data)
         {
             files.Add(($"{NameToken}.Server/Features/Shared/AppDbContext.cs", WasmHostedServerDbContext(batteries)));
@@ -100,13 +126,13 @@ internal static partial class ProjectGenerator
                     + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; "
                     + "Linux: your distro's nodejs package)."),
             ],
-            Patches = SpaPatches(client, framework, batteries.Tailwind),
+            Patches = SpaPatches(client, framework, batteries.Tailwind, batteries.Pwa),
         };
     }
 
     /// <summary>The edits made to what the client's own scaffolder wrote.</summary>
     private static IReadOnlyList<ScaffoldPatch> SpaPatches(
-        string client, SpaFramework framework, bool tailwind)
+        string client, SpaFramework framework, bool tailwind, bool pwa)
     {
         var patches = new List<ScaffoldPatch>
         {
@@ -119,6 +145,16 @@ internal static partial class ProjectGenerator
                 IgnoreGeneratedContracts,
                 "ignoring the generated contracts"),
         };
+
+        if (pwa)
+        {
+            // index.html belongs to the scaffolder — it is the build entry point, and replacing it would
+            // mean shipping a copy of whatever that framework's template puts in it.
+            patches.Add(new ScaffoldPatch(
+                System.IO.Path.Combine(client, framework.IndexHtml.Replace('/', System.IO.Path.DirectorySeparatorChar)),
+                LinkManifestAndServiceWorker,
+                "linking the web app manifest and registering the service worker"));
+        }
 
         if (!framework.WritesViteConfig)
         {
@@ -186,6 +222,281 @@ internal static partial class ProjectGenerator
         }
 
         """;
+
+    /// <summary>The browser half of Web Push, typed against what the ASP.NET host binds.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         The one part of this a TypeScript app cannot get from <c>lib.dom.d.ts</c>: the endpoints and
+    ///         the payload belong to the host, not to the platform.
+    ///     </para>
+    ///     <para>
+    ///         The flattening in <c>toWire</c> is the whole reason this is vendored rather than left as a
+    ///         fetch call in a README. <c>PushSubscription.toJSON()</c> nests the keys —
+    ///         <c>{ endpoint, keys: { p256dh, auth } }</c> — while the server binds a flat
+    ///         <c>PushSubscription(Endpoint, P256dh, Auth)</c>. POST the browser's shape as-is and the
+    ///         request still succeeds with 204: <c>endpoint</c> binds, the two keys arrive null, and every
+    ///         later send fails to encrypt for a subscription that looked like it registered.
+    ///     </para>
+    /// </remarks>
+    private const string SpaPushClient =
+        """
+        // Web Push against this app's ASP.NET host. The host owns the VAPID key pair; the browser only
+        // ever sees the public half.
+
+        /** What the host's /_push endpoints bind — flat, not the browser's nested shape. */
+        export interface RaskPushSubscription {
+          endpoint: string
+          p256dh: string
+          auth: string
+        }
+
+        /** Whether this browser can subscribe at all. False on http:// and in older browsers. */
+        export function pushSupported(): boolean {
+          return 'serviceWorker' in navigator && 'PushManager' in window
+        }
+
+        function urlBase64ToUint8Array(base64: string): Uint8Array {
+          // VAPID keys travel base64url; atob wants standard base64 with padding.
+          const padded = (base64 + '='.repeat((4 - (base64.length % 4)) % 4))
+            .replace(/-/g, '+')
+            .replace(/_/g, '/')
+          const raw = atob(padded)
+          const bytes = new Uint8Array(raw.length)
+          for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i)
+          return bytes
+        }
+
+        function toWire(subscription: PushSubscription): RaskPushSubscription {
+          // toJSON() nests the keys; the server binds them flat. Sending the nested shape "works" —
+          // 204, with both keys null — and every later push then fails to encrypt.
+          const json = subscription.toJSON()
+          const keys = json.keys ?? {}
+          return {
+            endpoint: subscription.endpoint,
+            p256dh: keys['p256dh'] ?? '',
+            auth: keys['auth'] ?? '',
+          }
+        }
+
+        /**
+         * Subscribes this browser and registers it with the host.
+         *
+         * Returns null when push is unsupported, when the host has no VAPID key configured yet, or when
+         * the user denies permission — three ordinary outcomes, none of them an error to throw over.
+         */
+        export async function subscribeToPush(): Promise<RaskPushSubscription | null> {
+          if (!pushSupported()) return null
+
+          const response = await fetch('/_push/key')
+          if (!response.ok) return null
+          const { publicKey } = (await response.json()) as { publicKey: string }
+
+          // Empty until you configure a key pair. Asking the browser to subscribe with an empty
+          // applicationServerKey throws, so this stops here instead.
+          if (!publicKey) return null
+
+          if ((await Notification.requestPermission()) !== 'granted') return null
+
+          const registration = await navigator.serviceWorker.ready
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+          })
+
+          const wire = toWire(subscription)
+          await fetch('/_push/subscribe', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(wire),
+          })
+
+          return wire
+        }
+
+        /** Unsubscribes this browser and tells the host to forget it. Safe to call when not subscribed. */
+        export async function unsubscribeFromPush(): Promise<void> {
+          if (!pushSupported()) return
+
+          const registration = await navigator.serviceWorker.ready
+          const subscription = await registration.pushManager.getSubscription()
+          if (!subscription) return
+
+          // The host is told BEFORE the browser drops it: unsubscribe() invalidates the endpoint, and a
+          // failure after that point would leave the host sending to a subscription that can never work.
+          await fetch('/_push/unsubscribe', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(toWire(subscription)),
+          })
+
+          await subscription.unsubscribe()
+        }
+
+        """;
+
+    /// <summary>The web app manifest, served from the bundle root.</summary>
+    /// <remarks>
+    ///     <c>start_url</c> and <c>scope</c> are relative on purpose: a manifest that hard-codes "/" stops
+    ///     the app being installable under a sub-path deploy, and the failure is a silently missing install
+    ///     prompt rather than an error.
+    /// </remarks>
+    private const string SpaManifest =
+        """
+        {
+          "name": "Rask App",
+          "short_name": "Rask App",
+          "start_url": ".",
+          "scope": ".",
+          "display": "standalone",
+          "theme_color": "#512BD4",
+          "background_color": "#faf9fe",
+          "icons": [
+            {
+              "src": "icon.svg",
+              "sizes": "any",
+              "type": "image/svg+xml",
+              "purpose": "any maskable"
+            }
+          ]
+        }
+
+        """;
+
+    /// <summary>
+    ///     The client's service worker: Web Push and notification clicks, and nothing else.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately no app-shell cache. The bundler already fingerprints every asset and writes a fresh
+    ///     index.html per build, so a hand-rolled cache would serve a stale shell pointing at hashed files
+    ///     that no longer exist — an app that breaks on deploy and heals only after an unregister. The
+    ///     honest claim is the same one the server template makes: installable and push-capable, not
+    ///     offline. Reach for <c>vite-plugin-pwa</c> when you want the offline half; it owns the build and
+    ///     can name what it cached.
+    /// </remarks>
+    private const string SpaServiceWorker =
+        """
+        // Registered from index.html. Handles Web Push delivered by the ASP.NET host (Rask.WebPush);
+        // the payload shape is what WebPushMessage serializes.
+
+        self.addEventListener("push", (event) => {
+            let data = {};
+            try {
+                data = event.data ? event.data.json() : {};
+            } catch (_) {
+                data = {body: event.data ? event.data.text() : ""};
+            }
+            const title = data.title || "Notification";
+            event.waitUntil(self.registration.showNotification(title, {
+                body: data.body,
+                icon: data.icon,
+                badge: data.badge,
+                tag: data.tag,
+                data: data.data || {}
+            }));
+        });
+
+        // Focus an already-open window for the target URL rather than opening a second one.
+        self.addEventListener("notificationclick", (event) => {
+            event.notification.close();
+            const url = (event.notification.data && event.notification.data.url) || "/";
+            event.waitUntil(
+                self.clients.matchAll({type: "window", includeUncontrolled: true}).then((clients) => {
+                    for (const client of clients) {
+                        if (client.url === url && "focus" in client) {
+                            return client.focus();
+                        }
+                    }
+                    return self.clients.openWindow ? self.clients.openWindow(url) : undefined;
+                })
+            );
+        });
+
+        """;
+
+    /// <summary>Adds the manifest link, theme colour and service-worker registration to the document.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         Inserted before &lt;/head&gt; rather than appended, because a manifest link outside the head
+    ///         is ignored by every browser without warning. A document with no &lt;/head&gt; is left
+    ///         untouched, and a second run is a no-op: the scaffolder has written something this does not
+    ///         understand, and a blind append would be worse than doing nothing.
+    ///     </para>
+    ///     <para>
+    ///         Both URLs are <b>root-absolute</b>, which matters more here than it would in a
+    ///         server-rendered app. A SPA serves this one document at every route, so a relative
+    ///         <c>manifest.webmanifest</c> resolves against the current path — 404 on any deep link — and
+    ///         <c>register("rask-sw.js")</c> would take its scope from that path instead of the origin,
+    ///         so the worker controls one sub-tree and never sees a push. The scaffolder's own
+    ///         <c>/favicon.svg</c> is absolute for the same reason; a sub-path deploy is handled by the
+    ///         bundler's <c>base</c>, which rewrites these at build time.
+    ///     </para>
+    /// </remarks>
+    internal static string LinkManifestAndServiceWorker(string html)
+    {
+        const string marker = "</head>";
+        var at = html.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (at < 0 || html.Contains("rel=\"manifest\"", StringComparison.Ordinal))
+        {
+            return html;
+        }
+
+        var lineStart = html.LastIndexOf('\n', at) + 1;
+
+        // The closing tag's own indentation is one level out from the elements inside the head, so it is
+        // the last sibling that says what this should line up with. Falls back to the marker's indent plus
+        // a level when there is no sibling to copy.
+        var indent = SiblingIndent(html, lineStart) ?? html[lineStart..at] + "  ";
+
+        // $$ so the script's own braces stay literal: in a raw string it is the dollar count, not
+        // doubling, that decides what opens an interpolation.
+        var insertion =
+            $$"""
+            {{indent}}<link href="/manifest.webmanifest" rel="manifest"/>
+            {{indent}}<meta content="#512BD4" name="theme-color"/>
+            {{indent}}<script>
+            {{indent}}    // Registered at the origin root, so the worker controls every route rather than
+            {{indent}}    // whichever one the user happened to land on. Failures are ignored: a browser
+            {{indent}}    // without service workers (or a page on plain http) is not a broken app.
+            {{indent}}    if ("serviceWorker" in navigator) {
+            {{indent}}        window.addEventListener("load", () => {
+            {{indent}}            navigator.serviceWorker.register("/rask-sw.js").catch(() => {});
+            {{indent}}        });
+            {{indent}}    }
+            {{indent}}</script>
+
+            """;
+
+        return html[..lineStart] + insertion + html[lineStart..];
+    }
+
+    /// <summary>The indentation of the last non-blank line before <paramref name="lineStart" />.</summary>
+    /// <remarks>
+    ///     <paramref name="lineStart" /> is the index just past a newline, so that newline ends the line
+    ///     being looked for — scanning back from <c>lineStart</c> itself finds the same character again and
+    ///     yields an empty span.
+    /// </remarks>
+    private static string? SiblingIndent(string html, int lineStart)
+    {
+        for (var end = lineStart - 1; end > 0;)
+        {
+            var start = html.LastIndexOf('\n', end - 1) + 1;
+            var line = html[start..end].TrimEnd('\r');
+
+            if (line.Trim().Length > 0)
+            {
+                return line[..(line.Length - line.TrimStart().Length)];
+            }
+
+            if (start == 0)
+            {
+                return null;
+            }
+
+            end = start - 1;
+        }
+
+        return null;
+    }
 
     /// <summary>The client's entry stylesheet when the project took Tailwind.</summary>
     /// <remarks>
@@ -376,6 +687,12 @@ internal static partial class ProjectGenerator
             sb.Append($"using {NameToken}.Server.Features.Shared;\n");
         }
 
+        if (batteries.Push)
+        {
+            sb.Append($"using {NameToken}.Server.Features.Push;\n");
+            sb.Append("using Rask.WebPush;\n");
+        }
+
         sb.Append("using Rask.Cqrs.Server;\n");
         sb.Append("using Rask.Spa.Hosting;\n");
         sb.Append(DatabaseAndBatteryUsings(batteries));
@@ -423,6 +740,18 @@ internal static partial class ProjectGenerator
 
             app.MapHealthChecks("/healthz");
             """);
+
+        if (batteries.Push)
+        {
+            Block(sb, """
+                // GET /_push/key hands the browser the PUBLIC VAPID key; the two POSTs register and forget a
+                // subscription. src/rask/push.ts in the client calls exactly these three.
+                //
+                // Before UseRaskSpa for the same reason MapRaskCqrs is: that call ends the pipeline with a
+                // fallback to index.html, so an endpoint added after it answers HTML instead of JSON.
+                app.MapPushSubscriptions();
+                """);
+        }
 
         Block(sb, """
             // Serves the bundler's dist/ — correct MIME types, bundler-aware cache headers, precompressed
@@ -687,6 +1016,15 @@ internal sealed record SpaFramework(
     /// <summary>Where the framework's own dev server listens, for the browser and the banner.</summary>
     public string DevServerUrl { get; init; } = "http://localhost:5173";
 
+    /// <summary>The HTML document the scaffolder wrote, relative to the client project.</summary>
+    /// <remarks>
+    ///     At the project root for every create-vite template, because Vite treats index.html as the build
+    ///     entry point rather than as a static asset. Angular's is under <c>src/</c>. Patching the wrong
+    ///     path is not a build error — the patch simply finds no file, and the app ships with no manifest
+    ///     link and no service worker.
+    /// </remarks>
+    public string IndexHtml { get; init; } = "index.html";
+
     /// <summary>
     ///     The global stylesheet this framework's scaffolder writes, and which its entry point imports.
     /// </summary>
@@ -856,6 +1194,7 @@ internal sealed record SpaFramework(
         null, null,
         SpaClientSources.Angular)
     {
+        IndexHtml = "src/index.html",
         GlobalStylesheet = "src/styles.css",
         WritesViteConfig = false,
         DistDir = "dist/{client}/browser",

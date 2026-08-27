@@ -77,8 +77,7 @@ public class LocalizationScaffoldTests
     public void The_wasm_generators_still_ignore_a_language_they_are_handed()
     {
         var result = ProjectGenerator.GenerateWasm(
-            "/out", "Demo", auth: false, pwa: false, docker: false, "1.0.0", bootstrap: false,
-            Batteries("en", "hu"));
+            "/out", "Demo", auth: false, pwa: false, docker: false, "1.0.0", Batteries("en", "hu"));
 
         Assert.DoesNotContain(result.Files, f => f.Path.Contains("Resources/Strings", StringComparison.Ordinal));
     }
