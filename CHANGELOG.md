@@ -617,6 +617,23 @@ them until tagged releases begin.
   `Browser/main.js`, `rask-sw.js` and the scoped-asset bundle are all still JavaScript at runtime.
   Only the authoring language changed.
 
+### Fixed
+- **Scoped TypeScript paired against nothing in any project under a symlinked path**, which on macOS
+  is every project in a temp directory. A component's path reaches the generator from Roslyn, and a
+  scoped asset's from MSBuild as metadata on the compiled file; macOS symlinks `/var`, `/tmp` and
+  `/etc` into `/private`, Roslyn reports the resolved path and MSBuild's `%(FullPath)` keeps the short
+  one. A `.ts` beside its component reported RASK017 — "no matching component class" — naming a class
+  sitting right there.
+
+  Scoped CSS never had this, because both of its sides come from Roslyn and agree by construction.
+  TypeScript is the first pairing where one side is an MSBuild string.
+
+  Found by a new consumer-level test: a scaffolded project built against the PACKED framework, which
+  is the only place this is visible — an in-repo `ProjectReference` puts everything on an ordinary
+  path. It asserts both directions, that the annotation was stripped rather than the raw `.ts`
+  registered, that the emitted form is still the one `ScopedAssetRegistry` parses, and that a `.js`
+  sibling stops a consumer's build with RASK054.
+
 ### Removed
 - **`build/Rask.MinifyJs.targets`** and the `@@RASK_*@@` splice markers, along with the
   `_RaskBuildClientJs`, `_RaskSpliceClientJs` and `_RaskMinifyClientJs` targets and

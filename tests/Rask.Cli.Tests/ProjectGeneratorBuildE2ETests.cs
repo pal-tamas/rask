@@ -638,6 +638,120 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// happening to succeed. Before the fix the positive silently failed and the negative silently passed.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// A scoped <c>.ts</c> sibling compiles and registers in a scaffolded project built against the
+    /// PACKED framework, and a stray <c>.js</c> sibling fails the build.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The TypeScript half of <see cref="Scoped_css_sibling_is_picked_up_from_the_package" />, and it has
+    /// more moving parts to lose: the <c>**\*.ts</c> glob has to reach the consumer, the packed
+    /// <c>Rask.TypeScript.Tasks.dll</c> has to load, its resolver has to fetch tsgo, the compile has to run
+    /// before <c>CoreCompile</c>, and the compiled output has to arrive as an <c>AdditionalFile</c> carrying
+    /// the original <c>.ts</c> path as metadata. In-repo <c>ProjectReference</c>s hide every one of those
+    /// failures, because in-repo everything is already on disk and already built.
+    /// </para>
+    /// <para>
+    /// Both directions again. The positive proves the chain end to end, down to the emitted registration
+    /// containing the compiled body — a compile that silently produced nothing would still register a
+    /// class, so the assertion is on the CONTENT. The negative proves RASK054 actually fires for a consumer:
+    /// the whole point of the no-opt-out decision is that a <c>.js</c> sibling stops the build, and a rule
+    /// that only fires in-repo would be the decision in name only.
+    /// </para>
+    /// </remarks>
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Scoped_typescript_sibling_compiles_and_registers_from_the_package(bool wasm)
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        var name = wasm ? "WTsE2E" : "TsE2E";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var result = wasm
+                ? ProjectGenerator.GenerateWasm(projectDir, name, auth: false, pwa: false, docker: false, version)
+                : ProjectGenerator.GenerateServer(projectDir, name, new ServerBatteries(), version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            // Written here rather than relied on from the scaffold, for the same reason as the .css case: a
+            // guard that survives only as a side effect of scaffold contents is one a future trim deletes in
+            // silence.
+            //
+            // The annotation is the point. It has to be STRIPPED by the compile — if the raw TypeScript
+            // reached the browser it would be a syntax error at load, and nothing on the .NET side would
+            // notice.
+            var typescript = Path.Combine(projectDir, "Features", "Home", "HomePage.ts");
+            fs.WriteAllText(
+                typescript,
+                """
+                export function scopedProbe(label: string): string {
+                    return `rask-scoped-probe:${label}`;
+                }
+                """);
+
+            var generated = Path.Combine(temp, "generated");
+            var csproj = Path.Combine(projectDir, name + ".csproj");
+            var (exit, output) = await CliBuildE2E.RunDotnet(
+                $"build \"{csproj}\" -warnaserror -m:1 -p:EmitCompilerGeneratedFiles=true -p:CompilerGeneratedFilesOutputPath=\"{generated}\"");
+            Assert.True(exit == 0, $"[wasm={wasm}] project with a scoped .ts failed to build.{CliBuildE2E.Diagnostics(output)}");
+
+            var registration = Directory
+                .EnumerateFiles(generated, "__RaskScopedJsRegistration.g.cs", SearchOption.AllDirectories)
+                .FirstOrDefault();
+            Assert.True(
+                registration is not null,
+                $"[wasm={wasm}] no __RaskScopedJsRegistration.g.cs was emitted — the **\\*.ts glob never "
+                + "reached the consumer, so scoped TypeScript is dead in scaffolded apps.");
+
+            var emitted = await File.ReadAllTextAsync(registration!);
+            Assert.Contains("RegisterJs(typeof(", emitted, StringComparison.Ordinal);
+            Assert.Contains("rask-scoped-probe", emitted, StringComparison.Ordinal);
+
+            // Compiled, not copied. `: string` surviving would mean the raw .ts was registered — a syntax
+            // error in every browser that loaded it, and invisible to every assertion above this one.
+            Assert.DoesNotContain("label: string", emitted, StringComparison.Ordinal);
+
+            // And still the form ScopedAssetRegistry parses: it strips a leading `export` and collects the
+            // names to hang on window.Rask[Type]. esbuild's output would rewrite this into a trailing
+            // `export { ... }` clause and register nothing at all, silently, in the browser only.
+            Assert.Contains("export function scopedProbe(", emitted, StringComparison.Ordinal);
+
+            // Negative control. A .js sibling is RASK054, which has no opt-out — so a consumer who was
+            // writing scoped JavaScript yesterday is told, rather than finding their asset ignored.
+            fs.WriteAllText(Path.Combine(projectDir, "Features", "Home", "HomePage.js"), "export function stale() {}");
+
+            var (strayExit, strayOutput) = await CliBuildE2E.RunDotnet($"build \"{csproj}\" -m:1");
+            Assert.True(
+                strayExit != 0,
+                $"[wasm={wasm}] a .js sibling built cleanly — RASK054 never fired for a consumer.{CliBuildE2E.Diagnostics(strayOutput)}");
+            Assert.Contains("RASK054", strayOutput, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Environment.GetEnvironmentVariable("RASK_KEEP_E2E_TEMP") == "1")
+            {
+                Console.WriteLine($"[kept] {temp}");
+            }
+            else
+            {
+                CliBuildE2E.TryDeleteDirectory(temp);
+            }
+        }
+    }
+
     [SkippableTheory]
     [InlineData(false)]
     [InlineData(true)]

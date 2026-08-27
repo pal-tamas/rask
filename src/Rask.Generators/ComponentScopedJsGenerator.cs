@@ -382,10 +382,36 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     private static Location SourceLocation(string path) =>
         Location.Create(path, new TextSpan(0, 0), new LinePositionSpan(default, default));
 
+    /// <summary>
+    ///     The directory of <paramref name="path" />, in a form the two sides of the pairing agree on.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A component's path comes from Roslyn (<c>SyntaxTree.FilePath</c>); a scoped asset's comes
+    ///         from MSBuild, as the <c>RaskTsSource</c> metadata on the compiled file. On macOS the two
+    ///         disagree: <c>/var</c>, <c>/tmp</c> and <c>/etc</c> are symlinks into <c>/private</c>,
+    ///         Roslyn reports the resolved path and MSBuild's <c>%(FullPath)</c> keeps the short one. So
+    ///         a project anywhere under those — every project in a temp directory, which is every
+    ///         scaffolded project a test builds — pairs a <c>.ts</c> against nothing and reports RASK017
+    ///         for a component sitting right beside it.
+    ///     </para>
+    ///     <para>
+    ///         Scoped CSS never had this: both of its sides come from Roslyn, so they agree by
+    ///         construction. TypeScript is the first pairing where one side is an MSBuild string, and
+    ///         this is the seam that introduced.
+    ///     </para>
+    ///     <para>
+    ///         Resolving the link properly is not open to a generator — it must not touch the file
+    ///         system. Collapsing the one alias macOS actually uses is what is available, and it is
+    ///         enough: the prefix is fixed, documented, and applies to every path under it.
+    ///     </para>
+    /// </remarks>
     private static string NormalizeDirectory(string path)
     {
         var dir = Path.GetDirectoryName(path) ?? string.Empty;
-        return dir.Replace('\\', '/');
+        dir = dir.Replace('\\', '/');
+
+        return dir.StartsWith("/private/", StringComparison.Ordinal) ? dir.Substring("/private".Length) : dir;
     }
 
     private static string MakeKey(string dir, string name) =>
