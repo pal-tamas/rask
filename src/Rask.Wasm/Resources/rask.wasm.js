@@ -279,6 +279,21 @@ function prependBase(url) {
 
 // Called from main.js once `getAssemblyExports` is available so the JS event
 // handlers below can dispatch into .NET via the JSExport surface.
+/**
+ * Publish the handover seam: the function a live server runtime calls to give this one the page.
+ *
+ * Also raises __raskPrepared, which main.js reads. Its never-painted check exists because an app that
+ * finishes starting without rendering is otherwise indistinguishable from a hang — but a prepared app
+ * not painting is the entire point, and reporting a boot failure for it would put a full-screen error
+ * over a perfectly good server-rendered page.
+ */
+export function publishPaint() {
+    globalThis.__raskPrepared = true;
+    globalThis.__raskWasmPaint = function (url) {
+        return dotnetExports.Rask.Wasm.JSInterop.Paint(url ?? null);
+    };
+}
+
 export function setExports(exports) {
     dotnetExports = exports;
     root = document.querySelector("[data-rask-root]") || document.body;

@@ -180,6 +180,20 @@ them until tagged releases begin.
   silent freeze: a handover to a runtime that never prepared would leave the page still with no
   indication why.
 
+- **A prepared WASM app publishes its own handover seam.** `PrepareAsync` raises
+  `window.__raskWasmPaint`, which is how a live server runtime discovers that a browser runtime is
+  standing ready to take the page. The app calls `PrepareAsync<App>()` and nothing else.
+
+  Published by the framework rather than by the app's boot script, deliberately. There are several
+  page shells — the framework's, the samples', and the one `rask new` writes — and an app is free to
+  write its own; a seam only some of them publish is a takeover that silently never happens, with no
+  error anywhere, just a page that keeps paying a round trip per click for ever.
+
+  A prepared app also no longer reports a boot failure for not painting. That check exists because an
+  app which finishes starting without rendering is otherwise indistinguishable from a hang — but not
+  painting is the entire point of a prepare, and the report would have put a full-screen error over a
+  perfectly good server-rendered page.
+
 - **A navigation now hands the page to the browser runtime, when one is standing ready.** Once a
   prepared WASM runtime publishes itself, the next client-side navigation renders there instead of
   going over the WebSocket: the server runtime stands down, and the browser paints the page being

@@ -360,6 +360,12 @@ public sealed class WasmHostBuilder
         {
             _prepared = session;
             _preparedServices = provider;
+
+            // Publish the seam from here rather than from the app's boot script. The server runtime
+            // discovers a ready browser runtime by finding this and nothing else, so an app that
+            // prepared but never published would be a takeover that silently never happens.
+            JSInterop.InitPaint(PaintAsync);
+            JSInterop.PublishPaint();
             Console.WriteLine("[Rask.Wasm] prepared; holding the first render until asked");
             return;
         }

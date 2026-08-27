@@ -1,3 +1,4 @@
+using Rask.Core;
 namespace Rask.Wasm.Tests.Hosting;
 
 // A takeover needs an app that is ready to render and does NOT render: arriving into a page another
@@ -21,5 +22,26 @@ public sealed class PrepareAndPaintTests
         // missing half rather than the symptom.
         Assert.Contains("PrepareAsync", ex.Message);
         Assert.Contains("always a pair", ex.Message);
+    }
+
+    [Fact]
+    public async Task Preparing_PublishesTheHandoverSeam()
+    {
+        // The server runtime discovers a ready browser runtime by finding window.__raskWasmPaint and
+        // nothing else. Publishing it is the framework's job rather than the app boot script's: there
+        // are several page shells and an app may write its own, so a seam only some of them publish is
+        // a takeover that silently never happens — with no error anywhere, just a page that keeps
+        // paying a round trip per click for ever.
+        JSInterop.ResetPublishPaintCount();
+
+        var builder = WasmHostBuilder.CreateDefault();
+        await builder.PrepareAsync<Blank>();
+
+        Assert.Equal(1, JSInterop.PublishPaintCount);
+    }
+
+    private sealed class Blank : Component
+    {
+        protected override Component? Render() => null;
     }
 }
