@@ -684,17 +684,26 @@ import "../../Rask.Core/Resources/rask-events.js";
     // render the same name; writing a restored value into the wrong one of them would be precisely the
     // data loss being avoided here. Ambiguity is refused rather than guessed at, on both sides, so it
     // degrades to doing nothing.
-    function restoreResolve(key: string): RestoreField[] {
+    /**
+     * The field or radio group a restore key names, or <c>null</c> when it names nothing usable.
+     *
+     * Null and not an empty array, deliberately. Both call sites test `if (!group)`, so an empty
+     * array reads as "found" and they walk on to `group[0]` — which is undefined, and the next line
+     * asks it for its type. Collapsing the two cases while converting turned "nothing to restore"
+     * into a TypeError on every reconnect that had one.
+     */
+    function restoreResolve(key: string): RestoreField[] | null {
         const matches: RestoreField[] = [];
         for (const el of root!.querySelectorAll<RestoreField>("input, textarea")) {
             if (restoreKeyOf(el) === key) matches.push(el);
         }
 
-        if (matches.length <= 1) return matches;
+        if (matches.length === 0) return null;
+        if (matches.length === 1) return matches;
         // Several: the only legitimate shape is one radio group (same name, same form owner).
         const form = matches[0].form;
         for (const el of matches) {
-            if (restoreTypeOf(el) !== "radio" || el.form !== form) return [];
+            if (restoreTypeOf(el) !== "radio" || el.form !== form) return null;
         }
 
         return matches;
@@ -1795,7 +1804,11 @@ import "../../Rask.Core/Resources/rask-events.js";
     }
 
     function forceDispatchJsInvoke(inv: RaskFrameJsInvoke): void {
-        const taskId = String(inv.id);
+        // The id goes back on the wire EXACTLY as it arrived. It is the server's key for the pending
+        // .NET task, and String()-ing it — which the type of sendJsResult's parameter invited —
+        // changes a number into a string that matches nothing: the awaiting InvokeAsync never
+        // completes, and the session dies on the unmatched result rather than reporting anything.
+        const taskId = inv.id;
         const resultType = (typeof inv.resultType === "number") ? inv.resultType : 0;
         const argsJson = (typeof inv.argsJson === "string") ? inv.argsJson : "[]";
         const targetInstanceId = (typeof inv.targetInstanceId === "number") ? inv.targetInstanceId : 0;
@@ -1866,9 +1879,22 @@ import "../../Rask.Core/Resources/rask-events.js";
         return value;
     }
 
-    function sendJsResult(id: string, success: boolean, result: unknown, error?: string): void {
-        const msg: { type: string; id: string; success: boolean; result?: unknown; error?: string } =
-            {type: "jsResult", id, success};
+    /**
+     * Ships an invoke's outcome back, keyed by the id the server sent.
+     *
+     * `id` is deliberately as wide as the frame's own: the server decides what a task id is, and this
+     * only has to hand the same value back. Narrowing it here would push a conversion onto the call
+     * site, which is exactly how the wire value stopped matching once already.
+     */
+    function sendJsResult(
+        id: string | number, success: boolean, result: unknown, error?: string): void {
+        const msg: {
+            type: string;
+            id: string | number;
+            success: boolean;
+            result?: unknown;
+            error?: string;
+        } = {type: "jsResult", id, success};
         if (success) {
             msg.result = result;
         } else {

@@ -639,6 +639,24 @@ them until tagged releases begin.
   directory named by the empty string.
 
 ### Fixed
+- **Two regressions the conversion introduced, both invisible in a hand review.**
+
+  The interop task id changed type on the wire. `forceDispatchJsInvoke` did
+  `String(inv.id)` where the original passed `inv.id` through untouched — and that id is the server's
+  key for the pending .NET task, so a number became a string matching nothing and the awaiting
+  `InvokeAsync` never completed. The conversion invited it: `sendJsResult`'s parameter had been
+  declared `string`. Both are now as wide as the frame's own id, so the value goes back exactly as it
+  arrived.
+
+  `restoreResolve` returned `null` for "no match" and for "ambiguous key"; collapsing those into an
+  empty array turned every reconnect with nothing to restore into a TypeError. Both call sites test
+  `if (!group)`, `[]` is truthy, so they walked on to `group[0]` — undefined — and asked it for its
+  type. The field restore runs on session resume, which is what a login does when the auth ticket
+  closes and reopens the socket.
+
+  Found by diffing the converted file against the original structurally, with everything that exists
+  only for the compiler stripped out. Reading it did not find them.
+
 - **Scoped TypeScript paired against nothing in any project under a symlinked path**, which on macOS
   is every project in a temp directory. A component's path reaches the generator from Roslyn, and a
   scoped asset's from MSBuild as metadata on the compiled file; macOS symlinks `/var`, `/tmp` and
