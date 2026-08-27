@@ -238,7 +238,7 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
             var path = Path.Combine(TestArtifacts.DirectoryFor(FixtureName, testName), "trace.zip");
             await _ctx.Tracing.StopAsync(new TracingStopOptions { Path = path });
             Console.WriteLine($"  trace: {path}");
-            Console.WriteLine($"    open with: pwsh <playwright.ps1> show-trace {path}");
+            Console.WriteLine($"    open with: scripts/playwright.sh show-trace {path}");
         }
         catch (Exception ex)
         {

@@ -83,6 +83,9 @@ fi
 # shellcheck source=lib/build-failure.sh
 . "$root/scripts/lib/build-failure.sh"
 
+# shellcheck source=lib/playwright.sh
+. "$root/scripts/lib/playwright.sh"
+
 # The playground publish below needs the native relink (see the note there), which needs the wasm-tools
 # workload + emscripten. Check up front: without it the publish fails several minutes in, with an error
 # about a missing runtime pack rather than about a missing workload.
@@ -197,13 +200,27 @@ dotnet publish samples/Rask.Example.Site -c Release --no-restore -p:WasmBuildNat
 rm -rf samples/Rask.Example.Wasm.Jobs/obj/Release/net10.0-browser
 dotnet publish samples/Rask.Example.Wasm.Jobs -c Release --no-restore --nologo
 
+# This used to shell out to `pwsh <path>/playwright.ps1 install chromium`, and skipped itself whenever
+# pwsh was missing. On Linux that is the common case, not the edge one — PowerShell is in neither
+# Fedora's nor Debian's repositories — so the gate printed a skip notice into thousands of build lines
+# and the suite then failed with a missing-browser error that named the browsers rather than the skip.
+#
+# The ps1 was never doing any work: six lines that load Microsoft.Playwright.dll and call its Main. The
+# package ships the real driver alongside it, so rask_playwright_driver finds that and we run it
+# directly. See scripts/lib/playwright.sh for why `npx playwright install` is not an equivalent shortcut.
 echo "==> Ensure Playwright browsers are installed"
-pw="$(find tests/Rask.Examples.E2E.Tests/bin/Release -name 'playwright.ps1' 2>/dev/null | head -1)"
-if [ -n "$pw" ] && command -v pwsh >/dev/null 2>&1; then
-  pwsh "$pw" install chromium
+# Resolve in the condition, install in the body — deliberately, not stylistically. `set -e` is suspended
+# inside an `if` condition, so running the install there would swallow a failed download into the else
+# branch and let the gate continue having installed nothing. Only the lookup belongs in the condition,
+# where "not found" genuinely is not fatal; the install then runs under `set -e` and stops the gate.
+if pw_driver="$(rask_playwright_driver tests/Rask.Examples.E2E.Tests/bin/Release)"; then
+  pw_node="$(printf '%s\n' "$pw_driver" | sed -n 1p)"
+  pw_cli="$(printf '%s\n' "$pw_driver" | sed -n 2p)"
+  "$pw_node" "$pw_cli" install chromium
 else
-  echo "   (skipped auto-install: pwsh or playwright.ps1 not found — install browsers manually if the run"
-  echo "    fails with a missing-browser error: 'pwsh <path>/playwright.ps1 install chromium')"
+  echo "   (skipped auto-install: no bundled Playwright driver under"
+  echo "    tests/Rask.Examples.E2E.Tests/bin/Release — build the E2E project once, then:"
+  echo "      scripts/playwright.sh install chromium)"
 fi
 
 # RASK_E2E_FILTER narrows the run while you are iterating on ONE journey. The publishes above still
