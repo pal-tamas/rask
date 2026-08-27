@@ -26,7 +26,7 @@ namespace Rask.Cli.Tests;
 ///         scoped-asset bake.
 ///     </para>
 /// </remarks>
-public sealed class TailwindPublishE2ETests
+public sealed class TailwindPublishBuildE2ETests
 {
     [SkippableTheory]
     [InlineData("server")]
