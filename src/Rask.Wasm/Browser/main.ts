@@ -14,11 +14,11 @@ import {dotnet} from './_framework/dotnet.js';
 // have to reconcile encoded vs. decoded sizes; counts sidestep that. The bar
 // stays hidden (spinner-only fallback) until the first progress tick arrives.
 const boot = document.querySelector(".rask-boot");
-const bootProgress = boot?.querySelector(".rask-boot__progress");
-const bootFill = boot?.querySelector(".rask-boot__fill");
-const bootLabel = boot?.querySelector(".rask-boot__label");
+const bootProgress = boot?.querySelector<HTMLElement>(".rask-boot__progress");
+const bootFill = boot?.querySelector<HTMLElement>(".rask-boot__fill");
+const bootLabel = boot?.querySelector<HTMLElement>(".rask-boot__label");
 
-function renderBootProgress(loaded, total) {
+function renderBootProgress(loaded: number, total: number): void {
     if (!bootProgress || !(total > 0)) return;
     bootProgress.hidden = false;
     const pct = Math.min(100, Math.round((loaded / total) * 100));
@@ -86,7 +86,7 @@ let bootFailureReported = false;
  * @param {string} message  one line naming what failed
  * @param {string} [detail] stack / exception text, shown verbatim
  */
-function reportBootFailure(message, detail) {
+function reportBootFailure(message: string, detail?: string): void {
     // Always log, whatever else happens: the console line is what someone reading a CI
     // artefact will find, and it is the only channel left if the DOM work below throws.
     console.error(`[Rask] boot failed: ${message}`, detail ?? "");
@@ -98,7 +98,7 @@ function reportBootFailure(message, detail) {
     // still in the document. The morph patches the existing document in place, so that element stays
     // connected after a perfectly good first render; believing otherwise made every WASM journey report
     // a boot failure against an app whose console said "first render applied".
-    if (globalThis.__raskPainted) return;
+    if (window.__raskPainted) return;
     if (!boot?.isConnected) return;
     // First failure wins. A boot failure usually cascades (the throw, then the rejection that
     // follows it, then the never-painted check below), and the first one is the cause.
@@ -143,7 +143,7 @@ function reportBootFailure(message, detail) {
     }
 }
 
-function describe(error) {
+function describe(error: unknown): string {
     if (error instanceof Error) return error.stack || `${error.name}: ${error.message}`;
     return String(error);
 }
@@ -151,14 +151,14 @@ function describe(error) {
 // Exposed before the first await, so a failure inside dotnet.create() can already reach it, and
 // so rask.wasm.js and the managed side share this one implementation rather than each growing
 // half of one.
-globalThis.__raskBootFailed = reportBootFailure;
+window.__raskBootFailed = reportBootFailure;
 
 // A module's top-level await rejects into the unhandled-rejection channel, and the runtime starts
 // work of its own that can fail after create() has resolved. Both land here.
-globalThis.addEventListener("unhandledrejection", event => {
+globalThis.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
     reportBootFailure("An unhandled error occurred while starting.", describe(event.reason));
 });
-globalThis.addEventListener("error", event => {
+globalThis.addEventListener("error", (event: ErrorEvent) => {
     // Only script errors carry something worth showing. Resource load errors bubbling from
     // elements have no message on them, and the runtime reports the ones that matter itself.
     if (event.error) reportBootFailure("An unhandled error occurred while starting.", describe(event.error));
@@ -167,7 +167,7 @@ globalThis.addEventListener("error", event => {
 // Each step names itself, because which one failed is most of the diagnosis: the runtime not
 // downloading is a serving problem, a missing export is a build problem, and a throw out of
 // runMain is the app's own.
-async function step(what, run) {
+async function step<T>(what: string, run: () => Promise<T>): Promise<T> {
     try {
         return await run();
     } catch (error) {
@@ -182,11 +182,12 @@ const {getAssemblyExports, runMain} = await step(
     () => dotnet
         .withApplicationArgumentsFromQuery()
         .withModuleConfig({
-            onDownloadResourceProgress: (resourcesLoaded, totalResources) => {
+            onDownloadResourceProgress: (resourcesLoaded: number, totalResources: number) => {
                 // Best-effort UI; never let a progress hiccup break boot.
                 try {
                     renderBootProgress(resourcesLoaded, totalResources);
-                } catch (e) {
+                } catch {
+                    // Best-effort UI; a progress hiccup must never break boot.
                 }
             }
         })
@@ -214,7 +215,7 @@ await step("The app threw while starting.", () => runMain());
 // connected, so it reports a boot failure for every successful boot.
 // __raskPrepared is the takeover case: the app booted deliberately WITHOUT painting, because another
 // runtime is still driving this document. That is a successful start, not a silent hang.
-if (!globalThis.__raskPainted && !globalThis.__raskPrepared) {
+if (!window.__raskPainted && !window.__raskPrepared) {
     reportBootFailure(
         "The app finished starting but never rendered. Check that Program.cs awaits "
         + "host.RunAsync<App>() and that the app has a route for this URL.");

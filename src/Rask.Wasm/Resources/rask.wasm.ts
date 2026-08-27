@@ -2,31 +2,39 @@
 // .NET imports this via JSHost.ImportAsync("rask", "./rask.wasm.js") and calls the
 // exported functions through [JSImport(name, "rask")] declarations.
 
-let dotnetExports = null;
-let root = null;
-let basePath = null;
+// What this host needs from the shared modules. Each of these used to arrive by being pasted into
+// the same scope at a `// @@RASK_*@@` marker, in an order the build had to get right and nothing
+// checked; they are now an import list the compiler verifies.
+//
+// The framework's own browser shims (rask-api, rask-pwa, rask-wasm-api) are imported for their side
+// effects: each publishes a `window.__rask*` namespace that .NET reaches by dotted name, so there is
+// nothing to bind here.
+import { applyDiff, applyFrameInvokes, type DiffOp } from "../../Rask.Core/Resources/rask-dom.js";
+import {
+    closestFrom,
+    morph,
+    raskChangeFrameValue,
+    raskChangeFrameValues,
+    raskNotePendingFormState,
+} from "../../Rask.Core/Resources/rask-morph.js";
+import { flushInputsNow } from "../../Rask.Core/Resources/rask-input.js";
+import {
+    preloadNewHeadStylesheets,
+    waitForUnappliedHeadCss,
+} from "../../Rask.Core/Resources/rask-scoped.js";
+import { raskReadFileChunk, raskRegisterFiles } from "../../Rask.Core/Resources/rask-files.js";
+import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
+import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
+import { setHost } from "../../Rask.Core/Resources/rask-host.js";
 
-// Shared framework interop helpers (__raskEl, __raskApi) spliced from
-// Rask.Core/Resources/rask-api.js at build time — single source across both transports.
-// @@RASK_API@@
+import "../../Rask.Core/Resources/rask-api.js";
+import "../../Rask.Core/Resources/rask-pwa.js";
+import "../../Rask.Core/Resources/rask-events.js";
+import "./rask-wasm-api.js";
 
-// Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) spliced from
-// Rask.Core/Resources/rask-pwa.js — the same source the Server client uses.
-// @@RASK_PWA@@
-
-// WASM-only helpers (__raskPwa.applyManifest, __raskInstall, device APIs) spliced from
-// Rask.Wasm/Resources/rask-wasm-api.js — never ship in the Server client, since these back APIs that
-// can't work over the WebSocket round-trip (or need WASM-only boot behaviour).
-// @@RASK_WASM_API@@
-
-// Dev-only "hot reload applied" indicator, spliced from Rask.Core/Resources/rask-hotreload.js — the
-// same source the Server client uses. It exposes window.__raskHotReloadPill; here the
-// notification arrives through the hotReloadApplied() export below rather than over a socket, because
-// a WASM app has no Rask server to push it a frame.
-// @@RASK_HOTRELOAD@@
-
-// The development error panel (showDevError / hideDevError), shared with the Server runtime.
-// @@RASK_DEVERROR@@
+let dotnetExports: RaskWasmExports | null = null;
+let root: HTMLElement | null = null;
+let basePath: string | null = null;
 
 // Serializes render application across payloads. A navigation diff/full reply may defer
 // its body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss /
@@ -53,7 +61,7 @@ let _pendingScrollHash = "";
 // (see pendingHeadAssets below) still needs to defer Rask.* calls until those
 // external deps have loaded.
 let scopedJsReady = true;
-let pendingScopedInvokes = [];
+let pendingScopedInvokes: RaskPendingInvoke[] = [];
 
 // External Head-declared <script src> and <link rel=stylesheet> are tracked
 // here so Rask.* JS invokes can wait until every declared dep has reached
@@ -88,18 +96,18 @@ const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
 // immediately, so the long window only ever applies to a slow-but-loading asset.
 const SCOPED_ASSET_LOAD_TIMEOUT_MS = 30000;
 // CSS_FOUC_GUARD_MS + the scoped-CSS FOUC gating functions (waitForUnappliedHeadCss /
-// preloadNewHeadStylesheets) are spliced in below from rask-scoped.js (@@RASK_SCOPED@@).
+// preloadNewHeadStylesheets) come from rask-scoped, imported at the top of this file.
 
-function isAssetAlreadyLoaded(url) {
+function isAssetAlreadyLoaded(url: string): boolean {
     if (!url || !window.performance || !performance.getEntriesByName) return false;
-    const entries = performance.getEntriesByName(url);
+    const entries = performance.getEntriesByName(url) as PerformanceResourceTiming[];
     for (let i = 0; i < entries.length; i++) {
         if (entries[i].responseEnd > 0) return true;
     }
     return false;
 }
 
-function trackHeadAsset(el) {
+function trackHeadAsset(el: Element): void {
     if (!el || el.nodeType !== 1 || trackedHeadAssets.has(el)) return;
     // Per-component scoped tags carry data-rask-key with the framework-reserved
     // "rsk-" prefix, served from /_rask/a/{hash}.{ext}. Scoped CSS (<link rsk-css->)
@@ -110,9 +118,11 @@ function trackHeadAsset(el) {
     // load can lag well past that window, which previously force-faulted the call.
     const key = el.getAttribute("data-rask-key");
     const isScoped = !!(key && key.indexOf("rsk-") === 0);
-    let url;
-    if (el.tagName === "SCRIPT" && el.src) url = el.src;
-    else if (el.tagName === "LINK" && el.rel === "stylesheet" && el.href) url = el.href;
+    let url: string;
+    const script = el as HTMLScriptElement;
+    const link = el as HTMLLinkElement;
+    if (el.tagName === "SCRIPT" && script.src) url = script.src;
+    else if (el.tagName === "LINK" && link.rel === "stylesheet" && link.href) url = link.href;
     else return;
     if (isScoped && el.tagName !== "SCRIPT") return;
     // A same-origin asset (scoped /_rask/a/* OR a vendored user-Head script like a
@@ -133,7 +143,7 @@ function trackHeadAsset(el) {
     // user's defensive code is the contract), so it keeps the fast path.
     if (!isScoped && isAssetAlreadyLoaded(url)) return;
     pendingHeadAssets.add(el);
-    const finish = (outcome) => {
+    const finish = (outcome: string): void => {
         if (!pendingHeadAssets.delete(el)) return;
         if (outcome === "error" || outcome === "timeout") {
             failedHeadAssets.add(url);
@@ -169,11 +179,6 @@ function headAssetsReady() {
     return pendingHeadAssets.size === 0;
 }
 
-// Scoped-CSS FOUC gating: CSS_FOUC_GUARD_MS + waitForUnappliedHeadCss (diff path) +
-// preloadNewHeadStylesheets (full-HTML path) — spliced from Rask.Core/Resources/rask-scoped.js,
-// shared with rask.js.
-// @@RASK_SCOPED@@
-
 function maybeDrainPendingInvokes() {
     if (!scopedJsReady || !headAssetsReady()) return;
     if (pendingScopedInvokes.length === 0) return;
@@ -197,7 +202,7 @@ function maybeDrainPendingInvokes() {
 // identifiers), or true when the identifier doesn't follow the Rask.* pattern. Lets
 // beginInvokeJS distinguish "the per-component script hasn't loaded yet — park me"
 // from "ready to dispatch".
-function raskNamespaceReady(identifier) {
+function raskNamespaceReady(identifier: string): boolean {
     if (typeof identifier !== "string") return true;
     if (identifier.indexOf("Rask.") !== 0) return true;
     const rest = identifier.substring(5);
@@ -282,14 +287,14 @@ export function getBasePath() {
     return basePath;
 }
 
-function stripBase(pathname) {
+function stripBase(pathname: string): string {
     const b = getBasePath();
     if (b === "/" || !pathname) return pathname;
     if (pathname === b.slice(0, -1) || pathname === b) return "/";
     return pathname.startsWith(b) ? "/" + pathname.slice(b.length) : pathname;
 }
 
-function prependBase(url) {
+function prependBase(url: string): string {
     const b = getBasePath();
     if (b === "/" || typeof url !== "string" || !url.startsWith("/") || url.startsWith(b)) return url;
     return b + url.slice(1);
@@ -301,26 +306,25 @@ function prependBase(url) {
  * Which runtime owns this document. The server runtime sets __raskOwner when it attaches, so its
  * presence is how a booting browser runtime learns it is arriving into a page it must not paint over.
  */
-export function getOwner() {
-    return globalThis.__raskOwner ?? "";
+export function getOwner(): string {
+    return window.__raskOwner ?? "";
 }
 
 /**
  * Publish the handover seam: the function a live server runtime calls to give this one the page.
  *
- * Also raises __raskPrepared, which main.js reads. Its never-painted check exists because an app that
+ * Also raises __raskPrepared, which main.ts reads. Its never-painted check exists because an app that
  * finishes starting without rendering is otherwise indistinguishable from a hang — but a prepared app
  * not painting is the entire point, and reporting a boot failure for it would put a full-screen error
  * over a perfectly good server-rendered page.
  */
-export function publishPaint() {
-    globalThis.__raskPrepared = true;
-    globalThis.__raskWasmPaint = function (url) {
-        return dotnetExports.Rask.Wasm.JSInterop.Paint(url ?? null);
-    };
+export function publishPaint(): void {
+    window.__raskPrepared = true;
+    window.__raskWasmPaint = (url?: string | null) =>
+        dotnetExports!.Rask!.Wasm!.JSInterop!.Paint!(url ?? null);
 }
 
-export function setExports(exports) {
+export function setExports(exports: RaskWasmExports): void {
     dotnetExports = exports;
     root = document.querySelector("[data-rask-root]") || document.body;
     const ok = !!(exports && exports.Rask && exports.Rask.Wasm
@@ -371,7 +375,7 @@ export function setExports(exports) {
 // is also valid on a Uint8Array, so this stays correct if ever called with one directly.
 const _payloadDecoder = new TextDecoder("utf-8");
 
-export function applyRender(payload) {
+export function applyRender(payload: Uint8Array): void {
     if (!payload || payload.length === 0) return;
     let reply;
     try {
@@ -395,8 +399,8 @@ export function applyRender(payload) {
  *
  * A no-op when the page has already painted, and when a shell has no bootstrap of ours at all.
  */
-export function bootFailed(message, detail) {
-    const report = globalThis.__raskBootFailed;
+export function bootFailed(message: string, detail?: string): void {
+    const report = window.__raskBootFailed;
     if (typeof report === "function") report(message, detail);
     else console.error(`[Rask] boot failed: ${message}`, detail ?? "");
 }
@@ -406,27 +410,27 @@ export function bootFailed(message, detail) {
 // {"type":"hotReload","status":"applied"} frame. Purely an indicator: the DOM was already updated by
 // the repaint that preceded this call, so it must not touch the tree.
 //
-// Guarded because the pill is spliced in from a shared module: if a future build ever drops the
-// splice, a missing indicator should not throw across the interop boundary into .NET.
+// Calls the imported implementation directly rather than the `window.__raskHotReloadPill` global that
+// rask-hotreload.ts also publishes (for the E2E fixture, which can only reach it from the page).
+// Reading it off `window` here looked equivalent and was not: with nothing referencing the import,
+// esbuild elided it, decided the module was unreachable, and dropped rask-hotreload.ts from the
+// bundle entirely — side effect and all — so the global the guard tested was never assigned.
 export function hotReloadApplied() {
-    if (window.__raskHotReloadPill) window.__raskHotReloadPill();
+    showHotReloadPill();
 }
-
-// The input[type=file] ref registry (rask-files.js), shared with the Server client.
-// @@RASK_FILES@@
 
 // The [JSImport] on the .NET side binds to this module export, so the export has to be declared here (an ES
 // module cannot re-export a spliced-in function declaration by name from an inner scope). The registry and
 // the read itself are shared.
-export function readFileChunk(ref, offset, length) {
+export function readFileChunk(ref: string, offset: number, length: number): Promise<Uint8Array> {
     return raskReadFileChunk(ref, offset, length);
 }
 
-function registerFiles(inputEl, files) {
+function registerFiles(inputEl: HTMLInputElement | null, files: FileList) {
     return raskRegisterFiles(inputEl, files);
 }
 
-function triggerDownload(download) {
+function triggerDownload(download: RaskFrameReply["download"]): void {
     if (!download || typeof download.filename !== "string") return;
     let bytes;
     if (typeof download.token === "string" && download.token.length > 0
@@ -435,31 +439,32 @@ function triggerDownload(download) {
         && typeof dotnetExports.Rask.Wasm.JSInterop.PullDownload === "function") {
         // Token-pull path: bytes live in .NET, JSExport returns them directly as a Uint8Array.
         // No base64 inflation, no decode loop — render payload only carried the token string.
-        bytes = dotnetExports.Rask.Wasm.JSInterop.PullDownload(download.token);
-    } else if (typeof download.bytes === "string") {
+        bytes = dotnetExports.Rask.Wasm.JSInterop.PullDownload(download.token!);
+    } else if (typeof download.base64 === "string") {
         // Legacy base64-inline path (test seam + back-compat).
-        bytes = decodeBase64(download.bytes);
+        bytes = decodeBase64(download.base64);
     }
     if (!bytes || bytes.length === 0) return;
-    const blob = new Blob([bytes], {type: download.contentType || "application/octet-stream"});
+    const blob = new Blob([bytes as BlobPart], {type: download.contentType || "application/octet-stream"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = download.filename;
+    a.download = download.filename ?? "";
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
         try {
             document.body.removeChild(a);
-        } catch (_) {
+        } catch {
+            // Already detached — the click may have navigated away.
         }
         URL.revokeObjectURL(url);
     }, 0);
 }
 
-function decodeBase64(b64) {
-    if (typeof b64 !== "string" || b64.length === 0) return null;
+function decodeBase64(b64: string): Uint8Array {
+    if (typeof b64 !== "string" || b64.length === 0) return new Uint8Array();
     const bin = atob(b64);
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -515,21 +520,17 @@ export function getBaseAddress() {
     return new URL(getBasePath(), location.origin).href;
 }
 
-export function pushHistory(url, replace) {
+export function pushHistory(url: string, replace: boolean): void {
     const target = prependBase(url);
     if (replace) window.history.replaceState({rask: true}, "", target);
     else window.history.pushState({rask: true}, "", target);
 }
 
-function inRoot(el) {
-    return root && root.contains(el);
+function inRoot(el: Node | null): boolean {
+    return !!root && !!el && root.contains(el);
 }
 
-// reviveScript() + morph() are concatenated in at build time by the
-// _RaskSpliceClientJs target.
-// @@RASK_MORPH@@
-
-function applyHistory(history) {
+function applyHistory(history: RaskFrameReply["history"]): void {
     if (!history || typeof history.url !== "string") return;
     let target = prependBase(history.url);
     if (history.action === "replace") {
@@ -545,7 +546,7 @@ function applyHistory(history) {
 // is left to the browser's native scroll restoration. When the intercepted link
 // carried a "#fragment" matching an element, scroll there instead of the top.
 // Call this only after the new body has committed so the anchor target exists.
-function applyNavScroll(history) {
+function applyNavScroll(history: RaskFrameReply["history"]): void {
     if (!history || history.action === "replace") {
         _pendingScrollHash = "";
         return;
@@ -568,16 +569,14 @@ function applyNavScroll(history) {
     window.scrollTo(0, 0);
 }
 
-// @@RASK_DOM@@
-
-function handle(reply) {
+function handle(reply: RaskFrameReply | null): void {
     if (!reply || typeof reply !== "object") return;
     // The app has painted. Set HERE, by the code that actually does it, because it is the only place
     // that knows: the morph patches the existing document in place rather than replacing it, so the
     // splash element main.js captured at import time is still connected afterwards and DOM state cannot
     // be read as "did we render". Inferring it from that element instead is what made every WASM journey
     // report a boot failure over an app that had rendered perfectly well.
-    globalThis.__raskPainted = true;
+    window.__raskPainted = true;
     // A development fault the app survived, riding the render payload (see the Server runtime for why
     // it is a field rather than a frame). Applied before either render path: the panel is a sibling of
     // the app, so it must not wait on the render queue.
@@ -586,17 +585,21 @@ function handle(reply) {
     // through _renderQueue so a diff that defers its body for a CSS load can't be
     // overtaken by the next payload (see _renderQueue).
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
-        _renderQueue = _renderQueue.then(() => applyDiffReply(reply), () => applyDiffReply(reply));
+        _renderQueue = _renderQueue.then(
+            () => { applyDiffReply(reply); },
+            () => { applyDiffReply(reply); });
         return;
     }
-    _renderQueue = _renderQueue.then(() => applyFullReply(reply), () => applyFullReply(reply));
+    _renderQueue = _renderQueue.then(
+        () => { applyFullReply(reply); },
+        () => { applyFullReply(reply); });
 }
 
 // Per-invoke executor for the shared applyFrameInvokes loop (rask-dom.js). A frame's jsInvokes run
 // AFTER applyDiff/morph patched the DOM — so a queued OnRenderedAsync focus acts on the committed
 // DOM (e.g. a <dialog> that just gained its `open` attribute), the same post-commit ordering the
 // Server has. beginInvokeJS runs the call and returns its result via the endInvokeJSResult JSExport.
-function dispatchWasmInvoke(inv) {
+function dispatchWasmInvoke(inv: RaskFrameJsInvoke): void {
     beginInvokeJS(
         String(inv.id),
         inv.identifier,
@@ -605,7 +608,7 @@ function dispatchWasmInvoke(inv) {
         typeof inv.targetInstanceId === "number" ? String(inv.targetInstanceId) : "0");
 }
 
-function applyDiffReply(reply) {
+function applyDiffReply(reply: RaskFrameReply): unknown {
     // The head isn't in the diff frame stream (user Head contributions are collected +
     // spliced render-side), so a head change rides the payload as a <head> fragment.
     // Morph it into document.head FIRST — keyed reconciliation (data-rask-key) keeps
@@ -613,7 +616,7 @@ function applyDiffReply(reply) {
     // survive. When the new page adds a not-yet-cached scoped stylesheet, defer the body
     // ops until it loads so the swapped body never paints unstyled (FOUC).
     const applyBody = () => {
-        applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
+        applyDiff((reply.ops ?? []) as DiffOp[], Array.isArray(reply.names) ? reply.names : undefined);
         applyHistory(reply.history);
         applyNavScroll(reply.history);
         // A diff can insert Head-declared external <script>/<link> and scoped-JS tags
@@ -635,7 +638,7 @@ function applyDiffReply(reply) {
     return window.__raskVt.run(applyBody);
 }
 
-function applyFullReply(reply) {
+function applyFullReply(reply: RaskFrameReply): unknown {
     let freshHtml = null;
     if (typeof reply.html === "string" && reply.html.length > 0) {
         const doc = new DOMParser().parseFromString(reply.html, "text/html");
@@ -689,7 +692,7 @@ function applyFullReply(reply) {
 // steady-typing user fires `send` ~60×/sec via the rAF input-coalescing path.
 const _sendEncoder = new TextEncoder();
 
-async function send(payload) {
+async function send(payload: unknown): Promise<void> {
     // Deliberately not traced. `payload` carries the event's value — everything the user types — and
     // this runs ~60×/sec via the rAF coalescing path, so a log here writes form input to the console
     // of every production build. Debug a dispatch with a breakpoint, not by shipping one.
@@ -708,16 +711,27 @@ async function send(payload) {
         // JSExport generator doesn't support Task<byte[]> return types. JS just awaits
         // completion; the morph happens via the applyRender callback path.
         const requestBytes = _sendEncoder.encode(JSON.stringify(payload));
-        await dotnetExports.Rask.Wasm.JSInterop.Dispatch(requestBytes);
+        await dotnetExports!.Rask!.Wasm!.JSInterop!.Dispatch!(requestBytes);
     } catch (e) {
         console.error("Rask: dispatch failed", e);
     }
 }
 
+// Install the host contract before anything can dispatch. Both are hoisted function declarations,
+// so this runs before the listeners below are bound.
+//
+// `send` is async and the contract's is void-returning, which is deliberate: a caller in a shared
+// module has nothing useful to do with the promise, and the Server host's send is synchronous.
+//
+// Not optional and not merely tidy: the shared modules call send/inRoot through this indirection,
+// and rask-host.ts's default throws rather than silently dropping events. Leaving the import
+// unreferenced would additionally let esbuild elide rask-host.ts from the bundle.
+setHost({send, inRoot});
+
 document.addEventListener("click", (e) => {
     if (e.defaultPrevented) return;
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const a = e.target.closest("a[data-rask-nav]");
+    const a = closestFrom(e.target, "a[data-rask-nav]");
     if (!a) return;
     if (a.getAttribute("target") === "_blank") return;
     const href = a.getAttribute("href");
@@ -743,14 +757,14 @@ window.addEventListener("popstate", () => {
 });
 
 document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-rask-on-click]");
+    const t = closestFrom(e.target, "[data-rask-on-click]");
     if (!t || !inRoot(t)) return;
     // A submit/reset button is driven by native form submission (handled by the dedicated submit
     // listener). Don't let an ANCESTOR click handler (e.g. a modal's .modal-dialog shield) hijack it
     // and cancel the default — that would break the form submit. A handler on the button itself still
     // runs: note `button.type` defaults to "submit" for a bare <button>, so gating on the ancestor
     // (t !== btn) is what keeps a plain Button(OnClick:) working here. Mirrors rask.js.
-    const btn = e.target.closest("button, input");
+    const btn = closestFrom(e.target, "button, input") as HTMLButtonElement | HTMLInputElement | null;
     if (btn && btn !== t && (btn.type === "submit" || btn.type === "reset")) return;
     e.preventDefault();
     flushInputsNow();
@@ -760,22 +774,18 @@ document.addEventListener("click", (e) => {
     });
 });
 
-// rAF-coalesced input & scroll dispatch (inputPending/flushInputsNow/queueInput + the input and
-// scroll listeners) — spliced from Rask.Core/Resources/rask-input.js, shared with rask.js +
-// rask.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
-// @@RASK_INPUT@@
-
 document.addEventListener("change", (e) => {
-    const t = e.target.closest("[data-rask-on-change], [data-rask-on-files]");
+    const t = closestFrom(e.target, "[data-rask-on-change], [data-rask-on-files]");
     if (!t || !inRoot(t)) return;
     // Flush before processing — if the same element (or a sibling) has a pending
     // coalesced input, the server needs to see it BEFORE the change-triggered
     // validator / handler runs, otherwise the validator reads stale model state.
     flushInputsNow();
-    if (t.tagName === "INPUT" && t.type === "file" && t.hasAttribute("data-rask-on-files")) {
-        const files = t.files;
+    const asInput = t.tagName === "INPUT" ? t as HTMLInputElement : null;
+    if (asInput && asInput.type === "file" && asInput.hasAttribute("data-rask-on-files")) {
+        const files = asInput.files;
         if (!files || files.length === 0) return;
-        const metas = registerFiles(t, files);
+        const metas = registerFiles(asInput, files);
         send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas});
         return;
     }
@@ -784,14 +794,22 @@ document.addEventListener("change", (e) => {
         // the hosts each carried their own copy and drifted, which is how <select> ended up with no
         // lagging-frame guard. `values` is null for everything except a <select multiple>, whose
         // `.value` is only its FIRST selected option.
-        const changeVal = raskChangeFrameValue(t);
-        const changeVals = raskChangeFrameValues(t);
+        // The three tags a change frame can come from; raskChangeFrameValue reads `.value` and
+        // `.checked`, neither of which is on the base HTMLElement.
+        const field = t as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+        const changeVal = raskChangeFrameValue(field);
+        const changeVals = raskChangeFrameValues(field);
         // Record what a lagging re-render would have to carry to be stale — the pre-edit value, the
         // pre-click checked (whole radio group), the pre-pick selected (whole select) — so the apply
         // paths can tell "the frame that predates the user's action" from "the server's authoritative
         // answer to it". Shared with the Server runtime, in rask-morph.js.
         raskNotePendingFormState(t);
-        const changeFrame = {
+        const changeFrame: {
+            id: string | null;
+            type: string;
+            value: string;
+            values?: string[];
+        } = {
             id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal
         };
         if (changeVals !== null) changeFrame.values = changeVals;
@@ -800,29 +818,28 @@ document.addEventListener("change", (e) => {
 });
 
 document.addEventListener("submit", (e) => {
-    const t = e.target.closest("[data-rask-on-submit]");
+    const t = closestFrom(e.target, "[data-rask-on-submit]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
     flushInputsNow();
-    const fileInputs = t.querySelectorAll('input[type="file"][name]');
-    const fileFields = {};
+    const fileInputs = t.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
+    const fileFields: Record<string, unknown> = {};
     for (const input of fileInputs) {
         if (!input.files || input.files.length === 0) continue;
         fileFields[input.name] = registerFiles(input, input.files);
     }
-    const fd = new FormData(t);
-    const obj = {};
+
+    // A submit handler is only ever bound to a <form>, which is what makes FormData legal here.
+    const fd = new FormData(t as HTMLFormElement);
+    const obj: Record<string, unknown> = {};
     fd.forEach((v, k) => {
-        if (v instanceof File || v instanceof Blob) return;
-        obj[k] = String(v);
+        // File parts are carried by fileFields above, under a ref rather than inline.
+        if (typeof v !== "string") return;
+        obj[k] = v;
     });
     if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
     send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
 });
-
-// Extended GlobalEventHandlers delegation + keyboard (keydown/keyup) + the four core drag events
-// (dragstart/dragover/drop/dragend) — spliced from Rask.Core/Resources/rask-events.js.
-// @@RASK_EVENTS@@
 
 // ----- IJSRuntime bridge -----------------------------------------------------
 // Called by Rask.Wasm.JSInterop.BeginInvokeJSImport (a [JSImport]). Walks the
@@ -830,51 +847,57 @@ document.addEventListener("submit", (e) => {
 // ships the result back through the EndInvokeJSResult JSExport — same shape as
 // the server-side dispatcher in rask.js.
 
-const jsObjectRefs = new Map();
+const jsObjectRefs = new Map<number, unknown>();
 let nextJsObjectRefId = 1;
 
-function jsResolveIdentifier(target, identifier) {
+function jsResolveIdentifier(target: unknown, identifier: string): [Record<string, unknown>, string] | null {
     if (typeof identifier !== "string" || identifier.length === 0) return null;
     const parts = identifier.split(".");
-    let parent = target;
+    let parent = target as Record<string, unknown> | null | undefined;
     for (let i = 0; i < parts.length - 1; i++) {
         if (parent == null) return null;
-        parent = parent[parts[i]];
+        parent = parent[parts[i]] as Record<string, unknown> | null | undefined;
     }
     if (parent == null) return null;
     return [parent, parts[parts.length - 1]];
 }
 
-function jsReviver(_key, value) {
+function jsReviver(_key: string, value: unknown): unknown {
     if (value && typeof value === "object") {
-        if (typeof value.__jsObjectId === "number") {
-            return jsObjectRefs.get(value.__jsObjectId);
+        const shape = value as { __jsObjectId?: number; __raskRef__?: string };
+        if (typeof shape.__jsObjectId === "number") {
+            return jsObjectRefs.get(shape.__jsObjectId);
         }
         // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).
         // CSS.escape the id so a value carrying a quote/bracket can't break out of the
         // attribute selector or match an unintended element (defense-in-depth — ids are
         // framework-minted, but the reviver runs on server-supplied JSON).
-        if (typeof value.__raskRef__ === "string") {
-            return document.querySelector(`[data-rask-ref="${CSS.escape(value.__raskRef__)}"]`);
+        if (typeof shape.__raskRef__ === "string") {
+            return document.querySelector(`[data-rask-ref="${CSS.escape(shape.__raskRef__)}"]`);
         }
     }
     return value;
 }
 
-function endInvokeJSResult(taskId, success, result, error) {
+function endInvokeJSResult(taskId: string, success: boolean, result: unknown, error?: string): void {
     if (!dotnetExports || !dotnetExports.Rask || !dotnetExports.Rask.Wasm
         || !dotnetExports.Rask.Wasm.JSInterop) return;
     const payload = success
         ? [Number(taskId), true, (result === undefined ? null : result)]
         : [Number(taskId), false, error || "JS invocation failed"];
     try {
-        dotnetExports.Rask.Wasm.JSInterop.EndInvokeJSResult(JSON.stringify(payload));
+        dotnetExports!.Rask!.Wasm!.JSInterop!.EndInvokeJSResult!(JSON.stringify(payload));
     } catch (e) {
         console.error("[Rask] EndInvokeJSResult failed", e);
     }
 }
 
-export function beginInvokeJS(taskId, identifier, argsJson, resultType, targetInstanceId) {
+export function beginInvokeJS(
+    taskId: string,
+    identifier: string,
+    argsJson: string | null,
+    resultType: number,
+    targetInstanceId: string): void {
     // Two gates for Rask.* identifiers:
     //  1. headAssetsReady() — user-Head-declared CDN <script>/<link> deps still loading.
     //  2. raskNamespaceReady() — the component's per-component script
@@ -892,16 +915,23 @@ export function beginInvokeJS(taskId, identifier, argsJson, resultType, targetIn
     dispatchUnparked(taskId, identifier, argsJson, resultType, targetInstanceId);
 }
 
-function dispatchUnparked(taskId, identifier, argsJson, resultType, targetInstanceId) {
+function dispatchUnparked(
+    taskId: string,
+    identifier: string,
+    argsJson: string | null,
+    resultType: number,
+    targetInstanceId: string): void {
     Promise.resolve().then(() => {
         let args;
         try {
             args = JSON.parse(argsJson || "[]", jsReviver);
         } catch (e) {
-            throw new Error("Failed to parse argsJson: " + e.message);
+            throw new Error("Failed to parse argsJson: " + (e instanceof Error ? e.message : String(e)));
         }
 
-        let target = window;
+        // The identifier is resolved against `window` unless the call names a JS object ref, in
+        // which case it is resolved against that object instead.
+        let target: unknown = window;
         const targetId = Number(targetInstanceId);
         if (targetId !== 0) {
             target = jsObjectRefs.get(targetId);
@@ -932,11 +962,11 @@ function dispatchUnparked(taskId, identifier, argsJson, resultType, targetInstan
 }
 
 // ----- DotNet shim (mirror of Blazor's window.DotNet, for [JSInvokable]) -----
-const dotNetPending = new Map();
+const dotNetPending = new Map<string, { resolve: (v: never) => void; reject: (e: Error) => void }>();
 let nextDotNetCallId = 1;
 
 window.DotNet = window.DotNet || {
-    invokeMethodAsync(assemblyName, methodIdentifier, ...args) {
+    invokeMethodAsync<T = unknown>(assemblyName: string, methodIdentifier: string, ...args: unknown[]): Promise<T> {
         const callId = String(nextDotNetCallId++);
         return new Promise((resolve, reject) => {
             dotNetPending.set(callId, {resolve, reject});
@@ -952,7 +982,7 @@ window.DotNet = window.DotNet || {
     }
 };
 
-export function endDotNetInvoke(resultJson) {
+export function endDotNetInvoke(resultJson: string): void {
     let msg;
     try {
         msg = JSON.parse(resultJson);
@@ -963,6 +993,6 @@ export function endDotNetInvoke(resultJson) {
     const pending = dotNetPending.get(msg.callId);
     if (!pending) return;
     dotNetPending.delete(msg.callId);
-    if (msg.success) pending.resolve(msg.result);
+    if (msg.success) pending.resolve(msg.result as never);
     else pending.reject(new Error(msg.error || "DotNet invocation failed"));
 }

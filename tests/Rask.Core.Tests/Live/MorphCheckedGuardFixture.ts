@@ -15,35 +15,42 @@
 //
 // The C# test (MorphCheckedGuardTests) runs this in a node subprocess and asserts
 // the single JSON line on stdout. Exits non-zero on an internal stub failure.
-import {readFileSync} from "node:fs";
+//
+// The functions under test arrive by IMPORT. They used to be read off disk and evaluated with
+// `new Function(src + "return { … }")`, because the shared modules were bare declarations meant to be
+// pasted into a host's scope — there was no other way to reach them, nothing checked that the names
+// in that string still existed, and it stops working the moment a module has real `export`s.
 
-const morphPath = process.argv[2];
-const domPath = process.argv[3];
-if (!morphPath || !domPath) {
-    console.error("usage: node MorphCheckedGuardFixture.mjs <rask-morph.js path> <rask-dom.js path>");
-    process.exit(2);
-}
+import {morph, raskNotePendingChecked} from "../../../src/Rask.Core/Resources/rask-morph.js";
+import {syncFormProperty} from "../../../src/Rask.Core/Resources/rask-dom.js";
+import {asDom, installStubGlobals, type StubControl} from "./stub-dom.js";
+
 
 // ----- Minimal element stub -----
 // Models a real input AFTER a native click: the `checked` attribute (the last
 // server-rendered default) and the live `.checked` property are independent —
 // clicking flips the property but never the attribute.
-function makeInput(attrs, checked) {
+function makeInput(attrs: Record<string, string>, checked?: boolean): StubControl {
     const a = new Map(Object.entries(attrs || {}));
+    // One cast, where the fiction is created: a partial fake asserted to be the node it stands
+    // in for. Everything the scenarios do with it is then checked against that shape, and the
+    // crossing into framework code is marked separately by asDom().
     return {
         nodeType: 1,
+        nodeValue: null,
         nodeName: "INPUT",
         tagName: "INPUT",
         parentNode: null,
-        firstChild: null,
+        previousSibling: null,
         nextSibling: null,
+        firstChild: null,
         textContent: "",
-        value: a.has("value") ? a.get("value") : "",
+        value: a.get("value") ?? "",
         checked: !!checked,
-        hasAttribute: (n) => a.has(n),
-        getAttribute: (n) => (a.has(n) ? a.get(n) : null),
-        setAttribute: (n, v) => a.set(n, String(v)),
-        removeAttribute: (n) => a.delete(n),
+        hasAttribute: (n: string) => a.has(n),
+        getAttribute: (n: string) => a.get(n) ?? null,
+        setAttribute: (n: string, v: string) => a.set(n, String(v)),
+        removeAttribute: (n: string) => a.delete(n),
         get attributes() {
             return [...a.entries()].map(([name, value]) => ({name, value}));
         }
@@ -54,23 +61,15 @@ function makeInput(attrs, checked) {
 // realistic post-click state — focus is on the just-clicked control's group,
 // never mid-typing here).
 const elsewhere = {nodeType: 1, nodeName: "BODY", tagName: "BODY"};
-globalThis.window = globalThis;
-globalThis.document = {
+installStubGlobals({
     activeElement: elsewhere,
     createElement: () => makeInput({})
-};
+});
 
-// ----- Load the shared snippets (plain function declarations, not modules) -----
-// Concat both: rask-dom.js's syncFormProperty calls raskShouldSuppressChecked,
-// which lives in rask-morph.js — the runtime splices them into one scope.
-const src = readFileSync(morphPath, "utf8") + "\n" + readFileSync(domPath, "utf8");
-const factory = new Function(
-    src + "\n;return { morph, syncFormProperty, raskNotePendingChecked, raskShouldSuppressChecked };");
-const {morph, syncFormProperty, raskNotePendingChecked} = factory();
 
 // Radio option markup: value + name + data-rask-on-change, `checked` present only
 // on the currently selected option (mirrors Input.WriteAttributes / BsRadioGroup).
-const radio = (value, checked) =>
+const radio = (value: string, checked: boolean) =>
     makeInput({"data-rask-on-change": "hR", "name": "plan", "value": value, ...(checked ? {"checked": ""} : {})},
         checked);
 
@@ -79,12 +78,12 @@ const radio = (value, checked) =>
 // The dispatch notes the pre-click group state (from the `checked` attribute).
 const proLive = radio("Pro", false);
 proLive.checked = true;                              // native click flipped the property
-raskNotePendingChecked(proLive, proLive.hasAttribute("checked")); // superseded = false
+raskNotePendingChecked(asDom(proLive), proLive.hasAttribute("checked")); // superseded = false
 // A lagging RemoveAttribute-checked op (server's pre-click view) must NOT unset it.
-syncFormProperty(proLive, "checked", "", false);
+syncFormProperty(asDom(proLive), "checked", "", false);
 const s1AfterStale = proLive.checked;                // expect true — suppressed
 // The authoritative echo (SetAttribute checked) applies and releases the guard.
-syncFormProperty(proLive, "checked", "", true);
+syncFormProperty(asDom(proLive), "checked", "", true);
 const s1AfterEcho = proLive.checked;                 // expect true — applied
 
 // ---- Scenario 2: full morph, radio group — group guard blocks the whole revert ----
@@ -96,30 +95,30 @@ freeFrom.checked = false;              // native exclusivity unchecked it
 const proFrom = radio("Pro", false);
 proFrom.checked = true;                // native click checked it (no attribute)
 // Dispatch notes the whole group's pre-click state from the attributes.
-raskNotePendingChecked(freeFrom, freeFrom.hasAttribute("checked")); // superseded = true
-raskNotePendingChecked(proFrom, proFrom.hasAttribute("checked"));   // superseded = false
+raskNotePendingChecked(asDom(freeFrom), freeFrom.hasAttribute("checked")); // superseded = true
+raskNotePendingChecked(asDom(proFrom), proFrom.hasAttribute("checked"));   // superseded = false
 // A stale morph frame (server computed with Free still selected) must neither
 // re-check Free nor uncheck Pro.
-morph(freeFrom, radio("Free", true));  // to: Free checked  → suppressed (== superseded true)
-morph(proFrom, radio("Pro", false));   // to: Pro unchecked → suppressed (== superseded false)
+morph(asDom(freeFrom), asDom(radio("Free", true)));  // to: Free checked  → suppressed (== superseded true)
+morph(asDom(proFrom), asDom(radio("Pro", false)));   // to: Pro unchecked → suppressed (== superseded false)
 const s2FreeAfterStale = freeFrom.checked; // expect false
 const s2ProAfterStale = proFrom.checked;   // expect true
 // The echo (Pro selected) applies and releases both guards.
-morph(freeFrom, radio("Free", false)); // to: Free unchecked → applies (!= superseded)
-morph(proFrom, radio("Pro", true));    // to: Pro checked    → applies (!= superseded)
+morph(asDom(freeFrom), asDom(radio("Free", false))); // to: Free unchecked → applies (!= superseded)
+morph(asDom(proFrom), asDom(radio("Pro", true)));    // to: Pro checked    → applies (!= superseded)
 const s2FreeAfterEcho = freeFrom.checked; // expect false
 const s2ProAfterEcho = proFrom.checked;   // expect true
 // After release, a later server-driven change wins (guard didn't pin the value).
-morph(proFrom, radio("Pro", false));   // programmatic deselect
+morph(asDom(proFrom), asDom(radio("Pro", false)));   // programmatic deselect
 const s2ProAfterLater = proFrom.checked;  // expect false
 
 // ---- Scenario 3: full morph, lone checkbox — stale revert suppressed, echo applies ----
 const cbFrom = makeInput({"data-rask-on-change": "hC"}, false);
 cbFrom.checked = true;                                // user checked it (no attribute yet)
-raskNotePendingChecked(cbFrom, cbFrom.hasAttribute("checked")); // superseded = false
-morph(cbFrom, makeInput({"data-rask-on-change": "hC"}, false)); // stale: unchecked → suppressed
+raskNotePendingChecked(asDom(cbFrom), cbFrom.hasAttribute("checked")); // superseded = false
+morph(asDom(cbFrom), asDom(makeInput({"data-rask-on-change": "hC"}, false))); // stale: unchecked → suppressed
 const s3AfterStale = cbFrom.checked;                  // expect true
-morph(cbFrom, makeInput({"data-rask-on-change": "hC", "checked": ""}, true)); // echo → applies
+morph(asDom(cbFrom), asDom(makeInput({"data-rask-on-change": "hC", "checked": ""}, true))); // echo → applies
 const s3AfterEcho = cbFrom.checked;                   // expect true
 
 process.stdout.write(JSON.stringify({

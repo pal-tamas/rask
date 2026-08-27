@@ -1,18 +1,24 @@
-// Shared framework Web-API / interop helpers, spliced into both client runtimes
-// (Server rask.js and WASM rask.wasm.js) by the RASK_API build marker. Single source of
-// truth so the two transports never drift. Each helper is assigned to a `window.__rask*`
-// namespace so a dotted IJSRuntime identifier (e.g. "__raskApi.geolocation") resolves to it.
+// Shared framework Web-API / interop helpers, imported by both client runtimes (Server rask.ts and
+// WASM rask.wasm.ts). Single source of truth so the two transports never drift. Each helper is
+// assigned to a `window.__rask*` namespace so a dotted IJSRuntime identifier (e.g.
+// "__raskApi.geolocation") resolves to it — that is why these are globals rather than exports: the
+// caller is .NET, resolving the name against `window` at call time.
+//
+// The shapes are declared in rask-window.d.ts under a `__rask${string}` index signature rather than
+// as thirty interfaces, because the authoritative contract for each is the C# wrapper that calls it.
+// What IS checked here is every implementation: the arguments each helper takes and what it does
+// with them.
 
 // Element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
 // The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
 window.__raskEl = window.__raskEl || {
-    focus: (el) => {
+    focus: (el: HTMLElement | null) => {
         if (el) el.focus();
     },
-    blur: (el) => {
+    blur: (el: HTMLElement | null) => {
         if (el) el.blur();
     },
-    scrollIntoView: (el, opts) => {
+    scrollIntoView: (el: Element | null, opts?: ScrollIntoViewOptions) => {
         if (el) el.scrollIntoView(opts || {behavior: "smooth", block: "nearest"});
     }
 };
@@ -22,12 +28,13 @@ window.__raskEl = window.__raskEl || {
 // (clipboard.readText) need no helper — the invoke dispatcher returns the value / awaits the
 // Promise on its own. getCurrentPosition is callback-based, so wrap it in a Promise here.
 window.__raskApi = window.__raskApi || {
-    geolocation: (enableHighAccuracy, timeoutMs, maximumAgeMs) => new Promise((resolve, reject) => {
+    geolocation: (enableHighAccuracy: boolean, timeoutMs: number | null, maximumAgeMs: number | null) =>
+        new Promise<unknown>((resolve, reject) => {
         if (!navigator.geolocation) {
             reject(new Error("Geolocation is not supported in this browser."));
             return;
         }
-        const opts = {enableHighAccuracy: !!enableHighAccuracy, maximumAge: maximumAgeMs || 0};
+        const opts: PositionOptions = {enableHighAccuracy: !!enableHighAccuracy, maximumAge: maximumAgeMs || 0};
         if (timeoutMs != null) opts.timeout = timeoutMs;
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -43,17 +50,18 @@ window.__raskApi = window.__raskApi || {
                     timestampMs: pos.timestamp
                 });
             },
-            (err) => reject(new Error((err && err.message) || ("Geolocation error " + (err && err.code)))),
+            (err: GeolocationPositionError) =>
+                reject(new Error((err && err.message) || ("Geolocation error " + (err && err.code)))),
             opts);
     }),
 
     // Permissions API: query resolves to a live PermissionStatus object — return just its .state
     // string so it serializes back to C# cleanly.
-    permissionState: (name) => navigator.permissions.query({name: name}).then((s) => s.state),
+    permissionState: (name: PermissionName) => navigator.permissions.query({name}).then((s) => s.state),
 
     // Cookies via document.cookie. Reads parse the cookie string; writes/deletes build the
     // assignment string (a bare `document.cookie = …` is a property write IJSRuntime can't express).
-    cookieGet: (name) => {
+    cookieGet: (name: string) => {
         const prefix = encodeURIComponent(name) + "=";
         const parts = document.cookie ? document.cookie.split("; ") : [];
         for (let i = 0; i < parts.length; i++) {
@@ -64,7 +72,7 @@ window.__raskApi = window.__raskApi || {
         return null;
     },
     cookieAll: () => {
-        const out = {};
+        const out: Record<string, string> = {};
         const parts = document.cookie ? document.cookie.split("; ") : [];
         for (let i = 0; i < parts.length; i++) {
             const eq = parts[i].indexOf("=");
@@ -74,7 +82,15 @@ window.__raskApi = window.__raskApi || {
         }
         return out;
     },
-    cookieSet: (name, value, maxAge, expires, path, domain, sameSite, secure) => {
+    cookieSet: (
+        name: string,
+        value: string,
+        maxAge: number | null,
+        expires: string | null,
+        path: string | null,
+        domain: string | null,
+        sameSite: string | null,
+        secure: boolean) => {
         let s = encodeURIComponent(name) + "=" + encodeURIComponent(value);
         if (maxAge != null) s += "; max-age=" + maxAge;
         if (expires) s += "; expires=" + expires;
@@ -84,13 +100,13 @@ window.__raskApi = window.__raskApi || {
         if (secure) s += "; secure";
         document.cookie = s;
     },
-    cookieDelete: (name, path) => {
+    cookieDelete: (name: string, path: string | null) => {
         document.cookie = encodeURIComponent(name) + "=; max-age=0" + (path ? "; path=" + path : "");
     },
 
     // matchMedia (driven by IMediaQuery): evaluate a CSS media query and return just the boolean
     // .matches from the live MediaQueryList.
-    matchMedia: (query) => window.matchMedia(query).matches,
+    matchMedia: (query: string) => window.matchMedia(query).matches,
 
     // Storage estimate (driven by IStorageEstimator): navigator.storage.estimate() resolves to a live
     // object — return a plain { quota, usage } snapshot (mapped to StorageEstimate in C#), or null when
@@ -153,7 +169,7 @@ window.__raskApi = window.__raskApi || {
     // Speech synthesis (driven by ISpeechSynthesis): new SpeechSynthesisUtterance(...) is a constructor
     // IJSRuntime can't call, so build it here and speak. Support/cancel are plain checks.
     speechSupported: () => "speechSynthesis" in window,
-    speak: (text, options) => {
+    speak: (text: string, options?: RaskSpeakOptions | null) => {
         if (!("speechSynthesis" in window)) {
             return;
         }
@@ -195,13 +211,14 @@ window.__raskApi = window.__raskApi || {
 // transaction-scoped Promise so IJSRuntime can await a plain value.
 window.__raskIdb = window.__raskIdb || (() => {
     const STORE = "kv";
-    const dbs = new Map();
+    const dbs = new Map<string, Promise<IDBDatabase>>();
 
-    const open = (name) => {
-        if (dbs.has(name)) {
-            return dbs.get(name);
+    const open = (name: string): Promise<IDBDatabase> => {
+        const cached = dbs.get(name);
+        if (cached) {
+            return cached;
         }
-        const p = new Promise((resolve, reject) => {
+        const p = new Promise<IDBDatabase>((resolve, reject) => {
             const req = indexedDB.open(name, 1);
             req.onupgradeneeded = () => { req.result.createObjectStore(STORE); };
             req.onsuccess = () => resolve(req.result);
@@ -212,7 +229,11 @@ window.__raskIdb = window.__raskIdb || (() => {
     };
 
     // Run fn(objectStore) in a transaction; resolve with the request's result once the transaction commits.
-    const run = (name, mode, fn) => open(name).then((db) => new Promise((resolve, reject) => {
+    const run = (
+        name: string,
+        mode: IDBTransactionMode,
+        fn: (store: IDBObjectStore) => IDBRequest | undefined,
+    ): Promise<unknown> => open(name).then((db) => new Promise<unknown>((resolve, reject) => {
         const t = db.transaction(STORE, mode);
         const req = fn(t.objectStore(STORE));
         t.oncomplete = () => resolve(req && req.result !== undefined ? req.result : null);
@@ -224,37 +245,41 @@ window.__raskIdb = window.__raskIdb || (() => {
     // encoding that marshals identically on every host — but are decoded here so the object store
     // holds a real Uint8Array. Storing the base64 text instead would cost ~33% of the browser's
     // storage quota for every byte, which matters once the value is something like a database file.
-    const toBytes = (base64) => {
+    const toBytes = (base64: string): Uint8Array => {
         const binary = atob(base64);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         return bytes;
     };
 
-    const toBase64 = (value) => {
+    const toBase64 = (value: Uint8Array | ArrayBuffer): string => {
         const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
         // Chunked: String.fromCharCode.apply throws RangeError once the argument list gets long,
         // which for a database-sized value is not a hypothetical.
         const CHUNK = 0x8000;
         let binary = "";
         for (let i = 0; i < bytes.length; i += CHUNK) {
-            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+            binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
         }
         return btoa(binary);
     };
 
     return {
         isSupported: () => "indexedDB" in window,
-        open: (name) => open(name).then(() => undefined),
-        set: (name, key, value) => run(name, "readwrite", (s) => s.put(value, key)).then(() => undefined),
-        get: (name, key) => run(name, "readonly", (s) => s.get(key)).then((v) => (v === undefined ? null : v)),
-        setBytes: (name, key, base64) =>
+        open: (name: string) => open(name).then(() => undefined),
+        set: (name: string, key: string, value: unknown) =>
+            run(name, "readwrite", (s) => s.put(value, key)).then(() => undefined),
+        get: (name: string, key: string) =>
+            run(name, "readonly", (s) => s.get(key)).then((v) => (v === undefined ? null : v)),
+        setBytes: (name: string, key: string, base64: string) =>
             run(name, "readwrite", (s) => s.put(toBytes(base64), key)).then(() => undefined),
-        getBytes: (name, key) =>
-            run(name, "readonly", (s) => s.get(key)).then((v) => (v === undefined || v === null ? null : toBase64(v))),
-        delete: (name, key) => run(name, "readwrite", (s) => s.delete(key)).then(() => undefined),
-        keys: (name) => run(name, "readonly", (s) => s.getAllKeys()),
-        clear: (name) => run(name, "readwrite", (s) => s.clear()).then(() => undefined)
+        getBytes: (name: string, key: string) =>
+            run(name, "readonly", (s) => s.get(key))
+                .then((v) => (v === undefined || v === null ? null : toBase64(v as Uint8Array))),
+        delete: (name: string, key: string) =>
+            run(name, "readwrite", (s) => s.delete(key)).then(() => undefined),
+        keys: (name: string) => run(name, "readonly", (s) => s.getAllKeys()),
+        clear: (name: string) => run(name, "readwrite", (s) => s.clear()).then(() => undefined)
     };
 })();
 
@@ -263,7 +288,9 @@ window.__raskIdb = window.__raskIdb || (() => {
 window.__raskPerf = window.__raskPerf || {
     now: () => performance.now(),
     navigation: () => {
-        const entries = performance.getEntriesByType ? performance.getEntriesByType("navigation") : [];
+        const entries = performance.getEntriesByType
+            ? performance.getEntriesByType("navigation") as PerformanceNavigationTiming[]
+            : [];
         const e = entries && entries.length ? entries[0] : null;
         if (!e) {
             return null;
@@ -284,8 +311,8 @@ window.__raskPerf = window.__raskPerf || {
 // on a radix string.
 window.__raskCrypto = window.__raskCrypto || {
     randomUuid: () => crypto.randomUUID(),
-    randomBytes: (length) => Array.from(crypto.getRandomValues(new Uint8Array(length))),
-    digestHex: async (algorithm, text) => {
+    randomBytes: (length: number) => Array.from(crypto.getRandomValues(new Uint8Array(length))),
+    digestHex: async (algorithm: AlgorithmIdentifier, text: string) => {
         const data = new TextEncoder().encode(text);
         const buf = await crypto.subtle.digest(algorithm, data);
         const bytes = new Uint8Array(buf);
@@ -303,13 +330,20 @@ window.__raskCrypto = window.__raskCrypto || {
 // GeolocationWatchInterop.Fix in Rask.Core). The fix object matches the GeolocationPosition record (same
 // shape as __raskApi.geolocation). Errors are ignored so the watch keeps trying.
 window.__raskGeoWatch = window.__raskGeoWatch || (() => {
-    const watches = new Map();
+    const watches = new Map<number, number>();
     return {
-        watch: (id, enableHighAccuracy, timeoutMs, maximumAgeMs) => {
+        watch: (
+            id: number,
+            enableHighAccuracy: boolean,
+            timeoutMs: number | null,
+            maximumAgeMs: number | null) => {
             if (!navigator.geolocation) {
                 return;
             }
-            const opts = {enableHighAccuracy: !!enableHighAccuracy, maximumAge: maximumAgeMs || 0};
+            const opts: PositionOptions = {
+                enableHighAccuracy: !!enableHighAccuracy,
+                maximumAge: maximumAgeMs || 0
+            };
             if (timeoutMs != null) {
                 opts.timeout = timeoutMs;
             }
@@ -331,7 +365,7 @@ window.__raskGeoWatch = window.__raskGeoWatch || (() => {
                 opts);
             watches.set(id, watchId);
         },
-        clear: (id) => {
+        clear: (id: number) => {
             const watchId = watches.get(id);
             if (watchId == null) {
                 return;
@@ -347,9 +381,9 @@ window.__raskGeoWatch = window.__raskGeoWatch || (() => {
 // shim (static [JSInvokable] ResizeInterop.Changed in Rask.Core). The element is resolved from an
 // ElementRef by the JSON reviver.
 window.__raskResize = window.__raskResize || (() => {
-    const observers = new Map();
+    const observers = new Map<number, ResizeObserver>();
     return {
-        observe: (id, element) => {
+        observe: (id: number, element: Element | null) => {
             if (!element) {
                 return;
             }
@@ -365,7 +399,7 @@ window.__raskResize = window.__raskResize || (() => {
             ro.observe(element);
             observers.set(id, ro);
         },
-        unobserve: (id) => {
+        unobserve: (id: number) => {
             const ro = observers.get(id);
             if (!ro) {
                 return;
@@ -381,13 +415,19 @@ window.__raskResize = window.__raskResize || (() => {
 // window.DotNet.invokeMethodAsync shim (static [JSInvokable] IntersectionInterop.Changed in Rask.Core).
 // The element is resolved from an ElementRef by the JSON reviver.
 window.__raskIntersect = window.__raskIntersect || (() => {
-    const observers = new Map();
+    const observers = new Map<number, IntersectionObserver>();
     return {
-        observe: (id, element, thresholds, rootMargin) => {
+        observe: (
+            id: number,
+            element: Element | null,
+            thresholds: number[] | null,
+            rootMargin: string | null) => {
             if (!element) {
                 return;
             }
-            const opts = {threshold: (thresholds && thresholds.length) ? thresholds : 0};
+            const opts: IntersectionObserverInit = {
+                threshold: (thresholds && thresholds.length) ? thresholds : 0
+            };
             if (rootMargin) {
                 opts.rootMargin = rootMargin;
             }
@@ -403,7 +443,7 @@ window.__raskIntersect = window.__raskIntersect || (() => {
             io.observe(element);
             observers.set(id, io);
         },
-        unobserve: (id) => {
+        unobserve: (id: number) => {
             const io = observers.get(id);
             if (!io) {
                 return;
@@ -419,10 +459,10 @@ window.__raskIntersect = window.__raskIntersect || (() => {
 // window.DotNet.invokeMethodAsync shim (static [JSInvokable] BatteryInterop.Changed in Rask.Core). Shared
 // here (not WASM-only): navigator.getBattery needs no user gesture, so it works over the Server client too.
 window.__raskBattery = window.__raskBattery || (() => {
-    const watches = new Map(); // id -> {mgr, handler}
+    const watches = new Map<number, { mgr: BatteryManagerLike; handler: () => void }>();
     const EVENTS = ["levelchange", "chargingchange", "chargingtimechange", "dischargingtimechange"];
     // charging/discharging time are Infinity when unknown — JSON can't carry Infinity, so map it to null.
-    const read = (b) => ({
+    const read = (b: BatteryManagerLike) => ({
         level: b.level,
         charging: b.charging,
         chargingTime: isFinite(b.chargingTime) ? b.chargingTime : null,
@@ -431,24 +471,24 @@ window.__raskBattery = window.__raskBattery || (() => {
     return {
         isSupported: () => typeof navigator.getBattery === "function",
         getStatus: () => navigator.getBattery ? navigator.getBattery().then(read) : Promise.resolve(null),
-        watch: (id) => {
+        watch: (id: number) => {
             if (!navigator.getBattery) {
                 return Promise.resolve();
             }
-            return navigator.getBattery().then((b) => {
+            return navigator.getBattery().then((b: BatteryManagerLike) => {
                 const handler = () =>
                     window.DotNet.invokeMethodAsync("Rask.Core", "RaskBatteryChanged", id, read(b));
-                EVENTS.forEach((e) => b.addEventListener(e, handler));
+                EVENTS.forEach((e: string) => b.addEventListener(e, handler));
                 watches.set(id, {mgr: b, handler: handler});
             });
         },
-        clear: (id) => {
+        clear: (id: number) => {
             const w = watches.get(id);
             if (!w) {
                 return;
             }
             watches.delete(id);
-            EVENTS.forEach((e) => w.mgr.removeEventListener(e, w.handler));
+            EVENTS.forEach((e: string) => w.mgr.removeEventListener(e, w.handler));
         }
     };
 })();
@@ -459,11 +499,15 @@ window.__raskBattery = window.__raskBattery || (() => {
 // and begins listening; stop() ends it and releases the mic. Chromium-family only; the first start prompts
 // for microphone access.
 window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
-    const sessions = new Map();
+    const sessions = new Map<number, {
+        rec: SpeechRecognitionLike;
+        continuous: boolean;
+        stopped: boolean;
+    }>();
     const ctor = () => window.SpeechRecognition || window.webkitSpeechRecognition;
     return {
         isSupported: () => !!ctor(),
-        start: (id, options) => {
+        start: (id: number, options: RaskSpeechOptions) => {
             const C = ctor();
             if (!C) {
                 return;
@@ -474,7 +518,7 @@ window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
             }
             rec.continuous = !!options.continuous;
             rec.interimResults = !!options.interimResults;
-            rec.onresult = (e) => {
+            rec.onresult = (e: SpeechRecognitionEventLike) => {
                 for (let i = e.resultIndex; i < e.results.length; i++) {
                     const r = e.results[i];
                     const alt = r[0];
@@ -485,7 +529,7 @@ window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
                     });
                 }
             };
-            rec.onerror = (e) => {
+            rec.onerror = (e: { error?: string }) => {
                 // A permission/service error is terminal — don't let onend restart into a loop.
                 if (e && (e.error === "not-allowed" || e.error === "service-not-allowed")) {
                     const s = sessions.get(id);
@@ -500,15 +544,15 @@ window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
                 if (s && s.continuous && !s.stopped) {
                     try {
                         rec.start();
-                    } catch (e) {
-                        void e; // already (re)starting — ignore
+                    } catch {
+                        // Already (re)starting — ignore.
                     }
                 }
             };
             sessions.set(id, {rec: rec, continuous: !!options.continuous, stopped: false});
             rec.start();
         },
-        stop: (id) => {
+        stop: (id: number) => {
             const s = sessions.get(id);
             if (!s) {
                 return;
@@ -528,7 +572,7 @@ window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
 // listener under the C#-minted id; each reading is pushed back via the shared window.DotNet.invokeMethodAsync
 // shim (static [JSInvokable] DeviceOrientationInterop.Reading in Rask.Core).
 window.__raskDeviceOrientation = window.__raskDeviceOrientation || (() => {
-    const listeners = new Map();
+    const listeners = new Map<number, (e: DeviceOrientationEvent) => void>();
     return {
         isSupported: () => "DeviceOrientationEvent" in window,
         requestPermission: () => {
@@ -541,11 +585,11 @@ window.__raskDeviceOrientation = window.__raskDeviceOrientation || (() => {
             }
             return Promise.resolve("granted");
         },
-        watch: (id) => {
+        watch: (id: number) => {
             // Sensors fire ~60 Hz; throttle to ~10 Hz before crossing the interop boundary so a moving
             // device doesn't flood the Server WebSocket / re-render loop.
             let last = 0;
-            const handler = (e) => {
+            const handler = (e: DeviceOrientationEvent) => {
                 const now = Date.now();
                 if (now - last < 100) {
                     return;
@@ -558,16 +602,16 @@ window.__raskDeviceOrientation = window.__raskDeviceOrientation || (() => {
                     absolute: !!e.absolute
                 });
             };
-            window.addEventListener("deviceorientation", handler);
+            window.addEventListener("deviceorientation", handler as EventListener);
             listeners.set(id, handler);
         },
-        clear: (id) => {
+        clear: (id: number) => {
             const handler = listeners.get(id);
             if (!handler) {
                 return;
             }
             listeners.delete(id);
-            window.removeEventListener("deviceorientation", handler);
+            window.removeEventListener("deviceorientation", handler as EventListener);
         }
     };
 })();
@@ -576,7 +620,7 @@ window.__raskDeviceOrientation = window.__raskDeviceOrientation || (() => {
 // C#-minted id; each reading is pushed back via the shared window.DotNet.invokeMethodAsync shim (static
 // [JSInvokable] DeviceMotionInterop.Reading in Rask.Core).
 window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
-    const listeners = new Map();
+    const listeners = new Map<number, (e: DeviceMotionEvent) => void>();
     return {
         isSupported: () => "DeviceMotionEvent" in window,
         requestPermission: () => {
@@ -589,18 +633,20 @@ window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
             }
             return Promise.resolve("granted");
         },
-        watch: (id) => {
+        watch: (id: number) => {
             // Sensors fire ~60 Hz; throttle to ~10 Hz before crossing the interop boundary so a moving
             // device doesn't flood the Server WebSocket / re-render loop.
             let last = 0;
-            const handler = (e) => {
+            const handler = (e: DeviceMotionEvent) => {
                 const now = Date.now();
                 if (now - last < 100) {
                     return;
                 }
                 last = now;
-                const a = e.acceleration || {};
-                const r = e.rotationRate || {};
+                // Both are nullable on the event; the empty fallback keeps every read below
+                // defined without inventing zeroes the sensor never reported.
+                const a: Partial<DeviceMotionEventAcceleration> = e.acceleration ?? {};
+                const r: Partial<DeviceMotionEventRotationRate> = e.rotationRate ?? {};
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceMotion", id, {
                     accelerationX: a.x,
                     accelerationY: a.y,
@@ -611,16 +657,16 @@ window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
                     interval: e.interval
                 });
             };
-            window.addEventListener("devicemotion", handler);
+            window.addEventListener("devicemotion", handler as EventListener);
             listeners.set(id, handler);
         },
-        clear: (id) => {
+        clear: (id: number) => {
             const handler = listeners.get(id);
             if (!handler) {
                 return;
             }
             listeners.delete(id);
-            window.removeEventListener("devicemotion", handler);
+            window.removeEventListener("devicemotion", handler as EventListener);
         }
     };
 })();
@@ -629,11 +675,12 @@ window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
 // handler is wired to a C#-minted id and pushed back via the shared window.DotNet.invokeMethodAsync shim
 // (static [JSInvokable] MediaSessionInterop.Invoke in Rask.Core), so one wiring serves both transports.
 window.__raskMediaSession = window.__raskMediaSession || (() => {
-    const actions = new Map();   // id -> action
-    const owners = new Map();    // action -> id of the registration the browser currently holds
+    const actions = new Map<number, MediaSessionAction>();
+    // action -> id of the registration the browser currently holds
+    const owners = new Map<MediaSessionAction, number>();
     return {
         isSupported: () => "mediaSession" in navigator,
-        setMetadata: (m) => {
+        setMetadata: (m: RaskMediaMetadata) => {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: m.title || "",
                 artist: m.artist || "",
@@ -641,17 +688,17 @@ window.__raskMediaSession = window.__raskMediaSession || (() => {
                 artwork: m.artwork || []
             });
         },
-        setPlaybackState: (state) => {
+        setPlaybackState: (state: MediaSessionPlaybackState) => {
             navigator.mediaSession.playbackState = state;
         },
-        setActionHandler: (id, action) => {
+        setActionHandler: (id: number, action: MediaSessionAction) => {
             navigator.mediaSession.setActionHandler(action, () => {
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskMediaSessionAction", id);
             });
             actions.set(id, action);
             owners.set(action, id);
         },
-        removeActionHandler: (id) => {
+        removeActionHandler: (id: number) => {
             const action = actions.get(id);
             if (action === undefined) {
                 return;
@@ -676,13 +723,20 @@ window.__raskMediaSession = window.__raskMediaSession || (() => {
 // shim (static [JSInvokable] MutationInterop.Changed in Rask.Core). The element is resolved from an
 // ElementRef by the JSON reviver.
 window.__raskMutation = window.__raskMutation || (() => {
-    const observers = new Map();
+    const observers = new Map<number, MutationObserver>();
     return {
-        observe: (id, element, childList, attributes, characterData, subtree, attributeFilter) => {
+        observe: (
+            id: number,
+            element: Element | null,
+            childList: boolean,
+            attributes: boolean,
+            characterData: boolean,
+            subtree: boolean,
+            attributeFilter: string[] | null) => {
             if (!element) {
                 return;
             }
-            const opts = {
+            const opts: MutationObserverInit = {
                 childList: !!childList,
                 attributes: !!attributes,
                 characterData: !!characterData,
@@ -708,7 +762,7 @@ window.__raskMutation = window.__raskMutation || (() => {
             mo.observe(element, opts);
             observers.set(id, mo);
         },
-        unobserve: (id) => {
+        unobserve: (id: number) => {
             const mo = observers.get(id);
             if (!mo) {
                 return;
@@ -724,23 +778,23 @@ window.__raskMutation = window.__raskMutation || (() => {
 // window.DotNet.invokeMethodAsync shim (static [JSInvokable] BroadcastInterop.Receive in Rask.Core),
 // which works on both transports. A channel does not receive its own posts.
 window.__raskBroadcast = window.__raskBroadcast || (() => {
-    const channels = new Map();
+    const channels = new Map<number, BroadcastChannel>();
     return {
-        open: (id, name) => {
+        open: (id: number, name: string) => {
             const ch = new BroadcastChannel(name);
-            ch.onmessage = (e) => {
+            ch.onmessage = (e: MessageEvent) => {
                 const data = typeof e.data === "string" ? e.data : JSON.stringify(e.data);
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskBroadcastReceive", id, data);
             };
             channels.set(id, ch);
         },
-        post: (id, message) => {
+        post: (id: number, message: string) => {
             const ch = channels.get(id);
             if (ch) {
                 ch.postMessage(message);
             }
         },
-        close: (id) => {
+        close: (id: number) => {
             const ch = channels.get(id);
             if (!ch) {
                 return;
@@ -757,13 +811,14 @@ window.__raskBroadcast = window.__raskBroadcast || (() => {
 // Rask.Core) ONLY when a pad's state changes — throttled to ~12 Hz so a held stick doesn't flood the
 // transport. rAF is paused by the browser while the tab is hidden, which also pauses the poll.
 window.__raskGamepad = window.__raskGamepad || (() => {
-    const watchers = new Map();
+    const watchers = new Map<number, () => void>();
     return {
         isSupported: () => "getGamepads" in navigator,
-        watch: (id) => {
+        watch: (id: number) => {
             let last = 0;
             let raf = 0;
-            const prev = new Map(); // pad index -> last serialized snapshot
+            // pad index -> last serialized snapshot, so only a real change crosses the boundary
+            const prev = new Map<number, string>();
             const tick = () => {
                 const now = Date.now();
                 if (now - last >= 80) {
@@ -776,8 +831,8 @@ window.__raskGamepad = window.__raskGamepad || (() => {
                             continue;
                         }
                         live.add(p.index);
-                        const axes = Array.prototype.map.call(p.axes, (a) => Math.round(a * 1000) / 1000);
-                        const buttons = Array.prototype.map.call(p.buttons, (b) => b.value);
+                        const axes = Array.from(p.axes, (a) => Math.round(a * 1000) / 1000);
+                        const buttons = Array.from(p.buttons, (b) => b.value);
                         const snap = axes.join(",") + "|" + buttons.join(",") + "|" + p.connected;
                         if (prev.get(p.index) !== snap) {
                             prev.set(p.index, snap);
@@ -791,7 +846,7 @@ window.__raskGamepad = window.__raskGamepad || (() => {
                         }
                     }
                     // Emit a final disconnect reading for pads that vanished since the last poll.
-                    prev.forEach((_, index) => {
+                    prev.forEach((_snapshot, index) => {
                         if (!live.has(index)) {
                             prev.delete(index);
                             window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, {
@@ -809,7 +864,7 @@ window.__raskGamepad = window.__raskGamepad || (() => {
             raf = requestAnimationFrame(tick);
             watchers.set(id, () => cancelAnimationFrame(raf));
         },
-        unwatch: (id) => {
+        unwatch: (id: number) => {
             const stop = watchers.get(id);
             if (!stop) {
                 return;
@@ -825,25 +880,49 @@ window.__raskGamepad = window.__raskGamepad || (() => {
 // id. Pickers reject with AbortError when the user cancels — map that to null / [] rather than an error.
 // Bytes ride the boundary base64-encoded.
 window.__raskFs = window.__raskFs || (() => {
-    const handles = new Map();
+    const handles = new Map<number, FileSystemHandle>();
     let nextId = 0;
-    const put = (handle) => {
+    const put = (handle: FileSystemHandle) => {
         const id = ++nextId;
         handles.set(id, handle);
         return {id: id, name: handle.name};
     };
-    const types = (opts) => {
+    const types = (opts: RaskFilePickerOptions | null) => {
         if (!opts || !opts.accept) {
             return undefined;
         }
         return [{description: opts.description || "", accept: opts.accept}];
     };
-    const isAbort = (e) => e && e.name === "AbortError";
+    const isAbort = (e: unknown) => e instanceof Error && e.name === "AbortError";
+
+    /** The pickers, or a refusal that says which call was made without checking isSupported(). */
+    const picker = (): Window => {
+        if (!window.showOpenFilePicker) {
+            throw new Error("Rask file system: this browser has no File System Access picker.");
+        }
+        return window;
+    };
+
+    const fileOf = (id: number): FileSystemFileHandle => {
+        const h = handles.get(id);
+        if (!h || h.kind !== "file") {
+            throw new Error("Rask file system: file handle " + id + " is closed.");
+        }
+        return h as FileSystemFileHandle;
+    };
+
+    const dirOf = (id: number): FileSystemDirectoryHandle => {
+        const h = handles.get(id);
+        if (!h || h.kind !== "directory") {
+            throw new Error("Rask file system: directory handle " + id + " is closed.");
+        }
+        return h as FileSystemDirectoryHandle;
+    };
     return {
         isSupported: () => "showOpenFilePicker" in window,
-        openFile: async (opts) => {
+        openFile: async (opts: RaskFilePickerOptions | null) => {
             try {
-                const picked = await window.showOpenFilePicker({multiple: false, types: types(opts)});
+                const picked = await picker().showOpenFilePicker!({multiple: false, types: types(opts)});
                 return put(picked[0]);
             } catch (e) {
                 if (isAbort(e)) {
@@ -852,9 +931,9 @@ window.__raskFs = window.__raskFs || (() => {
                 throw e;
             }
         },
-        openFiles: async (opts) => {
+        openFiles: async (opts: RaskFilePickerOptions | null) => {
             try {
-                const picked = await window.showOpenFilePicker({multiple: true, types: types(opts)});
+                const picked = await picker().showOpenFilePicker!({multiple: true, types: types(opts)});
                 return picked.map(put);
             } catch (e) {
                 if (isAbort(e)) {
@@ -863,9 +942,9 @@ window.__raskFs = window.__raskFs || (() => {
                 throw e;
             }
         },
-        saveFile: async (opts) => {
+        saveFile: async (opts: RaskFilePickerOptions | null) => {
             try {
-                const handle = await window.showSaveFilePicker({
+                const handle = await picker().showSaveFilePicker!({
                     suggestedName: (opts && opts.suggestedName) || undefined,
                     types: types(opts)
                 });
@@ -879,7 +958,7 @@ window.__raskFs = window.__raskFs || (() => {
         },
         openDirectory: async () => {
             try {
-                return put(await window.showDirectoryPicker());
+                return put(await picker().showDirectoryPicker!());
             } catch (e) {
                 if (isAbort(e)) {
                     return null;
@@ -887,12 +966,12 @@ window.__raskFs = window.__raskFs || (() => {
                 throw e;
             }
         },
-        readText: async (id) => {
-            const file = await handles.get(id).getFile();
+        readText: async (id: number) => {
+            const file = await fileOf(id).getFile();
             return await file.text();
         },
-        readBytes: async (id) => {
-            const file = await handles.get(id).getFile();
+        readBytes: async (id: number) => {
+            const file = await fileOf(id).getFile();
             const bytes = new Uint8Array(await file.arrayBuffer());
             let binary = "";
             for (let i = 0; i < bytes.length; i++) {
@@ -900,33 +979,33 @@ window.__raskFs = window.__raskFs || (() => {
             }
             return btoa(binary);
         },
-        writeText: async (id, text) => {
-            const writable = await handles.get(id).createWritable();
+        writeText: async (id: number, text: string) => {
+            const writable = await fileOf(id).createWritable();
             await writable.write(text);
             await writable.close();
         },
-        writeBytes: async (id, base64) => {
+        writeBytes: async (id: number, base64: string) => {
             const binary = atob(base64);
             const bytes = new Uint8Array(binary.length);
             for (let i = 0; i < binary.length; i++) {
                 bytes[i] = binary.charCodeAt(i);
             }
-            const writable = await handles.get(id).createWritable();
+            const writable = await fileOf(id).createWritable();
             await writable.write(bytes);
             await writable.close();
         },
-        list: async (id) => {
-            const names = [];
-            for await (const name of handles.get(id).keys()) {
+        list: async (id: number) => {
+            const names: string[] = [];
+            for await (const name of dirOf(id).keys()) {
                 names.push(name);
             }
             return names;
         },
-        getFile: async (id, name, create) => {
-            const handle = await handles.get(id).getFileHandle(name, {create: !!create});
+        getFile: async (id: number, name: string, create: boolean) => {
+            const handle = await dirOf(id).getFileHandle(name, {create: !!create});
             return put(handle);
         },
-        release: (id) => {
+        release: (id: number) => {
             handles.delete(id);
         }
     };
@@ -939,14 +1018,15 @@ window.__raskFs = window.__raskFs || (() => {
 // base64-encoded. A missing path resolves to null / false / [] rather than throwing.
 window.__raskOpfs = window.__raskOpfs || (() => {
     // A path segment that isn't there, or is a directory where a file was expected.
-    const isMissing = (e) => e && (e.name === "NotFoundError" || e.name === "TypeMismatchError");
+    const isMissing = (e: unknown) =>
+        e instanceof Error && (e.name === "NotFoundError" || e.name === "TypeMismatchError");
 
     // Splits on "/" via split rather than a regex: the framework's JS minifier reads a bare /.../ as
     // division, which would break the spliced bundle.
-    const segments = (path) => (path || "").split("/").filter((s) => s.length > 0);
+    const segments = (path: string | null) => (path || "").split("/").filter((s) => s.length > 0);
 
     // "db/app.sqlite" -> { dir: <handle for "db">, name: "app.sqlite" }.
-    const parent = async (path, create) => {
+    const parent = async (path: string, create: boolean) => {
         const parts = segments(path);
         if (parts.length === 0) {
             return null;
@@ -959,15 +1039,15 @@ window.__raskOpfs = window.__raskOpfs || (() => {
         return {dir: dir, name: name};
     };
 
-    const fileHandle = async (path, create) => {
+    const fileHandle = async (path: string, create: boolean) => {
         const at = await parent(path, create);
-        if (!at) {
+        if (!at || !at.name) {
             return null;
         }
         return await at.dir.getFileHandle(at.name, {create: !!create});
     };
 
-    const directory = async (path) => {
+    const directory = async (path: string) => {
         let dir = await navigator.storage.getDirectory();
         const parts = segments(path);
         for (let i = 0; i < parts.length; i++) {
@@ -976,7 +1056,7 @@ window.__raskOpfs = window.__raskOpfs || (() => {
         return dir;
     };
 
-    const toBase64 = (buffer) => {
+    const toBase64 = (buffer: ArrayBuffer) => {
         const bytes = new Uint8Array(buffer);
         let binary = "";
         for (let i = 0; i < bytes.length; i++) {
@@ -985,7 +1065,7 @@ window.__raskOpfs = window.__raskOpfs || (() => {
         return btoa(binary);
     };
 
-    const fromBase64 = (base64) => {
+    const fromBase64 = (base64: string) => {
         const binary = atob(base64);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) {
@@ -996,7 +1076,7 @@ window.__raskOpfs = window.__raskOpfs || (() => {
 
     return {
         isSupported: () => !!(navigator.storage && navigator.storage.getDirectory),
-        exists: async (path) => {
+        exists: async (path: string) => {
             try {
                 return !!(await fileHandle(path, false));
             } catch (e) {
@@ -1006,7 +1086,7 @@ window.__raskOpfs = window.__raskOpfs || (() => {
                 throw e;
             }
         },
-        size: async (path) => {
+        size: async (path: string) => {
             try {
                 const handle = await fileHandle(path, false);
                 if (!handle) {
@@ -1022,7 +1102,7 @@ window.__raskOpfs = window.__raskOpfs || (() => {
         },
         // Blob.slice() reads only the requested range, so a chunked read never materialises the whole file.
         // A range past the end yields the bytes that were there, matching an ordinary short read.
-        read: async (path, offset, count) => {
+        read: async (path: string, offset: number, count: number) => {
             try {
                 const handle = await fileHandle(path, false);
                 if (!handle) {
@@ -1037,7 +1117,7 @@ window.__raskOpfs = window.__raskOpfs || (() => {
                 throw e;
             }
         },
-        readAll: async (path) => {
+        readAll: async (path: string) => {
             try {
                 const handle = await fileHandle(path, false);
                 if (!handle) {
@@ -1055,29 +1135,32 @@ window.__raskOpfs = window.__raskOpfs || (() => {
         // ranged write would discard every byte outside the range it wrote. Writing past the end zero-fills
         // the gap rather than failing — File System Standard, write() step 9 — which is what lets a growing
         // database write a page beyond its current size.
-        write: async (path, offset, base64) => {
+        write: async (path: string, offset: number, base64: string) => {
             const handle = await fileHandle(path, true);
+            if (!handle) return;
             const writable = await handle.createWritable({keepExistingData: true});
             await writable.write({type: "write", position: offset, data: fromBase64(base64)});
             await writable.close();
         },
         // Whole-file replace, so the default (start empty) is what we want here.
-        writeAll: async (path, base64) => {
+        writeAll: async (path: string, base64: string) => {
             const handle = await fileHandle(path, true);
+            if (!handle) return;
             const writable = await handle.createWritable();
             await writable.write(fromBase64(base64));
             await writable.close();
         },
-        truncate: async (path, size) => {
+        truncate: async (path: string, size: number) => {
             const handle = await fileHandle(path, true);
+            if (!handle) return;
             const writable = await handle.createWritable({keepExistingData: true});
             await writable.truncate(size);
             await writable.close();
         },
-        delete: async (path, recursive) => {
+        delete: async (path: string, recursive: boolean) => {
             try {
                 const at = await parent(path, false);
-                if (!at) {
+                if (!at || !at.name) {
                     return;
                 }
                 await at.dir.removeEntry(at.name, {recursive: !!recursive});
@@ -1088,7 +1171,7 @@ window.__raskOpfs = window.__raskOpfs || (() => {
                 throw e;
             }
         },
-        list: async (path) => {
+        list: async (path: string) => {
             try {
                 const names = [];
                 for await (const name of (await directory(path)).keys()) {
@@ -1113,7 +1196,7 @@ window.__raskOpfs = window.__raskOpfs || (() => {
 window.__raskWebAuthn = window.__raskWebAuthn || (() => {
     // base64url <-> ArrayBuffer. Uses split/join rather than regex literals: the framework's JS minifier
     // mis-parses regex literals (a bare /.../ reads as division), which would break the spliced bundle.
-    const b64urlToBuf = (s) => {
+    const b64urlToBuf = (s: string) => {
         let pad = "";
         if (s.length % 4 !== 0) {
             for (let i = 0; i < 4 - (s.length % 4); i++) {
@@ -1127,7 +1210,7 @@ window.__raskWebAuthn = window.__raskWebAuthn || (() => {
         }
         return bytes.buffer;
     };
-    const bufToB64url = (buf) => {
+    const bufToB64url = (buf: ArrayBuffer) => {
         const bytes = new Uint8Array(buf);
         let bin = "";
         for (let i = 0; i < bytes.length; i++) {
@@ -1136,34 +1219,39 @@ window.__raskWebAuthn = window.__raskWebAuthn || (() => {
         // Strip "=" padding (base64 only uses it as trailing padding), then make it URL-safe.
         return btoa(bin).split("=").join("").split("+").join("-").split("/").join("_");
     };
-    const descriptors = (list) => (list || []).map((d) => ({
-        type: d.type || "public-key",
-        id: b64urlToBuf(d.id),
-        transports: d.transports || undefined
-    }));
-    const isCancel = (e) => e && (e.name === "NotAllowedError" || e.name === "AbortError");
+    const descriptors = (list: RaskCredentialDescriptor[] | null): PublicKeyCredentialDescriptor[] =>
+        (list || []).map((d) => ({
+            // "public-key" is the only type the spec defines; the field exists for forward
+            // compatibility, and the DOM types model it as that one literal.
+            type: (d.type || "public-key") as "public-key",
+            id: b64urlToBuf(d.id),
+            transports: d.transports as AuthenticatorTransport[] | undefined
+        }));
+    const isCancel = (e: unknown) =>
+        e instanceof Error && (e.name === "NotAllowedError" || e.name === "AbortError");
     return {
         isSupported: () => !!(window.PublicKeyCredential && navigator.credentials),
         platformAuthenticatorAvailable: () =>
             (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)
                 ? PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
                 : Promise.resolve(false),
-        create: async (o) => {
+        create: async (o: RaskWebAuthnCreateOptions): Promise<unknown> => {
             const publicKey = {
                 challenge: b64urlToBuf(o.challenge),
                 rp: o.rp,
                 user: {id: b64urlToBuf(o.user.id), name: o.user.name, displayName: o.user.displayName},
                 pubKeyCredParams: (o.pubKeyCredParams && o.pubKeyCredParams.length)
                     ? o.pubKeyCredParams
-                    : [{type: "public-key", alg: -7}, {type: "public-key", alg: -257}],
+                    : ([{type: "public-key", alg: -7}, {type: "public-key", alg: -257}] as
+                        PublicKeyCredentialParameters[]),
                 timeout: o.timeoutMs || undefined,
                 attestation: o.attestation || undefined,
                 authenticatorSelection: o.authenticatorSelection || undefined,
                 excludeCredentials: o.excludeCredentials ? descriptors(o.excludeCredentials) : undefined
             };
-            let cred;
+            let cred: PublicKeyCredential | null;
             try {
-                cred = await navigator.credentials.create({publicKey: publicKey});
+                cred = await navigator.credentials.create({publicKey}) as PublicKeyCredential | null;
             } catch (e) {
                 if (isCancel(e)) {
                     return null;
@@ -1173,16 +1261,17 @@ window.__raskWebAuthn = window.__raskWebAuthn || (() => {
             if (!cred) {
                 return null;
             }
+            const attestation = cred.response as AuthenticatorAttestationResponse;
             return {
                 id: cred.id,
                 rawId: bufToB64url(cred.rawId),
                 type: cred.type,
-                clientDataJson: bufToB64url(cred.response.clientDataJSON),
-                attestationObject: bufToB64url(cred.response.attestationObject),
-                transports: cred.response.getTransports ? cred.response.getTransports() : null
+                clientDataJson: bufToB64url(attestation.clientDataJSON),
+                attestationObject: bufToB64url(attestation.attestationObject),
+                transports: attestation.getTransports ? attestation.getTransports() : null
             };
         },
-        get: async (o) => {
+        get: async (o: RaskWebAuthnGetOptions): Promise<unknown> => {
             const publicKey = {
                 challenge: b64urlToBuf(o.challenge),
                 timeout: o.timeoutMs || undefined,
@@ -1190,9 +1279,9 @@ window.__raskWebAuthn = window.__raskWebAuthn || (() => {
                 allowCredentials: o.allowCredentials ? descriptors(o.allowCredentials) : undefined,
                 userVerification: o.userVerification || undefined
             };
-            let cred;
+            let cred: PublicKeyCredential | null;
             try {
-                cred = await navigator.credentials.get({publicKey: publicKey});
+                cred = await navigator.credentials.get({publicKey}) as PublicKeyCredential | null;
             } catch (e) {
                 if (isCancel(e)) {
                     return null;
@@ -1202,14 +1291,15 @@ window.__raskWebAuthn = window.__raskWebAuthn || (() => {
             if (!cred) {
                 return null;
             }
+            const assertion = cred.response as AuthenticatorAssertionResponse;
             return {
                 id: cred.id,
                 rawId: bufToB64url(cred.rawId),
                 type: cred.type,
-                clientDataJson: bufToB64url(cred.response.clientDataJSON),
-                authenticatorData: bufToB64url(cred.response.authenticatorData),
-                signature: bufToB64url(cred.response.signature),
-                userHandle: cred.response.userHandle ? bufToB64url(cred.response.userHandle) : null
+                clientDataJson: bufToB64url(assertion.clientDataJSON),
+                authenticatorData: bufToB64url(assertion.authenticatorData),
+                signature: bufToB64url(assertion.signature),
+                userHandle: assertion.userHandle ? bufToB64url(assertion.userHandle) : null
             };
         }
     };
@@ -1234,7 +1324,7 @@ window.__raskFullscreen = window.__raskFullscreen || {
 // user cancels (Escape) — map that to null rather than surfacing an error.
 window.__raskEyeDropper = window.__raskEyeDropper || {
     isSupported: () => "EyeDropper" in window,
-    open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
+    open: () => EyeDropper ? new EyeDropper().open().then((r) => r.sRGBHex, () => null) : null
 };
 
 // Screen Orientation (driven by IScreenOrientation + the declarative ScreenOrientationTrigger). Reading
@@ -1244,7 +1334,7 @@ window.__raskEyeDropper = window.__raskEyeDropper || {
 window.__raskOrientation = window.__raskOrientation || {
     isSupported: () => "orientation" in screen,
     get: () => ({ type: screen.orientation.type, angle: screen.orientation.angle }),
-    lock: (type) => screen.orientation.lock(type),
+    lock: (type: OrientationLockType) => screen.orientation.lock(type),
     unlock: () => { screen.orientation.unlock(); }
 };
 
@@ -1256,10 +1346,10 @@ window.__raskOrientation = window.__raskOrientation || {
 // event's prompt() replays fine without it. The listeners attach when this IIFE first runs at boot, so the
 // event isn't missed. (Installability still needs a manifest + service worker over HTTPS — AddRaskPwa on Server.)
 window.__raskInstall = window.__raskInstall || (() => {
-    let deferred = null;
+    let deferred: BeforeInstallPromptEventLike | null = null;
     let installed = false;
     window.addEventListener("beforeinstallprompt", (e) => {
-        deferred = e;
+        deferred = e as BeforeInstallPromptEventLike;
     });
     window.addEventListener("appinstalled", () => {
         installed = true;
@@ -1294,14 +1384,14 @@ window.__raskInstall = window.__raskInstall || (() => {
 // stops every track, releasing the camera/mic (and its hardware indicator). Shared here (not WASM-only) so
 // the trigger reaches it on the Server client too; getUserMedia still needs a secure (HTTPS) context.
 window.__raskMedia = window.__raskMedia || (() => {
-    const streams = new Map();
+    const streams = new Map<number, MediaStream>();
     let nextId = 0;
-    const put = (stream) => {
+    const put = (stream: MediaStream) => {
         const id = ++nextId;
         streams.set(id, stream);
         return id;
     };
-    const stop = (id) => {
+    const stop = (id: number) => {
         const stream = streams.get(id);
         if (!stream) {
             return;
@@ -1315,7 +1405,7 @@ window.__raskMedia = window.__raskMedia || (() => {
             const devices = await navigator.mediaDevices.enumerateDevices();
             return devices.map((d) => ({deviceId: d.deviceId, kind: d.kind, label: d.label, groupId: d.groupId}));
         },
-        getUserMedia: async (c) => {
+        getUserMedia: async (c: RaskMediaConstraints) => {
             const video = c.video
                 ? (c.facingMode ? {facingMode: c.facingMode} : true)
                 : false;
@@ -1323,7 +1413,7 @@ window.__raskMedia = window.__raskMedia || (() => {
             return put(stream);
         },
         getDisplayMedia: async () => put(await navigator.mediaDevices.getDisplayMedia({video: true})),
-        attach: (id, video) => {
+        attach: (id: number, video: HTMLVideoElement | null) => {
             const stream = streams.get(id);
             if (!stream || !video) {
                 return Promise.resolve();
@@ -1332,12 +1422,12 @@ window.__raskMedia = window.__raskMedia || (() => {
             video.muted = true;
             return video.play();
         },
-        stop: (id) => stop(id),
+        stop: (id: number) => stop(id),
         // The id ↔ MediaStream mapping, for other framework helpers that deal in stream ids — __raskRtc
         // sends a captured stream to a peer, and registers a peer's remote stream so C# gets an id it can
         // attach to a <video>. Not for application use; C# never calls these two.
-        get: (id) => streams.get(id),
-        adopt: (stream) => put(stream)
+        get: (id: number) => streams.get(id),
+        adopt: (stream: MediaStream) => put(stream)
     };
 })();
 
@@ -1348,7 +1438,8 @@ window.__raskMedia = window.__raskMedia || (() => {
 window.__raskPip = window.__raskPip || {
     isSupported: () => !!document.pictureInPictureEnabled,
     isActive: () => document.pictureInPictureElement != null,
-    request: (el) => el ? el.requestPictureInPicture() : Promise.reject(new Error("no video element")),
+    request: (el: HTMLVideoElement | null) =>
+        el ? el.requestPictureInPicture() : Promise.reject(new Error("no video element")),
     exit: () => document.pictureInPictureElement ? document.exitPictureInPicture() : Promise.resolve()
 };
 
@@ -1359,12 +1450,13 @@ window.__raskPip = window.__raskPip || {
 // the id until release(id) fires. Shared here (not WASM-only): navigator.locks needs no user gesture, so it
 // works over the Server client too.
 window.__raskLocks = window.__raskLocks || (() => {
-    const releasers = new Map(); // id -> resolve() of the held promise
+    // id -> resolve() of the held promise
+    const releasers = new Map<number, () => void>();
     return {
         isSupported: () => !!(navigator.locks && navigator.locks.request),
-        request: (id, name, mode, ifAvailable) =>
-            new Promise((resolveGranted, rejectGranted) => {
-                const opts = {mode: mode || "exclusive"};
+        request: (id: number, name: string, mode: LockMode, ifAvailable: boolean) =>
+            new Promise<boolean>((resolveGranted, rejectGranted) => {
+                const opts: LockOptions = {mode: mode || "exclusive"};
                 if (ifAvailable) {
                     opts.ifAvailable = true;
                 }
@@ -1375,13 +1467,13 @@ window.__raskLocks = window.__raskLocks || (() => {
                     }
                     resolveGranted(true);
                     // Hold the lock until C# calls release(id); its promise stays pending until then.
-                    return new Promise((release) => releasers.set(id, release));
+                    return new Promise<void>((release) => releasers.set(id, release));
                 }).catch((e) => {
                     releasers.delete(id);
                     rejectGranted(e);
                 });
             }),
-        release: (id) => {
+        release: (id: number) => {
             const release = releasers.get(id);
             if (release) {
                 releasers.delete(id);
@@ -1393,7 +1485,7 @@ window.__raskLocks = window.__raskLocks || (() => {
                 return Promise.resolve([]);
             }
             return navigator.locks.query().then((state) => {
-                const out = [];
+                const out: RaskLockInfo[] = [];
                 (state.held || []).forEach((l) => out.push({name: l.name, mode: l.mode, clientId: l.clientId, held: true}));
                 (state.pending || []).forEach((l) => out.push({name: l.name, mode: l.mode, clientId: l.clientId, held: false}));
                 return out;
@@ -1412,10 +1504,10 @@ window.__raskLocks = window.__raskLocks || (() => {
 //
 // The payload is an opaque string end to end — this helper never parses an SDP or a candidate either.
 window.__raskSignal = window.__raskSignal || (() => {
-    const conns = new Map(); // id -> WebSocket
+    const conns = new Map<number, WebSocket>(); // id -> WebSocket
     return {
         isSupported: () => typeof window.WebSocket === "function",
-        open: (id, path) => new Promise((resolve, reject) => {
+        open: (id: number, path: string) => new Promise<boolean>((resolve, reject) => {
             const url = new URL(path, window.location.href);
             url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
             const ws = new WebSocket(url.href);
@@ -1449,14 +1541,14 @@ window.__raskSignal = window.__raskSignal || (() => {
                 }
             };
         }),
-        send: (id, json) => {
+        send: (id: number, json: string) => {
             const ws = conns.get(id);
             if (!ws || ws.readyState !== WebSocket.OPEN) {
                 throw new Error("Rask signaling: connection " + id + " is closed.");
             }
             ws.send(json);
         },
-        close: (id) => {
+        close: (id: number) => {
             const ws = conns.get(id);
             if (!ws) {
                 return;
@@ -1469,7 +1561,7 @@ window.__raskSignal = window.__raskSignal || (() => {
         }
     };
 
-    function invoke(method, ...args) {
+    function invoke(method: string, ...args: unknown[]) {
         return window.DotNet.invokeMethodAsync("Rask.Core", method, ...args);
     }
 })();
@@ -1492,14 +1584,14 @@ window.__raskSignal = window.__raskSignal || (() => {
 // out-of-memory tab. ICE candidates are never dropped (a lost candidate can cost connectivity, and a
 // gathering burst is tens of entries, not thousands).
 window.__raskRtc = window.__raskRtc || (() => {
-    const conns = new Map(); // connId -> {pc, ice: [], timer: 0}
-    const chans = new Map(); // chanId -> {ch, buf: [], dropped: 0, timer: 0, listening: false}
+    const conns = new Map<number, RaskRtcConn>();
+    const chans = new Map<number, RaskRtcChan>();
     let nextChan = 0;
 
     const FLUSH_MS = 16;
     const MAX_BUFFERED = 10000;
 
-    const toBase64 = (buffer) => {
+    const toBase64 = (buffer: ArrayBuffer) => {
         const bytes = new Uint8Array(buffer);
         let binary = "";
         for (let i = 0; i < bytes.length; i++) {
@@ -1508,7 +1600,7 @@ window.__raskRtc = window.__raskRtc || (() => {
         return btoa(binary);
     };
 
-    const fromBase64 = (base64) => {
+    const fromBase64 = (base64: string) => {
         const binary = atob(base64);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) {
@@ -1517,11 +1609,12 @@ window.__raskRtc = window.__raskRtc || (() => {
         return bytes;
     };
 
-    const invoke = (method, ...args) => window.DotNet.invokeMethodAsync("Rask.Core", method, ...args);
+    const invoke = (method: string, ...args: unknown[]) =>
+        window.DotNet.invokeMethodAsync("Rask.Core", method, ...args);
 
     // A call against an already-disposed connection/channel would otherwise surface as a TypeError on
     // `undefined`, which says nothing about what the app did wrong.
-    const conn = (id) => {
+    const conn = (id: number): RaskRtcConn => {
         const c = conns.get(id);
         if (!c) {
             throw new Error("Rask WebRTC: peer connection " + id + " is closed.");
@@ -1529,7 +1622,7 @@ window.__raskRtc = window.__raskRtc || (() => {
         return c;
     };
 
-    const chan = (id) => {
+    const chan = (id: number): RaskRtcChan => {
         const c = chans.get(id);
         if (!c) {
             throw new Error("Rask WebRTC: data channel " + id + " is closed.");
@@ -1537,7 +1630,7 @@ window.__raskRtc = window.__raskRtc || (() => {
         return c;
     };
 
-    const flushIce = (id) => {
+    const flushIce = (id: number) => {
         const c = conns.get(id);
         if (!c) {
             return;
@@ -1551,7 +1644,7 @@ window.__raskRtc = window.__raskRtc || (() => {
         invoke("RaskRtcIce", id, batch);
     };
 
-    const flushMessages = (id) => {
+    const flushMessages = (id: number) => {
         const c = chans.get(id);
         if (!c) {
             return;
@@ -1569,7 +1662,7 @@ window.__raskRtc = window.__raskRtc || (() => {
         invoke("RaskRtcMessages", c.connId, id, batch, dropped);
     };
 
-    const schedule = (c, run) => {
+    const schedule = (c: { timer: ReturnType<typeof setTimeout> | 0 }, run: () => void) => {
         if (c.timer === 0) {
             c.timer = setTimeout(run, FLUSH_MS);
         }
@@ -1577,26 +1670,28 @@ window.__raskRtc = window.__raskRtc || (() => {
 
     // Wires one channel — local or remote — into the id space and starts buffering immediately, so nothing
     // sent between "the channel exists" and "C# called listen" is lost.
-    const adopt = (connId, ch) => {
+    const adopt = (connId: number, ch: RTCDataChannel) => {
         const id = ++nextChan;
         ch.binaryType = "arraybuffer";
-        const state = {ch: ch, connId: connId, buf: [], dropped: 0, timer: 0, listening: false};
+        const state: RaskRtcChan = {
+            ch: ch, connId: connId, buf: [], dropped: 0, timer: 0, listening: false
+        };
         chans.set(id, state);
-        ch.onmessage = (e) => {
+        ch.onmessage = (e: MessageEvent) => {
             if (state.buf.length >= MAX_BUFFERED) {
                 state.buf.shift();
                 state.dropped++;
             }
             state.buf.push(typeof e.data === "string"
                 ? {text: e.data, data: null}
-                : {text: null, data: toBase64(e.data)});
+                : {text: null, data: toBase64(e.data as ArrayBuffer)});
             schedule(state, () => flushMessages(id));
         };
         ch.onclose = () => invoke("RaskRtcChannelClosed", connId, id);
         return id;
     };
 
-    const closeChannel = (id) => {
+    const closeChannel = (id: number) => {
         const c = chans.get(id);
         if (!c) {
             return;
@@ -1609,16 +1704,17 @@ window.__raskRtc = window.__raskRtc || (() => {
         c.ch.onclose = null;
         try {
             c.ch.close();
-        } catch (_) {
+        } catch {
             // Already closed with the connection — nothing to release.
         }
     };
 
     return {
         isSupported: () => typeof window.RTCPeerConnection === "function",
-        create: (id, config) => {
-            const servers = (config && config.iceServers ? config.iceServers : []).map((u) => ({urls: u}));
-            const init = {iceServers: servers};
+        create: (id: number, config: RaskRtcConfig | null) => {
+            const servers = (config && config.iceServers ? config.iceServers : [])
+                .map((u: string) => ({urls: u}));
+            const init: RTCConfiguration = {iceServers: servers};
             if (config && config.iceTransportPolicy) {
                 init.iceTransportPolicy = config.iceTransportPolicy;
             }
@@ -1626,9 +1722,11 @@ window.__raskRtc = window.__raskRtc || (() => {
             // `remote` maps a peer stream's own id to the __raskMedia id we minted for it, so a second
             // ontrack for the same stream doesn't mint (and push) a duplicate. `senders` remembers what
             // AddStream added, so RemoveStream can take exactly those tracks back off.
-            const state = {pc: pc, ice: [], timer: 0, remote: new Map(), senders: new Map()};
+            const state: RaskRtcConn = {
+                pc: pc, ice: [], timer: 0, remote: new Map(), senders: new Map()
+            };
             conns.set(id, state);
-            pc.onicecandidate = (e) => {
+            pc.onicecandidate = (e: RTCPeerConnectionIceEvent) => {
                 // A null candidate marks end-of-gathering; flush what's buffered rather than forwarding it.
                 if (!e.candidate) {
                     flushIce(id);
@@ -1642,7 +1740,8 @@ window.__raskRtc = window.__raskRtc || (() => {
                 schedule(state, () => flushIce(id));
             };
             pc.onconnectionstatechange = () => invoke("RaskRtcState", id, pc.connectionState);
-            pc.ondatachannel = (e) => invoke("RaskRtcChannel", id, adopt(id, e.channel), e.channel.label);
+            pc.ondatachannel = (e: RTCDataChannelEvent) =>
+                invoke("RaskRtcChannel", id, adopt(id, e.channel), e.channel.label);
             pc.ontrack = (e) => {
                 // A peer's stream is as opaque to C# as a captured one, so it goes into __raskMedia's map
                 // and C# gets an id — the same id shape IMediaDevices and MediaCaptureTrigger hand out, so
@@ -1657,24 +1756,26 @@ window.__raskRtc = window.__raskRtc || (() => {
                 invoke("RaskRtcTrack", id, streamId);
             };
         },
-        createOffer: async (id) => {
+        createOffer: async (id: number) => {
             const c = conn(id);
             const offer = await c.pc.createOffer();
             return {type: offer.type, sdp: offer.sdp};
         },
-        createAnswer: async (id) => {
+        createAnswer: async (id: number) => {
             const c = conn(id);
             const answer = await c.pc.createAnswer();
             return {type: answer.type, sdp: answer.sdp};
         },
-        setLocal: (id, d) => conn(id).pc.setLocalDescription({type: d.type, sdp: d.sdp}),
-        setRemote: (id, d) => conn(id).pc.setRemoteDescription({type: d.type, sdp: d.sdp}),
-        addIce: (id, cand) => conn(id).pc.addIceCandidate({
+        setLocal: (id: number, d: RaskRtcDescription) =>
+            conn(id).pc.setLocalDescription({type: d.type, sdp: d.sdp}),
+        setRemote: (id: number, d: RaskRtcDescription) =>
+            conn(id).pc.setRemoteDescription({type: d.type, sdp: d.sdp}),
+        addIce: (id: number, cand: RTCIceCandidateInit) => conn(id).pc.addIceCandidate({
             candidate: cand.candidate,
             sdpMid: cand.sdpMid,
             sdpMLineIndex: cand.sdpMLineIndex
         }),
-        addStream: (connId, streamId) => {
+        addStream: (connId: number, streamId: number) => {
             const c = conn(connId);
             const stream = window.__raskMedia.get(streamId);
             if (!stream) {
@@ -1685,7 +1786,7 @@ window.__raskRtc = window.__raskRtc || (() => {
             }
             c.senders.set(streamId, stream.getTracks().map((t) => c.pc.addTrack(t, stream)));
         },
-        removeStream: (connId, streamId) => {
+        removeStream: (connId: number, streamId: number) => {
             const c = conn(connId);
             const senders = c.senders.get(streamId);
             if (!senders) {
@@ -1695,13 +1796,13 @@ window.__raskRtc = window.__raskRtc || (() => {
             senders.forEach((s) => {
                 try {
                     c.pc.removeTrack(s);
-                } catch (_) {
+                } catch {
                     // The sender goes away with the connection; removing it afterwards is not an error.
                 }
             });
         },
-        createChannel: (connId, label, options) => {
-            const init = {};
+        createChannel: (connId: number, label: string, options: RaskRtcChannelOptions | null) => {
+            const init: RTCDataChannelInit = {};
             if (options) {
                 if (options.ordered != null) {
                     init.ordered = options.ordered;
@@ -1717,7 +1818,7 @@ window.__raskRtc = window.__raskRtc || (() => {
         },
         // Starts delivery for a channel. Anything the peer sent before this point is already buffered and
         // rides the first push.
-        listen: (id) => {
+        listen: (id: number) => {
             const c = chans.get(id);
             if (!c) {
                 return;
@@ -1725,10 +1826,10 @@ window.__raskRtc = window.__raskRtc || (() => {
             c.listening = true;
             schedule(c, () => flushMessages(id));
         },
-        sendText: (id, text) => chan(id).ch.send(text),
-        sendBytes: (id, base64) => chan(id).ch.send(fromBase64(base64)),
-        closeChannel: (id) => closeChannel(id),
-        close: (id) => {
+        sendText: (id: number, text: string) => chan(id).ch.send(text),
+        sendBytes: (id: number, base64: string) => chan(id).ch.send(fromBase64(base64)),
+        closeChannel: (id: number) => closeChannel(id),
+        close: (id: number) => {
             const c = conns.get(id);
             if (!c) {
                 return;
@@ -1738,7 +1839,7 @@ window.__raskRtc = window.__raskRtc || (() => {
             }
             conns.delete(id);
             // Snapshot first: closeChannel deletes from the map we'd otherwise be iterating.
-            const owned = [];
+            const owned: number[] = [];
             chans.forEach((chan, chanId) => {
                 if (chan.connId === id) {
                     owned.push(chanId);
@@ -1781,7 +1882,7 @@ window.__raskVt = window.__raskVt || {
     reducedMotion: () => typeof window.matchMedia === "function"
         && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 
-    set(on) {
+    set(on: boolean) {
         window.__raskVt.enabled = !!on;
         return window.__raskVt.enabled;
     },
@@ -1794,7 +1895,7 @@ window.__raskVt = window.__raskVt || {
     // queue, which needs to know when the DOM is COMMITTED so it can release the next frame — not when
     // the animation has played out. Holding the queue for the full animation would make a fast
     // sequence of frames queue up behind their own cross-fades.
-    run(commit) {
+    run(commit: () => void) {
         if (!window.__raskVt.active()) return commit();
         try {
             const t = document.startViewTransition(commit);
@@ -1820,10 +1921,10 @@ window.__raskVt = window.__raskVt || {
 // overriding a choice it cannot see the intent behind — a loading spinner and a decorative parallax are
 // not the same call.
 window.__raskAnim = window.__raskAnim || (() => {
-    const anims = new Map();
+    const anims = new Map<number, Animation>();
     let next = 1;
 
-    const get = (id) => anims.get(id) || null;
+    const get = (id: number) => anims.get(id) || null;
 
     return {
         supported: () => typeof Element !== "undefined" && typeof Element.prototype.animate === "function",
@@ -1831,10 +1932,10 @@ window.__raskAnim = window.__raskAnim || (() => {
         // keyframes arrives as the OBJECT form — {opacity: ["0","1"], transform: [...]} — which is what
         // Element.animate takes natively and what serializes as a Dictionary<string, string[]> without
         // any new trim-unsafe JSON shape.
-        start: (el, keyframes, options) => {
+        start: (el: Element | null, keyframes: Record<string, string[]>, options: RaskAnimOptions | null) => {
             if (!el || typeof el.animate !== "function") return 0;
             const opts = options || {};
-            const timing = {
+            const timing: KeyframeAnimationOptions = {
                 duration: typeof opts.durationMs === "number" ? opts.durationMs : 400,
                 delay: typeof opts.delayMs === "number" ? opts.delayMs : 0,
                 // -1 is the wire spelling of Infinity: JSON has no literal for it, and a C# double
@@ -1858,14 +1959,14 @@ window.__raskAnim = window.__raskAnim || (() => {
 
         // Each of these is a no-op on an unknown handle rather than a throw: the animation may simply
         // have finished and been forgotten, which is not a caller error.
-        cancel: (id) => { const a = get(id); if (a) a.cancel(); },
-        finish: (id) => { const a = get(id); if (a) a.finish(); },
-        pause: (id) => { const a = get(id); if (a) a.pause(); },
-        play: (id) => { const a = get(id); if (a) a.play(); },
+        cancel: (id: number) => { const a = get(id); if (a) a.cancel(); },
+        finish: (id: number) => { const a = get(id); if (a) a.finish(); },
+        pause: (id: number) => { const a = get(id); if (a) a.pause(); },
+        play: (id: number) => { const a = get(id); if (a) a.play(); },
 
         // true when it ran to completion, false when it was cancelled or is already gone. Never throws,
         // so `await` at a call site does not need a try/catch around an ordinary cancel.
-        finished: (id) => {
+        finished: (id: number) => {
             const a = get(id);
             if (!a) return Promise.resolve(false);
             return a.finished.then(() => true, () => false);

@@ -24,17 +24,23 @@
 // fire raskAfterMorph again once external scripts finish loading — inline
 // scripts run synchronously on insertion and may early-return if they depend
 // on a not-yet-loaded global like window.hljs.
-function reviveScript(node) {
-    if (!node || node.nodeType !== 1 || node.tagName !== "SCRIPT") return node;
+export function reviveScript(node: Node): Node {
+    if (node.nodeType !== 1 || (node as Element).tagName !== "SCRIPT") return node;
+
+    // Narrowed by the nodeType/tagName test above rather than by `instanceof`. These nodes come from
+    // a DOMParser document, and an instanceof against this realm's constructor would be a stronger
+    // claim than the check that actually guards the branch.
+    const source = node as HTMLScriptElement;
+
     const s = document.createElement("script");
-    for (const a of node.attributes) s.setAttribute(a.name, a.value);
+    for (const a of source.attributes) s.setAttribute(a.name, a.value);
     if (s.src) {
         s.async = false;
         s.addEventListener("load", () => {
             if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
         }, {once: true});
     }
-    s.text = node.textContent;
+    s.text = source.textContent ?? "";
     return s;
 }
 
@@ -47,7 +53,28 @@ function reviveScript(node) {
 // that race the scoped-JS bundle drain after it loads. If a component needs
 // teardown on element removal, install a MutationObserver inside the hook or
 // expose an explicit "removed" method and call it from OnUnmount.
-function _raskInsertBefore(parent, dst, anchor) {
+/**
+ * Narrows a node to an Element — which is exactly what `nodeType === 1` means.
+ *
+ * Replaces the `n.nodeType === 1 && n.getAttribute` pattern this file used in four places: the
+ * second half was duck-typing standing in for a type system, and on a real Element it is never false.
+ */
+export function isElement(n: Node | null | undefined): n is Element {
+    return !!n && n.nodeType === 1;
+}
+
+/**
+ * The nearest ancestor of an event's target matching `selector`, or null.
+ *
+ * Replaces the `(e.target && e.target.closest) ? … : null` dance the runtime repeated at every
+ * listener: `target` is an EventTarget, only an Element has closest(), and a composed event from
+ * inside a shadow root can retarget to something that is neither.
+ */
+export function closestFrom(target: EventTarget | null, selector: string): HTMLElement | null {
+    return target instanceof Element ? target.closest<HTMLElement>(selector) : null;
+}
+
+function _raskInsertBefore(parent: Node, dst: Node, anchor: Node | null): void {
     parent.insertBefore(dst, anchor);
 }
 
@@ -55,27 +82,27 @@ function _raskInsertBefore(parent, dst, anchor) {
 // (moveBefore, Chromium 133+): it moves the node WITHOUT disconnecting it, so a
 // focused descendant keeps focus, selection, and caret across a keyed reorder. A
 // plain insertBefore of a connected node still disconnects it briefly and blurs it.
-function _raskMoveBefore(parent, node, anchor) {
+function _raskMoveBefore(parent: MovableParent, node: Node, anchor: Node | null): void {
     if (parent.moveBefore) {
         try {
             parent.moveBefore(node, anchor);
             return;
-        } catch (e) {
+        } catch {
             // Not connected / cross-document — fall through to insertBefore.
         }
     }
     parent.insertBefore(node, anchor);
 }
 
-function _raskAppendChild(parent, dst) {
+function _raskAppendChild(parent: Node, dst: Node): void {
     parent.appendChild(dst);
 }
 
-function _raskRemoveChild(parent, src) {
+function _raskRemoveChild(parent: Node, src: Node): void {
     parent.removeChild(src);
 }
 
-function _raskReplaceChild(parent, dst, src) {
+function _raskReplaceChild(parent: Node, dst: Node, src: Node): void {
     parent.replaceChild(dst, src);
 }
 
@@ -102,11 +129,11 @@ function _raskPendingValues() {
     return window.__raskPendingValues || (window.__raskPendingValues = new WeakMap());
 }
 
-function raskNotePendingValue(el, supersededValue) {
+export function raskNotePendingValue(el: Element | null, supersededValue: string): void {
     if (el) _raskPendingValues().set(el, supersededValue);
 }
 
-function raskShouldSuppressValue(el, incoming) {
+export function raskShouldSuppressValue(el: Element | null, incoming: string): boolean {
     const map = _raskPendingValues();
     if (!el || !map.has(el)) return false;
     if (map.get(el) === incoming) return true;   // lagging frame carrying the stale value
@@ -127,11 +154,11 @@ function _raskPendingChecked() {
     return window.__raskPendingChecked || (window.__raskPendingChecked = new WeakMap());
 }
 
-function raskNotePendingChecked(el, supersededChecked) {
+export function raskNotePendingChecked(el: Element | null, supersededChecked: boolean): void {
     if (el) _raskPendingChecked().set(el, !!supersededChecked);
 }
 
-function raskShouldSuppressChecked(el, incoming) {
+export function raskShouldSuppressChecked(el: Element | null, incoming: boolean): boolean {
     const map = _raskPendingChecked();
     if (!el || !map.has(el)) return false;
     if (map.get(el) === !!incoming) return true;   // lagging frame carrying the stale checked
@@ -153,11 +180,11 @@ function _raskPendingSelected() {
     return window.__raskPendingSelected || (window.__raskPendingSelected = new WeakMap());
 }
 
-function raskNotePendingSelected(el, supersededSelected) {
+function raskNotePendingSelected(el: Element | null, supersededSelected: boolean): void {
     if (el) _raskPendingSelected().set(el, !!supersededSelected);
 }
 
-function raskShouldSuppressSelected(el, incoming) {
+export function raskShouldSuppressSelected(el: Element | null, incoming: boolean): boolean {
     const map = _raskPendingSelected();
     if (!el || !map.has(el)) return false;
     if (map.get(el) === !!incoming) return true;   // lagging frame carrying the stale selection
@@ -172,7 +199,7 @@ function raskShouldSuppressSelected(el, incoming) {
 // A lagging frame is one that carries the pre-pick state of EVERY guarded option — that is exactly what
 // raskNotePendingSelected recorded on dispatch. If even one guarded option differs, the frame knows
 // something the user's pick didn't, so it is authoritative: release the whole group and apply.
-function raskShouldSuppressSelectGroup(select, desired) {
+export function raskShouldSuppressSelectGroup(select: HTMLSelectElement, desired: boolean[]): boolean {
     const map = _raskPendingSelected();
     const options = select.options;
     let guarded = 0, stale = 0;
@@ -197,7 +224,7 @@ function raskShouldSuppressSelectGroup(select, desired) {
 // the "ask for a reset" behaviour that quietly rescues most single-select cases does not apply to it:
 // a user-picked option that the incoming render does NOT mark stays selected, so the control
 // accumulates selections it was never rendered with.
-function raskApplySelectSelection(select, desired) {
+function raskApplySelectSelection(select: HTMLSelectElement, desired: boolean[]): void {
     const options = select.options;
     if (select.multiple) {
         for (let i = 0; i < options.length; i++) {
@@ -225,10 +252,10 @@ function raskApplySelectSelection(select, desired) {
 
 // Called once per <select> at the end of morph(), after its options have been reconciled — so the
 // `selected` attributes read here are the incoming render's, and the option list is final.
-function raskSyncSelectSelection(select) {
+function raskSyncSelectSelection(select: HTMLSelectElement): void {
     const options = select.options;
     if (!options) return;
-    const desired = [];
+    const desired: boolean[] = [];
     for (let i = 0; i < options.length; i++) desired.push(options[i].hasAttribute("selected"));
     if (raskShouldSuppressSelectGroup(select, desired)) return;
     raskApplySelectSelection(select, desired);
@@ -253,18 +280,18 @@ function _raskDirtyFields() {
     return window.__raskDirtyFields || (window.__raskDirtyFields = new WeakMap());
 }
 
-function raskNoteDirtyField(el) {
+export function raskNoteDirtyField(el: Element | null): void {
     if (!el) return;
     const map = _raskDirtyFields();
     if (map.has(el)) return;                        // capture-once — the first edit owns the base
     map.set(el, raskFieldBase(el));
 }
 
-function raskIsDirtyField(el) {
+export function raskIsDirtyField(el: Element | null): boolean {
     return !!el && _raskDirtyFields().has(el);
 }
 
-function raskDirtyFieldBase(el) {
+export function raskDirtyFieldBase(el: Element | null): RaskFieldBase | undefined {
     const map = _raskDirtyFields();
     return el && map.has(el) ? map.get(el) : undefined;
 }
@@ -277,11 +304,12 @@ function raskDirtyFieldBase(el) {
 // `null` is preserved and is NOT the same as "": it means the server rendered no `value` attribute at
 // all — an uncontrolled input, which morph deliberately never writes to (see the uncontrolled rule in
 // morph() below). The restore treats the two differently, so they must not be flattened together.
-function raskFieldBase(el) {
+export function raskFieldBase(el: Element): RaskFieldBase {
     if (el.tagName === "TEXTAREA") return el.textContent;
     const type = (el.getAttribute("type") || "").toLowerCase();
     if (type === "checkbox") return el.hasAttribute("checked");
-    if (type === "radio") return raskRadioGroupBase(el);
+    // type=radio is only ever an <input>, which is what makes the group lookup below legitimate.
+    if (type === "radio") return raskRadioGroupBase(el as HTMLInputElement);
     return el.getAttribute("value");
 }
 
@@ -292,7 +320,7 @@ function raskFieldBase(el) {
 // `checked` attribute, or "" for a group the server rendered with nothing selected.
 //
 // The group is same-name AND same form owner; two forms on one page can each have a `Plan` group.
-function raskRadioGroupBase(el) {
+function raskRadioGroupBase(el: HTMLInputElement): string {
     const group = raskRadioGroup(el);
     for (const r of group) {
         if (r.hasAttribute("checked")) return r.getAttribute("value") || "";
@@ -301,13 +329,13 @@ function raskRadioGroupBase(el) {
     return "";
 }
 
-function raskRadioGroup(el) {
+export function raskRadioGroup(el: HTMLInputElement): HTMLInputElement[] {
     const name = el.getAttribute("name");
     if (!name) return [el];
-    const out = [];
+    const out: HTMLInputElement[] = [];
     // Matched by attribute rather than a name selector so this stays free of CSS.escape, which the
     // shared modules can't assume — a name is app-authored and may hold selector metacharacters.
-    for (const r of document.querySelectorAll("input[type=radio]")) {
+    for (const r of document.querySelectorAll<HTMLInputElement>("input[type=radio]")) {
         if (r.getAttribute("name") === name && r.form === el.form) out.push(r);
     }
 
@@ -318,10 +346,16 @@ function raskRadioGroup(el) {
 // drift on which controls get a guard — each carried a hand-copied version of this block, which is
 // exactly how <select> came to have no guard at all while value and checked had one. Called from the
 // change dispatch with the element that changed, just before the message goes out.
-function raskNotePendingFormState(el) {
+export function raskNotePendingFormState(el: Element | null): void {
     if (!el || !el.tagName) return;
     const tag = el.tagName;
-    const isCheckbox = tag === "INPUT" && el.type === "checkbox";
+
+    // The tag tests below are what make each narrowing true; naming them once here keeps the reads
+    // honest without repeating a cast at every property access.
+    const asInput = tag === "INPUT" ? el as HTMLInputElement : null;
+    const asSelect = tag === "SELECT" ? el as HTMLSelectElement : null;
+
+    const isCheckbox = asInput?.type === "checkbox";
     // The PRE-EDIT value (the last server-rendered `value` attribute) — exactly what a lagging frame
     // carries. Checkboxes self-correct through the checked guard, so they stay out of the value guard.
     if (!isCheckbox) {
@@ -333,15 +367,15 @@ function raskNotePendingFormState(el) {
     // uncheck the new one. raskRadioGroup is the same same-name-AND-same-form lookup the restore uses —
     // narrower than the hosts' old root-wide `name` selector (two forms can each own a `Plan` group),
     // and free of CSS.escape, which the shared modules can't assume for an app-authored name.
-    if (tag === "INPUT" && (isCheckbox || el.type === "radio")) {
-        const group = el.type === "radio" ? raskRadioGroup(el) : [el];
+    if (asInput && (isCheckbox || asInput.type === "radio")) {
+        const group = asInput.type === "radio" ? raskRadioGroup(asInput) : [asInput];
         for (const r of group) {
             raskNotePendingChecked(r, r.hasAttribute("checked"));
         }
     }
     // The PRE-PICK selected state of every option in the select — same reasoning as the radio group.
-    if (tag === "SELECT") {
-        const opts = el.options || (el.getElementsByTagName ? el.getElementsByTagName("option") : null);
+    if (asSelect) {
+        const opts = asSelect.options || (asSelect.getElementsByTagName ? asSelect.getElementsByTagName("option") : null);
         if (opts) {
             for (let i = 0; i < opts.length; i++) {
                 raskNotePendingSelected(opts[i], opts[i].hasAttribute("selected"));
@@ -357,28 +391,34 @@ function raskNotePendingFormState(el) {
 // for a <select multiple>: the DOM has no multi-value `value`, so `select.value` is the FIRST selected
 // option (or "" when none), and reporting it alone told the server one option out of however many the
 // user had picked — the model then converged on that one, correctly, from a wrong report.
-function raskChangeFrameValue(el) {
+export function raskChangeFrameValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): string {
     const tag = el.tagName;
     // For a checkbox the meaningful state is el.checked, not el.value (the static "on" default). Report
     // it as "true"/"false" so a bound checkbox sets the model to the actual state (self-correcting)
     // rather than relying on a server-side toggle. Radios keep sending el.value — a radio's value IS
     // the selected option.
-    if (tag === "INPUT" && el.type === "checkbox") return el.checked ? "true" : "false";
+    if (tag === "INPUT" && el.type === "checkbox") return (el as HTMLInputElement).checked ? "true" : "false";
     return el.value == null ? "" : String(el.value);
 }
 
 // The whole selection of a <select multiple>, or null for every other control — null rather than an
 // empty array so the frame simply omits the field and no existing payload grows a byte.
-function raskChangeFrameValues(el) {
-    if (el.tagName !== "SELECT" || !el.multiple) return null;
-    const picked = el.selectedOptions;
-    const values = [];
+export function raskChangeFrameValues(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): string[] | null {
+    if (el.tagName !== "SELECT") return null;
+
+    // Narrowed by the tag test above: `multiple`, `selectedOptions` and `options` are all
+    // HTMLSelectElement members, and the union this takes also covers inputs and textareas.
+    const select = el as HTMLSelectElement;
+    if (!select.multiple) return null;
+
+    const picked = select.selectedOptions;
+    const values: string[] = [];
     if (picked) {
         for (let i = 0; i < picked.length; i++) values.push(picked[i].value);
     } else {
         // selectedOptions is universally supported, but the fallback costs three lines and keeps the
         // shared module honest against a stub DOM that models only `options`.
-        const opts = el.options || [];
+        const opts = select.options || [];
         for (let i = 0; i < opts.length; i++) {
             if (opts[i].selected) values.push(opts[i].value);
         }
@@ -395,8 +435,8 @@ function raskChangeFrameValues(el) {
 // apply (a head morph, or an applyDiff InsertSubtree of a Head-declared script/link); those are discarded
 // from the observer queue so they're never mistaken for foreign. data-rask-key nodes (the framework's keyed
 // head links, incl. the scoped-CSS FOUC preload clone) are never tagged — they must reconcile by key.
-let _raskHeadObserver = null;
-let _raskObservedHead = null;
+let _raskHeadObserver: MutationObserver | null = null;
+let _raskObservedHead: HTMLHeadElement | null = null;
 
 function _raskEnsureHeadObserver() {
     if (typeof MutationObserver === "undefined" || typeof document === "undefined" || !document.head) {
@@ -419,11 +459,13 @@ function _raskEnsureHeadObserver() {
 // Tag the nodes added by these mutation records — a <style>/<link>/<script> a library injected — with
 // data-rask-managed so the reconciler's skip preserves them. Never tags data-rask-key nodes (the
 // framework's own keyed head links, e.g. the scoped-CSS FOUC clone, which must reconcile by key).
-function _raskTagHeadRecords(records) {
+function _raskTagHeadRecords(records: MutationRecord[]): void {
     for (const r of records) {
         for (const n of r.addedNodes) {
-            if (n.nodeType === 1 && !n.hasAttribute("data-rask-key") && !n.hasAttribute("data-rask-managed")) {
-                n.setAttribute("data-rask-managed", "");
+            if (n.nodeType !== 1) continue;
+            const el = n as Element;
+            if (!el.hasAttribute("data-rask-key") && !el.hasAttribute("data-rask-managed")) {
+                el.setAttribute("data-rask-managed", "");
             }
         }
     }
@@ -431,14 +473,14 @@ function _raskTagHeadRecords(records) {
 
 // Synchronous flush at the start of a head morph: tag foreign nodes injected since the last drain that the
 // async observer callback hasn't processed yet, so this morph preserves them.
-function _raskTagForeignHeadNodes() {
+export function _raskTagForeignHeadNodes() {
     if (_raskHeadObserver) _raskTagHeadRecords(_raskHeadObserver.takeRecords());
 }
 
 // Drop the head mutations the framework itself just made (during a morph or applyDiff) so the async
 // observer never tags framework-inserted head nodes as foreign. Called at the end of every head morph and
 // at the end of applyDiff (rask-dom.js).
-function _raskDiscardFrameworkHeadMutations() {
+export function _raskDiscardFrameworkHeadMutations() {
     if (_raskHeadObserver) _raskHeadObserver.takeRecords();
 }
 
@@ -448,15 +490,25 @@ function _raskDiscardFrameworkHeadMutations() {
 // left alone.
 _raskEnsureHeadObserver();
 
-function morph(from, to) {
-    if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
-        _raskReplaceChild(from.parentNode, to, from);
+export function morph(fromNode: Node, toNode: Node): void {
+    if (fromNode.nodeType !== toNode.nodeType || fromNode.nodeName !== toNode.nodeName) {
+        // A node with no parent cannot be replaced, and reaching here with one would mean morph was
+        // called on a detached root. Guarding beats the alternative: replaceChild on a null parent
+        // throws a TypeError naming neither the node nor the caller.
+        if (fromNode.parentNode) _raskReplaceChild(fromNode.parentNode, toNode, fromNode);
         return;
     }
-    if (from.nodeType === 3 || from.nodeType === 8) {
-        if (from.nodeValue !== to.nodeValue) from.nodeValue = to.nodeValue;
+    if (fromNode.nodeType === 3 || fromNode.nodeType === 8) {
+        if (fromNode.nodeValue !== toNode.nodeValue) fromNode.nodeValue = toNode.nodeValue;
         return;
     }
+
+    // Everything past the text/comment return is an element: the two sides' nodeType and nodeName
+    // already agree, and only an element carries attributes. Rebound to the names the rest of this
+    // function uses, so the narrowing reaches every read below without a cast at each one.
+    const from = fromNode as Element;
+    const to = toNode as Element;
+
     const fa = from.attributes, ta = to.attributes;
     // Reverse walk: removeAttribute mutates the live `fa` NamedNodeMap, so iterate
     // by index from the end to keep the unvisited slots stable.
@@ -469,6 +521,9 @@ function morph(from, to) {
     }
     const tag = from.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") {
+        // Narrowed by the tag test. A textarea has no `checked`, so the union is what keeps the
+        // checkbox branch below honest rather than papering over it with `any`.
+        const fromField = from as HTMLInputElement | HTMLTextAreaElement;
         // Only inputs with data-rask-on-input stream keystrokes — those need the
         // focus guard so a lagging re-render doesn't clobber mid-typed characters.
         // Change-only inputs (date / number / time / datetime-local / checkbox /
@@ -487,14 +542,21 @@ function morph(from, to) {
             // raskShouldSuppressValue runs first so it can clear a confirmed echo even when from.value
             // already equals newVal; a still-pending user edit (incoming !== the committed value) is
             // left untouched.
-            if (newVal !== null && !raskShouldSuppressValue(from, newVal) && from.value !== newVal) {
-                from.value = newVal;
+            if (newVal !== null && !raskShouldSuppressValue(from, newVal) && fromField.value !== newVal) {
+                fromField.value = newVal;
             }
             // raskShouldSuppressChecked runs first (like the value guard) so a confirmed echo can
             // clear the guard even when from.checked already matches — a lagging frame carrying the
             // pre-click checked is left to the browser's just-applied native state.
             const checked = to.hasAttribute("checked");
-            if (!raskShouldSuppressChecked(from, checked) && from.checked !== checked) from.checked = checked;
+            // `checked` only exists on an input; a textarea reaching here simply has no checkbox
+            // state to reconcile, which is what the tag test below states.
+            if (tag === "INPUT") {
+                const fromInput = fromField as HTMLInputElement;
+                if (!raskShouldSuppressChecked(from, checked) && fromInput.checked !== checked) {
+                    fromInput.checked = checked;
+                }
+            }
         }
     }
     // Reconciling the live <head>: before pairing children, tag anything a third-party library injected
@@ -517,13 +579,13 @@ function morph(from, to) {
     // so the marker contradicts itself. Skipping it makes that mistake a harmless
     // no-op; without this, the from-side node is filtered out but the to-side one
     // isn't, so every morph appends a fresh unpaired copy (unbounded DOM growth).
-    const fc = [], tc = [];
+    const fc: Node[] = [], tc: Node[] = [];
     for (let n = from.firstChild; n; n = n.nextSibling) {
-        if (n.nodeType === 1 && n.hasAttribute("data-rask-managed")) continue;
+        if (isElement(n) && n.hasAttribute("data-rask-managed")) continue;
         fc.push(n);
     }
     for (let m = to.firstChild; m; m = m.nextSibling) {
-        if (m.nodeType === 1 && m.hasAttribute("data-rask-managed")) continue;
+        if (isElement(m) && m.hasAttribute("data-rask-managed")) continue;
         tc.push(m);
     }
 
@@ -533,16 +595,16 @@ function morph(from, to) {
     // Falls back to the positional walk below when no keys are present.
     let keyed = false;
     for (const node of tc) {
-        if (node.nodeType === 1 && node.getAttribute && node.getAttribute("data-rask-key") !== null) {
+        if (isElement(node) && node.getAttribute("data-rask-key") !== null) {
             keyed = true;
             break;
         }
     }
     if (keyed) {
-        const keyMap = new Map();
-        const unkeyedFrom = [];
+        const keyMap = new Map<string, Node>();
+        const unkeyedFrom: Node[] = [];
         for (const fn of fc) {
-            const fk = (fn.nodeType === 1 && fn.getAttribute) ? fn.getAttribute("data-rask-key") : null;
+            const fk = isElement(fn) ? fn.getAttribute("data-rask-key") : null;
             if (fk !== null) keyMap.set(fk, fn);
             else unkeyedFrom.push(fn);
         }
@@ -552,8 +614,8 @@ function morph(from, to) {
         // follow the same anchor.
         let anchor = (fc.length > 0) ? fc[0] : null;
         for (const dst of tc) {
-            const dk = (dst.nodeType === 1 && dst.getAttribute) ? dst.getAttribute("data-rask-key") : null;
-            let src;
+            const dk = isElement(dst) ? dst.getAttribute("data-rask-key") : null;
+            let src: Node | null;
             if (dk !== null) {
                 src = keyMap.get(dk) || null;
                 if (src) keyMap.delete(dk);
@@ -570,11 +632,11 @@ function morph(from, to) {
                 // keyed sibling promotes the container to keyed reconciliation but some from-side
                 // children don't match the new tree by node name (e.g. the SDK-injected <head>
                 // importmap / <base> a WASM app hydrates against on a static host).
-                if (src === anchor) anchor = anchor.nextSibling;
+                if (src === anchor) anchor = src.nextSibling;
                 _raskRemoveChild(from, src);
             } else {
                 if (src !== anchor) _raskMoveBefore(from, src, anchor);
-                else anchor = anchor.nextSibling;
+                else anchor = src.nextSibling;
                 morph(src, dst);
             }
         }
@@ -588,7 +650,7 @@ function morph(from, to) {
             if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
         }
         if (isDocHead) _raskDiscardFrameworkHeadMutations();
-        if (tag === "SELECT") raskSyncSelectSelection(from);
+        if (tag === "SELECT") raskSyncSelectSelection(from as HTMLSelectElement);
         return;
     }
 
@@ -603,5 +665,5 @@ function morph(from, to) {
     if (isDocHead) _raskDiscardFrameworkHeadMutations();
     // After the options are reconciled, never before: the selection is read off the incoming
     // `selected` attributes, and until the child walk above has run they are still the old render's.
-    if (tag === "SELECT") raskSyncSelectSelection(from);
+    if (tag === "SELECT") raskSyncSelectSelection(from as HTMLSelectElement);
 }

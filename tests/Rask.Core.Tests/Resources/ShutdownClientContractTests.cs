@@ -13,8 +13,8 @@ public class ShutdownClientContractTests
 {
     private static readonly string _repoRoot = LocateRepoRoot();
 
-    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.js");
-    private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.js");
+    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
+    private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.ts");
 
     [Fact]
     public void The_server_client_handles_the_shutdown_frame_and_returns()
@@ -214,9 +214,13 @@ public class ShutdownClientContractTests
         Assert.Contains("pendingConverge.push", ServerJs, StringComparison.Ordinal);
 
         // And the queue is drained where a socket exists — after the hello, so the session is known.
-        var open = js[js.IndexOf("ws.addEventListener(\"open\"", StringComparison.Ordinal)..];
+        //
+        // The handler captures `const socket = ws` and works through that: under strict typing `ws` is
+        // WebSocket|null and cannot be dereferenced, and capturing also binds each handler to the
+        // socket it was registered on rather than to whichever one is current after a reconnect.
+        var open = js[js.IndexOf("socket.addEventListener(\"open\"", StringComparison.Ordinal)..];
         var openBody = open[..open.IndexOf("\n        });", StringComparison.Ordinal)];
-        var hello = openBody.IndexOf("ws.send(JSON.stringify(hello))", StringComparison.Ordinal);
+        var hello = openBody.IndexOf("socket.send(JSON.stringify(hello))", StringComparison.Ordinal);
         var drain = openBody.IndexOf("for (const payload of pendingConverge) send(payload);", StringComparison.Ordinal);
         Assert.True(hello >= 0 && drain > hello, "converge messages must be sent after the hello");
     }

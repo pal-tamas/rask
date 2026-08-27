@@ -19,13 +19,13 @@ public class ClientConsoleContractTests
 
     public static TheoryData<string, string[]> ShippedClients => new()
     {
-        { "Rask.Server", ["src", "Rask.Server", "Resources", "rask.js"] },
-        { "Rask.Wasm (source)", ["src", "Rask.Wasm", "Resources", "rask.wasm.js"] },
+        { "Rask.Server", ["src", "Rask.Server", "Resources", "rask.ts"] },
+        { "Rask.Wasm (source)", ["src", "Rask.Wasm", "Resources", "rask.wasm.ts"] },
         // The committed build artifact. It is spliced from the source above by _RaskSpliceClientJs and
         // checked in, so it can drift silently — and it is the copy the browser actually downloads.
-        { "Rask.Wasm (committed artifact)", ["src", "Rask.Wasm", "Browser", "rask.wasm.js"] },
-        { "shared: rask-morph.js", ["src", "Rask.Core", "Resources", "rask-morph.js"] },
-        { "shared: rask-dom.js", ["src", "Rask.Core", "Resources", "rask-dom.js"] },
+        { "Rask.Wasm (built bundle)", ["src", "Rask.Wasm", "Browser", "rask.wasm.js"] },
+        { "shared: rask-morph.ts", ["src", "Rask.Core", "Resources", "rask-morph.ts"] },
+        { "shared: rask-dom.ts", ["src", "Rask.Core", "Resources", "rask-dom.ts"] },
     };
 
     [Theory]

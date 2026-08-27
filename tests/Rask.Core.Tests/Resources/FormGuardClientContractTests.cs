@@ -13,9 +13,9 @@ public class FormGuardClientContractTests
 {
     private static readonly string _repoRoot = LocateRepoRoot();
 
-    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.js");
-    private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.js");
-    private static string MorphJs => Read("src", "Rask.Core", "Resources", "rask-morph.js");
+    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
+    private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.ts");
+    private static string MorphJs => Read("src", "Rask.Core", "Resources", "rask-morph.ts");
 
     [Fact]
     public void Both_hosts_arm_the_guards_through_the_shared_recorder()
@@ -120,7 +120,7 @@ public class FormGuardClientContractTests
     {
         // The other half: recording is useless unless the apply path asks. syncFormProperty is the diff
         // codec's single write point for all three, and `selected` was the branch that never asked.
-        var js = Read("src", "Rask.Core", "Resources", "rask-dom.js");
+        var js = Read("src", "Rask.Core", "Resources", "rask-dom.ts");
         var fn = js[js.IndexOf("function syncFormProperty", StringComparison.Ordinal)..];
         var body = fn[..fn.IndexOf("\n}", StringComparison.Ordinal)];
 

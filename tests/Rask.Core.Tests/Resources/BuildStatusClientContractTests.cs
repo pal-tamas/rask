@@ -15,10 +15,10 @@ public class BuildStatusClientContractTests
 {
     private static readonly string _repoRoot = LocateRepoRoot();
 
-    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.js");
+    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
 
     /// <summary>The single implementation every transport splices in.</summary>
-    private static string SharedJs => Read("src", "Rask.Core", "Resources", "rask-deverror.js");
+    private static string SharedJs => Read("src", "Rask.Core", "Resources", "rask-deverror.ts");
 
     [Fact]
     public void The_drop_handler_asks_whether_it_is_a_compile_problem_before_claiming_a_network_one()

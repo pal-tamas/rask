@@ -1,11 +1,16 @@
-// Transport-agnostic PWA framework helpers, spliced into BOTH the Server client (rask.js) and the WASM
-// client (rask.wasm.js) at their shared PWA splice marker. These back the PWA browser APIs that work on
-// either transport — IWebPush (subscribe), INotifications, IBadge, IWakeLock (all in Rask.Core.Browser).
-// The WASM-only helpers that need transient activation / a static SW instance (the manifest injector and
-// install-prompt capture) and the device APIs stay in Rask.Wasm's rask-wasm-api.js.
+// Transport-agnostic PWA framework helpers, imported by BOTH the Server client (rask.ts) and the WASM
+// client (rask.wasm.ts). These back the PWA browser APIs that work on either transport — IWebPush
+// (subscribe), INotifications, IBadge, IWakeLock (all in Rask.Core.Browser). The WASM-only helpers that
+// need transient activation / a static SW instance (the manifest injector and install-prompt capture)
+// and the device APIs stay in Rask.Wasm's rask-wasm-api.ts.
 //
-// NB: no regex literals here — the MSBuild client-JS splice mangles backslashes, so base64url
-// (de)coding uses split/join instead of regex replace patterns.
+// Imported for its side effects: everything here is published on `window` because .NET reaches it by
+// dotted name, and an IJSRuntime identifier is resolved against `window` at call time. Their shapes are
+// declared in rask-window.d.ts.
+//
+// The base64url helpers still use split/join rather than a regex. That was originally forced — the
+// MSBuild splice mangled backslashes — and the constraint is gone now that esbuild parses the file
+// properly, but a working codec is not worth rewriting to prove a point.
 
 // Web Push (driven by IWebPush). Push needs a Service Worker registration plus key (de)serialization
 // that IJSRuntime can't express directly, so it all lives here. The SW URL is resolved by C#
@@ -17,9 +22,9 @@ window.__raskPush = window.__raskPush || {
 
     requestPermission: () => Notification.requestPermission(),
 
-    register: (swUrl) => navigator.serviceWorker.register(swUrl).then(() => undefined),
+    register: (swUrl: string) => navigator.serviceWorker.register(swUrl).then(() => undefined),
 
-    subscribe: async (vapidPublicKey) => {
+    subscribe: async (vapidPublicKey: string) => {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
@@ -41,14 +46,14 @@ window.__raskPush = window.__raskPush || {
     },
 
     // Shape a live PushSubscription into the C# PushSubscription record (base64url key bytes).
-    _serialize: (sub) => ({
+    _serialize: (sub: PushSubscription) => ({
         endpoint: sub.endpoint,
         expirationTime: sub.expirationTime,
         p256dh: window.__raskPush._b64url(sub.getKey("p256dh")),
         auth: window.__raskPush._b64url(sub.getKey("auth"))
     }),
 
-    _b64url: (buf) => {
+    _b64url: (buf: ArrayBuffer | null) => {
         if (!buf) return "";
         const bytes = new Uint8Array(buf);
         let s = "";
@@ -58,7 +63,7 @@ window.__raskPush = window.__raskPush || {
         return out;
     },
 
-    _urlB64ToBytes: (base64) => {
+    _urlB64ToBytes: (base64: string) => {
         const pad = "=".repeat((4 - base64.length % 4) % 4);
         const norm = (base64 + pad).split("-").join("+").split("_").join("/");
         const raw = atob(norm);
@@ -72,7 +77,7 @@ window.__raskPush = window.__raskPush || {
 // can't call directly, so showing goes through here. Permission read/request are plain calls in C#.
 window.__raskNotify = window.__raskNotify || {
     isSupported: () => "Notification" in window,
-    show: (title, options) => {
+    show: (title: string, options?: NotificationOptions) => {
         new Notification(title, options || {});
     }
 };
@@ -81,7 +86,7 @@ window.__raskNotify = window.__raskNotify || {
 // shows the count — collapse the C# nullable int to that here. clearAppBadge() removes it.
 window.__raskBadge = window.__raskBadge || {
     isSupported: () => "setAppBadge" in navigator,
-    set: (count) => (count === null || count === undefined)
+    set: (count: number | null | undefined) => (count === null || count === undefined)
         ? navigator.setAppBadge()
         : navigator.setAppBadge(count),
     clear: () => navigator.clearAppBadge()
@@ -92,15 +97,21 @@ window.__raskBadge = window.__raskBadge || {
 // re-acquire still-held locks when the page becomes visible again — a C# sentinel stays effective until
 // it's disposed (which calls release).
 window.__raskWakeLock = window.__raskWakeLock || (() => {
-    const held = new Map();
+    /** One live lock, and whether the browser has taken it away behind our back. */
+    interface WakeLockEntry {
+        sentinel: WakeLockSentinel;
+        released: boolean;
+    }
+
+    const held = new Map<number, WakeLockEntry>();
     let nextId = 1;
     let visBound = false;
 
-    const track = (entry) => {
+    const track = (entry: WakeLockEntry): void => {
         entry.sentinel.addEventListener("release", () => { entry.released = true; });
     };
 
-    const bindVisibility = () => {
+    const bindVisibility = (): void => {
         if (visBound) return;
         visBound = true;
         document.addEventListener("visibilitychange", async () => {
@@ -111,7 +122,9 @@ window.__raskWakeLock = window.__raskWakeLock || (() => {
                     entry.sentinel = await navigator.wakeLock.request("screen");
                     entry.released = false;
                     track(entry);
-                } catch (_) { /* best-effort re-acquire */ }
+                } catch {
+                    // Best-effort re-acquire: the page may have lost the right to hold one.
+                }
             }
         });
     };
@@ -120,19 +133,26 @@ window.__raskWakeLock = window.__raskWakeLock || (() => {
         isSupported: () => "wakeLock" in navigator,
         request: async () => {
             bindVisibility();
-            const entry = { sentinel: await navigator.wakeLock.request("screen"), released: false };
+            const entry: WakeLockEntry = {
+                sentinel: await navigator.wakeLock.request("screen"),
+                released: false
+            };
             track(entry);
             const id = nextId++;
             held.set(id, entry);
             return id;
         },
-        release: async (id) => {
+        release: async (id: number) => {
             const entry = held.get(id);
             if (!entry) return;
             held.delete(id);
             try {
                 await entry.sentinel.release();
-            } catch (_) { /* already released (e.g. by the page going hidden) */ }
+            } catch {
+                // Already released (e.g. by the page going hidden).
+            }
         }
     };
 })();
+
+export {};

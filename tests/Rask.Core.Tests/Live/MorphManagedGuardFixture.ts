@@ -13,18 +13,21 @@
 //     turning the misuse into a harmless no-op.
 //
 // The C# test (MorphManagedGuardTests) runs this in a node subprocess and asserts the JSON line.
-import {readFileSync} from "node:fs";
 
-const morphPath = process.argv[2];
-if (!morphPath) {
-    console.error("usage: node MorphManagedGuardFixture.mjs <rask-morph.js path>");
-    process.exit(2);
-}
 
 // ----- Minimal DOM stub (child list with sibling relinking) -----------------------
-function makeEl(nodeName, attrs) {
+//
+// The functions under test arrive by IMPORT. They used to be read off disk and evaluated with
+// `new Function(src + "return { … }")`, because the shared modules were bare declarations meant to be
+// pasted into a host's scope — there was no other way to reach them, nothing checked that the names
+// in that string still existed, and it stops working the moment a module has real `export`s.
+
+import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
+import {asDom, asStubParent, installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
+
+function makeEl(nodeName: string, attrs?: Record<string, string>): StubParent {
     const a = new Map(Object.entries(attrs || {}));
-    const kids = [];
+    const kids: StubNode[] = [];
 
     function relink() {
         for (let i = 0; i < kids.length; i++) {
@@ -33,17 +36,19 @@ function makeEl(nodeName, attrs) {
         }
     }
 
-    const el = {
-        nodeType: 1, nodeName, tagName: nodeName, parentNode: null,
+    const el: StubParent = {
+        nodeType: 1, nodeValue: null, nodeName, tagName: nodeName, parentNode: null,
         nextSibling: null, previousSibling: null, textContent: "",
+        // Declared because StubParent does; this fixture never morphs a subtree.
+        innerHTML: "",
         get firstChild() { return kids[0] || null; },
         get childNodes() { return kids; },
         get attributes() { return [...a.entries()].map(([name, value]) => ({name, value})); },
-        hasAttribute: (n) => a.has(n),
-        getAttribute: (n) => (a.has(n) ? a.get(n) : null),
-        setAttribute: (n, v) => a.set(n, String(v)),
-        removeAttribute: (n) => a.delete(n),
-        insertBefore(node, ref) {
+        hasAttribute: (n: string) => a.has(n),
+        getAttribute: (n: string) => a.get(n) ?? null,
+        setAttribute: (n: string, v: string) => a.set(n, String(v)),
+        removeAttribute: (n: string) => a.delete(n),
+        insertBefore(node: StubNode, ref: StubNode | null) {
             if (node.parentNode) node.parentNode.removeChild(node);
             const idx = ref === null ? kids.length : kids.indexOf(ref);
             kids.splice(idx < 0 ? kids.length : idx, 0, node);
@@ -51,30 +56,30 @@ function makeEl(nodeName, attrs) {
             relink();
             return node;
         },
-        appendChild(node) { return el.insertBefore(node, null); },
-        removeChild(node) {
+        appendChild(node: StubNode) { return el.insertBefore(node, null); },
+        removeChild(node: StubNode) {
             kids.splice(kids.indexOf(node), 1);
             node.parentNode = null;
             relink();
             return node;
         },
-        replaceChild(newNode, oldNode) {
+        replaceChild(newNode: StubNode, oldNode: StubNode) {
             el.insertBefore(newNode, oldNode);
             el.removeChild(oldNode);
             return oldNode;
         },
         _kids: kids
     };
+    // One cast, where the fiction is created: a partial fake asserted to be the node it stands
+    // in for. Everything the scenarios do with it is then checked against that shape, and the
+    // crossing into framework code is marked separately by asDom().
     return el;
 }
 
-function child(parent, node) { parent.appendChild(node); return node; }
+function child(parent: StubParent, node: StubParent): StubParent { parent.appendChild(node); return node; }
 
-globalThis.window = globalThis;
-globalThis.document = {activeElement: null, head: makeEl("HEAD"), createElement: (n) => makeEl(String(n).toUpperCase())};
+installStubGlobals({activeElement: null, head: makeEl("HEAD"), createElement: (n) => makeEl(String(n).toUpperCase())});
 
-// ----- Load the production morph (all helpers it needs live in rask-morph.js) -----
-const {morph} = new Function(readFileSync(morphPath, "utf8") + "\n;return { morph };")();
 
 // ---- Scenario A: the MISUSE (marker on the host the .NET side renders) fails safe ----
 // from: <section.pg-editor> → <div.pg-code-host data-rask-managed> → <canvas> (Monaco stand-in)
@@ -86,11 +91,11 @@ child(hostFrom, makeEl("CANVAS", {}));               // Monaco's DOM
 const editorTo = makeEl("SECTION", {class: "pg-editor"});
 child(editorTo, makeEl("DIV", {class: "pg-code-host", "data-rask-managed": ""}));
 
-morph(editorFrom, editorTo);
-morph(editorFrom, editorTo);                          // a second frame must not duplicate either
-const misuseHostCount = editorFrom._kids.filter((k) => k.getAttribute("class") === "pg-code-host").length;
+morph(asDom(editorFrom), asDom(editorTo));
+morph(asDom(editorFrom), asDom(editorTo));                          // a second frame must not duplicate either
+const misuseHostCount = editorFrom._kids.filter((k: StubNode) => asStubParent(k).getAttribute("class") === "pg-code-host").length;
 const misuseMonacoKept = hostFrom.parentNode === editorFrom
-    && hostFrom._kids.some((k) => k.nodeName === "CANVAS");
+    && hostFrom._kids.some((k: StubNode) => k.nodeName === "CANVAS");
 
 // ---- Scenario B: the CORRECT placement (marker on the library-created child) survives ----
 // from: <section.pg-editor> → <div.pg-code-host> (unmarked host) → <canvas data-rask-managed>
@@ -103,9 +108,9 @@ child(hostFrom2, makeEl("CANVAS", {"data-rask-managed": ""}));
 const editorTo2 = makeEl("SECTION", {class: "pg-editor"});
 child(editorTo2, makeEl("DIV", {class: "pg-code-host"}));
 
-morph(editorFrom2, editorTo2);
-const correctHostCount = editorFrom2._kids.filter((k) => k.getAttribute("class") === "pg-code-host").length;
-const correctMonacoKept = hostFrom2._kids.some((k) => k.nodeName === "CANVAS");
+morph(asDom(editorFrom2), asDom(editorTo2));
+const correctHostCount = editorFrom2._kids.filter((k: StubNode) => asStubParent(k).getAttribute("class") === "pg-code-host").length;
+const correctMonacoKept = hostFrom2._kids.some((k: StubNode) => k.nodeName === "CANVAS");
 
 process.stdout.write(JSON.stringify({
     misuseHostCount,     // 1 — no duplicate empty host appended (was 3 after two frames pre-guard)

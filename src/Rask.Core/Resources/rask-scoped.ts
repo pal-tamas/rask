@@ -1,14 +1,13 @@
-// rask-scoped.js — scoped-CSS FOUC (flash-of-unstyled-content) gating, shared by all three clients.
+// Scoped-CSS FOUC (flash-of-unstyled-content) gating, shared by every client.
 //
-// Spliced (at "// @@RASK_SCOPED@@") into the Server runtime (rask.js), the WASM runtime
-// (rask.wasm.js). A newly mounted component ships its
-// scoped stylesheet as a keyed <link href="/_rask/a/{hash}.css" data-rask-key="rsk-…">; without
-// this gate the swapped body paints before that just-inserted sheet parses + applies, flashing
-// unstyled. Both entry points return a Promise the host chains its render commit on (or null when
-// there's nothing new to wait for, preserving today's single-pass timing).
+// Imported by the Server runtime (rask.ts) and the WASM runtime (rask.wasm.ts). A newly mounted
+// component ships its scoped stylesheet as a keyed <link href="/_rask/a/{hash}.css"
+// data-rask-key="rsk-…">; without this gate the swapped body paints before that just-inserted sheet
+// parses and applies, flashing unstyled. Both entry points return a Promise the host chains its
+// render commit on (or null when there is nothing new to wait for, preserving today's single-pass
+// timing).
 //
-// Relies only on the global `document` + standard timers — no transport coupling. Modern-ES
-// (const/let/arrow), matching rask-dom.js / rask-morph.js. No export/import, no backslash regex.
+// Relies only on `document` and the standard timers — no transport coupling.
 //
 // NOTE: the scoped-JS `Rask.*` invoke gate (trackHeadAsset / ensureRaskNamespacePoll /
 // beginInvokeJS deferral) is deliberately NOT here — it has genuinely diverged between the Server
@@ -31,17 +30,19 @@ const CSS_FOUC_GUARD_MS = 500;
 // prefetch is meant to remove. A link already applied (kept across renders, or just
 // resolved) has a non-null .sheet and is skipped; a freshly inserted one has
 // .sheet === null and is awaited (its load fires within ~1 frame on warm cache).
-function waitForUnappliedHeadCss() {
-    const pending = [];
-    document.head.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
+export function waitForUnappliedHeadCss(): Promise<unknown> | null {
+    const pending: Promise<void>[] = [];
+
+    document.head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]').forEach((l) => {
         if (!l.href || l.sheet) return;
-        pending.push(new Promise((resolve) => {
-            const done = () => resolve();
-            l.addEventListener("load", done, {once: true});
-            l.addEventListener("error", done, {once: true});
+        pending.push(new Promise<void>((resolve) => {
+            const done = (): void => resolve();
+            l.addEventListener("load", done, { once: true });
+            l.addEventListener("error", done, { once: true });
             setTimeout(done, CSS_FOUC_GUARD_MS);
         }));
     });
+
     return pending.length ? Promise.all(pending) : null;
 }
 
@@ -55,24 +56,30 @@ function waitForUnappliedHeadCss() {
 // in paints already-styled. Only keyed scoped links are preloaded — render-blocking globals (no
 // data-rask-key) are already applied. Returns null when the document adds no new scoped stylesheet
 // (the common case), so a navigation that mounts nothing new keeps today's single-pass, no-wait timing.
-function preloadNewHeadStylesheets(freshHtml) {
+export function preloadNewHeadStylesheets(freshHtml: ParentNode): Promise<unknown> | null {
     const freshHead = freshHtml.querySelector("head");
     if (!freshHead) return null;
-    const liveKeys = {};
-    document.head.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((l) => {
-        liveKeys[l.getAttribute("data-rask-key")] = true;
+
+    const liveKeys: Record<string, boolean> = {};
+    document.head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][data-rask-key]').forEach((l) => {
+        const key = l.getAttribute("data-rask-key");
+        if (key) liveKeys[key] = true;
     });
-    const pending = [];
-    freshHead.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((fl) => {
-        if (liveKeys[fl.getAttribute("data-rask-key")] || !fl.getAttribute("href")) return;
-        const clone = fl.cloneNode(true);
+
+    const pending: Promise<void>[] = [];
+    freshHead.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][data-rask-key]').forEach((fl) => {
+        const key = fl.getAttribute("data-rask-key");
+        if ((key && liveKeys[key]) || !fl.getAttribute("href")) return;
+
+        const clone = fl.cloneNode(true) as HTMLLinkElement;
         document.head.appendChild(clone);
-        pending.push(new Promise((resolve) => {
-            const done = () => resolve();
-            clone.addEventListener("load", done, {once: true});
-            clone.addEventListener("error", done, {once: true});
+        pending.push(new Promise<void>((resolve) => {
+            const done = (): void => resolve();
+            clone.addEventListener("load", done, { once: true });
+            clone.addEventListener("error", done, { once: true });
             setTimeout(done, CSS_FOUC_GUARD_MS);
         }));
     });
+
     return pending.length ? Promise.all(pending) : null;
 }

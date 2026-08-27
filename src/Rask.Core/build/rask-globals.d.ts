@@ -19,6 +19,13 @@ interface RaskDotNetInterop {
         assemblyName: string,
         methodIdentifier: string,
         ...args: unknown[]): Promise<T>;
+
+    /**
+     * Infrastructure. The Server transport completes a call by pushing the result back over the
+     * socket, which lands here; the WASM host completes it through a JSExport instead. Underscored
+     * because no application calls it, and optional because only one host installs it.
+     */
+    _endInvokeDotNet?(msg: { callId: string; success: boolean; result?: unknown; error?: string }): void;
 }
 
 interface Window {

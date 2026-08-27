@@ -123,6 +123,70 @@ public class ResolveTypeScriptToolTaskTests
     }
 
     /// <summary>
+    ///     esbuild drops a module entirely — top-level side effects included — when the importing
+    ///     file never references what it imported.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Pinned because it cost real breakage and is invisible in the source. TypeScript elides
+    ///         an unused import; esbuild then sees nothing referring to the module, judges it
+    ///         unreachable, and removes it along with whatever it did at load time. The file still
+    ///         says <c>import { thing } from "./m.js"</c> — the bundle simply has no <c>m</c> in it.
+    ///     </para>
+    ///     <para>
+    ///         Two of the framework's own modules hit this: <c>rask-hotreload.ts</c> vanished from the
+    ///         WASM bundle because the host called <c>window.__raskHotReloadPill</c> instead of the
+    ///         import it had taken, and <c>rask-host.ts</c> would have shipped with neither host
+    ///         calling <c>setHost</c>. Both are browser-only failures that no C# test could see.
+    ///     </para>
+    ///     <para>
+    ///         The defence is <c>noUnusedLocals</c> on the framework runtimes, in
+    ///         <c>ScopedTypeScriptTypeCheckTests</c>. This test is what tells a future reader why a
+    ///         lint-shaped flag is load-bearing there — and would fail if a later esbuild made the
+    ///         behaviour moot, which is the moment to revisit it.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void Esbuild_DropsAModuleWhoseImportIsUnreferenced()
+    {
+        var path = Resolve("esbuild", Pins.Value.Esbuild);
+        using var directory = new TempDirectory();
+
+        var module = Path.Combine(directory.Path, "m.ts");
+        File.WriteAllText(
+            module,
+            """
+            export function pill(): number { return 1; }
+            (globalThis as Record<string, unknown>).__pill = pill;
+            """);
+
+        var unused = Path.Combine(directory.Path, "unused.ts");
+        File.WriteAllText(unused, """
+                                  import { pill } from "./m.js";
+                                  console.log("entry");
+                                  """);
+
+        var used = Path.Combine(directory.Path, "used.ts");
+        File.WriteAllText(used, """
+                                import { pill } from "./m.js";
+                                console.log(pill());
+                                """);
+
+        var withoutReference = Run(path, $"\"{unused}\" --bundle --format=esm --target=es2020");
+        var withReference = Run(path, $"\"{used}\" --bundle --format=esm --target=es2020");
+
+        // The side effect is gone with it — this is the part that breaks at runtime, in the browser,
+        // with nothing to read in any build log.
+        Assert.DoesNotContain("__pill", withoutReference, StringComparison.Ordinal);
+        Assert.DoesNotContain("function pill(", withoutReference, StringComparison.Ordinal);
+
+        // The negative control: one reference to the same import and the whole module is kept. So it
+        // is the reference that decides, not anything about how the module is written.
+        Assert.Contains("__pill", withReference, StringComparison.Ordinal);
+        Assert.Contains("function pill(", withReference, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     tsgo's emit preserves <c>export function NAME(</c>, which is what scoped assets need.
     /// </summary>
     /// <remarks>

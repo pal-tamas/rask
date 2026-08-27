@@ -525,6 +525,83 @@ them until tagged releases begin.
   reaches the browser through the live connection as it always did.
 
 ### Changed
+- **The framework's browser runtime is TypeScript, bundled by esbuild instead of spliced by
+  MSBuild.** All 18 modules — the diff codec, the full-HTML morph, the delegated event router, the
+  rAF input coalescer, the ~50 typed browser-API wrappers, the PWA helpers, the dev-error and
+  hot-reload surfaces, and both host entry points — are `--strict` TypeScript with no `any` and no
+  implicit `any`.
+
+  What this replaces was an MSBuild `String.Replace`. `Rask.Server.csproj` pasted nine files into a
+  template at `// @@RASK_DOM@@`-style markers and `Rask.Wasm.csproj` pasted eleven, in an order the
+  build had to get right; cross-module calls went through implicit `window.__rask*` globals. Nothing
+  checked the order, the markers, or that a caller and its callee agreed. Those are now `import`
+  statements, and the compiler resolves them.
+
+  **Two hand-maintained JS dialects collapse into one.** The Server runtime was written in ES5
+  (`var`/`function`) and the WASM runtime as an ES module, because shared files had to parse as both.
+  esbuild downlevels per output, so both are authored as modern TypeScript.
+
+  **The "minifier" is deleted.** `build/Rask.MinifyJs.targets` was a 102-line comment stripper that
+  could not collapse whitespace or rename anything, and whose doc comment claimed a regex-literal
+  safety it did not have — it had no regex-literal state at all. Three source files carried comments
+  working around it. Release builds now minify for real:
+
+  | | before | after |
+  |---|---|---|
+  | `rask.wasm.js` (Release) | 283,254 B | **79,416 B** (−72%) |
+  | `rask.wasm.js` (Debug) | 283,254 B | 149,609 B (−47%) |
+  | `main.js` | 10,024 B | 3,394 B |
+  | WASM service worker | 2,514 B | 1,394 B |
+
+  `src/Rask.Wasm/Browser/{main,rask.wasm,rask-sw}.js` have **left git**. They were tracked because
+  the spliced result was the only place the runtime could be read as one thing; the TypeScript is
+  that place now, and they are build output.
+
+  Scoped component assets are unaffected — they are transpiled by tsgo and never bundled or
+  minified, because `ScopedAssetRegistry` parses `export function NAME(` out of them.
+
+### Fixed
+- **The WASM bundle silently lost its hot-reload indicator, and nearly shipped without a host.**
+  esbuild drops a module entirely — top-level side effects included — when the importing file never
+  references what it imported: TypeScript elides the unused import, esbuild then judges the module
+  unreachable. `hotReloadApplied()` called `window.__raskHotReloadPill` instead of the
+  `showHotReloadPill` it had imported, so `rask-hotreload.ts` was removed from the bundle and the
+  global that guard tested was never assigned. The same shape would have shipped both hosts without
+  either calling `setHost`, leaving every shared module without a `send`/`inRoot` to reach.
+
+  Both are fixed at the call site, `--noUnusedLocals` now guards the framework runtimes in the
+  type-check gate (where an unused import is not untidy, it is a module that will not be in the
+  bundle), and the esbuild behaviour itself is pinned by a test with a negative control.
+
+- **Several latent runtime defects the untyped original could not report**, among them: `morph`
+  could call `replaceChild` on a null parent; a revived `<script>` assumed a non-null `parentNode`;
+  a narrowing stored in a boolean stopped narrowing; the gesture bridge called `.catch` on a bare
+  thenable; and the serial-port wrapper dereferenced a nullable `readable`/`writable`.
+
+- **The Node test fixtures are TypeScript, and import what they test.** The seven harnesses that
+  drive the morph and the diff codec against a stub DOM in a subprocess read the framework module off
+  disk and evaluated it with `new Function(src + "return { morph, … }")` — the only way to reach a
+  bare declaration meant to be pasted into a host's scope, and it checked nothing. Two of them named
+  functions in that string they never used, and one used two it had not named. esbuild bundles each
+  fixture during the build, so one that no longer compiles fails the build rather than a test.
+
+  Seven copies of the same process-spawn boilerplate became one `NodeFixture` helper, and seven
+  hand-rolled DOM stubs one shared typed `stub-dom.ts`.
+
+- **Structural test assertions moved off the built artifacts and onto the sources.** A dozen
+  assertions named internal identifiers in the served runtime and the WASM bundle. They passed only
+  because "minification" meant a comment stripper that renamed nothing; against a real minifier they
+  would pass or fail on whichever configuration was built last. Internal structure is now asserted on
+  the TypeScript, and what is asked of a built artifact is what minification preserves — the globals
+  .NET reaches by name, and the string literals a gate keys on.
+
+### Removed
+- **`build/Rask.MinifyJs.targets`** and the `@@RASK_*@@` splice markers, along with the
+  `_RaskBuildClientJs`, `_RaskSpliceClientJs` and `_RaskMinifyClientJs` targets and
+  `ResourcesSpliceTests` (which existed to catch the committed splice output drifting from its
+  template — neither the splice nor the committed output survives).
+
+### Changed
 - **The service workers are TypeScript, bundled by esbuild instead of spliced by MSBuild.** Both
   Rask's workers — the Server one (offline fallback) and the WASM one (offline app shell, background
   sync) — now `import` the shared push / notificationclick handlers instead of having them pasted in
@@ -536,8 +613,7 @@ them until tagged releases begin.
   only strip comments and blank lines: it had no regex-literal state at all, despite a doc comment
   claiming that "regex literals stay untouched", and three source files carried comments working
   around it (`// no regex literals here — the MSBuild client-JS splice mangles backslashes`). Those
-  constraints are gone. The WASM worker's output stays unminified because it is tracked in git, where
-  a file whose bytes depend on `$(Configuration)` would show up as a spurious change on every build.
+  constraints are gone. The WASM worker is minified in Release too, now that its output has left git.
 
   Two real defects surfaced while converting, both of which the old arrangement could not have
   reported: the Server worker's offline fallback could hand `respondWith` an `undefined` when the

@@ -1,20 +1,34 @@
-// Shared diff-codec interpreter consumed by both rask.js (Server) and
-// rask.wasm.js (WASM). Concatenated into each runtime at build time — see the
-// MSBuild "_RaskBuildClientJs" target in Rask.Server.csproj and
-// "_RaskSpliceClientJs" in Rask.Wasm.csproj (they splice this file at the
-// RASK_DOM marker).
+// Shared diff-codec interpreter, imported by both the Server runtime (rask.ts) and the WASM runtime
+// (rask.wasm.ts).
 //
-// Why concat instead of import / network split (same rationale as rask-morph.js):
-//  - rask.js is a classic <script> served from /rask/rask.js (no ES-module hook).
-//  - rask.wasm.js is loaded by JSHost.ImportAsync as an ES module.
-// Concat sidesteps the loader mismatch and keeps the single-file delivery model.
+// It used to be pasted into each of them by an MSBuild string-replace at a `// @@RASK_DOM@@` marker,
+// which is why it carried two constraints that no longer apply: its helpers had to be hoisted
+// `function` declarations so they resolved "regardless of splice order", and it could not use
+// `export`/`import` at all because the text landed inside the Server's classic-script IIFE, where
+// module syntax is illegal.
 //
-// Modern JS is fine here (current-browser targets), with the same two splice
-// constraints as rask-morph.js: the top-level helpers stay hoisted `function`
-// declarations — applyDiff calls reviveScript() and raskShouldSuppressValue()
-// (both defined in rask-morph.js, spliced into the same scope) regardless of
-// splice order — and no `export` / `import` (this island is spliced inside the
-// Server's classic-script IIFE, where module syntax is illegal).
+// Both are gone. What this file needs from the morph is now an import list the compiler checks, and
+// esbuild bundles the result into each host's single-file delivery — so the single <script> the
+// Server serves and the ES module WASM imports are still exactly one file each.
+
+import {
+    _raskDiscardFrameworkHeadMutations,
+    _raskTagForeignHeadNodes,
+    morph,
+    raskShouldSuppressChecked,
+    raskShouldSuppressSelected,
+    isElement,
+    raskShouldSuppressValue,
+    reviveScript,
+} from "./rask-morph.js";
+
+/** A popover menu, plus the two pieces of state this module hangs on it. */
+interface PopoverMenu extends HTMLElement {
+    __raskOpen?: boolean;
+
+    /** Where to send focus back when the menu closes — the trigger it was opened from. */
+    __raskReturn?: HTMLElement | null;
+}
 
 // ----- Diff codec interpreter --------------------------------------------
 // Applies ops produced by C#-side FrameDiffer.Diff to the live DOM. Each op
@@ -41,9 +55,9 @@
 // Comment nodes shift childNodes indices relative to the server's frame walk.
 // Filter to DOM-relevant nodes only (Element=1, Text=3, Doctype=10) so paths
 // match what FrameDiffer counts.
-const _relevantNodeTypes = {1: 1, 3: 1, 10: 1};
+const _relevantNodeTypes: Record<number, number> = {1: 1, 3: 1, 10: 1};
 
-function relevantChild(parent, index) {
+function relevantChild(parent: Node | null, index: number): Node | null {
     if (!parent || !parent.childNodes) return null;
     let seen = 0;
     for (const n of parent.childNodes) {
@@ -58,7 +72,7 @@ function relevantChild(parent, index) {
 // Like relevantChild but counts as if `skip` were already gone — the post-detach
 // coordinate the keyed differ uses for move targets. Lets us resolve the anchor
 // WITHOUT detaching the moving node, so the move can run as a single relocation.
-function relevantChildSkipping(parent, index, skip) {
+function relevantChildSkipping(parent: Node | null, index: number, skip: Node): Node | null {
     if (!parent || !parent.childNodes) return null;
     let seen = 0;
     for (const n of parent.childNodes) {
@@ -77,20 +91,20 @@ function relevantChildSkipping(parent, index, skip) {
 // removeChild+insertBefore — and even a bare insertBefore — disconnect the node
 // and blur it, which silently broke the "survivors keep their DOM state" contract.
 // Fall back to insertBefore where moveBefore is unavailable or rejects the move.
-function moveChildBefore(parent, node, ref) {
+function moveChildBefore(parent: MovableParent, node: Node, ref: Node | null): void {
     if (parent.moveBefore) {
         try {
             parent.moveBefore(node, ref);
             return;
-        } catch (e) {
+        } catch {
             // Not connected / cross-document — fall through to insertBefore.
         }
     }
     parent.insertBefore(node, ref);
 }
 
-function resolvePath(path) {
-    let node = document;
+export function resolvePath(path: number[]): Node | null {
+    let node: Node | null = document;
     for (const slot of path) {
         node = relevantChild(node, slot);
         if (!node) return null;
@@ -109,7 +123,7 @@ function resolvePath(path) {
 // rendered with a value computed before the latest key landed). Skipping the
 // sync on the focused element keeps the user's in-flight typing intact; the
 // next keystroke updates server state and any subsequent render reconciles.
-function syncFormProperty(el, name, value, isPresent) {
+export function syncFormProperty(el: Element | null, name: string, value: string, isPresent: boolean): void {
     // `isPresent` tells us whether the attribute is set or being removed —
     // separate from the value because the HTML attributes `checked`/`selected`
     // are presence-based: `<input checked>`, `<input checked="">`, and
@@ -117,16 +131,18 @@ function syncFormProperty(el, name, value, isPresent) {
     if (!el) return;
     const tag = el.tagName;
     if (!tag) return;
+    // Each branch's tag test is what makes its narrowing true — these are the three tags that
+    // carry the IDL property being mirrored, which is the whole point of the function.
     if (name === "value" && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) {
         if (document.activeElement === el) return;
         if (raskShouldSuppressValue(el, value)) return;
-        el.value = value;
+        (el as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value = value;
     } else if (name === "checked" && tag === "INPUT") {
         if (raskShouldSuppressChecked(el, !!isPresent)) return;
-        el.checked = !!isPresent;
+        (el as HTMLInputElement).checked = !!isPresent;
     } else if (name === "selected" && tag === "OPTION") {
         if (raskShouldSuppressSelected(el, !!isPresent)) return;
-        applySelected(el, !!isPresent);
+        applySelected(el as HTMLOptionElement, !!isPresent);
     }
 }
 
@@ -136,7 +152,7 @@ function syncFormProperty(el, name, value, isPresent) {
 // belongs to a single-select, move the SELECT instead — one write that lands on this exact option, by
 // index rather than by value so duplicate option values can't redirect it. Multi-selects (where more
 // than one option is legitimately on) and an option with no select fall back to the property.
-function applySelected(opt, on) {
+function applySelected(opt: HTMLOptionElement, on: boolean): void {
     const sel = opt.closest ? opt.closest("select") : null;
     if (on && sel && !sel.multiple && typeof opt.index === "number") {
         sel.selectedIndex = opt.index;
@@ -145,12 +161,29 @@ function applySelected(opt, on) {
     opt.selected = on;
 }
 
-function applyDiff(ops, names) {
-    function resolveName(raw) {
+/**
+ * One diff op as it arrives on the wire: a positional array whose first slot selects the shape of the
+ * rest. The eight shapes are listed at the top of this file, and the C# writer that produces them is
+ * LivePayload.BuildPayloadUtf8Diff.
+ *
+ * The trailing slots are deliberately `any`, and this is the only place in the file that is. A
+ * discriminated tuple union would describe them exactly, but TypeScript narrows one only when the
+ * switch tests `op[0]` directly — this codec reads the kind into a local first, so getting that
+ * narrowing would mean restructuring the dispatch of the render hot path to satisfy the type
+ * checker. The kind-to-shape agreement is the server's to keep, and each `case` below already states
+ * which slots its kind carries; everything those slots are USED for — the DOM calls — is typed.
+ */
+export type DiffOp = [kind: number, path: number[], ...rest: any[]];
+
+/** A name arrives inline, or as an index into the payload's interned `names` array. */
+type NameRef = string | number;
+
+export function applyDiff(ops: DiffOp[], names?: string[]): void {
+    function resolveName(raw: NameRef): string {
         // Server interns names that repeat 2+ times in the same payload — those
         // arrive as integer indices into the "names" array. Strings pass through.
         if (typeof raw === "number" && names) return names[raw];
-        return raw;
+        return raw as string;
     }
 
     // Symmetric with the discard below: tag any foreign head node injected before this diff (still pending,
@@ -164,7 +197,7 @@ function applyDiff(ops, names) {
         switch (k) {
             case 1: { // SetAttribute [k, path, name|idx, value]
                 const el = resolvePath(path);
-                if (el && el.setAttribute) {
+                if (isElement(el)) {
                     const name1 = resolveName(op[2]);
                     const rawVal = op[3];
                     const newVal = rawVal == null ? "" : rawVal;
@@ -179,7 +212,7 @@ function applyDiff(ops, names) {
             }
             case 2: { // RemoveAttribute [k, path, name|idx]
                 const el2 = resolvePath(path);
-                if (el2 && el2.removeAttribute) {
+                if (isElement(el2)) {
                     const name2 = resolveName(op[2]);
                     el2.removeAttribute(name2);
                     syncFormProperty(el2, name2, "", false);
@@ -221,7 +254,7 @@ function applyDiff(ops, names) {
                 // runs — otherwise its window.Rask.{Type}/global never appears. Mirrors
                 // the full-HTML morph path, which already revives inserted scripts.
                 for (const oldScript of template.content.querySelectorAll("script")) {
-                    oldScript.parentNode.replaceChild(reviveScript(oldScript), oldScript);
+                    oldScript.parentNode?.replaceChild(reviveScript(oldScript), oldScript);
                 }
                 const refNode = parent.childNodes[slot] || null;
                 while (template.content.firstChild) {
@@ -292,7 +325,7 @@ function applyDiff(ops, names) {
                 // element's own context — correct for <table>/<select>/<tr>/… children. The clone carries
                 // msEl's current attributes (already reconciled by any SetAttribute ops applied before
                 // this one), so morph sees them matching and only touches the children.
-                const model = msEl.cloneNode(false);
+                const model = msEl.cloneNode(false) as Element;
                 model.innerHTML = op[2] == null ? "" : op[2];
                 morph(msEl, model);
                 break;
@@ -317,7 +350,9 @@ function applyDiff(ops, names) {
 // its `open` attribute). Both clients call this right after applying the body; only the per-invoke
 // executor differs per host (Server posts the result over the WS; WASM returns it through the
 // endInvokeJSResult JSExport), so the caller passes dispatchOne. Shared so the loop isn't copied.
-function applyFrameInvokes(reply, dispatchOne) {
+export function applyFrameInvokes(
+    reply: RaskFrameReply | null | undefined,
+    dispatchOne: (inv: RaskFrameJsInvoke) => void): void {
     const invokes = reply && reply.jsInvokes;
     if (!invokes || typeof invokes.length !== "number") return;
     for (const inv of invokes) {
@@ -351,8 +386,8 @@ function applyFrameInvokes(reply, dispatchOne) {
         + "input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),"
         + "[tabindex],[contenteditable=true]";
 
-    let currentTrap = null;
-    let restoreTo = null;
+    let currentTrap: Element | null = null;
+    let restoreTo: HTMLElement | null = null;
 
     // The topmost trap in the DOM (last in document order) wins when several are open (stacked modals).
     function activeTrap() {
@@ -360,18 +395,18 @@ function applyFrameInvokes(reply, dispatchOne) {
         return traps.length ? traps[traps.length - 1] : null;
     }
 
-    function focusables(trap) {
+    function focusables(trap: Element): HTMLElement[] {
         return Array.prototype.filter.call(
             trap.querySelectorAll(FOCUSABLE),
             (el) => el.tabIndex >= 0
                 && (el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement));
     }
 
-    function enter(trap) {
+    function enter(trap: Element): void {
         // Focus the [autofocus] element if the author marked one, else the trap itself (it carries
         // tabindex=-1 so screen readers announce the dialog). Deferred to rAF so the just-morphed-in
         // element is laid out before we move focus.
-        const target = trap.querySelector("[autofocus]") || trap;
+        const target = trap.querySelector<HTMLElement>("[autofocus]") ?? (trap as HTMLElement);
         requestAnimationFrame(function () {
             try {
                 target.focus();
@@ -400,7 +435,7 @@ function applyFrameInvokes(reply, dispatchOne) {
         }
 
         if (!currentTrap && trap) {
-            restoreTo = document.activeElement; // first trap opened over the page
+            restoreTo = document.activeElement as HTMLElement | null; // first trap opened over the page
         }
 
         currentTrap = trap;
@@ -418,9 +453,9 @@ function applyFrameInvokes(reply, dispatchOne) {
         }
 
         if (e.key === "Escape") {
-            const dismiss = trap.hasAttribute("data-rask-dismiss")
-                ? trap
-                : trap.querySelector("[data-rask-dismiss]");
+            const dismiss: HTMLElement | null = trap.hasAttribute("data-rask-dismiss")
+                ? trap as HTMLElement
+                : trap.querySelector<HTMLElement>("[data-rask-dismiss]");
             if (dismiss) {
                 e.preventDefault();
                 dismiss.click();
@@ -452,10 +487,10 @@ function applyFrameInvokes(reply, dispatchOne) {
 
     // Only re-scan when a mutation actually adds or removes a trap (or a subtree containing one), so the
     // observer stays cheap on the frequent unrelated morphs.
-    function touchesTrap(nodes) {
+    function touchesTrap(nodes: NodeList): boolean {
         for (let i = 0; i < nodes.length; i++) {
             const n = nodes[i];
-            if (n.nodeType === 1
+            if (isElement(n)
                 && (n.matches("[data-rask-focus-trap]") || n.querySelector("[data-rask-focus-trap]"))) {
                 return true;
             }
@@ -504,11 +539,11 @@ function applyFrameInvokes(reply, dispatchOne) {
     const Z = 1000;     // above the components' fixed click-outside backdrop (z-index 999)
 
     // Every opted-in wrapper that currently has an open (.show) menu, paired with that menu.
-    function openMenus() {
-        const pairs = [];
+    function openMenus(): { wrap: Element; menu: PopoverMenu }[] {
+        const pairs: { wrap: Element; menu: PopoverMenu }[] = [];
         const wraps = document.querySelectorAll("[data-rask-popover]");
         for (let i = 0; i < wraps.length; i++) {
-            const menu = wraps[i].querySelector(".dropdown-menu.show");
+            const menu = wraps[i].querySelector<PopoverMenu>(".dropdown-menu.show");
             if (menu) {
                 pairs.push({ wrap: wraps[i], menu: menu });
             }
@@ -516,13 +551,13 @@ function applyFrameInvokes(reply, dispatchOne) {
         return pairs;
     }
 
-    function anchorOf(wrap) {
+    function anchorOf(wrap: Element): Element | null {
         return wrap.querySelector("[data-rask-anchor]")
             || wrap.querySelector(".dropdown-toggle")
             || wrap.firstElementChild;
     }
 
-    function place(wrap, menu) {
+    function place(wrap: Element, menu: HTMLElement): void {
         const anchor = anchorOf(wrap);
         if (!anchor) {
             return;
@@ -583,7 +618,7 @@ function applyFrameInvokes(reply, dispatchOne) {
     }
 
     // Return a closed menu to its normal in-flow (position:absolute) rendering.
-    function reset(menu) {
+    function reset(menu: HTMLElement): void {
         menu.style.position = "";
         menu.style.margin = "";
         menu.style.zIndex = "";
@@ -629,10 +664,10 @@ function applyFrameInvokes(reply, dispatchOne) {
 
     // Does a mutation batch touch a popover (a menu's class toggled, or a subtree add/remove containing
     // one)? Used only to detect the open transition when nothing was open before.
-    function touchesPopover(nodes) {
+    function touchesPopover(nodes: NodeList): boolean {
         for (let i = 0; i < nodes.length; i++) {
             const n = nodes[i];
-            if (n.nodeType === 1
+            if (isElement(n)
                 && (n.matches("[data-rask-popover],.dropdown-menu")
                     || n.querySelector("[data-rask-popover],.dropdown-menu"))) {
                 return true;
@@ -647,16 +682,16 @@ function applyFrameInvokes(reply, dispatchOne) {
     // re-render that rewrites the still-open menu's class doesn't steal focus back on every keystroke.
     // Deferred to rAF so the just-morphed-in field is laid out before we focus it. A menu with no
     // [autofocus] (the date/time pickers) keeps focus on its editable trigger — no change.
-    function onOpen(wrap, menu) {
+    function onOpen(wrap: Element, menu: PopoverMenu): void {
         if (menu.__raskOpen) {
             return;
         }
         menu.__raskOpen = true;
-        const af = menu.querySelector("[autofocus]");
+        const af = menu.querySelector<HTMLElement>("[autofocus]");
         if (!af) {
             return;
         }
-        menu.__raskReturn = anchorOf(wrap) || null; // where to send focus back on close
+        menu.__raskReturn = (anchorOf(wrap) as HTMLElement | null) || null; // where to send focus back on close
         requestAnimationFrame(function () {
             try {
                 af.focus();
@@ -669,7 +704,7 @@ function applyFrameInvokes(reply, dispatchOne) {
     // On close, return focus to the trigger (like a native <select>) so keyboard flow continues from the
     // box — but only when we had moved focus into the filter, and only if focus is still loose (on <body>
     // because the filter was removed, or anywhere inside the wrapper), never yanking focus the user moved.
-    function onClose(wrap, menu) {
+    function onClose(wrap: Element, menu: PopoverMenu): void {
         if (!menu.__raskOpen) {
             return;
         }
@@ -701,15 +736,16 @@ function applyFrameInvokes(reply, dispatchOne) {
             const r = records[i];
             if (r.type === "attributes") {
                 const t = r.target;
-                if (t.nodeType === 1 && t.classList && t.classList.contains("dropdown-menu")) {
+                if (isElement(t) && t.classList.contains("dropdown-menu")) {
                     touched = true;
+                    const menu = t as PopoverMenu;
                     const pop = t.closest("[data-rask-popover]");
                     if (pop) {
                         if (t.classList.contains("show")) {
-                            onOpen(pop, t); // just opened — focus its [autofocus] filter
+                            onOpen(pop, menu); // just opened — focus its [autofocus] filter
                         } else {
-                            reset(t);       // just closed — drop the fixed inline styles
-                            onClose(pop, t);
+                            reset(menu);       // just closed — drop the fixed inline styles
+                            onClose(pop, menu);
                         }
                     }
                 }
@@ -738,7 +774,7 @@ function applyFrameInvokes(reply, dispatchOne) {
         if (!hasOpen || CONTAIN.indexOf(e.key) < 0) {
             return;
         }
-        const wrap = (e.target && e.target.closest) ? e.target.closest("[data-rask-popover]") : null;
+        const wrap = e.target instanceof Element ? e.target.closest("[data-rask-popover]") : null;
         if (wrap && wrap.querySelector(".dropdown-menu.show")) {
             e.preventDefault();
         }
@@ -760,7 +796,7 @@ function applyFrameInvokes(reply, dispatchOne) {
     window.__raskReload = true;
     document.addEventListener("click", function (e) {
         const t = e.target;
-        if (t && t.closest && t.closest("[data-rask-reload]")) {
+        if (t instanceof Element && t.closest("[data-rask-reload]")) {
             e.preventDefault();
             location.reload();
         }

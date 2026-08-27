@@ -14,27 +14,27 @@
 // The C# test (KeyedHeadMorphTests) runs this in a node subprocess and asserts the
 // single JSON line on stdout. Pairs with the StandaloneWasm E2E (the host that
 // exercises this exact hydration).
-import {readFileSync} from "node:fs";
+//
+// The functions under test arrive by IMPORT. They used to be read off disk and evaluated with
+// `new Function(src + "return { … }")`, because the shared modules were bare declarations meant to be
+// pasted into a host's scope — there was no other way to reach them, nothing checked that the names
+// in that string still existed, and it stops working the moment a module has real `export`s.
 
-const morphPath = process.argv[2];
-if (!morphPath) {
-    console.error("usage: node KeyedHeadMorphFixture.mjs <rask-morph.js path>");
-    process.exit(2);
-}
+import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
+import {asDom, installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
 
-globalThis.window = globalThis;
-globalThis.document = {
+installStubGlobals({
     activeElement: null,
     createElement: (name) => makeEl(String(name).toUpperCase())
-};
+});
 
 // ----- Minimal element stub with real insertBefore/removeChild semantics -----
 // Children are a true linked list (firstChild / nextSibling), and insertBefore
 // throws exactly like a browser when the reference node isn't a child — which is
 // what surfaces the anchor-staleness bug.
-function makeEl(nodeName, attrs, text) {
+function makeEl(nodeName: string, attrs?: Record<string, string>, text?: string): StubParent {
     const a = new Map(Object.entries(attrs || {}));
-    const kids = [];
+    const kids: StubNode[] = [];
 
     function relink() {
         for (let i = 0; i < kids.length; i++) {
@@ -43,21 +43,24 @@ function makeEl(nodeName, attrs, text) {
         }
     }
 
-    const el = {
+    const el: StubParent = {
         nodeType: 1,
+        nodeValue: null,
         nodeName,
         tagName: nodeName,
         parentNode: null,
-        nextSibling: null,
         previousSibling: null,
-        textContent: text || "",
+        nextSibling: null,
+        textContent: "",
+        // Never read by these scenarios; declared because the morph may reset it.
+        innerHTML: "",
         get firstChild() { return kids[0] || null; },
         get attributes() { return [...a.entries()].map(([name, value]) => ({name, value})); },
-        hasAttribute: (n) => a.has(n),
-        getAttribute: (n) => (a.has(n) ? a.get(n) : null),
-        setAttribute: (n, v) => a.set(n, v),
-        removeAttribute: (n) => a.delete(n),
-        insertBefore(node, ref) {
+        hasAttribute: (n: string) => a.has(n),
+        getAttribute: (n: string) => a.get(n) ?? null,
+        setAttribute: (n: string, v: string) => a.set(n, v),
+        removeAttribute: (n: string) => a.delete(n),
+        insertBefore(node: StubNode, ref: StubNode | null) {
             if (ref !== null && ref.parentNode !== el) {
                 throw new Error("Failed to execute 'insertBefore' on 'Node': " +
                     "The node before which the new node is to be inserted is not a child of this node.");
@@ -69,32 +72,33 @@ function makeEl(nodeName, attrs, text) {
             relink();
             return node;
         },
-        appendChild(node) { return el.insertBefore(node, null); },
-        removeChild(node) {
+        appendChild(node: StubNode) { return el.insertBefore(node, null); },
+        removeChild(node: StubNode) {
             if (node.parentNode !== el) throw new Error("removeChild: node is not a child");
             kids.splice(kids.indexOf(node), 1);
             node.parentNode = null;
             relink();
             return node;
         },
-        replaceChild(newNode, oldNode) {
+        replaceChild(newNode: StubNode, oldNode: StubNode) {
             el.insertBefore(newNode, oldNode);
             el.removeChild(oldNode);
             return oldNode;
         },
         _kids: kids
     };
+    // One cast, where the fiction is created: a partial fake asserted to be the node it stands
+    // in for. Everything the scenarios do with it is then checked against that shape, and the
+    // crossing into framework code is marked separately by asDom().
     return el;
 }
 
-function head(children) {
+function head(children: StubNode[]): StubParent {
     const h = makeEl("HEAD");
     for (const c of children) h.appendChild(c);
     return h;
 }
 
-const src = readFileSync(morphPath, "utf8");
-const {morph} = new Function(src + "\n;return { morph };")();
 
 // from = the SDK index.html <head> a WASM static host serves (no data-rask-key).
 const fromHead = head([
@@ -112,10 +116,10 @@ const toHead = head([
 let threw = false;
 let error = "";
 try {
-    morph(fromHead, toHead);
+    morph(asDom(fromHead), asDom(toHead));
 } catch (e) {
     threw = true;
-    error = String((e && e.message) || e);
+    error = String((e && (e instanceof Error ? e.message : String(e))) || e);
 }
 
 process.stdout.write(JSON.stringify({

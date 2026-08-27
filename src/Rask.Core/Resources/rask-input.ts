@@ -1,15 +1,19 @@
-// rask-input.js — rAF-coalesced input & scroll dispatch, shared by all three client runtimes.
+// rAF-coalesced input & scroll dispatch, shared by every client runtime.
 //
-// Spliced (at "// @@RASK_INPUT@@") into the Server runtime (rask.js), the WASM runtime
-// (rask.wasm.js) so the two clients can never drift.
-// It relies only on three symbols every host defines in the surrounding scope: `send(payload)`,
-// `inRoot(el)` and the global `document` (plus the standard requestAnimationFrame/
-// cancelAnimationFrame). This module MUST be spliced BEFORE rask-events.js, whose keyboard handler
-// calls flushInputsNow().
+// Imported by the Server runtime (rask.ts) and the WASM runtime (rask.wasm.ts) so the two clients can
+// never drift. Its dependencies used to be three symbols "every host defines in the surrounding
+// scope"; they are now imports, which is the difference between a convention and a contract.
 //
-// Written in modern-ES (const/let/arrow), matching rask-dom.js / rask-morph.js — the other shared
-// modules already spliced into both hosts. No export/import, no backslash regex literals (the
-// splice is a raw string .Replace).
+// The ordering constraint the old splice carried in a comment — "MUST be spliced BEFORE
+// rask-events.js, whose keyboard handler calls flushInputsNow()" — is gone. rask-events imports
+// flushInputsNow from here, so the bundler orders them, and getting it wrong is a resolution error
+// rather than a runtime one.
+
+import { inRoot, send } from "./rask-host.js";
+import { raskNoteDirtyField } from "./rask-morph.js";
+
+/** Any element this module reads a `value` off. */
+type ValueElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 // Input events fire per keystroke — on fast typing that's 5–10 messages over the
 // transport per second per input. Coalesce per-element with rAF: the same element typed into
@@ -20,21 +24,21 @@
 // the subsequent action that depends on them — without this, a change event triggered
 // immediately after typing reaches the host BEFORE the coalesced input, and any validator the
 // change kicks off reads the stale model value.
-const inputPending = new Set();
+const inputPending = new Set<ValueElement>();
 let inputRaf = 0;
 
-function flushInputs() {
+function flushInputs(): void {
     inputRaf = 0;
     inputPending.forEach((el) => {
         if (!el.isConnected) return;
         const id = el.getAttribute("data-rask-on-input");
         if (!id) return;
-        send({id, type: "input", value: el.value});
+        send({ id, type: "input", value: el.value });
     });
     inputPending.clear();
 }
 
-function flushInputsNow() {
+export function flushInputsNow(): void {
     if (inputRaf) {
         cancelAnimationFrame(inputRaf);
         inputRaf = 0;
@@ -42,18 +46,26 @@ function flushInputsNow() {
     if (inputPending.size > 0) flushInputs();
 }
 
-function queueInput(el) {
+function queueInput(el: ValueElement): void {
     inputPending.add(el);
     if (!inputRaf) inputRaf = requestAnimationFrame(flushInputs);
 }
 
 document.addEventListener("input", (e) => {
-    const t = e.target.closest("[data-rask-on-input]");
+    // `e.target` is EventTarget on the base Event, and only an Element has closest(). The guard is
+    // what makes that narrowing true rather than assumed — a composed event from inside a shadow
+    // root can retarget to something that is not an Element at all.
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+
+    const t = target.closest<ValueElement>("[data-rask-on-input]");
     if (!t || !inRoot(t)) return;
+
     // Mark the field user-edited and capture what the server had rendered for it, BEFORE the dispatch
     // below causes an echo that rewrites the `value` attribute. Only the Server runtime reads this
     // (its redeploy reload re-applies edited fields); it costs one WeakMap probe everywhere else.
     raskNoteDirtyField(t);
+
     // Inputs paired with data-rask-on-change need to dispatch SYNCHRONOUSLY: the change
     // event typically fires in the same task (Playwright fill, browser commit on blur),
     // and a downstream validator triggered by change reads the model state set by the
@@ -61,19 +73,20 @@ document.addEventListener("input", (e) => {
     // the .NET dispatcher and the validator would observe stale state. Only standalone
     // input handlers (no change wired) get the rAF coalescing win.
     if (t.hasAttribute("data-rask-on-change")) {
-        send({id: t.getAttribute("data-rask-on-input"), type: "input", value: t.value});
+        send({ id: t.getAttribute("data-rask-on-input"), type: "input", value: t.value });
         return;
     }
+
     queueInput(t);
 });
 
 // scroll events don't bubble — listen in capture phase at the document level so we
 // observe scroll on any descendant with [data-rask-on-scroll]. Coalesce bursts via
 // rAF: one outgoing message per frame per element, even if scroll fires 5–10x.
-const scrollPending = new Set();
+const scrollPending = new Set<Element>();
 let scrollRaf = 0;
 
-function flushScroll() {
+function flushScroll(): void {
     scrollRaf = 0;
     scrollPending.forEach((el) => {
         if (!el.isConnected) return;
@@ -92,9 +105,10 @@ function flushScroll() {
 
 document.addEventListener("scroll", (e) => {
     const t = e.target;
-    if (!t || t.nodeType !== 1) return;
-    if (!t.hasAttribute || !t.hasAttribute("data-rask-on-scroll")) return;
+    if (!(t instanceof Element)) return;
+    if (!t.hasAttribute("data-rask-on-scroll")) return;
     if (!inRoot(t)) return;
+
     scrollPending.add(t);
     if (!scrollRaf) scrollRaf = requestAnimationFrame(flushScroll);
 }, true);

@@ -105,6 +105,150 @@ public class ScopedTypeScriptTypeCheckTests
     }
 
     /// <summary>
+    ///     Type-checks the framework's own client runtimes — the diff codec, the morph, the event
+    ///     router, the browser-API shims and both host entry points.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         These live under <c>Resources/</c> and <c>Browser/</c>, both excluded from the scoped
+    ///         glob, so nothing else in the repository checks them. They are also the largest and
+    ///         most load-bearing TypeScript here: a wrong type in the diff codec is a corrupted DOM.
+    ///     </para>
+    ///     <para>
+    ///         <b><c>noUnusedLocals</c> is not style enforcement here.</b> esbuild drops a module
+    ///         whose every import went unreferenced — TypeScript elides the unused import, esbuild
+    ///         then judges the module unreachable and removes it along with its top-level side
+    ///         effects. That is how the WASM bundle silently lost the hot-reload indicator, and how
+    ///         it would have shipped without <c>setHost</c> ever being called. An unused import in
+    ///         these files is not untidy, it is a module that will not be in the bundle.
+    ///     </para>
+    ///     <para>
+    ///         One pass, not one per file: they import each other, and checking a file alone would
+    ///         resolve its imports against sources nobody verified in the same compilation.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void TheFrameworksClientRuntimes_TypeCheck()
+    {
+        var root = RepositoryRoot();
+        var tsgo = ResolveTsgo();
+
+        string[] sources =
+        [
+            Path.Combine(root, "src", "Rask.Core", "build", "rask-globals.d.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-window.d.ts"),
+            Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask-wasm-window.d.ts"),
+            Path.Combine(root, "src", "Rask.Wasm", "Browser", "rask.wasm.d.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-api.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-deverror.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-dom.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-events.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-files.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-host.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-hotreload.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-input.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-morph.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-pwa.ts"),
+            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-scoped.ts"),
+            Path.Combine(root, "src", "Rask.Server", "Resources", "rask.ts"),
+            Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask-wasm-api.ts"),
+            Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask.wasm.ts"),
+            Path.Combine(root, "src", "Rask.Wasm", "Browser", "main.ts"),
+        ];
+
+        foreach (var source in sources)
+        {
+            Assert.True(File.Exists(source), $"'{source}' is missing — the list here has gone stale");
+        }
+
+        // Every framework runtime file, so a file added to Resources/ without being added here is
+        // caught rather than quietly going unchecked.
+        var declared = sources.Select(Path.GetFullPath).ToHashSet(StringComparer.Ordinal);
+        var onDisk = new[]
+            {
+                Path.Combine(root, "src", "Rask.Core", "Resources"),
+                Path.Combine(root, "src", "Rask.Server", "Resources"),
+                Path.Combine(root, "src", "Rask.Wasm", "Resources"),
+                Path.Combine(root, "src", "Rask.Wasm", "Browser"),
+            }
+            .SelectMany(d => Directory.EnumerateFiles(d, "*.ts", SearchOption.TopDirectoryOnly))
+            .Select(Path.GetFullPath)
+            // The service workers are checked by TheFrameworksServiceWorkers_TypeCheck, against the
+            // webworker lib rather than dom.
+            .Where(f => !Path.GetFileName(f).StartsWith("rask-sw", StringComparison.Ordinal))
+            .ToList();
+
+        var unchecked_ = onDisk.Where(f => !declared.Contains(f)).ToList();
+        Assert.True(
+            unchecked_.Count == 0,
+            "These framework runtime files are not in the list above, so nothing type-checks them:"
+            + Environment.NewLine + string.Join(Environment.NewLine, unchecked_));
+
+        var arguments = string.Join(" ", sources.Select(f => $"\"{f}\""))
+                        + " --noEmit --strict --noUnusedLocals --target es2020 --module esnext"
+                        + " --moduleResolution bundler --lib es2020,dom";
+
+        var (exitCode, output) = Run(tsgo, arguments);
+
+        Assert.True(
+            exitCode == 0,
+            "The framework's client runtimes did not type-check:" + Environment.NewLine + output);
+    }
+
+    /// <summary>
+    ///     No compiled <c>.js</c> sits beside a framework <c>.ts</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A TypeScript compiler run without <c>noEmit</c> and without an <c>outDir</c> writes its
+    ///         output next to the source. One did, and left a <c>rask-morph.js</c> in
+    ///         <c>Rask.Core/Resources</c> that was staged for commit before anyone noticed.
+    ///     </para>
+    ///     <para>
+    ///         It is worth a test rather than a <c>.gitignore</c> line because of what it would do if
+    ///         it shipped: esbuild resolves <c>"./rask-morph.js"</c> — the extension every import here
+    ///         writes — and a real file by that name wins over the TypeScript it was meant to resolve
+    ///         to. The bundle would then be built from a stale compile of the module, silently, with
+    ///         the source right beside it looking correct.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void NoCompiledJavaScriptSitsBesideTheFrameworkTypeScript()
+    {
+        var root = RepositoryRoot();
+
+        string[] directories =
+        [
+            Path.Combine(root, "src", "Rask.Core", "Resources"),
+            Path.Combine(root, "src", "Rask.Core", "build"),
+            Path.Combine(root, "src", "Rask.Server", "Resources"),
+            Path.Combine(root, "src", "Rask.Wasm", "Resources"),
+            Path.Combine(root, "tests", "Rask.Core.Tests", "Live"),
+        ];
+
+        var strays = new List<string>();
+        foreach (var directory in directories)
+        {
+            Assert.True(Directory.Exists(directory), $"'{directory}' is missing — the list here has gone stale");
+
+            foreach (var javaScript in Directory.EnumerateFiles(directory, "*.js", SearchOption.TopDirectoryOnly))
+            {
+                var sibling = Path.ChangeExtension(javaScript, ".ts");
+                if (File.Exists(sibling))
+                {
+                    strays.Add(javaScript);
+                }
+            }
+        }
+
+        Assert.True(
+            strays.Count == 0,
+            "A compiled .js is sitting beside its TypeScript source. Delete it — esbuild would resolve "
+            + "the import to it instead of the .ts, and bundle a stale compile:"
+            + Environment.NewLine + string.Join(Environment.NewLine, strays));
+    }
+
+    /// <summary>
     ///     Every project directory holding at least one scoped <c>.ts</c>, with its files.
     /// </summary>
     /// <remarks>
