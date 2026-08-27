@@ -40,7 +40,36 @@ internal sealed class QuiescenceScope : IDisposable
     private bool _disposed;
 
     /// <summary>The scope collecting work for the render currently running, if any.</summary>
-    internal static QuiescenceScope? Current => _syncCurrent ?? _asyncCurrent.Value;
+    /// <remarks>
+    ///     A disposed scope is never current, and reading past one clears it. <see cref="Dispose" />
+    ///     can only clear the thread-static slot on the thread it happens to run on, and after an
+    ///     <c>await</c> that is routinely not the thread <see cref="Begin" /> ran on — so a finished
+    ///     pass leaves its scope visible to whatever renders on that pool thread next.
+    ///     <para>
+    ///         The damage is silent rather than loud: work started by the next render is tracked into
+    ///         the dead scope while that render's own wave loop waits on its own, empty, set. It then
+    ///         serves a placeholder for data it never waited for — intermittently, and only under
+    ///         enough concurrency to recycle threads across renders, which is why it presents as a
+    ///         flaky test rather than as a bug.
+    ///     </para>
+    /// </remarks>
+    internal static QuiescenceScope? Current
+    {
+        get
+        {
+            if (_syncCurrent is { } sync)
+            {
+                if (!sync._disposed)
+                {
+                    return sync;
+                }
+
+                _syncCurrent = null;
+            }
+
+            return _asyncCurrent.Value is { _disposed: false } async ? async : null;
+        }
+    }
 
     /// <summary>
     ///     Whether any wave gave up before its work settled — the page is being served incomplete.
