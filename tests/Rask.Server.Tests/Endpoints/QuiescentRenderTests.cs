@@ -40,7 +40,7 @@ public class QuiescentRenderTests
     public async Task Get_WhenWorkNeverSettles_StillAnswersWithinBudget()
     {
         using var host = RaskTestHost.Create<NeverSettlesApp>(
-            configureServer: o => o.InitialRenderQuiescenceTimeout = TimeSpan.FromMilliseconds(150));
+            configureServer: o => o.RenderModes.QuiescenceTimeout = TimeSpan.FromMilliseconds(150));
 
         var started = DateTime.UtcNow;
         var response = await host.Http.GetAsync("/");
@@ -62,7 +62,7 @@ public class QuiescentRenderTests
         // framework's own JWT auth sample restores its session exactly this way, which is how this
         // was found: every page of it took five seconds.
         using var host = RaskTestHost.Create<JsInteropOnMountApp>(
-            configureServer: o => o.InitialRenderQuiescenceTimeout = TimeSpan.FromSeconds(5));
+            configureServer: o => o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(5));
 
         var started = DateTime.UtcNow;
         var response = await host.Http.GetAsync("/");
@@ -76,7 +76,7 @@ public class QuiescentRenderTests
     public async Task Get_WithTimeoutDisabled_KeepsTheSynchronousRender()
     {
         using var host = RaskTestHost.Create<AsyncDataApp>(
-            configureServer: o => o.InitialRenderQuiescenceTimeout = TimeSpan.Zero);
+            configureServer: o => o.RenderModes.QuiescenceTimeout = TimeSpan.Zero);
 
         var body = await host.Http.GetStringAsync("/");
 

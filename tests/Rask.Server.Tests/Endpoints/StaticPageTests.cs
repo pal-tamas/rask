@@ -87,8 +87,8 @@ public class StaticPageTests
         // because nothing would be left running that could replace it.
         using var host = RaskTestHost.Create<NeverSettlesStaticApp>(configureServer: o =>
         {
-            o.StaticPages = true;
-            o.InitialRenderQuiescenceTimeout = TimeSpan.FromMilliseconds(100);
+            o.RenderModes.Static = true;
+            o.RenderModes.QuiescenceTimeout = TimeSpan.FromMilliseconds(100);
         });
 
         var body = await host.Http.GetStringAsync("/");
@@ -118,7 +118,7 @@ public class StaticPageTests
         // language from the key and let a cache serve a Hungarian visitor the English page.
         // Neither change has this bug on its own, so nothing but this test would catch it.
         using var host = RaskTestHost.Create<ContentOnlyApp>(
-            configureServer: o => o.StaticPages = true,
+            configureServer: o => o.RenderModes.Static = true,
             configureCulture: c =>
             {
                 c.SupportedCultures.Add("en");
@@ -153,7 +153,7 @@ public class StaticPageTests
     }
 
     private static RaskTestHost Host<TApp>() where TApp : Component =>
-        RaskTestHost.Create<TApp>(configureServer: o => o.StaticPages = true);
+        RaskTestHost.Create<TApp>(configureServer: o => o.RenderModes.Static = true);
 }
 
 public sealed partial class ContentOnlyApp : Component

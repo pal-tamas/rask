@@ -23,7 +23,7 @@ public class StaticPageAuditTests
     public async Task APushToAPageServedWithoutASession_IsReported()
     {
         using var host = RaskTestHost.Create<PushAfterResponseApp>(
-            configureServer: o => o.StaticPages = true);
+            configureServer: o => o.RenderModes.Static = true);
 
         // Installed AFTER the host: UseRask routes RaskDiagnostics.Sink into its own ILogger bridge,
         // so a sink set beforehand is simply replaced and captures nothing.
@@ -59,7 +59,7 @@ public class StaticPageAuditTests
         // A normal disposal also raises a render request from unmount callbacks. Reporting that would
         // make the audit noise, and noise is how a real warning gets ignored.
         using var host = RaskTestHost.Create<HandlerOnlyApp>(
-            configureServer: o => o.StaticPages = true);
+            configureServer: o => o.RenderModes.Static = true);
 
         // Same ordering rule as above — the host claims the sink when it is built.
         var captured = new ConcurrentQueue<RaskDiagnosticEvent>();

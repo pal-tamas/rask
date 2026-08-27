@@ -27,10 +27,10 @@ internal sealed class RaskServerLimits
     /// <summary>Grace for a GET-minted session that has not yet sent its first WS <c>hello</c> (probe defence).</summary>
     public TimeSpan UnconnectedSessionGracePeriod { get; init; } = TimeSpan.FromSeconds(10);
 
-    /// <summary>How long the GET waits for async lifecycle work to settle. Zero = off. See <see cref="RaskServerOptions.InitialRenderQuiescenceTimeout" />.</summary>
+    /// <summary>How long the GET waits for async lifecycle work to settle. Zero = off. See <see cref="RaskRenderModes.QuiescenceTimeout" />.</summary>
     public TimeSpan InitialRenderQuiescenceTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
-    /// <summary>Serve pages that need nothing live without a session. See <see cref="RaskServerOptions.StaticPages" />.</summary>
+    /// <summary>Serve pages that need nothing live without a session. See <see cref="RaskRenderModes.Static" />.</summary>
     public bool StaticPages { get; init; }
 
     /// <summary>Close a connected socket that sends no inbound frame for this long. Zero = off.</summary>
@@ -62,8 +62,8 @@ internal sealed class RaskServerLimits
         MaxInboundFramesPerSecond = o.MaxInboundFramesPerSecond,
         SessionGracePeriod = o.SessionGracePeriod,
         UnconnectedSessionGracePeriod = o.UnconnectedSessionGracePeriod,
-        InitialRenderQuiescenceTimeout = o.InitialRenderQuiescenceTimeout,
-        StaticPages = o.StaticPages,
+        InitialRenderQuiescenceTimeout = o.RenderModes.QuiescenceTimeout,
+        StaticPages = o.RenderModes.Static,
         IdleSocketTimeout = o.IdleSocketTimeout,
         HandlerTimeout = o.HandlerTimeout,
         MaxPendingHandlerBytes = o.MaxPendingHandlerBytes,

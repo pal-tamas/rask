@@ -65,47 +65,15 @@ public sealed class RaskServerOptions
     public TimeSpan UnconnectedSessionGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    ///     How long the initial <c>GET</c> waits for a page's async lifecycle work
-    ///     (<c>OnMountAsync</c>) to settle before serving the HTML. <see cref="TimeSpan.Zero" />
-    ///     disables the wait, restoring the previous behaviour of serving whatever rendered
-    ///     synchronously. Default 5&#160;seconds.
+    ///     Which rungs of the render ladder this app uses — static documents, streaming, a live
+    ///     WebSocket, the browser runtime — and the budget the initial render waits under.
     /// </summary>
     /// <remarks>
-    ///     <para>
-    ///         Without this a page that loads its data in <c>OnMountAsync</c> serves its
-    ///         <c>"Loading…"</c> placeholder as the first paint and as the whole document every
-    ///         crawler sees — the data arrives over the live connection a moment later, which no
-    ///         cache, crawler or uptime check ever observes.
-    ///     </para>
-    ///     <para>
-    ///         Blowing the budget is not an error: the page is served as it stands and keeps a live
-    ///         session, so the load finishes exactly as it does today. It does mean a slow page
-    ///         holds a request open for up to this long, so treat it together with the session cap
-    ///         when sizing a host — the two multiply.
-    ///     </para>
+    ///     Every rung is automatic; this is the ceiling, for an app that wants one it will never use
+    ///     turned off rather than merely unused. A combination that cannot serve a working page
+    ///     throws when the host is built.
     /// </remarks>
-    public TimeSpan InitialRenderQuiescenceTimeout { get; set; } = TimeSpan.FromSeconds(5);
-
-    /// <summary>
-    ///     Serve a page that needs nothing live as a plain document — no session, no WebSocket, no
-    ///     runtime script — and let it be cached. Default <c>false</c>.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         Whether a page needs a live connection is detected from its render: an event handler,
-    ///         a form, an element <c>Ref</c>, a call into JavaScript, or async work that had not
-    ///         settled when the response went out. A page with none of those is inert today anyway —
-    ///         it just costs a DI scope, a component tree and a socket to say so.
-    ///     </para>
-    ///     <para>
-    ///         Off by default because detection can only observe what the render did. A component
-    ///         that pushes updates from a timer or an <c>event</c> subscription — work no walk can
-    ///         see — would be judged static and go quiet. Turn it on once you have checked the pages
-    ///         it changes; in Development a static page still reports, in the browser console, any
-    ///         handler it finds on a page it judged inert.
-    ///     </para>
-    /// </remarks>
-    public bool StaticPages { get; set; }
+    public RaskRenderModes RenderModes { get; } = new();
 
     /// <summary>
     ///     If a connected WebSocket sends no inbound frame for this long, the server closes it. The
@@ -224,6 +192,11 @@ public sealed class RaskServerOptions
     /// </summary>
     internal void Validate()
     {
+        // First: a contradictory ladder means no page can work at all, which is worth saying before
+        // any cap detail. A host that refuses to start is far cheaper to diagnose than a page that
+        // silently does nothing in production.
+        RenderModes.Validate();
+
         if (MaxInboundFrameBytes <= 0)
         {
             throw new ArgumentOutOfRangeException(
