@@ -123,6 +123,19 @@ them until tagged releases begin.
   iterating on a single failing journey cost the whole suite — including two emscripten relinks — every
   attempt. A filtered run says loudly that it was filtered, in both its header and its final line: a
   narrowed green is not the gate.
+- **A guard that every `--template` key produces its own project.** `rask new --template native` used to
+  scaffold a *server* app: the catalog still advertised the key after the native host was deleted, and
+  `NewCommand`'s switch had no arm for it, so it fell through to the default. The parser accepted the
+  value, the CLI announced "Creating Rask native mobile app…", and wrote something else. Nothing threw.
+
+  The existing tests assert that `native` specifically is gone, which is keyed on a string and would not
+  catch the same fall-through under a new key. What actually characterises the bug is a template
+  producing output **identical to another template's**, so that is what is asserted now — pairwise, over
+  every accepted key, driven through the real `NewCommand`. It needs to know nothing about what any
+  template should contain: a key with no arm lands on the default and is caught by construction.
+
+  Proven by failing it. Adding a `mobile` key with no arm turns it red with *"--template mobile produces
+  exactly the same project as --template server"*.
 
 - **A localization guide, a live demo, and a browser journey step.** `docs/localization.md` covers the
   whole feature end to end — how a visitor's language is chosen, why URLs stay culture-neutral, typed
