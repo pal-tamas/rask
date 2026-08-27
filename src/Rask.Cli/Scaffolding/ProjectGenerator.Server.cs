@@ -181,6 +181,12 @@ internal static partial class ProjectGenerator
         var browserRungProperty = batteries.Wasm
             ? "\n    <!-- Publish a browser bundle from this same project: see docs/render-modes.md. -->"
               + "\n    <RaskBrowserRung>true</RaskBrowserRung>"
+              // Stated rather than left to the default. The default is {RootNamespace}.App, which is
+              // where a hand-written app puts its root; this layout puts cross-cutting code in
+              // Features/Shared, so the generated browser entry point would name a type that is not there
+              // and fail to compile inside a nested publish -- an error a long way from anything the
+              // author wrote.
+              + "\n    <RaskBrowserRootComponent>$(RootNamespace).Features.Shared.App</RaskBrowserRootComponent>"
             : "";
 
         var litestreamProperty = batteries.Data

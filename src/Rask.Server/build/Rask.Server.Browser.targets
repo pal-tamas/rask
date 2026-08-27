@@ -35,8 +35,9 @@
     -->
     <RaskBrowserCompanionOutput Condition=" '$(RaskBrowserCompanionOutput)' == '' ">$(BaseIntermediateOutputPath)rask-browser-out\</RaskBrowserCompanionOutput>
     <!--
-      The app's root component, used for the generated entry point. Defaults to <RootNamespace>.App,
-      which is what `rask new` scaffolds; an app that named its root differently says so.
+      The app's root component, used for the generated entry point. Defaults to <RootNamespace>.App —
+      where a hand-written app puts its root. An app that puts it elsewhere says so; `rask new` does,
+      because its layout keeps cross-cutting code in Features/Shared.
     -->
     <RaskBrowserRootComponent Condition=" '$(RaskBrowserRootComponent)' == '' ">$(RootNamespace).App</RaskBrowserRootComponent>
   </PropertyGroup>

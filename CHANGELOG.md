@@ -166,6 +166,15 @@ them until tagged releases begin.
   verified by reintroducing the defect and watching it fail on `(wasm, localization)` before the fix
   went back in — the same bug class `--template native` was, and the same one it now catches.
 
+- **A gate's test selector is no longer a naming contract.** `scripts/run-cli-build-e2e.sh` selected
+  classes by naming suffix, so a class whose name did not happen to match was never run while the gate
+  printed that it passed. That had already cost one test — `TailwindPublishE2ETests`, fixed by renaming
+  it — and the next class to arrive hit it again.
+
+  The filter now matches the suffix every E2E class shares, and `CliGateFilterTests` reads every script
+  under `scripts/`, extracts each `--filter`, and fails if any E2E class is selected by no gate at all —
+  so the constraint is checked rather than remembered.
+
 - **A finished render pass could still collect the next one's work.** `QuiescenceScope.Dispose` clears
   its thread-static slot only on whatever thread it runs on, which after an `await` is routinely not the
   thread the pass began on — so a finished scope stayed visible to the next render on that pool thread,
