@@ -85,7 +85,10 @@ internal static class TemplateCatalog
         Scaffolding.SpaFramework.All.Select(framework => new TemplateInfo(
             framework.Key,
             $"Rask {framework.DisplayName} front end + ASP.NET host",
-            new HashSet<string>([.. DatabaseFlags, "docker"], StringComparer.Ordinal)));
+            // "pwa" and "push" but not "auth": the PWA half is the client's own manifest, service worker
+            // and subscription call, none of which need a login. Auth would need a sign-in flow written in
+            // the framework's own idiom, which the template does not scaffold yet.
+            new HashSet<string>([.. DatabaseFlags, "docker", "pwa", "push"], StringComparer.Ordinal)));
 
     /// <summary>The default template when none is specified — a server-rendered app.</summary>
     public static TemplateInfo Default => All[0];

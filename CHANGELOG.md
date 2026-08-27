@@ -401,6 +401,93 @@ them until tagged releases begin.
   case, where rendering a spinner would hide data the user already has. `IsLoading`, `IsFetching`,
   `IsSuccess` and the new `IsError` are derived from them.
 
+- **The scaffolded Lit component renders into the light DOM**, so the app's stylesheet reaches it. Lit
+  renders into a shadow root by default and page-level CSS does not cross one — so with `--tailwind` (or
+  any global stylesheet) every element on the page would have been styled *except* the one component the
+  template ships, with nothing reporting it. The element declares no `static styles` of its own, so the
+  shadow root was buying encapsulation it never used.
+
+- **A front-end template's Tailwind is proven by the real bundler** (#839). `--tailwind` on these
+  templates is a chain that runs entirely inside somebody else's toolchain: the adapter has to be one the
+  bundler loads, the stylesheet Rask overlays has to be the file that bundler's entry point actually
+  imports, and the utility has to survive into the emitted CSS. Every link fails silently — the build
+  succeeds and the page is unstyled, which is exactly how Angular shipped with an adapter nothing read.
+
+  `SpaTailwindBuildE2ETests` runs `create-vite`/`ng new`, then the real build, then reads the emitted CSS
+  for a utility injected into the page under test. Two frameworks, chosen for their adapters rather than
+  their popularity: React stands for the five that own a `vite.config.ts` and take `@tailwindcss/vite`,
+  Angular for the only one that does not and takes `@tailwindcss/postcss`. Those two paths are the whole
+  of the branch that got Angular wrong.
+
+  Its first run earned its keep twice over: driving npm directly failed with `Property 'visits' does not
+  exist on type '{}'`, because the generated TypeScript contracts only exist once the **.NET** build has
+  run — so the test now drives `dotnet build` and lets Rask.Spa.Hosting's targets own the whole chain.
+
+- **`Rask.Query` is wired by default wherever `--cqrs` is**, with no flag of its own. It shipped as a
+  package you had to know existed: written, tested, documented, and reachable only by reading
+  `docs/query.md`. `rask new --cqrs` (and everything that implies it) now adds the reference **and** the
+  `AddRaskQuery()` call — a reference without the registration is a dependency an app carries and cannot
+  use.
+
+  Tied to `--cqrs` rather than always-on because it wraps a dispatcher: with no messages to send there is
+  nothing to cache. On `wasm-hosted` it lands in the **client** half, where it earns the most — every
+  dispatch there is a network round trip, so a component that refetches on each render pays for it over
+  the wire.
+
+  **The package layering is deliberately unchanged.** `Rask.Query` depends on both `Rask.Cqrs` and
+  `Rask.Core` because it *is* the composition of them, and neither should depend on it: `Rask.Cqrs.Server`
+  and `Rask.Spa.Hosting` reference no `Rask.Core` at all, so a TypeScript-SPA host runs the mediator with
+  zero component runtime — folding the mediator into Core would take that away.
+
+- **`--tailwind` reaches the browser-WASM templates too** (#838). `GenerateWasm` took a `bool bootstrap`
+  beside a `ServerBatteries` that already carried `Styling`, and `GenerateWasmHosted` did the same for
+  its client half — so a Tailwind request scaffolded a **plain** project while the command reported
+  success. Two sources for one decision, and the caller that set only one of them was the bug; there is
+  one parameter now, read off the batteries.
+
+  On these templates the stylesheet belongs to the **client** project, because Tailwind v4 detects its
+  sources relative to where it runs and the components whose classes it is looking for are the browser
+  half's. `Rask.Tailwind` is build-only — no runtime assembly — so it adds nothing to what the browser
+  downloads.
+
+  **That it works under `Microsoft.NET.Sdk.WebAssembly` was an assumption until something built it.**
+  `Generated_..._Tailwind_compiles_the_scaffolded_pages_utilities` now scaffolds, builds and reads the
+  emitted CSS on both an ASP.NET host and a browser-WASM one, asserting a utility class **from the
+  scaffolded page** — because the way this fails is an almost-empty stylesheet from a build that
+  reported success, which no exit code distinguishes from working. A class the project never writes is
+  asserted absent too, so the test cannot pass against a stylesheet that shipped all of Tailwind.
+
+  `Rask.Tailwind` was also missing from the E2E's local feed, which is why no build gate could have
+  covered this.
+
+- **The front-end templates take `--pwa` and `--push`.** A TypeScript SPA is now installable and can
+  receive Web Push from its ASP.NET host: `rask new Shop --template react --push`. The manifest, the
+  icon and the service worker land in the client's own `public/`, which every bundler copies to the
+  bundle root — so they work under the dev server as well as in a build. A host-served worker would
+  404 during `rask dev`, where the browser talks to Vite and only `/_rask` is proxied, and a service
+  worker that 404s once is not retried.
+
+  **Installable and push-capable, not offline**, which is the same honest claim the Server template
+  makes. The worker handles `push` and `notificationclick` and nothing else: the bundler fingerprints
+  its assets and rewrites `index.html` every build, so a hand-rolled app-shell cache would serve a
+  stale shell pointing at hashed files that no longer exist. `vite-plugin-pwa` owns the build and can
+  say what it cached; this does not pretend to.
+
+  Both URLs written into `index.html` are **root-absolute**, which matters more in a SPA than in a
+  server-rendered app: one document is served at every route, so a relative manifest href 404s on any
+  deep link, and `register("rask-sw.js")` would take its scope from that path — controlling one
+  sub-tree and never seeing a push, with nothing reporting either failure.
+
+  `--push` also vendors `src/rask/push.ts`, typed against what the host binds. It exists as a file
+  rather than a snippet in the docs because of one line: `PushSubscription.toJSON()` nests the keys as
+  `{ endpoint, keys: { p256dh, auth } }` while the server binds a flat
+  `PushSubscription(Endpoint, P256dh, Auth)`. Posting the browser's shape **still answers 204** —
+  `endpoint` binds, both keys arrive null, and every later send fails to encrypt for a subscription
+  that looked like it registered.
+
+  `--auth` stays refused on these templates: a sign-in flow has to be written in the framework's own
+  idiom, and scaffolding half of one is worse than saying no.
+
 - **Tailwind CSS on every host, compiled by `dotnet build`** — `rask new --tailwind`, and a
   `Rask.Tailwind` build-only package you can add to any project. No `package.json`, no
   `node_modules`, no PostCSS and no npm: the build fetches Tailwind v4's standalone binary, verifies
@@ -431,9 +518,7 @@ them until tagged releases begin.
   `--bootstrap` asks for `Rask.Bootstrap`, and `--tailwind` asks for Tailwind. **`--no-bootstrap` is
   gone** — it was the negative half of a boolean pair that could not express three answers, and
   `--bootstrap --tailwind` is a usage error rather than a silent preference, because picking a winner
-  would scaffold something the command line did not ask for. `--tailwind` on `wasm`/`wasm-hosted` is
-  refused for the same reason: those paths have no styling axis yet, and would have scaffolded plain
-  CSS while reporting success.
+  would scaffold something the command line did not ask for.
 
 - **The WASM showcase and the docs site now ship ICU** (`RaskGlobalization=true`), which adds roughly
   2.6 MB of `icudt*.dat` to those two bundles. `RaskGlobalization` also requests **full** ICU rather

@@ -7,15 +7,20 @@ internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>wasm</c> template (a standalone browser-WASM SPA) into <paramref name="targetDirectory"/>.</summary>
     public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa,
-        bool docker, string version, bool bootstrap = true, ServerBatteries? batteries = null)
+        bool docker, string version, ServerBatteries? batteries = null)
     {
+        // Read off the batteries rather than taken as a second parameter beside them. Styling is one axis
+        // with three answers; a bool alongside a ServerBatteries that already carries Styling is two
+        // sources for one decision, and the caller that set only one of them is the bug.
+        var styling = (batteries ?? new ServerBatteries()).Styling;
+
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", WasmCsproj(auth, bootstrap, version)),
+            ($"{NameToken}.csproj", WasmCsproj(auth, styling, version)),
             ("Program.cs", WasmProgram(auth, pwa)),
             // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
-            ("Features/Shared/App.cs", AppShellCs(bootstrap ? Styling.Bootstrap : Styling.Plain)),
-            ("Features/Home/HomePage.cs", HomePageCs(bootstrap ? Styling.Bootstrap : Styling.Plain)),
+            ("Features/Shared/App.cs", AppShellCs(styling)),
+            ("Features/Home/HomePage.cs", HomePageCs(styling)),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
         };
@@ -32,6 +37,13 @@ internal static partial class ProjectGenerator
             files.Add(("wwwroot/icon.svg", IconSvg));
         }
 
+        if (styling == Styling.Tailwind)
+        {
+            // Same input sheet as every other host: Rask.Tailwind compiles it to wwwroot/css/app.css
+            // before the app builds, and the WebAssembly SDK publishes wwwroot as it finds it.
+            files.Add(("Styles/app.css", TailwindInputCss));
+        }
+
         if (docker)
         {
             files.Add(("Dockerfile", WasmDockerfile));
@@ -45,7 +57,12 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker))
         {
-            Packages = bootstrap ? ["Rask.Wasm", "Rask.Bootstrap"] : ["Rask.Wasm"],
+            Packages = styling switch
+            {
+                Styling.Bootstrap => ["Rask.Wasm", "Rask.Bootstrap"],
+                Styling.Tailwind => ["Rask.Wasm", "Rask.Tailwind"],
+                _ => ["Rask.Wasm"],
+            },
         };
     }
 
@@ -100,11 +117,17 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
         """;
 
-    private static string WasmCsproj(bool auth, bool bootstrap, string version)
+    private static string WasmCsproj(bool auth, Styling styling, string version)
     {
-        var bootstrapRef = bootstrap
-            ? $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>"
-            : "";
+        var stylingRef = styling switch
+        {
+            Styling.Bootstrap => $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>",
+
+            // Build-only: no runtime assembly and nothing to trim, which is what lets it sit on a
+            // browser-WASM project as readily as on an ASP.NET one.
+            Styling.Tailwind => $"\n    <PackageReference Include=\"Rask.Tailwind\" Version=\"{version}\"/>",
+            _ => "",
+        };
         var authRefs = auth
             ? $"""
 
@@ -118,7 +141,7 @@ internal static partial class ProjectGenerator
         {WasmSdkPropertyGroup}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>{bootstrapRef}{authRefs}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{stylingRef}{authRefs}
           </ItemGroup>
 
         </Project>
