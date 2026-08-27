@@ -8,6 +8,40 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A package that ships an MSBuild task now packs that task by name, so it cannot pack without it.**
+  `Rask.Spa.Hosting`, `Rask.Wasm` and `Rask.Tailwind` each collect a generated `*.Tasks.dll` with
+  `<None Include="build\**">`, ordered by a build-only `ProjectReference` that produces it. That
+  ordering is real for the *build* and meaningless for the *glob*: a glob is expanded at project
+  **evaluation**, before any target runs. On a tree where the DLL is not already on disk it matches
+  nothing, `dotnet pack` **succeeds**, and the package ships with a `UsingTask` pointing at a file
+  that is not in it — the consumer then fails with `MSB4062`
+  ([#852](https://github.com/pal-tamas/rask/issues/852)).
+
+  Reproduced directly rather than reasoned about: delete the DLL, `dotnet pack` the project alone,
+  and the nupkg contains `build/*.props`, `build/*.targets` and no task assembly, with **pack exit
+  0** — while the DLL sits on disk, written during that very build. Packing again is correct,
+  because the first build left it behind, which is what makes it read as flakiness.
+
+  Each DLL is now a literal `<None Include="build\<Name>.Tasks.dll">`, excluded from the glob beside
+  it. A literal include needs the file only when the item is *copied*, which is after the reference
+  has built. The glob stays for `build/*.props` and `build/*.targets`, which are committed and so
+  can never be missing at evaluation.
+
+  **The repair is that the failure stops being silent.** Verified by pointing a literal at a name
+  nothing produces: `error NU5019: File not found`, pack exit 1. A missing task assembly is now a
+  build error instead of a package that looks fine and is inert.
+
+  **Published packages were never affected** — `release.yml` runs `dotnet build Rask.slnx` before
+  every `dotnet pack --no-build`, so the DLL is always on disk by then. The reachable exposure was
+  `CliBuildE2E.PackLocalFeedAsync`, which packs each `.csproj` with no prior solution build, so a
+  first run in a fresh worktree failed two cases with an error belonging to no branch.
+
+  `Rask.Tailwind` was the third one, and is named in no report: the guard added here finds the set
+  by reading each packed `.targets` for the `UsingTask` that will load a DLL, so a package that
+  grows a task is covered the day it does rather than when someone remembers the list. Hand-kept
+  lists are exactly how the neighbouring gates rotted — `Rask.Tailwind` was missing from
+  `CliBuildE2E.FeedPackages` from the day it shipped.
+
 - **`--tailwind` on a front-end template no longer strips the app's styling and put nothing back.**
   The scaffolded stylesheet replaces the one `create-vite` (or `ng new`) wrote, and until now that
   replacement was a single `@import "tailwindcss";`. Part of the file being replaced does style the
