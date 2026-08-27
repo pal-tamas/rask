@@ -48,9 +48,18 @@
     <!-- Named in the "nothing built yet" page the host serves in Development. Purely informational. -->
     <RaskSpaDevServerUrl Condition="'$(RaskSpaDevServerUrl)' == ''"></RaskSpaDevServerUrl>
 
-    <!-- The floor the bundlers themselves require; the probe reports anything older rather than letting
-         vite fail with an engines error nobody reads. -->
-    <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">20.19.0</RaskSpaMinimumNode>
+    <!-- The floor the probe enforces (RASKSPA005), rather than letting vite fail with an engines error
+         nobody reads.
+
+         Vite asks for `^20.19.0 || >=22.12.0`, which is a range with a HOLE in it: 21.x and 22.0-22.11
+         satisfy neither arm. 22.12.0 is the lowest version that satisfies it with no hole — and the
+         lowest that is not on a line Node has stopped patching, since 20 "Iron" reached end of life on
+         2026-03-24. A floor is a minimum, not a recommendation: what Rask RECOMMENDS is the current
+         Active LTS (24 "Krypton"), which is what the scaffolded Dockerfile installs.
+
+         Angular's CLI sets its own floor far above this one (`^22.22.3 || ^24.15.0 || >=26.0.0` as of
+         22.1.6) and enforces it itself, which is why Rask does not try to track it here. -->
+    <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">22.12.0</RaskSpaMinimumNode>
 
     <!--
       Where the generated contracts land, relative to the client. Inside src/ on purpose: the bundler
