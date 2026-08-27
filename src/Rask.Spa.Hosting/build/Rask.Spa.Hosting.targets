@@ -138,6 +138,26 @@
     <Error Condition="'$(_RaskSpaNodeExit)' != '0'"
            Code="RASKSPA001"
            Text="Rask.Spa.Hosting: building $([System.IO.Path]::GetFileName('$(_RaskSpaDir)')) needs Node.js, but 'node --version' did not run. Install Node.js $(RaskSpaMinimumNode) or newer from https://nodejs.org (macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your distro's nodejs package), then build again. To build the server WITHOUT the front end — the API still works and the site serves a 'nothing built yet' page — pass -p:RaskSpaBuild=false."/>
+
+    <!--
+      The floor, actually enforced.
+
+      RaskSpaMinimumNode was documented as a floor long before anything compared against it: it was
+      interpolated into the message above and read nowhere else, and _RaskSpaNodeVersion was captured
+      and dropped. So a too-old Node reached `vite` and failed with the engines error this probe exists
+      to prevent, and setting RaskSpaMinimumNode insisted on nothing at all.
+
+      Skipped rather than failed when the probe prints something this cannot parse (a nightly build
+      carries a prerelease suffix): a build that works today should not start failing over a version
+      string this package could not read, and npm still gets its say.
+    -->
+    <PropertyGroup Condition="'$(_RaskSpaNodeExit)' == '0'">
+      <_RaskSpaNodeFound>$(_RaskSpaNodeVersion.Trim().TrimStart('v'))</_RaskSpaNodeFound>
+      <_RaskSpaNodeComparable>$([System.Text.RegularExpressions.Regex]::IsMatch($(_RaskSpaNodeFound), '^[0-9]+\.[0-9]+\.[0-9]+$'))</_RaskSpaNodeComparable>
+    </PropertyGroup>
+    <Error Condition="'$(_RaskSpaNodeComparable)' == 'true' AND $([MSBuild]::VersionLessThan('$(_RaskSpaNodeFound)', '$(RaskSpaMinimumNode)'))"
+           Code="RASKSPA005"
+           Text="Rask.Spa.Hosting: building $([System.IO.Path]::GetFileName('$(_RaskSpaDir)')) needs Node.js $(RaskSpaMinimumNode) or newer, but 'node --version' reported $(_RaskSpaNodeFound). Install the current LTS (nvm install --lts &amp;&amp; nvm alias default 'lts/*', or https://nodejs.org; macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS), then build again. Set RaskSpaMinimumNode if you want a different bar, or pass -p:RaskSpaBuild=false to build the server WITHOUT the front end."/>
   </Target>
 
   <!--

@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 using Rask.Cli.Templates;
 
@@ -817,5 +819,44 @@ public sealed class SpaTemplateTests
     public void Restore_targets_the_solution_because_there_is_no_root_project()
     {
         Assert.Equal("Shop.slnx", Generate().RestoreTarget);
+    }
+
+    /// <summary>
+    ///     The scaffolded image installs a Node the host package's own build will accept, and installs the
+    ///     current LTS rather than merely a version that clears the floor.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Two different numbers, and the difference is the point. <c>RaskSpaMinimumNode</c> is a FLOOR
+    ///         — the oldest Node the build tolerates — while the image is a RECOMMENDATION every scaffolded
+    ///         project inherits and rebuilds on for years. An image pinned below the floor would install a
+    ///         Node its own <c>dotnet publish</c> then refuses, which is a broken template rather than a
+    ///         slow upgrade, so that half is checked against the shipped props rather than a literal.
+    ///     </para>
+    ///     <para>
+    ///         The second half is a literal on purpose: nothing in the repo knows which line Node currently
+    ///         calls Active LTS. Raise it when that moves — it only ever goes up, and going backwards is
+    ///         exactly the regression worth failing over.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void The_docker_image_installs_the_current_node_lts()
+    {
+        var dockerfile = Content(Generate(new ServerBatteries { Docker = true }), "Dockerfile");
+
+        var installed = Regex.Match(dockerfile, @"deb\.nodesource\.com/setup_(\d+)\.x");
+        Assert.True(installed.Success, $"the SPA Dockerfile no longer installs Node from NodeSource:\n{dockerfile}");
+        var major = int.Parse(installed.Groups[1].Value, CultureInfo.InvariantCulture);
+
+        var props = File.ReadAllText(Path.Combine(
+            CliBuildE2E.FindRepoRoot(), "src", "Rask.Spa.Hosting", "build", "Rask.Spa.Hosting.props"));
+        var floor = Version.Parse(Regex.Match(props, @"<RaskSpaMinimumNode[^>]*>([0-9.]+)</RaskSpaMinimumNode>").Groups[1].Value);
+
+        Assert.True(
+            major >= floor.Major,
+            $"the image installs Node {major}.x, which the build's own floor ({floor}) refuses.");
+
+        // Node 24 "Krypton" is the Active LTS as of 2026-08; 20 "Iron" is EOL and 22 "Jod" is maintenance.
+        Assert.True(major >= 24, $"the image installs Node {major}.x, which is no longer the Active LTS.");
     }
 }
