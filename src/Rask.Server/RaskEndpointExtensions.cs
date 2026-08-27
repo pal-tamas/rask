@@ -35,6 +35,7 @@ using Rask.Core.HotReload;
 using Rask.Core.Http;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
+using Rask.Core.Rendering;
 using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
 using Rask.Html.Components;
@@ -586,7 +587,14 @@ public static partial class RaskEndpointExtensions
             // recorded no reason at all needs no connection, so it can be served as a plain
             // document. Development keeps the session either way, so `rask dev` still repaints on
             // an edit and the audit warning below has a socket to have been worth checking.
-            var interactive = !staticPages
+            // A page may ask to be served static even where the app default is interactive. Honoured
+            // only from the routed page itself or the app root: letting an arbitrary helper deep in a
+            // tree force a whole page static would be a very quiet way to break it.
+            var declaredStatic = notFoundPage is null
+                                 && chain.Count > 0
+                                 && PageRenderModes.Of(chain[^1]) == PageRenderMode.Static;
+
+            var interactive = !(staticPages || declaredStatic)
                               || session.RequiresLiveSession
                               || session.LastRenderFaulted
                               // A JS call issued from a continuation AFTER the walk is invisible to
@@ -594,6 +602,20 @@ public static partial class RaskEndpointExtensions
                               // only a socket can carry.
                               || session.JsInvokes.HasPending
                               || LiveOptions.IsDevelopment == true;
+
+            // A page that asked to be static and turned out to need a connection keeps the connection —
+            // a request, not a command. Reported, because the two facts contradict each other and the
+            // author asked for the one that would have broken the page.
+            if (declaredStatic && session.RequiresLiveSession)
+            {
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Warning,
+                    "Rask.Ssr",
+                    $"{chain[^1].Name} declares [PageRender(PageRenderMode.Static)] but its render needs a "
+                    + $"live connection ({session.InteractivityReasons}), so it kept one. Serving it static "
+                    + "would have left that part of the page inert. Remove the attribute, or remove what "
+                    + "needs the connection.");
+            }
 
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
             // from the same predicate that decides whether to subscribe at all, so the two can't
@@ -725,7 +747,19 @@ public static partial class RaskEndpointExtensions
                 // detection cannot see — is reported rather than swallowed by the ordinary
                 // disposed-session early-return.
                 session.MarkDiscardedAsStatic();
-                await store.DiscardAsync(session).ConfigureAwait(false);
+                if (staticPages)
+                {
+                    // Built detached, so it was never registered and owns no capacity slot.
+                    await store.DiscardAsync(session).ConfigureAwait(false);
+                }
+                else
+                {
+                    // A page can declare itself static even where the app has not turned static pages
+                    // on, and then the session came from TryCreate — registered, holding a slot. It has
+                    // to be removed rather than discarded: discarding leaves it in the store, which
+                    // disposes it a second time when its grace elapses.
+                    store.Remove(session.Id);
+                }
             }
 
             await httpContext.Response.WriteAsync(content).ConfigureAwait(false);

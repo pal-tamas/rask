@@ -39,7 +39,38 @@ cheaper to diagnose than a page that silently does nothing in production. Turnin
 not implemented yet throws for the same reason: a switch that reads as supported and quietly does
 nothing leaves an app looking configured for something it is not doing.
 
-A page can opt **down** from this ceiling with its own attribute. It cannot opt above it.
+### A page that knows better
+
+Nothing needs this. How far a page climbs is detected from its render, and the detection is biased
+towards keeping a connection — a page wrongly judged interactive behaves exactly as it always has,
+while one wrongly judged static loses its interactivity silently. The attribute is for what detection
+cannot see.
+
+```csharp
+// Pushes on a timer. Nothing in its render says so, so nothing would mark it.
+[PageRender(PageRenderMode.Interactive)]
+public abstract partial class PollingPanel : Component { }
+```
+
+`Interactive` is honoured from **anywhere** in the page's tree, which is what lets a base component
+declare the need once — a polling panel says it, and every dashboard built on it inherits the need
+without its author knowing to. The attribute is `Inherited`, so a subclass carries it.
+
+```csharp
+[Route("/pricing")]
+[PageRender(PageRenderMode.Static)]
+public sealed partial class Pricing : Component { }
+```
+
+`Static` is honoured only on the routed page itself or the app root. Letting an arbitrary helper deep
+in a tree force a whole page static would be a very quiet way to break it.
+
+And `Static` is a **request, not a command**: if the render shows the page genuinely needs a
+connection, it keeps one and the contradiction is logged under `Rask.Ssr` naming the page. Serving it
+static would have left that part of the page inert, which is the one outcome worth refusing.
+
+A page can only move **within** what `RenderModes` allows. It cannot ask for a rung the app has
+turned off.
 
 ## The initial GET waits for your data
 
