@@ -547,24 +547,6 @@ public sealed class ProjectGeneratorTests
     }
 
     [Fact]
-    public void The_hosted_client_gets_the_query_cache_with_its_remote_dispatcher()
-    {
-        var result = ProjectGenerator.GenerateWasmHosted(
-            Root, "App", new ServerBatteries { Cqrs = true }, Version);
-        var files = Index(result);
-
-        // Asserted on the csproj rather than on ScaffoldResult.Packages: that list is the summary the
-        // CLI prints, and for this template it names the three framework packages only — Rask.Cqrs.Client
-        // is absent from it too. The csproj is what restore reads.
-        //
-        // The client half, where every dispatch is a network round trip — so a component that refetches
-        // on each render pays for it over the wire.
-        Assert.Contains(
-            "<PackageReference Include=\"Rask.Query\"", files["App.Client/App.Client.csproj"], StringComparison.Ordinal);
-        Assert.Contains("host.Services.AddRaskQuery();", files["App.Client/Program.cs"], StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Wasm_honours_all_three_styling_answers()
     {
         var plain = ProjectGenerator.GenerateWasm(

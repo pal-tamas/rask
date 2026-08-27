@@ -35,7 +35,7 @@ public sealed class Counter : Component
 
 ```bash
 dotnet tool install -g Rask.Cli          # the rask CLI — scaffold, migrate, run, deploy
-rask new MyApp                            # batteries included; or: --template wasm | wasm-hosted
+rask new MyApp                            # batteries included; or: --template wasm, or --wasm
 rask dev                                  # run with hot reload — the first migration is already applied
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
 ```

@@ -284,7 +284,6 @@ The three web templates take an opt-in `--docker` flag that drops a production-r
 ```bash
 rask new MyApp                                   # Kestrel app → aspnet:10.0 runtime image
 rask new MyApp --template wasm                   # static WASM bundle → nginx:alpine
-rask new MyApp --template wasm-hosted            # WASM client + host → aspnet:10.0 runtime image
 ```
 
 Without `--docker` no container files are emitted.
@@ -322,10 +321,13 @@ If you do add a cache in front, respect the `Vary` the app sends. It carries `Co
 "anonymous" is itself a function of the cookie — and, on a localized app, `Accept-Language` too.
 Dropping either from the key lets a cache serve one visitor's page to another.
 
-## WASM-hosted app (`--template wasm-hosted`)
+## A client-plus-host solution
 
-Three projects in one solution: `MyApp.Client` (the browser-WASM SPA), `MyApp.Server` (the ASP.NET host
-that serves it), and `MyApp.Shared` (a class library both reference). The Dockerfile installs the
+No template scaffolds this shape any more — `--wasm` on a server app publishes both halves from one
+project instead — but `rask dev` and `rask deploy` still recognise it, so apps built on the old
+`wasm-hosted` template keep working. Three projects in one solution: `MyApp.Client` (the browser-WASM
+SPA), `MyApp.Server` (the ASP.NET host that serves it), and `MyApp.Shared` (a class library both
+reference). The Dockerfile installs the
 `wasm-tools` workload (needed to publish the browser client the Server host bakes in), builds the
 projects, and runs **`MyApp.Server`** on the aspnet runtime image — same port/TLS story as the server app.
 
@@ -350,7 +352,7 @@ docker run --rm -p 8080:8080 myapp
 The `nginx.conf` does four things that matter for a Rask WASM bundle:
 
 - **Listens on `8080`, and serves `/health`** — the same container port and readiness endpoint as the
-  server and wasm-hosted templates, so [`rask deploy`](cli.md#rask-deploy--ship-to-a-single-host-over-ssh)
+  server template and a client-plus-host solution, so [`rask deploy`](cli.md#rask-deploy--ship-to-a-single-host-over-ssh)
   can health-gate and proxy a static bundle exactly like any other Rask app.
 - **SPA fallback** — `try_files $uri $uri/ /index.html;` so client-side routes resolve.
 - **`application/wasm` MIME** — the browser refuses to streaming-compile the Mono runtime `.wasm`
