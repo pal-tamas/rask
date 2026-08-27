@@ -244,6 +244,17 @@
           Condition="Exists('$(MSBuildThisFileDirectory)rask-globals.d.ts')"/>
   </Target>
 
+  <!--
+    ignoreConfig is not optional. A project with a tsconfig.json — which is every project `rask new`
+    scaffolds — makes tsgo REFUSE the compile outright (TS5112) when files are also named on the
+    command line, rather than quietly preferring one over the other.
+
+    And the refusal is the right default to opt out of rather than around. The build names its own
+    files and its own flags because the emitted form is a contract: ScopedAssetRegistry parses
+    `export function NAME(` out of the output, and a tsconfig setting noEmit, a different module
+    format or an outDir of its own would break that silently, in the browser. The tsconfig is for the
+    editor; this is for the build.
+  -->
   <Target Name="_RaskCompileScopedTs"
           DependsOnTargets="_RaskResolveTsgo"
           Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' "
@@ -259,7 +270,7 @@
     <Error Condition=" '$(_RaskTsgoPath)' == '' "
            Text="Rask.TypeScript: the TypeScript compiler was not resolved, so the scoped .ts files in this project cannot be compiled. Set RaskTypeScriptBuild=false to build without them."/>
     <MakeDir Directories="$(_RaskScopedTsOutDir)"/>
-    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(MSBuildProjectDirectory)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck"
+    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(MSBuildProjectDirectory)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck --ignoreConfig"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

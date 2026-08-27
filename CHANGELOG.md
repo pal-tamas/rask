@@ -657,6 +657,16 @@ them until tagged releases begin.
   Found by diffing the converted file against the original structurally, with everything that exists
   only for the compiler stripped out. Reading it did not find them.
 
+- **A scaffolded `tsconfig.json` made tsgo refuse the scoped-asset compile.** With files named on the
+  command line and a `tsconfig.json` in the working directory, tsgo errors `TS5112` rather than
+  quietly preferring one over the other — so adding the tsconfig broke the build of every project
+  that has one, which is now every project `rask new` writes. The compile passes `--ignoreConfig`.
+
+  Opting out of the refusal rather than around it is the point: the build names its own files and
+  flags because the emitted form is a contract — `ScopedAssetRegistry` parses `export function NAME(`
+  out of it — and a tsconfig setting `noEmit`, a different module format or an `outDir` of its own
+  would break that silently, in the browser.
+
 - **Scoped TypeScript paired against nothing in any project under a symlinked path**, which on macOS
   is every project in a temp directory. A component's path reaches the generator from Roslyn, and a
   scoped asset's from MSBuild as metadata on the compiled file; macOS symlinks `/var`, `/tmp` and
