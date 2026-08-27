@@ -1872,6 +1872,34 @@
         }
     };
 
+    // ---------------------------------------------------------------------------
+    // Stand a browser runtime up beside this one, if the app ships a bundle.
+    //
+    // Fetched when the page goes idle, never on the critical path: the visitor already has a rendered,
+    // interactive page, and the bundle is several megabytes that buys them nothing until they navigate.
+    // Everything about this is best-effort by design — a bundle that 404s, fails to boot, or simply
+    // never finishes downloading leaves the page exactly as it is, live over its socket. That is why
+    // the failure is logged rather than shown: there is nothing wrong with the page the visitor is on.
+    //
+    // The runtime it boots does NOT paint. It finds __raskOwner set to "server", prepares instead, and
+    // publishes __raskWasmPaint — which is what the navigation handler above looks for.
+    const wasmBundleUrl = root.getAttribute("data-rask-wasm");
+    if (wasmBundleUrl) {
+        const bootBrowserRuntime = () => {
+            import(wasmBundleUrl).catch(e => {
+                console.error("[rask] the browser bundle could not be loaded, so this page stays "
+                    + "server-live. This is not fatal — everything on the page keeps working.", e);
+            });
+        };
+        // requestIdleCallback with a timeout so a page that is never idle still gets there eventually;
+        // setTimeout is the fallback for browsers without it (Safari before 17).
+        if (typeof requestIdleCallback === "function") {
+            requestIdleCallback(bootBrowserRuntime, {timeout: 10000});
+        } else {
+            setTimeout(bootBrowserRuntime, 3000);
+        }
+    }
+
     // The reviveScript() + morph() definitions are concatenated in at build time by
     // the _RaskBuildClientJs target.
     // @@RASK_MORPH@@

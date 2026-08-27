@@ -180,6 +180,25 @@ them until tagged releases begin.
   silent freeze: a handover to a runtime that never prepared would leave the page still with no
   indication why.
 
+- **`RenderModes.Wasm` works.** Turning it on makes a live page fetch the browser bundle once it goes
+  idle and stand a browser runtime up beside itself; the next navigation renders there and the socket
+  closes. `RenderModes.WasmBundle` says where the boot module is served, default `/main.js`, resolved
+  against the app's path base.
+
+  Never on the critical path. The visitor already has a rendered, interactive page, and the bundle is
+  several megabytes that buys them nothing until they navigate. A bundle that 404s or fails to boot
+  leaves the page exactly as it is — live over its socket, which is what it already was — and the
+  failure is logged rather than shown, because there is nothing wrong with the page they are on.
+
+  **Publish the bundle with `WasmFingerprintAssets=false`.** The WebAssembly SDK otherwise
+  content-hashes the framework files and maps them through an import map it writes into the bundle's
+  own `index.html` — a document nobody loads here, because the page comes from the server. Without the
+  map, `_framework/dotnet.js` resolves to a path that exists in a build output and not in a publish,
+  so the bundle boots locally and 404s in production.
+
+  Turning the rung on with nowhere to fetch from refuses to start, rather than leaving an app
+  configured for a rung that silently never runs.
+
 - **`RunAsync` now decides for itself whether to paint.** The same `App` class is a standalone WASM
   app on an empty page and a takeover arriving into a server-rendered one, and which it is depends on
   where it was loaded — a fact `Program.cs` cannot know and no longer has to branch on. A live server

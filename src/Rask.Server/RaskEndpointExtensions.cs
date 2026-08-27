@@ -643,8 +643,10 @@ public static partial class RaskEndpointExtensions
                     return;
                 }
 
-                content = LivePayload.InjectRootAttr(
-                    html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null);
+                content = LivePayload.InjectWasmBundleAttr(
+                    LivePayload.InjectRootAttr(
+                        html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
+                    WasmBootModuleUrl(limits));
             }
             else
             {
@@ -668,9 +670,11 @@ public static partial class RaskEndpointExtensions
                         return;
                     }
 
-                    content = LivePayload.InjectRootAttr(
-                        html, session.Id, dev,
-                        dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null);
+                    content = LivePayload.InjectWasmBundleAttr(
+                        LivePayload.InjectRootAttr(
+                            html, session.Id, dev,
+                            dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
+                        WasmBootModuleUrl(limits));
                 }
                 else
                 {
@@ -2402,6 +2406,17 @@ public static partial class RaskEndpointExtensions
 
     /// <summary>The runtime script tag's exact bytes, for the static-response splice.</summary>
     internal static string RuntimeScriptTag(string pathBase) => ServerRuntimeScript.Tag(pathBase);
+
+    /// <summary>
+    ///     The browser bundle's boot module URL for this app, or <c>null</c> when the browser rung is
+    ///     off — which is every app that has not asked for it.
+    /// </summary>
+    /// <remarks>
+    ///     Path-based like every other framework asset, so an app hosted under a sub-path fetches its
+    ///     own bundle rather than one at the origin root.
+    /// </remarks>
+    internal static string? WasmBootModuleUrl(RaskServerLimits limits) =>
+        limits.WasmBundleUrl is { } bundle ? LiveOptions.PathBase + bundle : null;
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {

@@ -39,18 +39,29 @@ public class RenderModesTests
         Assert.Contains("Turn one of them on", ex.Message);
     }
 
-    [Theory]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    public void AStageThatDoesNotExistYet_Throws(bool streaming, bool wasm)
+    [Fact]
+    public void AStageThatDoesNotExistYet_Throws()
     {
         // Announced rather than ignored. A switch that reads as supported and quietly does nothing
         // leaves the app looking configured for something it is not doing.
-        var modes = new RaskRenderModes { Streaming = streaming, Wasm = wasm };
+        //
+        // Streaming is the only rung left unbuilt — Wasm now works, and turning it on is covered by
+        // WasmBundleDeliveryTests instead.
+        var modes = new RaskRenderModes { Streaming = true };
 
         var ex = Assert.Throws<InvalidOperationException>(modes.Validate);
 
         Assert.Contains("not implemented yet", ex.Message);
+    }
+
+    [Fact]
+    public void TurningTheBrowserRungOn_NoLongerThrows()
+    {
+        // Guards the retirement itself. Left in place, the old "not implemented" throw would refuse to
+        // start every app that opts into the rung this release added.
+        var modes = new RaskRenderModes { Wasm = true };
+
+        Assert.Null(Record.Exception(modes.Validate));
     }
 
     [Fact]

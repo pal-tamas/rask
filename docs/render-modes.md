@@ -20,7 +20,8 @@ builder.Services.AddRask(configureServer: o =>
     o.RenderModes.Static = true;                 // serve a page needing nothing live as a document
     o.RenderModes.ServerInteractivity = true;    // the WebSocket (default)
     o.RenderModes.Streaming = false;             // not implemented yet
-    o.RenderModes.Wasm = false;                  // not implemented yet
+    o.RenderModes.Wasm = false;                  // move eligible pages into the browser
+    o.RenderModes.WasmBundle = "/main.js";       // where the bundle's boot module is served
     o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(5);
 });
 ```
@@ -38,6 +39,34 @@ and what to do. A contradiction is a configuration mistake, and a host that refu
 cheaper to diagnose than a page that silently does nothing in production. Turning on a rung that is
 not implemented yet throws for the same reason: a switch that reads as supported and quietly does
 nothing leaves an app looking configured for something it is not doing.
+
+### The browser rung
+
+With `Wasm` on, a live page fetches the browser bundle **once it goes idle** — never on the critical
+path. The visitor already has a rendered, interactive page, and the bundle is several megabytes that
+buys them nothing until they navigate. When it is ready, the **next navigation** renders in the
+browser and the socket closes.
+
+Landing the handover on a navigation is what makes it cheap: a fresh mount is what a navigation
+already does, so no live state has to survive the crossing.
+
+Everything about the fetch is best-effort. A bundle that 404s, fails to boot, or never finishes
+downloading leaves the page exactly as it is — live over its socket, which is what it already was.
+The failure is logged rather than shown, because there is nothing wrong with the page the visitor is
+looking at.
+
+The app itself needs no branch. The same `App` class is a standalone WASM app on an empty page and a
+takeover on a server-rendered one; `RunAsync` reads which of those it is from the document and either
+paints or prepares. Whether a given *page* is eligible is decided per page — one reaching a database
+stays server-live, and [RASK054](diagnostics.md#rask054) says so at the call site.
+
+> **Publish the bundle with `WasmFingerprintAssets=false`.** The WebAssembly SDK otherwise
+> content-hashes the framework files and maps them through an import map it writes into the bundle's
+> own `index.html` — a document nobody loads here, because the page comes from the server. Without
+> the map, `_framework/dotnet.js` resolves to a path that exists in a build output and not in a
+> publish, so the bundle boots locally and 404s in production. Turned off, the framework files sit at
+> their literal paths and need no map; cache-busting is then the server's, which it is already
+> equipped for in a way a static host is not.
 
 ### A page that knows better
 

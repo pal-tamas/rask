@@ -8,6 +8,11 @@ namespace Rask.Wasm.Tests.Hosting;
 // Only the pairing guard is reachable here. Preparing for real imports the JS bridge and boots the
 // .NET runtime, so "prepared but unpainted" is a browser fact and belongs in an E2E test once there is
 // a takeover to drive it.
+// Shares JSInterop's process-wide statics with everything else in this collection. A full boot
+// rebinds _session, _runtime and _hostedServices, so running alongside a class that set them up for
+// itself swaps the bindings out from under it — which surfaced as an unrelated JS round-trip test
+// failing in the full suite and passing on its own.
+[Collection("WasmSession")]
 public sealed class PrepareAndPaintTests
 {
     [Fact]

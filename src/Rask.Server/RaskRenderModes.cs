@@ -63,8 +63,33 @@ public sealed class RaskRenderModes
     ///     Let an eligible page move into the browser once the WebAssembly bundle is available.
     ///     Default <c>false</c>.
     /// </summary>
-    /// <remarks>Not yet implemented; setting it throws at startup rather than silently doing nothing.</remarks>
+    /// <remarks>
+    ///     <para>
+    ///         The bundle is fetched once the page is idle, never on the critical path, and the page
+    ///         is fully usable over its WebSocket the whole time. When it is ready the next navigation
+    ///         renders in the browser and the socket closes. A bundle that fails to load changes
+    ///         nothing: the page stays server-live, which is what it already was.
+    ///     </para>
+    ///     <para>
+    ///         The bundle must be published with <c>WasmFingerprintAssets=false</c>. The WebAssembly
+    ///         SDK otherwise content-hashes the framework files and maps them through an import map it
+    ///         writes into the bundle's own <c>index.html</c> — a document the visitor never loads
+    ///         here, since the page comes from the server. Turned off, the framework files sit at
+    ///         their literal paths and need no map. Cache-busting is the server's to do, which it is
+    ///         already equipped for in a way a static host is not.
+    ///     </para>
+    /// </remarks>
     public bool Wasm { get; set; }
+
+    /// <summary>
+    ///     Where the browser bundle's boot module is served, root-relative. Default <c>/main.js</c>,
+    ///     which is where a Rask WASM bundle puts it.
+    /// </summary>
+    /// <remarks>
+    ///     Resolved against the app's path base, like every other framework asset URL. Only read when
+    ///     <see cref="Wasm" /> is on.
+    /// </remarks>
+    public string WasmBundle { get; set; } = "/main.js";
 
     /// <summary>
     ///     How long the initial <c>GET</c> waits for a page's async lifecycle work to settle before
@@ -93,11 +118,12 @@ public sealed class RaskRenderModes
                 + "A page with slow data is bounded by RenderModes.QuiescenceTimeout until it lands.");
         }
 
-        if (Wasm)
+        if (Wasm && string.IsNullOrWhiteSpace(WasmBundle))
         {
             throw new InvalidOperationException(
-                "RenderModes.Wasm is not implemented yet, so turning it on would change nothing. "
-                + "Pages become interactive over a WebSocket for now.");
+                "RenderModes.Wasm is on but RenderModes.WasmBundle is empty, so no page would know "
+                + "where to fetch the browser bundle and none would ever move into it. Set it to the "
+                + "boot module's URL, or leave it at its default of /main.js.");
         }
 
         if (!ServerInteractivity && !Wasm)
