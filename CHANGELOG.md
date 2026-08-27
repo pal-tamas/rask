@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **RASK054 reports a page that cannot run in the browser.** A routed page injecting something that
+  only exists in the server process — Entity Framework's `DbContext` or `IDbContextFactory<T>`, or
+  anything from `Rask.Server` — stays server-live rather than moving into WebAssembly.
+
+  **Info, not a warning, and deliberately.** The page is correct, and for most apps this describes
+  every data page; a warning on each would be noise nobody reads. It exists so *"why did this page
+  not move?"* has an answer at the call site rather than only in a runtime log. Reach the same data
+  through a `Rask.Query` query or a CQRS message — both dispatched remotely by default — and the
+  page becomes eligible.
+
+  It reports only on components carrying `[Route]`. A shared component injecting a server-only type
+  is a property of whichever page uses it, and naming the component would point at a file whose
+  author cannot see which page is affected.
+
 - **`[RenderMode]` lets a page or a component override the automatic render decision.** Nothing needs
   it: how far a page climbs is detected from its render. It exists for what detection cannot see.
 
