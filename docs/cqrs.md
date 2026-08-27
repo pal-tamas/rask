@@ -144,8 +144,8 @@ read.
 > No template scaffolds this shape today. It arrived with the `wasm-hosted` template, which
 > [render modes](render-modes.md) replaced — a `--wasm` app compiles one set of sources into both
 > halves, so "a project both halves reference" is now just the app itself. Wiring remote dispatch into
-> that shape is not done yet; until it is, a page that dispatches remotely needs the two transport
-> packages added by hand.
+> that shape is not done yet ([#868](https://github.com/pal-tamas/rask/issues/868)); until it is, a
+> page that dispatches remotely needs the two transport packages added by hand.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a

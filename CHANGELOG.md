@@ -26,7 +26,7 @@ them until tagged releases begin.
   `Rask.Cqrs.Server`) was wired by this template and by nothing else. The packages are unchanged and an
   app can still wire them by hand — but nothing generates the arrangement, and a `--wasm` app whose
   pages move to the browser is exactly what wants it. Wiring it into the one-project build is follow-up
-  work, not something this change does.
+  work, tracked in [#868](https://github.com/pal-tamas/rask/issues/868).
 
 
 ### Fixed
