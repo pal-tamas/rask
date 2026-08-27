@@ -40,10 +40,16 @@
     lives under one of them in some layouts, and a target whose input includes its own output never
     settles.
   -->
+  <!--
+    node_modules is excluded alongside obj/ and bin/. The npm fallback path installs it INTO the project
+    directory, and a modern install carries thousands of .html files — docs, fixtures, coverage reports —
+    every one of which would otherwise become an up-to-date-check input for this target, on every build,
+    for a tree Tailwind is not scanning anyway.
+  -->
   <ItemGroup Condition="'$(_RaskTailwindDoBuild)' == 'true'">
     <_RaskTailwindSource Include="$(_RaskTailwindInput)"/>
     <_RaskTailwindSource Include="$(MSBuildProjectDirectory)/**/*.cs;$(MSBuildProjectDirectory)/**/*.razor;$(MSBuildProjectDirectory)/**/*.html"
-                        Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*"/>
+                        Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*"/>
   </ItemGroup>
 
   <!--
