@@ -47,11 +47,11 @@ public sealed class NewCommandTests
     }
 
     [Fact]
-    public async Task Data_flag_scaffolds_the_app_db_context()
+    public async Task A_bare_new_scaffolds_the_app_db_context()
     {
         var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["Blog", "--data"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["Blog"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Empty(console.ErrorText);
@@ -62,15 +62,17 @@ public sealed class NewCommandTests
     }
 
     [Fact]
-    public async Task Data_flag_is_rejected_on_the_wasm_template()
+    public async Task Turning_off_a_battery_the_template_never_had_is_a_usage_error()
     {
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm", "--data"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm", "--no-data"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("does not support: --data", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("nothing to change for: --no-data", console.ErrorText, StringComparison.Ordinal);
+        // And it says what this template does have, so the next command line can be right.
+        Assert.Contains("pwa", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -112,13 +114,13 @@ public sealed class NewCommandTests
     {
         var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm", "--pwa"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Empty(console.ErrorText);
         Assert.True(fs.FileExists("/proj/Spa/Spa.csproj"));
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html"));
-        Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg")); // --pwa
+        Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg")); // the PWA is on by default
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
     }
@@ -299,11 +301,12 @@ public sealed class NewCommandTests
     {
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", "wasm", "--cqrs"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "wasm", "--no-cqrs"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("does not support: --cqrs", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("nothing to change for: --no-cqrs", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("It supports: auth, docker, pwa.", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -385,8 +388,8 @@ public sealed class NewCommandTests
         var (console, fs, runner, command) = Build();
 
         // Typing/pressing flips the console to interactive. The flow, in order:
-        //   name → project type (down = wasm) → styling (enter = Rask.Bootstrap) → Dockerfile? no
-        //   → batteries, offered as [auth, pwa] (down to pwa, space to tick it, enter).
+        //   name → project type (down = wasm) → styling (enter = plain, the default) → auth? no
+        //   → batteries, offered PRE-TICKED as [pwa, docker]: down to docker, space to UNTICK it, enter.
         console.Type("Spa")
             .Press(ConsoleKey.DownArrow, ConsoleKey.Enter)
             .Press(ConsoleKey.Enter)
@@ -398,10 +401,59 @@ public sealed class NewCommandTests
         Assert.Equal(0, exit);
         Assert.True(fs.FileExists("/proj/Spa/Spa.csproj"));
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html")); // wasm template
-        Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg"));   // --pwa answered yes
-        Assert.False(fs.FileExists("/proj/Spa/Features/Auth/Auth.cs")); // --auth left unticked
-        Assert.False(fs.FileExists("/proj/Spa/Dockerfile"));            // Dockerfile answered no
+        Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg"));   // the PWA was left ticked
+        Assert.False(fs.FileExists("/proj/Spa/Features/Auth/Auth.cs")); // auth answered no
+        Assert.False(fs.FileExists("/proj/Spa/Dockerfile"));            // docker unticked
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
+    }
+
+    /// <summary>
+    /// The other half of the pre-ticked checklist: pressing enter through it keeps everything, so the
+    /// wizard's fastest path and a bare <c>rask new</c> produce the same project.
+    /// </summary>
+    [Fact]
+    public async Task Accepting_the_wizards_defaults_keeps_every_battery()
+    {
+        var (console, fs, _, command) = Build();
+
+        // name → project type (enter = server) → styling (enter = plain) → auth? no → batteries (enter).
+        console.Type("Shop")
+            .Press(ConsoleKey.Enter)
+            .Press(ConsoleKey.Enter)
+            .Type("n")
+            .Press(ConsoleKey.Enter);
+
+        var exit = await command.ExecuteAsync(["--no-restore"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.ReadAllText("/proj/Shop/Program.cs");
+        Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskDashboard<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.True(fs.FileExists("/proj/Shop/Dockerfile"));
+        Assert.False(fs.FileExists("/proj/Shop/Features/Auth/CredentialStore.cs"));
+    }
+
+    /// <summary>
+    /// The gap-filling contract, on the new flag shape: a <c>--no-*</c> already on the command line is an
+    /// answer to the battery question, so the checklist is skipped rather than asked over the top of it.
+    /// </summary>
+    [Fact]
+    public async Task A_no_flag_on_the_command_line_skips_the_battery_question()
+    {
+        var (console, fs, _, command) = Build();
+
+        // name → project type (enter = server) → styling (enter = plain) → auth? no. No battery question.
+        console.Type("Shop")
+            .Press(ConsoleKey.Enter)
+            .Press(ConsoleKey.Enter)
+            .Type("n");
+
+        var exit = await command.ExecuteAsync(["--no-ops", "--no-restore"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.ReadAllText("/proj/Shop/Program.cs");
+        Assert.DoesNotContain("AddRaskDashboard", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
     }
 
     /// <summary>The wizard offers Tailwind, on every template that reaches the styling question.</summary>
@@ -463,36 +515,133 @@ public sealed class NewCommandTests
         // isn't would leave someone believing they had scaffolded a different database.
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--data", "--database", "postgres"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--database", "postgres"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("--database", console.ErrorText, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The headline of the whole design: a bare <c>rask new</c> is the full One Person Framework stack.
+    /// </summary>
     [Fact]
-    public async Task Snapshots_is_accepted()
+    public async Task A_bare_new_wires_every_pillar()
     {
         var (_, fs, _, command) = Build();
 
-        var exit = await command.ExecuteAsync(
-            ["MyApp", "--data", "--snapshots", "--no-restore"], CancellationToken.None);
-
-        Assert.Equal(0, exit);
-        Assert.Contains("AddRaskSqliteSnapshots", fs.ReadAllText("/proj/MyApp/Program.cs"), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task All_batteries_includes_snapshots()
-    {
-        var (_, fs, _, command) = Build();
-
-        var exit = await command.ExecuteAsync(["MyApp", "--all-batteries", "--no-restore"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--no-restore"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var program = fs.ReadAllText("/proj/MyApp/Program.cs");
         Assert.Contains("UseRaskSqlite", program, StringComparison.Ordinal);
         Assert.Contains("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskMail<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskCache<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskOutbox<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskDashboard<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskLogging", program, StringComparison.Ordinal);
+        Assert.True(fs.FileExists("/proj/MyApp/Dockerfile"));
+        Assert.True(fs.FileExists("/proj/MyApp/wwwroot/icon.svg"));
+
+        // …and auth is the one thing it does not decide for you.
+        Assert.False(fs.FileExists("/proj/MyApp/Features/Auth/CredentialStore.cs"));
+    }
+
+    [Fact]
+    public async Task A_battery_turned_off_is_the_only_one_that_goes()
+    {
+        var (_, fs, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--no-snapshots", "--no-restore"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.ReadAllText("/proj/MyApp/Program.cs");
+        Assert.DoesNotContain("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
+        Assert.Contains("UseRaskSqlite", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Turning_the_database_off_takes_every_pillar_with_it()
+    {
+        var (_, fs, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--no-data", "--no-restore"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.ReadAllText("/proj/MyApp/Program.cs");
+        Assert.DoesNotContain("AddDbContextFactory<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddRaskJobs", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddRaskDashboard", program, StringComparison.Ordinal);
+        Assert.False(fs.FileExists("/proj/MyApp/Features/Shared/AppDbContext.cs"));
+
+        // The log store keeps a database of its own, so it survives.
+        Assert.Contains("AddRaskLogging", program, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The positive battery flags were real in the last release and are all over the internet, so they get
+    /// an answer that says what changed rather than the generic unknown-option suggestion.
+    /// </summary>
+    [Theory]
+    [InlineData("--data", "--no-data")]
+    [InlineData("--jobs", "--no-jobs")]
+    [InlineData("--ops", "--no-ops")]
+    public async Task A_retired_battery_flag_names_its_replacement(string retired, string replacement)
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", retired], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.False(fs.FileExists("/proj/MyApp/MyApp.csproj"));
+        Assert.Contains("on by default", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains(replacement, console.ErrorText, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The database-backed pillars are hosted services, and one that can't find its table stops the host —
+    /// so an unmigrated app doesn't warn, it exits. <c>rask new</c> normally migrates for you; when it
+    /// can't, it has to say so.
+    /// </summary>
+    [Fact]
+    public async Task Skipping_the_restore_says_the_migration_still_has_to_happen()
+    {
+        var (console, _, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--no-restore"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("rask db add Init", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("rask db update", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task All_batteries_says_it_is_gone()
+    {
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--all-batteries"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("--all-batteries is gone", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Naming_a_culture_while_turning_localization_off_is_a_usage_error()
+    {
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(
+            ["MyApp", "--culture", "hu", "--no-localization"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("--no-localization", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>

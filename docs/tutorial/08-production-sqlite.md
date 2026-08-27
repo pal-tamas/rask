@@ -2,7 +2,7 @@
 
 > **Goal:** make the one SQLite file safe to run in production — correct under concurrency, and backed up
 > off the box.
-> **You'll have run:** `rask new … --snapshots` (continuous backup came with `--data`)
+> **You'll have run:** `rask new Shop` — snapshots and continuous backup are both standard
 
 Everything so far — products, orders, jobs, mail, cache, outbox — lives in a single `app.db`. That's the
 One Person Framework bet: **SQLite is your production database.** Two things make that safe: the right
@@ -14,7 +14,7 @@ SQLite's defaults are tuned for a single embedded process — no WAL, no `busy_t
 so concurrent web requests hit `database is locked`. `Rask.SQLite` applies a tuned pragma set (WAL, a
 busy-timeout, `foreign_keys=ON`, and more) to **every** connection.
 
-You already have this. `rask new --data` writes `UseRaskSqlite` rather than `UseSqlite`:
+You already have this. `rask new` writes `UseRaskSqlite` rather than `UseSqlite`:
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o

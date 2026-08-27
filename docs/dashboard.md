@@ -16,7 +16,7 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
 ```
 
-`rask new --ops` (and `--all-batteries`) wires both lines for you.
+`rask new` wires both lines for you — the dashboard is on by default (`--no-ops` leaves it out).
 
 ## Where it can run
 
@@ -36,7 +36,7 @@ app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");   // the dashboard, se
 app.UseRaskWasmHost();                                      // the SPA, everywhere else
 ```
 
-`rask new --template wasm-hosted --ops` writes all of it, including the database the panels read.
+`rask new --template wasm-hosted` writes all of it, including the database the panels read.
 
 Two details are worth knowing if you assemble this by hand. The calls are spelled `AddRaskServer` /
 `AddRaskWasmHost` rather than `AddRask` because **both** packages declare an `AddRask` on

@@ -147,7 +147,7 @@ only the type. Use `ANY` to exempt a single column.
 
 **It is off by default, and on for new apps.** Strictness is a property of a table, decided when the
 table is created — so turning it on affects tables created from then on, needs no migration, and
-converting an existing table means rebuilding it. `rask new --data` therefore scaffolds it on, where it
+converting an existing table means rebuilding it. `rask new` therefore scaffolds it on, where it
 is free; an existing database is the case where you have to weigh it.
 
 `decimal` is unaffected: it is `TEXT` in SQLite, which STRICT allows, and it still orders through the

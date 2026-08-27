@@ -33,7 +33,7 @@ builder.Services.AddRaskLogging(
 That is the whole setup. The schema is created on first use, so **there is no migration to add** — unlike the
 other database-backed pillars, this one doesn't touch your `DbContext`.
 
-`rask new MyApp --logs` scaffolds exactly the line above (and `--all-batteries` includes it).
+`rask new MyApp` scaffolds exactly the line above — the log store is on by default (`--no-logs` leaves it out).
 
 ### Options
 

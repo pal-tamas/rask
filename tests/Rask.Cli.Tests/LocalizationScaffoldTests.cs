@@ -8,12 +8,12 @@ namespace Rask.Cli.Tests;
 public class LocalizationScaffoldTests
 {
     private static ServerBatteries Batteries(params string[] cultures) =>
-        NewCommand.ToBatteries(["localization"], cultures: cultures).Normalized();
+        NewCommand.BatteriesOf(["localization"], cultures: cultures).Normalized();
 
     [Fact]
     public void Naming_a_language_is_asking_for_localization()
     {
-        var batteries = NewCommand.ToBatteries([], cultures: ["hu"]).Normalized();
+        var batteries = NewCommand.BatteriesOf([], cultures: ["hu"]).Normalized();
 
         Assert.True(batteries.Localization);
         Assert.Equal(["hu"], batteries.Cultures);
@@ -22,19 +22,23 @@ public class LocalizationScaffoldTests
     [Fact]
     public void Asking_for_localization_without_naming_one_means_english()
     {
-        var batteries = NewCommand.ToBatteries(["localization"]).Normalized();
+        var batteries = NewCommand.BatteriesOf(["localization"]).Normalized();
 
         Assert.True(batteries.Localization);
         Assert.Equal(["en"], batteries.Cultures);
     }
 
     [Fact]
-    public void All_batteries_does_not_imply_localization()
+    public void A_bare_new_ships_english_and_the_machinery_to_add_a_second_language()
     {
-        // The batteries are the back-end pillars a DB-backed app needs. Shipping a second language is a
-        // commitment to translating every string in the app, which is not something a convenience flag
-        // should decide for you.
-        Assert.False(NewCommand.ToBatteries(["all-batteries"]).Normalized().Localization);
+        // This used to assert the opposite, on the grounds that shipping a second language is a
+        // commitment a convenience flag shouldn't make. It still is — which is why the default is ONE
+        // language. What comes on by default is the machinery, so adding Hungarian later is a --culture
+        // rather than a refactor of every string in the app.
+        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, []);
+
+        Assert.True(batteries.Localization);
+        Assert.Equal(["en"], batteries.Cultures);
     }
 
     [Fact]
@@ -49,13 +53,33 @@ public class LocalizationScaffoldTests
     }
 
     [Fact]
-    public void The_web_templates_support_it()
+    public void Only_a_template_that_scaffolds_a_catalog_advertises_it()
     {
-        foreach (var key in new[] { "server", "wasm", "wasm-hosted" })
+        // This used to assert the opposite — that all three web templates support localization — which
+        // pinned a bug rather than a behaviour: neither WASM generator reads Localization or Cultures, so
+        // both accepted the flag and scaffolded nothing. Asserting PRESENCE is how that survived.
+        Assert.True(TemplateCatalog.TryGet("server", out var server));
+        Assert.Contains("localization", server!.SupportedFlags);
+
+        foreach (var key in new[] { "wasm", "wasm-hosted" })
         {
             Assert.True(TemplateCatalog.TryGet(key, out var template));
-            Assert.Contains("localization", template!.SupportedFlags);
+            Assert.DoesNotContain("localization", template!.SupportedFlags);
         }
+    }
+
+    /// <summary>The negative control for the guard above: the WASM generators really do ignore it.</summary>
+    /// <remarks>
+    /// Delete this test when https://github.com/pal-tamas/rask/issues/846 lands — at which point the
+    /// templates get the flag back and the guard above flips with it.
+    /// </remarks>
+    [Fact]
+    public void The_wasm_generators_still_ignore_a_language_they_are_handed()
+    {
+        var result = ProjectGenerator.GenerateWasm(
+            "/out", "Demo", auth: false, pwa: false, docker: false, "1.0.0", Batteries("en", "hu"));
+
+        Assert.DoesNotContain(result.Files, f => f.Path.Contains("Resources/Strings", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -72,7 +96,7 @@ public class LocalizationScaffoldTests
     public void An_app_that_did_not_ask_for_it_gets_no_catalogs_and_no_culture_config()
     {
         var result = ProjectGenerator.GenerateServer(
-            "/out", "Demo", NewCommand.ToBatteries([]).Normalized(), "1.0.0");
+            "/out", "Demo", NewCommand.BatteriesOf([]).Normalized(), "1.0.0");
 
         Assert.DoesNotContain(result.Files, f => f.Path.Contains("Resources/Strings", StringComparison.Ordinal));
         Assert.DoesNotContain("configureCulture", Program(result), StringComparison.Ordinal);

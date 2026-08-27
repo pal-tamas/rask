@@ -66,7 +66,7 @@ Authorize[ NewProductButton() ]              // rendered only for signed-in user
 Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
 ```
 
-Scaffold the login itself with `rask new … --auth`.
+Scaffold the login itself with `rask new MyApp --auth`.
 
 → Reference: [authentication](authentication.md) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
 
@@ -154,7 +154,7 @@ rask deploy                                                             # after:
 rask deploy --github-actions                                            # write .github/workflows/deploy.yml
 ```
 
-Needs a `Dockerfile` — `rask new … --docker` writes one.
+Needs a `Dockerfile` — `rask new` writes one.
 
 → Reference: [deployment](deployment.md) · Learn it: [Tutorial Ch 11](tutorial/11-deploy.md)
 

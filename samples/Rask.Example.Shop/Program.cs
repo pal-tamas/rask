@@ -27,7 +27,21 @@ using Rask.WebPush;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRask();
+// The languages this app ships. The FIRST is the default a visitor falls back to when
+// nothing else matches. Their language is negotiated per request -- ?culture= beats a
+// remembered cookie, which beats the browser's Accept-Language -- and then belongs to
+// their session, so it survives every render over the live socket.
+//
+// Text comes from Resources/Strings.{culture}.json, compiled into typed members: a
+// missing key is a build error rather than a blank on the page (docs/diagnostics.md).
+builder.Services.AddRask(configureCulture: c =>
+{
+    foreach (var language in new[] { "en" })
+    {
+        c.SupportedCultures.Add(language);
+    }
+});
+
 // A liveness/readiness endpoint (mapped below) — `rask deploy` probes it to gate the blue-green
 // swap, and any load balancer or orchestrator can use it too. AddRaskLiveSessions reports the
 // live-session pool: Degraded at 80% of MaxSessions, Unhealthy once new sessions are being

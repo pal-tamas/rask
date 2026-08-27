@@ -7,7 +7,7 @@ one server.
 The project itself came from the CLI:
 
 ```bash
-rask new Rask.Example.Shop --all-batteries --auth --docker
+rask new Rask.Example.Shop --auth --bootstrap
 ```
 
 Everything inside it — the `Product` and `Order` slices, the job, the email, the cache and the ops page —
