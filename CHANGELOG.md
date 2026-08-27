@@ -20,6 +20,13 @@ them until tagged releases begin.
   than a silent pass. Rask does not go looking for a different Node to run them with — choosing an
   interpreter on someone's behalf duplicates a judgement the tools already make and state.
 
+  **A second way the same gate was not running, found by pushing this fix.** The pre-push hook only runs
+  the CLI build gate when a push touches paths that can change what the generators emit, and that filter
+  listed its test files *by name* — so `SpaTailwindBuildE2ETests`, added with the SPA Tailwind proof, had
+  no push-time trigger at all, and neither did `run-cli-build-e2e.sh` itself: a change to the gate script
+  could not run the gate. The test arm now matches `*BuildE2ETests` by shape, because a hand-listed set
+  rots silently, and the script is matched explicitly.
+
   `scripts/run-cli-build-e2e.sh` also lists any skipped case before its pass line now. The env-gating
   every case carries is already satisfied inside that gate, so a skip there means something declined to
   run for a reason nobody has looked at — worth a sentence, and the guard for the next silent non-run.
