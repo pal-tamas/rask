@@ -1,9 +1,14 @@
 # Live rendering & the diff codec
 
 How a Rask app stays live after first paint, and how it ships the smallest
-possible payload on every state change. This document expands the *Live runtime &
-diff codec* section of [`CLAUDE.md`](../../CLAUDE.md) with code grounding. File
-references point at `src/Rask.Core/Live/`, `src/Rask.Server/`, and
+possible payload on every state change.
+
+For what happens *before* that first paint — waiting for a page's async data, deciding whether the
+page needs a live connection at all, and what status and cache headers the response carries — see
+[Render modes](../render-modes.md). This document picks up once a session exists.
+
+It expands the *Live runtime & diff codec* section of [`CLAUDE.md`](../../CLAUDE.md) with code
+grounding. File references point at `src/Rask.Core/Live/`, `src/Rask.Server/`, and
 `src/Rask.Wasm/`.
 
 ## Big picture: one component model, two transports

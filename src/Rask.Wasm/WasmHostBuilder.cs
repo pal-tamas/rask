@@ -9,6 +9,7 @@ using Rask.Core.Browser;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Globalization;
+using Rask.Core.Http;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
@@ -41,6 +42,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IBrowserFileBackend, WasmFileBackend>();
         Services.AddSingleton<IDownloadSink, WasmDownloadSink>();
         Services.AddSingleton<Navigator>();
+        Services.AddSingleton<IPageResponse, WasmPageResponse>();
         // Transient user messages / toasts (a flash-message pattern). Singleton = one queue for the app instance
         // (the whole WASM app is a single session), so a message queued before a NavigateTo survives it.
         Services.AddSingleton<IToaster, Toaster>();
@@ -178,6 +180,75 @@ public sealed class WasmHostBuilder
         return builder;
     }
 
+    // Set by PrepareAsync, consumed by PaintAsync. A field rather than a return value because the
+    // caller crossing this boundary is JavaScript, which cannot hold a .NET session reference.
+    private WasmLiveSession? _prepared;
+
+    // Captured beside the session for the same reason: PaintAsync may need to re-seed the route, and
+    // the only handle JavaScript can pass back across the boundary is a string.
+    private IServiceProvider? _preparedServices;
+
+    /// <summary>
+    ///     Boots the app to the point of rendering and stops, so the first paint can be triggered
+    ///     later by <see cref="PaintAsync" />.
+    /// </summary>
+    /// <remarks>
+    ///     For a page another runtime is currently driving. Services, the session, the route and the
+    ///     culture are all settled up front — the expensive part, and the part worth doing while the
+    ///     visitor is still reading the server-rendered page — but nothing is written to the document
+    ///     until the handover. Painting on arrival would put two runtimes into one DOM.
+    /// </remarks>
+    /// <typeparam name="TApp">The root <see cref="Component" />, as for <see cref="RunAsync{TApp}" />.</typeparam>
+    public async Task PrepareAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
+        where TApp : Component
+    {
+        try
+        {
+            await BootAsync<TApp>(paint: false).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            ReportBootFailure(ex);
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///     Renders the app prepared by <see cref="PrepareAsync{TApp}" />, taking the document over.
+    /// </summary>
+    /// <param name="url">
+    ///     The page to paint, as a root-relative URL. Optional: omitted, the prepared route is used,
+    ///     which is the page the runtime booted on.
+    /// </param>
+    /// <exception cref="InvalidOperationException">Nothing was prepared.</exception>
+    public async Task PaintAsync(string? url = null)
+    {
+        if (_prepared is not { } session)
+        {
+            throw new InvalidOperationException(
+                "PaintAsync has nothing to paint: call PrepareAsync first, and await it. A prepared app "
+                + "holds its first render precisely so the caller decides when the document changes "
+                + "hands, so the two calls are always a pair.");
+        }
+
+        var services = _preparedServices;
+        _prepared = null;
+        _preparedServices = null;
+
+        // A takeover lands on a NAVIGATION, so the page to paint is almost never the page prepared:
+        // the runtime booted quietly on whatever the visitor was reading, and takes over when they
+        // click through to the next one. Re-seeding here rather than at prepare time is what lets the
+        // bundle finish downloading whenever it finishes — it does not have to guess where the
+        // visitor will go, and the prepared route stays correct if it turns out they never leave.
+        if (url is not null && services?.GetService<RouteState>() is { } routeState)
+        {
+            RouteSeeder.Seed(url, routeState);
+        }
+
+        var payload = await session.InitialRenderAsync().ConfigureAwait(false);
+        Console.WriteLine($"[Rask.Wasm] takeover render payload bytes={payload.Length}");
+    }
+
     /// <summary>
     ///     Boots the app: imports the JS bridge, auto-detects the path base from <c>&lt;base href&gt;</c>,
     ///     builds the service provider, instantiates <typeparamref name="TApp" /> (wrapped in a root error
@@ -192,7 +263,11 @@ public sealed class WasmHostBuilder
     {
         try
         {
-            await BootAsync<TApp>().ConfigureAwait(false);
+            // null = "decide from the document once the JS bridge is up". Deliberately NOT read here:
+            // GetOwner is a JSImport into the rask module, and that module is imported by the first
+            // line of BootAsync — asking before it aborts the whole .NET runtime with "ES6 module rask
+            // was not imported yet", which presents as the app failing to start.
+            await BootAsync<TApp>(paint: null).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -210,13 +285,20 @@ public sealed class WasmHostBuilder
 
     /// <summary>The boot sequence proper. See <see cref="RunAsync{TApp}" />, which reports its failures.</summary>
     private async Task
-        BootAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
+        BootAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+            bool? paint = true)
         where TApp : Component
     {
         Console.WriteLine($"[Rask.Wasm] Rask {RaskVersion.Current} (WASM) starting");
         Console.WriteLine("[Rask.Wasm] importing rask.wasm.js …");
         await JSInterop.ImportJsModuleAsync().ConfigureAwait(false);
         Console.WriteLine("[Rask.Wasm] rask.wasm.js imported");
+
+        // The paint decision, taken here because this is the earliest point it CAN be taken: reading
+        // the document's owner goes through the module imported on the line above. A live server
+        // runtime stamps __raskOwner when it attaches, so finding it means this page already has
+        // someone driving it and painting would put two runtimes into one document.
+        var shouldPaint = paint ?? JSInterop.GetOwner() != "server";
 
         // Auto-detect the app's sub-path from <base href> so head-emitted asset
         // URLs (e.g. /Rask/_rask/a/{hash}.css for a GH Pages deploy at /Rask/)
@@ -279,6 +361,24 @@ public sealed class WasmHostBuilder
         // repainted from there; this only adds the "applied" indicator. No-op unless the runtime
         // supports metadata updates, which a trimmed (published) bundle does not.
         HotReload.WasmHotReloadBridge.Subscribe();
+
+        // Everything above prepares; this line paints. The split is what a takeover needs: an app
+        // arriving into a page another runtime is still driving must be ready to render and NOT render,
+        // or two runtimes would write the same document at once. PrepareAsync stops here and hands back
+        // a handle; RunAsync goes straight through, which is every standalone WASM app.
+        if (!shouldPaint)
+        {
+            _prepared = session;
+            _preparedServices = provider;
+
+            // Publish the seam from here rather than from the app's boot script. The server runtime
+            // discovers a ready browser runtime by finding this and nothing else, so an app that
+            // prepared but never published would be a takeover that silently never happens.
+            JSInterop.InitPaint(PaintAsync);
+            JSInterop.PublishPaint();
+            Console.WriteLine("[Rask.Wasm] prepared; holding the first render until asked");
+            return;
+        }
 
         // InitialRenderAsync builds and pushes the first frame to JS itself (zero-copy applyRender);
         // the returned bytes are just for the diagnostic below.

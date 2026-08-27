@@ -788,6 +788,20 @@ public abstract partial class Component : RaskMarkup
     /// </summary>
     protected virtual Task OnUnmountAsync() => Task.CompletedTask;
 
+    /// <summary>
+    ///     Whether this component has left the tree. Read by <c>QuiescenceScope</c> so a server
+    ///     render stops waiting on work whose owner was unmounted mid-pass.
+    /// </summary>
+    internal bool IsUnmountedInternal => Live.IsUnmounted;
+
+    /// <summary>
+    ///     Whether the last render walk rooted here mounted <paramref name="type" />. The set is
+    ///     cleared at the top of every walk and populated as components mount, so this describes
+    ///     the render whose HTML is current — not the tree's history.
+    /// </summary>
+    internal bool MountedTypeInLastRender(Type type) =>
+        Live.MountedTypes?.Contains(type) == true;
+
     internal void RaiseLifecycleBeforeRender(bool propsChanged)
     {
         var firstRender = !Live.HasInitialized;
@@ -986,6 +1000,12 @@ public abstract partial class Component : RaskMarkup
 
             return;
         }
+
+        // Registered BEFORE the terminal ContinueWith below, and the order is load-bearing: that
+        // continuation runs ExecuteSynchronously and can fire inline the moment the hook completes,
+        // so registering afterwards would let a fast hook finish first and leave the tracker
+        // reporting a render that had already settled when it had not.
+        QuiescenceScope.Current?.Track(task, this);
 
         // LifecycleSyncContext renders after each in-method await. The terminal render
         // here is the fallback for hooks that return a Task without awaiting it AND for
@@ -1681,6 +1701,9 @@ public abstract partial class Component : RaskMarkup
     {
         if (Live.IsUnmounted)
         {
+            // Dropped, as it must be — but a session torn down because its page was judged static
+            // wants to know, because this is what that misjudgement looks like from the inside.
+            RenderHandle?.ReportLatePush();
             return;
         }
 

@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Rask.Core.Forms;
 using Rask.Core.HeadAssets;
+using Rask.Core.Rendering;
 using Rask.Core.ScopedAssets;
 using ErrorBoundary = Rask.Core.Components.ErrorBoundary;
 using RouteRenderState = Rask.Core.Routing.RouteRenderState;
@@ -205,6 +206,15 @@ public sealed class LiveRenderContext : IDisposable
         // every user component (with or without assets), so it can't be short-circuited.
         MountedTypes.Add(type);
 
+        // A component may declare that it needs a live connection even though nothing in its render
+        // shows one — the shape of anything driven by a timer or an event subscription. Honoured from
+        // anywhere in the tree on purpose: that is what lets a base component say it once and every
+        // page built on it inherit the need without its author knowing to.
+        if (DeclaredRenderModes.Of(type) == RenderMode.Interactive)
+        {
+            _handle?.ReportRequiresLiveSession(InteractivityReason.Declared);
+        }
+
         // The by-type scope lookup, however, always misses when no component has registered scoped CSS
         // (the common case), so skip the ConcurrentDictionary probe behind a cheap IsEmpty check.
         if (!ScopedAssetRegistry.HasAnyScopedCss || !ScopedAssetRegistry.TryGetScopeId(type, out var scopeId))
@@ -252,7 +262,16 @@ public sealed class LiveRenderContext : IDisposable
         HashSet<Type> mountedTypes) =>
         new(root, previousEditContexts, currentEditContexts, services, headAssets, mountedTypes);
 
-    public string RegisterHandler(Delegate handler) =>
+    // Every data-rask-on-* attribute in the document is minted through here, which is what makes
+    // this the one place a page's interactivity has to be observed. An element with a handler is
+    // inert without a socket to send to.
+    public string RegisterHandler(Delegate handler)
+    {
+        _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
+        return RegisterHandlerCore(handler);
+    }
+
+    private string RegisterHandlerCore(Delegate handler) =>
         // Owner = the component currently rendering (top of parent stack). The root stores
         // every handler in its dictionary (TryInvokeHandlerAsync runs on the root), but the
         // owner association is what lets the post-handler dirty-mark land on the right node.
@@ -266,9 +285,29 @@ public sealed class LiveRenderContext : IDisposable
     internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(Component component) =>
         component.CaptureHandlerRun(_root);
 
+    /// <summary>
+    ///     Record that something in this render needs a live connection. Forwarded to the handle,
+    ///     which outlives the walk; see <c>IRenderHandle.ReportRequiresLiveSession</c>.
+    /// </summary>
+    internal void MarkRequiresLiveSession(InteractivityReason reason) =>
+        _handle?.ReportRequiresLiveSession(reason);
+
     /// <summary>Re-register a captured run under its component's own slot ids, as the skipped walk would.</summary>
-    internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run) =>
+    /// <remarks>
+    ///     The clean-subtree cache re-establishes a skipped walk's registrations through here rather
+    ///     than through <see cref="RegisterHandler" />, so without marking here a page whose only
+    ///     handler-bearing subtree went clean on a later wave would be judged static — and lose the
+    ///     handler, silently, in production.
+    /// </remarks>
+    internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run)
+    {
+        if (run.Length > 0)
+        {
+            _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
+        }
+
         component.ReplayHandlerRun(_root, run);
+    }
 
     public T GetOrCreate<T>(Func<IServiceProvider, T> factory) where T : Component
     {
@@ -348,6 +387,27 @@ public sealed class LiveRenderContext : IDisposable
     ///     arriving. <c>Rask.Query</c> is the caller; see its <c>Query{T}.Data</c> getter.
     ///     <para>Null when nothing is rendering, which is the normal case off the render path.</para>
     /// </remarks>
+    /// <summary>
+    ///     Hand the current server render a task it must wait for before serving its HTML.
+    /// </summary>
+    /// <remarks>
+    ///     For work that a render depends on but no lifecycle hook returns — a data-cache fetch
+    ///     started inside a client and observed through a property read, where the host has no other
+    ///     way to see it. Outside a server render this is a no-op, so a caller need not know whether
+    ///     one is running.
+    ///     <para>
+    ///         The caller decides what is worth waiting for. Registering work whose result is already
+    ///         on screen would make every cache hit pay full latency to change nothing.
+    ///     </para>
+    /// </remarks>
+    internal static void AwaitBeforeFirstPaint(Task work)
+    {
+        if (work is { IsCompleted: false })
+        {
+            QuiescenceScope.Current?.TrackExternal(work);
+        }
+    }
+
     internal static Component? ObserveAmbientState()
     {
         var context = CurrentSync;
@@ -363,6 +423,9 @@ public sealed class LiveRenderContext : IDisposable
 
     public EditContext GetOrCreateEditContext(object model, Func<EditContext>? factory = null)
     {
+        // A form with no connection is a form whose submit goes nowhere. Every bound control
+        // resolves through here, so this covers the whole forms surface in one place.
+        _handle?.ReportRequiresLiveSession(InteractivityReason.Form);
         var key = new ObjectKey(model);
         if (_currentEditContexts.TryGetValue(key, out var current))
         {

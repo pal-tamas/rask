@@ -25,6 +25,9 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets') "/>
 
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets') "/>
+
   <!--
     Auto-enable the repo's git hooks (pre-commit: dotnet format + unit; pre-push: browser E2E) so a fresh
     clone picks them up on first build — no manual `git config core.hooksPath .githooks`. The hook contents

@@ -2,6 +2,7 @@ using Microsoft.JSInterop;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Forms;
+using Rask.Core.Http;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
@@ -43,6 +44,7 @@ public static class RaskHostContracts
         // Routing. Navigator additionally needs IDownloadSink below for Navigator.Download to work.
         typeof(RouteState),
         typeof(Navigator),
+        typeof(IPageResponse),
         // Declared state, transient user messages, and the current user.
         typeof(IPersistentState),
         typeof(IToaster),

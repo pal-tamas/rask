@@ -24,6 +24,69 @@
     let root = document.querySelector("[data-rask-root]");
     if (!root) return;
 
+    // Which runtime owns this document. Both hosts splice the same delegated-event listeners, so if a
+    // browser runtime boots while this one is still live every click is answered twice — once over the
+    // socket and once in WebAssembly. One writer, checked by both.
+    window.__raskOwner = "server";
+
+    // Set when a browser runtime has taken this document over. Deliberately NOT the sessionExpired
+    // latch, which is the right shape but shows the reconnect overlay and turns its button into a
+    // reload: a handover is meant to be invisible, and there is nothing for the user to retry.
+    let handedOff = false;
+
+    // Called by the browser runtime once it is booted and ready to drive this page. Stops this runtime
+    // sending, stops it reconnecting, and closes the socket normally so the server frees the session
+    // rather than holding it for the reconnect grace.
+    window.__raskHandOff = function () {
+        if (handedOff) return;
+        handedOff = true;
+        window.__raskOwner = "wasm";
+        try {
+            if (ws) ws.close(1000, "handoff");
+        } catch (e) {
+            /* already closing */
+        }
+    };
+
+    // A prepared browser runtime publishes __raskWasmPaint; until it does, this is undefined and every
+    // navigation goes over the socket exactly as before. Checked per navigation rather than once at
+    // boot, because the bundle finishes downloading whenever it finishes: the page must never wait for
+    // it, and must behave identically if it never arrives at all.
+    //
+    // The handover lands on a navigation deliberately. A fresh mount is what a navigation already does,
+    // so there is no live state to carry across — the problem that makes mid-page handovers hard simply
+    // does not arise here.
+    function tryTakeOver(url, isPop) {
+        const paint = window.__raskWasmPaint;
+        if (typeof paint !== "function") return false;
+
+        // Hand off BEFORE painting. The browser runtime is about to write this document, and this one
+        // must have stopped sending by then — otherwise a frame already in flight lands on a page it no
+        // longer owns and overwrites what the new runtime just drew.
+        window.__raskHandOff();
+
+        // The server would normally have moved history as part of its navigation reply. It is not
+        // answering any more, so this runtime moves it on the way out. A popstate has already moved.
+        if (!isPop) {
+            try {
+                history.pushState({}, "", url.href);
+            } catch (e) {
+                /* opaque origin — the paint below is still correct, only the URL bar lags */
+            }
+        }
+
+        try {
+            paint(stripBase(url.pathname) + url.search + url.hash);
+        } catch (e) {
+            // The handover already happened, so nothing is driving this document. A full page load is
+            // the only honest recovery: the server renders the page fresh and the visitor pays one slow
+            // navigation, rather than clicking a link that does nothing.
+            console.error("[rask] takeover failed; falling back to a full page load", e);
+            location.assign(url.href);
+        }
+        return true;
+    }
+
     // Development-only affordances gate on this. The server stamps data-rask-dev onto <body> only
     // when the app is in Development AND running under `dotnet watch`, so in production the flag is
     // absent and every branch below it is unreachable — even if a dev frame somehow arrived.
@@ -342,6 +405,9 @@
     }
 
     function scheduleReconnect(e) {
+        // A handed-off socket closed because we asked it to. Reconnecting would rebuild a session for a
+        // page another runtime is now driving, and both would then answer the same clicks.
+        if (handedOff) return;
         if (reconnectTimer !== null || sessionExpired) return;
         // Close code 1001 is "going away" — the drain's own close handshake. It is the belt to the
         // shutdown frame's braces: if the frame was missed (sent while this socket was mid-render, say),
@@ -1431,6 +1497,10 @@
     scanHeadAssets();
 
     function send(payload) {
+        // Dropped, never queued. Once another runtime owns this document the socket is gone for good,
+        // so queueing would grow a buffer nothing will ever drain — and would deliver a burst of stale
+        // events if anything ever reconnected.
+        if (handedOff) return;
         if (suppressEvents) return;
         stampSeq(payload);
         const msg = JSON.stringify(payload);
@@ -1485,6 +1555,11 @@
         }
         if (url.origin !== location.origin) return;
         e.preventDefault();
+
+        // The takeover point. Checked before flushing inputs, because a handover renders the target
+        // page fresh — there is no server session left to receive this page's pending input values.
+        if (tryTakeOver(url, false)) return;
+
         // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
         // the new page commits (the fragment is not sent to the server).
         _pendingScrollHash = url.hash || "";
@@ -1494,6 +1569,7 @@
     });
 
     window.addEventListener("popstate", () => {
+        if (tryTakeOver(new URL(location.href), true)) return;
         flushInputsNow();
         beginNav();
         send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
@@ -1795,6 +1871,34 @@
             }
         }
     };
+
+    // ---------------------------------------------------------------------------
+    // Stand a browser runtime up beside this one, if the app ships a bundle.
+    //
+    // Fetched when the page goes idle, never on the critical path: the visitor already has a rendered,
+    // interactive page, and the bundle is several megabytes that buys them nothing until they navigate.
+    // Everything about this is best-effort by design — a bundle that 404s, fails to boot, or simply
+    // never finishes downloading leaves the page exactly as it is, live over its socket. That is why
+    // the failure is logged rather than shown: there is nothing wrong with the page the visitor is on.
+    //
+    // The runtime it boots does NOT paint. It finds __raskOwner set to "server", prepares instead, and
+    // publishes __raskWasmPaint — which is what the navigation handler above looks for.
+    const wasmBundleUrl = root.getAttribute("data-rask-wasm");
+    if (wasmBundleUrl) {
+        const bootBrowserRuntime = () => {
+            import(wasmBundleUrl).catch(e => {
+                console.error("[rask] the browser bundle could not be loaded, so this page stays "
+                    + "server-live. This is not fatal — everything on the page keeps working.", e);
+            });
+        };
+        // requestIdleCallback with a timeout so a page that is never idle still gets there eventually;
+        // setTimeout is the fallback for browsers without it (Safari before 17).
+        if (typeof requestIdleCallback === "function") {
+            requestIdleCallback(bootBrowserRuntime, {timeout: 10000});
+        } else {
+            setTimeout(bootBrowserRuntime, 3000);
+        }
+    }
 
     // The reviveScript() + morph() definitions are concatenated in at build time by
     // the _RaskBuildClientJs target.

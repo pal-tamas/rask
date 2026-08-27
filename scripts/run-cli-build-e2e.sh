@@ -66,9 +66,14 @@ if [ "$status" -eq 0 ]; then
   echo "==> CLI build gates (scaffold output + tutorial walk-through must compile)"
   # Serial (-m:1 above, and one pack at a time inside the fixture): the gates share a single packed feed,
   # built lazily on first use.
+  #
+  # The filter matches the SUFFIX every E2E class here shares, not a list of names. It used to name
+  # them, and a class whose name the list did not happen to contain was simply never run -- silently,
+  # while the gate reported success. Every class it now selects gates itself on its own env var and
+  # skips when that is unset, so widening it costs nothing. CliGateFilterTests keeps this honest.
   NUGET_PACKAGES="$gate_packages" \
   dotnet test tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release --no-build \
-    --filter "FullyQualifiedName~BuildE2ETests|FullyQualifiedName~TutorialWalkthroughE2ETests" \
+    --filter "FullyQualifiedName~E2ETests" \
     --logger "console;verbosity=normal" 2>&1 | tee -a "$log" || status=$?
 fi
 

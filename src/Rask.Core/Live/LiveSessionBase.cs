@@ -217,6 +217,52 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     }
 
     public Component View { get; }
+
+    private InteractivityReason _interactivity;
+
+    /// <summary>
+    ///     Why this session's render needs a live connection, or <see cref="InteractivityReason.None" />
+    ///     if nothing does. Accumulated across every wave of the initial render and never cleared.
+    /// </summary>
+    internal InteractivityReason InteractivityReasons => _interactivity;
+
+    /// <summary>Whether anything in the render needs a live connection.</summary>
+    internal bool RequiresLiveSession => _interactivity != InteractivityReason.None;
+
+    void IRenderHandle.ReportLatePush() => OnLatePush();
+
+    /// <summary>
+    ///     A re-render was requested after the component left the tree. Ignored by default; a host
+    ///     that discards sessions for static pages overrides it to say so.
+    /// </summary>
+    protected virtual void OnLatePush()
+    {
+    }
+
+    void IRenderHandle.ReportRequiresLiveSession(InteractivityReason reason) =>
+        _interactivity |= reason;
+
+    /// <summary>Record a reason discovered by the host rather than by the walk.</summary>
+    internal void MarkRequiresLiveSession(InteractivityReason reason) => _interactivity |= reason;
+
+    /// <summary>
+    ///     Whether the last render actually mounted <paramref name="pageType" />.
+    /// </summary>
+    /// <remarks>
+    ///     The route table alone cannot answer "is the user looking at the not-found page". An app
+    ///     whose root renders directly still resolves a route — the fallback is always registered —
+    ///     but mounts no <c>Router</c>, so the resolved chain is never rendered and the URL is
+    ///     incidental. Asking what the walk actually mounted distinguishes the two without the host
+    ///     having to guess whether the app routes: the not-found page is in this set only when the
+    ///     user is genuinely looking at it.
+    ///     <para>
+    ///         Reads the root's per-render mounted-type set, which is cleared at the top of every
+    ///         walk and populated unconditionally as components mount, so it describes the render
+    ///         whose HTML is about to be served.
+    ///     </para>
+    /// </remarks>
+    internal bool LastRenderMounted(Type pageType) =>
+        View.MountedTypeInLastRender(pageType);
     public IServiceProvider Services { get; }
 
     // Pending IJSRuntime calls, drained into each frame's jsInvokes and dispatched client-side after
