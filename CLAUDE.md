@@ -36,6 +36,10 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
+- `src/Rask.Islands` + `src/Rask.Islands.Tasks` — a `.tsx`/Lit file as an ORDINARY component: `[Island]` on a
+  `partial Component`, front-end file paired by filename like scoped JS. Props declared in C#, serialized
+  reflection-free; callbacks re-enter C# over the existing handler channel. Its subtree is a **diff boundary**
+  (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/islands.md`.
 - `samples/` — showcase apps. `tests/` — sibling `*.Tests` per project + `Rask.Examples.E2E.Tests` (Playwright). `benchmarks/`.
 
 ## Commands
@@ -82,11 +86,13 @@ dotnet run --project samples/Rask.Example.Server
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/JS + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–053, RASK030/032/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–057, RASK030/032/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–053 are documented in `docs/diagnostics.md`
-  (RASK030/032/042/047/048/049/050 are retired; RASK051–052 are free).
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–057 are documented in `docs/diagnostics.md`
+  (RASK030/032/042/047/048/049/050 are retired; the next free id is RASK058). **Grep `src/` for the id before
+  claiming it** — three assemblies allocate in this space and RS1019 only checks one compilation, so this
+  line has been stale before.

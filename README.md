@@ -64,6 +64,12 @@ front end's TypeScript generated from your C# message records on every build —
 than the wire. The client is a **TypeScript** SPA — React, Preact, Vue, Angular, Solid, Svelte or Lit, but not JavaScript, since
 every guarantee here is one a compiler makes. See [docs/spa.md](docs/spa.md). (Needs Node.js.)
 
+Want React *inside* a Rask app rather than instead of one? Mark a component `[Island]` and drop a
+`Chart.tsx` beside it — it becomes an ordinary component you place anywhere the chain goes, a leaf in a
+card or a whole route. Props are declared in C# and checked in both directions, callbacks re-enter C#
+over the channel every handler already uses, and the live diff leaves the island's subtree alone
+because its own renderer owns it. See [docs/islands.md](docs/islands.md).
+
 ## Packages
 
 Pick one host package per project, then add what you need. Everything below targets .NET 10 and is
@@ -76,6 +82,7 @@ trim/AOT-safe.
 | `Rask.Wasm` | [![Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm) | Browser-WebAssembly host — the same components client-side, installable as an offline PWA |
 | `Rask.Wasm.Hosting` | [![Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm.Hosting) | Serves a published WASM bundle from an ASP.NET host |
 | `Rask.Spa.Hosting` | [![Rask.Spa.Hosting](https://img.shields.io/nuget/v/Rask.Spa.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Spa.Hosting) | Serves a built TypeScript SPA, and generates its TypeScript from your C# contracts |
+| `Rask.Islands` | [![Rask.Islands](https://img.shields.io/nuget/v/Rask.Islands.svg?label=%20)](https://www.nuget.org/packages/Rask.Islands) | A `.tsx` or Lit file as an ordinary Rask component, with props owned by C# |
 | `Rask.Cli` | [![Rask.Cli](https://img.shields.io/nuget/v/Rask.Cli.svg?label=%20)](https://www.nuget.org/packages/Rask.Cli) | `new` · `dev` · `db` · `deploy` · `info` · `doctor` — the whole lifecycle, one tool |
 | `Rask.Bootstrap` | [![Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=%20)](https://www.nuget.org/packages/Rask.Bootstrap) | Typed Bootstrap 5.3 components, zero-JS interactivity, typed utility classes |
 | `Rask.Testing` | [![Rask.Testing](https://img.shields.io/nuget/v/Rask.Testing.svg?label=%20)](https://www.nuget.org/packages/Rask.Testing) | Render a component in a unit test and assert on its HTML |

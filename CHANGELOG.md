@@ -7,6 +7,62 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **A `.tsx` or Lit file can now be an ordinary Rask component.** Mark a component `[Island]`, drop
+  the front-end file beside it the way `Counter.js` already sits beside `Counter.cs`, and place it
+  anywhere the chain goes — a leaf inside a card, a subtree, or the whole of a `[Route]` page's
+  `Render()`. There is deliberately no separate "page" concept: "React owns this route" is the case
+  where the island happens to be the page root, so replaceability is a property of the *component*
+  rather than of the route, and it composes at every level of the tree. New `Rask.Islands` package;
+  see [docs/islands.md](docs/islands.md).
+
+  An island is an ordinary component carrying an attribute, **not** a subclass of an island base
+  type. A base class would spend the single-inheritance slot, so a component already extending
+  `BsBlock` or an app's own base could never become island-backed — and it would be the one feature
+  in the framework that works by inheritance rather than by a declaration a generator reads.
+  Migrating an existing component is an attribute and a deletion: add `[Island]`, remove `Render()`,
+  and every call site is unchanged.
+
+  **C# owns the props.** They are declared as ordinary properties, so the chain, the required-prop
+  rule and every existing analyzer apply unchanged, and they are serialized by generated
+  `Utf8JsonWriter` code rather than by reflection — which is what lets an island survive trimming and
+  AOT. The prop vocabulary is the one the CQRS codecs already use; `WireShape` and the TypeScript
+  emitter moved to `Rask.Generators.Shared` so there is one answer to "what does this C# type look
+  like on the wire", not two that drift.
+
+  **Callbacks re-enter C# over the channel every DOM handler already uses** — the open WebSocket on
+  the Server host, a direct `[JSExport]` call into this tab's runtime on WASM. An island never opens
+  a channel of its own, so a callback inherits sequence stamping, the queue-while-reconnecting and
+  the auth suppression window for free, and the `.tsx` is byte-identical on both hosts.
+
+  **The live diff treats an island's subtree as opaque**, because React reconciles those nodes on its
+  own schedule and two writers on one subtree does not throw — it corrupts on the next parent
+  re-render. `Component` gains `OpaqueSubtree`; the flag rides `RenderFrame` so the differ skips by
+  `SubtreeLength`, and is written into the HTML as `data-rask-opaque` so the client morph refuses to
+  descend. Both are needed: the diff and the full-HTML fallback are separate paths to the same DOM,
+  and the morph is the one that bites, since the server renders an island *empty* and a positional
+  walk would trim every mounted node.
+
+  What crosses the boundary is props, and only props. A changed prop travels as a single attribute op
+  and the client routes it to the adapter's `update`, so an update is a reconcile and never a
+  remount — the component keeps its scroll position, its focus, its open dropdown and its half-typed
+  field. Callbacks keep their identity across updates for the same reason: React compares props by
+  identity, so a fresh closure per render would invalidate every `useCallback` and `memo` keyed on it.
+
+  React and Lit ship first, and Preact rides the React adapter unchanged — a Preact project aliases
+  `react` to `preact/compat`, which is the same aliasing the TypeScript SPA lane already relies on.
+  The client runtime imports no framework at all: each island's built chunk default-exports its own
+  adapter, three functions wide, so further runtimes are additive.
+
+  `dotnet build` writes one entry module per island and hands Vite a generated config that builds a
+  chunk each plus the manifest the runtime resolves names through. **Node runs only when a project has
+  a `package.json`** — that single probe is the gate, so an island-free app, and one whose islands are
+  all `.razor`, never learns this package has a build step.
+
+  New diagnostics RASK054–RASK057. (RASK051 and RASK052 were already taken by translations, despite
+  `CLAUDE.md` listing them free.)
+
+
 ### Fixed
 - **A package that ships an MSBuild task now packs that task by name, so it cannot pack without it.**
   `Rask.Spa.Hosting`, `Rask.Wasm` and `Rask.Tailwind` each collect a generated `*.Tasks.dll` with

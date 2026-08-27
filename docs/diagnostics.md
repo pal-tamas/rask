@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK053)
+# Rask diagnostics (RASK001–RASK057)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -88,6 +88,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK051](#rask051) | Error | Translation catalog is malformed |
 | [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
+| [RASK054](#rask054) | Error | Island component must be partial |
+| [RASK055](#rask055) | Error | Island prop has no wire encoding |
+| [RASK056](#rask056) | Error | Island declares its own Render |
+| [RASK057](#rask057) | Error | Island name collision |
 
 ---
 
@@ -1155,3 +1159,83 @@ vocabulary at once.
 > This diagnostic only fires in a project that references a remote transport (`Rask.Cqrs.Client` or
 > `Rask.Cqrs.Server`). An app using `Rask.Cqrs` purely in-process generates no codecs, so none of these
 > constraints apply to its messages.
+
+## RASK054
+
+**Island component must be partial** · Error
+
+Everything that makes a component an island is generated into a second part of the class: the host
+element, the diff boundary, the hydration step, the props writer. Without `partial` there is nowhere
+to put any of it.
+
+```csharp
+// ✗ RASK054 — nothing can be generated into it
+[Island]
+public sealed class Chart : Component { }
+
+// ✓
+[Island]
+public sealed partial class Chart : Component { }
+```
+
+Reported as an error rather than left to the compiler because the failure is otherwise a *silent wrong
+answer*: the class still compiles as an ordinary Rask component and renders its own markup instead of
+the front-end file beside it.
+
+## RASK055
+
+**Island prop has no wire encoding** · Error
+
+An island's props are serialized to JSON by generated code rather than by reflection — which is what
+lets an island survive trimming and AOT — so a shape the generator cannot express has to be reported
+now rather than arriving as `null` in the browser.
+
+The supported set is the same wire vocabulary [RASK053](#rask053) documents, plus callbacks as
+`Action`, `Action<T>`, `Func<Task>` and `Func<T, Task>`.
+
+```csharp
+// ✗ RASK055 — an interface names no single concrete type
+public IFilter? Filter { get; set; }
+
+// ✓ a concrete type has one shape
+public TextFilter? Filter { get; set; }
+```
+
+A property that is not meant to reach the browser at all — an injected service, a computed helper —
+should say so with `[SkipFactory]`, which keeps it out of the props entirely.
+
+## RASK056
+
+**Island declares its own Render** · Error
+
+An island renders a host element and lets its own framework fill the subtree, so a `Render()` override
+is never called.
+
+```csharp
+// ✗ RASK056 — never called; the markup comes from Chart.tsx
+[Island]
+public sealed partial class Chart : Component
+{
+    protected override Component? Render() => Div["loading…"];
+}
+```
+
+Left in place it reads as the component's markup while having no effect at all, which is worse than
+either behaviour on its own. For a placeholder shown until the island mounts, use the front-end file's
+own initial render.
+
+## RASK057
+
+**Island name collision** · Error
+
+The client runtime resolves an island's module by its simple type name, so two islands sharing one
+name would resolve to whichever registered last — silently, and potentially differently between
+builds.
+
+```csharp
+// ✗ RASK057 — both are "Chart" to the browser
+namespace Sales    { [Island] public sealed partial class Chart : Component { } }
+namespace Support  { [Island] public sealed partial class Chart : Component { } }
+```
+
+Rename one, or give it an explicit module with `[Island("./SupportChart.tsx")]`.
