@@ -98,17 +98,18 @@
     <None Include="Browser\rask.wasm.js" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\rask-sw.js" Pack="true" PackagePath="Browser\"/>
     <!--
-      The task DLLs are named explicitly and excluded from the glob: a glob is expanded at project
-      EVALUATION, before the ProjectReference that produces them has built, so on a tree where they
-      are not already on disk the pack SUCCEEDS and ships a package whose <UsingTask> points at a
-      file that is not in it. A literal Include needs the file only when the item is copied, so it is
-      collected — and a genuinely missing one is NU5019 rather than a silent omission (#852).
+      Rask.Wasm.Tasks.dll is named explicitly and excluded from the glob: a glob is expanded at
+      project EVALUATION, before the ProjectReference that produces this DLL has built, so on a tree
+      where it is not already on disk the pack SUCCEEDS and ships a package whose <UsingTask> points
+      at a file that is not in it. A literal Include needs the file only when the item is copied, so
+      it is collected — and a genuinely missing one is NU5019 rather than a silent omission (#852).
+
+      Rask.TypeScript.Tasks.dll is NOT named here. It does not live in this project's build folder:
+      it is copied into src/Rask.Core/build/ and packed into every host package from there by
+      RaskCoreBuildPack.targets, which names it literally for the same reason.
     -->
-    <None Include="build\**"
-          Exclude="build\Rask.Wasm.Tasks.dll;build\Rask.TypeScript.Tasks.dll"
-          Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Exclude="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="build\"/>
     <None Include="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="build\"/>
-    <None Include="build\Rask.TypeScript.Tasks.dll" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
   <!--
