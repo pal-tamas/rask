@@ -47,16 +47,21 @@ public class HelloMessageTests
     public async Task Hello_StateMutatedBeforeHello_EmitsCatchUpFrame()
     {
         // Counterpart to Hello_NothingPendingAfterGet_SuppressesHelloTimeFrame: when a
-        // StateHasChanged WAS issued during the GET→hello handoff window (typically an
-        // async OnMountAsync continuation that completed before the WS attached), the
-        // hello-time render must emit so the browser picks up the post-GET state.
-        using var host = RaskTestHost.Create<MountAsyncApp>();
+        // StateHasChanged WAS issued during the GET→hello handoff window, the hello-time render
+        // must emit so the browser picks up the post-GET state.
+        //
+        // The window used to be opened by an OnMountAsync continuation. It no longer can be — the
+        // GET awaits that work now and serves the result, which is the whole point of quiescence.
+        // So the window is opened here the way it still genuinely occurs in production: work the
+        // GET deliberately does NOT wait for, detached from the hook and pushing later. Rask's own
+        // PollingPanel is exactly this shape.
+        using var host = RaskTestHost.Create<DetachedPushApp>();
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
 
         // Let MountAsyncApp's OnMountAsync await complete before opening the socket.
         // The continuation calls StateHasChanged with no socket attached, setting the
         // session's pending-render flag.
-        await MountAsyncApp.AwaitCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await DetachedPushApp.Pushed.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -114,22 +119,30 @@ public class HelloMessageTests
     // render completes — exercises the "drop happened before hello" branch of
     // FlushPendingRenderAsync.
 #pragma warning disable RASK019 // test-helper Components predate framework-managed <head>
-    private sealed class MountAsyncApp : Component
+    // Pushes state AFTER the response, from work detached from the lifecycle hook. OnMountAsync
+    // returns immediately, so the GET's quiescence wait settles at once and serves "loading"; the
+    // detached continuation then lands in the GET→hello window with no socket attached.
+    private sealed class DetachedPushApp : Component
     {
-        public static readonly TaskCompletionSource AwaitCompleted =
+        public static readonly TaskCompletionSource Pushed =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private bool _loaded;
 
-        protected override async Task OnMountAsync()
+        protected override Task OnMountAsync()
         {
-            await Task.Delay(50);
-            _loaded = true;
-            StateHasChanged();
-            AwaitCompleted.TrySetResult();
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(50);
+                _loaded = true;
+                StateHasChanged();
+                Pushed.TrySetResult();
+            });
+
+            return Task.CompletedTask;
         }
 
-        protected override Component? HeadAssets => Title["mount-async-app"];
+        protected override Component? HeadAssets => Title["detached-push-app"];
         protected override string? HtmlLang => null;
 
         protected override Component? Render() => P[_loaded ? "loaded" : "loading"];

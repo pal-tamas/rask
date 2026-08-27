@@ -28,7 +28,7 @@ internal static class CliBuildE2E
     internal static readonly string[] FeedPackages =
     [
         "Rask.Server",                      // server template
-        "Rask.Wasm",                        // wasm + wasm-hosted templates
+        "Rask.Wasm",                        // wasm + wasm-hosted templates, and the --wasm companion project
         "Rask.Wasm.Hosting",                // wasm-hosted template
         "Rask.Bootstrap",                   // every template with --bootstrap
         "Rask.Tailwind",                    // every template with --tailwind (build-only; no runtime assembly)

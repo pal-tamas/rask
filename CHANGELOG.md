@@ -59,11 +59,29 @@ them until tagged releases begin.
   a `package.json`** — that single probe is the gate, so an island-free app, and one whose islands are
   all `.razor`, never learns this package has a build step.
 
-  New diagnostics RASK054–RASK057. (RASK051 and RASK052 were already taken by translations, despite
+  New diagnostics RASK055–RASK058. (RASK051 and RASK052 were already taken by translations, despite
   `CLAUDE.md` listing them free.)
 
 
 ### Fixed
+- **The Node floor is now enforced, not just documented.** `RaskSpaMinimumNode` was described in
+  `Rask.Spa.Hosting.props` as the version "the probe reports anything older" against, and `docs/spa.md`
+  told you to set it "if you want the build to insist on more than Rask does". Nothing compared against
+  it: the property was interpolated into the RASKSPA001 *node did not run* message and read nowhere
+  else, and `_RaskSpaNodeVersion` was captured out of the probe and dropped. So a too-old Node sailed
+  past the probe, reached `vite`, and failed with the `engines` error the probe exists to prevent —
+  and setting `RaskSpaMinimumNode` insisted on nothing at all
+  ([#863](https://github.com/pal-tamas/rask/issues/863)).
+
+  The probe now parses what `node --version` reported and compares it, failing with **RASKSPA005**
+  naming both the version found and the floor required. A version string it cannot parse (a nightly
+  carries a prerelease suffix) is skipped rather than failed: a build that works today should not start
+  failing over a string this package could not read, and npm still gets its say.
+
+  Covered by tests that run the shipped `build/*.props`/`*.targets` through a real MSBuild in both
+  directions — a gate that always fails is not a gate — because a substring assertion over the targets
+  file cannot tell an enforced floor from an interpolated one. Both mention the property.
+
 - **A package that ships an MSBuild task now packs that task by name, so it cannot pack without it.**
   `Rask.Spa.Hosting`, `Rask.Wasm` and `Rask.Tailwind` each collect a generated `*.Tasks.dll` with
   `<None Include="build\**">`, ordered by a build-only `ProjectReference` that produces it. That
@@ -222,7 +240,340 @@ them until tagged releases begin.
   verified by reintroducing the defect and watching it fail on `(wasm, localization)` before the fix
   went back in — the same bug class `--template native` was, and the same one it now catches.
 
+- **A gate's test selector is no longer a naming contract.** `scripts/run-cli-build-e2e.sh` selected
+  classes by naming suffix, so a class whose name did not happen to match was never run while the gate
+  printed that it passed. That had already cost one test — `TailwindPublishE2ETests`, fixed by renaming
+  it — and the next class to arrive hit it again.
+
+  The filter now matches the suffix every E2E class shares, and `CliGateFilterTests` reads every script
+  under `scripts/`, extracts each `--filter`, and fails if any E2E class is selected by no gate at all —
+  so the constraint is checked rather than remembered.
+
+- **A finished render pass could still collect the next one's work.** `QuiescenceScope.Dispose` clears
+  its thread-static slot only on whatever thread it runs on, which after an `await` is routinely not the
+  thread the pass began on — so a finished scope stayed visible to the next render on that pool thread,
+  which then tracked its work into the dead scope and served a placeholder for data it never waited for.
+
+  Silent rather than loud: the response is a perfectly ordinary 200. It needs enough concurrency to
+  recycle a thread between renders, so it surfaced as an intermittent test failure that passed every
+  time in isolation.
+
+- **`UseRaskWasmAssets` served the bundle's `index.html` at the app's root.** Turning the SPA fallback
+  off removed the `MapFallback` but left `UseDefaultFiles`, which rewrites a request for `/` to
+  `/index.html` — so every visitor arriving at the home page of the app that was supposed to be
+  rendering it got the bundle's boot shell instead.
+
+  A static pipeline shadows the root by a different mechanism than it shadows everything else, so the
+  test covering a deep path passed while the one path every visitor lands on first was broken. Both
+  are now covered.
+
+- **A WASM app read the document's owner before its JS bridge was imported.** The check that decides
+  whether to paint or prepare goes through the `rask` ES6 module, and asking before that module is
+  imported asserts inside the runtime and aborts it: the app failed to start, with a message naming
+  the module rather than the call that was too early.
+
+  The non-browser stubs now record call order, so the same mistake is a failing unit test instead of
+  something only a browser can catch.
+
+- **The browser runtime derived a bogus path base on a page with no `<base href>`.** It read
+  `document.baseURI`, which with no `<base>` element is the document's own URL — so a page at
+  `/realtime/BTC` yielded a base path of `/realtime/`, breaking every asset URL, the seeded route and
+  the `HttpClient` base address.
+
+  No standalone WASM app could hit it: every page shell — the framework's, the templates' and the
+  samples' — carries `<base href="/">`, and `baseURI` then equals that element's href, so the two
+  readings agree. A takeover does hit it, because the page comes from the server and server-rendered
+  pages carry no `<base>` at all.
+
+  The Server runtime already carried this exact fix, against the same failure, in its own copy of the
+  function. The two had simply diverged, and the takeover is the one arrangement that runs the browser
+  copy on a server-rendered document.
+
+### Added
+
+- **A WASM app can now boot without painting**, through `WasmHostBuilder.PrepareAsync` and
+  `PaintAsync`. `RunAsync` is unchanged and still does both, which is every standalone WASM app.
+
+  The split is what a browser takeover needs. An app arriving into a page another runtime is still
+  driving has to be ready to render and *not* render, or two runtimes write the same document at
+  once. `PrepareAsync` settles the expensive part — services, the session, the route, the culture —
+  while the visitor is still reading the server-rendered page, and stops at the line that paints.
+  `PaintAsync` crosses it, once the handover has happened.
+
+  Painting with nothing prepared throws and names the missing half. The failure it replaces is a
+  silent freeze: a handover to a runtime that never prepared would leave the page still with no
+  indication why.
+
+- **`rask new --wasm`** scaffolds the one-project build: the `RaskBrowserRung` property, the
+  `Rask.Wasm.Hosting` reference, `RenderModes.Wasm`, `AddRaskWasmHost()`, and `UseRaskWasmAssets()`
+  mapped before an explicitly written `UseRouting()`.
+
+  It joins `--auth` as the second thing `rask new` asks rather than assumes — both change what the app
+  *is* rather than what it can do, and the browser rung makes every publish link a WebAssembly runtime.
+  The wizard names that cost in the question.
+
+  `UseRouting()` is written out rather than left implicit, deliberately: `WebApplication` inserts it at
+  the *start* of the pipeline, which would put routing ahead of the assets middleware however early
+  that line appeared, and the Rask catch-all would then answer `/_framework/*.wasm` with `text/html`.
+
+- **The one-project build.** `<RaskBrowserRung>true</RaskBrowserRung>` makes `dotnet publish` emit both
+  halves of the app from one authored project: the server host, and a browser bundle published into its
+  `wwwroot`. `UseRaskWasmAssets()` now takes no path in that arrangement.
+
+  The two halves need different SDKs — `Microsoft.NET.Sdk.Web` on `net10.0` and
+  `Microsoft.NET.Sdk.WebAssembly` on `net10.0-browser` — and a `.csproj` carries exactly one, so the
+  build generates the second project into `obj/` and drives it. It compiles the app's own sources: the
+  same `App.cs`, the same pages, minus `Program.cs` (it gets a generated entry point) and minus
+  `Server/**`, the convention for code that only exists on the server. A page that cannot move to the
+  browser goes there, and RASK054 says which those are.
+
+  Publish-only. `dotnet run` is untouched, because a bundle takes minutes to link and buys nothing in
+  development, where the page is server-live and hot-reloaded.
+
+- **`RenderModes.Wasm` works.** Turning it on makes a live page fetch the browser bundle once it goes
+  idle and stand a browser runtime up beside itself; the next navigation renders there and the socket
+  closes. `RenderModes.WasmBundle` says where the boot module is served, default `/main.js`, resolved
+  against the app's path base.
+
+  Never on the critical path. The visitor already has a rendered, interactive page, and the bundle is
+  several megabytes that buys them nothing until they navigate. A bundle that 404s or fails to boot
+  leaves the page exactly as it is — live over its socket, which is what it already was — and the
+  failure is logged rather than shown, because there is nothing wrong with the page they are on.
+
+  **Publish the bundle with `WasmFingerprintAssets=false`.** The WebAssembly SDK otherwise
+  content-hashes the framework files and maps them through an import map it writes into the bundle's
+  own `index.html` — a document nobody loads here, because the page comes from the server. Without the
+  map, `_framework/dotnet.js` resolves to a path that exists in a build output and not in a publish,
+  so the bundle boots locally and 404s in production.
+
+  Turning the rung on with nowhere to fetch from refuses to start, rather than leaving an app
+  configured for a rung that silently never runs.
+
+- **`RunAsync` now decides for itself whether to paint.** The same `App` class is a standalone WASM
+  app on an empty page and a takeover arriving into a server-rendered one, and which it is depends on
+  where it was loaded — a fact `Program.cs` cannot know and no longer has to branch on. A live server
+  runtime stamps the document when it attaches; finding that stamp, boot prepares instead of painting.
+
+  Painting there is the failure being prevented: two runtimes writing one document and both answering
+  the same click, which presents as duplicated actions rather than as anything resembling a boot
+  problem. `PrepareAsync` remains as the explicit form.
+
+  The check reads an explicit owner rather than treating pre-existing markup as someone else's, because
+  every WASM app boots into a shell with a splash screen in it — inferring from content would leave
+  every standalone app unpainted.
+
+- **A prepared WASM app publishes its own handover seam.** `PrepareAsync` raises
+  `window.__raskWasmPaint`, which is how a live server runtime discovers that a browser runtime is
+  standing ready to take the page. The app calls `PrepareAsync<App>()` and nothing else.
+
+  Published by the framework rather than by the app's boot script, deliberately. There are several
+  page shells — the framework's, the samples', and the one `rask new` writes — and an app is free to
+  write its own; a seam only some of them publish is a takeover that silently never happens, with no
+  error anywhere, just a page that keeps paying a round trip per click for ever.
+
+  A prepared app also no longer reports a boot failure for not painting. That check exists because an
+  app which finishes starting without rendering is otherwise indistinguishable from a hang — but not
+  painting is the entire point of a prepare, and the report would have put a full-screen error over a
+  perfectly good server-rendered page.
+
+- **A navigation now hands the page to the browser runtime, when one is standing ready.** Once a
+  prepared WASM runtime publishes itself, the next client-side navigation renders there instead of
+  going over the WebSocket: the server runtime stands down, and the browser paints the page being
+  navigated *to*.
+
+  Landing the handover on a navigation is what makes it cheap. A fresh mount is what a navigation
+  already does, so no live state has to survive the crossing — the problem that makes a mid-page
+  handover hard does not arise.
+
+  Readiness is checked per navigation rather than once at boot, because the bundle finishes
+  downloading whenever it finishes. The page never waits for it, and behaves identically if it never
+  arrives at all. `PaintAsync` therefore takes the target URL: the runtime booted quietly on whatever
+  the visitor was reading, and does not have to guess where they will go next.
+
+  If the paint throws, the document has already changed hands and nothing is driving it, so the
+  fallback is a full page load — one slow navigation rather than a link that does nothing.
+
+- **RASK054 reports a page that cannot run in the browser.** A routed page injecting something that
+  only exists in the server process — Entity Framework's `DbContext` or `IDbContextFactory<T>`, or
+  anything from `Rask.Server` — stays server-live rather than moving into WebAssembly.
+
+  **Info, not a warning, and deliberately.** The page is correct, and for most apps this describes
+  every data page; a warning on each would be noise nobody reads. It exists so *"why did this page
+  not move?"* has an answer at the call site rather than only in a runtime log. Reach the same data
+  through a `Rask.Query` query or a CQRS message — both dispatched remotely by default — and the
+  page becomes eligible.
+
+  It reports only on components carrying `[Route]`. A shared component injecting a server-only type
+  is a property of whichever page uses it, and naming the component would point at a file whose
+  author cannot see which page is affected.
+
+- **`[RenderMode]` lets a page or a component override the automatic render decision.** Nothing needs
+  it: how far a page climbs is detected from its render. It exists for what detection cannot see.
+
+  `RenderMode.Interactive` keeps a live connection for a page whose render showed no need for one
+  — a component driven by a timer or an `event` subscription does nothing a walk can observe. It is
+  honoured from **anywhere** in the tree and is `Inherited`, so a base component declares the need
+  once and every page built on it gets it without its author knowing to.
+
+  `RenderMode.Static` serves a page as a document even where the app has not enabled static pages
+  at all. It is honoured only on the routed page or the app root — an arbitrary helper deep in a tree
+  forcing a whole page static would be a very quiet way to break it — and it is a **request, not a
+  command**: a page that turns out to need a connection keeps it, and the contradiction is logged
+  under `Rask.Ssr` naming the page.
+
+- **The render ladder is configurable from `Program.cs`** through `RaskServerOptions.RenderModes` —
+  `Static`, `Streaming`, `ServerInteractivity`, `Wasm`, and the `QuiescenceTimeout` the initial
+  render waits under. Every rung stays automatic; these are a ceiling, for an app that wants one it
+  will never use turned off rather than merely unused.
+
+  This replaces the two switches that had grown up separately and inconsistently: `StaticPages` was a
+  bool and quiescence was disabled by setting a timeout to zero. Defaults are unchanged behaviour, so
+  an app that configures nothing notices nothing.
+
+  Turning `ServerInteractivity` off means a page is served as HTML and becomes interactive only once
+  the browser bundle boots — no WebSocket ever opened, which is the offline-first and edge-hosted
+  arrangement. It requires `Wasm`, since otherwise a page with a handler could answer it through
+  neither transport.
+
+  **A combination that cannot serve a working page throws when the host is built**, and so does
+  turning on a rung that is not implemented yet. A switch that reads as supported and quietly does
+  nothing leaves an app looking configured for something it is not doing, and a page that silently
+  fails in production is far more expensive than a host that refuses to start.
+
+- **A page that needs nothing live can now be served as a plain document** — no session, no
+  WebSocket, no runtime script, and cacheable. Opt in with `RaskServerOptions.RenderModes.Static`.
+
+  Every `GET` used to mint a DI scope and a component tree, hold them for ten seconds against
+  `MaxSessions`, and answer `Cache-Control: no-store` because the shell carries the session id. For
+  a page with no handler, no form, no element `Ref` and no call into JavaScript, all of that bought
+  nothing: the page was already inert once it reached the browser. A crawler sweeping N routes
+  created N sessions.
+
+  Which pages those are is **detected from the render**, not declared. The signals are the places
+  they already funnel through: every `data-rask-on-*` attribute is minted in one method, every bound
+  control resolves one `EditContext`, a `Ref` emits one attribute, and a JS call passes one
+  runtime. Async work that had not settled when the response went out counts too — such a page
+  *must* keep its session, because served as a document it would sit on its placeholder for ever.
+
+  Two details are load-bearing. The verdict **accumulates and is never cleared**: the clean-subtree
+  cache re-registers a skipped walk's handlers through a different path, so a page whose only button
+  went clean on a later wave would otherwise be judged static and lose it. And the runtime `<script>`
+  is emitted as always and **removed** on the static branch, rather than the serializer emitting a
+  placeholder — a WebSocket full-HTML frame goes through that same serializer, and the client morphs
+  those onto `document.documentElement`, so a placeholder would delete the running runtime out from
+  under the page it drives. If the tag is not exactly where expected, the removal declines and the
+  page is treated as interactive.
+
+  Caching is conservative by construction: static **and** anonymous gets `private, max-age=0,
+  must-revalidate` with `Vary: Cookie` — enough to restore bfcache and instant back/forward without
+  handing anything to a shared cache. Static and authenticated stays `no-store`, as does anything
+  faulted or ≥400. "Authenticated" is the union of the request principal and the post-render one,
+  since a render can sign someone in.
+
+  **The one thing detection cannot see is now reported.** A component that pushes from a timer or an
+  `event` subscription shows the walk no need for a connection, so its page is judged static and its
+  updates then reach nobody. That cannot be detected up front — but the moment such a page asks to
+  re-render, the request itself is the symptom. Rask logs a warning under `Rask.Ssr` naming the
+  session, once per session, so a misjudged page announces itself instead of going quietly wrong. An
+  ordinary teardown is not reported, because noise is how a real warning gets ignored.
+
+  **Off by default, and deliberately.** Detection can only observe what the render did; a component
+  that pushes from a timer or an `event` subscription is invisible to any walk and would go quiet.
+  In Development pages always keep their session, so `rask dev` hot reload is unaffected — which
+  also means the static path is not exercised there yet. A dev-time audit that flags a page judged
+  static while carrying handlers is still to come, and until it lands, check the pages this changes
+  before enabling it in production.
+
+- **The service worker no longer buries a cached page under the offline page.** Browsers consult the
+  SW ahead of the HTTP cache for navigations, so `fetch().catch(() => offline.html)` short-circuited
+  a perfectly good cached copy of the very page the user asked for. It now tries the HTTP cache
+  first. Latent before — nothing was cacheable — and live the moment a static page is.
+
+- **A page can now set its own HTTP status** through `IPageResponse` (injected like `RouteState` or
+  `Navigator`), **and navigate on load into a real redirect.** The framework already answered `404`
+  for a path that fell through to the not-found page and `500` for a render that faulted; neither
+  could help the common case. `/products/9999` matches a real route, renders a perfectly ordinary
+  "no such product" page, and told every cache and crawler it was fine. Only the page knows.
+
+  `IPageResponse.SetStatus` answers with any status in the 200–599 range. A faulted render still
+  wins with `500` — a page that threw does not get to claim it succeeded — and setting `200` on the
+  not-found page is the supported way to express a deliberate soft-404. It is legal only during the
+  initial server render (`Render`, `OnMount`, `OnMountAsync`); from an event handler it **throws**,
+  because by then the response is long gone and a silently dropped status is worse than a crash the
+  developer sees immediately. On WASM it is a no-op — there is no response to shape — so a page
+  calling it compiles and runs unchanged on both hosts. It joins `RaskHostContracts`, so both hosts
+  are obliged to register it.
+
+  **Redirects are `Navigator`, not a second API.** `Navigator.NavigateTo` already expresses "the
+  user belongs somewhere else"; it simply used to throw during the initial render. It now works
+  there, and the host answers a real `302` before rendering a body at all — one response instead of
+  a whole page the client immediately navigates away from, and one a crawler and a cache both
+  understand, where a client-side hop is neither. No session is left behind, since nothing will ever
+  connect to that page, and the redirect is `no-store`: one computed from runtime state — a flag, a
+  tenant, an experiment — that a browser pinned would be unrecoverable without changing the URL. The
+  `Location` value is sanitized on the way out, because a header is exactly where an unchecked path
+  becomes an open redirect.
+
+- **The initial `GET` now waits for a page's async data before serving its HTML.** `OnMountAsync`
+  is fire-and-forget: the render walk starts it, keeps walking, and the continuation paints later
+  over the live connection. That is right once a socket exists and wrong for the first response,
+  where "later" is after the bytes have already gone — so a page that loaded its data in
+  `OnMountAsync` served its `"Loading…"` placeholder as the first paint, and as the entire document
+  every crawler, cache and uptime check ever saw.
+
+  Nothing tracked the hooks' tasks, so there was nothing to await. There is now, and the `GET`
+  renders in **waves**: render, wait for what that render started, render again. A wave is the right
+  unit because resolved data mounts new components which start their own work — a page whose list
+  loads and whose rows then load is two waves, not one longer wait.
+
+  Bounded by `RaskServerOptions.RenderModes.QuiescenceTimeout` (default 5&#160;seconds;
+  `TimeSpan.Zero` restores the old behaviour). Blowing the budget is not an error: the page is
+  served as it stands and keeps its live session, so the load finishes over the socket exactly as
+  before. A slow page does hold a request open for up to that long, so size it together with the
+  session cap — the two multiply.
+
+  Waves after the first render `publishOnly`, which is not an optimisation: every component has
+  already rendered once, so a normal wave would re-fire `OnRendered` on all of them, once per wave,
+  each enqueuing another round of JS interop. Intermediate waves also promote neither the diff
+  baseline nor the dedup baseline — only the HTML actually served is what the browser holds.
+
+  **A `Rask.Query` query is waited for as well.** It starts its fetch inside the client rather than
+  returning it from a lifecycle hook, so nothing the host could see would have told it to wait — a
+  query-backed page would have served its spinner as the first paint, which is the exact problem this
+  change exists to fix, unsolved for the framework's own way of fetching data. The render hands the
+  in-flight fetch over where a component reads it, so the `GET` waits for exactly the queries that
+  page displays. Only a query with nothing to show holds the response: one that is disabled, or one
+  serving cached data while it revalidates, does not.
+
+  **Work blocked on JavaScript is not waited on**, and cannot be: a JS call made during a render
+  queues onto a frame, and during the `GET` there is no client to send it to, so the awaiting task
+  completes once the socket is up and never before. A hook that reads browser storage to restore a
+  session is exactly this shape. Nothing is lost by stopping — such a page is already interactive
+  *because* of the interop, so it keeps its session and finishes over the socket as before, whereas
+  waiting would spend the entire budget on every page load.
+
+  Work whose owning component was unmounted mid-pass is dropped rather than awaited: a placeholder
+  replaced by the data it was waiting for leaves the tree, and its abandoned fetch would otherwise
+  hold the response open for the full budget. Work deliberately detached from the hook — a polling
+  loop started with `_ = LoopAsync()`, as `PollingPanel` does — is not waited on at all, and still
+  reaches the browser through the live connection as it always did.
+
 ### Changed
+- **The Node floor moves to 22.12, and the scaffolded SPA image installs the current LTS.** The floor
+  was 20.19, described as "Vite's own". Vite actually asks for `^20.19.0 || >=22.12.0` — a range with a
+  hole in it, since 21.x and 22.0–22.11 satisfy neither arm — so 20.19 let a build through that Vite
+  would still refuse. 22.12 is the lowest version that satisfies the range with no hole, and the lowest
+  on a line Node still patches: Node 20 "Iron" reached end of life on 2026-03-24.
+
+  A floor is a minimum rather than a recommendation, so the two numbers now differ on purpose. The
+  `--docker` Dockerfile for `rask new --template <front-end>` installs NodeSource **24.x** ("Krypton",
+  the Active LTS) instead of 22.x, and `docs/spa.md` says which is which. Angular's CLI sets its own
+  floor far above both (`^22.22.3 || ^24.15.0 || >=26.0.0` as of 22.1.6) and enforces it itself.
+
+  **Breaking for a build on Node 20.19–20.x**, which was already end-of-life: install the current LTS
+  (`nvm install --lts`), or set `RaskSpaMinimumNode` back down — it is a real comparison now, so
+  lowering it lowers the bar.
+
 - **BREAKING: `rask new` includes the batteries. Auth and styling are the only things it asks you.**
   `rask new MyApp` now scaffolds every battery the chosen template supports — a SQLite database, the
   CQRS mediator, background jobs, transactional email, a cache, a transactional outbox, scheduled
@@ -284,6 +635,23 @@ them until tagged releases begin.
   `rask new` does. The standalone Dockerfile question and the snapshots follow-up are gone — both are
   entries in the list now. Unticking an entry becomes the `--no-<battery>` on the command line the
   wizard replays, so what it runs is still exactly what you could have typed.
+
+- **A path that falls through to the not-found page no longer answers `200 OK`.** The page renders
+  perfectly ordinary HTML, so nothing downstream could tell a missing page from a real one — caches
+  stored it, crawlers indexed it, uptime checks reported green. It answers **404** now. This is the
+  same defect, and the same fix, as the one that made a crashed page a real `500`.
+
+  The body is unchanged: the not-found page still renders and the live session still attaches, so
+  the reload button and navigating away both keep working. Only the status is honest.
+
+  **The status is confirmed against the render, not just the route table** — and that distinction is
+  load-bearing. `BuildTree` registers the fallback for *every* app, so route resolution "succeeds"
+  even for an app whose root component renders directly with no `Router`. Such an app never shows
+  the not-found page, and 404-ing every path it serves would have been a far worse lie than the one
+  being fixed. The 404 is emitted only when the walk actually **mounted** that page.
+
+  A faulted render still wins with `500`, and an app that declares its own catch-all `[Route]` is
+  deliberately serving those paths, so it stays `200`.
 
 ### Added
 - **A gate that the compiled Tailwind stylesheet reaches the *published* output.** Every other Tailwind

@@ -32,6 +32,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
 
     private bool _dirty;
     private bool _inHandler;
+    private bool _inInitialRender;
     private bool _replace;
 
     /// <summary>
@@ -231,6 +232,28 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
             "AddRask(), WASM via WasmHostBuilder — so reaching this means the Navigator was built outside " +
             "a host. If you're in a unit test, register a fake (Rask.Testing ships TestDownloadSink).");
 
+    /// <summary>
+    ///     Opens the window in which navigation is legal during a page's INITIAL server render, so a
+    ///     page that decides on load that the user belongs elsewhere says so with the same API it
+    ///     would use from a handler.
+    /// </summary>
+    /// <remarks>
+    ///     The host consumes the result through <see cref="TryConsumeHistory" /> and answers a real
+    ///     <c>302</c> — one response, rather than a whole page the client immediately navigates away
+    ///     from, and one that a cache and a crawler both understand. A separate redirect API on the
+    ///     response object would have split navigation across two concepts for no gain; this is the
+    ///     same <c>NavigateTo</c> everywhere.
+    /// </remarks>
+    internal IDisposable EnterInitialRender()
+    {
+        _dirty = false;
+        _replace = false;
+        _inInitialRender = true;
+        var previous = _current.Value;
+        _current.Value = this;
+        return new HandlerScope(this, previous);
+    }
+
     internal IDisposable EnterHandler()
     {
         // Clear any navigation a prior handler queued but never consumed — e.g. it called
@@ -264,12 +287,12 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
 
     private void EnsureInHandler()
     {
-        if (!_inHandler)
+        if (!_inHandler && !_inInitialRender)
         {
             throw new InvalidOperationException(
-                "Navigator can only be used from event handlers (e.g. Button(OnClick: ...)). " +
-                "It cannot run during component Render() or the initial GET. To navigate on load, " +
-                "express it as a route/redirect or drive it from a lifecycle hook; to redirect an " +
+                "Navigator can only be used from event handlers (e.g. Button(OnClick: ...)) or " +
+                "during a page's initial render (Render, OnMount, OnMountAsync), where it becomes " +
+                "a real HTTP redirect. It cannot run from a background render. To redirect an " +
                 "unauthenticated user, use [Authorize]. See docs/routing.md.");
         }
     }

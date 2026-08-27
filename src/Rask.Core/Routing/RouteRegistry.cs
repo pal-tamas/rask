@@ -6,6 +6,25 @@ public static class RouteRegistry
 {
     internal const string DefaultFallbackTemplate = "{**__rask_notfound}";
 
+    /// <summary>
+    ///     Whether <paramref name="fullTemplate" /> is the reserved catch-all a not-found page is
+    ///     registered under. True for both the framework's own fallback page and a user
+    ///     <c>[NotFound]</c> one — the generator registers the latter under the same template — so
+    ///     a caller asking "did this path fall through?" gets one answer for both.
+    /// </summary>
+    /// <remarks>
+    ///     An app that declares its own catch-all <c>[Route("/{**rest}")]</c> is deliberately
+    ///     serving that path, so it is registered under its own template and is NOT a fallback.
+    ///     That distinction is the whole reason this is a template check rather than a
+    ///     "does the chain have a catch-all" one.
+    /// </remarks>
+    internal static bool IsFallbackTemplate(string fullTemplate) =>
+        // Compared against the FLATTENED form, which is where callers get their template from.
+        // RouteFlattener.Combine turns the raw registration "{**__rask_notfound}" into
+        // "/{**__rask_notfound}", so comparing against the constant verbatim silently never
+        // matches — the fallback page renders and the host still calls it a 200.
+        string.Equals(fullTemplate.TrimStart('/'), DefaultFallbackTemplate, StringComparison.Ordinal);
+
     private static readonly object _lock = new();
 
     // Registrations from direct Add() calls. Additive, exactly as before.

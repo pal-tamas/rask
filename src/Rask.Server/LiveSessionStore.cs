@@ -223,7 +223,9 @@ public sealed class LiveSessionStore : IAsyncDisposable
         Interlocked.Increment(ref _liveCount);
         try
         {
-            return CreateCore(factory);
+            var session = CreateDetached(factory);
+            Publish(session);
+            return session;
         }
         catch
         {
@@ -240,26 +242,21 @@ public sealed class LiveSessionStore : IAsyncDisposable
     /// </summary>
     internal LiveSession? TryCreate(Func<IServiceProvider, Component> factory)
     {
-        // Refuse before reserving anything: a session minted during the drain is one the drain has
-        // already snapshotted past, so it would be built (component tree + DI scope) only to be torn
-        // down moments later — and the client would be handed a page whose session is already dead.
-        if (IsDraining)
+        // Reserve first, build second. Composing this the other way round — build the tree, then
+        // ask for a slot — would read more naturally and would silently drop the property the
+        // paragraph above promises, because the tree is the expensive part a flood is trying to
+        // make us allocate. TryRegister exists for the caller that genuinely cannot know whether
+        // it needs a slot until after the render; this one knows up front, so it asks up front.
+        if (!TryReserve())
         {
-            _metrics?.SessionRejected();
-            return null;
-        }
-
-        var reserved = Interlocked.Increment(ref _liveCount);
-        if (MaxSessions > 0 && reserved > MaxSessions)
-        {
-            Interlocked.Decrement(ref _liveCount);
-            _metrics?.SessionRejected();
             return null;
         }
 
         try
         {
-            return CreateCore(factory);
+            var session = CreateDetached(factory);
+            Publish(session);
+            return session;
         }
         catch
         {
@@ -268,7 +265,20 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
     }
 
-    private LiveSession CreateCore(Func<IServiceProvider, Component> factory)
+    /// <summary>
+    ///     Builds a session — DI scope, session id, component tree — WITHOUT reserving a capacity
+    ///     slot or publishing it into the store. The result is invisible to <see cref="Get" />,
+    ///     counts against nothing, and MUST be either admitted through <see cref="TryRegister" />
+    ///     or torn down through <see cref="DiscardAsync" />; dropping the reference leaks the DI
+    ///     scope.
+    /// </summary>
+    /// <remarks>
+    ///     This exists because whether a page needs a live session is a property of its render
+    ///     walk, so the shell endpoint cannot know the answer until the tree has been built and
+    ///     rendered. Building detached lets the render happen first and the accounting follow,
+    ///     which is what allows a page that turns out to need nothing live to cost no session.
+    /// </remarks>
+    internal LiveSession CreateDetached(Func<IServiceProvider, Component> factory)
     {
         var scope = _scopeFactory.CreateScope();
         // Cryptographically-random id: it is the bearer secret for the WS / upload / download
@@ -298,9 +308,69 @@ public sealed class LiveSessionStore : IAsyncDisposable
             accessor.Session = session;
         }
 
+        return session;
+    }
+
+    /// <summary>
+    ///     Admits an already-built session: reserves a capacity slot and publishes it into the
+    ///     store. Returns <c>false</c> — having reserved nothing — when the host is draining or
+    ///     the session would exceed <see cref="MaxSessions" />, in which case the caller still
+    ///     owns the session and must pass it to <see cref="DiscardAsync" />.
+    /// </summary>
+    internal bool TryRegister(LiveSession session)
+    {
+        if (!TryReserve())
+        {
+            return false;
+        }
+
+        Publish(session);
+        return true;
+    }
+
+    /// <summary>
+    ///     Tears down a session that was never registered, releasing its DI scope and the buffers
+    ///     its render borrowed from the shared pools.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately does NOT decrement <c>_liveCount</c> or record an eviction. A detached
+    ///     session never reserved a slot, so crediting one back here would let the cap drift
+    ///     upward by one for every page served without a session — and the drift is invisible
+    ///     until the host is saturated and starts admitting past <see cref="MaxSessions" />.
+    ///     <see cref="Detach" /> remains the only place a reservation is released.
+    /// </remarks>
+    internal ValueTask DiscardAsync(LiveSession session) => session.DisposeAsync();
+
+    // The draining refusal and the atomic cap reservation, shared by TryCreate and TryRegister so
+    // the two admission paths cannot drift on what "at capacity" means.
+    private bool TryReserve()
+    {
+        // Refuse before reserving anything: a session minted during the drain is one the drain has
+        // already snapshotted past, so it would be built (component tree + DI scope) only to be torn
+        // down moments later — and the client would be handed a page whose session is already dead.
+        if (IsDraining)
+        {
+            _metrics?.SessionRejected();
+            return false;
+        }
+
+        var reserved = Interlocked.Increment(ref _liveCount);
+        if (MaxSessions > 0 && reserved > MaxSessions)
+        {
+            Interlocked.Decrement(ref _liveCount);
+            _metrics?.SessionRejected();
+            return false;
+        }
+
+        return true;
+    }
+
+    // Publish into the map and record the creation. Split from the reservation so a session built
+    // detached can be admitted later without re-running the cap logic.
+    private void Publish(LiveSession session)
+    {
         _sessions[session.Id] = session;
         _metrics?.SessionCreated();
-        return session;
     }
 
     internal LiveSession? Get(string id)

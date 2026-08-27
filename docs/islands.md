@@ -51,7 +51,7 @@ public sealed partial class Chart : Component
 }
 ```
 
-`partial` is required ([RASK054](diagnostics.md#rask054)) — the host element, the props writer and the
+`partial` is required ([RASK055](diagnostics.md#rask055)) — the host element, the props writer and the
 hydration step are generated into the same class. Migrating an existing component is therefore an
 attribute and a deletion: add `[Island]`, remove `Render()`, and the call sites do not change.
 
@@ -93,7 +93,7 @@ export default function Chart({ series, heading }: { series: Point[]; heading?: 
 Supported prop types are the wire vocabulary the CQRS codecs use: the primitives, `string`, `Guid`,
 the date/time types, `Uri`, enums, `byte[]`, nullable versions of those, arrays and lists, string-keyed
 dictionaries, and records composed of the same. Anything else is
-[RASK055](diagnostics.md#rask055) at compile time rather than `null` in the browser. `[SkipFactory]`
+[RASK056](diagnostics.md#rask056) at compile time rather than `null` in the browser. `[SkipFactory]`
 keeps a property out of the props entirely.
 
 > **A prop named after an HTML tag will not compile.** `Title`, `Label`, `Data`, `Form`, `Style` and

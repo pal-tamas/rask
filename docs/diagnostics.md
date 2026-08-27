@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK057)
+# Rask diagnostics (RASK001–RASK058)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -88,10 +88,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK051](#rask051) | Error | Translation catalog is malformed |
 | [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
-| [RASK054](#rask054) | Error | Island component must be partial |
-| [RASK055](#rask055) | Error | Island prop has no wire encoding |
-| [RASK056](#rask056) | Error | Island declares its own Render |
-| [RASK057](#rask057) | Error | Island name collision |
+| [RASK054](#rask054) | Info | Page cannot run in the browser |
+| [RASK055](#rask055) | Error | Island component must be partial |
+| [RASK056](#rask056) | Error | Island prop has no wire encoding |
+| [RASK057](#rask057) | Error | Island declares its own Render |
+| [RASK058](#rask058) | Error | Island name collision |
 
 ---
 
@@ -1162,6 +1163,51 @@ vocabulary at once.
 
 ## RASK054
 
+**Page cannot run in the browser** · Info
+
+A routed page injects something that only exists in the server process, so it stays server-live and
+will not move into WebAssembly.
+
+**This is not a fault.** The page is correct, and for most apps this describes every data page. It is
+Info rather than a warning for exactly that reason — a warning on each of them would be noise nobody
+reads. The diagnostic exists so that *"why did this page not move?"* has an answer at the call site
+rather than only in a runtime log.
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+
+[Route("/orders")]
+// ℹ RASK054 — a DbContext cannot exist in a browser, so this page stays server-live
+public sealed partial class Orders(IDbContextFactory<AppDb> db) : Component
+{
+    protected override Component? Render() => /* … */;
+}
+```
+
+**To make the page eligible**, reach the same data through something that already crosses the wire —
+a `Rask.Query` query or a CQRS message, both of which are dispatched remotely by default:
+
+```csharp
+[Route("/orders")]
+public sealed partial class Orders(IQueryClient client) : Component   // no diagnostic
+{
+    private readonly Query<Order[]> _orders = client.Query(new GetOrders());
+
+    protected override Component? Render() => /* … */;
+}
+```
+
+**What it looks at.** Constructor parameters of a component carrying `[Route]`. It does not report a
+shared component that injects a server-only type — that is a property of whichever page uses it, and
+pointing at the component would name a file whose author cannot see which page is affected.
+
+**The list of server-only types is short and deliberately not exhaustive:** Entity Framework's
+`DbContext` and `IDbContextFactory<T>`, and anything from the `Rask.Server` assembly. It names what
+this framework hands people rather than everything that could fail in a browser, because the analyzer
+compiles against the server half and has no view of what a browser build references.
+
+## RASK055
+
 **Island component must be partial** · Error
 
 Everything that makes a component an island is generated into a second part of the class: the host
@@ -1182,7 +1228,7 @@ Reported as an error rather than left to the compiler because the failure is oth
 answer*: the class still compiles as an ordinary Rask component and renders its own markup instead of
 the front-end file beside it.
 
-## RASK055
+## RASK056
 
 **Island prop has no wire encoding** · Error
 
@@ -1194,7 +1240,7 @@ The supported set is the same wire vocabulary [RASK053](#rask053) documents, plu
 `Action`, `Action<T>`, `Func<Task>` and `Func<T, Task>`.
 
 ```csharp
-// ✗ RASK055 — an interface names no single concrete type
+// ✗ RASK056 — an interface names no single concrete type
 public IFilter? Filter { get; set; }
 
 // ✓ a concrete type has one shape
@@ -1204,7 +1250,7 @@ public TextFilter? Filter { get; set; }
 A property that is not meant to reach the browser at all — an injected service, a computed helper —
 should say so with `[SkipFactory]`, which keeps it out of the props entirely.
 
-## RASK056
+## RASK057
 
 **Island declares its own Render** · Error
 
@@ -1212,7 +1258,7 @@ An island renders a host element and lets its own framework fill the subtree, so
 is never called.
 
 ```csharp
-// ✗ RASK056 — never called; the markup comes from Chart.tsx
+// ✗ RASK057 — never called; the markup comes from Chart.tsx
 [Island]
 public sealed partial class Chart : Component
 {
@@ -1224,7 +1270,7 @@ Left in place it reads as the component's markup while having no effect at all, 
 either behaviour on its own. For a placeholder shown until the island mounts, use the front-end file's
 own initial render.
 
-## RASK057
+## RASK058
 
 **Island name collision** · Error
 
@@ -1233,7 +1279,7 @@ name would resolve to whichever registered last — silently, and potentially di
 builds.
 
 ```csharp
-// ✗ RASK057 — both are "Chart" to the browser
+// ✗ RASK058 — both are "Chart" to the browser
 namespace Sales    { [Island] public sealed partial class Chart : Component { } }
 namespace Support  { [Island] public sealed partial class Chart : Component { } }
 ```

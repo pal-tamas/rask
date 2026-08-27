@@ -36,7 +36,7 @@ public sealed class IslandGenerator : IIncrementalGenerator
     private const string SkipFactoryName = "Rask.Core.SkipFactoryAttribute";
 
     private static readonly DiagnosticDescriptor Rask054 = new(
-        "RASK054",
+        "RASK055",
         "Island component must be partial",
         "Island '{0}' must be declared 'partial' — its host element, props writer and hydration step are generated into the same class",
         DiagnosticHelp.Category,
@@ -46,10 +46,10 @@ public sealed class IslandGenerator : IIncrementalGenerator
                      + "Without 'partial' there is nowhere to put it, so the component would compile as an ordinary "
                      + "Rask component and render its own markup instead of the front-end file beside it — a silent "
                      + "wrong answer rather than a build failure.",
-        helpLinkUri: DiagnosticHelp.Link("RASK054"));
+        helpLinkUri: DiagnosticHelp.Link("RASK055"));
 
     private static readonly DiagnosticDescriptor Rask055 = new(
-        "RASK055",
+        "RASK056",
         "Island prop has no wire encoding",
         "Island '{0}' cannot send prop '{1}' to the browser: {2}",
         DiagnosticHelp.Category,
@@ -62,10 +62,10 @@ public sealed class IslandGenerator : IIncrementalGenerator
                      + "records or classes composed of the same. Callbacks are supported as Action, Action<T>, "
                      + "Func<Task> and Func<T, Task>. Mark a property [SkipFactory] to keep it out of the props "
                      + "entirely.",
-        helpLinkUri: DiagnosticHelp.Link("RASK055"));
+        helpLinkUri: DiagnosticHelp.Link("RASK056"));
 
     private static readonly DiagnosticDescriptor Rask056 = new(
-        "RASK056",
+        "RASK057",
         "Island declares its own Render",
         "Island '{0}' declares Render(), but an island's markup comes from '{1}' — remove Render()",
         DiagnosticHelp.Category,
@@ -74,10 +74,10 @@ public sealed class IslandGenerator : IIncrementalGenerator
         description: "An island renders a host element and lets its own framework fill the subtree, so a Render() "
                      + "override is never called. Left in place it reads as the component's markup while having no "
                      + "effect at all, which is worse than either behaviour on its own.",
-        helpLinkUri: DiagnosticHelp.Link("RASK056"));
+        helpLinkUri: DiagnosticHelp.Link("RASK057"));
 
     private static readonly DiagnosticDescriptor Rask057 = new(
-        "RASK057",
+        "RASK058",
         "Island name collision",
         "Islands '{0}' and '{1}' share the simple name '{2}', which is the key the browser resolves a module by",
         DiagnosticHelp.Category,
@@ -86,7 +86,7 @@ public sealed class IslandGenerator : IIncrementalGenerator
         description: "The client runtime looks an island up by its simple type name, so two islands sharing one name "
                      + "would resolve to whichever module registered last — silently, and differently between builds. "
                      + "Rename one, or give it an explicit module with [Island(\"...\")].",
-        helpLinkUri: DiagnosticHelp.Link("RASK057"));
+        helpLinkUri: DiagnosticHelp.Link("RASK058"));
 
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -300,7 +300,7 @@ public sealed class IslandGenerator : IIncrementalGenerator
     /// <summary>The callback shape a delegate prop takes, or null when it is not a callback at all.</summary>
     /// <remarks>
     ///     The four shapes Rask already auto-wraps. A delegate outside the set falls through to the wire
-    ///     classifier, which rejects it with RASK055 — better than silently dropping a prop the author
+    ///     classifier, which rejects it with RASK056 — better than silently dropping a prop the author
     ///     clearly meant to be called.
     /// </remarks>
     private static CallbackShape? Callback(ITypeSymbol type)

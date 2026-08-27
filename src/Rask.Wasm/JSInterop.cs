@@ -21,6 +21,10 @@ internal static partial class JSInterop
     private static WasmJSRuntime? _runtime;
     private static WasmHostedServices? _hostedServices;
 
+    // Set by PrepareAsync. Held as a delegate rather than as the builder, because the caller crossing
+    // this boundary is JavaScript and a [JSExport] has to be static.
+    private static Func<string?, Task>? _paint;
+
     /// <summary>How long a hosted service gets to stop once the page is going away.</summary>
     /// <remarks>
     ///     Short on purpose. The browser does not await a <c>pagehide</c> handler, so this bounds an
@@ -44,6 +48,13 @@ internal static partial class JSInterop
     ///     resolves the runtime.
     /// </summary>
     public static void Init(WasmJSRuntime runtime) => _runtime = runtime;
+
+    /// <summary>
+    ///     Bind the prepared app's paint entry point, so a page driven by another runtime can hand
+    ///     this one the document. Called from <c>WasmHostBuilder.PrepareAsync</c>; never from
+    ///     <c>RunAsync</c>, which has already painted and has nothing to hand over.
+    /// </summary>
+    public static void InitPaint(Func<string?, Task> paint) => _paint = paint;
 
 #if RASK_BROWSER
     public static Task ImportJsModuleAsync() =>
@@ -123,6 +134,31 @@ internal static partial class JSInterop
     ///     <c>pagehide</c> listener in <c>rask.wasm.js</c> — only for a real teardown, never for a
     ///     back/forward-cache suspend, where the page can be resumed with its services still needed.
     /// </summary>
+    /// <summary>
+    ///     Paints the prepared app, taking over a document another runtime has been driving. Reached
+    ///     from <c>window.__raskWasmPaint</c>, which the server runtime calls on the navigation it
+    ///     hands over.
+    /// </summary>
+    /// <remarks>
+    ///     <paramref name="url" /> is the page being navigated TO, which is almost never the page this
+    ///     runtime prepared on: it booted quietly on whatever the visitor was reading.
+    /// </remarks>
+    [JSExport]
+    public static Task Paint(string? url) => _paint?.Invoke(url) ?? Task.CompletedTask;
+
+    /// <summary>
+    ///     Publishes <c>window.__raskWasmPaint</c>, which is how a live server runtime discovers that
+    ///     a browser runtime is standing ready to take the page.
+    /// </summary>
+    /// <remarks>
+    ///     Called by the framework at the end of a prepare, rather than left to the app's boot script.
+    ///     There are several page shells — the framework's, the samples', and the one <c>rask new</c>
+    ///     writes — and an app may write its own; a seam only some of them publish is a takeover that
+    ///     silently never happens.
+    /// </remarks>
+    [JSImport("publishPaint", ModuleName)]
+    public static partial void PublishPaint();
+
     [JSExport]
     public static Task StopHostedServices() =>
         _hostedServices?.StopAsync(ShutdownGrace) ?? Task.CompletedTask;
@@ -167,6 +203,17 @@ internal static partial class JSInterop
     /// </remarks>
     [JSImport("bootFailed", ModuleName)]
     public static partial void BootFailed(string message, string? detail);
+
+    /// <summary>
+    ///     Which runtime currently owns this document: <c>"server"</c> when a live server runtime is
+    ///     driving it, empty when nothing is.
+    /// </summary>
+    /// <remarks>
+    ///     Read at boot so <c>RunAsync</c> can decide whether to paint. A standalone WASM app owns an
+    ///     empty page and paints; the same app arriving into a server-rendered page prepares instead.
+    /// </remarks>
+    [JSImport("getOwner", ModuleName)]
+    public static partial string GetOwner();
 
     [JSImport("getLocation", ModuleName)]
     public static partial string GetLocation();
@@ -233,7 +280,24 @@ internal static partial class JSInterop
 #else
     // Non-browser stubs. Used by the test project so the pure-logic code paths can be exercised
     // without a JS runtime. None of the non-browser stubs perform real interop.
-    public static Task ImportJsModuleAsync() => Task.CompletedTask;
+
+    // Call ordering, recorded so the tests can catch what only a browser could otherwise catch. Every
+    // JSImport below asserts in the browser if the rask module has not been imported yet, and that
+    // assert aborts the whole .NET runtime — it surfaces as "the app failed to start", nowhere near
+    // the call that was too early. Here the same mistake is a comparison of two integers.
+    private static int _seq;
+
+    public static int ModuleImportOrder { get; private set; }
+
+    public static int GetOwnerOrder { get; private set; }
+
+    internal static void ResetCallOrder() => (_seq, ModuleImportOrder, GetOwnerOrder) = (0, 0, 0);
+
+    public static Task ImportJsModuleAsync()
+    {
+        ModuleImportOrder = ++_seq;
+        return Task.CompletedTask;
+    }
 
     public static Task Dispatch(byte[] json)
     {
@@ -243,6 +307,18 @@ internal static partial class JSInterop
     }
 
     public static void ApplyRender(Span<byte> payload) { }
+    /// <summary>
+    ///     Stands in for the browser's <c>__raskOwner</c>, so the tests can drive the paint/prepare
+    ///     decision. Empty by default — no document, so no other runtime owns it and boot paints.
+    /// </summary>
+    public static string Owner { get; set; } = string.Empty;
+
+    public static string GetOwner()
+    {
+        GetOwnerOrder = ++_seq;
+        return Owner;
+    }
+
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
 
@@ -263,6 +339,13 @@ internal static partial class JSInterop
     public static (string Message, string? Detail)? LastBootFailure { get; private set; }
 
     public static void BootFailed(string message, string? detail) => LastBootFailure = (message, detail);
+
+    /// <summary>Counts the publishes so the non-browser tests can assert a prepare offered the seam.</summary>
+    public static int PublishPaintCount { get; private set; }
+
+    public static void PublishPaint() => PublishPaintCount++;
+
+    internal static void ResetPublishPaintCount() => PublishPaintCount = 0;
 
     internal static void ResetBootFailure() => LastBootFailure = null;
 

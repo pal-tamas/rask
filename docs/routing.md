@@ -358,6 +358,32 @@ public sealed partial class NotFoundPage : Component
 Only one `[NotFound]` component is allowed ([RASK012](diagnostics.md#rask012)), and `[NotFound]` cannot be combined
 with `[Route]` on the same class ([RASK013](diagnostics.md#rask013)).
 
+On the Server host that page is served with a real **404** status. It used to answer `200`, which
+told every cache, crawler and uptime check that a missing page was fine. The body is unchanged — the
+page still renders and the live session still attaches — so navigating away from it still works.
+
+An app that declares its **own** catch-all `[Route("/{**rest}")]` is deliberately serving those
+paths, so it stays `200`. And a page that matches a real route but finds no data — `/products/9999` —
+is not a routing fact at all: say so with `IPageResponse.SetStatus(404)`, described in
+[Render modes](render-modes.md).
+
+**Redirecting on load.** `Navigator.NavigateTo` works during a page's initial render, and the Server
+host turns it into a real `302` before rendering a body:
+
+```csharp
+protected override void OnMount()
+{
+    if (!_tenant.IsProvisioned)
+    {
+        navigator.NavigateTo("/onboarding");
+    }
+}
+```
+
+That costs one response rather than a whole page the client immediately navigates away from, and a
+crawler and a cache both understand it where a client-side hop is neither. Called from a background
+render — neither a handler nor the initial render — it still throws.
+
 **Route-level authorization.** Put `[Authorize]` (optionally `[Authorize(Roles = "admin")]`) or `[AllowAnonymous]` on
 a page component; the `RouteAuthorizationGuard` enforces it before the page renders. Auth is configured entirely on
 ASP.NET's own `AddCookie` / `AddJwtBearer` / `AddAuthorization` — Rask adds no parallel options. Full flows for

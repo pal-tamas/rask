@@ -27,6 +27,22 @@ internal sealed class RaskServerLimits
     /// <summary>Grace for a GET-minted session that has not yet sent its first WS <c>hello</c> (probe defence).</summary>
     public TimeSpan UnconnectedSessionGracePeriod { get; init; } = TimeSpan.FromSeconds(10);
 
+    /// <summary>How long the GET waits for async lifecycle work to settle. Zero = off. See <see cref="RaskRenderModes.QuiescenceTimeout" />.</summary>
+    public TimeSpan InitialRenderQuiescenceTimeout { get; init; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>Serve pages that need nothing live without a session. See <see cref="RaskRenderModes.Static" />.</summary>
+    public bool StaticPages { get; init; }
+
+    /// <summary>
+    ///     Root-relative URL of the browser bundle's boot module, or <c>null</c> when the browser rung
+    ///     is off. See <see cref="RaskRenderModes.Wasm" />.
+    /// </summary>
+    /// <remarks>
+    ///     Flattened to the URL rather than carried as the two switches, so the request path asks one
+    ///     question — "is there a bundle to point at?" — instead of re-deriving the answer per page.
+    /// </remarks>
+    public string? WasmBundleUrl { get; init; }
+
     /// <summary>Close a connected socket that sends no inbound frame for this long. Zero = off.</summary>
     public TimeSpan IdleSocketTimeout { get; init; } = TimeSpan.Zero;
 
@@ -56,6 +72,9 @@ internal sealed class RaskServerLimits
         MaxInboundFramesPerSecond = o.MaxInboundFramesPerSecond,
         SessionGracePeriod = o.SessionGracePeriod,
         UnconnectedSessionGracePeriod = o.UnconnectedSessionGracePeriod,
+        InitialRenderQuiescenceTimeout = o.RenderModes.QuiescenceTimeout,
+        StaticPages = o.RenderModes.Static,
+        WasmBundleUrl = o.RenderModes.Wasm ? o.RenderModes.WasmBundle : null,
         IdleSocketTimeout = o.IdleSocketTimeout,
         HandlerTimeout = o.HandlerTimeout,
         MaxPendingHandlerBytes = o.MaxPendingHandlerBytes,

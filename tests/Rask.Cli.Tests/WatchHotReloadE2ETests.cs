@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
@@ -162,9 +163,10 @@ public sealed class WatchHotReloadE2ETests
 
         app.ReplaceInFile("Features/Home/HomePage.cs", "[Route(\"/\")]", "[Route(\"/moved\")]");
 
-        // Poll on the page's own content, never on the status code: an unrouted path falls through to
-        // the framework's not-found page, which is served with 200 — so a status check here would pass
-        // before the edit had landed and prove nothing.
+        // Poll on the page's own content rather than the status code. A fallen-through path answers
+        // 404 now, so a status check would no longer be meaningless here — but content is still the
+        // stronger signal, because it proves this PAGE is being served rather than merely that
+        // something is.
         var moved = await app.PollForContentAsync(
             "/moved", WatchApp.OriginalHeading, TimeSpan.FromSeconds(120));
         Assert.True(moved, $"'/moved' never started serving the home page.{app.Log}");
@@ -174,9 +176,16 @@ public sealed class WatchHotReloadE2ETests
         // page twice, and the router would render it twice under the one route.
         Assert.Single(Regex.Matches(body, Regex.Escape(WatchApp.OriginalHeading)));
 
-        // And it really moved — the old path no longer serves the page.
+        // And it really moved — the old path no longer serves the page, and now says so. Asserting the
+        // status is the stronger claim, and it is only available because a fallen-through path answers
+        // 404; while it answered 200 this had to be expressed as "the body lost the heading", which is
+        // why GetStringAsync — which throws on a non-2xx — used to be fine here.
+        var old = await app.Http.GetAsync("/");
+        Assert.Equal(HttpStatusCode.NotFound, old.StatusCode);
         Assert.DoesNotContain(
-            WatchApp.OriginalHeading, await app.Http.GetStringAsync("/"), StringComparison.Ordinal);
+            WatchApp.OriginalHeading,
+            await old.Content.ReadAsStringAsync(),
+            StringComparison.Ordinal);
     }
 
     /// <summary>A scaffolded app running under a real <c>dotnet watch</c>, with its stdout drained.</summary>

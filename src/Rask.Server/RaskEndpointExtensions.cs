@@ -32,14 +32,17 @@ using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Globalization;
 using Rask.Core.HotReload;
+using Rask.Core.Http;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
+using Rask.Core.Rendering;
 using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
 using Rask.Html.Components;
 using Rask.Server.Authentication;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
+using Rask.Server.Http;
 using Rask.Server.JSInterop;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
@@ -218,6 +221,8 @@ public static partial class RaskEndpointExtensions
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
+        services.AddScoped<ServerPageResponse>();
+        services.AddScoped<IPageResponse>(sp => sp.GetRequiredService<ServerPageResponse>());
         // The declared state bag (docs/lifecycle.md). Scoped = one per live session, like RouteState. A
         // session's component tree can't be serialized, so it can't be moved or saved; what an app names
         // here is what survives the session being rebuilt somewhere else.
@@ -451,7 +456,14 @@ public static partial class RaskEndpointExtensions
             var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
             var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
-            if (RouteResolver.TryResolve(path, out var chain))
+            // The route table says whether this path fell through to the not-found page; it does
+            // NOT say whether the user will see it. An app whose root renders directly still
+            // resolves — the fallback is always registered — but mounts no Router, so the chain is
+            // never rendered and the URL is incidental. Confirmed against the render below.
+            var matched = RouteResolver.TryResolve(path, out var chain, out var isNotFound);
+            var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
+
+            if (matched)
             {
                 var authResult = await RouteAuthorizationGuard
                     .EvaluateAsync(httpContext.RequestServices, chain, user)
@@ -473,7 +485,16 @@ public static partial class RaskEndpointExtensions
             // built so untrusted GET traffic can't exhaust memory (and a concurrent burst can't
             // race past the cap). Checked after the auth guard above so challenge/forbid
             // redirects (which create no session) still work.
-            var session = store.TryCreate(appFactory);
+            //
+            // With static pages on, the slot cannot be reserved up front: whether this page needs a
+            // session at all is a property of the render that has not happened yet. The tree is
+            // built detached and admitted afterwards, so a page that turns out to need nothing live
+            // costs no slot. The cheap AtCapacity probe keeps a saturated host from doing the work
+            // anyway; the authoritative check is still the atomic one, at TryRegister below.
+            var staticPages = limits.StaticPages;
+            var session = staticPages
+                ? (store.IsDraining || store.AtCapacity ? null : store.CreateDetached(appFactory))
+                : store.TryCreate(appFactory);
             if (session is null)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
@@ -517,7 +538,85 @@ public static partial class RaskEndpointExtensions
             // WASM's InitialRenderAsync / `_lastAppliedHtml`), AND the diff-codec frame
             // baseline so the FIRST interactive WS render ships a diff instead of the whole
             // document. See LiveSession.RenderInitialRoot.
-            var html = session.RenderInitialRoot();
+            // The page may shape the response only while this render is running. Closed in the
+            // finally so a later event handler — which runs long after these bytes are gone —
+            // throws instead of setting a status nobody will ever read.
+            var pageResponse = session.Services.GetRequiredService<ServerPageResponse>();
+            var navigator = session.Services.GetRequiredService<Navigator>();
+            pageResponse.Phase = PageResponsePhase.Initial;
+            string html;
+            // Navigation is legal for the duration of this render and becomes a real redirect
+            // below, so a page can decide on load that the user belongs elsewhere using the same
+            // NavigateTo it would call from a handler. Closed straight after, so a background
+            // render cannot navigate a request that no longer exists.
+            using (navigator.EnterInitialRender())
+            {
+                try
+                {
+                    // Awaited, so a page that loads its data in OnMountAsync ships that data rather
+                    // than its placeholder. Falls back to the synchronous render when disabled.
+                    html = await session
+                        .RenderInitialRootAsync(limits.InitialRenderQuiescenceTimeout)
+                        .ConfigureAwait(false);
+                }
+                finally
+                {
+                    pageResponse.Phase = PageResponsePhase.None;
+                }
+            }
+
+            // A page that navigated during its own render is telling us the user belongs somewhere
+            // else. Answering 302 costs one response instead of a whole page the client immediately
+            // navigates away from — and unlike a client-side hop, a crawler and a cache both
+            // understand it. The session goes too: nothing will ever connect to this page.
+            if (navigator.TryConsumeHistory(out var redirectUrl, out _))
+            {
+                store.Remove(session.Id);
+                httpContext.Response.StatusCode = StatusCodes.Status302Found;
+                // Sanitized on the way out even though NavigateTo takes a local path by contract:
+                // this value reaches a Location header, and a header is exactly where an unchecked
+                // path becomes an open redirect.
+                httpContext.Response.Headers.Location =
+                    LiveOptions.PathBase + LocalUrl.Sanitize(redirectUrl);
+                // Never cacheable. A redirect computed from runtime state — a flag, a tenant, an
+                // experiment — that a browser pinned would be unrecoverable without changing the URL.
+                httpContext.Response.Headers.CacheControl = "no-store";
+                return;
+            }
+            // The verdict. Everything the walk saw has been accumulated by now; a page that
+            // recorded no reason at all needs no connection, so it can be served as a plain
+            // document. Development keeps the session either way, so `rask dev` still repaints on
+            // an edit and the audit warning below has a socket to have been worth checking.
+            // A page may ask to be served static even where the app default is interactive. Honoured
+            // only from the routed page itself or the app root: letting an arbitrary helper deep in a
+            // tree force a whole page static would be a very quiet way to break it.
+            var declaredStatic = notFoundPage is null
+                                 && chain.Count > 0
+                                 && DeclaredRenderModes.Of(chain[^1]) == RenderMode.Static;
+
+            var interactive = !(staticPages || declaredStatic)
+                              || session.RequiresLiveSession
+                              || session.LastRenderFaulted
+                              // A JS call issued from a continuation AFTER the walk is invisible to
+                              // the render context, but it is still queued waiting for a frame that
+                              // only a socket can carry.
+                              || session.JsInvokes.HasPending
+                              || LiveOptions.IsDevelopment == true;
+
+            // A page that asked to be static and turned out to need a connection keeps the connection —
+            // a request, not a command. Reported, because the two facts contradict each other and the
+            // author asked for the one that would have broken the page.
+            if (declaredStatic && session.RequiresLiveSession)
+            {
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Warning,
+                    "Rask.Ssr",
+                    $"{chain[^1].Name} declares [RenderMode(RenderMode.Static)] but its render needs a "
+                    + $"live connection ({session.InteractivityReasons}), so it kept one. Serving it static "
+                    + "would have left that part of the page inert. Remove the attribute, or remove what "
+                    + "needs the connection.");
+            }
+
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.
@@ -526,8 +625,63 @@ public static partial class RaskEndpointExtensions
             // because the only thing that can answer is `rask dev`, which is the process that launched
             // this one — and it is stamped onto the page rather than pushed over the socket because the
             // question only arises once that socket is gone.
-            var content = LivePayload.InjectRootAttr(
-                html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null);
+            string content;
+            if (interactive)
+            {
+                // Admit the session now. Under static pages it was built detached, so this is where
+                // the cap is actually enforced — and a refusal here means the work is already done,
+                // which is the honest cost of not knowing the answer until the render was over.
+                if (staticPages && !store.TryRegister(session))
+                {
+                    await store.DiscardAsync(session).ConfigureAwait(false);
+                    httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                    httpContext.Response.Headers.RetryAfter = "5";
+                    httpContext.Response.Headers.CacheControl = "no-store";
+                    await httpContext.Response
+                        .WriteAsync("Server is at session capacity; please retry shortly.")
+                        .ConfigureAwait(false);
+                    return;
+                }
+
+                content = LivePayload.InjectWasmBundleAttr(
+                    LivePayload.InjectRootAttr(
+                        html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
+                    WasmBootModuleUrl(limits));
+            }
+            else
+            {
+                // No session, so no data-rask-root to stamp and no runtime to load. If the tag is
+                // not exactly where it should be, TryRemove declines and the page is treated as
+                // interactive — serving a document that might still carry a session-bearing script
+                // as a cacheable static page is the one outcome worth refusing outright.
+                var stripped = RuntimeScriptSplice.TryRemove(html, LiveOptions.PathBase);
+                if (stripped is null)
+                {
+                    interactive = true;
+                    if (staticPages && !store.TryRegister(session))
+                    {
+                        await store.DiscardAsync(session).ConfigureAwait(false);
+                        httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                        httpContext.Response.Headers.RetryAfter = "5";
+                        httpContext.Response.Headers.CacheControl = "no-store";
+                        await httpContext.Response
+                            .WriteAsync("Server is at session capacity; please retry shortly.")
+                            .ConfigureAwait(false);
+                        return;
+                    }
+
+                    content = LivePayload.InjectWasmBundleAttr(
+                        LivePayload.InjectRootAttr(
+                            html, session.Id, dev,
+                            dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
+                        WasmBootModuleUrl(limits));
+                }
+                else
+                {
+                    content = stripped;
+                }
+            }
+
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             // A page that crashed is not a 200. The root boundary catches the exception and renders the
             // error document, so without this the response looked entirely healthy to every cache,
@@ -537,14 +691,87 @@ public static partial class RaskEndpointExtensions
             {
                 httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
             }
+            else if (pageResponse.Status is { } pageStatus)
+            {
+                // Below the faulted check on purpose: a page that threw does not get to claim it
+                // succeeded, and the error document is what is actually being served. Above the
+                // not-found check so a page can deliberately answer 200 there (a soft 404).
+                httpContext.Response.StatusCode = pageStatus;
+            }
+            else if (notFoundPage is not null && session.LastRenderMounted(notFoundPage))
+            {
+                // The not-found page renders perfectly ordinary HTML, so without this the response
+                // told every cache, crawler and uptime check that a missing page was fine — the
+                // same defect #607 fixed for a crashed one. The body is unchanged and the live
+                // session still attaches, so navigation off the page still works.
+                //
+                // Gated on the page actually having been MOUNTED, not merely resolved: an app that
+                // renders its root directly resolves the fallback too, and 404-ing every path such
+                // an app serves would be a far worse lie than the one being fixed.
+                httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            }
 
             // The shell embeds the session id (data-rask-root), which is the de-facto bearer
             // for the WS / upload / download endpoints. Forbid any shared-proxy / bfcache /
             // history caching so an authenticated user's session id can't be persisted and
             // replayed by another principal.
-            httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, private";
-            httpContext.Response.Headers.Pragma = "no-cache";
+            var cache = ShellCachePolicy.For(
+                interactive,
+                (httpContext.User?.Identity?.IsAuthenticated == true)
+                || session.Services.GetRequiredService<SessionUserProvider>()
+                    .Current.Identity?.IsAuthenticated == true,
+                session.LastRenderFaulted,
+                httpContext.Response.StatusCode);
+            httpContext.Response.Headers.CacheControl = cache.CacheControl;
+            if (cache.Pragma is { } pragma)
+            {
+                httpContext.Response.Headers.Pragma = pragma;
+            }
+
+            if (cache.Vary is { } vary)
+            {
+                // APPENDED, never assigned. Culture negotiation runs earlier in this same handler and
+                // may already have set `Vary: Accept-Language` — overwriting it would let a cache
+                // serve one language's page to a visitor who asked for another. Neither change has
+                // that bug alone, which is exactly why it is worth stating here.
+                var existing = httpContext.Response.Headers.Vary.ToString();
+                httpContext.Response.Headers.Vary = existing.Length == 0
+                    ? vary
+                    : existing.Contains(vary, StringComparison.OrdinalIgnoreCase)
+                        ? existing
+                        : existing + ", " + vary;
+            }
+
+            // Discarded BEFORE the write, not after: WriteAsync to a slow client can take seconds,
+            // and everything below reads only the string. Holding a DI scope and a component tree
+            // open for the duration of someone's bad connection is pure waste.
+            if (!interactive)
+            {
+                // Marked before the teardown so a later push — the one symptom of the failure mode
+                // detection cannot see — is reported rather than swallowed by the ordinary
+                // disposed-session early-return.
+                session.MarkDiscardedAsStatic();
+                if (staticPages)
+                {
+                    // Built detached, so it was never registered and owns no capacity slot.
+                    await store.DiscardAsync(session).ConfigureAwait(false);
+                }
+                else
+                {
+                    // A page can declare itself static even where the app has not turned static pages
+                    // on, and then the session came from TryCreate — registered, holding a slot. It has
+                    // to be removed rather than discarded: discarding leaves it in the store, which
+                    // disposes it a second time when its grace elapses.
+                    store.Remove(session.Id);
+                }
+            }
+
             await httpContext.Response.WriteAsync(content).ConfigureAwait(false);
+            if (!interactive)
+            {
+                return;
+            }
+
             // Schedule cleanup in case no WS ever connects for this session.
             // Browsers / probes can hit the catch-all for resources that don't
             // need a live session (favicon.ico, robots.txt, scanner traffic) —
@@ -2177,8 +2404,30 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    /// <summary>The runtime script tag's exact bytes, for the static-response splice.</summary>
+    internal static string RuntimeScriptTag(string pathBase) => ServerRuntimeScript.Tag(pathBase);
+
+    /// <summary>
+    ///     The browser bundle's boot module URL for this app, or <c>null</c> when the browser rung is
+    ///     off — which is every app that has not asked for it.
+    /// </summary>
+    /// <remarks>
+    ///     Path-based like every other framework asset, so an app hosted under a sub-path fetches its
+    ///     own bundle rather than one at the origin root.
+    /// </remarks>
+    internal static string? WasmBootModuleUrl(RaskServerLimits limits) =>
+        limits.WasmBundleUrl is { } bundle ? LiveOptions.PathBase + bundle : null;
+
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
+        /// <summary>
+        ///     The exact bytes <see cref="Render" /> serializes to, so a static response can remove
+        ///     the tag it never needed. The two must agree; a test pins the serializer's output
+        ///     against this so they cannot drift.
+        /// </summary>
+        internal static string Tag(string pathBase) =>
+            "<script src=\"" + pathBase + RuntimePath + "\"></script>";
+
         public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath);
     }
 

@@ -73,6 +73,16 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     private volatile WebSocket? _socket;
     private CancellationToken _socketCt;
 
+    // Set when the host tore this session down because it judged the page static — i.e. nothing in
+    // the render needed a live connection. Distinct from ordinary disposal, because the two want
+    // opposite things from a late StateHasChanged: after a normal teardown it is noise, and after
+    // this it is the one symptom of the failure mode static rendering cannot detect.
+    private volatile bool _discardedAsStatic;
+
+    // Guards the report below to one per session. A polling loop pushes on a timer, so an unguarded
+    // warning would repeat for as long as the loop survives its own page.
+    private int _staticPushReported;
+
     // Set once disposal begins. Read by RequestRenderInternalAsync so a StateHasChanged fired
     // from a component's Unmount/Dispose callback can't re-enter the render path and deadlock on
     // the _renderLock that DisposeAsync/Dispose hold while tearing the tree down. Volatile because
@@ -279,6 +289,38 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
     }
 
+    /// <summary>
+    ///     Records that the host served this page without a live session, so a later re-render
+    ///     request can say so instead of vanishing.
+    /// </summary>
+    internal void MarkDiscardedAsStatic() => _discardedAsStatic = true;
+
+    protected override void OnLatePush() => ReportPushToAStaticPage();
+
+    // The audit for the one thing detection cannot see. Interactivity is judged from what the render
+    // DID: a handler, a form, a ref, a JS call, unsettled async work. A component that pushes from a
+    // timer or an event subscription does none of those during the walk, so its page is judged static
+    // and its updates then go nowhere — silently, and only in production.
+    //
+    // This is that silence made audible. It fires when something asks a discarded-as-static session to
+    // re-render, which is exactly the moment the page would have updated and cannot.
+    private void ReportPushToAStaticPage()
+    {
+        if (!_discardedAsStatic || Interlocked.Exchange(ref _staticPushReported, 1) != 0)
+        {
+            return;
+        }
+
+        RaskDiagnostics.Report(
+            RaskLogLevel.Warning,
+            "Rask.Ssr",
+            $"A page served without a live session (RaskServerOptions.StaticPages) asked to re-render " +
+            $"after its response had gone, so the update reached nobody. Session {Id}. This is what a " +
+            "component pushing from a timer or an event subscription looks like: the render itself " +
+            "showed no need for a connection, so the page was served as a document. Give that " +
+            "component something the render can see, or turn StaticPages off for this app.");
+    }
+
     protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
         // _disposed short-circuits a StateHasChanged raised from an Unmount/Dispose callback during
@@ -287,6 +329,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         if (_disposed || _socket is null || _socket.State != WebSocketState.Open)
         {
             _renderRequestedWhileDetached = true;
+            ReportPushToAStaticPage();
             return;
         }
 
@@ -368,26 +411,134 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// </summary>
     internal string RenderInitialRoot()
     {
-        string html;
-        if (DiffMode != LiveDiffMode.DisabledFull)
-        {
-            _renderCache ??= new SessionRenderCache();
-            var frameWriter = _renderCache.PrepareCurrentBuffer();
-            using (FrameSinkScope.Push(frameWriter))
-            {
-                html = View.RenderAsLiveRoot(Services);
-            }
-
-            _renderCache.Snapshot(); // promote GET frames to the diff baseline
-        }
-        else
-        {
-            html = View.RenderAsLiveRoot(Services);
-        }
-
-        SeedInitialHtml(html);
+        var html = RenderRootWave(publishOnly: false);
+        CommitInitialRoot(html);
         return html;
     }
+
+    /// <summary>
+    ///     Render the shell, waiting up to <paramref name="budget" /> for the async lifecycle work
+    ///     it starts to settle, so the HTML carries the page's data rather than its placeholders.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Runs in waves: render, wait for what that render started, render again. A wave is the
+    ///         right unit because resolved data mounts new components, which start their own work —
+    ///         a page whose list loads and whose rows then load is two waves, not one longer wait.
+    ///     </para>
+    ///     <para>
+    ///         Waves after the first are <c>publishOnly</c>. That is not an optimisation: every
+    ///         component has already rendered once, so a normal wave would re-fire
+    ///         <c>OnRendered</c> on all of them, once per wave, each enqueuing another round of JS
+    ///         interop.
+    ///     </para>
+    ///     <para>
+    ///         The budget is one deadline for the whole response, not one per wave — otherwise ten
+    ///         waves of five seconds is a fifty-second page. On expiry the caller is told through
+    ///         <see cref="LastRenderTimedOut" />; the pending work is deliberately NOT cancelled,
+    ///         because the page is about to be handed a live session that will finish the load.
+    ///     </para>
+    /// </remarks>
+    internal async Task<string> RenderInitialRootAsync(TimeSpan budget)
+    {
+        if (budget <= TimeSpan.Zero)
+        {
+            return RenderInitialRoot();
+        }
+
+        using var quiescence = QuiescenceScope.Begin();
+        var html = RenderRootWave(publishOnly: false);
+
+        var deadline = DateTime.UtcNow + budget;
+        var waves = 0;
+        while (quiescence.TrySnapshotPending(out var batch))
+        {
+            // Work blocked on JavaScript cannot finish here, so waiting for it only burns the
+            // budget. A JS call made during a render queues onto a frame, and during the GET there
+            // is no client to send that frame to — the awaiting task completes once the socket is
+            // up, never before. A hook that reads browser storage to restore a session is exactly
+            // this shape, and it is idiomatic enough to appear in the framework's own auth sample.
+            //
+            // Stopping here costs nothing that waiting would have bought: the same page is already
+            // marked interactive by the interop itself, so it keeps its session and finishes over
+            // the socket precisely as it did before any of this existed.
+            if (JsInvokes.HasPending)
+            {
+                break;
+            }
+
+            var remaining = deadline - DateTime.UtcNow;
+            if (remaining <= TimeSpan.Zero || waves >= MaxQuiescenceWaves)
+            {
+                quiescence.MarkTimedOut();
+                break;
+            }
+
+            try
+            {
+                await Task.WhenAll(batch).WaitAsync(remaining).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                quiescence.MarkTimedOut();
+                break;
+            }
+
+            html = RenderRootWave(publishOnly: true);
+            waves++;
+        }
+
+        LastRenderTimedOut = quiescence.TimedOut;
+        if (quiescence.TimedOut)
+        {
+            // The page is going out with work still in flight, so it MUST keep a live session:
+            // served as a plain document it would sit on its placeholder for ever, with nothing
+            // left running that could ever replace it.
+            MarkRequiresLiveSession(InteractivityReason.QuiescenceTimeout);
+        }
+
+        CommitInitialRoot(html);
+        return html;
+    }
+
+    /// <summary>
+    ///     Whether the initial render was served before its async work settled. The host must keep a
+    ///     live session for such a page: served as a static document it would sit on its placeholder
+    ///     for ever, because nothing would be left running to replace it.
+    /// </summary>
+    internal bool LastRenderTimedOut { get; private set; }
+
+    // A single render into the frame sink, WITHOUT promoting anything. Intermediate waves must not
+    // touch either baseline: only the HTML actually served is what the browser will hold, so
+    // committing a wave that is about to be superseded would leave the first live render diffing
+    // against a document that never existed. Same discipline as the coalescing render loop's
+    // deferred rotation.
+    private string RenderRootWave(bool publishOnly)
+    {
+        if (DiffMode == LiveDiffMode.DisabledFull)
+        {
+            return View.RenderAsLiveRoot(Services, publishOnly);
+        }
+
+        _renderCache ??= new SessionRenderCache();
+        var frameWriter = _renderCache.PrepareCurrentBuffer();
+        using (FrameSinkScope.Push(frameWriter))
+        {
+            return View.RenderAsLiveRoot(Services, publishOnly);
+        }
+    }
+
+    // Promote the served render to both baselines, exactly once.
+    private void CommitInitialRoot(string html)
+    {
+        _renderCache?.Snapshot(); // promote GET frames to the diff baseline
+        SeedInitialHtml(html);
+    }
+
+    // Bounds a pathological render whose every wave keeps starting new work. Mirrors the coalescing
+    // loop's budget: past this the page is promoted to interactive and the live session finishes
+    // the job, rather than the response growing without limit.
+    private const int MaxQuiescenceWaves = 16;
 
     /// <summary>
     ///     Whether the last render fell back to the framework's error page rather than the app.

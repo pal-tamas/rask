@@ -212,7 +212,9 @@ await step("The app threw while starting.", () => runMain());
 // Asked of the render path rather than of the DOM. The obvious-looking test — "is the splash element
 // still in the document" — is wrong, because the morph patches the document in place and leaves it
 // connected, so it reports a boot failure for every successful boot.
-if (!globalThis.__raskPainted) {
+// __raskPrepared is the takeover case: the app booted deliberately WITHOUT painting, because another
+// runtime is still driving this document. That is a successful start, not a silent hang.
+if (!globalThis.__raskPainted && !globalThis.__raskPrepared) {
     reportBootFailure(
         "The app finished starting but never rendered. Check that Program.cs awaits "
         + "host.RunAsync<App>() and that the app has a route for this URL.");
