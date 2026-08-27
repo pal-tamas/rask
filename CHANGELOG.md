@@ -7,6 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **A plural key in a second language failed to compile.** Any app with a plural key and two languages
+  whose neutral sorts alphabetically first — `en` + `hu`, `en` + `fr`, `en` + `pl` — produced generated
+  code the compiler rejected with **CS8510, "the pattern is unreachable"**. The neutral catalog is the
+  `_` arm of the generated switch expression, `_` matches everything, and it was emitted in catalog
+  order rather than last, so every language sorting after the neutral one was shadowed.
+
+  This is what `rask new --culture en --culture hu` scaffolds on **every** template, server included,
+  and the scaffolded catalog carries a plural key — so the second language shipped in
+  [#837](https://github.com/pal-tamas/rask/issues/837) never built. Plain (non-plural) keys were always
+  fine: they emit the neutral arm last already, which is what this now matches.
+
+  It survived because nothing in the repository ever compiled two catalogs — the only one in the tree is
+  the Shop sample's single English file, and the generator tests asserted on the generated *text* rather
+  than compiling it. The `en` + `pl` test walked straight through the bug and stayed green; it now
+  asserts the output compiles, alongside a case per ordering. Found by the CLI build gate, which is the
+  first thing here to compile a two-language project.
+
 ### Added
 - **`rask new --template wasm --culture hu` actually localizes the app now.** Both browser templates
   advertised `localization`, accepted `--culture`, reported success and scaffolded *nothing*: neither
