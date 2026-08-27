@@ -144,11 +144,16 @@ public static class RaskWasmEndpointExtensions
     /// <param name="endpoints">The endpoint route builder.</param>
     /// <param name="bundlePath">Where the published bundle lives. Defaults to the conventional location.</param>
     /// <param name="pathBase">Prefix to serve the bundle under. Empty serves it at the root.</param>
+    /// <param name="serveIndexFallback">
+    ///     Map the SPA fallback to <c>index.html</c>. Pass <c>false</c> when something else owns the
+    ///     catch-all — see <see cref="UseRaskWasmAssets" />.
+    /// </param>
     /// <returns><paramref name="endpoints" />, for chaining.</returns>
     public static IEndpointRouteBuilder UseRask(
         this IEndpointRouteBuilder endpoints,
         string? bundlePath = null,
-        string pathBase = "")
+        string pathBase = "",
+        bool serveIndexFallback = true)
     {
         // Normalize once and stash on the static accessor so HeadAssetRegistry's URL
         // emission (and any future server-side URL emission running in this process)
@@ -327,15 +332,47 @@ public static class RaskWasmEndpointExtensions
                   + "client project, or run without -p:RaskWasmDevBundle=true to serve the published bundle.")
             : Path.Combine(resolved!, "index.html");
 
-        StaticSpaFiles.MapCatchAll(endpoints, pathBaseNormalized, async ctx =>
+        // An app whose pages are rendered by Rask.Server wants the bundle's ASSETS and none of its
+        // routing: the server owns the catch-all, and a SPA fallback here would shadow every page it
+        // renders. That is the arrangement a browser takeover needs — the visitor is served real HTML
+        // by the server, and the bundle sits there for the page to boot when it decides to.
+        if (serveIndexFallback)
         {
-            ctx.Response.ContentType = "text/html; charset=utf-8";
-            ctx.Response.Headers.CacheControl = "no-cache";
-            await ctx.Response.SendFileAsync(indexPath);
-        });
+            StaticSpaFiles.MapCatchAll(endpoints, pathBaseNormalized, async ctx =>
+            {
+                ctx.Response.ContentType = "text/html; charset=utf-8";
+                ctx.Response.Headers.CacheControl = "no-cache";
+                await ctx.Response.SendFileAsync(indexPath);
+            });
+        }
 
         return endpoints;
     }
+
+    /// <summary>
+    ///     Serves a published WASM bundle's assets from an app whose pages something else renders —
+    ///     no SPA fallback, no catch-all.
+    /// </summary>
+    /// <remarks>
+    ///     For a server-rendered app that also ships a browser bundle. <c>Rask.Server</c> owns the
+    ///     catch-all and answers every page; this only makes <c>_framework/</c> and the rest of the
+    ///     bundle reachable, so a page can boot the runtime when it chooses to.
+    ///     <para>
+    ///         <b>Call this before <c>UseRouting()</c>.</b> Routing selects an endpoint before the
+    ///         static-file middleware runs, and that middleware steps aside when one is already
+    ///         selected — so mapping the bundle afterwards lets the server's catch-all answer
+    ///         <c>/_framework/*.wasm</c> with <c>text/html</c>. The browser then reports a broken
+    ///         WebAssembly module, which points nowhere near the ordering that caused it.
+    ///     </para>
+    /// </remarks>
+    /// <param name="endpoints">The endpoint route builder.</param>
+    /// <param name="bundlePath">Where the published bundle lives. Defaults to the conventional location.</param>
+    /// <param name="pathBase">Prefix to serve the bundle under. Empty serves it at the root.</param>
+    public static IEndpointRouteBuilder UseRaskWasmAssets(
+        this IEndpointRouteBuilder endpoints,
+        string? bundlePath = null,
+        string pathBase = "") =>
+        endpoints.UseRask(bundlePath, pathBase, serveIndexFallback: false);
 
     internal static bool IsFingerprintedAsset(string fileName)
         => _fingerprintRegex.IsMatch(fileName);
