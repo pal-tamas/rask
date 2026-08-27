@@ -27,7 +27,7 @@ dotnet --version      # must be ≥ 10.0
 If that prints an older version (or errors), install the .NET 10 SDK from
 [dotnet.microsoft.com](https://dotnet.microsoft.com/download) first.
 
-> **WASM only:** the two WebAssembly templates (`wasm`, `wasm-hosted`) also need the browser
+> **WASM only:** the `wasm` template — and `--wasm` on a server app — also need the browser
 > WebAssembly tooling — install it once with `dotnet workload install wasm-tools`. If you're starting
 > with the server template (recommended below), you can skip this.
 
@@ -50,7 +50,6 @@ rask new MyApp                       # create a server app in ./MyApp (server is
 |---------------------|-----------------------------------------------------------------------------------------------|
 | `server` (default)  | One ASP.NET project. Components render on the server; live updates ship over a WebSocket. **Best default.** |
 | `wasm`              | One `net10.0-browser` project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
-| `wasm-hosted`       | Three projects: `MyApp.Client` (the WASM SPA), `MyApp.Server` (the ASP.NET host that serves the bundle and your own `/api/...` endpoints), and `MyApp.Shared` (a class library both reference). |
 
 They emit the same starter pages, so the rest of this guide applies whichever you chose.
 
@@ -73,7 +72,6 @@ To leave a battery out, name it: `rask new MyApp --no-push --no-ops`. The full f
 ```bash
 cd MyApp
 dotnet run            # server / wasm
-# wasm-hosted: run the host project — dotnet run --project MyApp.Server
 ```
 
 Open the URL printed in the console. **You should see** a single **"Hello, Rask! 👋"** welcome card that

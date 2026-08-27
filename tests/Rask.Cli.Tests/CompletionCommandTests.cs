@@ -88,7 +88,7 @@ public sealed class CompletionCommandTests
         await app.RunAsync(["completion", shell], CancellationToken.None);
 
         // The values of `new --template`, which only the schema knows.
-        Assert.Contains("wasm-hosted", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("wasm", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]
