@@ -27,6 +27,40 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Build-order-only edge to the MSBuild task project, which drops Rask.Islands.Tasks.dll into
+      build/ here (CopyTaskAssemblyToRaskIslandsBuild) for <UsingTask> to load and for packing. The
+      DLL is a generated artifact, gitignored rather than committed, so this reference is what
+      guarantees it exists before this project builds or packs. ReferenceOutputAssembly="false" keeps
+      it purely an ordering edge — no compile reference, no nupkg dependency, and no cross-TFM
+      (net10.0 vs netstandard2.0) compatibility check.
+    -->
+    <ProjectReference Include="..\Rask.Islands.Tasks\Rask.Islands.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The task assembly is named EXPLICITLY and excluded from the glob beside it, because a glob is
+      expanded at project EVALUATION — before any target runs, including the build of the
+      ProjectReference that produces this DLL. On a tree where it is not already on disk the glob
+      matches nothing and `dotnet pack` SUCCEEDS, shipping a package whose <UsingTask> points at a
+      file that is not in it; the consumer fails with MSB4062, and a second pack on the same machine
+      looks fine because the first build left the DLL behind (#852).
+
+      A literal Include needs the file only when the item is copied, which is after the reference has
+      built — so it is collected, and if it is ever genuinely missing the pack FAILS instead of
+      quietly shipping without it.
+    -->
+    <None Include="build\**" Exclude="build\Rask.Islands.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\Rask.Islands.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <!-- The adapters, shipped as source the way Rask.Spa.Hosting ships its client. Vendored into obj/
+         on every build, so upgrading this package upgrades both halves together. -->
+    <None Include="client\**" Pack="true" PackagePath="client\"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Rask.Islands.Tests"/>
   </ItemGroup>
 
