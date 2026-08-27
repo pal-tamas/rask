@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **The Angular Tailwind gate no longer skips itself into looking green.** `ng new` carries its own
+  Node floor, above Vite's, and refuses below it. `SpaTailwindBuildE2ETests` caught that refusal and
+  turned it into a skip — so on a machine whose `PATH` resolved an older Node than the one installed,
+  the suite reported success while the Angular case never ran. That case is not incidental: it covers
+  the `@tailwindcss/postcss` path, the one that shipped with an adapter nothing read and every utility
+  class missing from the output.
+
+  The scaffolders decide whether Node is adequate; the suite now only propagates what they decided, so
+  a refusal is a failure carrying the CLI's own words (`requires a minimum Node.js version of …`) rather
+  than a silent pass. Rask does not go looking for a different Node to run them with — choosing an
+  interpreter on someone's behalf duplicates a judgement the tools already make and state.
+
+  `scripts/run-cli-build-e2e.sh` also lists any skipped case before its pass line now. The env-gating
+  every case carries is already satisfied inside that gate, so a skip there means something declined to
+  run for a reason nobody has looked at — worth a sentence, and the guard for the next silent non-run.
+
 ### Changed
 - **BREAKING: `rask new` includes the batteries. Auth and styling are the only things it asks you.**
   `rask new MyApp` now scaffolds every battery the chosen template supports — a SQLite database, the

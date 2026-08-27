@@ -28,6 +28,14 @@ namespace Rask.Cli.Tests;
 ///         would add npm installs without adding a code path.
 ///     </para>
 ///     <para>
+///         <b>The scaffolders decide whether Node is adequate; this only propagates what they decided.</b>
+///         Both run through <c>npx</c> and both state their own requirements — Angular's CLI in as many
+///         words, and its floor is above Vite's. A refusal is therefore a failure here, not a skip. It
+///         used to be a skip, which meant that on a machine whose <c>PATH</c> resolved an older Node than
+///         the one installed, this suite reported green while the Angular case — the one covering the
+///         adapter path that shipped broken — never ran at all.
+///     </para>
+///     <para>
 ///         Gated with the other build E2Es, and slow: a real <c>npm install</c> per case. Needs the network.
 ///     </para>
 /// </remarks>
@@ -74,14 +82,12 @@ public sealed class SpaTailwindBuildE2ETests
             {
                 var (exit, output) = await CliBuildE2E.RunProcess(external.Command, external.Arguments, projectDir);
 
-                // Angular's CLI carries its own Node floor, above Vite's, and refuses outright below it.
-                // That is an environment fact, not a defect — but it is reported as a skip WITH the CLI's
-                // own words, so it can never be mistaken for a pass.
-                Skip.If(
-                    exit != 0 && output.Contains("minimum Node.js version", StringComparison.Ordinal),
-                    $"{external.Command} refused to run on this machine's Node: "
-                    + output.Split('\n').FirstOrDefault(l => l.Contains("minimum Node.js", StringComparison.Ordinal))?.Trim());
-
+                // Whatever the scaffolder says goes, including "your Node is too old" — Angular's CLI
+                // carries its own floor, above Vite's, and refuses outright below it. That verdict is
+                // propagated as a FAILURE rather than caught and turned into a skip: a skip reads as
+                // green, and the case being skipped is the one covering the adapter path that already
+                // shipped broken once. Diagnostics folds the CLI's own sentence into the message, so
+                // whoever hits this is told what to install rather than just handed an exit code.
                 Assert.True(exit == 0, $"[{frameworkKey}] {external.Command} failed.{CliBuildE2E.Diagnostics(output)}");
             }
 
