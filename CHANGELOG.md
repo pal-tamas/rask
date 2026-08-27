@@ -20,6 +20,13 @@ them until tagged releases begin.
   than a silent pass. Rask does not go looking for a different Node to run them with — choosing an
   interpreter on someone's behalf duplicates a judgement the tools already make and state.
 
+  **A third, found while merging.** `TailwindPublishE2ETests` arrived on main to pin that Tailwind's
+  stylesheet reaches the publish output — and ran nowhere: it is `Skip.IfNot(CliBuildE2E.Enabled)`, so a
+  plain `dotnet test` skips it, and the gate selects on `FullyQualifiedName~BuildE2ETests`, which its
+  name does not contain. Written, merged, never executed. Renamed to `TailwindPublishBuildE2ETests`, so
+  it matches the convention both filters already key on rather than adding a third hand-listed name; the
+  gate's selection goes 35 → 37.
+
   **A second way the same gate was not running, found by pushing this fix.** The pre-push hook only runs
   the CLI build gate when a push touches paths that can change what the generators emit, and that filter
   listed its test files *by name* — so `SpaTailwindBuildE2ETests`, added with the SPA Tailwind proof, had
