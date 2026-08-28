@@ -8,6 +8,24 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`AddRask` persists the Data Protection key ring, so a deploy stops signing everyone out.** When
+  `/data` exists — which is exactly when `rask deploy` has mounted its volume — the ring is written to
+  `/data/keys` and `ApplicationDiscriminator` is pinned to the application name.
+
+  The default ring lives inside the container and every deploy replaces the container, so everything sealed
+  under the old one silently stops opening: every auth cookie already issued is rejected (all your signed-in
+  users are signed out) and every Rask session-resume record becomes unreadable (reconnecting clients fall
+  back to a full reload). Nothing logs an error, because from the app's side these are payloads it cannot
+  unprotect. Pinning the discriminator is the half that is easy to miss — its default is derived from the
+  content root, which differs between the build image and the runtime image, so a shared ring alone would
+  still derive different keys.
+
+  This was previously sixteen lines of `PersistKeysToFileSystem` wiring in the scaffolded `Program.cs`,
+  which meant only freshly generated apps had it. It now holds for every app, however its host was written.
+  On a plain `dotnet run` there is no `/data`, so Rask declines to choose and ASP.NET's per-user development
+  ring applies exactly as before. Set `Rask:DataProtection:KeyPath` to relocate it, or to `""` to opt out;
+  configuring Data Protection *after* `AddRask` overrides it entirely, since options setups run in
+  registration order.
 - **Registering the outbox now hands it domain-event delivery, instead of asking you to remember to.**
   `AddRaskOutbox<TContext>()` registers an `IDomainEventDeliveryOwner`, and `DomainEventInterceptor` reads
   that from the **built container** and stands down. `AddRaskData()` takes no argument, in any call order.

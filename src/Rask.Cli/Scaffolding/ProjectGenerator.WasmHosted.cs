@@ -235,7 +235,6 @@ internal static partial class ProjectGenerator
             sb.Append("using Rask.Cqrs.Server;\n");
         }
 
-        sb.Append("using Microsoft.AspNetCore.DataProtection;\n");
         sb.Append("using Microsoft.AspNetCore.HttpOverrides;\n");
         sb.Append("using Rask.Wasm.Hosting;\n");
         if (batteries.Ops)
@@ -275,23 +274,6 @@ internal static partial class ProjectGenerator
                 options.KnownIPNetworks.Clear();
                 options.KnownProxies.Clear();
             });
-
-            // Data-protection keys sign the auth cookie (and anything else the app protects). The default key
-            // ring is written inside the container, and every deploy replaces the container — so without this
-            // a redeploy mints a fresh ring and every cookie already issued stops validating: all your
-            // signed-in users are silently signed out. `rask deploy` mounts a volume at /data, so persisting
-            // the ring there makes it outlive the container. SetApplicationName matters as much as the path:
-            // the default discriminator is derived from the content root, which differs between the build and
-            // runtime images. Set Rask:DataProtection:KeyPath to override the location; when neither it nor
-            // /data exists (a plain `dotnet run`), this is skipped and the development key ring applies.
-            var keyRingPath = builder.Configuration["Rask:DataProtection:KeyPath"]
-                              ?? (Directory.Exists("/data") ? "/data/keys" : null);
-            if (keyRingPath is not null)
-            {
-                builder.Services.AddDataProtection()
-                    .PersistKeysToFileSystem(Directory.CreateDirectory(keyRingPath))
-                    .SetApplicationName(builder.Environment.ApplicationName);
-            }
 
             """.TrimStart('\n'));
 

@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -178,7 +179,8 @@ public static partial class RaskEndpointExtensions
         // Protection (WebApplication.CreateBuilder does; a hand-rolled host might not) AND resume is on —
         // absent either, a reconnect to an unknown session falls back to the reload it did before rather
         // than failing the host at startup. Note this is what makes a persisted key ring load-bearing: with
-        // the default per-container ring, a record sealed before a redeploy cannot be opened after it.
+        // the default per-container ring, a record sealed before a redeploy cannot be opened after it —
+        // which is what RaskDataProtectionSetup below is for.
         var resumeEnabled = serverOptions.SessionResume;
         var resumeLifetime = serverOptions.ResumeTokenLifetime;
         if (resumeEnabled)
@@ -187,9 +189,17 @@ public static partial class RaskEndpointExtensions
             // register it — it arrives only because something else pulled it in (antiforgery, cookie auth,
             // session), which an app with none of those does not have. The call is idempotent and
             // additive, exactly as ASP.NET's own components use it: an app that configures the key ring
-            // itself (the PersistKeysToFileSystem `rask new` scaffolds) is configuring this same instance.
+            // itself is configuring this same instance.
             services.AddDataProtection();
         }
+
+        // Put the key ring somewhere that outlives the container, when the host has such a place. Registered
+        // unconditionally and AFTER AddDataProtection: it is inert on a host that never protects anything,
+        // it overrides ASP.NET's discovered default, and an app configuring its own ring after AddRask still
+        // wins, because options setups run in registration order. See RaskDataProtectionSetup for why an
+        // ephemeral ring signs every user out on redeploy without logging anything.
+        services.AddSingleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>();
+        services.AddSingleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>();
 
         services.TryAddSingleton(sp =>
         {
