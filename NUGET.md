@@ -43,12 +43,27 @@ rask deploy --host you@box --domain app.example.com       # build + run on one b
 Or add to an existing project. **Pick a host:**
 
 ```bash
-dotnet add package Rask.Server            # server-rendered over WebSockets
+dotnet add package Rask                   # batteries included — the host plus every battery, all on
+dotnet add package Rask.Server            # the lean host on its own: server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
 dotnet add package Rask.Spa.Hosting       # host a built TypeScript SPA on ASP.NET
 dotnet add package Rask.Tailwind          # Tailwind CSS on any host, no npm required
 ```
+
+With `Rask`, that is the whole of `Program.cs` — every battery is on, and the file says only what this
+app does *without*:
+
+```csharp
+var app = RaskApp.Create(args);
+
+app.Configure(c => c.Jobs.Off());   // this app has no background work
+
+app.Run<App>();
+```
+
+Reference `Rask.Server` instead when you want the host with no database: it carries no EF Core and no
+SQLite native bundles.
 
 **Then the batteries you want** — each is opt-in, and every one is a `AddRaskX<AppDbContext>()` call plus
 a `modelBuilder.AddRaskX()` schema line:

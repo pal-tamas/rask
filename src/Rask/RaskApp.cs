@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Core;
 using Rask.Server;
+using Rask.Wasm.Hosting;
 
 namespace Rask;
 
@@ -78,7 +79,10 @@ public sealed class RaskApp
         var builder = WebApplication.CreateBuilder(args);
         configure?.Invoke(builder);
 
-        builder.Services.AddRask();
+        // NOT AddRask — that waits for Build. Its options go in with TryAddSingleton, so the first call
+        // wins and a second one is silently discarded (RASK056). Calling it here would freeze the culture
+        // list and the render-mode ceiling before Configure had a chance to say anything, and the app
+        // would ship with no languages while its Program.cs plainly listed some.
         builder.Services.AddHealthChecks();
         return new RaskApp(builder);
     }
@@ -124,6 +128,33 @@ public sealed class RaskApp
         string pathBase = "")
         where TApp : Component
     {
+        // The live runtime, now that Configure has had its say. One call, because a second is dropped.
+        _builder.Services.AddRask(
+            configure: _options.Live,
+            configureServer: o =>
+            {
+                if (_options.Wasm)
+                {
+                    o.RenderModes.Wasm = true;
+                }
+
+                _options.Server?.Invoke(o);
+            },
+            configureCulture: _options.Cultures.Count == 0
+                ? null
+                : c =>
+                {
+                    foreach (var culture in _options.Cultures)
+                    {
+                        c.SupportedCultures.Add(culture);
+                    }
+                });
+
+        if (_options.Wasm)
+        {
+            _builder.Services.AddRaskWasmHost();
+        }
+
         // The batteries, LAST — after every Configure block and after anything Program.cs registered
         // itself. Both halves matter: the off-switches are only known now, and every AddRaskX is
         // idempotent, so an app that called one directly has already won.
@@ -194,6 +225,15 @@ public sealed class RaskApp
         foreach (var map in _endpoints)
         {
             map(app);
+        }
+
+        if (_options.Wasm)
+        {
+            // Serves the browser bundle this project publishes into wwwroot, ahead of an explicit
+            // UseRouting — the bundle's own assets have to be reachable before the catch-all claims
+            // everything below it.
+            app.UseRaskWasmAssets();
+            app.UseRouting();
         }
 
         app.UseRask<TApp>(pathBase: pathBase);

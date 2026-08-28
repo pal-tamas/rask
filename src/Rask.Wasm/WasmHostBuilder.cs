@@ -311,6 +311,11 @@ public sealed class WasmHostBuilder
             Console.WriteLine($"[Rask.Wasm] auto-detected PathBase='{LiveOptions.PathBase}'");
         }
 
+        // The batteries, at the last moment services can still be added — after everything Program.cs did,
+        // including any Configure block that turned one off. Inert unless the app references the `Rask`
+        // package, which is what registers the wiring.
+        RaskWasmBatteryRegistry.Apply(this, Services);
+
         var provider = Services.BuildServiceProvider();
 
         // Route framework diagnostics into the app's own logging before anything can report one. Until

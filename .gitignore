@@ -88,6 +88,19 @@ raskExampleCatalog.db
 raskExampleCatalog.db-shm
 raskExampleCatalog.db-wal
 
+# What a Rask app leaves beside itself when it runs. Every battery is on by default now, so this is
+# no longer a per-sample list: ANY app that starts — a sample, a scaffolded project under test —
+# creates its database, its log store, its mail pickup directory and its snapshot directory.
+# Verified against `git ls-files` that these swallow nothing tracked.
+app.db
+app.db-shm
+app.db-wal
+logs.db
+logs.db-shm
+logs.db-wal
+mail-pickup/
+snapshots/
+
 # Coverage
 *.coverage
 *.coveragexml

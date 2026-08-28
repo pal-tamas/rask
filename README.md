@@ -115,7 +115,8 @@ transitively.
 
 | Package                            | Project type                                                        | Entry-point API                                             |
 |------------------------------------|---------------------------------------------------------------------|-------------------------------------------------------------|
-| `Rask.Server`                      | `net10.0` ASP.NET                                                   | `services.AddRask()` + `app.UseRask<TApp>()`                |
+| `Rask`                             | `net10.0` ASP.NET — **the one to reference**                         | `RaskApp.Create(args)` + `app.Run<TApp>()`                  |
+| `Rask.Server`                      | `net10.0` ASP.NET, lean (no database)                               | `services.AddRask()` + `app.UseRask<TApp>()`                |
 | `Rask.Wasm`                        | `net10.0-browser`                                                   | `WasmHostBuilder.CreateDefault()` + `host.RunAsync<TApp>()` |
 | `Rask.Wasm.Hosting`                | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
 | `Rask.Validation.DataAnnotations`  | any host that hosts your forms                                      | drop `DataAnnotationsValidator` inside a `Form`             |

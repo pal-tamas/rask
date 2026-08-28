@@ -43,6 +43,10 @@ them until tagged releases begin.
 
   **`Rask.Server` is unchanged and still lean.** An app with no database references it directly and
   carries no EF Core and no SQLite native bundles; that door is why this is a separate package.
+
+  One consequence worth knowing: because the batteries are on, an app that runs now creates its
+  database, its log store (`logs.db`), its `mail-pickup/` directory and its `snapshots/` directory
+  beside itself. `rask new` gitignores them; turn a battery off if you would rather it did not.
 - **The `spa` template now calls `AddRaskSpaHost()`.** It was scaffolding `app.UseRaskSpa()` with no
   matching `Add`, so the host shipped without response compression — the largest file in the app, served
   as `text/javascript`, went out uncompressed — and, once the host defaults moved into the framework,
