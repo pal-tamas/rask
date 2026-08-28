@@ -1,4 +1,5 @@
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Islands;
 
@@ -31,6 +32,24 @@ public static class IslandHandlers
     {
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(handler);
+
+        // Tell the render context this page needs a live session. An island callback is exactly as
+        // dependent on one as data-rask-on-click: the client's hostSend() needs __raskHost, which
+        // only the Server and WASM runtimes publish. Without this the auto render ladder judges a
+        // page whose only interactivity is an island callback to be static, serves it as a plain
+        // document, and the first click reaches nobody — everything renders, the chunk loads, the
+        // component mounts, and the UI is simply dead.
+        //
+        // Reported here rather than by routing through LiveRenderContext.RegisterHandler, which is
+        // where every other handler is observed: that overload anchors the slot to CurrentParent —
+        // the component whose subtree is being serialized — but an island's ids must anchor to the
+        // ISLAND, or two islands under one parent would renumber each other's callbacks and break
+        // the identity guarantee the client's function cache rests on.
+        //
+        // CurrentSync, not Current: props are written during the synchronous serialization walk, the
+        // same path EmitDomEvent runs on. It reads null outside an active render, which is what
+        // keeps a bare ToHtml() from claiming a page is interactive.
+        LiveRenderContext.CurrentSync?.MarkRequiresLiveSession(InteractivityReason.Handler);
 
         return owner.RegisterHandler(handler);
     }

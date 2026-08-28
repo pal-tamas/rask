@@ -33,7 +33,11 @@ them until tagged releases begin.
   **Callbacks re-enter C# over the channel every DOM handler already uses** — the open WebSocket on
   the Server host, a direct `[JSExport]` call into this tab's runtime on WASM. An island never opens
   a channel of its own, so a callback inherits sequence stamping, the queue-while-reconnecting and
-  the auth suppression window for free, and the `.tsx` is byte-identical on both hosts.
+  the auth suppression window for free, and the `.tsx` is byte-identical on both hosts. A callback
+  prop also makes its page interactive under the auto render ladder, exactly as `data-rask-on-click`
+  does — an island whose callback could never fire would otherwise render, load its chunk and mount
+  looking finished, then do nothing on the first click. An island with no callbacks still costs a
+  page nothing: it mounts from its own script tag and the page stays a plain document.
 
   **The live diff treats an island's subtree as opaque**, because React reconciles those nodes on its
   own schedule and two writers on one subtree does not throw — it corrupts on the next parent
