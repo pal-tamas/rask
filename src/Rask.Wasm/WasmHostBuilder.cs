@@ -261,6 +261,22 @@ public sealed class WasmHostBuilder
     public async Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {
+        // Publish-time prerendering, driven from the app's OWN entry point. Program.cs is where the
+        // services are registered, so a generated entry point compiled without it would leave every
+        // page that injects anything with nothing to inject. Reusing the real one costs the author
+        // nothing to learn and keeps the registrations in one place.
+        //
+        // Asked for by environment variable rather than inferred from a non-browser target framework:
+        // this assembly also builds for net10.0 for its own tests, and those call RunAsync expecting a
+        // boot.
+        if (WasmPrerender.RequestedOutput is { Length: > 0 } prerenderOutput)
+        {
+            await WasmPrerender
+                .RunAsync<TApp>(Services.BuildServiceProvider(), prerenderOutput, TimeSpan.FromSeconds(30))
+                .ConfigureAwait(false);
+            return;
+        }
+
         try
         {
             // null = "decide from the document once the JS bridge is up". Deliberately NOT read here:
