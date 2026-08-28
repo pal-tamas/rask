@@ -6,9 +6,11 @@
 app's own database — no message broker, no Redis. It's the durable counterpart to `Rask.Data`'s in-process
 publisher, and what [tutorial chapter 7](tutorial/07-outbox-events.md) wires up.
 
-```bash
-dotnet add package Rask.Outbox
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Outbox.Off());
+> ```
 
 ## Why an outbox
 
