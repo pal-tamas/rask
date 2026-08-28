@@ -28,7 +28,7 @@ public partial class App : Component
             .Content("Rask is the .NET One Person Framework: one developer builds, runs, and ships a whole product — UI, data, auth, background work, and deploy — from one C# codebase on one SQLite-backed server. The same components run on Server and WebAssembly."),
         Meta.Name("theme-color").Content("#7c3aed"),
         Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),
-        Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/global.css")
+        Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
     ];
 
     protected override async Task OnRenderedAsync(bool firstRender)
@@ -41,6 +41,38 @@ public partial class App : Component
     }
 
     private static Dictionary<string, string?> Attr(string key, string? value) => new() { [key] = value };
+
+    // The page's vocabulary. Constants rather than @apply: @apply moves the decision into a stylesheet
+    // Tailwind then has to be told about, which is the coupling this rewrite removed. A constant is read
+    // by the compiler, renamed by the IDE, and found by Tailwind's scanner like any other literal.
+    private const string Wrap = "mx-auto w-full max-w-[1080px] px-6";
+
+    private const string Eyebrow =
+        "mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-accent-ink";
+
+    private const string Lede = "mt-5 text-lg leading-relaxed text-ink-soft";
+
+    private const string Sub = "mt-4 text-sm leading-relaxed text-muted";
+
+    private const string Card = "rounded-2xl border border-line bg-panel";
+
+    private const string Badge =
+        "rounded-full border border-line bg-panel px-3 py-1 text-xs text-ink-soft";
+
+    // Btn, not Button: a constant named Button would shadow the Button chain entry inside this markup
+    // host, and every <button> on the page would then need qualifying.
+    private const string Btn =
+        "inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold no-underline transition";
+
+    // btn-primary rides along because SiteExampleTests clicks "a.btn-primary". It styles nothing.
+    private const string BtnPrimary = Btn + " btn-primary bg-accent text-white hover:bg-accent-2";
+
+    private const string BtnGhost =
+        Btn + " border border-line text-ink hover:border-accent hover:text-accent-ink";
+
+    private const string SectionPad = "py-20 sm:py-24";
+
+    private const string H2Class = "mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl";
 
     protected override Component? Render() =>
     [
@@ -57,90 +89,124 @@ public partial class App : Component
 
     // ---- top bar ----
     private Component TopBar() =>
-        Div.Class("topbar")[
-            Div.Class("wrap")[
-                Span.Class("brand")[Raw.Value(BrandSvg), " Rask"],
-                Nav[
-                    A.Class("hide-sm").Href("docs/").Target("_blank").Rel("noopener")["Docs"],
-                    A.Class("hide-sm").Href("playground/").Target("_blank").Rel("noopener")["Playground"],
-                    A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub ↗"],
-                    Button.Id("themeToggle").Type("button").Aria(Attr("label", "Toggle color theme"))["◐ theme"]
+        Div.Class("sticky top-0 z-50 border-b border-line bg-ground/80 backdrop-blur")[
+            Div.Class($"{Wrap} flex h-16 items-center justify-between")[
+                Span.Class("flex items-center gap-2 text-lg font-semibold tracking-tight text-ink [&>svg]:size-7 [&>svg]:rounded-lg")[
+                    Raw.Value(BrandSvg), " Rask"
+                ],
+                Nav.Class("flex items-center gap-5 text-sm text-muted")[
+                    // Hidden on a narrow viewport rather than wrapped: the bar is chrome, and three links
+                    // stacking over two lines pushes the hero below the fold on a phone.
+                    A.Class("hidden no-underline hover:text-ink sm:inline").Href("docs/").Target("_blank").Rel("noopener")["Docs"],
+                    A.Class("hidden no-underline hover:text-ink sm:inline").Href("playground/").Target("_blank").Rel("noopener")["Playground"],
+                    A.Class("no-underline hover:text-ink").Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub ↗"],
+                    Button
+                        .Id("themeToggle")
+                        .Type("button")
+                        .Class("rounded-lg border border-line px-2.5 py-1.5 text-xs text-muted hover:text-ink")
+                        .Aria(Attr("label", "Toggle color theme"))["◐ theme"]
                 ]
             ]
         ];
 
     // ---- hero ----
     private Component Hero() =>
-        Section.Class("hero")[
-            Div.Class("wrap")[
+        Section.Class("pt-16 pb-20 sm:pt-24 sm:pb-28")[
+            Div.Class(Wrap)[
                 // The page opens on the chain itself, before it says a word about the framework — the same
                 // animation the README leads with, rendered INLINE (not through <img>) so it inherits the
                 // token palette below and follows the theme toggle. See ChainAnimation for why that works.
-                Div.Class("hero-anim")[ChainAnimation],
-                Div.Class("hero-grid")[
+                // hero-anim/hero-grid are hooks, not styling: SiteExampleTests asserts the adjacency
+                // ".hero-anim + .hero-grid h1", and a Playwright locator that resolves to nothing fails by
+                // timing out rather than by naming what went missing.
+                Div.Class("hero-anim mb-12 flex justify-center")[ChainAnimation],
+                Div.Class("hero-grid grid items-center gap-12 lg:grid-cols-2")[
                     Div[
-                        P.Class("eyebrow")["The .NET One Person Framework"],
-                        H1["Ship a whole product.", Br, "Just you, and ", Span.Class("lit")["C#"], "."],
-                        P.Class("lede")["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
-                        P.Class("sub")["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
-                        Div.Class("cta-row")[
+                        P.Class(Eyebrow)["The .NET One Person Framework"],
+                        H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-5xl")[
+                            "Ship a whole product.", Br, "Just you, and ",
+                            Span.Class("text-accent-ink")["C#"], "."
+                        ],
+                        P.Class(Lede)["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
+                        P.Class(Sub)["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
+                        Div.Class("mt-8 flex flex-wrap gap-3")[
                             // Named for what they are. The Pages site is three apps — this landing page at
                             // the root, the live showcase at docs/, the playground at playground/ — and
                             // calling docs/ "the live demo" left the docs themselves with no name at all.
-                            A.Class("btn btn-primary").Href("docs/").Target("_blank").Rel("noopener")["Docs"],
-                            A.Class("btn btn-ghost").Href("playground/").Target("_blank").Rel("noopener")["Playground"]
+                            A.Class(BtnPrimary).Href("docs/").Target("_blank").Rel("noopener")["Docs"],
+                            A.Class(BtnGhost).Href("playground/").Target("_blank").Rel("noopener")["Playground"]
                         ],
-                        Div.Class("badges")[
-                            Span.Class("badge")[B[".NET 10"]],
-                            Span.Class("badge")["MIT"],
-                            Span.Class("badge")[B["Server"], " · WASM"],
-                            Span.Class("badge")[B["SQLite"], " · production DB"]
+                        Div.Class("mt-8 flex flex-wrap gap-2")[
+                            Span.Class(Badge)[B[".NET 10"]],
+                            Span.Class(Badge)["MIT"],
+                            Span.Class(Badge)[B["Server"], " · WASM"],
+                            Span.Class(Badge)[B["SQLite"], " · production DB"]
                         ]
                     ],
-                    Div.Class("wire")[
-                        Div.Class("wire-head")[
-                            Span.Class("lab")["wire · one state change"],
-                            Span.Class("lab")["live diff"]
+                    Div.Class($"{Card} overflow-hidden p-4")[
+                        Div.Class("mb-3 flex items-center justify-between text-[0.7rem] uppercase tracking-widest text-muted")[
+                            Span["wire · one state change"],
+                            Span["live diff"]
                         ],
                         Canvas
                             .Width(820)
                             .Height(300)
-                            .Class("wire-cvs")
+                            .Class("h-auto w-full rounded-xl bg-panel-2")
                             .Ref(_canvas)
                             .Aria(Attr("label", "A full 24 KB page versus Rask's tiny 41-byte diff traveling the wire")),
-                        Div.Class("wire-legend")[
-                            Span[Span.Class("dot").Style("background:var(--blazor)"), "full page ", B["24 KB"]],
-                            Span[Span.Class("dot").Style("background:var(--accent)"), "Rask diff ", B["~41 B"]]
+                        Div.Class("mt-3 flex flex-wrap gap-4 text-xs text-muted")[
+                            Span.Class("flex items-center gap-2")[Dot("var(--color-blazor)"), "full page ", B["24 KB"]],
+                            Span.Class("flex items-center gap-2")[Dot("var(--color-accent)"), "Rask diff ", B["~41 B"]]
                         ],
-                        Div.Class("wire-tape")[
-                            Span.Class("k")["counter tick on a 24 KB page"], Span.Class("v")["24,114 B → ", B.Class("mono")["41 B"]],
-                            Span.Class("k")["smaller than re-sending the page"], Span.Class("v win")["588×"],
-                            Span.Class("k")["allocated / update"], Span.Class("v win")["~40× less"],
-                            Span.Class("k")["bytes that ever leave the server"], Span.Class("v win")["just the diff"]
+                        Dl.Class("mt-4 grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 border-t border-line pt-4 text-xs")[
+                            Term("counter tick on a 24 KB page"), Val("24,114 B → ", B.Class("font-mono")["41 B"]),
+                            Term("smaller than re-sending the page"), Win("588×"),
+                            Term("allocated / update"), Win("~40× less"),
+                            Term("bytes that ever leave the server"), Win("just the diff")
                         ]
                     ]
                 ]
             ]
         ];
 
+    // A legend swatch. The colour is an inline style because it is READ FROM THE SAME TOKEN the canvas
+    // paints with — keeping them one value is the point, and a utility class would fork it.
+    private static Component Dot(string color) =>
+        Span.Class("size-2.5 shrink-0 rounded-full").Style($"background:{color}");
+
+    // Term, not Key: Key is Component's reconciliation identity, and a helper of that name hides it.
+    private static Component Term(string text) => Dt.Class("text-muted")[text];
+
+    private static Component Val(params Component?[] body) => Dd.Class("m-0 text-right text-ink")[body];
+
+    private static Component Win(string text) =>
+        Dd.Class("m-0 text-right font-semibold text-signal")[text];
+
+    // .reveal is a JS hook, not styling: App.ts observes it and adds .in. It rides alongside the
+    // utilities on every block that should fade up on scroll.
+    private static Component SecHead(string eyebrow, string heading, params Component?[] body) =>
+        Div.Class("reveal mb-12 max-w-3xl")[
+            P.Class(Eyebrow)[eyebrow],
+            H2.Class(H2Class)[heading],
+            body.Length == 0 ? null : P.Class(Lede)[body]
+        ];
+
     // ---- "one C# class" demo ----
     private Component CounterSection() =>
-        Section[
-            Div.Class("wrap")[
-                Div.Class("sec-head reveal")[
-                    P.Class("eyebrow")["A component is a class that returns a tree"],
-                    H2["Routing, state, and events — one C# class."],
-                    P["No template dialect, no code-behind, no build step for markup. Markup is a chain — name a component and dot onto it, ", Code["Div.Class(\"card\")[Span[\"hi\"]]"], " — so the IDE lists every step as you type it. Plain, refactor-safe, IDE-native C#. Here's a complete, routable, interactive component:"]
-                ],
-                Div.Class("demo-grid reveal")[
-                    Div.Class("card")[
-                        Div.Class("card-bar")[
-                            Span.Class("traf").Style("background:#ff5f57"),
-                            Span.Class("traf").Style("background:#febc2e"),
-                            Span.Class("traf").Style("background:#28c840"),
-                            Span.Class("fn")["Counter.cs"]
+        Section.Class(SectionPad)[
+            Div.Class(Wrap)[
+                SecHead("A component is a class that returns a tree",
+                    "Routing, state, and events — one C# class.",
+                    "No template dialect, no code-behind, no build step for markup. Markup is a chain — name a component and dot onto it, ", Code["Div.Class(\"card\")[Span[\"hi\"]]"], " — so the IDE lists every step as you type it. Plain, refactor-safe, IDE-native C#. Here's a complete, routable, interactive component:"),
+                Div.Class("reveal grid items-start gap-6 lg:grid-cols-2")[
+                    Div.Class($"{Card} overflow-hidden")[
+                        Div.Class("flex items-center gap-2 border-b border-line bg-panel-2 px-4 py-2.5")[
+                            Dot("#ff5f57"), Dot("#febc2e"), Dot("#28c840"),
+                            Span.Class("ml-2 font-mono text-xs text-muted")["Counter.cs"]
                         ],
-                        Pre[Code[Raw.Value(CounterCodeHtml)]]
+                        Pre.Class("overflow-x-auto p-4 text-xs leading-relaxed")[
+                            Code.Class("font-mono")[Raw.Value(CounterCodeHtml)]
+                        ]
                     ],
                     // The live tile is a real stateful Rask component — the page proving its own thesis.
                     LiveCounter
@@ -149,45 +215,51 @@ public partial class App : Component
         ];
 
     // ---- bytes / benchmarks ----
+    // .bar and data-h are the JS contract: App.ts sets each bar's height from data-h once .bars gets
+    // .run, so the growth is an animation rather than a layout.
     private Component Bar(string kind, int h, string cap) =>
         Div.Class("bar " + kind).Data(Attr("h", h.ToString()))[Span.Class("cap")[cap]];
 
     private Component BarCol(string blazorCap, int blazorH, string raskCap, int raskH, string mult, string label) =>
-        Div.Class("bar-col")[
-            Div.Class("bar-stack")[Bar("blazor", blazorH, blazorCap), Bar("rask", raskH, raskCap)],
-            Span.Class("x")[B[mult], label]
+        Div.Class("flex flex-col items-center gap-3")[
+            Div.Class("flex h-[260px] items-end gap-2")[
+                Bar("blazor", blazorH, blazorCap), Bar("rask", raskH, raskCap)
+            ],
+            Span.Class("text-center text-xs text-muted [&>b]:mr-1 [&>b]:text-signal")[B[mult], label]
         ];
 
     private static Component Stat(string kpi, string lab, string sub) =>
-        Div.Class("stat")[Div.Class("kpi")[kpi], Div.Class("lab")[lab], Div.Class("sub")[sub]];
+        Div.Class($"{Card} p-5")[
+            Div.Class("text-2xl font-semibold tabular-nums tracking-tight text-ink")[kpi],
+            Div.Class("mt-1 text-sm text-ink-soft")[lab],
+            Div.Class("mt-1 text-xs text-muted")[sub]
+        ];
 
     private Component BytesSection() =>
-        Section[
-            Div.Class("wrap")[
-                Div.Class("sec-head reveal")[
-                    P.Class("eyebrow")["Rask vs Blazor · CI-enforced baselines"],
-                    H2["Fewer bytes than Blazor — on every scenario."],
-                    P["Rask treats the network as the real bottleneck: after first paint, a state change ships a minimal diff. Each pair is the ", B["same"], " state change — Blazor's payload beside Rask's. The number is how many ", B["× fewer bytes"], " Rask puts on the wire."]
-                ],
-                Div.Class("bars-panel reveal")[
-                    Div.Id("bars").Class("bars")[
+        Section.Class(SectionPad)[
+            Div.Class(Wrap)[
+                SecHead("Rask vs Blazor · CI-enforced baselines",
+                    "Fewer bytes than Blazor — on every scenario.",
+                    "Rask treats the network as the real bottleneck: after first paint, a state change ships a minimal diff. Each pair is the ", B["same"], " state change — Blazor's payload beside Rask's. The number is how many ", B["× fewer bytes"], " Rask puts on the wire."),
+                Div.Class($"reveal {Card} p-6")[
+                    Div.Id("bars").Class("bars flex flex-wrap items-end justify-around gap-8")[
                         BarCol("186 B", 240, "41 B", 53, "4.5×", "Counter / 24 KB page"),
                         BarCol("1,722 B", 240, "137 B", 19, "12.6×", "Deep-tree tick"),
                         BarCol("6,522 B", 240, "441 B", 16, "14.8×", "Deep mutation ×200"),
                         BarCol("2,080 B", 240, "37 B", 5, "56×", "Remove 100 rows")
                     ],
-                    Div.Class("bars-legend")[
-                        Span[Span.Class("dot").Style("background:var(--blazor)"), "Blazor — full payload"],
-                        Span[Span.Class("dot").Style("background:var(--accent)"), "Rask — the diff"]
+                    Div.Class("mt-6 flex flex-wrap justify-center gap-6 border-t border-line pt-4 text-xs text-muted")[
+                        Span.Class("flex items-center gap-2")[Dot("var(--color-blazor)"), "Blazor — full payload"],
+                        Span.Class("flex items-center gap-2")[Dot("var(--color-accent)"), "Rask — the diff"]
                     ]
                 ],
-                Div.Class("stat-row reveal")[
+                Div.Class("reveal mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4")[
                     Stat("~41 B", "Bytes on the wire", "counter on a 24 KB page · vs 186 B"),
                     Stat("~40×", "Less allocated / update", "1,072 B · vs Blazor 42,972 B"),
                     Stat("~30%", "Leaner retained heap", "158 KB · vs 224 KB (200 rows)"),
                     Stat("1.76×", "Faster render hot path", "598 ns · vs 1,052 ns")
                 ],
-                P.Class("honest reveal")["Retained heap used to be Blazor's one win — a pure-element page now keeps a compact frame snapshot instead of an object-per-element graph, so ", B["Rask leads on every measured axis."], " Numbers from the CI-enforced ", A
+                P.Class($"reveal mt-6 rounded-xl border border-line bg-signal-soft p-4 text-sm text-ink-soft")["Retained heap used to be Blazor's one win — a pure-element page now keeps a compact frame snapshot instead of an object-per-element graph, so ", B["Rask leads on every measured axis."], " Numbers from the CI-enforced ", A
                     .Href("https://github.com/pal-tamas/rask/blob/main/benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md")
                     .Target("_blank")
                     .Rel("noopener")["vs-blazor baselines"], " (Apple M4, .NET 10)."]
@@ -196,22 +268,20 @@ public partial class App : Component
 
     // ---- hosts ----
     private static Component Host(string tag, string title, string prev, params Component?[] body) =>
-        Div.Class("host")[
-            Span.Class("tag")[tag],
-            H3[title],
-            P[body],
-            Span.Class("prev")[prev]
+        Div.Class($"{Card} p-6")[
+            Span.Class("font-mono text-xs text-accent-ink")[tag],
+            H3.Class("mt-2 text-lg font-semibold text-ink")[title],
+            P.Class("mt-2 text-sm leading-relaxed text-muted")[body],
+            Span.Class("mt-4 block font-mono text-xs text-ink-soft")[prev]
         ];
 
     private Component HostsSection() =>
-        Section[
-            Div.Class("wrap")[
-                Div.Class("sec-head reveal")[
-                    P.Class("eyebrow")["One component model · every host"],
-                    H2["Write it once. Ship it where you need it."],
-                    P["The identical C# component runs unchanged across every host — you choose the runtime per project, not per component."]
-                ],
-                Div.Class("hosts reveal")[
+        Section.Class(SectionPad)[
+            Div.Class(Wrap)[
+                SecHead("One component model · every host",
+                    "Write it once. Ship it where you need it.",
+                    "The identical C# component runs unchanged across every host — you choose the runtime per project, not per component."),
+                Div.Class("reveal grid gap-4 md:grid-cols-3")[
                     Host("Rask.Server", "Server", "AddRask() · UseRask<TApp>()",
                         "ASP.NET host. State lives on the server; a live diff streams to the browser over a WebSocket. Nothing to compile client-side."),
                     Host("Rask.Wasm", "WebAssembly", "WasmHostBuilder.CreateDefault()",
@@ -224,21 +294,21 @@ public partial class App : Component
 
     // ---- features ----
     private static Component Feature(string glyph, string title, params Component?[] desc) =>
-        Div.Class("f")[
-            Div.Class("fh")[Span.Class("b")[glyph], " ", title],
-            P[desc]
+        Div.Class($"{Card} p-5")[
+            Div.Class("flex items-center gap-2 text-sm font-semibold text-ink")[
+                Span.Class("text-accent-ink")[glyph], " ", title
+            ],
+            P.Class("mt-2 text-sm leading-relaxed text-muted")[desc]
         ];
 
     private Component FeaturesSection() =>
-        Section[
-            Div.Class("wrap")[
-                Div.Class("sec-head reveal")[
-                    P.Class("eyebrow")["Batteries included · all type-safe"],
-                    H2["A full framework, generated at compile time."],
-                    P["Roslyn source generators build each component's chain surface and typed route URLs — trim-safe, reflection-free, and checked by 30+ compile-time diagnostics."]
-                ],
-                Div.Class("feat reveal")[
-                    Feature("⌁", "Source generators", "A chain surface per component — ", Code["BsCard.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
+        Section.Class(SectionPad)[
+            Div.Class(Wrap)[
+                SecHead("Batteries included · all type-safe",
+                    "A full framework, generated at compile time.",
+                    "Roslyn source generators build each component's chain surface and typed route URLs — trim-safe, reflection-free, and checked by 30+ compile-time diagnostics."),
+                Div.Class("reveal grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
+                    Feature("⌁", "Source generators", "A chain surface per component — ", Code["Card.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
                     Feature("◑", "Scoped CSS & TypeScript", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks, no class-name discipline — a mismatch is a build error."),
                     Feature("▤", "Forms & validation", Code["Form<T>"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators."),
                     Feature("⚿", "Auth, four ways", "Cookie & JWT on both Server and WASM, route guards, and an ", Code["--auth"], " template switch. Identity, Keycloak, Auth0, OIDC."),
@@ -253,14 +323,12 @@ public partial class App : Component
 
     // ---- one person's whole back end ----
     private Component WholeBackEndSection() =>
-        Section[
-            Div.Class("wrap")[
-                Div.Class("sec-head reveal")[
-                    P.Class("eyebrow")["DB-backed by default · no external services"],
-                    H2["One person's whole back end."],
-                    P["Behind the same C# UI, every stateful pillar rides the app's own SQLite database — no broker, no Redis, no second service to run. Adding one is a package reference, not a new box to operate."]
-                ],
-                Div.Class("feat reveal")[
+        Section.Class(SectionPad)[
+            Div.Class(Wrap)[
+                SecHead("DB-backed by default · no external services",
+                    "One person's whole back end.",
+                    "Behind the same C# UI, every stateful pillar rides the app's own SQLite database — no broker, no Redis, no second service to run. Adding one is a package reference, not a new box to operate."),
+                Div.Class("reveal grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
                     Feature("⊞", "A feature slice", "A CQRS + EF Core CRUD slice — entity, validation, list/create/edit pages, and tests — written once in the tutorial and repeated per feature. Small enough to type, so nothing is generated you can't read."),
                     Feature("◷", "Background jobs", "Durable enqueued, delayed, and recurring work on your database, run by a hosted worker — at-least-once, with exponential backoff."),
                     Feature("✉", "Transactional email", "Email queued on the same database and delivered over SMTP off the request thread; bodies are Rask components."),
@@ -275,11 +343,11 @@ public partial class App : Component
 
     // ---- install ----
     private Component InstallSection() =>
-        Section[
-            Div.Class("wrap")[
-                Div.Class("sec-head reveal").Style("text-align:center; margin-left:auto; margin-right:auto;")[
-                    P.Class("eyebrow").Style("justify-content:center;")["Prerequisite · .NET 10 SDK"],
-                    H2["Up and running in one command."]
+        Section.Class(SectionPad)[
+            Div.Class(Wrap)[
+                Div.Class("reveal mx-auto mb-10 max-w-2xl text-center")[
+                    P.Class($"{Eyebrow} justify-center")["Prerequisite · .NET 10 SDK"],
+                    H2.Class(H2Class)["Up and running in one command."]
                 ],
                 Div.Class("reveal")[InstallTabs]
             ]
@@ -287,26 +355,26 @@ public partial class App : Component
 
     // ---- footer ----
     private Component FooterSection() =>
-        Footer[
-            Div.Class("wrap")[
-                Div.Class("foot-cta reveal")[
-                    H2["The live docs and the playground are the real tour."],
-                    P["This is just the front door. Click through a full multi-page Rask app in the browser, or write a component live in the playground."],
-                    Div.Class("cta-row").Style("justify-content:center;")[
-                        A.Class("btn btn-primary").Href("docs/").Target("_blank").Rel("noopener")["▶ Open the live demo"],
+        Footer.Class("border-t border-line py-20")[
+            Div.Class(Wrap)[
+                Div.Class("reveal mx-auto max-w-2xl text-center")[
+                    H2.Class(H2Class)["The live docs and the playground are the real tour."],
+                    P.Class(Lede)["This is just the front door. Click through a full multi-page Rask app in the browser, or write a component live in the playground."],
+                    Div.Class("mt-8 flex flex-wrap justify-center gap-3")[
+                        A.Class(BtnPrimary).Href("docs/").Target("_blank").Rel("noopener")["▶ Open the live demo"],
                         A
-                            .Class("btn btn-ghost")
+                            .Class(BtnGhost)
                             .Href("https://github.com/pal-tamas/rask")
                             .Target("_blank")
                             .Rel("noopener")["★ Star on GitHub"]
                     ],
-                    Div.Class("foot-links")[
+                    Div.Class("mt-10 flex flex-wrap justify-center gap-5 text-sm text-muted [&>a]:no-underline hover:[&>a]:text-ink")[
                         A.Href("docs/").Target("_blank").Rel("noopener")["Docs"],
                         A.Href("playground/").Target("_blank").Rel("noopener")["Playground"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],
-                    P.Class("foot-meta")[Span.Class("bolt")["⚡"], " Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
+                    P.Class("mt-8 text-xs text-muted")[Span.Class("text-accent-ink")["⚡"], " Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
                 ]
             ]
         ];

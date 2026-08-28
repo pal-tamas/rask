@@ -1,0 +1,162 @@
+/*
+  The landing site's stylesheet, compiled by Rask.Tailwind into wwwroot/css/app.css.
+
+  What is NOT here is the point: the 300 lines of hand-written component classes this replaced. What
+  remains is the part utilities genuinely cannot express — the palette, the two things the canvas and the
+  scroll observer drive from JavaScript, and the syntax highlighting for a code sample that arrives as
+  trusted Raw HTML and so has no call site for a utility to sit on.
+*/
+@import "tailwindcss";
+
+/*
+  Dark is the default and light is the deviation, matching how the page is actually seen.
+
+  These names are a CONTRACT with App.ts, which paints the hero canvas with
+  getComputedStyle(document.documentElement).getPropertyValue('--color-accent') and friends. Rename one
+  here and the canvas keeps drawing, in black, with nothing reporting it — so the names are shared
+  deliberately rather than duplicated into a second set of aliases.
+*/
+@theme {
+  --color-ground: oklch(0.15 0.02 285);
+  --color-panel: oklch(0.19 0.02 285);
+  --color-panel-2: oklch(0.23 0.02 285);
+  --color-line: oklch(0.62 0.19 292 / 14%);
+  --color-grid: oklch(0.62 0.19 292 / 5%);
+  --color-ink: oklch(0.94 0.01 285);
+  --color-ink-soft: oklch(0.84 0.02 285);
+  --color-muted: oklch(0.68 0.02 285);
+  --color-accent: oklch(0.62 0.19 292);
+  --color-accent-2: oklch(0.55 0.22 292);
+  --color-accent-ink: oklch(0.80 0.12 292);
+  --color-signal: oklch(0.78 0.15 165);
+  --color-signal-soft: oklch(0.78 0.15 165 / 14%);
+  /* The comparison bars' "other framework" colour. Deliberately quiet: the chart argues with numbers. */
+  --color-blazor: oklch(0.50 0.02 285);
+}
+
+/* The toggle stamps data-theme; with no explicit choice the system decides. */
+@layer base {
+  :root[data-theme="light"],
+  :root:not([data-theme="dark"]) {
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --color-ground: oklch(0.98 0.005 285);
+      --color-panel: oklch(0.96 0.008 285);
+      --color-panel-2: oklch(0.93 0.01 285);
+      --color-line: oklch(0.55 0.22 292 / 16%);
+      --color-grid: oklch(0.55 0.22 292 / 5%);
+      --color-ink: oklch(0.20 0.02 285);
+      --color-ink-soft: oklch(0.34 0.02 285);
+      --color-muted: oklch(0.52 0.02 285);
+      --color-accent: oklch(0.55 0.22 292);
+      --color-accent-2: oklch(0.48 0.22 292);
+      --color-accent-ink: oklch(0.48 0.22 292);
+      --color-signal: oklch(0.60 0.14 165);
+      --color-signal-soft: oklch(0.60 0.14 165 / 12%);
+      --color-blazor: oklch(0.78 0.01 285);
+    }
+  }
+
+  :root[data-theme="light"] {
+    --color-ground: oklch(0.98 0.005 285);
+    --color-panel: oklch(0.96 0.008 285);
+    --color-panel-2: oklch(0.93 0.01 285);
+    --color-line: oklch(0.55 0.22 292 / 16%);
+    --color-grid: oklch(0.55 0.22 292 / 5%);
+    --color-ink: oklch(0.20 0.02 285);
+    --color-ink-soft: oklch(0.34 0.02 285);
+    --color-muted: oklch(0.52 0.02 285);
+    --color-accent: oklch(0.55 0.22 292);
+    --color-accent-2: oklch(0.48 0.22 292);
+    --color-accent-ink: oklch(0.48 0.22 292);
+    --color-signal: oklch(0.60 0.14 165);
+    --color-signal-soft: oklch(0.60 0.14 165 / 12%);
+    --color-blazor: oklch(0.78 0.01 285);
+  }
+
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+    /* Two glows and a grid. A utility can hold one gradient; this is the page's whole ground. */
+    background-image:
+      radial-gradient(1200px 600px at 78% -10%, var(--color-line), transparent 60%),
+      linear-gradient(var(--color-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+    background-size:
+      auto,
+      48px 48px,
+      48px 48px;
+  }
+}
+
+/*
+  JavaScript's half of the page, kept as real classes because that is what App.ts selects on.
+
+  .reveal is observed by an IntersectionObserver which adds .in; .bars gets .run, and each .bar then has
+  its height set from data-h. Folding any of these into a utility string would let a restyle break an
+  animation, or a test, in a way that reads as a styling change.
+*/
+@layer components {
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 0.5s ease,
+      transform 0.5s ease;
+  }
+
+  .reveal.in {
+    opacity: 1;
+    transform: none;
+  }
+
+  .bar {
+    width: 44px;
+    height: 0;
+    border-radius: 8px 8px 0 0;
+    transition: height 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+  }
+
+  .bar.blazor {
+    background: var(--color-blazor);
+  }
+
+  .bar.rask {
+    background: linear-gradient(180deg, var(--color-accent), var(--color-accent-2));
+  }
+
+  .bar .cap {
+    position: absolute;
+    inset-inline: 0;
+    top: -1.35rem;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--color-muted);
+  }
+}
+
+/*
+  The Counter.cs sample is trusted Raw HTML — it has no call site a utility could attach to, so its
+  highlighting is CSS by necessity rather than by preference.
+*/
+@layer components {
+  .t-key {
+    color: var(--color-accent-ink);
+  }
+
+  .t-type {
+    color: var(--color-signal);
+  }
+
+  .t-str {
+    color: oklch(0.80 0.11 85);
+  }
+
+  .t-fn {
+    color: var(--color-ink);
+  }
+}
