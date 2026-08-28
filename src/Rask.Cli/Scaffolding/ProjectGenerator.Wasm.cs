@@ -26,6 +26,7 @@ internal static partial class ProjectGenerator
             ("Features/Home/HomePage.cs", HomePageCs(styling)),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
+            ("tsconfig.json", TsConfigJson),
         };
 
         if (auth)

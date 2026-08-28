@@ -5,6 +5,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+
+    <!--
+      This project has no scoped component assets. Its .ts files are the Node fixtures below, which
+      drive framework modules against a stub DOM in a subprocess — so the scoped-TS glob must not
+      claim them and RASK017 must not ask them to name a component they are not paired with.
+
+      A property rather than an item Remove: the csproj body evaluates before Directory.Build.targets
+      imports Rask.Core.targets, so there is no item to remove yet.
+    -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,6 +53,52 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!--
+    The Node fixtures. Each Live/*Fixture.ts drives a real framework module — the morph, the diff
+    codec — against a stub DOM in a node subprocess, and its C# test asserts the JSON it prints.
+
+    They IMPORT what they test, so esbuild bundles each one into a self-contained .mjs beside the
+    test assembly. Before this they read the module off disk and evaluated it with
+    `new Function(src + "return { morph, … }")`, because the shared modules were bare declarations
+    meant to be pasted into a host's scope. Nothing checked that the names in that string still
+    existed, and it stops working the moment the module has real `export`s.
+
+    Bundled during the BUILD rather than from the test, so a fixture that no longer compiles fails
+    the build with the compiler's message instead of failing a test with node's.
+  -->
+  <ItemGroup>
+    <_RaskNodeFixture Include="Live\*Fixture.ts"/>
+  </ItemGroup>
+
+  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" Inputs="@(_RaskNodeFixture);@(_RaskNodeFixtureDependency)"
+          Outputs="@(_RaskNodeFixture->'$(OutDir)node-fixtures/%(Filename).mjs')">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <!--
+      Never minified, whatever the configuration. A fixture's failure output is read by a person
+      diagnosing a morph bug, and node's stack trace has to name something.
+    -->
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;%(_RaskNodeFixture.FullPath)&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --outfile=&quot;$(OutDir)node-fixtures/%(_RaskNodeFixture.Filename).mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!--
+    The framework modules the fixtures import. Listed so an edit to the morph re-bundles them —
+    a target's Inputs does not expand wildcards.
+  -->
+  <ItemGroup>
+    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\*.ts"
+                                Exclude="..\..\src\Rask.Core\Resources\*.d.ts"/>
   </ItemGroup>
 
 </Project>

@@ -81,110 +81,140 @@
   </ItemGroup>
 
   <!--
-    Browser-shipped assets (main.js + rask.wasm.js + index.html) live under Browser/ and are
-    wired into a consumer's WASM build via build/Rask.Wasm.targets, which sets WasmMainJSPath
-    and appends to WasmExtraFilesToDeploy. Browser/ and build/ are packed at the package root
-    so the auto-import in the consumer's project sees them under the package's top-level
-    folders, matching the in-repo layout that Directory.Build.targets imports from.
+    Browser-shipped assets live under Browser/ and are wired into a consumer's WASM build via
+    build/Rask.Wasm.targets, which sets WasmMainJSPath and appends to WasmExtraFilesToDeploy.
+    Browser/ and build/ are packed at the package root so the auto-import in the consumer's project
+    sees them under the package's top-level folders, matching the in-repo layout that
+    Directory.Build.targets imports from.
 
-    rask.wasm.js itself is generated at build time by _RaskSpliceClientJs (below), which
-    splices shared Rask.Core/Resources files into the template Resources/rask.wasm.js:
-    rask-dom.js (the diff codec, at @@RASK_DOM@@), rask-morph.js (the full-HTML morph,
-    at @@RASK_MORPH@@), and rask-api.js (framework interop helpers __raskEl/__raskApi, at
-    @@RASK_API@@). The generated artifact lands directly in Browser/ so the existing
-    Browser/** Pack glob picks it up.
-  -->
-  <!--
-    Browser/ assets shipped in every NuGet package: main.js (the dotnet boot hook) and
-    index.html (the framework page shell). rask.wasm.js is added separately below — its
-    pack source switches between the source-tracked file (Debug) and the minified
-    intermediate (Release) so the in-repo Browser/rask.wasm.js stays as the readable form
-    while NuGet consumers get the minified bytes.
+    All three .js files there are BUILD OUTPUT and are not tracked in git — the readable form is the
+    TypeScript they are bundled from. They were tracked while the build assembled them by pasting
+    files together at `// @@RASK_*@@` markers, because the spliced result was the only place the
+    whole runtime could be read as one thing. Edit Resources/*.ts and Browser/main.ts instead.
   -->
   <ItemGroup>
-    <None Include="Browser\main.js" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\index.html" Pack="true" PackagePath="Browser\"/>
+    <None Include="Browser\main.js" Pack="true" PackagePath="Browser\"/>
+    <None Include="Browser\rask.wasm.js" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\rask-sw.js" Pack="true" PackagePath="Browser\"/>
-    <None Include="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"
-          Pack="true" PackagePath="Browser\rask.wasm.js"
-          Condition=" '$(Configuration)' == 'Release' "/>
-    <None Include="Browser\rask.wasm.js"
-          Pack="true" PackagePath="Browser\rask.wasm.js"
-          Condition=" '$(Configuration)' != 'Release' "/>
     <!--
       Rask.Wasm.Tasks.dll is named explicitly and excluded from the glob: a glob is expanded at
       project EVALUATION, before the ProjectReference that produces this DLL has built, so on a tree
       where it is not already on disk the pack SUCCEEDS and ships a package whose <UsingTask> points
       at a file that is not in it. A literal Include needs the file only when the item is copied, so
       it is collected — and a genuinely missing one is NU5019 rather than a silent omission (#852).
+
+      Rask.TypeScript.Tasks.dll is NOT named here. It does not live in this project's build folder:
+      it is copied into src/Rask.Core/build/ and packed into every host package from there by
+      RaskCoreBuildPack.targets, which names it literally for the same reason.
     -->
     <None Include="build\**" Exclude="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="build\"/>
     <None Include="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
-  <Import Project="..\..\build\Rask.MinifyJs.targets"/>
+  <!--
+    Every file the browser bundles can reach, so an edit to any of them re-bundles. Stated as
+    ItemGroups rather than in the targets' Inputs because a target's Inputs does not expand
+    wildcards — it would treat the pattern as a literal filename and rebuild unconditionally.
+  -->
+  <ItemGroup>
+    <_RaskWasmSharedTs Include="..\Rask.Core\Resources\*.ts"
+                       Exclude="..\Rask.Core\Resources\rask-sw-shared.ts;..\Rask.Core\Resources\*.d.ts"/>
+    <_RaskWasmClientTs Include="Resources\rask.wasm.ts;Resources\rask-wasm-api.ts;@(_RaskWasmSharedTs)"/>
+    <_RaskWasmMainTs Include="Browser\main.ts"/>
+    <_RaskWasmSwTs Include="Resources\rask-sw.ts;..\Rask.Core\Resources\rask-sw-shared.ts"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <_RaskEsbuildMinify Condition=" '$(Configuration)' == 'Release' ">--minify</_RaskEsbuildMinify>
+    <!--
+      The browser bundles are the same bytes for every TargetFramework, and this project
+      multi-targets: without this, both inner builds run the same esbuild command against the same
+      output path at the same time. One inner build owns them.
+    -->
+    <_RaskBundleBrowserAssets Condition=" '$(TargetFramework)' == 'net10.0-browser' ">true</_RaskBundleBrowserAssets>
+  </PropertyGroup>
 
   <!--
-    Always write the unminified spliced JS to Browser/rask.wasm.js — that's the file the
-    in-repo Rask.Example.Wasm project consumes via the framework targets (and the source
-    contributors look at). NuGet consumers see whichever version is packed (above).
+    The WASM client runtime. Resources/rask.wasm.ts is the host entry point: it IMPORTS the shared
+    modules it needs from Rask.Core/Resources and esbuild bundles the graph into Browser/rask.wasm.js.
+
+    This replaces an MSBuild string-replace splice that pasted eleven files into one template at
+    `// @@RASK_*@@` markers. The order was load-bearing, the cross-module references were implicit
+    `window.__rask*` globals, and nothing checked either.
+
+    Format is esm, not iife: .NET imports this module by name through JSHost.ImportAsync and main.js
+    imports it for setExports, so its exports have to survive as real module exports.
   -->
-  <Target Name="_RaskSpliceClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths;_RaskMinifyClientJs"
-          Inputs="Resources\rask.wasm.js;Resources\rask-wasm-api.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js;..\Rask.Core\Resources\rask-pwa.js;..\Rask.Core\Resources\rask-input.js;..\Rask.Core\Resources\rask-scoped.js;..\Rask.Core\Resources\rask-hotreload.js;..\Rask.Core\Resources\rask-deverror.js;..\Rask.Core\Resources\rask-files.js"
-          Outputs="Browser\rask.wasm.js">
-    <PropertyGroup>
-      <_RaskWasmTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.wasm.js'))</_RaskWasmTemplate>
-      <_RaskDomBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-dom.js'))</_RaskDomBody>
-      <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
-      <_RaskApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-api.js'))</_RaskApiBody>
-      <_RaskEventsBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-events.js'))</_RaskEventsBody>
-      <_RaskPwaBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-pwa.js'))</_RaskPwaBody>
-      <_RaskWasmApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-wasm-api.js'))</_RaskWasmApiBody>
-      <_RaskInputBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-input.js'))</_RaskInputBody>
-      <_RaskScopedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-scoped.js'))</_RaskScopedBody>
-      <_RaskHotReloadBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-hotreload.js'))</_RaskHotReloadBody>
-      <_RaskFilesBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-files.js'))</_RaskFilesBody>
-      <_RaskDevErrorBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-deverror.js'))</_RaskDevErrorBody>
-      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)').Replace('// @@RASK_WASM_API@@', '$(_RaskWasmApiBody)').Replace('// @@RASK_INPUT@@', '$(_RaskInputBody)').Replace('// @@RASK_SCOPED@@', '$(_RaskScopedBody)').Replace('// @@RASK_HOTRELOAD@@', '$(_RaskHotReloadBody)').Replace('// @@RASK_DEVERROR@@', '$(_RaskDevErrorBody)').Replace('// @@RASK_FILES@@', '$(_RaskFilesBody)'))</_RaskWasmJs>
-    </PropertyGroup>
-    <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+  <Target Name="_RaskBundleClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          Condition=" '$(_RaskBundleBrowserAssets)' == 'true' "
+          Inputs="@(_RaskWasmClientTs)"
+          Outputs="$(IntermediateOutputPath)rask-bundles\rask.wasm.stamp">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask.wasm.ts&quot; --bundle --format=esm --target=es2020 --log-level=warning --outfile=&quot;$(MSBuildProjectDirectory)/Browser/rask.wasm.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <MakeDir Directories="$(IntermediateOutputPath)rask-bundles\"/>
+    <Touch Files="$(IntermediateOutputPath)rask-bundles\rask.wasm.stamp" AlwaysCreate="true"/>
   </Target>
 
   <!--
-    Release builds: write a minified copy to the intermediate dir. The pack item-group
-    picks that up as Browser/rask.wasm.js inside the package, leaving the source-tracked
-    Browser/rask.wasm.js readable for git diffs and IDE inspection. The minifier strips
-    block comments, full-line // comments, and blank lines — state-aware so strings,
-    template literals, and regex literals stay untouched.
+    The boot hook. Browser/main.ts boots the .NET runtime and hands the assembly exports to the
+    client runtime.
 
-    Split out from the splice target so each has its own Inputs/Outputs incremental check;
-    otherwise the splice's up-to-date check skips the whole compound target.
+    Two imports stay EXTERNAL rather than being bundled in. `./_framework/dotnet.js` is the .NET
+    runtime's own file, emitted by the WASM SDK into the published app and not ours to inline;
+    `./rask.wasm.js` is the sibling bundle above, which .NET also imports by that name — inlining it
+    would give the page two copies of the runtime, each with its own state.
   -->
-  <Target Name="_RaskMinifyClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths"
-          Condition=" '$(Configuration)' == 'Release' "
-          Inputs="Browser\rask.wasm.js"
-          Outputs="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js">
-    <MakeDir Directories="$(IntermediateOutputPath)"/>
-    <Copy SourceFiles="Browser\rask.wasm.js" DestinationFiles="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"/>
-    <RaskMinifyJs InputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"
-                  OutputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"/>
+  <Target Name="_RaskBundleMainJs" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          Condition=" '$(_RaskBundleBrowserAssets)' == 'true' "
+          Inputs="@(_RaskWasmMainTs)"
+          Outputs="$(IntermediateOutputPath)rask-bundles\main.stamp">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Browser/main.ts&quot; --bundle --format=esm --target=es2022 --log-level=warning --external:./_framework/* --external:./rask.wasm.js --outfile=&quot;$(MSBuildProjectDirectory)/Browser/main.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <MakeDir Directories="$(IntermediateOutputPath)rask-bundles\"/>
+    <Touch Files="$(IntermediateOutputPath)rask-bundles\main.stamp" AlwaysCreate="true"/>
   </Target>
 
   <!--
-    Assemble the served service worker the same way as rask.wasm.js: splice the Core shared push /
-    notificationclick handlers (rask-sw-shared.js, at @@RASK_SW@@) into the WASM SW template
-    (Resources/rask-sw.js, which holds the offline app-shell strategy) and write the result to the
-    tracked, served Browser/rask-sw.js. Edit Resources/rask-sw.js, not Browser/rask-sw.js.
+    Resources/rask-sw.ts holds the WASM worker's offline app-shell strategy and background-sync
+    forwarding, and IMPORTS the Core shared push / notificationclick handlers; esbuild bundles the two
+    into the served Browser/rask-sw.js. Replaces an MSBuild string-replace over a @@RASK_SW@@ marker,
+    so the dependency is stated in the file that has it and checked by the compiler.
+
+    Edit Resources/rask-sw.ts, never Browser/rask-sw.js — the latter is build output.
   -->
-  <Target Name="_RaskSpliceServiceWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths"
-          Inputs="Resources\rask-sw.js;..\Rask.Core\Resources\rask-sw-shared.js"
-          Outputs="Browser\rask-sw.js">
-    <PropertyGroup>
-      <_RaskSwTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-sw.js'))</_RaskSwTemplate>
-      <_RaskSwSharedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-sw-shared.js'))</_RaskSwSharedBody>
-      <_RaskSwJs>$(_RaskSwTemplate.Replace('// @@RASK_SW@@', '$(_RaskSwSharedBody)'))</_RaskSwJs>
-    </PropertyGroup>
-    <WriteLinesToFile File="Browser\rask-sw.js" Lines="$(_RaskSwJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+  <Target Name="_RaskBundleServiceWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          Condition=" '$(_RaskBundleBrowserAssets)' == 'true' "
+          Inputs="@(_RaskWasmSwTs)"
+          Outputs="$(IntermediateOutputPath)rask-bundles\rask-sw.stamp">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-sw.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(MSBuildProjectDirectory)/Browser/rask-sw.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <MakeDir Directories="$(IntermediateOutputPath)rask-bundles\"/>
+    <Touch Files="$(IntermediateOutputPath)rask-bundles\rask-sw.stamp" AlwaysCreate="true"/>
   </Target>
 
   <!--

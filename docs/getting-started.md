@@ -81,7 +81,7 @@ lists the `rask` commands you'll use next. The starter app is deliberately minim
 page — so there's nothing to delete before you start building.
 
 > **Edit-and-refresh with hot reload.** Run `rask dev` instead of `dotnet run` for a live inner loop: edit
-> a component's `Render()` (or its scoped `.css`/`.js`), a `[Route]` template, or a CQRS handler and save —
+> a component's `Render()` (or its scoped `.css`/`.ts`), a `[Route]` template, or a CQRS handler and save —
 > **C# Hot Reload** applies the change to the running app and Rask re-renders the open session in place, no
 > manual rebuild or browser refresh. A small "Hot reload applied" pill confirms it landed. Edits the
 > runtime can't apply (adding a type, changing a signature) restart the app instead, and the page reloads
@@ -113,7 +113,7 @@ WASM templates differ mainly in `Program.cs`):
   references, source generators) and the local run profile (URLs, environment).
 
 That's the whole starter app — no example `Counter` or `Weather` pages to clean up. You'll add your own
-screens next; a **scoped `.css`** or **`.js`** file is as easy as dropping `{Component}.css` next to a
+screens next; a **scoped `.css`** or **`.ts`** file is as easy as dropping `{Component}.css` next to a
 `{Component}.cs` (same folder, same base name) — its selectors apply only to that component, no leaks.
 
 ## 4. Your first component
@@ -362,7 +362,7 @@ The snags you're most likely to hit on a fresh project:
   SDK (`dotnet --version` must be ≥ `10.0`) or, for WASM, the workload — install it with
   `dotnet workload install wasm-tools`.
 
-- **A scoped `.css` / `.js` file isn't taking effect.** The sibling file must sit in the **same folder**
+- **A scoped `.css` / `.ts` file isn't taking effect.** The sibling file must sit in the **same folder**
   as its component and share the **base name** (`Card.cs` ↔ `Card.css`). A mismatch is a build error
   (`RASK015`–`RASK018`) — check the build output.
 

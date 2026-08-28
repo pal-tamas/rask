@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK054)
+# Rask diagnostics (RASK001–RASK055)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -52,10 +52,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK014](#rask014) | Error | Components must be built through a chain |
 | [RASK015](#rask015) | Error | Orphan scoped-CSS file |
 | [RASK016](#rask016) | Error | Ambiguous scoped-CSS match |
-| [RASK017](#rask017) | Error | Orphan scoped-JS file |
-| [RASK018](#rask018) | Error | Ambiguous scoped-JS match |
+| [RASK017](#rask017) | Error | Orphan scoped-TS file |
+| [RASK018](#rask018) | Error | Ambiguous scoped-TS match |
 | [RASK019](#rask019) | Error | `<head>` is a framework-managed slot |
-| [RASK020](#rask020) | Warning | Scoped-JS simple-name collision |
+| [RASK020](#rask020) | Warning | Scoped-TS simple-name collision |
 | [RASK021](#rask021) | Warning | Root component must not render the page shell |
 | [RASK022](#rask022) | Warning | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
@@ -89,6 +89,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 | [RASK054](#rask054) | Info | Page cannot run in the browser |
+| [RASK055](#rask055) | Error | Scoped JavaScript is no longer supported |
 
 ---
 
@@ -248,18 +249,19 @@ different namespaces but the same folder).
 **Fix:** disambiguate by moving one component/file so each `.css` has exactly one match.
 
 ## RASK017
-**Orphan scoped-JS file** · Error
+**Orphan scoped-TS file** · Error
 
-As RASK015, for a `{Name}.js` sibling with no matching component.
+As RASK015, for a `{Name}.ts` sibling with no matching component.
 
-**Fix:** rename/move the file, or opt the file out of auto-inclusion.
+**Fix:** rename/move the file, or opt the file out of auto-inclusion with
+`<RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>`.
 
 ## RASK018
-**Ambiguous scoped-JS match** · Error
+**Ambiguous scoped-TS match** · Error
 
-As RASK016, for `{Name}.js` matching multiple component classes.
+As RASK016, for `{Name}.ts` matching multiple component classes.
 
-**Fix:** disambiguate so each `.js` file maps to one component.
+**Fix:** disambiguate so each `.ts` file maps to one component.
 
 ## RASK019
 **`<head>` is a framework-managed slot** · Error
@@ -272,13 +274,13 @@ Children were passed to `Head()`. Rask collects, dedupes, and splices head conte
 `Head => [Title(...)["..."], Meta(...)]`. See [the head guide](getting-started.md).
 
 ## RASK020
-**Scoped-JS simple-name collision** · Warning
+**Scoped-TS simple-name collision** · Warning
 
-Two or more components with scoped JS share the same simple type name. The browser-side namespace
-key `window.Rask["Name"]` is shared, and the last registration silently wins.
+Two or more components with scoped TypeScript share the same simple type name. The browser-side
+namespace key `window.Rask["Name"]` is shared, and the last registration silently wins.
 
 **Fix:** rename one component, move it to a differently-named sibling, or expose its exports under a
-sub-namespace inside the JS file. Promote to an error with
+sub-namespace inside the TypeScript file. Promote to an error with
 `<WarningsAsErrors>RASK020</WarningsAsErrors>`.
 
 ## RASK021
@@ -1201,3 +1203,37 @@ pointing at the component would name a file whose author cannot see which page i
 `DbContext` and `IDbContextFactory<T>`, and anything from the `Rask.Server` assembly. It names what
 this framework hands people rather than everything that could fail in a browser, because the analyzer
 compiles against the server half and has no view of what a browser build references.
+
+---
+
+## RASK055
+
+**Scoped JavaScript is no longer supported** · Error
+
+A `.js` file sits beside a component of the same name. Scoped component assets are TypeScript, and
+Rask neither compiles nor registers a `.js` sibling.
+
+```
+Features/Counter.cs
+Features/Counter.js     ✗ RASK055
+Features/Counter.ts     ✓
+```
+
+**Fix:** rename the file. TypeScript is a superset of JavaScript, so an existing ES module is already
+valid TypeScript — the body needs no change, and `tsgo` compiles it before the browser sees it. Add
+type annotations at whatever pace suits you.
+
+**Why this is an error and not a quiet skip.** A scoped script that stops being registered does not
+fail. `window.Rask["Counter"]` simply has no methods on it, so every call from C# resolves to nothing
+and the component renders a control that does nothing — with no error at build time, none at
+startup, and none in the console. There is no useful place for that to surface later, so it surfaces
+here.
+
+**It fires only for a real scoped asset.** The rule is "a `.js` beside a non-abstract, non-generic
+`Component` subclass of that name" — exactly the set of files that worked as scoped JavaScript
+before. A `Helpers.js` next to an ordinary static `Helpers.cs`, or any vendored script, is somebody
+else's file and is left alone.
+
+> Files under `wwwroot/`, `Resources/` and `Browser/` are outside the scoped-asset convention
+> entirely and are never considered. A plain site-wide script belongs in `wwwroot` and is linked from
+> your `Head`, exactly as before.

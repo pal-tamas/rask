@@ -48,69 +48,92 @@
   </ItemGroup>
 
   <!--
-    The embedded rask.js is generated at build time by splicing shared Rask.Core/Resources
-    files into Resources/rask.js: rask-dom.js (the diff codec, at @@RASK_DOM@@), rask-morph.js
-    (the full-HTML morph, at @@RASK_MORPH@@), and rask-api.js (framework interop helpers
-    __raskEl/__raskApi, at @@RASK_API@@). The generated artifact lives in
-    $(IntermediateOutputPath) so the source file in Resources/ stays free of duplicated client
-    code and git status doesn't churn on build.
+    Every file the two bundles can reach, so an edit to any of them re-bundles. Stated as an
+    ItemGroup rather than in the targets' Inputs because a target's Inputs does not expand
+    wildcards — it would treat the pattern as a literal filename and rebuild unconditionally.
   -->
+  <ItemGroup>
+    <_RaskServerClientTs Include="Resources\rask.ts;..\Rask.Core\Resources\*.ts"
+                         Exclude="..\Rask.Core\Resources\rask-sw-shared.ts;..\Rask.Core\Resources\*.d.ts"/>
+    <_RaskServerSwTs Include="Resources\rask-sw.ts;..\Rask.Core\Resources\rask-sw-shared.ts"/>
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask.js" LogicalName="Rask.Server.Resources.rask.js"/>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask-sw.js" LogicalName="Rask.Server.Resources.rask-sw.js"/>
   </ItemGroup>
 
-  <Import Project="..\..\build\Rask.MinifyJs.targets"/>
+  <!--
+    The embedded Server client runtime. Resources/rask.ts is the host entry point: it IMPORTS the
+    shared modules it needs from Rask.Core/Resources and esbuild bundles the graph into one script.
 
-  <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild"
-          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js;..\Rask.Core\Resources\rask-pwa.js;..\Rask.Core\Resources\rask-input.js;..\Rask.Core\Resources\rask-scoped.js;..\Rask.Core\Resources\rask-hotreload.js"
+    This replaces an MSBuild string-replace splice that pasted nine files into this one at
+    `// @@RASK_*@@` markers. The order was load-bearing, the cross-module references were implicit
+    `window.__rask*` globals, and nothing checked either. Both are now the compiler's problem.
+
+    Format is iife, not esm: the runtime is delivered by a plain `<script src>` that Rask writes into
+    the shell, and a module script would defer past the first frame.
+  -->
+  <Target Name="_RaskBundleClientJs" BeforeTargets="PrepareForBuild"
+          Inputs="@(_RaskServerClientTs)"
           Outputs="$(IntermediateOutputPath)rask.js">
-    <PropertyGroup>
-      <_RaskClientTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.js'))</_RaskClientTemplate>
-      <_RaskDomBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-dom.js'))</_RaskDomBody>
-      <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
-      <_RaskApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-api.js'))</_RaskApiBody>
-      <_RaskEventsBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-events.js'))</_RaskEventsBody>
-      <_RaskPwaBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-pwa.js'))</_RaskPwaBody>
-      <_RaskInputBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-input.js'))</_RaskInputBody>
-      <_RaskScopedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-scoped.js'))</_RaskScopedBody>
-      <_RaskHotReloadBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-hotreload.js'))</_RaskHotReloadBody>
-      <_RaskDevErrorBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-deverror.js'))</_RaskDevErrorBody>
-      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)').Replace('// @@RASK_INPUT@@', '$(_RaskInputBody)').Replace('// @@RASK_SCOPED@@', '$(_RaskScopedBody)').Replace('// @@RASK_HOTRELOAD@@', '$(_RaskHotReloadBody)').Replace('// @@RASK_DEVERROR@@', '$(_RaskDevErrorBody)'))</_RaskClientJs>
-    </PropertyGroup>
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
     <MakeDir Directories="$(IntermediateOutputPath)"/>
-    <WriteLinesToFile File="$(IntermediateOutputPath)rask.js" Lines="$(_RaskClientJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+
     <!--
-      Release builds: strip block comments, full-line // comments, and blank lines from
-      the spliced client JS. Conservative — preserves mid-line behaviour so strings,
-      template literals, and regex literals stay untouched. Debug builds keep the
-      readable form to aid in-browser debugging.
+      Minified in Release only, so a Debug build stays readable in the browser's debugger. This is
+      REAL minification now — the hand-rolled stripper it replaces could only remove comments and
+      blank lines, and three source files carried comments working around its regex-literal bug.
     -->
-    <RaskMinifyJs InputFile="$(IntermediateOutputPath)rask.js"
-                  OutputFile="$(IntermediateOutputPath)rask.js"
-                  Condition=" '$(Configuration)' == 'Release' "/>
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 
   <!--
-    The embedded Server service worker is assembled the same way: splice the Core shared push /
-    notificationclick handlers (rask-sw-shared.js, at @@RASK_SW@@) into the Server SW template
-    (Resources/rask-sw.js, which holds the offline-fallback strategy — NOT app-shell caching) and embed
-    the result. Served at {PathBase}/rask-sw.js by AddRaskPwa; see RaskEndpointExtensions.
+    The embedded Server service worker. Resources/rask-sw.ts holds the offline-fallback strategy (NOT
+    app-shell caching — see the file for why that would be unsafe here) and IMPORTS the Core shared
+    push / notificationclick handlers; esbuild bundles the two into one classic worker script. Served
+    at {PathBase}/rask-sw.js by AddRaskPwa; see RaskEndpointExtensions.
+
+    This replaces an MSBuild string-replace splice over a @@RASK_SW@@ marker. The dependency is now
+    stated in the file that has it and checked by the compiler, rather than assembled by a target that
+    could not tell whether the marker was still there.
+
+    Format is iife, not esm: the worker is registered classically, and an ES-module worker would need
+    `{type:"module"}` at every registration site — including ones in consumers' own code.
   -->
-  <Target Name="_RaskBuildServiceWorker" BeforeTargets="PrepareForBuild"
-          Inputs="Resources\rask-sw.js;..\Rask.Core\Resources\rask-sw-shared.js"
+  <Target Name="_RaskBundleServiceWorker" BeforeTargets="PrepareForBuild"
+          Inputs="@(_RaskServerSwTs)"
           Outputs="$(IntermediateOutputPath)rask-sw.js">
-    <PropertyGroup>
-      <_RaskSwTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-sw.js'))</_RaskSwTemplate>
-      <_RaskSwSharedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-sw-shared.js'))</_RaskSwSharedBody>
-      <_RaskSwJs>$(_RaskSwTemplate.Replace('// @@RASK_SW@@', '$(_RaskSwSharedBody)'))</_RaskSwJs>
-    </PropertyGroup>
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
     <MakeDir Directories="$(IntermediateOutputPath)"/>
-    <WriteLinesToFile File="$(IntermediateOutputPath)rask-sw.js" Lines="$(_RaskSwJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
-    <RaskMinifyJs InputFile="$(IntermediateOutputPath)rask-sw.js"
-                  OutputFile="$(IntermediateOutputPath)rask-sw.js"
-                  Condition=" '$(Configuration)' == 'Release' "/>
+
+    <!--
+      Minified in Release only, so a Debug build stays readable in the browser's worker inspector.
+      This is REAL minification now — the hand-rolled stripper it replaces could only remove comments
+      and blank lines, and its doc comment claimed a regex-literal safety it did not have.
+    -->
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-sw.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-sw.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
+
+  <PropertyGroup>
+    <_RaskEsbuildMinify Condition=" '$(Configuration)' == 'Release' ">--minify</_RaskEsbuildMinify>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>

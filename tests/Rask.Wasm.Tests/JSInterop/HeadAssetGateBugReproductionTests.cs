@@ -55,7 +55,7 @@ public sealed class HeadAssetGateBugReproductionTests
         }
 
         var repoRoot = LocateRepoRoot();
-        var fixtureScript = Path.Combine(repoRoot, "tests", "Rask.Wasm.Tests", "JSInterop", "HeadAssetGateFixture.mjs");
+        var fixtureScript = Path.Combine(AppContext.BaseDirectory, "node-fixtures", "HeadAssetGateFixture.mjs");
         var bundlePath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "rask.wasm.js");
         Assert.True(File.Exists(fixtureScript), $"Fixture script missing: {fixtureScript}");
         Assert.True(File.Exists(bundlePath), $"Bundle source missing: {bundlePath}");

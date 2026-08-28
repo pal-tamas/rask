@@ -7,7 +7,7 @@ everything here is committed. AI assistants encode these as playbooks under `.cl
 ## The inner loop
 
 Run the app you're changing with `rask dev`. It wraps `dotnet watch run`, so an edit to a component's
-`Render()`, a scoped `.css`/`.js`, a `[Route]` template or a CQRS handler is applied to the running
+`Render()`, a scoped `.css`/`.ts`, a `[Route]` template or a CQRS handler is applied to the running
 process and every open session repaints in place — a "Hot reload applied" pill confirms it. Edits the
 runtime can't apply (adding a type, changing a signature) restart the app instead, and the page reloads
 itself. [What hot-reloads](cli.md#what-hot-reloads) has the full list, including what doesn't. WASM is

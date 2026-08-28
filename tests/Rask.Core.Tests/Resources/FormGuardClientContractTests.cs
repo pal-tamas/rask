@@ -2,10 +2,9 @@ namespace Rask.Core.Tests.Resources;
 
 /// <summary>
 ///     Source-level contract for the lagging-frame guards the change dispatch arms. Structural
-///     assertions over the shipped <c>.js</c>, for the same reason as
-///     <see cref="ShutdownClientContractTests" />: the host runtimes are IIFEs that boot against a live
-///     document and still carry unsubstituted <c>@@RASK_*@@</c> splice markers in the Resources copy, so
-///     they cannot be executed in Node. The behaviour of the guards themselves is covered by
+///     assertions over the shipped TypeScript, for the same reason as
+///     <see cref="ShutdownClientContractTests" />: the host entry points boot against a live document, so
+///     they cannot be executed in Node the way the shared modules can. The behaviour of the guards themselves is covered by
 ///     MorphValueGuardTests / MorphCheckedGuardTests / MorphSelectedGuardTests, which do run the shared
 ///     modules; what is pinned here is that the hosts actually ARM them, which nothing else would catch.
 /// </summary>
@@ -13,9 +12,9 @@ public class FormGuardClientContractTests
 {
     private static readonly string _repoRoot = LocateRepoRoot();
 
-    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.js");
-    private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.js");
-    private static string MorphJs => Read("src", "Rask.Core", "Resources", "rask-morph.js");
+    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
+    private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.ts");
+    private static string MorphJs => Read("src", "Rask.Core", "Resources", "rask-morph.ts");
 
     [Fact]
     public void Both_hosts_arm_the_guards_through_the_shared_recorder()
@@ -120,7 +119,7 @@ public class FormGuardClientContractTests
     {
         // The other half: recording is useless unless the apply path asks. syncFormProperty is the diff
         // codec's single write point for all three, and `selected` was the branch that never asked.
-        var js = Read("src", "Rask.Core", "Resources", "rask-dom.js");
+        var js = Read("src", "Rask.Core", "Resources", "rask-dom.ts");
         var fn = js[js.IndexOf("function syncFormProperty", StringComparison.Ordinal)..];
         var body = fn[..fn.IndexOf("\n}", StringComparison.Ordinal)];
 

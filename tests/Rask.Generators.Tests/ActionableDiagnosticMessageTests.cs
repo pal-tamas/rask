@@ -82,14 +82,43 @@ public class ActionableDiagnosticMessageTests
     [Fact]
     public void Rask017_MentionsTheAutoIncludeOptOut()
     {
-        var run = GeneratorDriverFixture.Run(
+        var run = GeneratorDriverFixture.RunScoped(
             [("/proj/Widgets/Unrelated.cs", "namespace Demo; public sealed class Unrelated { }")],
-            new ComponentScopedJsGenerator(),
-            [("/proj/Widgets/Orphan.js", "export function go() {}")]);
+            [("/proj/Widgets/Orphan.ts", "export function go() {}")]);
 
         var message = run.Diagnostics.First(d => d.Id == "RASK017").GetMessage();
         Assert.Contains(" — ", message, StringComparison.Ordinal);
-        Assert.Contains("RaskScopedJsAutoInclude", message, StringComparison.Ordinal);
+        Assert.Contains("RaskScopedTsAutoInclude", message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     RASK055 names the file, the component, and the exact rename that fixes it.
+    /// </summary>
+    /// <remarks>
+    ///     The remedy is the whole point of this one. "Scoped JavaScript is no longer supported"
+    ///     leaves someone with a working file and no idea what to do with it, and the honest answer
+    ///     is unusually cheap — TypeScript is a superset, so the rename IS the migration. A message
+    ///     that did not say so would send people looking for a conversion tool.
+    /// </remarks>
+    [Fact]
+    public void Rask054_NamesTheRenameThatFixesIt()
+    {
+        var run = GeneratorDriverFixture.RunScoped(
+            [("/proj/Widgets/Counter.cs",
+                """
+                namespace Demo;
+                public sealed class Counter : Rask.Core.Component
+                {
+                    protected override Rask.Core.Component? Render() => this;
+                }
+                """)],
+            [],
+            strayJs: ["/proj/Widgets/Counter.js"]);
+
+        var message = run.Diagnostics.First(d => d.Id == "RASK055").GetMessage();
+        Assert.Contains(" — ", message, StringComparison.Ordinal);
+        Assert.Contains("Counter.js", message, StringComparison.Ordinal);
+        Assert.Contains("'Counter.ts'", message, StringComparison.Ordinal);
     }
 
     private static string MessageFor(string id, string source)

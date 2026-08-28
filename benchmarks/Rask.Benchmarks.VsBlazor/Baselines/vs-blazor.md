@@ -352,7 +352,7 @@ exercises the HtmlSerializer hot path the diff codec also benefits from.
 keyed contract: every direct child must be an Element carrying a unique
 `data-rask-key`. When the contract holds, the codec switches off the positional
 walk and runs minimal-moves matching by key — same definition the client-side
-morph engine uses (`Rask.Core/Resources/rask-morph.js`), so a parent the morph
+morph engine uses (`Rask.Core/Resources/rask-morph.ts`), so a parent the morph
 reconciles by key gets the same treatment in the diff codec.
 
 ```

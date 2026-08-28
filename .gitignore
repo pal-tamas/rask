@@ -130,6 +130,15 @@ Rask.Example.Wasm.Host/wwwroot/
 src/Rask.Wasm/build/Rask.Wasm.Tasks.dll
 src/Rask.Spa.Hosting/build/Rask.Spa.Tasks.dll
 src/Rask.Tailwind/build/Rask.Tailwind.Tasks.dll
+src/Rask.Core/build/Rask.TypeScript.Tasks.dll
 
 # Ad-hoc SQLite load-harness runs (the committed reference lives in Baselines/).
 benchmarks/Rask.Benchmarks.Sqlite/Results/
+
+# The WASM browser bundles are build output: esbuild writes them from Browser/main.ts and
+# Resources/*.ts. They lived in git while the build assembled them by pasting files together at
+# `// @@RASK_*@@` markers, because the spliced result was the only readable form of the whole
+# runtime. The TypeScript is that form now.
+src/Rask.Wasm/Browser/main.js
+src/Rask.Wasm/Browser/rask.wasm.js
+src/Rask.Wasm/Browser/rask-sw.js

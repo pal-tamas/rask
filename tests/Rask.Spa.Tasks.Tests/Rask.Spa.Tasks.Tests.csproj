@@ -35,7 +35,17 @@
     actually send a message somewhere: it looks for the assembly-level transport attribute first.
   -->
   <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Utilities.Core"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Spa.Tasks\Rask.Spa.Tasks.csproj"/>
+    <!--
+      The type-check gate resolves tsgo the way the build does, rather than through npx. The task
+      assembly marks its MSBuild dependency PrivateAssets="all", so the reference does not flow and
+      the test would fail at run time on a missing Microsoft.Build.Framework.
+    -->
+    <ProjectReference Include="..\..\src\Rask.TypeScript.Tasks\Rask.TypeScript.Tasks.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
   </ItemGroup>

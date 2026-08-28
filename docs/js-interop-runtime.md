@@ -1,6 +1,7 @@
 # JS interop — IJSRuntime, typed APIs & refs
 
 Calling JS from C#, the typed browser-API layer, element refs, and wrapping a third-party JS library.
+The browser-side half is TypeScript — a `.js` sibling is [RASK054](diagnostics.md#rask054).
 
 ‹ Back to [JavaScript interop](js-interop.md)
 
@@ -136,7 +137,7 @@ work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only API
 Under the hood: storage/clipboard methods are plain function calls; `navigator.onLine` and
 `localStorage.length` are *property* reads the client returns directly; and the callback-based
 `getCurrentPosition` is wrapped in a Promise by the framework helper `__raskApi.geolocation`. That
-helper (and `__raskEl`) lives in `src/Rask.Core/Resources/rask-api.js` and is spliced into both
+helper (and `__raskEl`) lives in `src/Rask.Core/Resources/rask-api.ts` and is imported by both
 client runtimes at build time, so the two transports never drift. `GeolocationPosition` is rooted
 for the WASM trimmer by the framework, so it deserializes correctly in a `PublishTrimmed` app.
 
@@ -178,7 +179,7 @@ public sealed partial class FocusDemo : Component
 }
 ```
 
-Focus a built-in element, then hand a ref to a sibling `.js` that measures it — the ref revives to the
+Focus a built-in element, then hand a ref to a sibling `.ts` that measures it — the ref revives to the
 live DOM node before the function runs:
 
 <!-- demo:js-interop-elementref -->
@@ -190,6 +191,17 @@ live DOM node before the function runs:
 Everything above is enough to wrap a library that owns its own DOM — a chart, a code editor, a map. Two
 questions come up every time: **what happens to the DOM the library builds**, and **what happens to the
 `<style>` it injects**. Rask answers the second for you; the first is one rule.
+
+### Describing the library to TypeScript
+
+There is no `node_modules` in a Rask app, so a library's own typings are not there to install. Write a
+`.d.ts` beside your component describing **only what you actually call** — any `.d.ts` in the project is
+compiled alongside your scoped files, and a narrow declaration that is true is worth more than a
+complete one copied from upstream that drifts, because the compiler believes either equally.
+
+`samples/Rask.Example.Shared/Features/Gantt/frappe-gantt.d.ts` is a worked example: about fifty lines
+covering one constructor, two methods and three callbacks. Rask's own globals (`window.DotNet`,
+`window.Rask`) are already declared for you and need no work.
 
 ### Give the library a leaf to own
 
