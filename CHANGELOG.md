@@ -31,6 +31,14 @@ them until tagged releases begin.
   somewhere convention cannot reach — the bundler reads it at build time, so anything computed is
   **RASK059**.
 
+  **The props types cross back into TypeScript.** The generator emits an interface per component —
+  `ChartProps`, with any record it is composed of declared alongside it — so the `.tsx` imports the
+  shape rather than restating it. Renaming a C# property then stops the front end compiling instead
+  of arriving as `undefined` in a browser. Nullability survives (`heading: string | null`, still
+  required, because the writer emits the key with a JSON null and "never set" differs from "set to
+  nothing"), a callback is an optional function returning `void` (there is no promise on that side to
+  await), and a route parameter is an ordinary typed prop like any other.
+
   **C# owns the props.** They are declared as ordinary properties, so the chain, the required-prop
   rule and every existing analyzer apply unchanged, and they are serialized by generated
   `Utf8JsonWriter` code rather than by reflection — which is what lets them survive trimming and
