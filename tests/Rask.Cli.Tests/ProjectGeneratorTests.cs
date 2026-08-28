@@ -87,32 +87,23 @@ public sealed class ProjectGeneratorTests
     }
 
     /// <summary>
-    /// The scaffold emits whatever the ladder says, whatever that is — asserted against
-    /// <see cref="ShutdownBudget"/> rather than the literal, because the app's budget and the deploy's
-    /// SIGKILL grace used to be two hardcoded numbers coupled only by a comment, free to drift apart.
+    /// The scaffold no longer writes a <c>HostOptions</c> block, because <c>AddRask</c> applies the budget.
     /// </summary>
+    /// <remarks>
+    /// Scaffolding it was only ever a way of reaching apps one at a time, and it reached only the ones
+    /// generated after the block existed — which is how nine of the ten samples came to be sitting on
+    /// .NET's 30s default against a 20s SIGKILL. This asserts the ABSENCE; that the budget an app actually
+    /// gets still fits the deploy window is <see cref="SamplesShutdownBudgetTests"/>, which resolves the
+    /// options rather than reading source text.
+    /// </remarks>
     [Fact]
-    public void Shutdown_budget_is_scaffolded_from_the_deploy_ladder()
+    public void The_scaffold_no_longer_hand_rolls_the_shutdown_budget()
     {
         var (files, _) = Generate();
+        var program = files["Program.cs"];
 
-        Assert.Contains(
-            FormattableString.Invariant($"ShutdownTimeout = TimeSpan.FromSeconds({ShutdownBudget.HostShutdownSeconds})"),
-            files["Program.cs"],
-            StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// Without this, each hosted service's own shutdown grace (Litestream's WAL flush, an in-flight email
-    /// send, a running job) SUMS inside the one budget instead of overlapping — and whichever service stops
-    /// last gets none of it, decided by the order of AddRaskX calls in Program.cs.
-    /// </summary>
-    [Fact]
-    public void Hosted_services_are_scaffolded_to_stop_concurrently()
-    {
-        var (files, _) = Generate();
-
-        Assert.Contains("ServicesStopConcurrently = true", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("ShutdownTimeout", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("ServicesStopConcurrently", program, StringComparison.Ordinal);
     }
 
     /// <summary>The ladder itself has to be sane — this is what fails if someone edits one rung alone.</summary>

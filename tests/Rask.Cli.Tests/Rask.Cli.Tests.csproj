@@ -32,6 +32,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Cli\Rask.Cli.csproj"/>
+    <!-- Test-only, and deliberately not a reference Rask.Cli itself takes: the CLI owns `docker stop -t`
+         and the framework owns HostOptions.ShutdownTimeout, so the two numbers live in assemblies that
+         cannot see each other. SamplesShutdownBudgetTests resolves the options AddRask actually produces
+         and checks them against the deploy ladder, which is what keeps the pair from drifting. -->
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <!-- AddRask's optional parameters are typed in Rask.Core, so calling it needs the reference even
+         though this test never names one of those types. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 
 </Project>

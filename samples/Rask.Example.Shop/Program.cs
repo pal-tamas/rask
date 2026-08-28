@@ -62,20 +62,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Finish shutting down before the container runtime loses patience. `rask deploy` sends SIGTERM and
-// SIGKILLs 20s later, so a budget under that is what lets in-flight requests drain, live sessions close
-// cleanly, and a SQLite WAL checkpoint / Litestream flush complete instead of being killed mid-write.
-//
-// ServicesStopConcurrently matters as much as the number: stopped one at a time (the .NET default) each
-// hosted service's own shutdown grace — Litestream's WAL flush, an in-flight email send, a running job —
-// SUMS inside this one budget, and whichever stops last gets none of it, decided by the order of your
-// AddRaskX calls. Stopped together they overlap instead.
-builder.Services.Configure<HostOptions>(options =>
-{
-    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
-    options.ServicesStopConcurrently = true;
-});
-
 // CQRS mediator: one call registers every IQueryHandler/ICommandHandler/INotificationHandler in
 // this assembly (source-generated, reflection-free — trim/AOT-safe). Inject IDispatcher to send
 // messages; add pipeline behaviors with o.AddOpenBehavior(...). See docs/cqrs.md.

@@ -201,6 +201,12 @@ public static partial class RaskEndpointExtensions
         services.AddSingleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>();
         services.AddSingleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>();
 
+        // Stop the hosted services CONCURRENTLY, inside a budget that fits under the deploy's SIGKILL.
+        // Sequentially — .NET's default — each pillar's shutdown grace sums to 30s against a window that
+        // closes at 20s, so whichever one stops last is killed mid-write, decided by the order of the
+        // AddRaskX calls above. See RaskShutdownDefaults; override by configuring HostOptions after AddRask.
+        services.AddSingleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>();
+
         services.TryAddSingleton(sp =>
         {
             var provider = resumeEnabled ? sp.GetService<IDataProtectionProvider>() : null;
