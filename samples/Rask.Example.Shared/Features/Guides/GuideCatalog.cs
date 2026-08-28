@@ -21,6 +21,8 @@ public static class GuideCatalog
         // ---- Start here ----
         new("one-person-framework", "The One Person Framework",
             "The doctrine: one dev, one codebase, one server, a whole product.", "bi-person-workspace", "Start here"),
+        new("installation", "Installing Rask", "One line to the CLI and everything it needs — options, upgrade, uninstall.",
+            "bi-box-arrow-in-down", "Start here"),
         new("getting-started", "Getting started", "Scaffold a project and build your first component.",
             "bi-rocket-takeoff", "Start here"),
         new("best-practices", "Best practices", "Production patterns for state, forms, security, and perf.",

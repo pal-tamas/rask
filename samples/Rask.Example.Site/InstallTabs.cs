@@ -10,6 +10,16 @@ public sealed partial class InstallTabs : Component
 
     private static readonly string[] Labels = ["Server", "WASM"];
 
+    /// <summary>
+    /// The install command, spelled once. It is the same string in the README, NUGET.md, docs/cli.md,
+    /// docs/getting-started.md, docs/installation.md, the tutorial and llms.txt, and
+    /// <c>scripts/tests/install-script.test.sh</c> fails the build if any of them drifts — a wrong URL
+    /// on the landing page is a broken front door that nothing else would catch.
+    /// </summary>
+    private const string InstallCommand = "curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh";
+
+    private const string WindowsInstallCommand = "irm https://pal-tamas.github.io/rask/rask.ps1 | iex";
+
     private Component Tab(int i) =>
         Button
             .Class("tab")
@@ -25,13 +35,13 @@ public sealed partial class InstallTabs : Component
     {
         1 => Pre[Code[
             Span.Class("cmt")["# standalone browser-WASM SPA, installable and offline\n"],
-            Line("$", " dotnet tool install -g Rask.Cli"),
+            Line("$", " " + InstallCommand),
             Line("$", " rask new MyApp --template wasm"),
             Span.Class("prompt")["$"], " cd MyApp && rask dev"
         ]],
         _ => Pre[Code[
             Span.Class("cmt")["# ASP.NET live-server app, batteries included\n"],
-            Line("$", " dotnet tool install -g Rask.Cli"),
+            Line("$", " " + InstallCommand),
             Line("$", " rask new MyApp"),
             Span.Class("prompt")["$"], " cd MyApp && rask dev"
         ]]
@@ -46,6 +56,10 @@ public sealed partial class InstallTabs : Component
                 Tab(0), Tab(1)
             ],
             Div.Class("term")[Terminal()],
+            P.Class("install-foot")[
+                "Nothing preinstalled — it adds the .NET 10 SDK too, under ", Code["$HOME"],
+                ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
+            ],
             P.Class("install-foot")[
                 "Add ", Code["--auth"], " for a cookie/JWT starter · full path in the ",
                 A
