@@ -8,6 +8,25 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **The TypeScript task assembly is now built before the targets that invoke it.** `main` went red
+  at #871: `pages` and `nightly` both failed with MSB4062 — the `ResolveTypeScriptToolTask` "could
+  not be loaded" from `src/Rask.Core/build/Rask.TypeScript.Tasks.dll` — and each took a downstream
+  job with it, so the docs site stopped deploying and no nightly prerelease was published
+  ([#878](https://github.com/pal-tamas/rask/issues/878)).
+
+  The `UsingTask` registration was not the problem; the build-order edge was. `Rask.Wasm ->
+  Rask.Core -> Rask.TypeScript.Tasks` is honoured at `ResolveProjectReferences`, but the three
+  bundle targets in `Rask.Wasm.csproj` and the two in `Rask.Server.csproj` run at
+  `BeforeTargets="PrepareForBuild"` — the first target in `CoreBuild`, long before references
+  resolve. So they invoked a task whose assembly the edge had not produced yet. They now state
+  `DependsOnTargets="ResolveProjectReferences"`, which is the dependency they always had.
+
+  The DLL is generated and gitignored, so this only ever reproduced on a tree that had never built —
+  and the failed build left the DLL behind, so re-running the identical command passed. That is what
+  kept it invisible: the local gates build the solution, where MSBuild orders the task project ahead
+  of `Rask.Wasm`, and `ci.yml` builds only the two benchmark projects and references no WASM host at
+  all. Only a single-project `dotnet publish` from a clean tree — what `pages` and
+  `nightly/aot-publish` run — could see it.
 - **The browser gate no longer needs PowerShell, and no longer skips itself quietly when it is
   missing.** `scripts/run-e2e-local.sh` installed the Playwright browsers by shelling out to
   `pwsh <path>/playwright.ps1 install chromium`, and skipped that step whenever `pwsh` was absent.
