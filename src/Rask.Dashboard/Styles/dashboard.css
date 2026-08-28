@@ -1,0 +1,107 @@
+/*
+  The operator dashboard's own stylesheet, compiled by Rask.Tailwind at THIS project's build.
+
+  Tailwind is a compiler: it scans the project it runs in for the class names actually written and emits
+  only those utilities. That is why this lives here rather than being left to the consuming app — the
+  dashboard ships as a compiled assembly, so an app's own Tailwind build cannot see these class names and
+  would emit none of them, leaving the dashboard rendered as unstyled HTML with nothing reporting it.
+
+  The output is embedded and inlined into the document by DashboardLayout, so there is no stylesheet to
+  serve, no static web assets, and nothing for a host to map.
+*/
+
+/*
+  Theme and utilities, but deliberately NOT Preflight.
+
+  `@import "tailwindcss"` would pull all three, and Preflight is a GLOBAL reset — `html`, `*`, and every
+  bare element selector. This stylesheet is inlined into the host application's own document, so that
+  reset would land on the host's pages too: margins collapsed, headings unstyled, its own borders
+  removed, for as long as an operator has the console open. Nothing would report it, because from the
+  app's side the page simply looks wrong on one route.
+
+  So the reset below is written out by hand and scoped under .rask-ops. It is only the part the console
+  actually depends on — the utilities carry everything else.
+*/
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/*
+  Dark by default, and not negotiable from outside: this surface is mounted inside somebody else's app,
+  whose own theme has no business deciding what an ops console looks like.
+*/
+@theme {
+  --color-ops-bg: oklch(0.19 0.02 265);
+  --color-ops-panel: oklch(0.24 0.02 265);
+  --color-ops-line: oklch(0.32 0.02 265);
+  --color-ops-ink: oklch(0.93 0.01 265);
+  --color-ops-muted: oklch(0.72 0.02 265);
+  --color-ops-brand: oklch(0.62 0.19 285);
+}
+
+@layer base {
+  /* Every utility that mixes padding with a width assumes border-box. */
+  .rask-ops,
+  .rask-ops *,
+  .rask-ops *::before,
+  .rask-ops *::after {
+    box-sizing: border-box;
+  }
+
+  .rask-ops {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  /* The console sets its own type scale on every element, so the UA's heading sizes only get in the way. */
+  .rask-ops h1,
+  .rask-ops h2,
+  .rask-ops h3,
+  .rask-ops p,
+  .rask-ops pre {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  .rask-ops pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .rask-ops table {
+    border-collapse: collapse;
+  }
+
+  .rask-ops th {
+    font-weight: inherit;
+    text-align: inherit;
+  }
+
+  /* Links are navigation, styled by utilities; the UA's blue underline is never what is wanted here. */
+  .rask-ops a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  /* Buttons are the console's main control, and the UA's chrome fights every utility on them. */
+  .rask-ops button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    cursor: pointer;
+  }
+
+  .rask-ops button:disabled {
+    cursor: default;
+  }
+
+  /* Inline SVG would otherwise sit on the text baseline and add a descender's worth of space. */
+  .rask-ops svg {
+    display: block;
+  }
+}

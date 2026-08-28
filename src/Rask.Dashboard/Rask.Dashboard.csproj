@@ -36,7 +36,6 @@
 
     <!-- The panels read these packages' entity types directly. Referencing all four is what lets a
          single package light up whichever batteries an app registered, with no glue from the caller. -->
-    <ProjectReference Include="..\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj"/>
     <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\Rask.Logging\Rask.Logging.csproj"/>
@@ -48,6 +47,13 @@
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+
+    <!-- Build-order edge only: it puts Rask.Tailwind.Tasks.dll in Rask.Tailwind's build/ folder before
+         the import below loads it with <UsingTask>. Nothing is referenced and nothing flows. -->
+    <ProjectReference Include="..\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -61,6 +67,37 @@
     <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+  <!--
+    THE DASHBOARD'S OWN STYLESHEET, compiled here rather than by the consuming app.
+
+    Tailwind scans the project it runs in for class names. The dashboard ships as a compiled assembly, so
+    an app's Tailwind build cannot see these classes and would emit none of them — leaving the console
+    rendered as unstyled HTML with nothing reporting it, which is the failure this repo already hit once
+    on the front-end templates. Compiling here binds the stylesheet to the markup that needs it.
+
+    The output goes to obj/ (never scanned, never committed) and is embedded, so DashboardLayout can
+    inline it into the document. No static web assets, no Razor SDK, no endpoint to map, nothing for a
+    host to serve — which is what lets Rask.Bootstrap leave this package's dependency graph entirely.
+  -->
+  <PropertyGroup>
+    <RaskTailwindInput>Styles/dashboard.css</RaskTailwindInput>
+    <RaskTailwindOutput>obj/dashboard.generated.css</RaskTailwindOutput>
+    <RaskTailwindMinify>true</RaskTailwindMinify>
+  </PropertyGroup>
+
+  <!-- In-repo the package's build/ folder is not imported for us, exactly as for Rask.Core's build
+       integration — a ProjectReference carries no build props. -->
+  <Import Project="..\Rask.Tailwind\build\Rask.Tailwind.props"
+          Condition="Exists('..\Rask.Tailwind\build\Rask.Tailwind.props')"/>
+  <Import Project="..\Rask.Tailwind\build\Rask.Tailwind.targets"
+          Condition="Exists('..\Rask.Tailwind\build\Rask.Tailwind.targets')"/>
+
+  <ItemGroup>
+    <EmbeddedResource Include="obj/dashboard.generated.css"
+                      LogicalName="Rask.Dashboard.dashboard.css"
+                      Condition="Exists('obj/dashboard.generated.css')"/>
   </ItemGroup>
 
 </Project>

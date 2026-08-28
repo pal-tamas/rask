@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Cache;
+using Rask.Core.Routing;
 using Rask.Jobs;
 using Rask.Mail;
 using Rask.Outbox;
@@ -81,6 +82,12 @@ public sealed class DashboardHarness : IAsyncDisposable
             EnvironmentName = environment ?? Environments.Production,
         });
         services.AddRaskCqrs();
+
+        // AddRask registers these for a real host; the harness builds its own container, so the pages'
+        // routing dependencies have to be named here. LogsPage takes a Navigator because its category
+        // filter is a <select> that navigates on change rather than a list of links.
+        services.AddScoped<RouteState>();
+        services.AddScoped<Navigator>();
 
         if (registered.HasFlag(Batteries.Jobs))
         {

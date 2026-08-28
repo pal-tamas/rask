@@ -62,44 +62,58 @@ public sealed partial class CachePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Div.Class("d-flex align-items-center gap-2 mb-3")[
-                H1.Class("h4 mb-0")["Cache"],
-                Div.Class("ms-auto")[FlushButton()]
-            ],
+            OpsHeader.Heading("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
             ActionResult(),
-            BsRow.Class("g-3 mb-4")[
-                BsCol.Sm(4)[BsStat.Value(_stats.Entries.ToString()).Label("Entries").Icon(BsIconName.Archive)],
-                BsCol.Sm(4)[BsStat.Value(DashboardParts.Bytes(_stats.Bytes)).Label("Stored").Icon(BsIconName.Database)],
-                BsCol.Sm(4)[BsStat
+            Div.Class("mb-6 grid gap-4 sm:grid-cols-3")[
+                OpsStat.Value(_stats.Entries.ToString()).Label("Entries").Icon(OpsIconName.Archive),
+                OpsStat.Value(DashboardParts.Bytes(_stats.Bytes)).Label("Stored").Icon(OpsIconName.Database),
+                OpsStat
                     .Value(_stats.Expired.ToString())
                     .Label("Expired, not yet swept")
-                    .Icon(BsIconName.ClockHistory)
-                    .Caption("removed by the purge sweep")]
+                    .Icon(OpsIconName.Clock)
+                    .Caption("removed by the purge sweep")
             ],
             _rows.Count == 0
                 ? DashboardEmpty.Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
                     .Detail("Entries appear here as soon as something is cached.")
-                : Table(now),
+                : KeyTable(now),
             Pager(),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
 
-    private Component Table(DateTime now) =>
-        BsTable.Small(true).Hover(true).Responsive(true)[
-            Thead[Tr[Th["Key"], Th["Size"], Th["Written"], Th["Expires"], Th["Sliding"], Th]],
-            Tbody[_rows.Select(r => Tr.Key(r.Key).Class(r.ExpiresAt <= now ? "text-body-secondary" : null)[
-                Td[Div.Class("text-truncate font-monospace small").Style("max-width:28rem").Title(r.Key)[r.Key]],
-                Td[DashboardParts.Bytes(r.Bytes)],
-                Td.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)],
-                Td.Title(r.ExpiresAt.ToString("u"))[
-                    r.ExpiresAt <= now
-                        ? BsBadge.Color(BsColor.Secondary)["expired"]
-                        : Span[DashboardParts.Ago(r.ExpiresAt, now)]
+    private Component KeyTable(DateTime now) =>
+        OpsTable[
+            Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
+                Tr[
+                    Th.Class("px-3 py-2 font-medium")["Key"],
+                    Th.Class("px-3 py-2 font-medium")["Size"],
+                    Th.Class("px-3 py-2 font-medium")["Written"],
+                    Th.Class("px-3 py-2 font-medium")["Expires"],
+                    Th.Class("px-3 py-2 font-medium")["Sliding"],
+                    Th.Class("px-3 py-2")
+                ]
+            ],
+            Tbody[_rows.Select(r => Tr.Key(r.Key).Class(r.ExpiresAt <= now
+                ? "border-b border-ops-line/60 text-ops-muted last:border-0"
+                : "border-b border-ops-line/60 last:border-0")[
+                Td.Class("px-3 py-2")[
+                    Div.Class($"max-w-[28rem] truncate {Ops.Mono}").Title(r.Key)[r.Key]
                 ],
-                Td[r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"],
-                Td.Class("text-end")[EvictButton(r.Key)]
+                Td.Class("px-3 py-2 tabular-nums")[DashboardParts.Bytes(r.Bytes)],
+                Td.Class("px-3 py-2 text-xs text-ops-muted").Title(r.CreatedAt.ToString("u"))[
+                    DashboardParts.Ago(r.CreatedAt, now)
+                ],
+                Td.Class("px-3 py-2 text-xs").Title(r.ExpiresAt.ToString("u"))[
+                    r.ExpiresAt <= now
+                        ? OpsBadge.Label("expired")
+                        : Span.Class("text-ops-muted")[DashboardParts.Ago(r.ExpiresAt, now)]
+                ],
+                Td.Class("px-3 py-2 text-xs text-ops-muted")[
+                    r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"
+                ],
+                Td.Class("px-3 py-2 text-right")[EvictButton(r.Key)]
             ])]
         ];
 
@@ -111,18 +125,12 @@ public sealed partial class CachePage(
             return null;
         }
 
-        return Div.Class("d-flex align-items-center gap-2")[
-            BsButton
-                .Color(BsColor.Secondary)
-                .Outline(true)
-                .Size(BsSize.Sm)
+        return Div.Class("mt-4 flex items-center gap-3")[
+            Button.Type("button").Class(Ops.Button)
                 .Disabled(_page == 0)
                 .OnClickAsync(() => GoAsync(_page - 1))["Previous"],
-            Span.Class("small text-body-secondary")[$"Page {_page + 1} of {pages} — {_total} keys"],
-            BsButton
-                .Color(BsColor.Secondary)
-                .Outline(true)
-                .Size(BsSize.Sm)
+            Span.Class("text-xs text-ops-muted")[$"Page {_page + 1} of {pages} — {_total} keys"],
+            Button.Type("button").Class(Ops.Button)
                 .Disabled(_page >= pages - 1)
                 .OnClickAsync(() => GoAsync(_page + 1))["Next"]
         ];
@@ -133,35 +141,38 @@ public sealed partial class CachePage(
     // stampede — hence the Destructive tier and a confirmation.
     private Component? EvictButton(string key) =>
         options.Actions.HasFlag(RaskDashboardActions.Safe)
-            ? BsButton
-                .Color(BsColor.Secondary)
-                .Outline(true)
-                .Size(BsSize.Sm)
-                .OnClickAsync(() => EvictAsync(key))["Evict"]
+            ? Button.Type("button").Class(Ops.Button).OnClickAsync(() => EvictAsync(key))["Evict"]
             : null;
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? BsButton.Color(BsColor.Danger).Size(BsSize.Sm).OnClick(() => Confirm(true))["Flush cache"]
+            ? Button.Type("button")
+                .Class("inline-flex items-center rounded-md bg-red-500/15 px-2.5 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/25")
+                .OnClick(() => Confirm(true))["Flush cache"]
             : null;
 
     private Component? ActionResult()
     {
         if (_confirmFlush)
         {
-            return BsAlert.Color(BsColor.Warning).Class("d-flex align-items-center gap-2")[
-                Span.Class("flex-grow-1")[
+            return OpsNotice.Tone("warn")[
+                Span.Class("grow")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                BsButton.Color(BsColor.Danger).Size(BsSize.Sm).OnClickAsync(FlushAsync)["Confirm"],
-                BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClick(() => Confirm(false))["Cancel"]
+                Button.Type("button")
+                    .Class("inline-flex items-center rounded-md bg-red-500/20 px-2.5 py-1.5 text-xs font-medium text-red-200 hover:bg-red-500/30")
+                    .OnClickAsync(FlushAsync)["Confirm"],
+                Button.Type("button").Class(Ops.Button).OnClick(() => Confirm(false))["Cancel"]
             ];
         }
 
         return _message is { } message
-            ? BsAlert.Color(BsColor.Info).Class("d-flex align-items-center gap-2")[
-                Span.Class("flex-grow-1")[message],
-                BsCloseButton.OnClick(Dismiss)
+            ? OpsNotice.Tone("info")[
+                Span.Class("grow")[message],
+                Button.Type("button")
+                    .Class("rounded-md px-2 py-1 text-xs text-ops-muted hover:text-ops-ink")
+                    .Aria(new Dictionary<string, string?> { ["label"] = "Dismiss" })
+                    .OnClick(Dismiss)["Dismiss"]
             ]
             : null;
     }

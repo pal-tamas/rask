@@ -51,7 +51,7 @@ public sealed partial class SystemPage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            H1.Class("h4 mb-3")["System"],
+            OpsHeader.Heading("System"),
             DashboardError.Message(LoadError),
             DatabaseCard(),
             BackupCard(now),
@@ -67,32 +67,34 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return BsCard.Class("mb-4")[
-            BsCardHeader["Database"],
-            BsCardBody[
-                BsRow.Class("g-3")[
-                    BsCol.Sm(6).Lg(3)[BsStat
-                        .Value(db.SizeBytes is { } size ? DashboardParts.Bytes(size) : "—")
-                        .Label("Size")
-                        .Icon(BsIconName.Database)],
-                    BsCol.Sm(6).Lg(3)[BsStat
-                        .Value(db.JournalMode?.ToUpperInvariant() ?? "n/a")
-                        .Label("Journal mode")
-                        .Tone(db.JournalMode is null ? null
-                            : db.JournalMode.Equals("wal", StringComparison.OrdinalIgnoreCase)
-                                ? BsColor.Success
-                                : BsColor.Warning)
-                        .Icon(BsIconName.HddStack)],
-                    BsCol.Sm(6).Lg(3)[BsStat
-                        .Value(db.ForeignKeys switch { true => "on", false => "off", null => "n/a" })
-                        .Label("Foreign keys")
-                        .Tone(db.ForeignKeys is false ? BsColor.Warning : null)
-                        .Icon(BsIconName.Diagram3)],
-                    BsCol.Sm(6).Lg(3)[BsStat
-                        .Value(ShortProvider(db.Provider))
-                        .Label("Provider")
-                        .Icon(BsIconName.Database)]
-                ]
+        return OpsCard.Heading("Database").Class("mb-6")[
+            OpsGrid[
+                OpsStat
+                    .Key("size")
+                    .Value(db.SizeBytes is { } size ? DashboardParts.Bytes(size) : "—")
+                    .Label("Size")
+                    .Icon(OpsIconName.Database),
+                OpsStat
+                    .Key("journal")
+                    .Value(db.JournalMode?.ToUpperInvariant() ?? "n/a")
+                    .Label("Journal mode")
+                    // WAL is the mode every Rask deployment expects; anything else is worth noticing.
+                    .Tone(db.JournalMode is not null
+                          && !db.JournalMode.Equals("wal", StringComparison.OrdinalIgnoreCase)
+                        ? "warn"
+                        : null)
+                    .Icon(OpsIconName.Storage),
+                OpsStat
+                    .Key("fks")
+                    .Value(db.ForeignKeys switch { true => "on", false => "off", null => "n/a" })
+                    .Label("Foreign keys")
+                    .Tone(db.ForeignKeys is false ? "warn" : null)
+                    .Icon(OpsIconName.Gear),
+                OpsStat
+                    .Key("provider")
+                    .Value(ShortProvider(db.Provider))
+                    .Label("Provider")
+                    .Icon(OpsIconName.Database)
             ]
         ];
     }
@@ -106,62 +108,75 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return BsCard.Class("mb-4")[
-            BsCardHeader["Backup"],
-            BsCardBody[
-                _replication is { } r
-                    ? BsRow.Class("g-3 mb-3")[
-                        BsCol.Sm(6).Lg(4)[BsStat
-                            .Value(r.IsReplicating ? "running" : "stopped")
-                            .Label("Continuous replication")
-                            .Tone(r.IsReplicating ? BsColor.Success : BsColor.Danger)
-                            .Caption(r.LastStartedAt is { } started
-                                ? $"since {DashboardParts.Ago(started.UtcDateTime, now)}"
-                                : "never started")
-                            .Icon(BsIconName.ArrowRepeat)],
-                        BsCol.Sm(6).Lg(4)[BsStat
-                            .Value(r.RestartCount.ToString())
-                            .Label("Restarts")
-                            .Tone(r.RestartCount > 0 ? BsColor.Warning : null)
-                            .Caption(r.LastError ?? "no failures recorded")
-                            .Icon(BsIconName.ExclamationTriangle)]
-                    ]
-                    : null,
-                // Restorability is its own row, and its own fact: "the replicator is running" above says
-                // nothing about whether what it wrote can be read back.
-                _verification is { } v
-                    ? BsRow.Class("g-3 mb-3")[
-                        BsCol.Sm(6).Lg(4)[BsStat
-                            .Value(v.Level == BackupVerificationLevel.Verified ? "restorable" : v.Outcome.ToLowerInvariant())
-                            .Label("Last verified restore")
-                            .Tone(v.Level switch
-                            {
-                                BackupVerificationLevel.Verified => BsColor.Success,
-                                BackupVerificationLevel.Broken => BsColor.Danger,
-                                _ => BsColor.Warning,
-                            })
-                            .Caption(v.LastVerifiedAt is { } verified
-                                ? $"verified {DashboardParts.Ago(verified.UtcDateTime, now)}"
-                                : v.LastError ?? "never verified")
-                            .Icon(v.Level == BackupVerificationLevel.Broken
-                                ? BsIconName.ShieldExclamation
-                                : BsIconName.ShieldCheck)]
-                    ]
-                    : null,
-                SnapshotList(now)
-            ]
+        return OpsCard.Heading("Backup").Class("mb-6")[
+            _replication is { } r
+                ? Div.Class("mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
+                    OpsStat
+                        .Key("replication")
+                        .Value(r.IsReplicating ? "running" : "stopped")
+                        .Label("Continuous replication")
+                        .Tone(r.IsReplicating ? null : "danger")
+                        .Caption(r.LastStartedAt is { } started
+                            ? $"since {DashboardParts.Ago(started.UtcDateTime, now)}"
+                            : "never started")
+                        .Icon(OpsIconName.Retry),
+                    OpsStat
+                        .Key("restarts")
+                        .Value(r.RestartCount.ToString())
+                        .Label("Restarts")
+                        .Tone(r.RestartCount > 0 ? "warn" : null)
+                        .Caption(r.LastError ?? "no failures recorded")
+                        .Icon(OpsIconName.Warning)
+                ]
+                : null,
+            // Restorability is its own row, and its own fact: "the replicator is running" above says
+            // nothing about whether what it wrote can be read back.
+            _verification is { } v
+                ? Div.Class("mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
+                    OpsStat
+                        .Key("verification")
+                        .Value(v.Level == BackupVerificationLevel.Verified
+                            ? "restorable"
+                            : v.Outcome.ToLowerInvariant())
+                        .Label("Last verified restore")
+                        // Broken is red; Unknown is amber. A check that races replication must not
+                        // paint the tile red, or the tile stops being read.
+                        .Tone(v.Level switch
+                        {
+                            BackupVerificationLevel.Verified => null,
+                            BackupVerificationLevel.Broken => "danger",
+                            _ => "warn",
+                        })
+                        .Caption(v.LastVerifiedAt is { } verified
+                            ? $"verified {DashboardParts.Ago(verified.UtcDateTime, now)}"
+                            : v.LastError ?? "never verified")
+                        .Icon(v.Level == BackupVerificationLevel.Broken
+                            ? OpsIconName.ShieldWarning
+                            : OpsIconName.ShieldOk)
+                ]
+                : null,
+            SnapshotList(now)
         ];
     }
 
     private Component SnapshotList(DateTime now) =>
         _snapshots.Count == 0
-            ? Div.Class("text-body-secondary small")["No snapshots stored."]
-            : BsTable.Small(true).Responsive(true).Class("mb-0")[
-                Thead[Tr[Th["Snapshot"], Th["Size"], Th["Taken"]]],
-                Tbody[_snapshots.Take(10).Select(s => Tr.Key(s.Name)[
-                    Td.Class("font-monospace small")[s.Name],
-                    Td[DashboardParts.Bytes(s.SizeBytes)],
-                    Td.Title(s.CreatedAt.ToString("u"))[DashboardParts.Ago(s.CreatedAt, now)]
+            ? Div.Class("text-xs text-ops-muted")["No snapshots stored."]
+            : OpsTable[
+                Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
+                    Tr[
+                        Th.Class("px-3 py-2 font-medium")["Snapshot"],
+                        Th.Class("px-3 py-2 font-medium")["Size"],
+                        Th.Class("px-3 py-2 font-medium")["Taken"]
+                    ]
+                ],
+                Tbody[_snapshots.Take(10).Select(s => Tr.Key(s.Name)
+                    .Class("border-b border-ops-line/60 last:border-0")[
+                    Td.Class($"px-3 py-2 {Ops.Mono}")[s.Name],
+                    Td.Class("px-3 py-2 tabular-nums")[DashboardParts.Bytes(s.SizeBytes)],
+                    Td.Class("px-3 py-2 text-xs text-ops-muted").Title(s.CreatedAt.ToString("u"))[
+                        DashboardParts.Ago(s.CreatedAt, now)
+                    ]
                 ])]
             ];
 
@@ -172,20 +187,28 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return BsCard[
-            BsCardHeader["Recurring jobs"],
-            BsCardBody[
-                BsTable.Small(true).Responsive(true).Class("mb-0")[
-                    Thead[Tr[Th["Name"], Th["Every"], Th["Last enqueued"]]],
-                    Tbody[_recurring.Select(r => Tr.Key(r.Name)[
-                        Td.Class("font-monospace small")[r.Name],
-                        Td[DashboardParts.Duration(r.Interval)],
-                        Td[r.LastEnqueuedAt is { } last
-                            ? Span.Title(last.ToString("u"))[DashboardParts.Ago(last, now)]
+        return OpsCard.Heading("Recurring jobs")[
+            OpsTable[
+                Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
+                    Tr[
+                        Th.Class("px-3 py-2 font-medium")["Name"],
+                        Th.Class("px-3 py-2 font-medium")["Every"],
+                        Th.Class("px-3 py-2 font-medium")["Last enqueued"]
+                    ]
+                ],
+                Tbody[_recurring.Select(r => Tr.Key(r.Name)
+                    .Class("border-b border-ops-line/60 last:border-0")[
+                    Td.Class($"px-3 py-2 {Ops.Mono}")[r.Name],
+                    Td.Class("px-3 py-2")[DashboardParts.Duration(r.Interval)],
+                    Td.Class("px-3 py-2")[
+                        r.LastEnqueuedAt is { } last
+                            ? Span.Class("text-xs text-ops-muted").Title(last.ToString("u"))[
+                                DashboardParts.Ago(last, now)
+                            ]
                             // Declared but never fired: either the app just started, or this one is stuck.
-                            : BsBadge.Color(BsColor.Secondary)["never"]]
-                    ])]
-                ]
+                            : OpsBadge.Label("never")
+                    ]
+                ])]
             ]
         ];
     }

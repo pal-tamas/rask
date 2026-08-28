@@ -94,6 +94,21 @@ them until tagged releases begin.
   Scoped to two calls in the same method body on the same receiver as written, so a test file that builds
   one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
 
+### Changed
+- **The ops dashboard is styled by Tailwind and no longer depends on `Rask.Bootstrap`.** Its stylesheet
+  is compiled from `Styles/dashboard.css` at this package's own build, embedded in the assembly, and
+  inlined as a `<style>` through head assets — so the console is styled correctly inside a host that
+  links no stylesheet of its own, and `Rask.Dashboard` ships no static web assets, needs no Razor SDK,
+  and can be bundled as a plain assembly. Everything is scoped under `.rask-ops` so the console's reset
+  cannot reach the host app's pages, which share the document when an operator navigates back.
+
+  Icons are inline SVG paths (Heroicons, MIT) rather than a webfont, which removes the last asset the
+  dashboard needed to fetch.
+
+  **Breaking:** `IQueuePanel.Icon` is now `OpsIconName` rather than `BsIconName`. A custom queue panel
+  picks from the new enum; the members it is likely to want (`Queue`, `Database`, `Envelope`, `Clock`,
+  `Retry`, `Archive`, `Outbox`, `Gear`, `Storage`, `Warning`) carry the same meanings.
+
 ### Fixed
 - **RASK022 now reads a chain that ends at a step.** `Build<T>` is a struct, so it inherits from
   nothing and the analyzer's Component-derived check saw no child — the key requirement was skipped
