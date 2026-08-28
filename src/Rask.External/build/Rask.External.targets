@@ -76,16 +76,15 @@
     </_RaskExternalFile>
 
     <!-- .d.ts carries no code, and its %(Filename) still ends in '.d' — so it would pair with nothing
-         and name a component nobody declared. -->
+         and name a component nobody declared. Filtered to the .cs-paired ones in
+         _RaskExternalPairLitFiles below, which is a TARGET because the filter needs metadata
+         batching: %(Item.Metadata) in an item Condition is illegal outside one (MSB4191), and the
+         failure is not a warning — the whole project stops being a valid project file, so every
+         `dotnet run` of it dies before Main. -->
     <_RaskExternalLitCandidate Include="$(MSBuildProjectDirectory)/**/*.ts"
                      Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*;$(MSBuildProjectDirectory)/**/*.d.ts">
       <Sibling>%(RootDir)%(Directory)%(Filename).cs</Sibling>
     </_RaskExternalLitCandidate>
-
-    <_RaskExternalFile Include="@(_RaskExternalLitCandidate)" Condition="Exists('%(_RaskExternalLitCandidate.Sibling)')">
-      <IslandName>%(Filename)</IslandName>
-      <Runtime>lit</Runtime>
-    </_RaskExternalFile>
 
     <!-- Still available for a file convention cannot reach — the build-side counterpart of overriding
          Module in C#. The two have to agree; nothing checks that they do. -->
@@ -105,7 +104,24 @@
     from the package on every build, which is what keeps the client half wire-locked to the C# half:
     upgrading Rask.External upgrades both together or the pair drifts.
   -->
+  <!--
+    Pairs each candidate .ts with a .cs of the same name, which is what makes a LitComponent's module
+    discoverable by convention rather than by hand.
+
+    A target rather than an ItemGroup because the filter reads %(Sibling) per item, and metadata
+    batching is only legal inside one.
+  -->
+  <Target Name="_RaskExternalPairLitFiles" Condition="'$(_RaskExternalBundlable)' == 'true'">
+    <ItemGroup>
+      <_RaskExternalFile Include="@(_RaskExternalLitCandidate)" Condition="Exists('%(_RaskExternalLitCandidate.Sibling)')">
+        <IslandName>%(Filename)</IslandName>
+        <Runtime>lit</Runtime>
+      </_RaskExternalFile>
+    </ItemGroup>
+  </Target>
+
   <Target Name="_RaskExternalVendorAdapters"
+          DependsOnTargets="_RaskExternalPairLitFiles"
           Condition="'$(_RaskExternalEnabled)' == 'true'"
           Inputs="@(_RaskExternalAdapterSource)"
           Outputs="@(_RaskExternalAdapterSource->'$(_RaskExternalAdapters)%(Filename)%(Extension)')">
