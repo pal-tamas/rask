@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Rask.Example.Auth;
 using Rask.Server;
 
-var builder = WebApplication.CreateBuilder(args);
+var app = RaskApp.Create(args);
 
-// Cookie auth — Rask reads HttpContext.User; the sign-in handshake sets this cookie on redeem.
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+// Cookie auth — Rask reads HttpContext.User; the sign-in handshake sets this cookie on redeem. Registering
+// a scheme is all it takes: RaskApp puts UseAuthentication/UseAuthorization ahead of UseRask on its own,
+// which is the order the principal has to be populated in (RASK024), and leaves them out entirely for an
+// app that has no scheme.
+app.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
     {
         o.Cookie.Name = "rask.auth";
@@ -14,16 +17,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.ExpireTimeSpan = TimeSpan.FromHours(8);
         o.SlidingExpiration = true;
     });
-builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
-builder.Services.AddRask();
+app.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
 
-var app = builder.Build();
-
-app.MapStaticAssets();
-app.UseRouting();
-// Must precede UseRask so HttpContext.User is populated on the GET and the WS upgrade.
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseRask<App>();
-
-app.Run();
+app.Run<App>();
