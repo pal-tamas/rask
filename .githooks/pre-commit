@@ -36,7 +36,10 @@ fi
 #   scripts/run-unit-local.sh runs scripts/tests/*.test.sh, which covers the failure classification
 #   that decides whether a red gate blames your branch or your machine (#718). Without these prefixes a
 #   change to the gate logic is the one change that skips the gate.
-if ! git diff --cached --name-only | grep -E '^(src/|samples/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|Directory\.)' >/dev/null; then
+#   rask.sh / rask.ps1 are here for the same reason, one level worse: they sit at the repo root, so
+#   they matched none of the prefixes above, and a commit that touched only the public installer was
+#   the one commit that ran neither the formatter nor scripts/tests/install-script.test.sh.
+if ! git diff --cached --name-only | grep -E '^(src/|samples/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi

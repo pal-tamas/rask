@@ -8,6 +8,14 @@ a single host over SSH — all with short, Rask-aware commands.
 ## Install
 
 ```bash
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
+```
+
+That adds the .NET 10 SDK, this tool, and the dependencies it shells out to (`dotnet-ef`, the
+`wasm-tools` workload, Node for the SPA templates) — all under `$HOME`, no `sudo`. Already have the
+.NET 10 SDK and want only the tool:
+
+```bash
 dotnet tool install -g Rask.Cli
 ```
 
