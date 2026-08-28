@@ -95,12 +95,30 @@ them until tagged releases begin.
   one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
 
 ### Changed
+- **The ops console is a separate application, served at `/_rask` with its own document.** Its pages used
+  to join the host application's route table simply by being referenced — `RouteRegistry` is process-wide —
+  so the host's own root rendered them, inside the host's document. That is not cosmetic: the console's
+  stylesheet then applied to the host's pages, and the host's `[NotFound]` answered a mistyped console URL.
+
+  Nothing to write. `AddRaskDashboard` registers the mount, and `UseRask` serves it. A wasm-hosted app can
+  now delete its hand-written `app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}")` — the console
+  mounts identically on every template instead of being a line you have to remember on one of them.
+
+  Isolation is by **provenance**, not by path: `RouteRegistry` already grouped registrations per assembly
+  so hot reload could swap one assembly's routes without touching another's, and `BuildTree(Assembly)` /
+  `BuildTreeExcept(…)` are views over that grouping. The fallback rule applies per subset, so a console
+  URL that matches nothing gets the console's own `[NotFound]` rather than the host application's.
+
+  Entering and leaving the console is a browser navigation rather than a live one, and the console gets its
+  own WebSocket session — so an operator polling a queue never shares a render session with an end user's
+  page.
+
 - **The ops dashboard is styled by Tailwind and no longer depends on `Rask.Bootstrap`.** Its stylesheet
   is compiled from `Styles/dashboard.css` at this package's own build, embedded in the assembly, and
   inlined as a `<style>` through head assets — so the console is styled correctly inside a host that
   links no stylesheet of its own, and `Rask.Dashboard` ships no static web assets, needs no Razor SDK,
-  and can be bundled as a plain assembly. Everything is scoped under `.rask-ops` so the console's reset
-  cannot reach the host app's pages, which share the document when an operator navigates back.
+  and can be bundled as a plain assembly. It carries Tailwind's full reset, which is safe because the
+  console owns its document — see the mount above.
 
   Icons are inline SVG paths (Heroicons, MIT) rather than a webfont, which removes the last asset the
   dashboard needed to fetch.
@@ -110,7 +128,18 @@ them until tagged releases begin.
   `Retry`, `Archive`, `Outbox`, `Gear`, `Storage`, `Warning`) carry the same meanings.
 
 ### Fixed
-- **RASK022 now reads a chain that ends at a step.** `Build<T>` is a struct, so it inherits from
+- **A resumed console session came back as the host application.** The WebSocket endpoint is mapped once
+  per host rather than once per root, so it captured whichever root the first `UseRask` supplied — and that
+  is what session *resume* rebuilds with. A console session resuming after a restart or an eviction would
+  therefore have been rebuilt as the host app, under the console's URL, with nothing reporting it. Resume
+  now reads the path out of the resume record first and picks the root the same way the initial GET does.
+
+- **Three test classes raced over `RaskDiagnostics.Sink`.** It is a process-wide static and xUnit runs
+  classes in parallel, but only one of the three that swap it was serialized — so two could overlap and one
+  would see an empty capture. It fails as an assertion against an empty collection, only under load, and
+  passes when run alone, which is the signature that gets it waved through as a flake.
+
+ `Build<T>` is a struct, so it inherits from
   nothing and the analyzer's Component-derived check saw no child — the key requirement was skipped
   and an unkeyed list passed silently. The shape was unreachable until the children indexer above
   made a projection of chains valid children, so this shipped in the same change that created it.

@@ -16,7 +16,7 @@ namespace Rask.Server.Tests.Endpoints;
 //
 // Serialised: RaskDiagnostics.Sink is process-global, and two tests swapping it concurrently lose it
 // entirely — an empty collection rather than a slow one.
-[Collection("StaticPageAudit")]
+[Collection(RaskDiagnosticsSinkCollection.Name)]
 public class StaticPageAuditTests
 {
     [Fact]
@@ -101,9 +101,6 @@ public class StaticPageAuditTests
         return null;
     }
 }
-
-[CollectionDefinition("StaticPageAudit", DisableParallelization = true)]
-public sealed class StaticPageAuditCollection;
 
 // Renders nothing a walk can see as needing a connection, then pushes anyway — the shape of a polling
 // panel, and of any component driven by a timer or an event subscription.

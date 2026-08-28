@@ -16,7 +16,13 @@ namespace Rask.Dashboard.Pages;
 /// The layout inlines the dashboard's whole stylesheet via <see cref="HeadAssets" />. Head-asset
 /// contributions are collected from every component in the tree and deduplicated by rendered HTML, so the
 /// console is styled correctly inside a host that links no stylesheet of its own, without being emitted
-/// twice — and it drops out again when the operator navigates back into the app.
+/// twice.
+/// </para>
+/// <para>
+/// The console is served as its own application under <c>/_rask</c> rather than as pages inside the host
+/// app, so this document is the console's alone — see <c>RaskMountedApp</c>. Leaving it is a browser
+/// navigation rather than a live one, which is the point: an operator polling a queue never shares a
+/// render session with an end user's page.
 /// </para>
 /// </summary>
 [Authorize(Policy = RaskDashboardPolicies.Access)]
@@ -69,8 +75,9 @@ public sealed partial class DashboardLayout(
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        // Everything is scoped under .rask-ops so the dashboard's own reset cannot reach the host app's
-        // pages, which share this document when an operator navigates back into it.
+        // .rask-ops is a hook, not a fence. It was a fence while these pages rendered inside the host
+        // application's document and every rule had to be scoped under it; the console is now a mounted
+        // application with its own document (RaskMountedApp), so the stylesheet is free to be ordinary.
         Div.Class("rask-ops min-h-screen bg-ops-bg text-ops-ink")[
             Header.Class("border-b border-ops-line")[
                 Div.Class("mx-auto flex max-w-none items-center gap-6 px-6 py-3")[

@@ -468,7 +468,15 @@ public static partial class RaskEndpointExtensions
             sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp));
 #pragma warning restore RASK014
 
-        EnsureRuntimeMapped(endpoints, pathBaseNormalized, appFactory);
+        // Applications mounted under their own prefix — the operator console at /_rask is the one that
+        // exists. Read from the container rather than named here, because Rask.Server cannot see the
+        // packages that declare them and must not: it would drag EF and the batteries into a host that
+        // wanted neither.
+        var selector = new RaskRootSelector(
+            appFactory,
+            endpoints.ServiceProvider.GetServices<RaskMountedApp>().ToArray());
+
+        EnsureRuntimeMapped(endpoints, pathBaseNormalized, selector);
 
         // Scope the catch-all SPA route under the prefix when set. The pattern
         // default ("/{**path}") is interpreted relative to the prefix root, so
@@ -479,7 +487,10 @@ public static partial class RaskEndpointExtensions
             ? pattern
             : pathBaseNormalized + (pattern.StartsWith('/') ? pattern : "/" + pattern);
 
-        endpoints.MapGet(scopedPattern, (RequestDelegate)(async httpContext =>
+        // Hoisted so the same handler can serve the host's catch-all AND each mounted application's
+        // pattern. It already decides which application owns a request from the path, so mapping it more
+        // than once adds a way in rather than a second behaviour.
+        var pageHandler = (RequestDelegate)(async httpContext =>
         {
             var store = httpContext.RequestServices.GetRequiredService<LiveSessionStore>();
             var limits = httpContext.RequestServices.GetRequiredService<RaskServerLimits>();
@@ -490,7 +501,11 @@ public static partial class RaskEndpointExtensions
             // NOT say whether the user will see it. An app whose root renders directly still
             // resolves — the fallback is always registered — but mounts no Router, so the chain is
             // never rendered and the URL is incidental. Confirmed against the render below.
-            var matched = RouteResolver.TryResolve(path, out var chain, out var isNotFound);
+            // Which application owns this path decides BOTH the table it resolves against and the root
+            // built for it. Answered together, because a root rendered against another application's
+            // routes resolves perfectly and shows the wrong thing.
+            var appFactoryForPath = selector.FactoryFor(path);
+            var matched = RouteResolver.TryResolve(selector.RoutesFor(path), path, out var chain, out var isNotFound);
             var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
 
             if (matched)
@@ -523,8 +538,8 @@ public static partial class RaskEndpointExtensions
             // anyway; the authoritative check is still the atomic one, at TryRegister below.
             var staticPages = limits.StaticPages;
             var session = staticPages
-                ? (store.IsDraining || store.AtCapacity ? null : store.CreateDetached(appFactory))
-                : store.TryCreate(appFactory);
+                ? (store.IsDraining || store.AtCapacity ? null : store.CreateDetached(appFactoryForPath))
+                : store.TryCreate(appFactoryForPath);
             if (session is null)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
@@ -811,7 +826,23 @@ public static partial class RaskEndpointExtensions
             // not pin a DI scope + tree for the full 30s reconnect window. A real hello cancels
             // this removal (LiveSessionStore.Get) and DetachSocket later re-arms the full grace.
             store.ScheduleRemoval(session.Id, limits.UnconnectedSessionGracePeriod);
-        }));
+        });
+
+        endpoints.MapGet(scopedPattern, pageHandler);
+
+        // A mounted application needs its own endpoint when the host's pattern does not reach it. The
+        // default catch-all does, and ASP.NET prefers the more specific route either way, so this is
+        // what makes the console work on a host whose own pattern is narrow — a wasm-hosted app, where
+        // the SPA fallback would otherwise swallow /_rask.
+        foreach (var mount in selector.Mounts)
+        {
+            var mountPattern = pathBaseNormalized.Length == 0
+                ? mount.Pattern
+                : pathBaseNormalized + (mount.Pattern.StartsWith('/') ? mount.Pattern : "/" + mount.Pattern);
+
+            endpoints.MapGet(mountPattern, pageHandler);
+        }
+
         return endpoints;
     }
 
@@ -864,7 +895,7 @@ public static partial class RaskEndpointExtensions
     }
 
     private static void EnsureRuntimeMapped(
-        IEndpointRouteBuilder endpoints, string pathBase, Func<IServiceProvider, Component> appFactory)
+        IEndpointRouteBuilder endpoints, string pathBase, RaskRootSelector selector)
     {
         var marker = endpoints.ServiceProvider.GetRequiredService<RaskLiveMarker>();
         if (marker.RuntimeMapped)
@@ -929,7 +960,7 @@ public static partial class RaskEndpointExtensions
                 // (the resume path), which happens in a fresh DI scope much later.
                 ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var wsCulture);
 
-                await RunSocketLoop(ws, store, limits, wsUser, resume, appFactory, linked.Token,
+                await RunSocketLoop(ws, store, limits, wsUser, resume, selector, linked.Token,
                     drain.HardStopping, wsCulture);
             }));
 
@@ -1078,7 +1109,7 @@ public static partial class RaskEndpointExtensions
     }
 
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
-        ClaimsPrincipal wsUser, SessionResumeSupport resume, Func<IServiceProvider, Component> appFactory,
+        ClaimsPrincipal wsUser, SessionResumeSupport resume, RaskRootSelector selector,
         CancellationToken ct, CancellationToken stopping, CultureNegotiation resumeCulture = default)
     {
         using var abortReg = stopping.Register(() =>
@@ -1255,7 +1286,7 @@ public static partial class RaskEndpointExtensions
 
                         session = resumeToken is null
                             ? null
-                            : TryResumeSession(resumeToken, wsUser, resume, store, metrics, appFactory);
+                            : TryResumeSession(resumeToken, wsUser, resume, store, metrics, selector);
 
                         if (session is null)
                         {
@@ -1676,7 +1707,7 @@ public static partial class RaskEndpointExtensions
         SessionResumeSupport resume,
         LiveSessionStore store,
         RaskMetrics? metrics,
-        Func<IServiceProvider, Component> appFactory)
+        RaskRootSelector selector)
     {
         if (resume.Protector is not { } protector)
         {
@@ -1689,7 +1720,11 @@ public static partial class RaskEndpointExtensions
             return null;
         }
 
-        var session = store.TryCreate(appFactory);
+        // Split BEFORE the session is created: the path is what says which application this record
+        // belongs to, and building the wrong root here is the failure this selector exists to stop.
+        var (path, query) = SplitUrl(record!.Url);
+
+        var session = store.TryCreate(selector.FactoryFor(path));
         if (session is null)
         {
             metrics?.ResumeRejected("atcapacity");
@@ -1698,7 +1733,6 @@ public static partial class RaskEndpointExtensions
 
         // Seed the route and the declared state BEFORE the first render, so the page builds against them
         // rather than rendering a default and then correcting itself in a second frame the user would see.
-        var (path, query) = SplitUrl(record!.Url);
         var routeState = session.Services.GetRequiredService<RouteState>();
         routeState.Path = path;
         routeState.Query = query;

@@ -36,8 +36,16 @@ public class DashboardStylesheetTests
     public void The_stylesheet_carries_the_classes_the_pages_use(string fragment) =>
         Assert.Contains(fragment, Css(), StringComparison.Ordinal);
 
-    // The console renders inside the host application's document, so its reset must not escape.
+    // The console is a mounted application with its own document, so it carries a full reset. This was
+    // the reverse assertion while the console rendered inside the host's document: the reset had to be
+    // hand-scoped, because a global one landed on the host application's own pages. Pinned in this
+    // direction so that reverting the mount without reverting the stylesheet fails here rather than in
+    // somebody's browser.
     [Fact]
-    public void The_console_is_scoped_so_its_reset_cannot_reach_the_host_app() =>
-        Assert.Contains("rask-ops", Css(), StringComparison.Ordinal);
+    public void The_console_owns_its_document_so_it_ships_a_full_reset() =>
+        Assert.Contains("html,:host", Css(), StringComparison.Ordinal);
+
+    [Fact]
+    public void The_document_carries_the_console_background() =>
+        Assert.Contains("--color-ops-bg", Css(), StringComparison.Ordinal);
 }
