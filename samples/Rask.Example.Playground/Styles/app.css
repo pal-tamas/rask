@@ -1,0 +1,76 @@
+/*
+  The playground's stylesheet, compiled by Rask.Tailwind at this project's build into
+  wwwroot/css/app.css (the package's default input/output convention).
+
+  This replaced a stack of three stylesheets — Bootstrap, the shared design tokens, and a global.css
+  that overrode both — where the cascade order was what decided the outcome and the comment explaining
+  the order was the only thing keeping it right.
+*/
+@import "tailwindcss";
+
+@theme {
+  --color-pg-ground: oklch(0.16 0.02 285);
+  --color-pg-panel: oklch(0.21 0.02 285);
+  --color-pg-line: oklch(0.30 0.02 285);
+  --color-pg-ink: oklch(0.94 0.01 285);
+  --color-pg-muted: oklch(0.72 0.02 285);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    background-color: var(--color-pg-ground);
+    color: var(--color-pg-ink);
+  }
+
+  /*
+    The compiled preview is USER-authored HTML: it carries no scope id, so a scoped {Component}.css
+    never reaches it, and the class names it uses are whatever the starter snippet wrote. These two
+    are that snippet's vocabulary, kept as real CSS rather than utilities for exactly that reason —
+    Tailwind cannot scan source it has never seen.
+
+    They stay a light-surface look on purpose: the preview canvas is deliberately "paper" in both
+    themes, so a freshly compiled component reads the same whichever theme the shell is in.
+  */
+  .card {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.5rem 1.75rem;
+    border-radius: 12px;
+    color: #1f2430;
+    background: #fff;
+    box-shadow:
+      0 1px 3px rgb(17 12 46 / 8%),
+      0 8px 24px rgb(17 12 46 / 6%);
+  }
+
+  .card h1 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+
+  .card p {
+    margin: 0;
+    color: #4b5563;
+  }
+
+  .btn {
+    align-self: flex-start;
+    border: 0;
+    border-radius: 8px;
+    padding: 0.5rem 1.1rem;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: oklch(0.55 0.22 292);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .btn:hover {
+    background: oklch(0.48 0.22 292);
+  }
+}

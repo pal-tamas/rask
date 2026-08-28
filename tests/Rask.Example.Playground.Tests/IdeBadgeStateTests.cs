@@ -12,7 +12,9 @@ namespace Rask.Example.Playground.Tests;
 ///     dropped the state classes, so the selector matched nothing and the browser gate was red on
 ///     <c>main</c> from then on — and because an unresolvable locator fails by <i>timing out</i>, the
 ///     report pointed at the reference download rather than at the missing class, so it read as a sandbox
-///     network problem and got waved through with <c>RASK_SKIP_E2E=1</c>.
+///     network problem and got waved through with <c>RASK_SKIP_E2E=1</c>. The pill is a plain
+///     <c>Span</c> with Tailwind utilities now rather than a <c>BsBadge</c>, which changes nothing here:
+///     what the gate waits on is the state class, and that is exactly what #470 dropped.
 ///     <para>
 ///         The point of these tests is <b>where they fail</b>: in the fast unit gate, naming the cause,
 ///         rather than three minutes into a suite people have learned to skip.

@@ -54,22 +54,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Bring the generated Bs* factories into scope unqualified (BsButton()/BsLink()/BsBadge()/BsIcon()/
-         BootstrapStyles()/RaskTokens()), matching how the other samples consume Rask.Bootstrap. -->
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <!-- Rask.Wasm references Rask.Core with PrivateAssets="all" (kept out of its nuspec), so it doesn't
          flow transitively — reference it directly, as any Rask app that doesn't go through the showcase
          shared library would. Microsoft.JSInterop likewise, for IJSRuntime in the editor interop. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <!-- Typed Bootstrap primitives for the IDE chrome (topbar buttons/badge/theme toggle), so the
-         playground shares the same Bs* component language + the shared design tokens as the docs. Bundles
-         Bootstrap's CSS as static web assets under _content/Rask.Bootstrap — negligible next to the
-         untrimmed multi-MB Roslyn payload this sub-app already ships. -->
-    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
+    <!-- Tailwind, compiled at this project's build. Build-only: it contributes an MSBuild task and a CLI
+         run, not an assembly, so nothing is added to the payload this sub-app ships. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
     <PackageReference Include="Microsoft.JSInterop"/>
     <!-- Roslyn, shipped to the browser (a normal reference, so Microsoft.CodeAnalysis.* land in
          _framework and load at runtime). This is the ~15-20 MB the sub-app isolation exists to contain.
@@ -98,5 +94,12 @@
          the same conventions `rask generate feature` scaffolds into a real project. -->
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
+
+  <!-- In-repo consumers import these by hand: a ProjectReference carries no build props, so referencing
+       Rask.Tailwind alone would compile nothing and produce no stylesheet, silently. -->
+  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.props"
+          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.props')"/>
+  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets"
+          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets')"/>
 
 </Project>

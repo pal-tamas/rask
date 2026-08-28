@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.JSInterop;
-using Rask.Bootstrap;
 using Rask.Core.Components;
 using Rask.Example.Playground.Compiler;
 using Rask.Html.Components;
@@ -187,44 +186,34 @@ public sealed partial class PlaygroundView : Component
                 ],
                 Div.Class("pg-actions")[
                     Span.Class("pg-phase")[_phase],
-                    // Reset / Run — the same Bs* button language as the docs; the pg-run class stays a hook
-                    // for the Ctrl/Cmd+Enter shortcut (PlaygroundView.js) and the E2E.
-                    BsButton
-                        .Class("pg-reset")
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    // pg-reset / pg-run stay as hooks: the Ctrl/Cmd+Enter shortcut (PlaygroundView.js)
+                    // and the E2E both select on them, so they are behaviour, not styling.
+                    Button
+                        .Type("button")
+                        .Class($"pg-reset {Ui.Button}")
                         .Disabled(!CanInteract)
                         .OnClickAsync(ResetAsync)["Reset"],
-                    BsButton
-                        .Class("pg-run")
-                        .Color(BsColor.Primary)
-                        .Size(BsSize.Sm)
+                    Button
+                        .Type("button")
+                        .Class($"pg-run {Ui.Primary}")
                         .Disabled(!CanInteract || IsActiveChapterLocked)
                         .OnClickAsync(RunAsync)[_busy ? "Running…" : "Run ▸"],
                     // Cross-app links back to the docs + repo, and the shared light/dark toggle.
-                    BsLink
+                    A
                         .Href("https://pal-tamas.github.io/rask/docs/")
                         .Target("_blank")
                         .Rel("noopener")
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)[
-                        BsIcon.Name(BsIconName.Book).Class("me-1"), "Docs"],
-                    BsLink
+                        .Class(Ui.Button)["Docs"],
+                    A
                         .Href("https://github.com/pal-tamas/rask")
                         .Target("_blank")
                         .Rel("noopener")
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)[
-                        BsIcon.Name(BsIconName.Github).Class("me-1"), "GitHub"],
-                    BsButton
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                        .Class(Ui.Button)["GitHub"],
+                    Button
+                        .Type("button")
+                        .Class(Ui.Button)
                         .OnClickAsync(ToggleThemeAsync)
-                        .Aria(ThemeToggleAria)[BsIcon.Name(BsIconName.CircleHalf)]
+                        .Aria(ThemeToggleAria)["◐"]
                 ]
             ],
             Div.Class("pg-body")[
@@ -362,18 +351,14 @@ public sealed partial class PlaygroundView : Component
                     $"Chapter {chapter.Number.ToString(CultureInfo.InvariantCulture)} — {chapter.Title}"
                 ],
                 Div.Class("pg-brief-nav")[
-                    BsButton
-                        .Class("pg-prev")
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    Button
+                        .Type("button")
+                        .Class($"pg-prev {Ui.Button}")
                         .Disabled(!CanInteract || chapter.Number == 1)
                         .OnClickAsync(() => StepAsync(-1))["← Back"],
-                    BsButton
-                        .Class("pg-next")
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    Button
+                        .Type("button")
+                        .Class($"pg-next {Ui.Button}")
                         .Disabled(!CanInteract || chapter.Number == TutorialChapters.All.Count)
                         .OnClickAsync(() => StepAsync(1))["Next →"]
                 ]
@@ -396,18 +381,20 @@ public sealed partial class PlaygroundView : Component
 
     private Component? IdeBadge()
     {
-        var (color, text) = _ide switch
+        var (tone, text) = _ide switch
         {
-            IdeState.Ready => (BsColor.Success, "IntelliSense ready"),
-            IdeState.Unavailable => (BsColor.Danger, "IntelliSense unavailable"),
-            _ => (BsColor.Secondary, "Loading IntelliSense…")
+            IdeState.Ready => ("bg-emerald-500/15 text-emerald-300", "IntelliSense ready"),
+            IdeState.Unavailable => ("bg-red-500/15 text-red-300", "IntelliSense unavailable"),
+            _ => ("bg-white/10 text-slate-300", "Loading IntelliSense…")
         };
 
         // The state rides a class as well as the colour and the label: it is what the E2E waits on to know
         // the workspace has its references, and a colour is not a thing a locator can wait for. See
         // IdeBadgeState — the mapping is pinned by a unit test precisely because losing it fails as a
         // three-minute Playwright timeout rather than as anything that names the cause (#593).
-        return BsBadge.Color(color).Pill(true).Class($"pg-ide {IdeBadgeState.ClassFor(_ide)}")[text];
+        return Span
+            .Class($"pg-ide {IdeBadgeState.ClassFor(_ide)} "
+                   + $"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {tone}")[text];
     }
 
     private Component PreviewBody()
