@@ -14,16 +14,15 @@ internal static partial class ProjectGenerator
         // sources for one decision, and the caller that set only one of them is the bug. Localization is
         // the same argument plus a list: until #846 this parameter was accepted and never looked at, so
         // the template took --culture and scaffolded nothing.
-        var styling = (batteries ?? new ServerBatteries()).Styling;
         string[] cultures = batteries?.Localization == true ? [.. batteries.Cultures] : [];
 
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", WasmCsproj(auth, styling, version, cultures.Length > 0)),
+            ($"{NameToken}.csproj", WasmCsproj(auth, version, cultures.Length > 0)),
             ("Program.cs", WasmProgram(auth, pwa, cultures)),
             // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
-            ("Features/Shared/App.cs", AppShellCs(styling)),
-            ("Features/Home/HomePage.cs", HomePageCs(styling)),
+            ("Features/Shared/App.cs", AppShellCs()),
+            ("Features/Home/HomePage.cs", HomePageTailwindCs),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
             ("tsconfig.json", TsConfigJson),
@@ -41,12 +40,9 @@ internal static partial class ProjectGenerator
             files.Add(("wwwroot/icon.svg", IconSvg));
         }
 
-        if (styling == Styling.Tailwind)
-        {
-            // Same input sheet as every other host: Rask.Tailwind compiles it to wwwroot/css/app.css
-            // before the app builds, and the WebAssembly SDK publishes wwwroot as it finds it.
-            files.Add(("Styles/app.css", TailwindInputCss));
-        }
+        // Same input sheet as every other host: Rask.Tailwind compiles it to wwwroot/css/app.css
+        // before the app builds, and the WebAssembly SDK publishes wwwroot as it finds it.
+        files.Add(("Styles/app.css", TailwindInputCss));
 
         files.AddRange(StringCatalogs(cultures));
 
@@ -63,12 +59,7 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker, cultures.Length > 0))
         {
-            Packages = styling switch
-            {
-                Styling.Bootstrap => ["Rask.Wasm", "Rask.Bootstrap"],
-                Styling.Tailwind => ["Rask.Wasm", "Rask.Tailwind"],
-                _ => ["Rask.Wasm"],
-            },
+            Packages = ["Rask.Wasm", "Rask.Tailwind"],
         };
     }
 
@@ -150,17 +141,10 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
         """;
 
-    private static string WasmCsproj(bool auth, Styling styling, string version, bool localization)
+    private static string WasmCsproj(bool auth, string version, bool localization)
     {
-        var stylingRef = styling switch
-        {
-            Styling.Bootstrap => $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>",
-
-            // Build-only: no runtime assembly and nothing to trim, which is what lets it sit on a
-            // browser-WASM project as readily as on an ASP.NET one.
-            Styling.Tailwind => $"\n    <PackageReference Include=\"Rask.Tailwind\" Version=\"{version}\"/>",
-            _ => "",
-        };
+        var stylingRef =
+            $"\n    <PackageReference Include=\"Rask.Tailwind\" Version=\"{version}\"/>";
         var authRefs = auth
             ? $"""
 

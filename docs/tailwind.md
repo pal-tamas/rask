@@ -5,14 +5,14 @@ installed. No `package.json`, no `node_modules`, no PostCSS step, no npm — `do
 stylesheet, and `dotnet build` is the only thing anyone needs in order to build your app.
 
 ```bash
-rask new Shop --tailwind
+rask new Shop
 cd Shop
 rask dev
 ```
 
 That is the whole setup. Styling is
 [one axis with three answers](cli.md#rask-new--scaffold-a-project): plain CSS by default,
-`--bootstrap` for [`Rask.Bootstrap`](bootstrap.md)'s `Bs*` components, `--tailwind` for this. Asking
+every project, with no flag to pass and nothing to turn on. Asking
 for two of them is a usage error rather than a silent preference.
 
 It works on every template. On `wasm` and `wasm-hosted` the stylesheet belongs to the **browser**
@@ -125,13 +125,13 @@ Every failure names the way out, and the way out is always available:
 
 ## Front-end templates
 
-The [TypeScript templates](spa.md) take `--tailwind` too, and there it works the way that ecosystem
+The [TypeScript templates](spa.md) get Tailwind too, and there it works the way that ecosystem
 expects: `@tailwindcss/vite` in the client's own `package.json` and Vite config, not the standalone
 binary. That project already has Node, a bundler and a dev server with HMR — routing its CSS through
 MSBuild instead would be strictly worse. The C# side of the solution is untouched.
 
 ```bash
-rask new Shop --template react --tailwind
+rask new Shop --template react
 ```
 
 The generated global stylesheet **replaces** create-vite's starter CSS rather than sitting beside it,

@@ -37,7 +37,7 @@ whole product.
 
 | # | Chapter | Pillar | You'll build |
 |---|---------|--------|-----------|
-| 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --auth --bootstrap` |
+| 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --auth` |
 | 2 | [Your first feature](02-first-feature.md) | Data · CQRS · SQLite | a `Product` slice · `rask db` |
 | 3 | [A second feature + locking it down](03-orders-and-auth.md) | Auth | an `Order` slice on the same database |
 | 4 | [Background jobs](04-background-jobs.md) | Jobs | an `IJob` + handler |

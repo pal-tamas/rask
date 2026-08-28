@@ -131,10 +131,6 @@
          Rask.Bootstrap; the Auth/EfCore standalone samples don't reference it, so they must not get
          its global static usings (the namespace wouldn't resolve). Same set as the validation usings. -->
     <_RaskExampleBootstrapUsings>$(_RaskExampleValidationUsings)</_RaskExampleBootstrapUsings>
-    <!-- Shop is the exception to "same set": `rask new` references Rask.Bootstrap (the shell and the
-         scaffolded pages use Bs* components) but not the validation packages, so it needs one and not
-         the other. -->
-    <_RaskExampleBootstrapUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleBootstrapUsings>
     <!-- The CQRS demo slice lives in the showcase Shared library; the Shop sample (the committed output
          of `rask new`, whose every generated feature handler dispatches through the mediator) is the
          other in-repo example that references Rask.Cqrs. Scope the global `using Rask.Cqrs;` to those. -->

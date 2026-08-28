@@ -78,35 +78,35 @@ public sealed class NewCommandTests
     [Theory]
     [InlineData("wasm")]
     [InlineData("wasm-hosted")]
-    public async Task Tailwind_now_scaffolds_on_the_browser_wasm_templates(string template)
+    public async Task The_browser_templates_scaffold_their_stylesheet(string template)
     {
         var (_, fs, _, command) = Build();
 
-        var exit = await command.ExecuteAsync(
-            ["Spa", "--template", template, "--tailwind"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["Spa", "--template", template], CancellationToken.None);
 
-        // Refused until #838, because both generators collapsed styling to a bool and would otherwise have
-        // scaffolded plain CSS while reporting success. Accepted now, and it has to WRITE something —
-        // exit 0 alone is what the old bug already looked like.
+        // It has to WRITE something — exit 0 alone is what the #838 bug already looked like, when both
+        // generators collapsed styling to a bool and scaffolded plain CSS while reporting success.
         Assert.Equal(0, exit);
 
         var stylesheet = template == "wasm" ? "/proj/Spa/Styles/app.css" : "/proj/Spa/Spa.Client/Styles/app.css";
-        Assert.True(fs.FileExists(stylesheet), $"[{template}] --tailwind wrote no {stylesheet}.");
+        Assert.True(fs.FileExists(stylesheet), $"[{template}] scaffolded no {stylesheet}.");
     }
 
-    [Fact]
-    public async Task Bootstrap_and_tailwind_together_are_a_usage_error()
+    // Both flags named a choice that no longer exists. Refused rather than ignored: a flag the CLI accepts
+    // and then disregards is the most expensive kind to discover, and someone's muscle memory still has
+    // these in it.
+    [Theory]
+    [InlineData("--tailwind", "Tailwind is built in")]
+    [InlineData("--bootstrap", "Rask.Bootstrap has been removed")]
+    public async Task The_styling_flags_are_refused_rather_than_ignored(string flag, string because)
     {
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(
-            ["Shop", "--bootstrap", "--tailwind"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["Shop", flag], CancellationToken.None);
 
-        // Styling is one axis with three answers. Picking a winner would scaffold something the command
-        // line did not ask for, and nothing would say so.
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("--bootstrap and --tailwind are alternatives", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains(because, console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -388,11 +388,11 @@ public sealed class NewCommandTests
         var (console, fs, runner, command) = Build();
 
         // Typing/pressing flips the console to interactive. The flow, in order:
-        //   name → project type (down = wasm) → styling (enter = plain, the default) → auth? no
+        //   name → project type (down = wasm) → auth? no
         //   → batteries, offered PRE-TICKED as [pwa, docker]: down to docker, space to UNTICK it, enter.
+        // One keypress shorter than it was: the styling question is gone, because Tailwind is built in.
         console.Type("Spa")
             .Press(ConsoleKey.DownArrow, ConsoleKey.Enter)
-            .Press(ConsoleKey.Enter)
             .Type("n")
             .Press(ConsoleKey.DownArrow, ConsoleKey.Spacebar, ConsoleKey.Enter);
 
@@ -456,19 +456,18 @@ public sealed class NewCommandTests
         Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
     }
 
-    /// <summary>The wizard offers Tailwind, on every template that reaches the styling question.</summary>
+    /// <summary>The wizard asks nothing about styling, because there is nothing to ask.</summary>
     /// <remarks>
-    ///     It was gated to non-WASM templates while those refused the flag (#838). They accept it now, so
-    ///     the gate is gone and this is the whole story again.
+    ///     It used to be a three-answer question. Tailwind is built in now, so a question would have one
+    ///     answer — and a prompt whose answer is fixed is a keystroke charged for nothing.
     /// </remarks>
     [Fact]
-    public async Task The_wizard_offers_tailwind_where_the_template_supports_it()
+    public async Task The_wizard_does_not_ask_about_styling()
     {
         var (console, fs, _, command) = Build();
 
-        // name → project type (enter = server, the default) → styling → Dockerfile? no → batteries.
+        // name → project type (enter = server, the default) → Dockerfile? no → batteries.
         console.Type("Spa")
-            .Press(ConsoleKey.Enter)
             .Press(ConsoleKey.Enter)
             .Type("n")
             .Press(ConsoleKey.Enter);
@@ -477,7 +476,10 @@ public sealed class NewCommandTests
 
         Assert.Equal(0, exit);
         Assert.True(fs.FileExists("/proj/Spa/Program.cs")); // server template
-        Assert.Contains("Tailwind", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Styling", console.OutText, StringComparison.Ordinal);
+
+        // And the project is styled anyway — the question going away must not take the stylesheet with it.
+        Assert.True(fs.FileExists("/proj/Spa/Styles/app.css"));
     }
 
     [Fact]

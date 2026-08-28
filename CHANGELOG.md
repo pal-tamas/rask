@@ -95,6 +95,22 @@ them until tagged releases begin.
   one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
 
 ### Changed
+- **BREAKING: `rask new` has no styling axis — Tailwind is built in.** It is a battery like any other:
+  always referenced, always wired, so every scaffolded project is Tailwind and there is nothing to choose.
+  `--bootstrap` and `--tailwind` are removed and both are **refused** rather than ignored, because a flag
+  the CLI accepts and then disregards is this repository's most expensive bug class. The wizard no longer
+  asks a Styling question — one keypress shorter — and `rask new`'s summary drops a row that would read the
+  same on every project.
+
+  The Bootstrap and plain-baseline variants of the app shell, home page and error page are gone with it.
+  The error page's body was written in `.card` and `.small`, which the deleted baseline stylesheet defined,
+  so it is rewritten in utilities: classes with no CSS behind them render as an unstyled page rather than
+  as an error anyone would notice.
+
+  `wasm-hosted`'s `.Server` half drops the Tailwind reference explicitly. It is a static-file host that
+  renders no components, so a stylesheet compiled by scanning *it* would be almost empty — the classes
+  Tailwind is looking for are in the `.Client`, which takes the reference instead.
+
 - **The ops console is a separate application, served at `/_rask` with its own document.** Its pages used
   to join the host application's route table simply by being referenced — `RouteRegistry` is process-wide —
   so the host's own root rendered them, inside the host's document. That is not cosmetic: the console's

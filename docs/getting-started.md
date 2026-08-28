@@ -64,7 +64,7 @@ MyApp --template wasm --culture en --culture hu` — because it ships ICU, rough
 download that an app formatting nothing culture-sensitive should not pay by default.
 
 Two things are left to you: `--auth` scaffolds a working login flow (see
-[authentication](authentication.md)), and `--bootstrap` / `--tailwind` change how the pages are styled.
+[authentication](authentication.md)). Styling is not a flag: every project is Tailwind.
 To leave a battery out, name it: `rask new MyApp --no-push --no-ops`. The full flag list is in
 [the CLI reference](cli.md).
 

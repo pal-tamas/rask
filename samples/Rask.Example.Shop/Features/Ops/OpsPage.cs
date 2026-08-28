@@ -133,6 +133,10 @@ public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJo
         await RefreshAsync().ConfigureAwait(false);
     }
 
+    private const string Action =
+        "inline-flex items-center rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white "
+        + "hover:bg-violet-500";
+
     protected override Component? Render() =>
         Div.Class("container py-4")[
             H1["Ops"],
@@ -161,9 +165,10 @@ public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJo
 
             H2.Class("mt-4 h5")["Try the pillars"],
             Div.Class("d-flex gap-2 flex-wrap")[
-                BsButton.Id("ops-enqueue-job").OnClickAsync(EnqueueJobAsync)["Enqueue a job"],
-                BsButton.Id("ops-cache-load").OnClickAsync(LoadCachedAsync)["Load cached value"],
-                BsButton.Id("ops-cache-clear").OnClickAsync(ClearCacheAsync)["Clear cache"]
+                // The ids are the contract the E2E drives this page through; the classes are only styling.
+                Button.Id("ops-enqueue-job").Type("button").Class(Action).OnClickAsync(EnqueueJobAsync)["Enqueue a job"],
+                Button.Id("ops-cache-load").Type("button").Class(Action).OnClickAsync(LoadCachedAsync)["Load cached value"],
+                Button.Id("ops-cache-clear").Type("button").Class(Action).OnClickAsync(ClearCacheAsync)["Clear cache"]
             ],
             _cacheSource is null
                 ? null

@@ -73,7 +73,7 @@ public sealed class SpaTailwindBuildE2ETests
         try
         {
             var result = ProjectGenerator.GenerateSpa(
-                projectDir, name, framework, new ServerBatteries { Styling = Styling.Tailwind }, version);
+                projectDir, name, framework, new ServerBatteries(), version);
 
             // The same order `rask new` uses: the scaffolder first, our overlay on top, patches last.
             // Any other order tests a project nobody can produce.

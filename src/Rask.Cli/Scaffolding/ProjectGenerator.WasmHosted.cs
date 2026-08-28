@@ -18,10 +18,6 @@ internal static partial class ProjectGenerator
         var batteries = requested.Normalized();
         bool auth = batteries.Auth, pwa = batteries.Pwa, docker = batteries.Docker;
 
-        // The CLIENT's styling. The .Server half renders no components of its own — WasmHostedServerPackages
-        // forces it to Plain — so this axis belongs to the browser project alone.
-        var styling = batteries.Styling;
-
         // The UI lives in the .Client, so its language does too — the .Server here is a static-file host
         // that renders nothing and has no catalog to carry.
         string[] cultures = batteries.Localization ? [.. batteries.Cultures] : [];
@@ -34,10 +30,10 @@ internal static partial class ProjectGenerator
 
             // Client — the browser-WASM SPA (shell in Features/Shared, welcome page in Features/Home).
             ($"{NameToken}.Client/{NameToken}.Client.csproj",
-                WasmHostedClientCsproj(styling, version, batteries.Cqrs, cultures.Length > 0)),
+                WasmHostedClientCsproj(version, batteries.Cqrs, cultures.Length > 0)),
             ($"{NameToken}.Client/Program.cs", WasmHostedClientProgram(auth, pwa, batteries.Cqrs, cultures)),
-            ($"{NameToken}.Client/Features/Shared/App.cs", WasmHostedClientAppShell(styling)),
-            ($"{NameToken}.Client/Features/Home/HomePage.cs", WasmHostedClientHomePage(styling)),
+            ($"{NameToken}.Client/Features/Shared/App.cs", WasmHostedClientAppShell()),
+            ($"{NameToken}.Client/Features/Home/HomePage.cs", WasmHostedClientHomePage()),
             ($"{NameToken}.Client/wwwroot/index.html", WasmIndexHtml(pwa)),
             ($"{NameToken}.Client/runtimeconfig.template.json", WasmRuntimeConfig),
 
@@ -67,7 +63,6 @@ internal static partial class ProjectGenerator
             files.Add(($"{NameToken}.Server/Features/Auth/CredentialStore.cs", WasmHostedServerCredentialStore));
         }
 
-        if (styling == Styling.Tailwind)
         {
             // In the CLIENT project: Tailwind scans the tree it runs in, and the components whose classes
             // it is looking for are the browser half's. Pointed at the .Server project it would find a host
@@ -104,12 +99,7 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(scaffoldFiles, WasmHostedNextSteps(name, docker))
         {
-            Packages = styling switch
-            {
-                Styling.Bootstrap => ["Rask.Wasm", "Rask.Bootstrap", "Rask.Wasm.Hosting"],
-                Styling.Tailwind => ["Rask.Wasm", "Rask.Tailwind", "Rask.Wasm.Hosting"],
-                _ => ["Rask.Wasm", "Rask.Wasm.Hosting"],
-            },
+            Packages = ["Rask.Wasm", "Rask.Tailwind", "Rask.Wasm.Hosting"],
             // No root csproj — restore (and the overwrite guard) target the solution, which pulls all three.
             RestoreTarget = $"{name}.slnx",
         };
@@ -117,11 +107,11 @@ internal static partial class ProjectGenerator
 
     // The shell + welcome page are exactly the server/wasm ones, only re-homed into the .Client namespace so
     // the Server's cross-project reference and the client's own types line up. Reuse keeps the three in sync.
-    private static string WasmHostedClientAppShell(Styling styling) =>
-        AppShellCs(styling).Replace($"namespace {NameToken}.Features.Shared;", $"namespace {NameToken}.Client.Features.Shared;", StringComparison.Ordinal);
+    private static string WasmHostedClientAppShell() =>
+        AppShellCs().Replace($"namespace {NameToken}.Features.Shared;", $"namespace {NameToken}.Client.Features.Shared;", StringComparison.Ordinal);
 
-    private static string WasmHostedClientHomePage(Styling styling) =>
-        HomePageCs(styling).Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
+    private static string WasmHostedClientHomePage() =>
+        HomePageTailwindCs.Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
 
     private static string WasmHostedClientProgram(bool auth, bool pwa, bool cqrs, IReadOnlyList<string> cultures)
     {
@@ -505,17 +495,11 @@ internal static partial class ProjectGenerator
     // Shares the WebAssembly SDK property block with the standalone `wasm` template (WasmSdkPropertyGroup in
     // ProjectGenerator.Wasm.cs) so the two can't drift. The hosted client differs only in referencing the
     // Shared project (and never the --auth JSInterop/Authorization refs — hosted auth is cookie-based).
-    private static string WasmHostedClientCsproj(Styling styling, string version, bool cqrs, bool localization)
+    private static string WasmHostedClientCsproj(string version, bool cqrs, bool localization)
     {
-        var bootstrapRef = styling == Styling.Bootstrap
-            ? $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>"
-            : "";
-
         // Build-only, so it adds nothing to what the browser downloads: the package is a props/targets
         // pair plus the MSBuild task that resolves the Tailwind compiler.
-        var tailwindRef = styling == Styling.Tailwind
-            ? $"\n    <PackageReference Include=\"Rask.Tailwind\" Version=\"{version}\"/>"
-            : "";
+        var tailwindRef = $"\n    <PackageReference Include=\"Rask.Tailwind\" Version=\"{version}\"/>";
 
         // The client half only. It has no idea an endpoint exists — it turns a dispatch into a request.
         // Rask.Query rides along with it: a cache over the dispatcher is not a separate decision from
@@ -532,7 +516,7 @@ internal static partial class ProjectGenerator
         {WasmSdkPropertyGroup(localization)}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>{bootstrapRef}{tailwindRef}{cqrsRef}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{tailwindRef}{cqrsRef}
             <ProjectReference Include="..\Company.RaskServer.Shared\Company.RaskServer.Shared.csproj"/>
           </ItemGroup>
 
@@ -549,9 +533,12 @@ internal static partial class ProjectGenerator
     private static List<string> WasmHostedServerPackages(ServerBatteries batteries)
     {
         // Ops is cleared here and handled below so the two packages it implies are added together and in
-        // one place; Bootstrap belongs to the .Client, which is what renders the application's UI.
-        var packages = ServerPackages(batteries with { Styling = Styling.Plain, Ops = false });
+        // one place. Tailwind is dropped rather than never added: this half is a static-file host that
+        // renders no components, so a stylesheet compiled by scanning IT would be almost empty -- the
+        // classes Tailwind is looking for are in the .Client, which takes the reference instead.
+        var packages = ServerPackages(batteries with { Ops = false });
         packages.Remove("Rask.Server");
+        packages.Remove("Rask.Tailwind");
         packages.Insert(0, "Rask.Wasm.Hosting");
 
         if (batteries.Cqrs)

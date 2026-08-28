@@ -71,7 +71,7 @@ public sealed class ShopProvenanceTests
             // Exactly `rask new Rask.Example.Shop --auth --bootstrap`: the batteries are the defaults now,
             // so the sample is the CLI's plain output plus the two things it still asks you — auth, and the
             // Bs* styling the sample is written in.
-            NewCommand.ToBatteries(TemplateCatalog.Default, [], Styling.Bootstrap, auth: true),
+            NewCommand.ToBatteries(TemplateCatalog.Default, [], auth: true),
             version: "0.0.0");
 
         var sampleDirectory = SampleDirectory();

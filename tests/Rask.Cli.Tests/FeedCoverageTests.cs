@@ -45,20 +45,17 @@ public sealed class FeedCoverageTests
     [InlineData("wasm-hosted")]
     public void Every_package_a_template_references_can_be_restored_from_the_local_feed(string template)
     {
-        foreach (var styling in Enum.GetValues<Styling>())
+        var batteries = new ServerBatteries();
+
+        var result = template switch
         {
-            var batteries = new ServerBatteries { Styling = styling };
+            "wasm" => ProjectGenerator.GenerateWasm(
+                Root, "App", auth: false, pwa: false, docker: false, Version, batteries),
+            "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
+            _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
+        };
 
-            var result = template switch
-            {
-                "wasm" => ProjectGenerator.GenerateWasm(
-                    Root, "App", auth: false, pwa: false, docker: false, Version, batteries),
-                "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
-                _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
-            };
-
-            AssertFeedCovers(result, $"template '{template}' with {styling} styling");
-        }
+        AssertFeedCovers(result, $"template '{template}'");
     }
 
     /// <summary>

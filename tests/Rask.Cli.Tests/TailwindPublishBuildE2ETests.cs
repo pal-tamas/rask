@@ -43,7 +43,7 @@ public sealed class TailwindPublishBuildE2ETests
 
         try
         {
-            var batteries = new ServerBatteries { Styling = Styling.Tailwind };
+            var batteries = new ServerBatteries();
             var result = template == "wasm"
                 ? ProjectGenerator.GenerateWasm(projectDir, name, auth: false, pwa: false, docker: false, version, batteries)
                 : ProjectGenerator.GenerateServer(projectDir, name, batteries, version);

@@ -94,7 +94,6 @@ rask new                             # the same wizard
 rask new MyApp                       # everything: a server app with the whole stack wired
 rask new MyApp --auth                # + a cookie login, sessions, and members pages
 rask new MyApp --wasm                # + a browser bundle, published from this same project
-rask new MyApp --bootstrap           # Bs* components instead of plain CSS
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Spa --template wasm         # an installable browser-WASM PWA
@@ -117,7 +116,6 @@ what it can do:
   so an eligible page moves into WebAssembly once it has downloaded
   ([render modes](render-modes.md)). Off by default because every publish then links a WebAssembly
   runtime, which takes minutes; `dotnet run` is unaffected.
-- **styling** — plain CSS by default, `--bootstrap` or `--tailwind` instead.
 
 On the browser-WASM templates there is a third, for the same reason: `--culture <tag>` adds
 localization, which is supported there but not standard, because naming a language means shipping ICU
@@ -143,12 +141,12 @@ Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` soluti
 as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
 existing repository.
 
-**Styling is one axis with three answers, and plain is the default.** With neither flag, the generated
-pages are plain elements against a small stylesheet in the app shell — no CSS framework, nothing to
-learn before your first edit. `--bootstrap` renders them with `Rask.Bootstrap`'s `Bs*` components over
-Bootstrap 5.3, and `--tailwind` styles them with Tailwind CSS, compiled from your own source at build
-time (see [Tailwind](tailwind.md)). Every template takes all three. The two flags are mutually
-exclusive: asking for both is a usage error rather than a silent preference.
+**Styling is not a choice: every project is Tailwind.** It is a battery like any other — always
+referenced, always wired — so the generated pages are Tailwind utilities and the build compiles
+`Styles/app.css` into `wwwroot/css/app.css` by scanning the project's own source (see
+[Tailwind](tailwind.md)). There is no npm and no config file. `--bootstrap` and `--tailwind` are gone,
+and both are *refused* rather than ignored, because a flag the CLI accepts and then disregards is the
+most expensive kind to discover.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
@@ -233,8 +231,6 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. |
 | `--no-localization` | Leave out the `Resources/Strings.<culture>.json` catalogs and the `AddRask(configureCulture:)` registration that negotiates a visitor's language. Can't be combined with `--culture`. On the WASM templates localization is opt-in rather than standard, so there is nothing to turn off and this is refused — pass `--culture` to turn it *on*. |
 | `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
-| `--bootstrap` | Render the generated pages with `Rask.Bootstrap`'s `Bs*` components over Bootstrap 5.3, self-hosted (no CDN). |
-| `--tailwind` | Style the generated pages with Tailwind CSS, compiled from your own source at build time — no npm required. |
 | `--culture` | A language to translate the UI into, repeatable — `--culture en --culture hu`. The first is the default a visitor falls back to. Without it you get `en`. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore` and the migration). |
@@ -278,8 +274,7 @@ default list: the default set *is* the column.
 | localization | ✅ | opt-in² | opt-in² | — |
 | `--auth` *(opt-in)* | ✅ | ✅ | ✅ | — |
 | `--wasm` *(opt-in)* | ✅ | — | — | — |
-| `--bootstrap` | ✅ | ✅ | ✅ | — |
-| `--tailwind` | ✅ | ✅ | ✅ | ✅ |
+| Tailwind | ✅ | ✅ | ✅ | ✅ |
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
 rather than ignored. `--auth` is left out rather than half-scaffolded: a sign-in flow has to be written

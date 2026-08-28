@@ -45,7 +45,7 @@ internal static partial class ProjectGenerator
         // nothing reads.
         if (framework.WritesViteConfig)
         {
-            files.Add(($"{NameToken}.Client/vite.config.ts", SpaViteConfig(framework, batteries.Tailwind)));
+            files.Add(($"{NameToken}.Client/vite.config.ts", SpaViteConfig(framework, tailwind: true)));
         }
 
         foreach (var (path, content) in framework.ClientFiles)
@@ -53,26 +53,22 @@ internal static partial class ProjectGenerator
             files.Add(($"{NameToken}.Client/{path}", content));
         }
 
-        if (batteries.Tailwind)
+        // Replaces the scaffolder's demo stylesheet rather than sitting beside it: leaving it in
+        // would fight Tailwind's own reset. It is only PART of that file that styles the placeholder
+        // page we overlaid away, though — the rest styles body, h1 and p by TAG, and those tags are
+        // exactly what the starter still renders. So the replacement has to put that styling back
+        // (SpaTailwindCss does, in its base layer) or --tailwind ships a worse-looking page than
+        // no flag at all.
+        files.Add(($"{NameToken}.Client/{framework.GlobalStylesheet}", SpaTailwindCss));
+
+        // Angular has no vite.config.ts to register a plugin in — its Vite config belongs to
+        // @angular/build, not to you — so it takes Tailwind through PostCSS, which the Angular
+        // builder reads on its own. Without this the packages are installed and nothing compiles
+        // the stylesheet: the app builds, and every utility class is missing.
+        if (!framework.WritesViteConfig)
         {
-            // Replaces the scaffolder's demo stylesheet rather than sitting beside it: leaving it in
-            // would fight Tailwind's own reset. It is only PART of that file that styles the placeholder
-            // page we overlaid away, though — the rest styles body, h1 and p by TAG, and those tags are
-            // exactly what the starter still renders. So the replacement has to put that styling back
-            // (SpaTailwindCss does, in its base layer) or --tailwind ships a worse-looking page than
-            // no flag at all.
-            files.Add(($"{NameToken}.Client/{framework.GlobalStylesheet}", SpaTailwindCss));
-
-            // Angular has no vite.config.ts to register a plugin in — its Vite config belongs to
-            // @angular/build, not to you — so it takes Tailwind through PostCSS, which the Angular
-            // builder reads on its own. Without this the packages are installed and nothing compiles
-            // the stylesheet: the app builds, and every utility class is missing.
-            if (!framework.WritesViteConfig)
-            {
-                files.Add(($"{NameToken}.Client/.postcssrc.json", SpaTailwindPostcssRc));
-            }
+            files.Add(($"{NameToken}.Client/.postcssrc.json", SpaTailwindPostcssRc));
         }
-
         if (batteries.Pwa)
         {
             // public/ rather than anything the host serves: every bundler copies it to the bundle root
@@ -129,7 +125,7 @@ internal static partial class ProjectGenerator
                     + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; "
                     + "Linux: your distro's nodejs package)."),
             ],
-            Patches = SpaPatches(client, framework, batteries.Tailwind, batteries.Pwa),
+            Patches = SpaPatches(client, framework, tailwind: true, batteries.Pwa),
         };
     }
 
@@ -723,7 +719,7 @@ internal static partial class ProjectGenerator
     {
         // Bootstrap is a C#-component library and this host renders no components; the front end owns its
         // own styling. Cqrs is cleared because Rask.Cqrs.Server supersedes it and both are listed by hand.
-        var packages = ServerPackages(batteries with { Styling = Styling.Plain, Cqrs = false });
+        var packages = ServerPackages(batteries with { Cqrs = false });
         packages.Remove("Rask.Server");
         packages.Remove("Rask.Cqrs");
 

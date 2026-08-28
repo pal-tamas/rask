@@ -18,8 +18,8 @@ internal static partial class ProjectGenerator
         {
             ($"{NameToken}.csproj", ServerCsproj(batteries, version)),
             ("Program.cs", ServerProgram(batteries)),
-            ("Features/Shared/App.cs", AppShellCs(batteries.Styling)),
-            ("Features/Home/HomePage.cs", HomePageCs(batteries.Styling)),
+            ("Features/Shared/App.cs", AppShellCs()),
+            ("Features/Home/HomePage.cs", HomePageTailwindCs),
             ("Properties/launchSettings.json", LaunchSettings),
             ("appsettings.json", AppSettings),
             ("tsconfig.json", TsConfigJson),
@@ -43,12 +43,9 @@ internal static partial class ProjectGenerator
             files.Add(("Features/Push/PushSubscriptions.cs", PushSubscriptionsCs));
         }
 
-        if (batteries.Tailwind)
-        {
-            files.Add(("Styles/app.css", TailwindInputCss));
-        }
+        files.Add(("Styles/app.css", TailwindInputCss));
 
-        files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs(batteries.Styling)));
+        files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs()));
 
         if (batteries.Pwa)
         {
@@ -80,16 +77,7 @@ internal static partial class ProjectGenerator
     // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
     private static List<string> ServerPackages(ServerBatteries batteries)
     {
-        var packages = new List<string> { "Rask.Server" };
-        if (batteries.Bootstrap)
-        {
-            packages.Add("Rask.Bootstrap");
-        }
-
-        if (batteries.Tailwind)
-        {
-            packages.Add("Rask.Tailwind");
-        }
+        var packages = new List<string> { "Rask.Server", "Rask.Tailwind" };
 
         if (batteries.Cqrs)
         {
@@ -640,14 +628,10 @@ internal static partial class ProjectGenerator
 
     // The production error page. UseExceptionHandler re-executes the pipeline at this route, so it renders
     // through the app shell like any other page rather than looking like a framework error.
-    // The error page's body, in Bs* components or plain elements — the only part of the page that
-    // depends on whether the project took the component library.
-    private static string ErrorPageCs(Styling styling) =>
+    private static string ErrorPageCs() =>
         ErrorPageTemplate.Replace(
             "{{body}}",
-            // Tailwind shares the plain body: it is a handful of elements with no component library
-            // behind it either way, and a second copy would be two things to keep saying the same.
-            styling == Styling.Bootstrap ? ErrorPageBootstrapBody : ErrorPageBaselineBody,
+            ErrorPageBaselineBody,
             StringComparison.Ordinal);
 
     private const string ErrorPageTemplate =
@@ -703,22 +687,31 @@ internal static partial class ProjectGenerator
                 ];
         """.Trim('\n');
 
+    // Tailwind utilities, like every other scaffolded page. It was written in .card and .small while the
+    // shell carried a hand-written baseline stylesheet defining them; that stylesheet is gone, and classes
+    // with no CSS behind them render as an unstyled page rather than as an error anyone would notice.
     private static readonly string ErrorPageBaselineBody =
         """
-                Main[
-                    Div.Class("card")[
-                        H1["Something went wrong"],
-                        P["The request couldn't be completed. The error has been logged."],
+                Main.Class("mx-auto max-w-xl px-4 py-10")[
+                    Div.Class("rounded-xl border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-700 dark:bg-slate-800")[
+                        H1.Class("mb-2 text-2xl font-semibold tracking-tight")["Something went wrong"],
+                        P.Class("mb-4 text-slate-500 dark:text-slate-400")[
+                            "The request couldn't be completed. The error has been logged."
+                        ],
                         // The correlation id, and deliberately nothing else. Never render the exception,
                         // its message, or a stack trace here — this page is served to whoever hit the
                         // error, and the detail already went to ILogger where you can match it by this id.
                         Activity.Current?.Id is { Length: > 0 } traceId
-                            ? P.Class("small")[
+                            ? P.Class("mb-4 text-sm text-slate-500 dark:text-slate-400")[
                                 "Reference: ",
-                                Code[traceId]
+                                Code.Class("rounded bg-slate-100 px-1.5 py-0.5 dark:bg-slate-700")[traceId]
                             ]
                             : null,
-                        NavLink.Href(HomeRoutes.HomePage())["Back to the app"]
+                        NavLink
+                            .Href(HomeRoutes.HomePage())
+                            .Class("text-violet-600 underline underline-offset-2 hover:text-violet-500")[
+                            "Back to the app"
+                        ]
                     ]
                 ];
         """.Trim('\n');
