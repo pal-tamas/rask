@@ -1,3 +1,5 @@
+using Rask.Core.Routing;
+
 namespace Rask.Core.Live;
 
 /// <summary>
@@ -13,6 +15,22 @@ namespace Rask.Core.Live;
 /// </param>
 /// <param name="Waves">How many extra waves ran after the first render.</param>
 public readonly record struct PrerenderResult(string Html, bool TimedOut, bool Faulted, int Waves);
+
+/// <summary>
+///     Which routes can be prerendered, and which cannot.
+/// </summary>
+/// <param name="Paths">
+///     Routes whose every segment is a literal, so the path is known without data. These are what a
+///     prerender pass walks.
+/// </param>
+/// <param name="Skipped">
+///     Routes that were left out, as their templates. <b>Report these.</b> A route carrying a
+///     parameter cannot be enumerated without knowing the values, and a catch-all is a 404 page at
+///     best — dropping them quietly would let a pass that covered only the static half read as
+///     though it had covered everything.
+/// </param>
+public sealed record PrerenderPlan(IReadOnlyList<string> Paths, IReadOnlyList<string> Skipped);
+
 
 /// <summary>
 ///     Renders an app to a complete HTML document with no host and no browser.
@@ -72,5 +90,39 @@ public static class RaskPrerender
             maxWaves: maxWaves).ConfigureAwait(false);
 
         return new PrerenderResult(render.Html, render.TimedOut, root.RenderedFallback, render.Waves);
+    }
+    /// <summary>
+    ///     Reads the registered route table and splits it into what a prerender pass can and cannot do.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Call after the app's routes are registered — the generator's <c>[Route]</c> registrations
+    ///         run from module initializers, so simply touching the app assembly is enough.
+    ///     </para>
+    ///     <para>
+    ///         "Can be prerendered" is decided on the parsed segments rather than by looking for a brace
+    ///         in the template. The two agree today; only one of them keeps agreeing if the template
+    ///         syntax ever grows a construct that contains no brace, or a literal that contains one.
+    ///     </para>
+    /// </remarks>
+    public static PrerenderPlan PlanRoutes()
+    {
+        var paths = new List<string>();
+        var skipped = new List<string>();
+
+        foreach (var leaf in RouteFlattener.Flatten(RouteRegistry.BuildTree()))
+        {
+            // A route with no segments at all is the root, and it is prerenderable.
+            if (leaf.Pattern.Segments.All(segment => segment.Kind == SegmentKind.Literal))
+            {
+                paths.Add(leaf.FullTemplate);
+            }
+            else
+            {
+                skipped.Add(leaf.FullTemplate);
+            }
+        }
+
+        return new PrerenderPlan(paths, skipped);
     }
 }
