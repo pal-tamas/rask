@@ -78,6 +78,44 @@ public class RaskPrerenderTests
         Assert.Contains("/seeded", result.Html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ThePlanKeepsRoutesWhoseEverySegmentIsALiteral()
+    {
+        RouteRegistry.Replace(nameof(ThePlanKeepsRoutesWhoseEverySegmentIsALiteral), [
+            new RouteRegistration(typeof(PlainPage), "/", null),
+            new RouteRegistration(typeof(PlainPage), "/about", null),
+            new RouteRegistration(typeof(PlainPage), "/guides/intro", null),
+        ]);
+
+        var plan = RaskPrerender.PlanRoutes();
+
+        Assert.Contains("/", plan.Paths);
+        Assert.Contains("/about", plan.Paths);
+        Assert.Contains("/guides/intro", plan.Paths);
+    }
+
+    [Fact]
+    public void ThePlanREPORTSWhatItCannotPrerenderRatherThanDroppingIt()
+    {
+        // The point of Skipped being a field rather than a log line. A parameterised route cannot be
+        // enumerated without knowing the values, and a catch-all is a 404 page at best — but a pass
+        // that quietly covered only the static half would read as though it had covered everything.
+        RouteRegistry.Replace(nameof(ThePlanREPORTSWhatItCannotPrerenderRatherThanDroppingIt), [
+            new RouteRegistration(typeof(PlainPage), "/products/{id}", null),
+            new RouteRegistration(typeof(PlainPage), "/docs/{**rest}", null),
+            new RouteRegistration(typeof(PlainPage), "/plain", null),
+        ]);
+
+        var plan = RaskPrerender.PlanRoutes();
+
+        Assert.Contains("/plain", plan.Paths);
+        Assert.DoesNotContain("/products/{id}", plan.Paths);
+        Assert.DoesNotContain("/docs/{**rest}", plan.Paths);
+
+        Assert.Contains("/products/{id}", plan.Skipped);
+        Assert.Contains("/docs/{**rest}", plan.Skipped);
+    }
+
     private static IServiceProvider Services()
     {
         var services = new ServiceCollection();
