@@ -120,7 +120,7 @@
   -->
   <Target Name="_RaskExternalWritePropTypes"
           AfterTargets="CoreCompile"
-          DependsOnTargets="_RaskExternalPairLitFiles"
+          DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles"
           Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
           Inputs="@(IntermediateAssembly)"
           Outputs="$(_RaskExternalObj)types.stamp">
@@ -172,6 +172,7 @@
   -->
   <Target Name="_RaskExternalTypeCheck"
           AfterTargets="_RaskExternalWritePropTypes"
+          DependsOnTargets="ResolveProjectReferences"
           Condition="'$(RaskExternalTypeCheck)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND '@(_RaskExternalFile)' != ''">
     <!--
       ResolveTypeScriptToolTask belongs to Rask.Core's build integration, not this one, and this
@@ -239,7 +240,7 @@
   -->
   <Target Name="_RaskExternalWriteInputs"
           AfterTargets="CoreCompile"
-          DependsOnTargets="_RaskExternalVendorAdapters"
+          DependsOnTargets="ResolveProjectReferences;_RaskExternalVendorAdapters"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">
     <WriteExternalBuildInputsTask Islands="@(_RaskExternalFile)"
                                 IntermediateDirectory="$(_RaskExternalObj)"
