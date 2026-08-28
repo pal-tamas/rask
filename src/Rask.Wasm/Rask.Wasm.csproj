@@ -146,7 +146,7 @@
     Format is esm, not iife: .NET imports this module by name through JSHost.ImportAsync and main.js
     imports it for setExports, so its exports have to survive as real module exports.
   -->
-  <Target Name="_RaskBundleClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+  <Target Name="_RaskBundleClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths" DependsOnTargets="ResolveProjectReferences"
           Condition=" '$(_RaskBundleBrowserAssets)' == 'true' "
           Inputs="@(_RaskWasmClientTs)"
           Outputs="$(IntermediateOutputPath)rask-bundles\rask.wasm.stamp">
@@ -173,7 +173,7 @@
     `./rask.wasm.js` is the sibling bundle above, which .NET also imports by that name — inlining it
     would give the page two copies of the runtime, each with its own state.
   -->
-  <Target Name="_RaskBundleMainJs" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+  <Target Name="_RaskBundleMainJs" BeforeTargets="PrepareForBuild;AssignTargetPaths" DependsOnTargets="ResolveProjectReferences"
           Condition=" '$(_RaskBundleBrowserAssets)' == 'true' "
           Inputs="@(_RaskWasmMainTs)"
           Outputs="$(IntermediateOutputPath)rask-bundles\main.stamp">
@@ -199,7 +199,7 @@
 
     Edit Resources/rask-sw.ts, never Browser/rask-sw.js — the latter is build output.
   -->
-  <Target Name="_RaskBundleServiceWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+  <Target Name="_RaskBundleServiceWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths" DependsOnTargets="ResolveProjectReferences"
           Condition=" '$(_RaskBundleBrowserAssets)' == 'true' "
           Inputs="@(_RaskWasmSwTs)"
           Outputs="$(IntermediateOutputPath)rask-bundles\rask-sw.stamp">

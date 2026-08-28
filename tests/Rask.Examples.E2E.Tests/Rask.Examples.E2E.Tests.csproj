@@ -82,7 +82,9 @@
                                    Exclude="..\..\src\Rask.Core\Resources\*.d.ts"/>
   </ItemGroup>
 
-  <Target Name="_RaskBundleBrowserFixtures" AfterTargets="Build"
+  <!-- DependsOnTargets: inert at AfterTargets="Build", stated so the generated-task ordering
+       invariant holds without an exemption (#878). -->
+  <Target Name="_RaskBundleBrowserFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
           Inputs="@(_RaskBrowserFixture);@(_RaskBrowserFixtureDependency)"
           Outputs="@(_RaskBrowserFixture->'$(OutDir)browser-fixtures/%(Filename).js')">
     <ResolveTypeScriptToolTask Tool="esbuild"

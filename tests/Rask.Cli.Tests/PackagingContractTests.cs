@@ -420,4 +420,136 @@ public sealed class PackagingContractTests
                 + "two host packages will load it twice and fail to compile with CS0101.");
         }
     }
+
+    /// <summary>
+    ///     Every target that invokes a task loaded from a generated <c>*.Tasks.dll</c> must first wait for
+    ///     the project references that produce it.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Four packages register an MSBuild task from an assembly sitting next to their own
+    ///         <c>.targets</c>: <c>Rask.TypeScript.Tasks.dll</c>, <c>Rask.Tailwind.Tasks.dll</c>,
+    ///         <c>Rask.Wasm.Tasks.dll</c>, <c>Rask.Spa.Tasks.dll</c>. Every one is gitignored and
+    ///         generated — copied there by a <c>CopyTaskAssemblyTo...</c> target on a
+    ///         <c>ReferenceOutputAssembly="false"</c> project reference, an edge honoured at
+    ///         <c>ResolveProjectReferences</c>. A target that runs before that edge — anything hanging off
+    ///         <c>PrepareForBuild</c> or <c>BeforeBuild</c>, both ahead of <c>CoreBuild</c> — invokes a task
+    ///         whose assembly nothing has produced yet and dies with <c>MSB4062</c> naming a file the author
+    ///         has never heard of.
+    ///     </para>
+    ///     <para>
+    ///         Not hypothetical: it took <c>main</c> red for <c>pages</c> and <c>nightly</c>, and with them
+    ///         the docs deploy and the nightly prerelease (#878). It hid because the DLL is generated — a
+    ///         tree that has already built has it on disk, and the <i>failed</i> build leaves it behind, so
+    ///         re-running the identical command passes. Solution builds order the task project first, so
+    ///         every local gate was green; only a single-project <c>dotnet publish</c> from a clean tree
+    ///         could see it.
+    ///     </para>
+    ///     <para>
+    ///         The guarded task names are <i>derived</i> from the <c>UsingTask</c> declarations rather than
+    ///         listed, and the scan covers the whole repository rather than <c>src/</c>, because both of
+    ///         those shortcuts rot — a fifth task package, or a bundle target added to a sample, would sit
+    ///         outside a hand-written list and the guard would stay green while the build broke. The
+    ///         requirement is satisfied by <c>ResolveProjectReferences</c> or by <c>ResolveReferences</c>,
+    ///         which depends on it; <c>_RaskBakeScopedStaticWebAssets</c> already used the latter.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void Every_generated_task_call_site_waits_for_the_reference_that_produces_it()
+    {
+        var buildFiles = EnumerateBuildFiles().ToList();
+
+        // Task names come from the UsingTask declarations that load an assembly sitting next to the
+        // .targets file — the shape every generated task DLL in this repo uses.
+        var guarded = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var doc in buildFiles.Select(TryLoad).OfType<XDocument>())
+        {
+            foreach (var usingTask in doc.Descendants().Where(e => e.Name.LocalName == "UsingTask"))
+            {
+                var assemblyFile = usingTask.Attribute("AssemblyFile")?.Value ?? string.Empty;
+                var taskName = usingTask.Attribute("TaskName")?.Value ?? string.Empty;
+
+                if (assemblyFile.Contains("MSBuildThisFileDirectory", StringComparison.Ordinal)
+                    && assemblyFile.EndsWith(".Tasks.dll", StringComparison.Ordinal)
+                    && taskName.Length > 0)
+                {
+                    // <UsingTask TaskName="Ns.Sub.TheTask"/> is invoked in a target as <TheTask/>.
+                    guarded.Add(taskName[(taskName.LastIndexOf('.') + 1)..]);
+                }
+            }
+        }
+
+        Assert.True(guarded.Count >= 4, $"expected at least 4 generated task DLLs, found {guarded.Count}");
+
+        var callSites = 0;
+
+        foreach (var file in buildFiles)
+        {
+            if (TryLoad(file) is not { } doc)
+            {
+                continue;
+            }
+
+            foreach (var target in doc.Descendants().Where(e => e.Name.LocalName == "Target"))
+            {
+                var invoked = target.Descendants()
+                    .Select(e => e.Name.LocalName)
+                    .Where(guarded.Contains)
+                    .ToList();
+
+                if (invoked.Count == 0)
+                {
+                    continue;
+                }
+
+                callSites++;
+
+                var name = target.Attribute("Name")?.Value ?? "(unnamed)";
+                var dependsOn = target.Attribute("DependsOnTargets")?.Value ?? string.Empty;
+
+                Assert.True(
+                    dependsOn.Contains("ResolveProjectReferences", StringComparison.Ordinal)
+                    || dependsOn.Contains("ResolveReferences", StringComparison.Ordinal),
+                    $"{Path.GetFileName(file)}: target '{name}' invokes {invoked[0]} without waiting for "
+                    + "ResolveProjectReferences (or ResolveReferences, which depends on it). That task's "
+                    + "assembly is a generated *.Tasks.dll produced by exactly that reference edge, so on a "
+                    + "tree that has not built before the build dies with MSB4062 naming a file nobody "
+                    + "wrote (#878).");
+            }
+        }
+
+        // A rule that matches nothing passes vacuously, so the floor is the count as it stands. If this
+        // trips, ask why the number moved before lowering it — a scan that has stopped finding files
+        // looks exactly like a codebase that has stopped needing the guard.
+        Assert.True(callSites >= 12, $"expected at least 12 generated-task call sites, found {callSites}");
+    }
+
+    /// <summary>Every MSBuild file in the repo that is ours, skipping build output and nested worktrees.</summary>
+    private static IEnumerable<string> EnumerateBuildFiles()
+    {
+        string[] skip = ["obj", "bin", "node_modules", ".git", ".claude", "artifacts"];
+
+        return Directory
+            .EnumerateFiles(_repoRoot, "*", SearchOption.AllDirectories)
+            .Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)
+                        || f.EndsWith(".targets", StringComparison.Ordinal)
+                        || f.EndsWith(".props", StringComparison.Ordinal))
+            .Where(f => !Path.GetRelativePath(_repoRoot, f)
+                .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .Any(segment => skip.Contains(segment, StringComparer.Ordinal)))
+            .OrderBy(f => f, StringComparer.Ordinal);
+    }
+
+    private static XDocument? TryLoad(string file)
+    {
+        try
+        {
+            return XDocument.Load(file);
+        }
+        catch (System.Xml.XmlException)
+        {
+            return null;   // not every MSBuild-shaped file in the tree is ours to parse
+        }
+    }
 }
