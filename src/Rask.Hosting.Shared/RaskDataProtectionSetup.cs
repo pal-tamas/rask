@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Rask.Server;
+namespace Rask.Hosting.Shared;
 
 /// <summary>
 /// Persists the Data Protection key ring onto durable storage when the app is running somewhere that has
@@ -74,7 +74,27 @@ internal sealed class RaskDataProtectionSetup(
             return;
         }
 
-        options.XmlRepository = new FileSystemXmlRepository(Directory.CreateDirectory(keyPath), loggerFactory);
+        // Creating the directory can fail for reasons that are nothing to do with this app: /data is a
+        // conventional mount point, so it can exist and be root-owned while the container runs as a
+        // non-root user. This runs from an options setup, which is resolved lazily — so an unhandled
+        // throw here would surface as a 500 on the first cookie or antiforgery operation, a long way from
+        // the cause. Fall back to the framework's own ring and say so instead: the app keeps working, and
+        // the warning names the one thing to fix.
+        try
+        {
+            options.XmlRepository = new FileSystemXmlRepository(Directory.CreateDirectory(keyPath), loggerFactory);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            loggerFactory.CreateLogger<RaskDataProtectionSetup>().LogWarning(
+                ex,
+                "Rask could not persist the Data Protection key ring to {KeyPath}, so the framework default "
+                + "is being used instead. That ring does not outlive this process: every deploy will mint a "
+                + "new one, signing out every user and invalidating every session-resume record. Grant the "
+                + "app write access to that directory, point Rask:DataProtection:KeyPath somewhere writable, "
+                + "or set it to an empty value to manage the ring yourself.",
+                keyPath);
+        }
     }
 
     /// <inheritdoc/>

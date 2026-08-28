@@ -20,7 +20,9 @@ public class DuplicateAddRaskAnalyzerTests
 {
     private static string Program(string body) => $$"""
                                                    using Microsoft.AspNetCore.Builder;
+                                                   using Microsoft.AspNetCore.Hosting;
                                                    using Microsoft.Extensions.DependencyInjection;
+                                                   using Microsoft.Extensions.Hosting;
                                                    using Rask.Core;
                                                    using Rask.Server;
 
@@ -72,6 +74,31 @@ public class DuplicateAddRaskAnalyzerTests
             var second = new ServiceCollection();
             first.AddRask();
             second.AddRask();
+            """)));
+
+    [Fact]
+    public async Task TwoConstructedCollections_NoDiagnostic() =>
+        // Both receivers spell `new ServiceCollection()`, and comparing spelling alone would call that one
+        // collection configured twice. It is two collections — the shape a test file falls into naturally,
+        // and the noise that gets a rule switched off.
+        Assert.Empty(await Diagnostics(Program("""
+            new ServiceCollection().AddRask();
+            new ServiceCollection().AddRask();
+            """)));
+
+    [Fact]
+    public async Task CallsOnOppositeBranches_NoDiagnostic() =>
+        // One call at run time, not two. Reporting this would be telling the author to merge two lines
+        // that were never both going to execute.
+        Assert.Empty(await Diagnostics(Program("""
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Services.AddRask(configureCulture: c => c.SupportedCultures.Add("en"));
+            }
+            else
+            {
+                builder.Services.AddRask();
+            }
             """)));
 
     [Fact]

@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The `spa` template now calls `AddRaskSpaHost()`.** It was scaffolding `app.UseRaskSpa()` with no
+  matching `Add`, so the host shipped without response compression — the largest file in the app, served
+  as `text/javascript`, went out uncompressed — and, once the host defaults moved into the framework,
+  without those either. `Add` and `Use` are now scaffolded as the pair they are.
 - **RASK060 reports a second `AddRask` on the same service collection.** A second call does not add to
   the first: its options go in with `TryAddSingleton`, which keeps the registration already there, so
   everything the later call configures is discarded while the call compiles and reads as though it worked.
@@ -331,9 +335,10 @@ them until tagged releases begin.
 
 
 ### Fixed
-- **`AddRask` now budgets the shutdown and stops hosted services concurrently.**
+- **Every Rask web host now budgets the shutdown and stops hosted services concurrently.**
   `HostOptions.ShutdownTimeout` becomes 15s (inside the 20s `rask deploy` allows between SIGTERM and
-  SIGKILL) and `ServicesStopConcurrently` becomes `true`.
+  SIGKILL) and `ServicesStopConcurrently` becomes `true` — from `Rask.Server`'s `AddRask`,
+  `Rask.Wasm.Hosting`'s `AddRask`/`AddRaskWasmHost`, and `Rask.Spa.Hosting`'s `AddRaskSpaHost` alike.
 
   The concurrency is the load-bearing half. Stopped one at a time — .NET's default — each pillar's own
   shutdown grace *sums* inside the one budget: Litestream's final WAL flush (10s), an in-flight email send
@@ -346,9 +351,11 @@ them until tagged releases begin.
   the ones generated after the block existed. **Nine of the ten web-host samples in this repo were sitting
   on .NET's 30s default against a 20s SIGKILL**, and a reader copying from any of them inherited that. It
   now holds for every app. Configure `HostOptions` after `AddRask` to choose your own.
-- **`AddRask` persists the Data Protection key ring, so a deploy stops signing everyone out.** When
-  `/data` exists — which is exactly when `rask deploy` has mounted its volume — the ring is written to
-  `/data/keys` and `ApplicationDiscriminator` is pinned to the application name.
+- **Every Rask web host persists the Data Protection key ring, so a deploy stops signing everyone out.**
+  When `/data` exists — which is exactly when `rask deploy` has mounted its volume — the ring is written
+  to `/data/keys` and `ApplicationDiscriminator` is pinned to the application name. This applies to the
+  live server host, the WASM bundle host and the SPA host: all three hold auth cookies, and none of them
+  cares which package started the process.
 
   The default ring lives inside the container and every deploy replaces the container, so everything sealed
   under the old one silently stops opening: every auth cookie already issued is rejected (all your signed-in

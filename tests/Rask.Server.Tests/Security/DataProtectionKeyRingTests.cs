@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Rask.Hosting.Shared;
 
 namespace Rask.Server.Tests.Security;
 
@@ -141,6 +142,33 @@ public class DataProtectionKeyRingTests : IDisposable
             Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
 
         Assert.Null(setup.ResolveKeyPath());
+    }
+
+    [Fact]
+    public void The_discriminator_survives_Data_Protection_arriving_after_AddRask()
+    {
+        // The order a scaffolded app actually has: AddRask first, and Data Protection pulled in below it
+        // by AddAuthentication. ASP.NET's own DataProtectionOptionsSetup writes ApplicationDiscriminator
+        // without checking whether anything already set it, so if AddDataProtection landed after ours it
+        // would quietly revert the discriminator to the content-root default — leaving the ring persisted
+        // but two containers still deriving different keys from it, which is the half of the fix that is
+        // easy to miss. AddRask calls AddDataProtection itself, first, so ASP.NET's setup is ahead of ours.
+        var keyPath = NewDir();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Rask:DataProtection:KeyPath"] = keyPath })
+            .Build());
+        services.AddSingleton<IHostEnvironment>(new TestEnvironment());
+        services.AddRask();
+        services.AddDataProtection(); // stands in for a later AddAuthentication / antiforgery / session
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Equal(
+            "TestApp",
+            provider.GetRequiredService<IOptions<DataProtectionOptions>>().Value.ApplicationDiscriminator);
     }
 
     [Fact]

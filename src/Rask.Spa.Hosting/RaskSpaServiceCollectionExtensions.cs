@@ -1,7 +1,13 @@
 using System.IO.Compression;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Rask.Hosting.Shared;
 
 namespace Rask.Spa.Hosting;
 
@@ -50,6 +56,23 @@ public static class RaskSpaServiceCollectionExtensions
 
         services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
         services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
+
+        // The same host defaults Rask.Server's AddRask applies. This host serves a bundle rather than
+        // rendering components, but it is still the process that holds the auth cookie and still the one
+        // the deploy SIGKILLs — and neither failure cares which package started the host. Source-linked
+        // from Rask.Hosting.Shared; TryAddEnumerable so a second call registers one of each.
+        //
+        // AddDataProtection FIRST, and unconditionally: it registers ASP.NET's own
+        // DataProtectionOptionsSetup, which overwrites ApplicationDiscriminator without checking whether
+        // anything already set it, so a later AddAuthentication would quietly revert it.
+        services.AddDataProtection();
+
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>());
 
         return services;
     }

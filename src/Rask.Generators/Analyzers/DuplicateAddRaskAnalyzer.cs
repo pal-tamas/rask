@@ -31,17 +31,19 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask056 = new(
         "RASK060",
         "AddRask is called twice on the same service collection",
-        "'{0}' is passed to AddRask more than once — the later call's options are silently discarded; "
-        + "merge them into a single AddRask call",
+        "'{0}' is passed to AddRask more than once — the two calls do not merge, and which one wins "
+        + "depends on the option; pass every option to a single AddRask call",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description:
-        "A second AddRask on the same service collection does not add to the first. Its options are "
-        + "registered with TryAddSingleton, which keeps the registration already there, so everything the "
-        + "later call configures is dropped — most visibly configureCulture, leaving an app that named its "
-        + "languages shipping with none. Nothing fails, because the call compiles and the services resolve. "
-        + "Pass every option to one AddRask call instead.",
+        "A second AddRask on the same service collection does not add to the first, and it does not "
+        + "consistently replace it either. Culture options go in with TryAddSingleton, so the FIRST call "
+        + "wins and everything configureCulture named in the second is dropped — an app that listed its "
+        + "languages ships with none, and worse than silently, because culture negotiation still switches "
+        + "on over the empty catalog. The live and server options are plain singletons, so for those the "
+        + "LAST call wins. Nothing fails either way: the call compiles and every service resolves. Pass "
+        + "every option to one AddRask call instead.",
         helpLinkUri: DiagnosticHelp.Link("RASK060"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -87,6 +89,11 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
             }
 
             var scope = EnclosingScope(inv);
+            if (IsBranched(inv, scope))
+            {
+                continue;
+            }
+
             var key = (scope, receiver);
             if (!groups.TryGetValue(key, out var calls))
             {
@@ -127,11 +134,37 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
     // The receiver as the author wrote it ("builder.Services", "services"). Text rather than a symbol
     // because the interesting case is a local or a property chain, and comparing the spelling is what
     // keeps two DIFFERENT collections in one method from being treated as one.
+    //
+    // An expression that CONSTRUCTS its receiver is excluded: `new ServiceCollection().AddRask()` twice in
+    // one method is two collections that merely spell the same, and reporting it would be the exact noise
+    // this rule is scoped to avoid.
     private static string? Receiver(InvocationExpressionSyntax inv) => inv.Expression switch
     {
-        MemberAccessExpressionSyntax m => m.Expression.ToString(),
+        MemberAccessExpressionSyntax m => m.Expression switch
+        {
+            ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax => null,
+            var receiver => receiver.ToString()
+        },
         _ => null
     };
+
+    // True when a call sits under a branch — an if/else, a conditional expression, or a switch arm/section.
+    // Two AddRask calls on opposite arms of `if (env.IsDevelopment())` are one call at run time, and the
+    // rule is about a collection genuinely configured twice, so a branched call is left alone rather than
+    // guessed at.
+    private static bool IsBranched(SyntaxNode node, SyntaxNode scope)
+    {
+        for (var current = node; current is not null && current != scope; current = current.Parent)
+        {
+            if (current.Parent is IfStatementSyntax or ElseClauseSyntax or ConditionalExpressionSyntax
+                or SwitchSectionSyntax or SwitchExpressionArmSyntax)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static string? MethodName(InvocationExpressionSyntax inv) => inv.Expression switch
     {
