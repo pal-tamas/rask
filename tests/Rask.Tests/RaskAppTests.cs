@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Globalization;
 
 
 namespace Rask.Tests;
@@ -180,6 +181,32 @@ public sealed class RaskAppTests
         {
             await app.StopAsync();
         }
+    }
+
+    [Fact]
+    public void Cultures_named_in_Configure_actually_reach_the_app()
+    {
+        // AddRask's options go in with TryAddSingleton, so the FIRST call wins and any later one is
+        // silently discarded — which is exactly what RASK056 reports. Create must therefore NOT call
+        // AddRask: if it did, the culture list would be frozen empty before Configure ran, and the app
+        // would ship with no languages while its Program.cs plainly listed two.
+        var app = NewApp(a => a.Configure(c =>
+        {
+            c.Cultures.Add("en");
+            c.Cultures.Add("hu");
+        })).Build<TestApp>();
+
+        var cultures = app.Services.GetRequiredService<RaskCultureOptions>().SupportedCultures;
+
+        Assert.Equal(["en", "hu"], cultures);
+    }
+
+    [Fact]
+    public void An_app_that_names_no_culture_leaves_localization_off()
+    {
+        var app = NewApp().Build<TestApp>();
+
+        Assert.Empty(app.Services.GetRequiredService<RaskCultureOptions>().SupportedCultures);
     }
 
     [Fact]

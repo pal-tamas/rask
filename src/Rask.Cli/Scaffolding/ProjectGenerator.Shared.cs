@@ -348,8 +348,10 @@ internal static partial class ProjectGenerator
 
     /// <summary>
     /// Every scaffolded project's <c>.gitignore</c>. Deliberately short: build output, IDE and OS noise, the
-    /// files that carry secrets, and the app's own SQLite database — a committed <c>app.db</c> is the most
-    /// common way a scaffolded repo ends up with real data in its history.
+    /// files that carry secrets, and what the app itself writes — a committed <c>app.db</c> is the most
+    /// common way a scaffolded repo ends up with real data in its history, and now that every battery is on
+    /// by default the log store, the mail pickup directory and the snapshot directory appear the first time
+    /// the app runs rather than only in an app that asked for them.
     /// </summary>
     private const string GitIgnore =
         """
@@ -383,6 +385,12 @@ internal static partial class ProjectGenerator
         *.db
         *.db-shm
         *.db-wal
+
+        # What the batteries write beside the app. They are all on unless Program.cs says otherwise, so
+        # these appear the first time it runs: queued mail with no SMTP configured is written here as
+        # .eml files you can open, and the scheduled point-in-time backups land here.
+        mail-pickup/
+        snapshots/
 
         # Publish output
         publish/

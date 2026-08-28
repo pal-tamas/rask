@@ -1,0 +1,20 @@
+<Project>
+
+  <!--
+    Keep this package's own assembly when the app publishes trimmed.
+
+    Rask's browser half hands its battery wiring to the host from a [ModuleInitializer] — nothing in the
+    application statically references it, which is the whole point: an app should not have to write a line
+    whose only purpose is to say "yes, wire the batteries". But that is also exactly what the trimmer
+    removes. Measured on the WASM showcase: without this, Rask.dll and Rask.Query are absent from the
+    published bundle entirely and the batteries silently do nothing, while every test still passes because
+    a test host is not trimmed.
+
+    TrimmerRootAssembly keeps the assembly and therefore its module initializer. The assembly is small —
+    options objects and one wiring method — and the batteries it registers are rooted through it.
+  -->
+  <ItemGroup Condition=" '$(PublishTrimmed)' == 'true' ">
+    <TrimmerRootAssembly Include="Rask"/>
+  </ItemGroup>
+
+</Project>

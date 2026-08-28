@@ -1,8 +1,10 @@
 using Rask.Cache;
+using Rask.Core.Live;
 using Rask.Jobs;
 using Rask.Logging;
 using Rask.Mail;
 using Rask.Outbox;
+using Rask.Server;
 using Rask.SQLite.Snapshots;
 using Rask.WebPush;
 
@@ -64,6 +66,35 @@ public sealed class RaskAppOptions
 
     /// <summary>The operator dashboard at <c>/_rask</c>, over every battery's table.</summary>
     public Battery Ops { get; } = new();
+
+    /// <summary>
+    /// The languages this app ships. The <b>first</b> is the default a visitor falls back to when nothing
+    /// else matches. Empty — the default — leaves culture support off entirely.
+    /// </summary>
+    /// <remarks>
+    /// A visitor's language is negotiated per request (<c>?culture=</c> beats a remembered cookie, which
+    /// beats <c>Accept-Language</c>) and then belongs to their session, so it survives every render over
+    /// the live socket. Text comes from <c>Resources/Strings.{culture}.json</c>, compiled into typed
+    /// members — a missing key is a build error rather than a blank on the page.
+    /// </remarks>
+    public IList<string> Cultures { get; } = [];
+
+    /// <summary>
+    /// Publish a browser bundle alongside the server, so an eligible page moves into WebAssembly once it
+    /// has downloaded.
+    /// </summary>
+    /// <remarks>
+    /// Turns on the render-mode ceiling, the bundle host, and the asset mapping together — the three
+    /// pieces that only make sense as one decision. Publish-only: linking a WebAssembly runtime takes
+    /// minutes and buys nothing in development, where the page is server-live and hot-reloaded.
+    /// </remarks>
+    public bool Wasm { get; set; }
+
+    /// <summary>The live-runtime options — diff mode, session cap, path base.</summary>
+    public Action<RaskLiveOptions>? Live { get; set; }
+
+    /// <summary>The server-host limits: frame sizes, rates, grace periods, session resume.</summary>
+    public Action<RaskServerOptions>? Server { get; set; }
 
     /// <summary>
     /// Whether a reverse proxy sits in front, so <c>X-Forwarded-For</c>/<c>X-Forwarded-Proto</c> should be

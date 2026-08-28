@@ -170,6 +170,44 @@ public class PackageDependencyTests
     // Every project under src/, packable or not, keyed by its file name. Both invariants above need the whole set:
     // one to tell a reference to an unpackable project from a reference to a shipped one, the other to pick the
     // packable ones out.
+    /// <summary>
+    ///     The <c>Rask</c> package must ship the props that keep its own assembly out of the trimmer.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The browser half hands its battery wiring to the host from a <c>[ModuleInitializer]</c>, so
+    ///         nothing in the application references it statically — which is the point, and also exactly
+    ///         what the trimmer removes. Measured on the WASM showcase before this existed:
+    ///         <c>Rask.dll</c> and <c>Rask.Query</c> were absent from the published bundle entirely and the
+    ///         batteries silently did nothing, while every test still passed, because a test host is never
+    ///         trimmed. Only publishing and reading the bundle back showed it.
+    ///     </para>
+    ///     <para>
+    ///         Asserted on the file and the pack item rather than by packing: unlike the generated task
+    ///         assembly of #852, this props file is committed source and is therefore always on disk when
+    ///         the glob runs, so the silently-packs-nothing failure mode does not apply. The built
+    ///         <c>.nupkg</c> was checked by hand once and does contain <c>build/Rask.props</c>.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void The_Rask_package_roots_itself_for_the_trimmer()
+    {
+        var project = SourceProjects()["Rask"];
+        var directory = Path.GetDirectoryName(project)!;
+        var props = Path.Combine(directory, "build", "Rask.props");
+
+        Assert.True(File.Exists(props), $"{props} is missing — the browser batteries would be trimmed away");
+        Assert.Contains("TrimmerRootAssembly", File.ReadAllText(props), StringComparison.Ordinal);
+
+        // Present but unpacked reaches no consumer, which is the same outcome as absent.
+        var xml = XDocument.Load(project);
+        var packsBuild = xml.Descendants("None").Any(n =>
+            (n.Attribute("Include")?.Value ?? "").StartsWith("build", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(n.Attribute("Pack")?.Value, "true", StringComparison.OrdinalIgnoreCase));
+
+        Assert.True(packsBuild, "Rask.csproj does not pack build\\** — the props would never reach a consumer");
+    }
+
     private static Dictionary<string, string> SourceProjects() =>
         Directory
             .GetFiles(Path.Combine(RepoRoot(), "src"), "*.csproj", SearchOption.AllDirectories)
