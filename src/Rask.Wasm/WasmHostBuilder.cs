@@ -271,6 +271,13 @@ public sealed class WasmHostBuilder
         // boot.
         if (WasmPrerender.RequestedOutput is { Length: > 0 } prerenderOutput)
         {
+            // The batteries, exactly as BootAsync applies them. This path returns before BootAsync, so
+            // without this the prerender renders against a container that never got them: a page
+            // injecting anything a battery registers throws, RootErrorBoundary catches it, every route
+            // reports "threw — not written", and the pass exits 0 having written nothing. No test can
+            // see it — the two halves live in different assemblies and compose only here.
+            RaskWasmBatteryRegistry.Apply(this, Services);
+
             await WasmPrerender
                 .RunAsync<TApp>(Services.BuildServiceProvider(), prerenderOutput, TimeSpan.FromSeconds(30))
                 .ConfigureAwait(false);

@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The publish-time prerender pass gets the batteries the boot path applies.** Prerendering returns
+  from `WasmHostBuilder.RunAsync` before `BootAsync`, and the browser batteries are wired inside
+  `BootAsync` — so a WASM app referencing the `Rask` package prerendered against a container that never
+  received them. Every page injecting anything a battery registers threw into the root boundary, each
+  route reported `threw — not written`, and the publish exited 0 having written no pages at all, behind
+  a single warning. The two halves arrived in separate pull requests and live in separate assemblies,
+  so nothing textual connected them and no test in either could see it; `PrerenderBatteryWiringTests`
+  now pins the composition by prerendering a page that needs a battery-registered service.
+
 - **`Rask` — a new batteries-included package, and `RaskApp`, the host wired the way a Rask app nearly
   always is.**
 
