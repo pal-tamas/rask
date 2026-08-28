@@ -12,6 +12,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+
+    <!-- The *Fixture.ts here are node harnesses, not scoped assets: they pair with no component, so
+         the scoped-TS convention would report each as an orphan (RASK017). Same reason
+         Rask.Core.Tests and Rask.Wasm.Tests set it. -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
   <ItemGroup>
@@ -50,6 +55,37 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!--
+    The Node fixture, bundled exactly as Rask.Core.Tests bundles its own (#871). The fixture IMPORTS
+    the client runtime rather than reading it off disk, so esbuild resolves the real module and a
+    fixture that no longer compiles fails the BUILD instead of failing a test with node's message.
+  -->
+  <ItemGroup>
+    <_RaskNodeFixture Include="*Fixture.ts"/>
+  </ItemGroup>
+
+  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" Inputs="@(_RaskNodeFixture);@(_RaskNodeFixtureDependency)"
+          Outputs="@(_RaskNodeFixture->'$(OutDir)node-fixtures/%(Filename).mjs')">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <!-- Never minified: a failure here is read by a person, and node's stack has to name something. -->
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;%(_RaskNodeFixture.FullPath)&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --outfile=&quot;$(OutDir)node-fixtures/%(_RaskNodeFixture.Filename).mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!-- The module the fixture imports. Listed so editing the runtime re-bundles: Inputs takes no glob. -->
+  <ItemGroup>
+    <_RaskNodeFixtureDependency Include="..\..\src\Rask.External\wwwroot\*.js"/>
   </ItemGroup>
 
 </Project>

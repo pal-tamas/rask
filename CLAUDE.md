@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Target `net10.0` (`net10.0-browser` for WASM); nullable + implicit usings on. **Rask** is a C#
-component framework (Blazor-like): Roslyn factory generator, scoped CSS/JS, routing, live diff
+component framework (Blazor-like): Roslyn factory generator, scoped CSS/TypeScript, routing, live diff
 runtime over WS (Server) or JSImport/JSExport (WASM). This file is the **map** — read the code,
 the `docs/`, and the tests for depth. Keep this file small; put how-to detail in `.claude/skills/`.
 
@@ -28,7 +28,7 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 `docs/ai-agents.md`. Full detail: `docs/development-workflow.md`. Ask only when truly blocked.
 
 ## Projects
-- `src/Rask.Core` — rendering, live context, routing, scoped CSS/JS, lifecycle.
+- `src/Rask.Core` — rendering, live context, routing, scoped CSS/TypeScript, lifecycle.
 - `src/Rask.Html` — the HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Html.Components`;
   `IsPackable=false`, bundled into every host package. Core keeps only the tags its engine builds.
 - `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `[Route]` registration.
@@ -84,19 +84,18 @@ dotnet run --project samples/Rask.Example.Server
   `Context.Get<T>`/`Required`/`Has`. Construct components via the **chain**, never `new` outside Core (RASK014).
 
 ## Subsystems → read `docs/`
-Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/JS + typed browser APIs
+Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–058, RASK030/032/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–059, RASK030/032/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–059 are documented in `docs/diagnostics.md`
-  (RASK030/032/042/047/048/049/050/057 are retired; the next free id is RASK060). **Grep `src/` for the id before
-  claiming it, AND again before you merge** — three assemblies allocate in this space and RS1019 only checks
-  one compilation, so this line goes stale silently. The TypeScript-component ids claimed 054-057, then #865
-  landed RASK054 on main first and every one had to shift; a grep at branch time is not enough. Retiring one
-  is fine and its number is never reused — RASK057 went when `ExternalComponent` sealed `Render()`, because
-  a rule the type system can state does not need an analyzer.
+  (RASK030/032/042/047/048/049/050 are retired and never recycled; the next free id is RASK060). **Grep `src/`
+  for the id before you claim it, AND again before you merge** — three assemblies allocate in this space and
+  RS1019 only checks one compilation, so this line goes stale silently. This has now bitten three times on one
+  branch: #865 took RASK054, then #871 took RASK055, each after a branch-time grep said they were free. Treat
+  a merge from main as invalidating every id you hold.

@@ -75,6 +75,25 @@
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+
+    <!--
+      Build-order-only dependency on the TypeScript task project, the same arrangement Rask.Wasm has
+      with Rask.Wasm.Tasks. Rask.TypeScript.Tasks compiles the assembly and (via its
+      CopyTaskAssemblyToRaskCoreBuild target) drops it into build/ here, where build/Rask.Core.targets
+      loads it through <UsingTask AssemblyFile=…> and RaskCoreBuildPack.targets packs it into every
+      host package.
+
+      Without this edge the DLL exists only on a machine that happened to build the task project
+      already: a clean clone would evaluate the UsingTask's Exists() guard as false, skip the compile
+      target, and produce an app whose scoped TypeScript silently never compiled. The guard is what
+      keeps that from being an error, so nothing would say so.
+
+      ReferenceOutputAssembly="false" keeps it purely an ordering edge — no compile reference and no
+      nupkg dependency on a netstandard2.0 build-only assembly.
+    -->
+    <ProjectReference Include="..\Rask.TypeScript.Tasks\Rask.TypeScript.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
   </ItemGroup>
 
   <!--

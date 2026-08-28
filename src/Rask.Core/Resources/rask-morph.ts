@@ -1,0 +1,686 @@
+// Shared client-side morph algorithm consumed by both rask.js (Server) and
+// rask.wasm.js (WASM). Concatenated into each runtime at build time — see the
+// MSBuild "_RaskBuildClientJs" target in Rask.Server.csproj and Rask.Wasm.csproj.
+//
+// Why concat instead of import / network split:
+//  - rask.js is a classic <script> served from /rask/rask.js (no ES-module hook).
+//  - rask.wasm.js is loaded by JSHost.ImportAsync as an ES module.
+// Concat sidesteps the loader mismatch and keeps the single-file delivery model.
+//
+// Modern JS is fine here — both runtimes target current browsers (the codec uses
+// moveBefore / crypto.randomUUID). Two splice constraints, not a dialect one:
+//  - The top-level helpers stay hoisted `function` declarations, NOT `const fn =
+//    () => …`: applyDiff (rask-dom.js) calls reviveScript() / raskShouldSuppressValue()
+//    here, and the two files concatenate into one scope in EITHER order, so the
+//    cross-references must resolve regardless of splice ordering (hoisting). Locals,
+//    callbacks, and literals inside them use modern syntax freely.
+//  - No `export` / `import`: this island is spliced inside the Server's classic-script
+//    IIFE, where module syntax is illegal.
+
+// Scripts produced by DOMParser have their "already started" flag set, so the
+// browser silently skips them when morph() appends them into the live document.
+// Rebuild script nodes via createElement so they actually execute, propagate
+// every attribute (type=module, defer, integrity, nonce, crossorigin, …), and
+// fire raskAfterMorph again once external scripts finish loading — inline
+// scripts run synchronously on insertion and may early-return if they depend
+// on a not-yet-loaded global like window.hljs.
+export function reviveScript(node: Node): Node {
+    if (node.nodeType !== 1 || (node as Element).tagName !== "SCRIPT") return node;
+
+    // Narrowed by the nodeType/tagName test above rather than by `instanceof`. These nodes come from
+    // a DOMParser document, and an instanceof against this realm's constructor would be a stronger
+    // claim than the check that actually guards the branch.
+    const source = node as HTMLScriptElement;
+
+    const s = document.createElement("script");
+    for (const a of source.attributes) s.setAttribute(a.name, a.value);
+    if (s.src) {
+        s.async = false;
+        s.addEventListener("load", () => {
+            if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+        }, {once: true});
+    }
+    s.text = source.textContent ?? "";
+    return s;
+}
+
+// Wrappers around the underlying DOM mutation primitives. Scoped-JS hooks are
+// not auto-fired by morph — C# components drive invocations explicitly via
+// `IJSRuntime.InvokeVoidAsync("Rask.{TypeName}.{method}", ...args)` from a
+// lifecycle hook (typically OnRenderedAsync). Calls land in RaskJSRuntime
+// (Server) or WasmJSRuntime (WASM), are dispatched against the freshly-morphed
+// DOM, and Rask.*-prefixed identifiers are gated by a pending queue so calls
+// that race the scoped-JS bundle drain after it loads. If a component needs
+// teardown on element removal, install a MutationObserver inside the hook or
+// expose an explicit "removed" method and call it from OnUnmount.
+/**
+ * Narrows a node to an Element — which is exactly what `nodeType === 1` means.
+ *
+ * Replaces the `n.nodeType === 1 && n.getAttribute` pattern this file used in four places: the
+ * second half was duck-typing standing in for a type system, and on a real Element it is never false.
+ */
+export function isElement(n: Node | null | undefined): n is Element {
+    return !!n && n.nodeType === 1;
+}
+
+/**
+ * The nearest ancestor of an event's target matching `selector`, or null.
+ *
+ * Replaces the `(e.target && e.target.closest) ? … : null` dance the runtime repeated at every
+ * listener: `target` is an EventTarget, only an Element has closest(), and a composed event from
+ * inside a shadow root can retarget to something that is neither.
+ */
+export function closestFrom(target: EventTarget | null, selector: string): HTMLElement | null {
+    return target instanceof Element ? target.closest<HTMLElement>(selector) : null;
+}
+
+function _raskInsertBefore(parent: Node, dst: Node, anchor: Node | null): void {
+    parent.insertBefore(dst, anchor);
+}
+
+// Relocate an already-attached child before `anchor`. Prefer the Atomic Move API
+// (moveBefore, Chromium 133+): it moves the node WITHOUT disconnecting it, so a
+// focused descendant keeps focus, selection, and caret across a keyed reorder. A
+// plain insertBefore of a connected node still disconnects it briefly and blurs it.
+function _raskMoveBefore(parent: MovableParent, node: Node, anchor: Node | null): void {
+    if (parent.moveBefore) {
+        try {
+            parent.moveBefore(node, anchor);
+            return;
+        } catch {
+            // Not connected / cross-document — fall through to insertBefore.
+        }
+    }
+    parent.insertBefore(node, anchor);
+}
+
+function _raskAppendChild(parent: Node, dst: Node): void {
+    parent.appendChild(dst);
+}
+
+function _raskRemoveChild(parent: Node, src: Node): void {
+    parent.removeChild(src);
+}
+
+function _raskReplaceChild(parent: Node, dst: Node, src: Node): void {
+    parent.replaceChild(dst, src);
+}
+
+// Lagging-render value guard. When a user commits a change on a change-only input
+// (date / number / select), a re-render the server computed BEFORE that change
+// reached it can land afterwards and clobber the user's value. The focus guard in
+// morph() only protects the *focused* element, but a change commits on blur, so by
+// the time the lagging frame arrives focus has already moved on.
+//
+// On the change dispatch the runtime records the input's PRE-EDIT value (its last
+// server-rendered `value` attribute) — exactly what such a lagging frame carries.
+// A subsequent server value is suppressed only while it equals that recorded value;
+// any other value is the authoritative response to the user's change — the echo of
+// the new value OR a server correction/normalisation (e.g. clearing a non-nullable
+// int snaps the model to 0) — so it applies and releases the guard. Recording the
+// pre-edit value (not the user's new value) is what lets a correction through:
+// suppress-if-equal-to-stale, not suppress-unless-equal-to-mine.
+//
+// Keyed by element identity — morph patches inputs in place, so identity survives
+// across re-renders. Backed by a window global so the helper is reachable from both
+// the spliced morph (here) and the host runtime's event / diff code (rask.js,
+// rask.wasm.js), regardless of splice ordering.
+function _raskPendingValues() {
+    return window.__raskPendingValues || (window.__raskPendingValues = new WeakMap());
+}
+
+export function raskNotePendingValue(el: Element | null, supersededValue: string): void {
+    if (el) _raskPendingValues().set(el, supersededValue);
+}
+
+export function raskShouldSuppressValue(el: Element | null, incoming: string): boolean {
+    const map = _raskPendingValues();
+    if (!el || !map.has(el)) return false;
+    if (map.get(el) === incoming) return true;   // lagging frame carrying the stale value
+    map.delete(el);                               // authoritative response — release the guard
+    return false;
+}
+
+// The `.checked` analogue of the value guard above. A native radio/checkbox click flips the
+// `.checked` PROPERTY but leaves the `checked` ATTRIBUTE untouched, so the change dispatch records
+// the pre-click attribute state (raskNotePendingChecked) — exactly as the value guard records the
+// pre-edit `value` attribute. A lagging frame the server computed BEFORE the click reached it still
+// carries that stale checked, so it's suppressed until an authoritative frame (the echo of the new
+// state OR a server correction) arrives with a different value and releases the guard. For a radio
+// the dispatch records the whole same-name group, so a stale frame can't re-check the previously
+// selected radio (which would natively uncheck the new one). Kept a hoisted `function` so the
+// spliced rask-dom.js can call it regardless of splice ordering — same rationale as the value guard.
+function _raskPendingChecked() {
+    return window.__raskPendingChecked || (window.__raskPendingChecked = new WeakMap());
+}
+
+export function raskNotePendingChecked(el: Element | null, supersededChecked: boolean): void {
+    if (el) _raskPendingChecked().set(el, !!supersededChecked);
+}
+
+export function raskShouldSuppressChecked(el: Element | null, incoming: boolean): boolean {
+    const map = _raskPendingChecked();
+    if (!el || !map.has(el)) return false;
+    if (map.get(el) === !!incoming) return true;   // lagging frame carrying the stale checked
+    map.delete(el);                                 // authoritative response — release the guard
+    return false;
+}
+
+// The `selected` analogue of the two guards above, for <select>. A select commits like a radio: the
+// user picks an option, the browser flips that option's `selected` PROPERTY, and the `selected`
+// ATTRIBUTE — the last server-rendered default — stays exactly where the server put it. So a frame the
+// server computed BEFORE the pick still marks the old option, and applying it snaps the box back until
+// the echo lands. The focus guard doesn't help here for the same reason it doesn't help a date input:
+// a select commits on change, so focus has moved on by the time the lagging frame arrives.
+//
+// Recorded like the radio group, and for the same reason: the change dispatch notes the pre-pick
+// attribute state of EVERY option in the select, not just the two that moved, because a stale frame
+// that re-selects the previously chosen option natively deselects the new one.
+function _raskPendingSelected() {
+    return window.__raskPendingSelected || (window.__raskPendingSelected = new WeakMap());
+}
+
+function raskNotePendingSelected(el: Element | null, supersededSelected: boolean): void {
+    if (el) _raskPendingSelected().set(el, !!supersededSelected);
+}
+
+export function raskShouldSuppressSelected(el: Element | null, incoming: boolean): boolean {
+    const map = _raskPendingSelected();
+    if (!el || !map.has(el)) return false;
+    if (map.get(el) === !!incoming) return true;   // lagging frame carrying the stale selection
+    map.delete(el);                                 // authoritative response — release the guard
+    return false;
+}
+
+// The group form of the guard above, for a full morph. The diff codec moves one option at a time and
+// can decide one at a time; a morph reconciles the whole control at once and needs a single answer,
+// because applying half a lagging frame would leave the select in a state neither side rendered.
+//
+// A lagging frame is one that carries the pre-pick state of EVERY guarded option — that is exactly what
+// raskNotePendingSelected recorded on dispatch. If even one guarded option differs, the frame knows
+// something the user's pick didn't, so it is authoritative: release the whole group and apply.
+export function raskShouldSuppressSelectGroup(select: HTMLSelectElement, desired: boolean[]): boolean {
+    const map = _raskPendingSelected();
+    const options = select.options;
+    let guarded = 0, stale = 0;
+    for (let i = 0; i < options.length; i++) {
+        if (!map.has(options[i])) continue;
+        guarded++;
+        if (map.get(options[i]) === !!desired[i]) stale++;
+    }
+    if (guarded === 0) return false;
+    if (guarded === stale) return true;
+    for (let i = 0; i < options.length; i++) map.delete(options[i]);
+    return false;
+}
+
+// Move a select's live selection to what the incoming render marked, writing through the IDL rather
+// than trusting the `selected` ATTRIBUTES morph() has just copied.
+//
+// The attributes alone are not enough, and the reason is the option "dirtiness" flag: once an option's
+// selectedness has been set by the user or by the `.selected` setter (which the diff codec's
+// applySelected uses), its content attribute stops driving it. Measured in Chromium — a single-select
+// whose morph target the user had already touched does not move, and a multi-select is worse, because
+// the "ask for a reset" behaviour that quietly rescues most single-select cases does not apply to it:
+// a user-picked option that the incoming render does NOT mark stays selected, so the control
+// accumulates selections it was never rendered with.
+function raskApplySelectSelection(select: HTMLSelectElement, desired: boolean[]): void {
+    const options = select.options;
+    if (select.multiple) {
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].selected !== desired[i]) options[i].selected = desired[i];
+        }
+        return;
+    }
+    // Single select: one write by index, for the same reason applySelected takes that path — poking
+    // each option leaves the control momentarily showing its first option between the deselect and the
+    // select, and an index can't be redirected by duplicate option values.
+    let idx = -1;
+    for (let i = 0; i < desired.length; i++) {
+        if (desired[i]) { idx = i; break; }
+    }
+    if (idx < 0) {
+        // The render marked nothing. On a freshly parsed single-select that shows the first enabled
+        // option, not a blank — mirror the browser's own reset rather than inventing selectedIndex -1,
+        // which would make a re-render look different from a first load of the same markup.
+        idx = 0;
+        while (idx < options.length && options[idx].disabled) idx++;
+        if (idx >= options.length) idx = -1;
+    }
+    if (select.selectedIndex !== idx) select.selectedIndex = idx;
+}
+
+// Called once per <select> at the end of morph(), after its options have been reconciled — so the
+// `selected` attributes read here are the incoming render's, and the option list is final.
+function raskSyncSelectSelection(select: HTMLSelectElement): void {
+    const options = select.options;
+    if (!options) return;
+    const desired: boolean[] = [];
+    for (let i = 0; i < options.length; i++) desired.push(options[i].hasAttribute("selected"));
+    if (raskShouldSuppressSelectGroup(select, desired)) return;
+    raskApplySelectSelection(select, desired);
+}
+
+// User-edit provenance for the redeploy restore. When a replacement server can't carry a session over,
+// the page reloads, and the Server runtime re-applies the fields the user had actually edited (see
+// saveRestoreFields / applyRestoreFields in rask.js). It re-applies one only when the REPLACEMENT
+// server rendered the same base the old one did — which is what makes that a three-way merge (base /
+// the user's edit / what the new server rendered) rather than a guess about whose value is newer.
+//
+// The base has to be captured the FIRST time a field goes dirty. It cannot be read off the DOM later:
+// every echo of the user's own keystrokes rewrites the `value` ATTRIBUTE, because morph() and the diff
+// both sync attributes unconditionally and guard only the `.value` PROPERTY. By reload time the
+// attribute IS the user's text, base would equal ours, and every edit would compare unequal against a
+// pristine replacement and be dropped — the feature would be a silent no-op. Hence capture-once: a
+// second edit to the same field must not overwrite the base the first one recorded.
+//
+// Same WeakMap-backed-global shape as the two guards above, and for the same reason: reachable from the
+// spliced morph, from rask-input.js and from the host runtime regardless of splice ordering.
+function _raskDirtyFields() {
+    return window.__raskDirtyFields || (window.__raskDirtyFields = new WeakMap());
+}
+
+export function raskNoteDirtyField(el: Element | null): void {
+    if (!el) return;
+    const map = _raskDirtyFields();
+    if (map.has(el)) return;                        // capture-once — the first edit owns the base
+    map.set(el, raskFieldBase(el));
+}
+
+export function raskIsDirtyField(el: Element | null): boolean {
+    return !!el && _raskDirtyFields().has(el);
+}
+
+export function raskDirtyFieldBase(el: Element | null): RaskFieldBase | undefined {
+    const map = _raskDirtyFields();
+    return el && map.has(el) ? map.get(el) : undefined;
+}
+
+// What the server rendered for a control, read from ATTRIBUTES only — never from a property. The two
+// disagree in ways that would silently corrupt the comparison: a type=number/date input sanitizes an
+// unparseable attribute to "" on `.value`, and a textarea's `.value` normalizes the CRLF its text
+// content keeps. Bases are only ever compared to other bases, so attribute-vs-attribute is the rule.
+//
+// `null` is preserved and is NOT the same as "": it means the server rendered no `value` attribute at
+// all — an uncontrolled input, which morph deliberately never writes to (see the uncontrolled rule in
+// morph() below). The restore treats the two differently, so they must not be flattened together.
+export function raskFieldBase(el: Element): RaskFieldBase {
+    if (el.tagName === "TEXTAREA") return el.textContent;
+    const type = (el.getAttribute("type") || "").toLowerCase();
+    if (type === "checkbox") return el.hasAttribute("checked");
+    // type=radio is only ever an <input>, which is what makes the group lookup below legitimate.
+    if (type === "radio") return raskRadioGroupBase(el as HTMLInputElement);
+    return el.getAttribute("value");
+}
+
+// A radio's meaningful state is its GROUP's, not its own: "which value is selected" rather than "is
+// this one checked". Per-element `checked` would let a restore re-check the user's pick while the
+// replacement server had moved the selection elsewhere — and natively un-check the server's choice —
+// without the bases ever comparing unequal. So the base is the value of whichever member carries the
+// `checked` attribute, or "" for a group the server rendered with nothing selected.
+//
+// The group is same-name AND same form owner; two forms on one page can each have a `Plan` group.
+function raskRadioGroupBase(el: HTMLInputElement): string {
+    const group = raskRadioGroup(el);
+    for (const r of group) {
+        if (r.hasAttribute("checked")) return r.getAttribute("value") || "";
+    }
+
+    return "";
+}
+
+export function raskRadioGroup(el: HTMLInputElement): HTMLInputElement[] {
+    const name = el.getAttribute("name");
+    if (!name) return [el];
+    const out: HTMLInputElement[] = [];
+    // Matched by attribute rather than a name selector so this stays free of CSS.escape, which the
+    // shared modules can't assume — a name is app-authored and may hold selector metacharacters.
+    for (const r of document.querySelectorAll<HTMLInputElement>("input[type=radio]")) {
+        if (r.getAttribute("name") === name && r.form === el.form) out.push(r);
+    }
+
+    return out.length > 0 ? out : [el];
+}
+
+// The whole pre-dispatch recording in one call, so the two host runtimes (rask.js, rask.wasm.js) can't
+// drift on which controls get a guard — each carried a hand-copied version of this block, which is
+// exactly how <select> came to have no guard at all while value and checked had one. Called from the
+// change dispatch with the element that changed, just before the message goes out.
+export function raskNotePendingFormState(el: Element | null): void {
+    if (!el || !el.tagName) return;
+    const tag = el.tagName;
+
+    // The tag tests below are what make each narrowing true; naming them once here keeps the reads
+    // honest without repeating a cast at every property access.
+    const asInput = tag === "INPUT" ? el as HTMLInputElement : null;
+    const asSelect = tag === "SELECT" ? el as HTMLSelectElement : null;
+
+    const isCheckbox = asInput?.type === "checkbox";
+    // The PRE-EDIT value (the last server-rendered `value` attribute) — exactly what a lagging frame
+    // carries. Checkboxes self-correct through the checked guard, so they stay out of the value guard.
+    if (!isCheckbox) {
+        const sv = el.getAttribute("value");
+        raskNotePendingValue(el, sv === null ? "" : sv);
+    }
+    // The PRE-CLICK checked (the `checked` attribute, which a native click leaves untouched). A radio
+    // needs its whole group: a stale frame re-checking the previously selected member would natively
+    // uncheck the new one. raskRadioGroup is the same same-name-AND-same-form lookup the restore uses —
+    // narrower than the hosts' old root-wide `name` selector (two forms can each own a `Plan` group),
+    // and free of CSS.escape, which the shared modules can't assume for an app-authored name.
+    if (asInput && (isCheckbox || asInput.type === "radio")) {
+        const group = asInput.type === "radio" ? raskRadioGroup(asInput) : [asInput];
+        for (const r of group) {
+            raskNotePendingChecked(r, r.hasAttribute("checked"));
+        }
+    }
+    // The PRE-PICK selected state of every option in the select — same reasoning as the radio group.
+    if (asSelect) {
+        const opts = asSelect.options || (asSelect.getElementsByTagName ? asSelect.getElementsByTagName("option") : null);
+        if (opts) {
+            for (let i = 0; i < opts.length; i++) {
+                raskNotePendingSelected(opts[i], opts[i].hasAttribute("selected"));
+            }
+        }
+    }
+}
+
+// What a `change` frame reports for a control, in one place for both hosts — same reasoning as the
+// recorder above, which exists because each host carried its own hand-copied copy and they drifted.
+//
+// `value` keeps exactly the meaning it had, so nothing downstream changes shape. `values` is added only
+// for a <select multiple>: the DOM has no multi-value `value`, so `select.value` is the FIRST selected
+// option (or "" when none), and reporting it alone told the server one option out of however many the
+// user had picked — the model then converged on that one, correctly, from a wrong report.
+export function raskChangeFrameValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): string {
+    const tag = el.tagName;
+    // For a checkbox the meaningful state is el.checked, not el.value (the static "on" default). Report
+    // it as "true"/"false" so a bound checkbox sets the model to the actual state (self-correcting)
+    // rather than relying on a server-side toggle. Radios keep sending el.value — a radio's value IS
+    // the selected option.
+    if (tag === "INPUT" && el.type === "checkbox") return (el as HTMLInputElement).checked ? "true" : "false";
+    return el.value == null ? "" : String(el.value);
+}
+
+// The whole selection of a <select multiple>, or null for every other control — null rather than an
+// empty array so the frame simply omits the field and no existing payload grows a byte.
+export function raskChangeFrameValues(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): string[] | null {
+    if (el.tagName !== "SELECT") return null;
+
+    // Narrowed by the tag test above: `multiple`, `selectedOptions` and `options` are all
+    // HTMLSelectElement members, and the union this takes also covers inputs and textareas.
+    const select = el as HTMLSelectElement;
+    if (!select.multiple) return null;
+
+    const picked = select.selectedOptions;
+    const values: string[] = [];
+    if (picked) {
+        for (let i = 0; i < picked.length; i++) values.push(picked[i].value);
+    } else {
+        // selectedOptions is universally supported, but the fallback costs three lines and keeps the
+        // shared module honest against a stub DOM that models only `options`.
+        const opts = select.options || [];
+        for (let i = 0; i < opts.length; i++) {
+            if (opts[i].selected) values.push(opts[i].value);
+        }
+    }
+    return values;
+}
+
+// Third-party <head> preservation. Libraries routinely inject <style>/<link>/<script> into <head> at
+// runtime (a code editor's theme colours, a charting lib, a syntax highlighter, analytics). Those nodes
+// aren't in the .NET-rendered head, so the reconciler below would trim them on the next head morph. Rather
+// than change the reconciliation (its invariants — keyed FOUC clones, boot-shell hydration, self-healing —
+// are load-bearing), we watch <head> and tag anything a library injects with data-rask-managed, which the
+// reconciler ALREADY skips (see the fc-building loop). The framework's own head mutations happen during an
+// apply (a head morph, or an applyDiff InsertSubtree of a Head-declared script/link); those are discarded
+// from the observer queue so they're never mistaken for foreign. data-rask-key nodes (the framework's keyed
+// head links, incl. the scoped-CSS FOUC preload clone) are never tagged — they must reconcile by key.
+let _raskHeadObserver: MutationObserver | null = null;
+let _raskObservedHead: HTMLHeadElement | null = null;
+
+function _raskEnsureHeadObserver() {
+    if (typeof MutationObserver === "undefined" || typeof document === "undefined" || !document.head) {
+        return;
+    }
+    // Already watching the live <head> — nothing to do.
+    if (_raskHeadObserver && _raskObservedHead === document.head) {
+        return;
+    }
+    // First install, or the <head> element was replaced (not morphed in place) — (re)arm on the live head.
+    if (_raskHeadObserver) _raskHeadObserver.disconnect();
+    _raskObservedHead = document.head;
+    // The callback receives the pending records as its argument — do NOT call takeRecords() here (it would
+    // return empty, since delivery already drained them). takeRecords() is only for the synchronous flush
+    // at a head morph / applyDiff, where the records are still pending.
+    _raskHeadObserver = new MutationObserver((records) => _raskTagHeadRecords(records));
+    _raskHeadObserver.observe(_raskObservedHead, { childList: true });
+}
+
+// Tag the nodes added by these mutation records — a <style>/<link>/<script> a library injected — with
+// data-rask-managed so the reconciler's skip preserves them. Never tags data-rask-key nodes (the
+// framework's own keyed head links, e.g. the scoped-CSS FOUC clone, which must reconcile by key).
+function _raskTagHeadRecords(records: MutationRecord[]): void {
+    for (const r of records) {
+        for (const n of r.addedNodes) {
+            if (n.nodeType !== 1) continue;
+            const el = n as Element;
+            if (!el.hasAttribute("data-rask-key") && !el.hasAttribute("data-rask-managed")) {
+                el.setAttribute("data-rask-managed", "");
+            }
+        }
+    }
+}
+
+// Synchronous flush at the start of a head morph: tag foreign nodes injected since the last drain that the
+// async observer callback hasn't processed yet, so this morph preserves them.
+export function _raskTagForeignHeadNodes() {
+    if (_raskHeadObserver) _raskTagHeadRecords(_raskHeadObserver.takeRecords());
+}
+
+// Drop the head mutations the framework itself just made (during a morph or applyDiff) so the async
+// observer never tags framework-inserted head nodes as foreign. Called at the end of every head morph and
+// at the end of applyDiff (rask-dom.js).
+export function _raskDiscardFrameworkHeadMutations() {
+    if (_raskHeadObserver) _raskHeadObserver.takeRecords();
+}
+
+// Install eagerly when the client bundle loads, so a library that injects into <head> before the first
+// head morph is still observed (the lazy install inside morph() is the fallback for when document.head
+// isn't ready at load time). The observer only tags nodes ADDED after it arms — the boot-shell head is
+// left alone.
+_raskEnsureHeadObserver();
+
+export function morph(fromNode: Node, toNode: Node): void {
+    if (fromNode.nodeType !== toNode.nodeType || fromNode.nodeName !== toNode.nodeName) {
+        // A node with no parent cannot be replaced, and reaching here with one would mean morph was
+        // called on a detached root. Guarding beats the alternative: replaceChild on a null parent
+        // throws a TypeError naming neither the node nor the caller.
+        if (fromNode.parentNode) _raskReplaceChild(fromNode.parentNode, toNode, fromNode);
+        return;
+    }
+    if (fromNode.nodeType === 3 || fromNode.nodeType === 8) {
+        if (fromNode.nodeValue !== toNode.nodeValue) fromNode.nodeValue = toNode.nodeValue;
+        return;
+    }
+
+    // Everything past the text/comment return is an element: the two sides' nodeType and nodeName
+    // already agree, and only an element carries attributes. Rebound to the names the rest of this
+    // function uses, so the narrowing reaches every read below without a cast at each one.
+    const from = fromNode as Element;
+    const to = toNode as Element;
+
+    const fa = from.attributes, ta = to.attributes;
+    // Reverse walk: removeAttribute mutates the live `fa` NamedNodeMap, so iterate
+    // by index from the end to keep the unvisited slots stable.
+    for (let i = fa.length - 1; i >= 0; i--) {
+        const name = fa[i].name;
+        if (!to.hasAttribute(name)) from.removeAttribute(name);
+    }
+    for (const a of ta) {
+        if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);
+    }
+    const tag = from.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") {
+        // Narrowed by the tag test. A textarea has no `checked`, so the union is what keeps the
+        // checkbox branch below honest rather than papering over it with `any`.
+        const fromField = from as HTMLInputElement | HTMLTextAreaElement;
+        // Only inputs with data-rask-on-input stream keystrokes — those need the
+        // focus guard so a lagging re-render doesn't clobber mid-typed characters.
+        // Change-only inputs (date / number / time / datetime-local / checkbox /
+        // radio) commit at change time; the rendered value is canonical and must
+        // win, otherwise Chromium leaves a focused date input's dirty value flag
+        // stale and the first picker change appears to be dropped.
+        const streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
+        if (!streaming || document.activeElement !== from) {
+            let newVal = to.getAttribute("value");
+            if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
+            // No rendered `value` (an <input> with no `value` attribute) means the input is
+            // *uncontrolled* — the framework isn't managing its value, so a re-render (including a
+            // full-document morph on a full reply — scoped-CSS delivery, reconnect, …) must leave the
+            // user's typed DOM value alone rather than reset it to "". A controlled/bound input always
+            // renders a `value` attribute (even `value=""`), so it still syncs below.
+            // raskShouldSuppressValue runs first so it can clear a confirmed echo even when from.value
+            // already equals newVal; a still-pending user edit (incoming !== the committed value) is
+            // left untouched.
+            if (newVal !== null && !raskShouldSuppressValue(from, newVal) && fromField.value !== newVal) {
+                fromField.value = newVal;
+            }
+            // raskShouldSuppressChecked runs first (like the value guard) so a confirmed echo can
+            // clear the guard even when from.checked already matches — a lagging frame carrying the
+            // pre-click checked is left to the browser's just-applied native state.
+            const checked = to.hasAttribute("checked");
+            // `checked` only exists on an input; a textarea reaching here simply has no checkbox
+            // state to reconcile, which is what the tag test below states.
+            if (tag === "INPUT") {
+                const fromInput = fromField as HTMLInputElement;
+                if (!raskShouldSuppressChecked(from, checked) && fromInput.checked !== checked) {
+                    fromInput.checked = checked;
+                }
+            }
+        }
+    }
+    // This subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.External).
+    // Attributes above still sync, which is exactly how a changed `props` reaches the adapter; the
+    // children never do. Pairing them would let a full-document morph (scoped-CSS delivery, reconnect,
+    // any untrusted structural op) delete DOM that renderer owns and is about to reuse.
+    //
+    // The two sides genuinely disagree here, permanently and by design, which is why this cannot be
+    // softened into a smarter walk. `from` holds whatever the framework rendered; `to` holds the
+    // server's idea of it — an empty element, or one still carrying the <template data-rask-slot>
+    // children the client lifted out and deleted at mount. A positional walk would trim every mounted
+    // node, and re-inserting the templates would hand the adapter its slot content a second time.
+    //
+    // Distinct from data-rask-managed, which skips a node as a sibling; this one keeps the node and
+    // stops at its border.
+    if (from.hasAttribute && (from.hasAttribute("data-rask-opaque") || to.hasAttribute("data-rask-opaque"))) {
+        return;
+    }
+
+    // Reconciling the live <head>: before pairing children, tag anything a third-party library injected
+    // (see the note above _raskHeadObserver) as data-rask-managed so the skip below preserves it. The
+    // observer is installed lazily on the first head morph — library injections happen after boot.
+    const isDocHead = typeof document !== "undefined" && from === document.head;
+    if (isDocHead) {
+        _raskEnsureHeadObserver();
+        _raskTagForeignHeadNodes();
+    }
+    // Skip JS-owned elements (marked data-rask-managed) — they're not part of
+    // the .NET render tree, so pairing them against the incoming children would
+    // either trim them off or replace them with something unrelated. Used by
+    // the Server overlay (reconnect spinner sibling of <html>) and the WASM
+    // scoped-css / scoped-js bundle tags (head children that don't appear in
+    // the .NET-rendered HTML payload).
+    //
+    // The filter is symmetric: an incoming (to-side) child carrying the marker is
+    // always a misuse — a .NET-rendered node is by definition part of the payload,
+    // so the marker contradicts itself. Skipping it makes that mistake a harmless
+    // no-op; without this, the from-side node is filtered out but the to-side one
+    // isn't, so every morph appends a fresh unpaired copy (unbounded DOM growth).
+    const fc: Node[] = [], tc: Node[] = [];
+    for (let n = from.firstChild; n; n = n.nextSibling) {
+        if (isElement(n) && n.hasAttribute("data-rask-managed")) continue;
+        fc.push(n);
+    }
+    for (let m = to.firstChild; m; m = m.nextSibling) {
+        if (isElement(m) && m.hasAttribute("data-rask-managed")) continue;
+        tc.push(m);
+    }
+
+    // Keyed reconciliation: if any incoming child carries data-rask-key, match
+    // by key instead of by position so reordered list items keep their DOM
+    // identity (focus, scroll, animations, ::part state) across re-renders.
+    // Falls back to the positional walk below when no keys are present.
+    let keyed = false;
+    for (const node of tc) {
+        if (isElement(node) && node.getAttribute("data-rask-key") !== null) {
+            keyed = true;
+            break;
+        }
+    }
+    if (keyed) {
+        const keyMap = new Map<string, Node>();
+        const unkeyedFrom: Node[] = [];
+        for (const fn of fc) {
+            const fk = isElement(fn) ? fn.getAttribute("data-rask-key") : null;
+            if (fk !== null) keyMap.set(fk, fn);
+            else unkeyedFrom.push(fn);
+        }
+        let unkeyedCursor = 0;
+        // Sentinel: keep the place we want to insert before. As we move/create
+        // keyed nodes we advance this past the just-placed node; unkeyed nodes
+        // follow the same anchor.
+        let anchor = (fc.length > 0) ? fc[0] : null;
+        for (const dst of tc) {
+            const dk = isElement(dst) ? dst.getAttribute("data-rask-key") : null;
+            let src: Node | null;
+            if (dk !== null) {
+                src = keyMap.get(dk) || null;
+                if (src) keyMap.delete(dk);
+            } else {
+                src = unkeyedFrom[unkeyedCursor++] || null;
+            }
+            if (src === null) {
+                _raskInsertBefore(from, reviveScript(dst), anchor);
+            } else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) {
+                _raskInsertBefore(from, reviveScript(dst), anchor);
+                // If the from-node we're about to remove IS the anchor, advance the anchor past it
+                // first — otherwise the next insert/move would pass a reference node no longer in
+                // `from` and insertBefore throws "reference node is not a child". This happens when a
+                // keyed sibling promotes the container to keyed reconciliation but some from-side
+                // children don't match the new tree by node name (e.g. the SDK-injected <head>
+                // importmap / <base> a WASM app hydrates against on a static host).
+                if (src === anchor) anchor = src.nextSibling;
+                _raskRemoveChild(from, src);
+            } else {
+                if (src !== anchor) _raskMoveBefore(from, src, anchor);
+                else anchor = src.nextSibling;
+                morph(src, dst);
+            }
+        }
+        // Drop any from-side keyed nodes that were not claimed by the new tree.
+        keyMap.forEach((n) => {
+            if (n.parentNode === from) _raskRemoveChild(from, n);
+        });
+        // Drop trailing unkeyed nodes too.
+        while (unkeyedCursor < unkeyedFrom.length) {
+            const leftover = unkeyedFrom[unkeyedCursor++];
+            if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
+        }
+        if (isDocHead) _raskDiscardFrameworkHeadMutations();
+        if (tag === "SELECT") raskSyncSelectSelection(from as HTMLSelectElement);
+        return;
+    }
+
+    const max = Math.max(fc.length, tc.length);
+    for (let k = 0; k < max; k++) {
+        const src = fc[k], dst = tc[k];
+        if (!src) _raskAppendChild(from, reviveScript(dst));
+        else if (!dst) _raskRemoveChild(from, src);
+        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, reviveScript(dst), src);
+        else morph(src, dst);
+    }
+    if (isDocHead) _raskDiscardFrameworkHeadMutations();
+    // After the options are reconciled, never before: the selection is read off the incoming
+    // `selected` attributes, and until the child walk above has run they are still the old render's.
+    if (tag === "SELECT") raskSyncSelectSelection(from as HTMLSelectElement);
+}

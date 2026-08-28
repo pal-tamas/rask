@@ -5,53 +5,54 @@ using Xunit;
 namespace Rask.TestSupport;
 
 /// <summary>
-///     Runs a <c>.mjs</c> fixture in a node subprocess and returns the JSON line it printed.
+///     Runs one of a test project's <c>*Fixture.ts</c> harnesses in a Node subprocess and returns the
+///     single JSON line it prints.
 /// </summary>
 /// <remarks>
-///     For the client-side code Rask actually ships — the morph, the island runtime. These fixtures
-///     exercise the production <c>.js</c> against a stub DOM rather than a C# port of it, because a
-///     port would only ever pin the port.
+///     <para>
+///         Each fixture drives a real shipped module — the morph, the diff codec, the external-component
+///         client runtime — against a stub
+///         DOM, in states a browser only reaches through genuine user interaction. The module arrives
+///         by <c>import</c>, and MSBuild bundles the fixture into <c>node-fixtures/</c> beside this
+///         assembly during the build, so a fixture that no longer compiles fails the build rather
+///         than a test.
+///     </para>
+///     <para>
+///         What this replaces: seven copies of the same twenty lines, each reading a framework
+///         <c>.js</c> off disk and evaluating it with
+///         <c>new Function(src + "return { morph, … }")</c>. That worked while the shared modules
+///         were bare declarations meant to be pasted into a host's scope; nothing checked that the
+///         names in that string still existed, and it stops working the moment a module has real
+///         <c>export</c>s.
+///     </para>
 /// </remarks>
 public static class NodeFixture
 {
     /// <summary>
-    ///     Runs <paramref name="fixture" />, passing each of <paramref name="arguments" /> as an
-    ///     absolute path.
+    ///     Runs <paramref name="name" /> and parses its JSON line, or returns <c>null</c> when Node is
+    ///     not installed.
     /// </summary>
-    /// <param name="fixture">The fixture script, as a repo-relative path.</param>
-    /// <param name="arguments">Repo-relative paths handed to the fixture, in order.</param>
-    /// <returns>The parsed JSON line, or null when there is no node on PATH.</returns>
     /// <remarks>
-    ///     A missing node is not a failure: these fixtures are a second line of defence behind the
-    ///     browser E2E, and none of the .NET projects need a JavaScript toolchain to build or test. But
-    ///     the skip is announced rather than silent — xUnit 2.x has no runtime skip, so a bare return
-    ///     reports as a PASS, and a gate that quietly stops running is worse than one that fails.
+    ///     A missing Node returns null rather than failing: the browser-observable half of every one
+    ///     of these behaviours is covered by an E2E test, and Node is not otherwise required to build
+    ///     or test Rask. Callers return early — which is why each one says so at its call site, so a
+    ///     silently-skipped test reads as a deliberate choice rather than an accident.
     /// </remarks>
-    public static JsonDocument? Run(string fixture, params string[] arguments)
+    public static JsonElement? Run(string name)
     {
         var node = ResolveNode();
         if (node is null)
         {
-            Console.WriteLine(
-                $"NodeFixture: no 'node' on PATH — {fixture} did NOT run. "
-                + "The browser E2E covers the user-observable side.");
             return null;
         }
 
-        var repoRoot = LocateRepoRoot();
+        var script = Path.Combine(AppContext.BaseDirectory, "node-fixtures", name + ".mjs");
+        Assert.True(
+            File.Exists(script),
+            $"'{script}' is missing. It is bundled from {name}.ts by the _RaskBundleNodeFixtures target — "
+            + "build the test project first.");
 
-        var fixturePath = Path.Combine(repoRoot, fixture.Replace('/', Path.DirectorySeparatorChar));
-        Assert.True(File.Exists(fixturePath), $"Fixture script missing: {fixturePath}");
-
-        var argv = new List<string> { Quote(fixturePath) };
-        foreach (var argument in arguments)
-        {
-            var path = Path.Combine(repoRoot, argument.Replace('/', Path.DirectorySeparatorChar));
-            Assert.True(File.Exists(path), $"Fixture argument missing: {path}");
-            argv.Add(Quote(path));
-        }
-
-        var psi = new ProcessStartInfo(node, string.Join(" ", argv))
+        var psi = new ProcessStartInfo(node, $"\"{script}\"")
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -64,30 +65,38 @@ public static class NodeFixture
         var stderr = proc.StandardError.ReadToEnd();
         proc.WaitForExit(30_000);
 
-        Assert.True(proc.ExitCode == 0,
-            $"Fixture exited with code {proc.ExitCode}. stderr:\n{stderr}\nstdout:\n{stdout}");
+        Assert.True(
+            proc.ExitCode == 0,
+            $"{name} exited with code {proc.ExitCode}.{Environment.NewLine}"
+            + $"stderr:{Environment.NewLine}{stderr}{Environment.NewLine}"
+            + $"stdout:{Environment.NewLine}{stdout}");
 
         var jsonLine = stdout
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .LastOrDefault(s => s.StartsWith('{') && s.EndsWith('}'));
-        Assert.False(jsonLine is null,
-            $"Fixture didn't emit a JSON line. stdout:\n{stdout}\nstderr:\n{stderr}");
 
-        return JsonDocument.Parse(jsonLine!);
+        Assert.False(
+            jsonLine is null,
+            $"{name} printed no JSON line.{Environment.NewLine}"
+            + $"stdout:{Environment.NewLine}{stdout}{Environment.NewLine}"
+            + $"stderr:{Environment.NewLine}{stderr}");
+
+        // Cloned, so the element outlives the JsonDocument this method disposes.
+        using var document = JsonDocument.Parse(jsonLine!);
+        return document.RootElement.Clone();
     }
-
-    private static string Quote(string path) => $"\"{path}\"";
 
     private static string? ResolveNode()
     {
         var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
         var separator = OperatingSystem.IsWindows() ? ';' : ':';
-        var exeNames = OperatingSystem.IsWindows() ? ["node.exe", "node.cmd"] : new[] { "node" };
-        foreach (var dir in path.Split(separator, StringSplitOptions.RemoveEmptyEntries))
+        var exeNames = OperatingSystem.IsWindows() ? new[] { "node.exe", "node.cmd" } : ["node"];
+
+        foreach (var directory in path.Split(separator, StringSplitOptions.RemoveEmptyEntries))
         {
-            foreach (var name in exeNames)
+            foreach (var exe in exeNames)
             {
-                var candidate = Path.Combine(dir, name);
+                var candidate = Path.Combine(directory, exe);
                 if (File.Exists(candidate))
                 {
                     return candidate;
@@ -96,22 +105,5 @@ public static class NodeFixture
         }
 
         return null;
-    }
-
-    private static string LocateRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            $"Could not locate Rask.slnx walking up from {AppContext.BaseDirectory}");
     }
 }

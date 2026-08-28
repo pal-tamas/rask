@@ -74,7 +74,7 @@ and is tested in `Rask.Core.Tests/Live/{RenderFrame,FrameDiffer,SessionRenderCac
   rendered HTML (a conservative bound; full-payload bytes are ~2× HTML after
   JSON-escaping). Outside this window the full-HTML payload ships and the diff
   is discarded.
-- `Rask.Server/Resources/rask.js` and `Rask.Wasm/Resources/rask.wasm.js` both
+- `Rask.Server/Resources/rask.ts` and `Rask.Wasm/Resources/rask.wasm.ts` both
   carry the `applyDiff(ops)` interpreter — `SetAttribute`, `RemoveAttribute`,
   `UpdateText`, `InsertSubtree` (with HTML fragment), `RemoveSubtree`,
   `MoveSubtree` (keyed reorders; detach + insertBefore on the live DOM node).

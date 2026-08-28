@@ -24,9 +24,10 @@ otherwise.
   pulls `Microsoft.Playwright` via NuGet (version comes from `Directory.Packages.props`, so the
   `#:package` directive is intentionally unversioned — Central Package Management supplies it).
 - **Playwright browsers** — already present in `~/Library/Caches/ms-playwright` (installed for the
-  E2E suite). If missing, the driver errors with a "browser not found" message; install with
-  `dotnet run --project tests/Rask.Examples.E2E.Tests -- ...` build once then run the generated
-  `playwright.ps1 install chromium`, or see `scripts/run-e2e-local.sh`.
+  E2E suite). If missing, the driver errors with a "browser not found" message; build the E2E project
+  once, then `scripts/playwright.sh install chromium`. That wrapper drives the node CLI bundled with
+  `Microsoft.Playwright`, so it needs no PowerShell and always installs the browser revisions the
+  pinned binding expects — unlike `npx playwright install`.
 
 ## Build
 

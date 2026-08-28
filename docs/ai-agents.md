@@ -8,7 +8,7 @@ Rask app correctly without you re-explaining the conventions.
 - **`AGENTS.md`** (repo root) — the AI guidance that ships with the Rask repository. It's the
   cross-tool standard most AI coding assistants read automatically; it captures the rules that make
   Rask code compile (the chain not `new`, the children indexer, step-vs-setter props, the full-shell
-  root, routing/lifecycle, scoped CSS/JS, callbacks, forms, auth). Generated projects no longer ship
+  root, routing/lifecycle, scoped CSS/TypeScript, callbacks, forms, auth). Generated projects no longer ship
   their own `AGENTS.md` — point your assistant at this repo-root guidance (and `llms.txt`).
 - **`llms.txt`** (repo root) — the emerging standard index that points AI tools at the docs.
 - **The `docs/` set** — a task guide for each subsystem (getting-started, elements & the DSL, routing,

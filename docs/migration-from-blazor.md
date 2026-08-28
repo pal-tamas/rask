@@ -216,5 +216,5 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
   hot reload.
 - **`IJSRuntime`** — the same interop surface (`InvokeAsync`, `InvokeVoidAsync`).
   Rask adds element refs (`ElementRef.New()` + a `Ref:` parameter on every element)
-  and a sibling `{Component}.js` convention bundled and dispatched as
+  and a sibling `{Component}.ts` convention bundled and dispatched as
   `window.Rask["{TypeName}"]`.

@@ -42,8 +42,8 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     // one is now CS0239 from the compiler itself — a rule the type system can state does not need an
     // analyzer to notice it.
 
-    private static readonly DiagnosticDescriptor Rask055 = new(
-        "RASK055",
+    private static readonly DiagnosticDescriptor Rask056 = new(
+        "RASK056",
         "external component must be partial",
         "'{0}' must be declared 'partial' — its name, module and props writer are generated into the same class",
         DiagnosticHelp.Category,
@@ -53,10 +53,10 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                      + "nowhere to put it, so the three members ExternalComponent declares abstract are never "
                      + "implemented and the class does not compile — reported here, against the declaration, rather "
                      + "than as three unimplemented members whose names mean nothing to the author.",
-        helpLinkUri: DiagnosticHelp.Link("RASK055"));
+        helpLinkUri: DiagnosticHelp.Link("RASK056"));
 
-    private static readonly DiagnosticDescriptor Rask056 = new(
-        "RASK056",
+    private static readonly DiagnosticDescriptor Rask057 = new(
+        "RASK057",
         "external component prop has no wire encoding",
         "'{0}' cannot send prop '{1}' to the browser: {2}",
         DiagnosticHelp.Category,
@@ -68,7 +68,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                      + "nullable versions of those, arrays and lists of them, string-keyed dictionaries, and records "
                      + "or classes composed of the same. Callbacks are supported as Action, Action<T>, Func<Task> "
                      + "and Func<T, Task>. Mark a property [SkipFactory] to keep it out of the props entirely.",
-        helpLinkUri: DiagnosticHelp.Link("RASK056"));
+        helpLinkUri: DiagnosticHelp.Link("RASK057"));
 
     private static readonly DiagnosticDescriptor Rask058 = new(
         "RASK058",
@@ -224,7 +224,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
         if (!isPartial)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask055, location, type.Name));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask056, location, type.Name));
             return null;
         }
 
@@ -277,7 +277,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             if (wire.Kind == WireKind.Unsupported)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask055,
+                    Rask056,
                     property.Locations.FirstOrDefault(l => l.IsInSource) ?? location,
                     type.Name,
                     property.Name,
@@ -358,7 +358,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     /// <summary>The callback shape a delegate prop takes, or null when it is not a callback at all.</summary>
     /// <remarks>
     ///     The four shapes Rask already auto-wraps. A delegate outside the set falls through to the wire
-    ///     classifier, which rejects it with RASK056 — better than silently dropping a prop the author
+    ///     classifier, which rejects it with RASK057 — better than silently dropping a prop the author
     ///     clearly meant to be called.
     /// </remarks>
     private static CallbackShape? Callback(ITypeSymbol type)

@@ -173,16 +173,19 @@ The client (`rask.js` / `rask.wasm.js`) applies these via `applyDiff(ops)`. Its
 `resolvePath` walks `parent.childNodes` **filtered to Element/Text/Doctype only**, so
 the path coordinates line up with the server's DOM-relevant frame counting.
 
-`applyDiff` and its helpers live in **one shared source**,
-`src/Rask.Core/Resources/rask-dom.js`, spliced into both clients at build time at the
-`RASK_DOM` marker — the same mechanism the full-HTML morph (`rask-morph.js`, `RASK_MORPH`
-marker) already uses (see `_RaskBuildClientJs` in `Rask.Server.csproj` and
-`_RaskSpliceClientJs` in `Rask.Wasm.csproj`). Keeping the codec in a single shared source
-means both runtimes decode the C# `FrameDiffer` opcodes identically — they cannot drift. The
-shared code is modern JS, with two splice constraints: its top-level helpers stay hoisted
-`function` declarations (so `applyDiff` can call `reviveScript`/value-guard helpers regardless
-of splice order), and it uses no `export`/`import` (it is spliced inside the Server's
-classic-`<script>` IIFE, where module syntax is illegal).
+`applyDiff` and its helpers live in **one shared module**,
+`src/Rask.Core/Resources/rask-dom.ts`, which both client entry points `import` — the same
+arrangement the full-HTML morph (`rask-morph.ts`) uses. Keeping the codec in a single shared
+module means both runtimes decode the C# `FrameDiffer` opcodes identically; they cannot drift.
+esbuild bundles each entry point into the runtime its host serves (`_RaskBundleClientJs` in
+`Rask.Server.csproj` and `Rask.Wasm.csproj`).
+
+This replaced an MSBuild `String.Replace` that pasted the shared files into each host at
+`// @@RASK_*@@` markers, in an order the build had to get right, with cross-module calls going
+through implicit `window.__rask*` globals. Nothing checked the order, the markers, or that a
+caller and its callee agreed — and the two constraints it imposed (no `export`/`import`, and
+top-level helpers kept as hoisted `function` declarations so splice order could not matter) are
+gone with it.
 
 ## Keyed reconciliation: trusted structural ops
 

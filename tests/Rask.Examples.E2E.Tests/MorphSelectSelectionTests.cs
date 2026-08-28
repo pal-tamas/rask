@@ -135,16 +135,18 @@ public sealed class MorphSelectSelectionTests(PlaywrightFixture playwright)
         var page = await playwright.Browser.NewPageAsync();
         await page.SetContentAsync(html);
 
-        // Load the shipped modules the way the hosts' splice does. They are not ES modules and carry
-        // unsubstituted @@RASK_*@@ markers, so they are evaluated as a function body — the same trick
-        // MorphSelectedGuardFixture.mjs uses to run them under Node.
-        var root = LocateRepoRoot();
-        var morph = await File.ReadAllTextAsync(Path.Combine(root, "src/Rask.Core/Resources/rask-morph.js"));
-        var dom = await File.ReadAllTextAsync(Path.Combine(root, "src/Rask.Core/Resources/rask-dom.js"));
-        await page.EvaluateAsync(
-            "([m, d]) => new Function(m + '\\n' + d + '\\n'"
-            + " + 'window.__raskMorph = morph; window.__raskNote = raskNotePendingFormState;')()",
-            new[] { morph, dom });
+        // The real morph, bundled from BrowserFixtures/morph-select.ts by the build and published on
+        // `window`. It used to be reached by reading rask-morph.js and rask-dom.js off disk and
+        // evaluating them with `new Function(...)`, which was the only way in while those files were
+        // bare declarations meant to be pasted into a host's scope.
+        var bundle = Path.Combine(AppContext.BaseDirectory, "browser-fixtures", "morph-select.js");
+
+        Assert.True(
+            File.Exists(bundle),
+            $"'{bundle}' is missing. It is bundled from BrowserFixtures/morph-select.ts by "
+            + "_RaskBundleBrowserFixtures — build this project first.");
+
+        await page.AddScriptTagAsync(new PageAddScriptTagOptions { Content = await File.ReadAllTextAsync(bundle) });
 
         return page;
     }
@@ -173,21 +175,4 @@ public sealed class MorphSelectSelectionTests(PlaywrightFixture playwright)
 
     private static Task<string> SelectionAsync(IPage page) => page.EvalOnSelectorAsync<string>(
         "#s", "s => [...s.selectedOptions].map(o => o.value).join(',') || '(none)'");
-
-    private static string LocateRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            $"Could not locate Rask.slnx walking up from {AppContext.BaseDirectory}");
-    }
 }

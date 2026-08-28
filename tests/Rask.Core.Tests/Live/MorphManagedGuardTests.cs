@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Text.Json;
 
 namespace Rask.Core.Tests.Live;
 
@@ -12,51 +10,23 @@ namespace Rask.Core.Tests.Live;
 // guard makes the to-side filter symmetric: a marked node in the incoming tree is always a misuse
 // (a rendered node is part of the payload), so skipping it turns the mistake into a no-op.
 //
-// This exercises the production rask-morph.js in a Node subprocess with a stub DOM. The
+// This exercises the production rask-morph.ts in a Node subprocess with a stub DOM. The
 // user-observable side is covered by PlaygroundExampleTests (.pg-code-host count after a run).
 public sealed class MorphManagedGuardTests
 {
     [Fact]
     public void ManagedNodeInIncomingTree_IsNotDuplicated_AndCorrectlyPlacedMarkerSurvives()
     {
-        var node = ResolveNode();
-        if (node is null)
+        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
+        // failure: node is not required to build or test Rask, and the browser-observable
+        // half of this behaviour is covered by an E2E test.
+        var result = NodeFixture.Run("MorphManagedGuardFixture");
+        if (result is null)
         {
-            // No node on PATH — the JS-driven reproduction can't run. Don't hard-fail; the
-            // playground E2E covers the user-observable side.
             return;
         }
 
-        var repoRoot = LocateRepoRoot();
-        var fixtureScript = Path.Combine(repoRoot, "tests", "Rask.Core.Tests", "Live", "MorphManagedGuardFixture.mjs");
-        var morphPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-morph.js");
-        Assert.True(File.Exists(fixtureScript), $"Fixture script missing: {fixtureScript}");
-        Assert.True(File.Exists(morphPath), $"Morph source missing: {morphPath}");
-
-        var psi = new ProcessStartInfo(node, $"\"{fixtureScript}\" \"{morphPath}\"")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var proc = Process.Start(psi)!;
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit(30_000);
-
-        Assert.True(proc.ExitCode == 0,
-            $"Fixture exited with code {proc.ExitCode}. stderr:\n{stderr}\nstdout:\n{stdout}");
-
-        var jsonLine = stdout
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .LastOrDefault(s => s.StartsWith('{') && s.EndsWith('}'));
-        Assert.False(jsonLine is null,
-            $"Fixture didn't emit a JSON line. stdout:\n{stdout}\nstderr:\n{stderr}");
-
-        using var doc = JsonDocument.Parse(jsonLine!);
-        var root = doc.RootElement;
+        var root = result.Value;
 
         bool GetBool(string name) => root.GetProperty(name).GetBoolean();
         int GetInt(string name) => root.GetProperty(name).GetInt32();
@@ -71,40 +41,5 @@ public sealed class MorphManagedGuardTests
         Assert.True(GetBool("correctMonacoKept"), "a correctly-marked library child was stripped by morph");
     }
 
-    private static string? ResolveNode()
-    {
-        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        var separator = OperatingSystem.IsWindows() ? ';' : ':';
-        var exeNames = OperatingSystem.IsWindows() ? new[] { "node.exe", "node.cmd" } : new[] { "node" };
-        foreach (var dir in path.Split(separator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            foreach (var name in exeNames)
-            {
-                var candidate = Path.Combine(dir, name);
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-        }
 
-        return null;
-    }
-
-    private static string LocateRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            $"Could not locate Rask.slnx walking up from {AppContext.BaseDirectory}");
-    }
 }

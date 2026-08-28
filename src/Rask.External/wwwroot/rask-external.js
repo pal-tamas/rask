@@ -74,7 +74,7 @@ function revive(value, cache) {
     if (typeof id === "string" && Object.keys(value).length === 1) {
         let fn = cache.get(id);
         if (!fn) {
-            fn = (...args) => hostSend({id, type: "island", args});
+            fn = (...args) => hostSend({id, type: "external", args});
             cache.set(id, fn);
         }
         return fn;

@@ -23,7 +23,7 @@ public sealed partial class PictureInPicturePage : Component
             "animated canvas (sibling scoped JS), so it needs no shipped media file."
         ],
         CodeSample
-            .Files(["PictureInPictureDemo.cs", "PictureInPictureDemo.js"])
+            .Files(["PictureInPictureDemo.cs", "PictureInPictureDemo.ts"])
             .Notes("RequestAsync(ElementRef) sends that <video> to the miniplayer; ExitAsync brings it back. "
                 + "Gate on IsSupportedAsync and wrap in try/catch — a request without activation rejects.")
             .Result(PictureInPictureDemo)

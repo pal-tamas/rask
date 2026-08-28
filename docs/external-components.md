@@ -56,7 +56,7 @@ public sealed partial class Gauge : LitComponent
 }
 ```
 
-`partial` is required ([RASK055](diagnostics.md#rask055)) — the component's name, its module and its
+`partial` is required ([RASK056](diagnostics.md#rask056)) — the component's name, its module and its
 props writer are generated into the same class.
 
 The front-end file is found the way scoped CSS and scoped JS already are: by filename, beside the
@@ -119,7 +119,7 @@ export default function Chart({ series, heading }: { series: Point[]; heading?: 
 Supported prop types are the wire vocabulary the CQRS codecs use: the primitives, `string`, `Guid`,
 the date/time types, `Uri`, enums, `byte[]`, nullable versions of those, arrays and lists, string-keyed
 dictionaries, and records composed of the same. Anything else is
-[RASK056](diagnostics.md#rask056) at compile time rather than `null` in the browser. `[SkipFactory]`
+[RASK057](diagnostics.md#rask057) at compile time rather than `null` in the browser. `[SkipFactory]`
 keeps a property out of the props entirely.
 
 > **A prop named after an HTML tag will not compile.** `Title`, `Label`, `Data`, `Form`, `Style` and

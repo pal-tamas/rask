@@ -4,7 +4,7 @@ namespace Rask.Core.Tests.Resources;
 ///     Source-level contract for the graceful-shutdown affordances in the client runtimes. Structural
 ///     assertions over the shipped <c>.js</c>, for the same reason as
 ///     <see cref="HotReloadClientContractTests" />: <c>rask.js</c> is an IIFE that boots a WebSocket
-///     against a live document and still carries its unsubstituted <c>@@RASK_*@@</c> splice markers in
+///     against a live document in
 ///     the Resources copy, so it cannot be executed in Node. What is worth pinning here are the
 ///     invariants that fail silently — a branch that falls through, a gate that shouldn't be there, a
 ///     restore that never gets consumed.
@@ -13,8 +13,8 @@ public class ShutdownClientContractTests
 {
     private static readonly string _repoRoot = LocateRepoRoot();
 
-    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.js");
-    private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.js");
+    private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
+    private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.ts");
 
     [Fact]
     public void The_server_client_handles_the_shutdown_frame_and_returns()
@@ -214,9 +214,13 @@ public class ShutdownClientContractTests
         Assert.Contains("pendingConverge.push", ServerJs, StringComparison.Ordinal);
 
         // And the queue is drained where a socket exists — after the hello, so the session is known.
-        var open = js[js.IndexOf("ws.addEventListener(\"open\"", StringComparison.Ordinal)..];
+        //
+        // The handler captures `const socket = ws` and works through that: under strict typing `ws` is
+        // WebSocket|null and cannot be dereferenced, and capturing also binds each handler to the
+        // socket it was registered on rather than to whichever one is current after a reconnect.
+        var open = js[js.IndexOf("socket.addEventListener(\"open\"", StringComparison.Ordinal)..];
         var openBody = open[..open.IndexOf("\n        });", StringComparison.Ordinal)];
-        var hello = openBody.IndexOf("ws.send(JSON.stringify(hello))", StringComparison.Ordinal);
+        var hello = openBody.IndexOf("socket.send(JSON.stringify(hello))", StringComparison.Ordinal);
         var drain = openBody.IndexOf("for (const payload of pendingConverge) send(payload);", StringComparison.Ordinal);
         Assert.True(hello >= 0 && drain > hello, "converge messages must be sent after the hello");
     }

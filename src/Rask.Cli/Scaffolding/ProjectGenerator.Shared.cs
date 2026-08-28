@@ -149,6 +149,49 @@ internal static partial class ProjectGenerator
 
     // The welcome home page that teaches the CLI — a Features/Home slice, so a new project already models
     // the "screens are feature slices" convention the CLI generates into.
+    /// <summary>
+    ///     The tsconfig scaffolded projects get, so an editor type-checks scoped TypeScript the way the
+    ///     gate does.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The BUILD does not read this. Rask compiles scoped assets by handing tsgo an explicit file
+    ///         list and explicit flags, which is what keeps the emitted form the one
+    ///         <c>ScopedAssetRegistry</c> parses. This file exists for the editor, and the difference
+    ///         matters: without it a scoped <c>.ts</c> gets no checking and no completion for
+    ///         <c>window.Rask</c> or <c>window.DotNet</c>, so the author sees the guarantee only when
+    ///         they run the gate — which is most of it thrown away.
+    ///     </para>
+    ///     <para>
+    ///         <c>obj/rask/types</c> is where the build stages Rask's ambient declarations. The real file
+    ///         ships inside the NuGet package, under a versioned cache directory no tsconfig can name, so
+    ///         a staged copy is what makes it reachable. It appears after the first build.
+    ///     </para>
+    ///     <para>
+    ///         <c>noEmit</c>, because tsgo writes the output and it writes it elsewhere. An editor that
+    ///         decided to emit would drop a <c>.js</c> beside the <c>.ts</c> — which is RASK055, and a
+    ///         confusing way to meet it.
+    ///     </para>
+    /// </remarks>
+    private const string TsConfigJson =
+        """
+        {
+          "compilerOptions": {
+            "target": "es2020",
+            "module": "esnext",
+            "moduleResolution": "bundler",
+            "lib": ["es2020", "dom"],
+            "strict": true,
+            "noUnusedLocals": true,
+            "noEmit": true,
+            "skipLibCheck": true
+          },
+          "include": ["**/*.ts", "obj/rask/types/**/*.d.ts"],
+          "exclude": ["bin", "obj/Debug", "obj/Release", "node_modules", "wwwroot"]
+        }
+
+        """;
+
     private static string HomePageCs(Styling styling) => styling switch
     {
         Styling.Bootstrap => HomePageBootstrapCs,

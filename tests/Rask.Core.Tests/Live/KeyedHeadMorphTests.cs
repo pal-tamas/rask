@@ -1,3 +1,4 @@
+
 namespace Rask.Core.Tests.Live;
 
 // Regression guard for the keyed <head> reconciliation crash on WASM static-host
@@ -17,20 +18,23 @@ namespace Rask.Core.Tests.Live;
 //
 // Fix: advance `anchor` past a from-node before removing it (the node-name-mismatch branch).
 //
-// This exercises the production rask-morph.js in a Node subprocess with a stub DOM whose
+// This exercises the production rask-morph.ts in a Node subprocess with a stub DOM whose
 // insertBefore throws exactly like a browser. Pairs with the StandaloneWasm E2E.
 public sealed class KeyedHeadMorphTests
 {
     [Fact]
     public void KeyedHeadMorph_AgainstSdkInjectedHead_DoesNotThrow_AndConverges()
     {
-        using var doc = NodeFixture.Run("tests/Rask.Core.Tests/Live/KeyedHeadMorphFixture.mjs", "src/Rask.Core/Resources/rask-morph.js");
-        if (doc is null)
+        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
+        // failure: node is not required to build or test Rask, and the browser-observable
+        // half of this behaviour is covered by an E2E test.
+        var result = NodeFixture.Run("KeyedHeadMorphFixture");
+        if (result is null)
         {
             return;
         }
 
-        var root = doc.RootElement;
+        var root = result.Value;
 
         // The keyed reconciliation must NOT throw — this is the assertion that fails pre-fix
         // (insertBefore against the stale anchor pointing at the removed <base>).
@@ -42,4 +46,6 @@ public sealed class KeyedHeadMorphTests
         var children = root.GetProperty("children").EnumerateArray().Select(e => e.GetString()).ToArray();
         Assert.Equal(new[] { "TITLE", "LINK" }, children);
     }
+
+
 }

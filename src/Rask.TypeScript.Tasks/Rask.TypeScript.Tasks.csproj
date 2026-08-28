@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      netstandard2.0 matches what MSBuild loads at build time: the task runs inside the MSBuild host
+      process, which on Windows may still be full-framework MSBuild.exe. Same constraint, and the same
+      reasoning, as Rask.Tailwind.Tasks, Rask.Wasm.Tasks and Rask.Spa.Tasks.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Rask.TypeScript.Tasks</RootNamespace>
+
+    <!-- Build-only: it ships inside a host package's build/ folder, loaded by an explicit <UsingTask>,
+         and is never a compile reference or a package of its own. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ExcludeAssets=runtime: MSBuild's own resolver provides these to a task at runtime, and shipping
+         a second copy alongside risks loading two versions of the same assembly into one process. -->
+    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!--
+    Deploy next to Rask.Core.targets, which is the file that declares the <UsingTask>. Rask.Core is
+    IsPackable=false and its build/ folder is packed into EVERY host package by
+    src/RaskCoreBuildPack.targets, so this one copy reaches Rask.Server and Rask.Wasm alike — and
+    $(MSBuildThisFileDirectory) resolves identically for an in-repo consumer and for a NuGet one,
+    which gets build/ verbatim. Same arrangement as Rask.Tailwind.Tasks and Rask.Spa.Tasks.
+  -->
+  <Target Name="CopyTaskAssemblyToRaskCoreBuild" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Core\build\"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.TypeScript.Tasks.Tests"/>
+  </ItemGroup>
+
+</Project>

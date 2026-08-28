@@ -466,7 +466,7 @@ internal sealed class DevCommand(
         }
         else
         {
-            Console.WriteLine("  Hot reload on. Edits to Render(), scoped .css/.js apply live.", ConsoleStyle.Dim);
+            Console.WriteLine("  Hot reload on. Edits to Render(), scoped .css/.ts apply live.", ConsoleStyle.Dim);
             Console.WriteLine(
                 restartOnRudeEdit
                     ? "  Edits it can't apply restart the app automatically (--no-restart to be asked)."

@@ -102,7 +102,7 @@ place it shows: `el.OnClick?.Invoke()`. DOM handlers are **never** auto-wrapped 
 DOM, where handler-owner resolution already re-renders the owner.
 
 All of these are delegated by a single capture-phase listener per event in the shared client module
-(`rask-events.js`, spliced into both the Server and WASM runtimes), so there is no per-element JS. The
+(`rask-events.ts`, imported by both the Server and WASM runtimes), so there is no per-element JS. The
 Todos sample uses `OnKeyDown` to close its dialog on Escape (it focuses the `<dialog>` on open via an
 `ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute).
 

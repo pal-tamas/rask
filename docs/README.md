@@ -31,7 +31,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Elements & the DSL](elements.md) | The primitives every component is built from: tag entries, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
-| [JS interop](js-interop.md) | Scoped CSS & JS conventions, calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
+| [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK054), calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
 | [Browser APIs](browser-apis.md) | The map of all 50 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
 | [Capability matrix](browser-capabilities.md) | Where each of the 50 APIs works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (`IWebPush`), `rask new MyApp --template wasm`. |

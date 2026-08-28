@@ -117,7 +117,7 @@ public static class GuideCatalog
             "bi-input-cursor-text", "Core"),
         new("forms-advanced", "Forms — advanced", "Nested/complex models, radio & checkbox groups, custom controls.",
             "bi-input-cursor-text", "Core"),
-        new("js-interop", "JavaScript interop", "Scoped CSS/JS, element refs, IJSRuntime, typed APIs.",
+        new("js-interop", "JavaScript interop", "Scoped CSS/TypeScript, element refs, IJSRuntime, typed APIs.",
             "bi-braces", "Core"),
         new("js-interop-runtime", "JS interop — runtime", "Calling JS, the typed browser-API layer, element refs, third-party libs.",
             "bi-braces", "Core"),

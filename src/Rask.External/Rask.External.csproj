@@ -7,6 +7,17 @@
     <IsPackable>true</IsPackable>
     <RootNamespace>Rask.External</RootNamespace>
 
+    <!--
+      client/*.ts are the adapters, shipped as SOURCE for the consumer's bundler to compile. They are
+      not scoped assets and there is no component named 'react' or 'adapter' for them to pair with, so
+      the scoped-TS convention (#871) would report each of them as an orphan (RASK017).
+
+      A property rather than an <_RaskScopedTs Remove="…"/>, because this project body is evaluated
+      before Directory.Build.targets imports Rask.Core.targets, so there is no item list here yet to
+      remove anything from — the same reason Rask.Spa.Hosting sets it for its own vendored client.
+    -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
+
     <PackageId>Rask.External</PackageId>
     <Title>Rask — Foreign Components</Title>
     <Description>Lets a .tsx, .jsx or Lit component be an ordinary Rask component. Mark a component [Island], drop the front-end file beside it, and its props are declared in C# — the generator emits the TypeScript interface the file imports, so renaming a C# property stops the front end compiling. The live diff treats the island's subtree as opaque, because those nodes belong to its own renderer.</Description>

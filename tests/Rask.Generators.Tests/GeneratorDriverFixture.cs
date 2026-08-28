@@ -35,10 +35,61 @@ internal static class GeneratorDriverFixture
     ///     ordinary member lookup beats the namespace-level names another generator produced. Only a
     ///     combined compilation can show which one a call site actually resolves to.
     /// </remarks>
+    /// <summary>
+    ///     Runs the scoped-asset generator the way the build actually drives it: over COMPILED
+    ///     output, tagged with the <c>.ts</c> it came from.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A source generator cannot run a compiler, so <c>Rask.Core.targets</c> compiles each
+    ///         sibling <c>.ts</c> into <c>obj/</c> and hands csc the result with a
+    ///         <c>RaskTsSource</c> metadata item naming the original. Every pairing decision and every
+    ///         diagnostic location keys off that tag, so a test that passed the <c>.ts</c> path
+    ///         directly would exercise a path the build never takes.
+    ///     </para>
+    ///     <para>
+    ///         Callers still write <c>.ts</c> paths, which is what the author writes; the obj-side
+    ///         path is derived here so no test has to know the layout.
+    ///     </para>
+    /// </remarks>
+    /// <param name="scopedTs">The author's <c>.ts</c> files, as (path, COMPILED contents).</param>
+    /// <param name="strayJs">
+    ///     Paths for <c>RaskStrayScopedJs</c> — the <c>.js</c> siblings MSBuild found but never
+    ///     compiled, which is how RASK055 is reported without csc ever opening them.
+    /// </param>
+    public static GeneratorRun RunScoped(
+        (string Path, string Source)[] sources,
+        (string Path, string Contents)[] scopedTs,
+        string[]? strayJs = null)
+    {
+        var compiled = scopedTs
+            .Select(t => (Path: CompiledPathFor(t.Path), t.Contents, Source: t.Path))
+            .ToArray();
+
+        var options = new ScopedAssetOptions(
+            compiled.ToDictionary(c => c.Path, c => c.Source, StringComparer.Ordinal),
+            strayJs is { Length: > 0 } ? string.Join(";", strayJs) : null);
+
+        return Run(
+            sources,
+            [new ComponentScopedJsGenerator()],
+            compiled.Select(c => (c.Path, c.Contents)).ToArray(),
+            options);
+    }
+
+    /// <summary>Where the build writes one scoped file's compiled output.</summary>
+    private static string CompiledPathFor(string tsPath)
+    {
+        var directory = System.IO.Path.GetDirectoryName(tsPath)?.Replace('\\', '/') ?? string.Empty;
+        var stem = System.IO.Path.GetFileNameWithoutExtension(tsPath);
+        return $"/obj/rask/ts{directory}/{stem}.js";
+    }
+
     public static GeneratorRun Run(
         (string Path, string Source)[] sources,
         IIncrementalGenerator[] generators,
-        (string Path, string Contents)[]? additionalTexts = null)
+        (string Path, string Contents)[]? additionalTexts = null,
+        AnalyzerConfigOptionsProvider? analyzerConfigOptions = null)
     {
         var trees = sources
             .Select(s => CSharpSyntaxTree.ParseText(
@@ -63,6 +114,11 @@ internal static class GeneratorDriverFixture
             driver = driver.AddAdditionalTexts(additionalTexts
                 .Select(t => (AdditionalText)new InMemoryAdditionalText(t.Path, t.Contents))
                 .ToImmutableArray());
+        }
+
+        if (analyzerConfigOptions is not null)
+        {
+            driver = driver.WithUpdatedAnalyzerConfigOptions(analyzerConfigOptions);
         }
 
         var runResult = driver.RunGenerators(compilation).GetRunResult();
@@ -107,6 +163,62 @@ internal static class GeneratorDriverFixture
             .WithUpdatedAnalyzerConfigOptions(BuilderSurfaceOptions.Instance);
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
         return output;
+    }
+
+    /// <summary>
+    ///     Per-file metadata, which the other options providers here cannot express.
+    /// </summary>
+    /// <remarks>
+    ///     Every existing provider in this fixture answers <c>GetOptions(AdditionalText)</c> with the
+    ///     GLOBAL options, which is fine while the only thing a generator reads is a property. The
+    ///     scoped-asset generator reads <c>RaskTsSource</c> per file — the whole mechanism by which a
+    ///     compiled artefact in obj/ is traced back to the <c>.ts</c> beside the component — so a
+    ///     shared answer would hand every file the same source path and pair them all against one
+    ///     component.
+    /// </remarks>
+    private sealed class ScopedAssetOptions(
+        Dictionary<string, string> tsSourceByCompiledPath,
+        string? strayJs) : AnalyzerConfigOptionsProvider
+    {
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new Global(strayJs);
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) =>
+            tsSourceByCompiledPath.TryGetValue(textFile.Path, out var source)
+                ? new PerFile(source)
+                : GlobalOptions;
+
+        private sealed class PerFile(string tsSource) : AnalyzerConfigOptions
+        {
+            public override bool TryGetValue(string key, out string value)
+            {
+                if (string.Equals(key, "build_metadata.AdditionalFiles.RaskTsSource", StringComparison.Ordinal))
+                {
+                    value = tsSource;
+                    return true;
+                }
+
+                value = null!;
+                return false;
+            }
+        }
+
+        private sealed class Global(string? strayJs) : AnalyzerConfigOptions
+        {
+            public override bool TryGetValue(string key, out string value)
+            {
+                if (strayJs is not null
+                    && string.Equals(key, "build_property.RaskStrayScopedJs", StringComparison.Ordinal))
+                {
+                    value = strayJs;
+                    return true;
+                }
+
+                value = null!;
+                return false;
+            }
+        }
     }
 
     // The generator reads RaskBuilderSurface from MSBuild; these tests have none, so it is stated here.
