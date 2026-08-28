@@ -114,7 +114,22 @@
       <_RaskCompanionLine Include="    &lt;Compile Include=&quot;Program.g.cs&quot; /&gt;"/>
       <_RaskCompanionLine Include="  &lt;/ItemGroup&gt;"/>
 
+      <!--
+        References the BROWSER half needs and the server half must not have.
+        <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="..." /> is how an app says
+        "this belongs to the bundle only".
+
+        One project, two halves, one reference list — and some pairs are designed so that neither half
+        carries the other's. Rask.Cqrs.Client and Rask.Cqrs.Server are exactly that: putting the client
+        transport in the server would ship endpoint-calling code into the process that answers the
+        endpoints. A single list cannot express that, so this item is the seam.
+      -->
       <_RaskCompanionLine Include="  &lt;ItemGroup&gt;"/>
+      <_RaskCompanionLine Include="@(RaskBrowserPackageReference->'    &lt;PackageReference Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')"
+                          Condition=" '%(RaskBrowserPackageReference.Version)' != '' "/>
+      <_RaskCompanionLine Include="@(RaskBrowserPackageReference->'    &lt;PackageReference Include=&quot;%(Identity)&quot; /&gt;')"
+                          Condition=" '%(RaskBrowserPackageReference.Version)' == '' "/>
+      <_RaskCompanionLine Include="@(RaskBrowserProjectReference->'    &lt;ProjectReference Include=&quot;%(FullPath)&quot; /&gt;')"/>
       <_RaskCompanionLine Condition=" '$(_RaskBrowserBySource)' != 'true' "
                           Include="    &lt;PackageReference Include=&quot;Rask.Wasm&quot; Version=&quot;$(_RaskBrowserVersion)&quot; /&gt;"/>
       <_RaskCompanionLine Condition=" '$(_RaskBrowserBySource)' == 'true' "
@@ -141,7 +156,21 @@
       <_RaskCompanionProgram Include="// The app authored one Program.cs and it is the server's. RunAsync decides for itself whether to"/>
       <_RaskCompanionProgram Include="// paint: arriving into a page a live server runtime is already driving, it prepares and waits to be"/>
       <_RaskCompanionProgram Include="// handed the document instead."/>
-      <_RaskCompanionProgram Include="await Rask.Wasm.WasmHostBuilder.CreateDefault().RunAsync&lt;$(RaskBrowserRootComponent)&gt;()%3B"/>
+      <!--
+        Without a startup hook this is one line. With one it is three, because the browser half has no
+        Program.cs of its own to register services in — that file is the server's, and the companion
+        excludes it. RaskBrowserStartup names a type in the app whose Configure(IServiceCollection) the
+        bundle calls, which is where anything browser-only gets wired.
+      -->
+      <_RaskCompanionProgram Condition=" '$(RaskBrowserStartup)' == '' "
+                             Include="await Rask.Wasm.WasmHostBuilder.CreateDefault().RunAsync&lt;$(RaskBrowserRootComponent)&gt;()%3B"/>
+
+      <_RaskCompanionProgram Condition=" '$(RaskBrowserStartup)' != '' "
+                             Include="var host = Rask.Wasm.WasmHostBuilder.CreateDefault()%3B"/>
+      <_RaskCompanionProgram Condition=" '$(RaskBrowserStartup)' != '' "
+                             Include="$(RaskBrowserStartup).Configure(host.Services)%3B"/>
+      <_RaskCompanionProgram Condition=" '$(RaskBrowserStartup)' != '' "
+                             Include="await host.RunAsync&lt;$(RaskBrowserRootComponent)&gt;()%3B"/>
     </ItemGroup>
 
     <MakeDir Directories="$(RaskBrowserCompanionDir)"/>

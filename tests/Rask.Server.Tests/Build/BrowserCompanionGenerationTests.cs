@@ -32,7 +32,11 @@ public class BrowserCompanionGenerationTests : IDisposable
                 <RootNamespace>Fixture</RootNamespace>
                 <RaskBrowserRung>true</RaskBrowserRung>
                 <RaskBrowserCompanionSrc>{SrcDir}</RaskBrowserCompanionSrc>
+                <RaskBrowserStartup>Fixture.BrowserStartup</RaskBrowserStartup>
               </PropertyGroup>
+              <ItemGroup>
+                <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="9.9.9"/>
+              </ItemGroup>
               <Import Project="{Path.Combine(SrcDir, "Rask.Server", "build", "Rask.Server.Browser.targets")}"/>
             </Project>
             """);
@@ -55,6 +59,37 @@ public class BrowserCompanionGenerationTests : IDisposable
         // canonicalised the fixture's directory to, and it is not what this is about.
         Assert.Contains("<Compile Include=\"", project, StringComparison.Ordinal);
         Assert.Contains("/**/*.cs\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ABrowserOnlyReferenceReachesTheBundleAndNotTheServer()
+    {
+        // One project, two halves, one reference list — and some pairs exist precisely so that neither
+        // half carries the other's transport. Rask.Cqrs.Client in the server would ship
+        // endpoint-CALLING code into the process that answers those endpoints.
+        var project = Generate();
+
+        Assert.Contains(
+            "<PackageReference Include=\"Rask.Cqrs.Client\" Version=\"9.9.9\" />",
+            project,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AStartupHookIsCalledBeforeTheAppRuns()
+    {
+        // The browser half has no Program.cs of its own — that file is the server's, and the companion
+        // excludes it — so without this there is nowhere to register anything the bundle needs.
+        Generate();
+        var program = File.ReadAllText(Path.Combine(_dir, "obj", "rask-browser", "Program.g.cs"));
+
+        Assert.Contains("Fixture.BrowserStartup.Configure(host.Services);", program, StringComparison.Ordinal);
+
+        // And it must run BEFORE the app does, or the registrations miss the first render.
+        Assert.True(
+            program.IndexOf("Configure(host.Services)", StringComparison.Ordinal)
+            < program.IndexOf("host.RunAsync<", StringComparison.Ordinal),
+            "the startup hook must be called before RunAsync");
     }
 
     [Fact]
