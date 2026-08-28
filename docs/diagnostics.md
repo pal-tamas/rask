@@ -318,9 +318,12 @@ and emits untrusted structural diffs on insert/remove/move — and for a compone
 decides which instance is reused, so the row's own state follows the slot rather than the item
 (see [RASK046](#rask046)).
 
-Both chain spellings are recognised — `Li[…]` and `Li.Class("c")[…]`. The chain went unreported until
-#704, when the only surface this checked was a factory call: the check matched a method named after the
-component, and a chain has none.
+All three chain spellings are recognised — `Li[…]`, `Li.Class("c")[…]`, and a chain that ends at a
+STEP rather than at the children indexer (`Badge.Label(x)`). The chain went unreported until #704, when
+the only surface this checked was a factory call: the check matched a method named after the component,
+and a chain has none. The step-ending spelling followed later: it is typed `Build<T>`, a struct, so the
+"is this a component?" test saw nothing — and it only became reachable in a list when the children
+indexer learned to take a projection of chains.
 
 ```csharp
 // ✗ items.Select(i => Li[ i.Name ])

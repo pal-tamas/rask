@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Rask.Core;
 
 /// <summary>
@@ -41,7 +43,7 @@ namespace Rask.Core;
 ///     </para>
 /// </remarks>
 /// <typeparam name="T">The component being built.</typeparam>
-public readonly struct Build<T>
+public readonly struct Build<T> : IComponentChain
     where T : Component
 {
     /// <summary>Starts a chain over an already-constructed component.</summary>
@@ -90,10 +92,17 @@ public readonly struct Build<T>
     ///     children come last, and a <c>Component</c> result is what lets one arm of a conditional pair
     ///     with <c>null</c> or with different markup.
     /// </remarks>
+    [OverloadResolutionPriority(1)]
     public Component this[params Component?[] children] => Value[children];
 
     /// <summary>Gives the component a pre-built sequence of children, ending the chain.</summary>
+    [OverloadResolutionPriority(1)]
     public Component this[IEnumerable<Component?> children] => Value[children];
+
+    /// <inheritdoc cref="Component.this[object?[]]" />
+    public Component this[params object?[] children] => Value[children];
+
+    Component IComponentChain.Unwrap() => Value;
 }
 
 /// <summary>
@@ -128,7 +137,7 @@ public readonly struct Build<T>
 /// </remarks>
 /// <typeparam name="T">The form control being built.</typeparam>
 /// <typeparam name="TMode">The mode its chain opened in.</typeparam>
-public readonly struct Build<T, TMode>
+public readonly struct Build<T, TMode> : IComponentChain
     where T : Component
 {
     /// <inheritdoc cref="Build{T}(T)" />
@@ -145,8 +154,15 @@ public readonly struct Build<T, TMode>
     public string ToHtml() => Value.ToHtml();
 
     /// <inheritdoc cref="Build{T}.this[Component?[]]" />
+    [OverloadResolutionPriority(1)]
     public Component this[params Component?[] children] => Value[children];
 
     /// <inheritdoc cref="Build{T}.this[IEnumerable{Component?}]" />
+    [OverloadResolutionPriority(1)]
     public Component this[IEnumerable<Component?> children] => Value[children];
+
+    /// <inheritdoc cref="Component.this[object?[]]" />
+    public Component this[params object?[] children] => Value[children];
+
+    Component IComponentChain.Unwrap() => Value;
 }

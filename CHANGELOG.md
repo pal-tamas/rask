@@ -8,6 +8,28 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The children indexer accepts a projection of chains, and literals mixed with one.** A chain that
+  ends at a STEP is typed `Build<T>`, and the implicit conversion that makes it a component does not
+  lift through `IEnumerable<>` — so `rows.Select(r => Badge.Key(r.Id).Label(r.Name))` was not a
+  sequence of components, and every such list needed a `(Component)` cast or a named method per list.
+
+  ```csharp
+  Div[scopes.Select(s => OpsBadge.Key(s.Key).Label($"{s.Key}={s.Value}"))]
+  Div["Showing ", rows.Select(r => Row.Key(r.Id).For(r)), " of ", total]   // no Concat
+  ```
+
+  A `params object?[]` overload on `Component` and both `Build<>` structs, coercing each element the
+  way the implicit operators already do and flattening a nested sequence. `object?` rather than a
+  sequence type is what makes the mixed list expressible: `..` is only grammar inside a collection
+  expression, never in an argument list. The typed overloads carry
+  `[OverloadResolutionPriority(1)]`, which is load-bearing — `string` implements `IEnumerable`, and
+  without it `Div["hi"]` would bind loose and render one child per character.
+
+  This is the one place in the chain where a mistake is not a compile error: an element that is
+  neither a component, nor a chain, nor a value with a text representation throws while rendering,
+  naming the type. The typed version is not expressible — C# forbids generic indexers, and a C# 14
+  extension block cannot declare an indexer at all (`CS9282`).
+
 - **`Rask` — a new batteries-included package, and `RaskApp`, the host wired the way a Rask app nearly
   always is.**
 
@@ -73,6 +95,12 @@ them until tagged releases begin.
   one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
 
 ### Fixed
+- **RASK022 now reads a chain that ends at a step.** `Build<T>` is a struct, so it inherits from
+  nothing and the analyzer's Component-derived check saw no child — the key requirement was skipped
+  and an unkeyed list passed silently. The shape was unreachable until the children indexer above
+  made a projection of chains valid children, so this shipped in the same change that created it.
+  Unkeyed list items reconcile by position, which loses focus and input state on surviving rows.
+
 - **Every Rask web host now budgets the shutdown and stops hosted services concurrently.**
   `HostOptions.ShutdownTimeout` becomes 15s (inside the 20s `rask deploy` allows between SIGTERM and
   SIGKILL) and `ServicesStopConcurrently` becomes `true` — from `Rask.Server`'s `AddRask`,

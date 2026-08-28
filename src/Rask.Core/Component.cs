@@ -206,6 +206,12 @@ public abstract partial class Component : RaskMarkup
     // components/strings (each implicitly a Component via the converters above). Overload
     // resolution prefers this `params Component[]` form over the IEnumerable<…> variant below —
     // the compiler emits a single `new Component[N]{ … }` and we assign it directly, no copy.
+    // [OverloadResolutionPriority] is load-bearing, not tuning. `string` implements IEnumerable, so
+    // without it the `params object?[]` overload below — applicable in NORMAL form, which beats this
+    // one's EXPANDED form — would capture `Div["hi"]` and render one child per character. The priority
+    // keeps every call site that the typed overloads can serve on the typed path, so the loose overload
+    // is reached only when nothing else binds.
+    [OverloadResolutionPriority(1)]
     public Component this[params Component?[] children]
     {
         get
@@ -218,6 +224,7 @@ public abstract partial class Component : RaskMarkup
     // Single-arg enumerable form: a `List<Component>`, a `.Select(...)` LINQ projection, or any
     // pre-built `IEnumerable<Component>`. The compiler picks this over the `params Component[]`
     // overload only when the arg is a single sequence that isn't already a `Component[]`.
+    [OverloadResolutionPriority(1)]
     public Component this[IEnumerable<Component?> children]
     {
         get
@@ -232,6 +239,125 @@ public abstract partial class Component : RaskMarkup
             // when the caller built them, so they pass through without a copy.
             Children = children is IReadOnlyCollection<Component?> ? children : children.ToArray();
             return this;
+        }
+    }
+
+    /// <summary>
+    ///     Children that a typed list cannot express: a projection of chains, or literals and a
+    ///     projection mixed in one list.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A chain that ends at a STEP has the type <c>Build&lt;T&gt;</c>, not <c>Component</c> — the
+    ///         implicit conversion is what makes it a component at the call site, and a user-defined
+    ///         conversion never lifts through <c>IEnumerable&lt;&gt;</c>. So
+    ///         <c>rows.Select(r =&gt; Badge.Label(r))</c> yields <c>IEnumerable&lt;Build&lt;Badge&gt;&gt;</c>,
+    ///         which the typed overloads cannot accept. The fix belongs here rather than at every call
+    ///         site, where it would otherwise be a cast or a named method per list.
+    ///     </para>
+    ///     <para>
+    ///         The parameter is <c>object?</c> rather than a sequence because that also makes the mixed
+    ///         list expressible — a spread element (<c>..</c>) is only grammar inside a collection
+    ///         expression, never in an argument list, so flattening is what lets a projection sit beside
+    ///         literal children:
+    ///         <c>Div["Showing ", rows.Select(r =&gt; Row.For(r)), " of ", total]</c>.
+    ///     </para>
+    ///     <para>
+    ///         An INDEXER cannot be generic in C#, and a C# 14 extension block cannot declare one
+    ///         (CS9282), so a type-safe <c>this[IEnumerable&lt;Build&lt;T&gt;&gt;]</c> is not expressible
+    ///         in the language. What this overload gives up is the compile error on an element that
+    ///         cannot be a child; it throws while rendering instead, naming the type.
+    ///     </para>
+    /// </remarks>
+    public Component this[params object?[] children]
+    {
+        get
+        {
+            // Materialised to Component?[] rather than kept lazy, for the same reason the enumerable
+            // overload materialises: embedded factories must run inside the owning component's render
+            // walk. The array shape also keeps ChildrenArray's serializer fast-path below.
+            var list = new List<Component?>(children.Length);
+            foreach (var child in children)
+            {
+                AddChild(list, child);
+            }
+
+            Children = list.ToArray();
+            return this;
+        }
+    }
+
+    // Mirrors the implicit operators above — anything spellable as a child directly is spellable
+    // inside a sequence — plus chains, plus nested sequences. Anything else is a mistake the typed
+    // overloads would have caught, so it throws rather than rendering ToString() garbage.
+    private static void AddChild(List<Component?> list, object? child)
+    {
+        switch (child)
+        {
+            case null:
+                list.Add(null);
+                break;
+            case Component component:
+                list.Add(component);
+                break;
+            case IComponentChain chain:
+                list.Add(chain.Unwrap());
+                break;
+            // Ahead of the IEnumerable arm: a string IS a sequence of chars, and flattening it would
+            // turn one text node into one node per character.
+            case string text:
+                list.Add(text);
+                break;
+            case int value:
+                list.Add(value);
+                break;
+            case long value:
+                list.Add(value);
+                break;
+            case double value:
+                list.Add(value);
+                break;
+            case float value:
+                list.Add(value);
+                break;
+            case decimal value:
+                list.Add(value);
+                break;
+            case bool value:
+                list.Add(value);
+                break;
+            case char value:
+                list.Add(value);
+                break;
+            case Guid value:
+                list.Add(value);
+                break;
+            case DateOnly value:
+                list.Add(value);
+                break;
+            case TimeOnly value:
+                list.Add(value);
+                break;
+            case DateTime value:
+                list.Add(value);
+                break;
+            case DateTimeOffset value:
+                list.Add(value);
+                break;
+            case TimeSpan value:
+                list.Add(value);
+                break;
+            case System.Collections.IEnumerable sequence:
+                foreach (var item in sequence)
+                {
+                    AddChild(list, item);
+                }
+
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"'{child.GetType()}' cannot be a child: it is not a component, not a chain, and has no " +
+                    "text representation. Render it through a component, or convert it to a string first.");
         }
     }
 
