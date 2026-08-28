@@ -35,12 +35,14 @@
   </ItemGroup>
 
   <!-- The landing app is a browser-WASM project (net10.0-browser), so it cannot be referenced from a
-       net10.0 test project — the hero animation's source is LINKED instead, the same way
-       Rask.Example.Playground.Tests links the playground's compiler. ChainAnimation is deliberately the
-       only file linked: it is pure markup with no IJSRuntime or host dependency, so it compiles and
-       renders here unchanged, and the generator emits its factory into this compilation. -->
+       net10.0 test project — the sources under test are LINKED instead, the same way
+       Rask.Example.Playground.Tests links the playground's compiler. Only files that are pure markup
+       with no IJSRuntime or host dependency can be linked: they compile and render here unchanged, and
+       the generator emits their factories into this compilation. -->
   <ItemGroup>
     <Compile Include="..\..\samples\Rask.Example.Site\ChainAnimation.cs"
+             LinkBase="Site"/>
+    <Compile Include="..\..\samples\Rask.Example.Site\InstallTabs.cs"
              LinkBase="Site"/>
   </ItemGroup>
 

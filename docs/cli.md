@@ -11,10 +11,13 @@ a consistent copy of a live database — and it never gets in the way of the too
 ## Install
 
 ```bash
-dotnet tool install -g Rask.Cli
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
 ```
 
-That puts a `rask` command on your `PATH`. Update it later with `dotnet tool update -g Rask.Cli`.
+That puts a `rask` command on your `PATH`, along with the .NET 10 SDK and the dependencies the CLI
+shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 SDK,
+`dotnet tool install -g Rask.Cli` installs just the tool, and `dotnet tool update -g Rask.Cli`
+upgrades it. Options, install locations and uninstall: [Installing Rask](installation.md).
 
 > `rask` is a thin, Rask-aware layer over the .NET SDK: it owns scaffolding end to end (`rask new`,
 > and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
@@ -98,7 +101,6 @@ rask new MyApp --bootstrap           # Bs* components instead of plain CSS
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Spa --template wasm         # an installable browser-WASM PWA
-rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
 ```
@@ -151,9 +153,7 @@ time (see [Tailwind](tailwind.md)). Every template takes all three. The two flag
 exclusive: asking for both is a usage error rather than a silent preference.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
-restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
-(the browser-WASM SPA), `MyApp.Server` (the ASP.NET host you run and deploy), and `MyApp.Shared` (a class
-library both reference).
+restore` so the output builds immediately.
 
 The front-end templates — `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit` — are the
 ones that do **not** write their own client. Each runs the framework's own scaffolder
@@ -217,7 +217,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
+| `--template`, `-t` | `server` (default), `wasm`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
 | `--auth` | Scaffold a cookie login/session (web templates). **Off by default**, like `--wasm`. |
 | `--wasm` | Also publish a browser bundle from this project (server template), so an eligible page moves into WebAssembly once it has downloaded — see [render modes](render-modes.md). Publish takes minutes longer; `dotnet run` is unaffected. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
@@ -268,18 +268,18 @@ useful than a page designed to reveal nothing.
 A template gets every battery in its column, and nothing outside it. Nobody maintains a per-template
 default list: the default set *is* the column.
 
-| Battery | `server` | `wasm` | `wasm-hosted` | front-end |
-| --- | :-: | :-: | :-: | :-: |
-| database, CQRS | ✅ | — | ✅ | ✅¹ |
-| jobs, mail, cache, outbox, snapshots, logs, ops | ✅ | — | ✅ | ✅ |
-| PWA | ✅ | ✅ | ✅ | ✅ |
-| Web Push | ✅ | — | — | ✅ |
-| Docker | ✅ | ✅ | ✅ | ✅ |
-| localization | ✅ | opt-in² | opt-in² | — |
-| `--auth` *(opt-in)* | ✅ | ✅ | ✅ | — |
-| `--wasm` *(opt-in)* | ✅ | — | — | — |
-| `--bootstrap` | ✅ | ✅ | ✅ | — |
-| `--tailwind` | ✅ | ✅ | ✅ | ✅ |
+| Battery | `server` | `wasm` | front-end |
+| --- | :-: | :-: | :-: |
+| database, CQRS | ✅ | — | ✅¹ |
+| jobs, mail, cache, outbox, snapshots, logs, ops | ✅ | — | ✅ |
+| PWA | ✅ | ✅ | ✅ |
+| Web Push | ✅ | — | ✅ |
+| Docker | ✅ | ✅ | ✅ |
+| localization | ✅ | opt-in² | — |
+| `--auth` *(opt-in)* | ✅ | ✅ | — |
+| `--wasm` *(opt-in)* | ✅ | — | — |
+| `--bootstrap` | ✅ | ✅ | — |
+| `--tailwind` | ✅ | ✅ | ✅ |
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
 rather than ignored. `--auth` is left out rather than half-scaffolded: a sign-in flow has to be written
@@ -309,7 +309,7 @@ Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker,
 ```
 
 The database-backed batteries need an ASP.NET host to put a database in, which the `server` template is
-and the `wasm-hosted` template's `.Server` project is too — a pure browser-WASM SPA has neither.
+and the `.Server` project of a client-plus-host solution is too — a pure browser-WASM SPA has neither.
 
 Turning one off takes its dependents with it, so you never end up with a registration naming a
 `DbContext` that isn't there:
@@ -320,18 +320,6 @@ rask new Shop --no-cqrs     # …and no database either — every feature dispat
 rask new Shop --no-pwa      # …and no Web Push, which subscribes through the service worker
 rask new Shop --no-logs     # …and nothing else: the log store owns a database of its own
 ```
-
-On `wasm-hosted` the batteries land in the `.Server` project and the client keeps calling the host over
-its API, exactly as it already does for auth. The [operator dashboard](dashboard.md) mounts there too —
-server-rendered at `/_rask`, with the WASM client still serving every other route:
-
-```bash
-rask new Shop --template wasm-hosted             # SPA in the browser, dashboard on the host
-```
-
-Web Push is the one battery `wasm-hosted` does not take. It needs the subscribe endpoints and a service
-worker that posts to them, and in this template those live in two different projects — a real feature
-rather than a wiring gap, so it is left out rather than half-scaffolded.
 
 The generated `Program.cs` composes them in an order that is load-bearing rather than stylistic — the
 outbox registered before the `DbContext` factory (so its interceptor joins the `SaveChanges` pipeline),
@@ -376,7 +364,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, react, preact, vue, angular, solid, svelte, lit.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 
@@ -414,7 +402,7 @@ rask dev -- --my-app-flag            # everything after -- goes to the app
 `rask dev` runs `dotnet watch run`, so editing a component's `Render()` (or a scoped `.css` / `.ts`) and
 saving re-renders the open page live — see [what hot-reloads](#what-hot-reloads) below.
 
-It finds the project for you: in a **wasm-hosted** solution it picks the `.Server` host (the client is
+It finds the project for you: in a **client-plus-host** solution it picks the `.Server` host (the client is
 built into it).
 
 In a **react** solution it runs **two** processes: `dotnet watch` for the host, and the bundler's own
@@ -473,7 +461,7 @@ One thing it does not cover:
 - **A rude edit is not announced.** `dotnet watch` restarts the process, so nothing in Rask observes the
   edit; what you see is the app coming back and the page reloading.
 
-**WASM is covered** — a wasm-hosted app hot-reloads under `rask dev` like a Server one. To make that
+**WASM is covered** — a client-plus-host app hot-reloads under `rask dev` like a Server one. To make that
 possible the host serves the client's *build* output for the session rather than its published bundle:
 the published bundle is trimmed, and trimming disables the runtime's metadata-update support outright,
 so no applied edit could ever reach the page. It also drops the nested `dotnet publish` from the inner

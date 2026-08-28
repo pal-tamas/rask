@@ -30,12 +30,13 @@ public sealed class Counter : Component
 
 ## Install
 
-> **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
-> (`dotnet workload install wasm-tools`) for the WASM templates.
+> **Prerequisites: none.** The installer below adds whatever is missing — the **.NET 10 SDK**, the
+> `wasm-tools` workload the WASM templates need, Node for the SPA templates — all under `$HOME`, no
+> `sudo`. Already have the .NET 10 SDK? `dotnet tool install -g Rask.Cli` is the whole story.
 
 ```bash
-dotnet tool install -g Rask.Cli          # the rask CLI — scaffold, migrate, run, deploy
-rask new MyApp                            # batteries included; or: --template wasm | wasm-hosted
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh   # the rask CLI — scaffold, migrate, run, deploy
+rask new MyApp                            # batteries included; or: --template wasm, or --wasm
 rask dev                                  # run with hot reload — the first migration is already applied
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
 ```

@@ -114,6 +114,128 @@ them until tagged releases begin.
   took RASK055 — each after a grep at branch time said otherwise. Three assemblies allocate in this
   space and RS1019 only checks one compilation, so a merge from main invalidates every id a branch
   holds.
+- **`curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh` installs Rask on a machine with nothing
+  on it.** Installing used to be one line — `dotnet tool install -g Rask.Cli` — which only works on a
+  box that already has the .NET 10 SDK, and installs the tool and nothing else. The CLI shells out to
+  more than that, and each missing piece was discovered by failure: `rask db` needs `dotnet-ef`, every
+  browser-wasm build needs the `wasm-tools` workload (**nothing checked for it** — it surfaced as a raw
+  MSBuild error, warned about only in prose in the README), and `rask new --template react|vue|…` needs
+  Node ≥ 22.12.
+
+  `rask.sh` and its Windows twin `rask.ps1` install the SDK, the tool, `dotnet-ef`, the workload and
+  Node LTS, then run `rask doctor`. Everything lands under `$HOME`: no `sudo`, no distro package
+  manager, nothing written outside the home directory, and an SDK already on the box is detected and
+  left alone. Docker is deliberately **detected and reported, never installed** — putting a container
+  runtime on someone's workstation is not a call an installer gets to make, and only `rask deploy`
+  needs it. Node is verified against the SHA-256 nodejs.org publishes before it is unpacked, the same
+  shape `Rask.Tailwind.Tasks` already uses for the Tailwind binary.
+
+  Re-running upgrades: the script installs or updates as appropriate and rewrites its `PATH` block
+  rather than appending a second copy. `--dry-run` is exact rather than approximate — every mutating
+  call goes through one wrapper that prints instead of running, and a gate case asserts that a
+  `--dry-run` on a bare container leaves the filesystem byte-identical. `--version`, `--prerelease` and
+  a `--no-*` for each dependency are documented in the new [installation guide](docs/installation.md);
+  an unknown flag exits 2, because an installer that shrugs off a misspelled `--no-node` installs the
+  thing you opted out of.
+
+  On `curl | sh`: a dropped connection can leave `sh` executing half a script — the reason
+  `HostBootstrap.cs` downloads `get.docker.com` to a file before running it. `rask.sh` closes that
+  structurally instead of dropping the pipe: every statement is inside a function and the file's last
+  line is the only thing that calls one, so a short read defines some functions and runs nothing. The
+  test asserts it empirically, by running prefixes of the real file and requiring that none reaches
+  `main`.
+
+  Two things it found on the way, which had no coverage before: Microsoft's `dotnet-install.sh` is a
+  **bash** script, so invoking it with `sh` works on macOS (where `/bin/sh` is bash in POSIX mode) and
+  dies on Debian with a syntax error from a file the user never asked for; and `dotnet-install.sh`
+  unpacks a tarball without installing the native libraries the runtime links against, so on a slim
+  image the SDK installs and then cannot run — now diagnosed by name, with the `libicu` line for each
+  distro, instead of failing three steps later.
+
+  Also fixed: `rask.sh`/`rask.ps1` sit at the repo root, which matched none of the `.githooks/pre-commit`
+  path filter's directory prefixes — a commit touching only the public installer was the one commit that
+  ran neither the formatter nor any test.
+
+### Removed
+
+- **The `wasm-hosted` template.** `rask new --template wasm-hosted` is now a usage error naming the
+  templates that remain. Two are left, and they answer the only question that was ever an author's:
+  **does this app have a backend?** — `server` or `wasm`.
+
+  It scaffolded a Client/Server/Shared trio, which is the hand-written version of what the one-project
+  build now does automatically — except a hosted-WASM app is useless until its bundle lands, while
+  `rask new --wasm` is useful on first paint and degrades to the server when the bundle never arrives.
+  Pre-1.0, so it is removed rather than deprecated.
+
+  **Existing solutions of that shape keep working.** Only the scaffolding is gone: `rask dev` still
+  resolves the `.Server` host, `rask deploy` still ships it, and the operator dashboard still mounts
+  there. That detection is generic — this repo's own `Rask.Example.Wasm.Host` sample has the shape.
+
+  **One capability lost its only scaffold:** remote CQRS dispatch (`Rask.Cqrs.Client` /
+  `Rask.Cqrs.Server`) was wired by this template and by nothing else. The packages are unchanged and an
+  app can still wire them by hand — but nothing generates the arrangement, and a `--wasm` app whose
+  pages move to the browser is exactly what wants it. Wiring it into the one-project build is follow-up
+  work, tracked in [#868](https://github.com/pal-tamas/rask/issues/868).
+
+### Fixed
+- **Targets that invoke a generated MSBuild task now wait for the reference that produces it.**
+  `main` went red at #871: `pages` and `nightly` both failed with MSB4062 — the
+  `ResolveTypeScriptToolTask` "could not be loaded" from
+  `src/Rask.Core/build/Rask.TypeScript.Tasks.dll` — and each took a downstream job with it, so the
+  docs site stopped deploying and no nightly prerelease was published
+  ([#878](https://github.com/pal-tamas/rask/issues/878)).
+
+  The `UsingTask` registration was not the problem; the build-order edge was. `Rask.Wasm ->
+  Rask.Core -> Rask.TypeScript.Tasks` is honoured at `ResolveProjectReferences`, but the three
+  bundle targets in `Rask.Wasm.csproj` and the two in `Rask.Server.csproj` run at
+  `BeforeTargets="PrepareForBuild"` — the first target in `CoreBuild`, long before references
+  resolve. So they invoked a task whose assembly the edge had not produced yet. They now state
+  `DependsOnTargets="ResolveProjectReferences"`, which is the dependency they always had.
+
+  The DLL is generated and gitignored, so this only ever reproduced on a tree that had never built —
+  and the failed build left the DLL behind, so re-running the identical command passed. Solution
+  builds order the task project ahead of its consumers, so every local gate was green. `ci.yml` was
+  green too, but *not* because it never reached the bug: it builds `Rask.Benchmarks`, which
+  references `Rask.Server` and so ran a broken call site on every clean-tree run. It won the race —
+  MSBuild happened to schedule `Rask.Core` (and through it the task project) ahead of `Rask.Server`
+  within the same reference batch. That is scheduling luck under a parallel build, not immunity, and
+  it is why the same commit could be green on `ci` and red on `pages`.
+
+  Fixing only the five sites would have left the rest of the pattern standing, so the invariant is
+  now enforced over all of it by
+  `PackagingContractTests.Every_generated_task_call_site_waits_for_the_reference_that_produces_it`.
+  It derives the guarded task names from the `UsingTask` declarations that load a `*.Tasks.dll` from
+  their own directory — the four generated task assemblies (`Rask.TypeScript.Tasks`,
+  `Rask.Tailwind.Tasks`, `Rask.Wasm.Tasks`, `Rask.Spa.Tasks`) — and scans the whole repository, since
+  a hand-written list of either names or directories rots. That widening earned its keep immediately:
+  it found three further call sites outside `src/`, in the `Rask.Core.Tests`, `Rask.Wasm.Tests` and
+  `Rask.Examples.E2E.Tests` fixture bundlers.
+
+  It also found a live one. `_RaskTailwindResolve` invokes `ResolveTailwindCliTask` from the equally
+  generated `Rask.Tailwind.Tasks.dll`, and its only caller runs at `BeforeTargets="BeforeBuild"` —
+  ahead of `CoreBuild`, so ahead of reference resolution. It has never bitten because nothing in-repo
+  imports `Rask.Tailwind.targets`; it would have, the first time anything did. All twelve call sites
+  now state the dependency, whether it is load-bearing there or merely true, because an exemption for
+  the ones a caller happens to order safely makes the invariant depend on a fact about a different
+  target. The guard was verified by failing it in both directions.
+
+- **`RenderModes.ServerInteractivity` did nothing.** The property was read nowhere outside its own
+  validation, so turning it off with `Wasm` on was accepted and silently ignored — pages still opened
+  WebSockets — and turning it off with `Wasm` off threw, telling you to turn it back on. It lied either
+  way.
+
+  It now means what it says: **no page ever gets a live session.** Every page is served as a document,
+  and the WebSocket endpoint answers `404` as though it were not there. That is stronger than
+  `RenderModes.Static`, which is detected per page and biased towards keeping a connection; this is
+  declared, so nothing is detected and nothing can bias.
+
+  Both combinations now work rather than one throwing: with `Wasm` off it is plain server-side
+  rendering — a content site, which used to be refused — and with `Wasm` on it is static HTML that
+  hands over to WebAssembly with no socket ever opened.
+
+  A page that renders a handler in this mode has nothing to answer it. That is reported through the
+  `Rask.Ssr` diagnostic rather than prevented by refusing to start, which had made "serve only content"
+  unreachable.
 
 
 ### Fixed

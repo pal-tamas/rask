@@ -23,6 +23,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 
 | Guide | What it covers |
 |-------|----------------|
+| [Installing Rask](installation.md) | The one-line installer — what it puts where, every option, upgrading, uninstalling, and the manual path if you would rather not run a script from the internet. |
 | [Getting started](getting-started.md) | Prerequisites, scaffold an app, a tour of the generated files, your first component, interactivity, routing, and troubleshooting. |
 | [The `rask` CLI](cli.md) | The `Rask.Cli` .NET tool — the whole lifecycle: `rask new` (scaffold), `rask db` (migrations), `rask dev` (hot-reload run), `rask deploy` (bare box → live HTTPS site), `rask info`. |
 | [Live playground](playground.md) | Write Rask C# in the browser with IntelliSense, as-you-type diagnostics, and a gallery of examples, then see it compile & render live (Roslyn in WebAssembly) — how it works, the entry-point convention, and its limitations. |

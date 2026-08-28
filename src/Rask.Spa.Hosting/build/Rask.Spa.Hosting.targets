@@ -189,6 +189,7 @@
   -->
   <Target Name="_RaskSpaEmitTypeScript"
           AfterTargets="CoreCompile"
+          DependsOnTargets="ResolveProjectReferences"
           Condition="'$(RaskEmitTypeScript)' == 'true' AND '$(DesignTimeBuild)' != 'true'">
     <WriteGeneratedTypeScriptTask AssemblyPath="@(IntermediateAssembly)" OutputDirectory="$(_RaskSpaGenerated)"/>
 

@@ -140,7 +140,7 @@ Sign out from any event handler: `await auth.SignOutAsync(returnUrl: "/");`
 The WASM client has no server pipeline of its own, so the **API host** owns the cookie. The client hydrates
 its principal from `/api/me`. Runnable: **`samples/Rask.Example.Auth.WasmCookie(.Host)`** (with a browser E2E).
 
-> **Scaffold it:** `rask new MyApp --template wasm-hosted --auth` generates this — the `MyApp.Server` host's
+> **By hand for now:** the `wasm-hosted` template that generated this is gone; the `MyApp.Server` host's
 > `/api/login` + `/api/me` + `/auth/logout`, and the `MyApp.Client` SPA with `ApiUserProvider`, a login page,
 > and a protected `/members` page.
 

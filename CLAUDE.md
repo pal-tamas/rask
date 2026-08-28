@@ -20,6 +20,8 @@ standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test e
 only when unreachable); E2E for every `samples/` change — **tests run locally, not in CI**: `dotnet
 format` + unit via `scripts/run-unit-local.sh` (enforced by `.githooks/pre-commit`), browser E2E via
 `scripts/run-e2e-local.sh` (enforced by `.githooks/pre-push`); benchmark every framework-code change;
+the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
+`scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);
 **user-facing change → update a sample + docs/README/NUGET.md/llms.txt/template AGENTS.md**; keep
 everything up to date; CHANGELOG `[Unreleased]` per notable change; Conventional Commits
 (commitlint); no `Co-Authored-By`/`Generated-with`. Build is warnings-as-errors + analyzers
