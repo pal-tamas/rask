@@ -58,14 +58,14 @@ public sealed partial class NestedSubObjectDemo : Component
                 ]
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary).Id("nf-submit")[
-                    BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Place order"]
+                Button.Class(Ui.BtnPrimary).Type("submit").Id("nf-submit")[
+                    Icon.Name(IconName.Check2Circle).Class("me-1"), "Place order"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0").Id("nf-result")[
-                BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0").Id("nf-result")[
+                Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

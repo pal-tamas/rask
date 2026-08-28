@@ -95,8 +95,8 @@ A nested graph with **async** validators and live totals rolling up from the row
 ## Radio & checkbox groups (example components)
 
 `RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an
-`ICollection<TItem>`. Typed, production-ready versions ship in the optional **`Rask.Bootstrap`** package as
-`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect` (see [bootstrap.md](bootstrap.md)). The versions below are
+`ICollection<TItem>`. Build a typed version of your own as
+a radio group, a checkbox group or a multi-select of your own. The versions below are
 a **copyable worked example** of the binding API of §9 (`samples/Rask.Example.Shared/Shared/`) — `IFormControl<T>`
 is the framework primitive; the control is yours to build or take from the package. They're structured exactly like
 `MultiSelect<TItem>`, with **bound** and **controlled** modes (so the generator emits both chains):
@@ -128,7 +128,7 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
   [check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/) — a
   `<div class="form-check">` wrapping a `.form-check-input` and a `.form-check-label` tied together by
   `id`/`for`. `ItemClass` adds extra classes (e.g. `"form-check-inline"`); `OptionLabel` customizes the label.
-- On the `Rask.Bootstrap` `BsRadioGroup`/`BsCheckboxGroup`, pass `Label:` to give the group an accessible
+- On a radio or checkbox group of your own, pass a label to give the group an accessible
   name: the options are then wrapped in a `<fieldset>` titled by a `<legend>`, which is the correct
   grouping semantics for a set of related radios/checkboxes. Without a `Label` you get the bare per-item
   fragment (so you can supply your own `<fieldset>`/heading). An unnamed control derives a page-unique
@@ -144,9 +144,7 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
 
 `RadioGroup` (single value) and `CheckboxGroup` (a collection), live:
 
-<!-- demo:form-groups -->
-
-**Multi-select.** `MultiSelect<TItem>` (and the `Rask.Bootstrap` `BsMultiSelect<T>`) binds an
+**Multi-select.** `MultiSelect<TItem>` binds an
 `ICollection<TItem>` through a dropdown of chips — bound and controlled, with checkbox and radio
 option renderings. The single-value twin is `BsSelect<T>`: same data-driven API (`Options` +
 `OptionLabel`) and custom `.dropdown-menu` listbox (zero-JS, keyboard + ARIA `combobox`/`listbox`),
@@ -173,16 +171,6 @@ Two limits worth knowing:
   `samples/Rask.Example.Wasm` has to publish with zero trim warnings. Bind `string[]` and convert.
 - **`Multiple: true` over a scalar property keeps the single-value binding.** That is a model which can
   only hold one answer; widening it silently would be the more surprising behaviour.
-
-<!-- demo:multi-select-native -->
-
-<!-- demo:multi-select -->
-
-<!-- demo:multi-select-controlled -->
-
-<!-- demo:multi-select-checkbox -->
-
-<!-- demo:multi-select-radio -->
 
 ## Surviving a redeploy
 

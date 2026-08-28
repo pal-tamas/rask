@@ -52,7 +52,7 @@ rask dev
 change applies to the running app and re-renders the open page — no manual rebuild, no browser refresh.
 
 Open the URL printed in the console. You'll see a single **"Hello, Rask! 👋"** welcome card — a
-[Rask.Bootstrap](../bootstrap.md) `BsCard` that lists the CLI commands you'll use next. That's the whole
+card that lists the CLI commands you'll use next. That's the whole
 starter app: no example pages to delete, just a clean shell to build on. Because you passed `--auth`, you
 also have a working **`/login`** page and a protected **`/members`** page.
 

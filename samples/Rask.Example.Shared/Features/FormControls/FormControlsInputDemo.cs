@@ -10,8 +10,8 @@ public sealed partial class FormControlsInputDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        BsRow.Gutter(4)[
-            BsCol.Md(6)[
+        Div.Class("grid grid-cols-12 gap-4")[
+            Div.Class("md:col-span-6")[
                 Label.Class("form-label fw-semibold")["Controlled (Value + OnChange)"],
                 Input
                     .Value(_controlled)
@@ -23,7 +23,7 @@ public sealed partial class FormControlsInputDemo : Component
                     "Echo: ", Strong[_controlled.Length == 0 ? "(empty)" : _controlled]
                 ]
             ],
-            BsCol.Md(6)[
+            Div.Class("md:col-span-6")[
                 Label.Class("form-label fw-semibold")["Bound (two-way)"],
                 Form.Model(_model)[
                     Input.Bind(() => _model.Text)

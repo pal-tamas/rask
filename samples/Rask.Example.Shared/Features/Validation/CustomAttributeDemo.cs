@@ -39,12 +39,12 @@ public sealed partial class CustomAttributeDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.ShieldCheck).Class("me-1"), "Create account"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.ShieldCheck).Class("me-1"), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

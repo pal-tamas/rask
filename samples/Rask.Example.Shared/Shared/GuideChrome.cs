@@ -69,7 +69,7 @@ public sealed partial class GuideChrome : Component
             return
             [
                 BackLink(),
-                BsAlert.Color(BsColor.Warning)[$"No guide found for “{Slug}”."]
+                Div.Class(Ui.AlertWarning)[$"No guide found for “{Slug}”."]
             ];
         }
 
@@ -94,21 +94,20 @@ public sealed partial class GuideChrome : Component
         NavLink
             .Href(Features.Routes.GuidesIndexPage())
             .ActiveClass("")
-            .Class(Bs.Join(Display.InlineFlex(), Flex.Align(BsAlign.Center), Margin.Bottom(3),
-                Txt.DecorationNone, "small", "guide-backlink"))[
-            BsIcon.Name(BsIconName.ArrowLeft).Class("me-1"), "All guides"
+            .Class("inline-flex items-center mb-3 no-underline small guide-backlink")[
+            Icon.Name(IconName.ArrowLeft).Class("me-1"), "All guides"
         ];
 
     private Component Banner() =>
         Div.Class("guide-banner")[
-            BsIcon.Name(BsIconName.InfoCircle).Class("me-2"),
+            Icon.Name(IconName.InfoCircle).Class("me-2"),
             Span[$"You're reading the Rask v{RaskVersion.Current} guides."],
             A
                 .Href($"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}")
                 .Target("_blank")
                 .Rel("noopener")
                 .Class("guide-banner-src")[
-                BsIcon.Name(BsIconName.Github).Class("me-1"), "View source"
+                Icon.Name(IconName.Github).Class("me-1"), "View source"
             ]
         ];
 
@@ -196,7 +195,7 @@ public sealed partial class GuideChrome : Component
                     .Href(Features.Routes.GuidePage(prev.Slug))
                     .ActiveClass("")
                     .Class("guide-prevnext-link guide-prevnext-prev")[
-                    BsIcon.Name(BsIconName.ArrowLeft).Class("me-2"),
+                    Icon.Name(IconName.ArrowLeft).Class("me-2"),
                     Span.Class("guide-prevnext-body")[
                         Span.Class("guide-prevnext-label")["Previous"],
                         Span.Class("guide-prevnext-title")[prev.Title]
@@ -212,7 +211,7 @@ public sealed partial class GuideChrome : Component
                         Span.Class("guide-prevnext-label")["Next"],
                         Span.Class("guide-prevnext-title")[next.Title]
                     ],
-                    BsIcon.Name(BsIconName.ArrowRight).Class("ms-2")
+                    Icon.Name(IconName.ArrowRight).Class("ms-2")
                 ]
         ];
     }

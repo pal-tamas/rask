@@ -11,20 +11,15 @@ public sealed partial class LifecycleCycleDemo : Component
 
     protected override Component? Render() =>
         Div[
-            BsStack.Gap(2).Class(Margin.Bottom(3))[
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Size(BsSize.Sm)
+            Div.Class($"flex gap-2 flex-wrap items-center {"mb-3"}")[
+                Button.Type("button").Class(Ui.BtnPrimary)
                     .Id("lifecycle-cycle-mount")
                     .Disabled(_cycleMounted)
-                    .OnClick(MountCycle)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount probe"],
-                BsButton
-                    .Color(BsColor.Secondary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                    .OnClick(MountCycle)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Mount probe"],
+                Button.Type("button").Class(Ui.BtnOutlineSecondary)
                     .Id("lifecycle-cycle-unmount")
                     .Disabled(!_cycleMounted)
-                    .OnClick(UnmountCycle)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount probe"]
+                    .OnClick(UnmountCycle)[Icon.Name(IconName.StopCircle).Class("me-1"), "Unmount probe"]
             ],
             _cycleMounted
                 ? LifecycleCycleProbe.Log(AppendCycleLog).InstanceId(_nextCycleId)

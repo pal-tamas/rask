@@ -8,9 +8,9 @@ public sealed partial class ValidationSummaryDemo : Component
     private string? _submission;
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
-        BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+        Div.Class($"{Ui.AlertDanger} small mb-0")[
             Div.Class("fw-semibold mb-1")[
-                BsIcon.Name(BsIconName.ExclamationTriangle).Class("me-1"),
+                Icon.Name(IconName.ExclamationTriangle).Class("me-1"),
                 $"Please fix {entries.Count} error{(entries.Count == 1 ? "" : "s")}:"
             ],
             Ul.Class("mb-0 ps-3")[
@@ -52,11 +52,11 @@ public sealed partial class ValidationSummaryDemo : Component
                 ]
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Register"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Check2Circle).Class("me-1"), "Register"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }

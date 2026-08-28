@@ -44,7 +44,7 @@ public sealed partial class MasterDetailDemo : Component
     {
         var orders = SortOrders(_orders, _orderSort);
 
-        return BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+        return Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class("table-responsive")[
                 Table.Id("md-orders").Class("table table-hover align-middle mb-0")[
                     Thead.Class("table-light")[

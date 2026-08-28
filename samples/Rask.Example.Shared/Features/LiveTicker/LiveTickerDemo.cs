@@ -18,18 +18,16 @@ public sealed partial class LiveTickerDemo : Component
             SwitchButton("ETH"),
             SwitchButton("SOL")
         ],
-        BsRow.Gutter(4)[
-            BsCol.Lg(7)[
+        Div.Class("grid grid-cols-12 gap-4")[
+            Div.Class("lg:col-span-7")[
                 LiveTicker.Symbol(_symbol).Log(AppendLog)
             ],
-            BsCol.Lg(5)[
-                BsCard.Class("border-0 bg-light h-100")[
-                    BsCardBody[
-                        BsStack.Justify(BsJustify.Between).Align(BsAlign.Baseline).Class(Margin.Bottom(3))[
+            Div.Class("lg:col-span-5")[
+                Div.Class($"{Ui.Card} border-0 bg-light h-100")[
+                    Div.Class(Ui.CardBody)[
+                        Div.Class($"flex justify-between items-baseline flex-wrap items-center {"mb-3"}")[
                             H3.Class("h6 text-secondary text-uppercase small mb-0")["Hook activity"],
-                            BsButton
-                                .Size(BsSize.Sm)
-                                .Class("btn-link p-0 text-decoration-none")
+                            Button.Class($"{Ui.BtnSecondary} btn-link p-0 text-decoration-none").Type("button")
                                 .Id("ticker-clear-log")
                                 .OnClick(ClearLog)["clear"]
                         ],

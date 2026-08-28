@@ -34,7 +34,7 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
     protected override Component? Render() =>
         Div.Class("card shadow-sm border-0")[
             Div.Class("card-body")[
-                BsStack.Gap(2).Align(BsAlign.Center).Class(Margin.Bottom(2))[
+                Div.Class($"flex gap-2 items-center flex-wrap items-center {"mb-2"}")[
                     Span.Class(_visible ? "badge text-bg-success" : "badge text-bg-secondary").Id("io-status")[
                         _visible ? "in view" : "out of view"],
                     Span.Class("small text-secondary").Id("io-changes")[$"{_changes} change(s)"]

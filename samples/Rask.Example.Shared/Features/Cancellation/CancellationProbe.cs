@@ -82,7 +82,7 @@ public sealed partial class CancellationProbe : Component
             _ => "badge text-bg-secondary"
         };
 
-        return BsStack.Gap(2).Align(BsAlign.Center)[
+        return Div.Class("flex gap-2 items-center flex-wrap items-center")[
             Span.Class($"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
             Span.Class("text-secondary small")[
                 _status == "running"

@@ -33,19 +33,12 @@ public sealed partial class NestedListIndexerDemo : Component
                     ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Td.Style("width: 5rem;")[
-                    BsButton
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
-                        .Class("me-1")
+                    Button.Class($"{Ui.BtnOutlineSecondary} me-1").Type("button")
                         .Disabled(i == 0)
                         .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
-                        BsIcon.Name(BsIconName.ArrowUp)],
-                    BsButton
-                        .Color(BsColor.Danger)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
-                        .OnClick(() => _model.Skus.RemoveAt(i))[BsIcon.Name(BsIconName.XLg)]
+                        Icon.Name(IconName.ArrowUp)],
+                    Button.Type("button").Class(Ui.BtnOutlineDanger)
+                        .OnClick(() => _model.Skus.RemoveAt(i))[Icon.Name(IconName.XLg)]
                 ]
             ]);
         }
@@ -59,21 +52,18 @@ public sealed partial class NestedListIndexerDemo : Component
                     Thead[Tr[Th.Style("width: 3rem;")["#"], Th["SKU"], Th["Price"], Th]],
                     Tbody[rows]
                 ],
-                BsStack.Gap(2)[
-                    BsButton
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                Div.Class("flex gap-2 flex-wrap items-center")[
+                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
                         .Id("nf-idx-add")
                         .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
-                        BsIcon.Name(BsIconName.PlusLg).Class("me-1"), "Add row"],
-                    BsButton.Type("submit").Color(BsColor.Primary).Size(BsSize.Sm).Id("nf-idx-submit")[
-                        BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Submit"]
+                        Icon.Name(IconName.PlusLg).Class("me-1"), "Add row"],
+                    Button.Class(Ui.BtnPrimary).Type("submit").Id("nf-idx-submit")[
+                        Icon.Name(IconName.Check2Circle).Class("me-1"), "Submit"]
                 ]
             ],
             _submission is null
                 ? null
-                : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0").Id("nf-idx-result")[_submission]
+                : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0").Id("nf-idx-result")[_submission]
         ];
     }
 }

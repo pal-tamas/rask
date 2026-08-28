@@ -21,7 +21,7 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     protected override Component? Render() =>
         Div[
-            BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true).Class(Margin.Bottom(3))[
+            Div.Class($"flex gap-2 items-center flex-wrap items-center {"mb-3"}")[
                 Button
                     .Class(_useKeys ? "btn btn-success btn-sm" : "btn btn-outline-secondary btn-sm")
                     .Id("kl-toggle-keys")
@@ -30,23 +30,20 @@ public sealed partial class KeyedListsReorderDemo : Component
                     _useKeys ? "Keys: ON" : "Keys: OFF"
                 ],
                 Span.Class("vr mx-1"),
-                BsButton.Color(BsColor.Primary).Outline(true).Size(BsSize.Sm).Id("kl-rotate").OnClick(Rotate)[
-                    BsIcon.Name(BsIconName.ArrowDownUp).Class("me-1"), "Rotate"
+                Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("kl-rotate").OnClick(Rotate)[
+                    Icon.Name(IconName.ArrowDownUp).Class("me-1"), "Rotate"
                 ],
-                BsButton.Color(BsColor.Primary).Outline(true).Size(BsSize.Sm).Id("kl-reverse").OnClick(Reverse)[
-                    BsIcon.Name(BsIconName.ArrowRepeat).Class("me-1"), "Reverse"
+                Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("kl-reverse").OnClick(Reverse)[
+                    Icon.Name(IconName.ArrowRepeat).Class("me-1"), "Reverse"
                 ],
-                BsButton.Color(BsColor.Primary).Outline(true).Size(BsSize.Sm).Id("kl-add").OnClick(AddTop)[
-                    BsIcon.Name(BsIconName.PlusLg).Class("me-1"), "Add to top"
+                Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("kl-add").OnClick(AddTop)[
+                    Icon.Name(IconName.PlusLg).Class("me-1"), "Add to top"
                 ],
-                BsButton
-                    .Color(BsColor.Danger)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                Button.Type("button").Class(Ui.BtnOutlineDanger)
                     .Id("kl-remove")
                     .Disabled(_items.Count == 0)
                     .OnClick(RemoveTop)[
-                    BsIcon.Name(BsIconName.DashLg).Class("me-1"), "Remove top"
+                    Icon.Name(IconName.DashLg).Class("me-1"), "Remove top"
                 ]
             ],
             Ul.Class("list-group").Id("kl-list")[BuildRows()]
@@ -72,7 +69,7 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     private static List<Component> Row(Fruit f, int index) =>
     [
-        BsBadge.Color(BsColor.Secondary).Pill(true)[index + 1],
+        Span.Class(Ui.BadgeSecondary)[index + 1],
         Span.Class("fw-semibold").Style("min-width: 7rem;")[f.Name],
         Input.Value<string>(null)
             .Type(InputType.Text)

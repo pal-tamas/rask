@@ -27,16 +27,14 @@ public sealed partial class LifecycleProbe : Component
 
     protected override Component? Render() =>
         [
-            BsStack.Gap(3).Align(BsAlign.Center).Class(Margin.Bottom(3))[
-                BsBadge.Color(BsColor.Primary).Class("fs-6")[$"Render #{++_renderCount}"],
+            Div.Class($"flex gap-3 items-center flex-wrap items-center {"mb-3"}")[
+                Span.Class($"{Ui.BadgePrimary} fs-6")[$"Render #{++_renderCount}"],
                 // The handler just records the click; Rask re-renders the component that owns the
                 // callback (this probe — the lambda closes over its state) right after it runs, so the
-                // badge repaints with no StateHasChanged (RASK026). Works the same through BsButton,
+                // badge repaints with no StateHasChanged (RASK026). Works the same through Button.Type("button").Class(Ui.BtnSecondary),
                 // which forwards the callback down to the native <button>.
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Size(BsSize.Sm)
-                    .OnClick(() => _log.Add("Trigger re-render (button click)"))[BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Trigger re-render"]
+                Button.Type("button").Class(Ui.BtnPrimary)
+                    .OnClick(() => _log.Add("Trigger re-render (button click)"))[Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Trigger re-render"]
             ],
             H3.Class("h6 text-secondary text-uppercase small")["Hook log"],
             Ol.Class("list-group list-group-numbered list-group-flush")[

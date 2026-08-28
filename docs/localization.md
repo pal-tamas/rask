@@ -266,5 +266,4 @@ container without them formats every culture identically.
 ## See also
 
 - [Diagnostics](diagnostics.md#rask051) — RASK051 and RASK052 in full
-- [Bootstrap pickers](bootstrap-pickers.md) — the date/time controls' chrome
 - [Accessibility](accessibility.md) — `lang` on a run of text, versus on the document

@@ -17,7 +17,7 @@ public sealed partial class AsyncValidationDemo : Component
 
     private static Component Checking() =>
         Span.Class("validating-indicator text-muted small mt-1")[
-            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking availability..."
+            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking availability..."
         ];
 
     protected override Component? Render() =>
@@ -32,12 +32,12 @@ public sealed partial class AsyncValidationDemo : Component
                     .For(() => _model.Username)
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Sign up"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Check2Circle).Class("me-1"), "Sign up"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

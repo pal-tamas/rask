@@ -20,7 +20,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
 
     private static Component Checking() =>
         Span.Class("validating-indicator text-muted small mt-1")[
-            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking…"
+            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking…"
         ];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
@@ -31,7 +31,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
             return null;
         }
 
-        return BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+        return Div.Class($"{Ui.AlertDanger} small mb-0")[
             Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
         ];
     }
@@ -68,12 +68,12 @@ public sealed partial class InlineAsyncValidateDemo : Component
             ],
             ValidationSummary.Template(SummaryAlert),
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Gift).Class("me-1"), "Redeem"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Gift).Class("me-1"), "Redeem"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

@@ -119,41 +119,6 @@ public static class GuideCatalog
         new("js-interop-runtime", "JS interop — runtime", "Calling JS, the typed browser-API layer, element refs, third-party libs.",
             "bi-braces", "Core"),
 
-        // ---- Bootstrap ----
-        new("bootstrap", "Bootstrap", "Setup, color modes, the component map, and versioning.",
-            "bi-bootstrap", "Bootstrap"),
-        new("bootstrap-layout", "Layout", "BsContainer, BsRow/BsCol, BsStack — the page shell and grid.",
-            "bi-grid-3x2-gap", "Bootstrap"),
-        new("bootstrap-buttons", "Buttons & badges", "BsButton, BsButtonGroup, BsBadge, BsCloseButton.",
-            "bi-hand-index", "Bootstrap"),
-        new("bootstrap-cards", "Cards, lists & tables",
-            "BsCard, BsListGroup, BsPlaceholder, BsTable, BsPagination, BsBreadcrumb.", "bi-card-heading", "Bootstrap"),
-        new("data-grid", "Data grid",
-            "BsDataGrid — typed columns, sorting, paging, footer totals, master-detail.", "bi-table", "Bootstrap"),
-        new("data-grid-server", "Data grid — server-side", "Server paging/sorting, loading state, URL-driven grid state.",
-            "bi-table", "Bootstrap"),
-        new("data-grid-advanced", "Data grid — advanced",
-            "Master-detail, footer totals, custom cell templates, and column features.", "bi-table", "Bootstrap"),
-        new("bootstrap-feedback", "Alerts, spinners & progress", "BsAlert, BsSpinner, BsProgress.",
-            "bi-exclamation-triangle", "Bootstrap"),
-        new("bootstrap-icons", "Icons", "The typed BsIcon over every Bootstrap Icons glyph.",
-            "bi-emoji-smile", "Bootstrap"),
-        new("bootstrap-navigation", "Navbar & nav", "BsNavbar/BsNav/BsNavItem — SPA-routed, auto-active.",
-            "bi-signpost-2", "Bootstrap"),
-        new("bootstrap-overlays", "Modals, offcanvas & dropdowns",
-            "BsModal/BsOffcanvas/BsDropdown + the fixed-position popover helper.", "bi-window-stack", "Bootstrap"),
-        new("bootstrap-disclosure", "Tabs, accordion & collapse", "BsTabs, BsAccordion, BsCollapse — controlled, zero-JS.",
-            "bi-list-nested", "Bootstrap"),
-        new("bootstrap-toasts", "Toasts", "BsToast + the BsToaster outlet for IToaster messages.",
-            "bi-bell", "Bootstrap"),
-        new("bootstrap-forms", "Form controls",
-            "BsInput/BsTextarea/BsCheck/BsRadioGroup/BsCheckboxGroup + layout helpers.", "bi-input-cursor-text", "Bootstrap"),
-        new("bootstrap-select", "Selects & multiselect",
-            "The searchable, keyboard-contained BsSelect/BsMultiSelect comboboxes.", "bi-menu-app", "Bootstrap"),
-        new("bootstrap-pickers", "Date & time pickers",
-            "Hand-editable BsDatePicker/BsTimePicker/BsDateTimePicker.", "bi-calendar-date", "Bootstrap"),
-        new("bootstrap-utilities", "Utility classes", "Typed utility tokens composed with Bs.Join(...).",
-            "bi-palette", "Bootstrap"),
 
         // ---- Integration ----
         new("authentication", "Authentication", "Cookie/JWT/OIDC on Server and WASM, route guards.",
@@ -280,7 +245,7 @@ public static class GuideCatalog
     ];
 
     public static readonly string[] GroupOrder =
-        ["Start here", "Tutorial", "One Person Framework", "Core", "Bootstrap", "Integration",
+        ["Start here", "Tutorial", "One Person Framework", "Core", "Integration",
          "Mobile & devices", "Browser API reference", "Advanced", "Contributing & internals"];
 
     public static string TitleFor(string slug)

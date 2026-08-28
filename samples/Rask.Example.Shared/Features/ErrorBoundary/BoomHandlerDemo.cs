@@ -11,19 +11,19 @@ public sealed partial class BoomHandlerDemo : Component
             .Fallback(BoundaryFallback)[
             Div.Class("p-3 border rounded bg-white").Id("boom-handler-host")[
                 P.Class("text-secondary small mb-2")["Healthy subtree — click to throw."],
-                BsButton.Color(BsColor.Danger).Id("boom-throw").OnClick(ThrowFromHandler)[BsIcon.Name(BsIconName.ExclamationTriangle).Class("me-2"),
+                Button.Type("button").Class(Ui.BtnDanger).Id("boom-throw").OnClick(ThrowFromHandler)[Icon.Name(IconName.ExclamationTriangle).Class("me-2"),
                     "Throw a handler exception"]
             ]
         ];
 
     private static Component BoundaryFallback(Exception ex, Action recover) =>
-        BsAlert.Color(BsColor.Danger).Class("d-flex align-items-start").Id("boom-fallback")[
-            BsIcon.Name(BsIconName.ExclamationOctagonFill).Class("me-3 fs-4"),
+        Div.Class($"{Ui.AlertDanger} d-flex align-items-start").Id("boom-fallback")[
+            Icon.Name(IconName.ExclamationOctagonFill).Class("me-3 fs-4"),
             Div[
                 Strong["Boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],
                 P.Class("mb-2 mt-1 small")[ex.Message],
-                BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).Id("boom-recover").OnClick(recover)[BsIcon.Name(BsIconName.ArrowCounterclockwise).Class("me-1"), "Recover"]
+                Button.Type("button").Class(Ui.BtnOutlineSecondary).Id("boom-recover").OnClick(recover)[Icon.Name(IconName.ArrowCounterclockwise).Class("me-1"), "Recover"]
             ]
         ];
 

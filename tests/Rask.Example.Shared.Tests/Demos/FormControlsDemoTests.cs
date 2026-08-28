@@ -98,94 +98,15 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
 
     // ---- BsRadioGroup ----
 
-    [Fact]
-    public async Task Radio_Controlled_OnChange_UpdatesReadout()
-    {
-        var page = RaskTest.Render(() => FormControlsRadioDemo, TestServices.Default());
-        var html = page.Render();
-        Assert.Contains("Plan: <strong>Free</strong>", html);
 
-        // Controlled group renders first → first occurrence of value="Pro".
-        var id = HandlerIn(html, "value=\"Pro\"", "data-rask-on-change");
-        await page.InvokeAsync(id, Value("true"));
-
-        Assert.Contains("Plan: <strong>Pro</strong>", page.Render());
-    }
-
-    [Fact]
-    public async Task Radio_Bound_OnChange_UpdatesReadout()
-    {
-        var page = RaskTest.Render(() => FormControlsRadioDemo, TestServices.Default());
-        var html = page.Render();
-
-        // Bound group renders second → second occurrence of value="Team".
-        var id = HandlerIn(html, "value=\"Team\"", "data-rask-on-change", skip: 1);
-        await page.InvokeAsync(id, Value("true"));
-
-        var html2 = page.Render();
-        Assert.Contains("fc-radio-bound-out", html2);
-        Assert.Contains("Plan: <strong>Team</strong>", html2);
-    }
 
     // ---- BsCheckboxGroup ----
 
-    [Fact]
-    public async Task Checkbox_Controlled_OnChange_UpdatesReadout()
-    {
-        var page = RaskTest.Render(() => FormControlsCheckboxDemo, TestServices.Default());
-        var html = page.Render();
-        Assert.Contains("Interests: <strong>none</strong>", html);
 
-        var id = HandlerIn(html, "value=\"AI\"", "data-rask-on-change");
-        await page.InvokeAsync(id, Value("true"));
-
-        Assert.Contains("Interests: <strong>AI</strong>", page.Render());
-    }
-
-    [Fact]
-    public async Task Checkbox_Bound_OnChange_UpdatesReadout()
-    {
-        var page = RaskTest.Render(() => FormControlsCheckboxDemo, TestServices.Default());
-        var html = page.Render();
-
-        var id = HandlerIn(html, "value=\"Mobile\"", "data-rask-on-change", skip: 1);
-        await page.InvokeAsync(id, Value("true"));
-
-        var html2 = page.Render();
-        Assert.Contains("fc-checkbox-bound-out", html2);
-        Assert.Contains("Interests: <strong>Mobile</strong>", html2);
-    }
 
     // ---- BsMultiSelect ----
 
-    [Fact]
-    public async Task MultiSelect_Controlled_Select_UpdatesReadout()
-    {
-        var page = RaskTest.Render(() => FormControlsMultiSelectDemo, TestServices.Default());
-        var html = page.Render();
-        Assert.Contains("Selected: <strong>none</strong>", html);
 
-        // Option buttons in order (News, Sports, Tech, …); controlled group first → Tech is index 2.
-        var clicks = ClickIds(html, "dropdown-item");
-        await page.InvokeAsync(clicks[2]);
-
-        Assert.Contains("Selected: <strong>Tech</strong>", page.Render());
-    }
-
-    [Fact]
-    public async Task MultiSelect_Bound_Select_UpdatesReadout()
-    {
-        var page = RaskTest.Render(() => FormControlsMultiSelectDemo, TestServices.Default());
-        var html = page.Render();
-
-        // 5 controlled option buttons, then 5 bound → bound Tech is index 7.
-        var clicks = ClickIds(html, "dropdown-item");
-        await page.InvokeAsync(clicks[7]);
-
-        var html2 = page.Render();
-        Assert.Contains("fc-multiselect-bound-out", html2);
-        Assert.Contains("Selected: <strong>Tech</strong>", html2);
-    }
 
     // ---- helpers ----
 

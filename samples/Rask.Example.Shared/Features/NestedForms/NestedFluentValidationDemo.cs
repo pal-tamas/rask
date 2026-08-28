@@ -32,11 +32,8 @@ public sealed partial class NestedFluentValidationDemo : Component
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
-                    BsButton
-                        .Color(BsColor.Danger)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
-                        .OnClick(() => _model.Lines.Remove(captured))[BsIcon.Name(BsIconName.XLg)]
+                    Button.Type("button").Class(Ui.BtnOutlineDanger)
+                        .OnClick(() => _model.Lines.Remove(captured))[Icon.Name(IconName.XLg)]
                 ]
             ]);
         }
@@ -67,21 +64,18 @@ public sealed partial class NestedFluentValidationDemo : Component
                     Thead[Tr[Th["SKU"], Th["Qty"], Th]],
                     Tbody[rows]
                 ],
-                BsStack.Gap(2)[
-                    BsButton
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                Div.Class("flex gap-2 flex-wrap items-center")[
+                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
                         .Id("nf-fv-add")
                         .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
-                        BsIcon.Name(BsIconName.PlusLg).Class("me-1"), "Add line"],
-                    BsButton.Type("submit").Color(BsColor.Primary).Size(BsSize.Sm).Id("nf-fv-submit")[
-                        BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Place"]
+                        Icon.Name(IconName.PlusLg).Class("me-1"), "Add line"],
+                    Button.Class(Ui.BtnPrimary).Type("submit").Id("nf-fv-submit")[
+                        Icon.Name(IconName.Check2Circle).Class("me-1"), "Place"]
                 ]
             ],
             _submission is null
                 ? null
-                : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0").Id("nf-fv-result")[_submission]
+                : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0").Id("nf-fv-result")[_submission]
         ];
     }
 }

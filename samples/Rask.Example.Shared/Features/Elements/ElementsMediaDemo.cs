@@ -9,7 +9,7 @@ public sealed partial class ElementsMediaDemo : Component
     private static string Asset(string name) => LiveOptions.PathBase + "/img/" + name;
 
     protected override Component? Render() => Div.Class("vstack gap-3")[
-        BsStack.Gap(3).Align(BsAlign.Start).WrapItems(true)[
+        Div.Class("flex gap-3 items-start flex-wrap items-center")[
             Figure.Class("figure m-0")[
                 // <picture> picks a <source> by media query, else falls back to <img>.
                 Picture[
@@ -37,7 +37,7 @@ public sealed partial class ElementsMediaDemo : Component
                 Figcaption.Class("figure-caption")["iframe (srcdoc)"]
             ]
         ],
-        BsStack.Gap(3).Align(BsAlign.Start).WrapItems(true)[
+        Div.Class("flex gap-3 items-start flex-wrap items-center")[
             Figure.Class("figure m-0")[
                 Embed.Src(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width(96).Height(96),
                 Figcaption.Class("figure-caption")["embed"]
@@ -59,12 +59,12 @@ public sealed partial class ElementsMediaDemo : Component
                 Figcaption.Class("figure-caption")["img usemap / map / area"]
             ]
         ],
-        BsRow.Gutter(3)[
-            BsCol.Md(6)[
+        Div.Class("grid grid-cols-12 gap-4")[
+            Div.Class("md:col-span-6")[
                 P.Class("small mb-1 text-secondary")["audio (controls)"],
                 Audio.Controls(true).Preload("none").Class("w-100")
             ],
-            BsCol.Md(6)[
+            Div.Class("md:col-span-6")[
                 P.Class("small mb-1 text-secondary")["video (poster + track)"],
                 Video
                     .Controls(true)

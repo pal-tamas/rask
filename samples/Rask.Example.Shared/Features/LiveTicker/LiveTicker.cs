@@ -196,14 +196,14 @@ public sealed partial class LiveTicker : Component
         var changeClass = change >= 0 ? "text-success" : "text-danger";
         var changeSign = change >= 0 ? "+" : string.Empty;
 
-        return BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
-                BsStack.Justify(BsJustify.Between).Align(BsAlign.Baseline).Class(Margin.Bottom(3))[
+        return Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class($"flex justify-between items-baseline flex-wrap items-center {"mb-3"}")[
                     H3.Class("h4 mb-0 fw-semibold").Id("ticker-symbol")[Symbol],
                     Span.Class("text-secondary small")[
                         $"poll {IntervalMs} ms · {_history.Count}/{HistoryCapacity} pts"]
                 ],
-                BsStack.Gap(3).Align(BsAlign.Baseline).Class(Margin.Bottom(3))[
+                Div.Class($"flex gap-3 items-baseline flex-wrap items-center {"mb-3"}")[
                     // One element, one class list, whichever state we're in — the price *text* changes,
                     // the box doesn't. Two spellings (fs-3 text-secondary → fs-2 fw-bold) meant the first
                     // tick resized and re-weighted the headline number 50 ms after mount, shoving the chart
@@ -220,8 +220,8 @@ public sealed partial class LiveTicker : Component
                 ],
                 _error is null
                     ? null
-                    : BsAlert.Color(BsColor.Warning).Class("py-2 px-3 small mb-3").Id("ticker-error")[
-                        BsIcon.Name(BsIconName.ExclamationTriangle).Class("me-2"), $"Feed error: {_error}"
+                    : Div.Class($"{Ui.AlertWarning} py-2 px-3 small mb-3").Id("ticker-error")[
+                        Icon.Name(IconName.ExclamationTriangle).Class("me-2"), $"Feed error: {_error}"
                     ],
                 // The chart is a server-rendered SVG drawn straight from the rolling buffer —
                 // no canvas, no Chart.js, no JS. The fixed-height container gives the stretchy

@@ -74,30 +74,6 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Deployment](deployment.md) | Ship to a single box with `rask deploy`: Docker over SSH, a shared Caddy proxy for automatic HTTPS, zero-downtime blue-green swaps gated on `/health`, and bare-VPS setup. |
 | [Scaling](scaling.md) | How far one box goes — measured, in sessions and in events per second — what survives a restart or a deploy, where the wall actually is, and what it takes to get past it. |
 
-## Bootstrap components
-
-The optional `Rask.Bootstrap` package — typed Bootstrap 5.3 components, chained like any other, layered on top of
-core. Start at the [hub](bootstrap.md) for setup and the component map; each component group then has
-its own page:
-
-| Guide | What it covers |
-|-------|----------------|
-| [Bootstrap](bootstrap.md) | Setup (`BootstrapStyles()`), color modes, the typed enums, the component map, and versioning. |
-| [Layout](bootstrap-layout.md) | `BsContainer`, `BsRow`/`BsCol`, `BsStack` — the page shell, the responsive grid, flex stacks. |
-| [Buttons & badges](bootstrap-buttons.md) | `BsButton`, `BsButtonGroup`, `BsBadge`, `BsCloseButton`. |
-| [Cards, lists & tables](bootstrap-cards.md) | `BsCard` (+ parts), `BsListGroup`, `BsPlaceholder`, `BsTable`, `BsPagination`, `BsBreadcrumb`. |
-| [Data grid](data-grid.md) | `BsDataGrid<T>` (+`BsColumn<T>`) — typed columns, sorting, paging, footer totals, master-detail. |
-| [Alerts, spinners & progress](bootstrap-feedback.md) | `BsAlert` (dismissible), `BsSpinner`, `BsProgress`. |
-| [Icons](bootstrap-icons.md) | The typed `BsIcon` over every Bootstrap Icons glyph (`BsIconName`). |
-| [Navbar & nav](bootstrap-navigation.md) | `BsNavbar`/`BsNavbarBrand`/`BsNav`/`BsNavItem` — SPA-routed, auto-active, zero-JS. |
-| [Modals, offcanvas & dropdowns](bootstrap-overlays.md) | Controlled `BsModal`/`BsOffcanvas`/`BsDropdown` + the fixed-position popover helper. |
-| [Tabs, accordion & collapse](bootstrap-disclosure.md) | Controlled `BsTabs`/`BsAccordion`/`BsCollapse` — zero-JS. |
-| [Toasts](bootstrap-toasts.md) | `BsToast` and the `BsToaster` outlet for `IToaster` messages. |
-| [Form controls](bootstrap-forms.md) | The `IFormControl<T>` inputs: `BsInput`/`BsTextarea`/`BsCheck`/`BsRadioGroup`/`BsCheckboxGroup` + layout helpers. |
-| [Selects & multiselect](bootstrap-select.md) | The searchable, keyboard-contained `BsSelect`/`BsMultiSelect` comboboxes (opt-in `Filter`). |
-| [Date & time pickers](bootstrap-pickers.md) | The hand-editable `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker`. |
-| [Utility classes](bootstrap-utilities.md) | The typed utility-class tokens composed with `Bs.Join(...)`. |
-
 ## Reference
 
 | Reference | What it covers |

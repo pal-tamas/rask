@@ -14,7 +14,7 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
     protected override Component? Render() =>
         Div.Class("card shadow-sm border-0")[
             Div.Class("card-body")[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
                     Button.Class("btn btn-outline-primary btn-sm").Id("crypto-uuid").OnClickAsync(Uuid)["Random UUID"],
                     Button.Class("btn btn-outline-primary btn-sm").Id("crypto-bytes").OnClickAsync(Bytes)[
                         "Random bytes"]

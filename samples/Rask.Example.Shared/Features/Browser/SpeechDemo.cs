@@ -9,19 +9,16 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
                 Input
                     .Value(_text)
                     .Id("speech-text")
                     .Class("form-control form-control-sm mb-2")
                     .OnInput(v => _text = v),
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
-                    BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("speech-speak").OnClickAsync(Speak)["Speak"],
-                    BsButton
-                        .Color(BsColor.Danger)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                    Button.Type("button").Class(Ui.BtnPrimary).Id("speech-speak").OnClickAsync(Speak)["Speak"],
+                    Button.Type("button").Class(Ui.BtnOutlineDanger)
                         .Id("speech-cancel")
                         .OnClickAsync(Cancel)["Stop"]
                 ],

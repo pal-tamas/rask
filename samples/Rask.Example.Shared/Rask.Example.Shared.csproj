@@ -12,12 +12,17 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>
+    <!-- Tailwind, compiled at this project's build. Build-only: an MSBuild task and a CLI run, not
+         an assembly, so the showcase's payload is unchanged. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.DataAnnotations\Rask.Validation.DataAnnotations.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
@@ -71,5 +76,12 @@
     <Error Condition="'@(_RaskEmbeddedLeaf->Distinct()->Count())' != '@(_RaskEmbeddedLeaf->Count())'"
            Text="Duplicate embedded-source leaf name(s) under Features/ or Shared/. EmbeddedSource resolves by bare filename (raksrc/{leaf}), so every embedded .cs/.ts/.css must have a unique file name across the project. Rename the collision." />
   </Target>
+
+  <!-- In-repo consumers import these by hand: a ProjectReference carries no build props, so
+       referencing Rask.Tailwind alone would compile nothing and produce no stylesheet, silently. -->
+  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.props"
+          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.props')"/>
+  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets"
+          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets')"/>
 
 </Project>

@@ -90,7 +90,7 @@ Beyond the constraint/affordance attributes shared with plain HTML (`Min`/`Max`/
 carries the mobile & accessibility hints `InputMode` (on-screen keyboard), `EnterKeyHint` (action-key
 label), `Spellcheck` (the enumerated `spellcheck="true|false"`), `Capture` (camera/mic for a file
 input), and `Dirname`. The Bootstrap `BsInput`/`BsTextarea` forward all of these (see
-[bootstrap-forms.md](bootstrap-forms.md)).
+[building-form-controls.md](building-form-controls.md)).
 
 > **Fractional numbers get `step="any"` automatically.** A `decimal`/`double`/`float`/`Half` binding
 > renders `<input type="number" step="any">`. Without it HTML's default is `step="1"`, so the browser's own
@@ -234,7 +234,7 @@ ValidationSummary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field],
 
 Every input works in two shapes — **controlled** (`Value` + `OnChange`, the parent owns the value) and
 **bound** (`Bind: () => model.X`, two-way). A derived readout rendered *outside* the control updates
-live either way. The matrix below covers text, textarea, select, and the `Rask.Bootstrap` component
+live either way. The matrix below covers text, textarea, select, and the component
 controls (`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect`).
 
 <!-- demo:form-controls-input -->
@@ -242,12 +242,6 @@ controls (`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect`).
 <!-- demo:form-controls-textarea -->
 
 <!-- demo:form-controls-select -->
-
-<!-- demo:form-controls-radio -->
-
-<!-- demo:form-controls-checkbox -->
-
-<!-- demo:form-controls-multiselect -->
 
 **Floating labels.** The reusable `Floating*` wrappers (input/select/textarea) render Bootstrap's
 floating-label markup with the label derived from the bound property, and surface validation via
@@ -257,7 +251,7 @@ floating-label markup with the label derived from the bound property, and surfac
 
 ### Accessible validation
 
-The `Rask.Bootstrap` controls (`BsInput`, `BsTextarea`, `BsSelect`, `BsCheck`, `BsMultiSelect`,
+A control of your own (see [building form controls](building-form-controls.md)),
 `BsRadioGroup`, `BsCheckboxGroup`) expose validation to assistive tech automatically — no extra props.
 When a bound field has messages, the control renders `aria-invalid="true"`, an `aria-describedby` that
 points at the error message's `id` (and the help-text `id` when `HelpText:` is set), and the

@@ -12,31 +12,19 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
-                    BsButton
-                        .Color(BsColor.Primary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("notif-permission")
                         .OnClickAsync(RequestPermission)["Request permission"],
-                    BsButton
-                        .Color(BsColor.Primary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("notif-show")
                         .OnClickAsync(Notify)["Notify"],
-                    BsButton
-                        .Color(BsColor.Secondary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
                         .Id("badge-set")
                         .OnClickAsync(SetBadge)["Set badge 3"],
-                    BsButton
-                        .Color(BsColor.Danger)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    Button.Type("button").Class(Ui.BtnOutlineDanger)
                         .Id("badge-clear")
                         .OnClickAsync(ClearBadge)["Clear badge"]
                 ],

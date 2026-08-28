@@ -94,6 +94,22 @@ them until tagged releases begin.
   Scoped to two calls in the same method body on the same receiver as written, so a test file that builds
   one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
 
+### Removed
+- **BREAKING: `Rask.Bootstrap` is gone.** The package, its tests, its 17 guides and every reference to
+  it. Styling is Tailwind — built in, compiled from your own source at build time — so a second,
+  optional styling package was a second answer to a question that no longer has one.
+
+  Its typed `Bs*` components went with it, and that is a real reduction rather than a rename:
+  `BsDataGrid`, `BsMultiSelect`, `BsSelect`, the date/time pickers, `BsModal`, `BsToast`,
+  `BsConfirmDialog`, `BsCheckboxGroup` and `BsRadioGroup` were components with behaviour — sorting,
+  paging, selection, dismissal, focus management — and Tailwind has nothing to swap them for. The
+  showcase demos whose SUBJECT was one of them are deleted; the demos that merely used `Bs*` for
+  chrome are converted. `docs/building-form-controls.md` is the path for building your own.
+
+  The showcase's icons are now a small `Icon` component over Unicode glyphs. Transcribing 45 SVG paths
+  by hand would have been 45 chances to get path data subtly wrong in a way nothing tests, because a
+  wrong glyph still renders.
+
 ### Changed
 - **BREAKING: `rask new` has no styling axis — Tailwind is built in.** It is a battery like any other:
   always referenced, always wired, so every scaffolded project is Tailwind and there is nothing to choose.

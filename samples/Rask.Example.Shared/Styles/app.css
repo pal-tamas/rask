@@ -1,0 +1,5 @@
+/*
+  The showcase's stylesheet, compiled by Rask.Tailwind by scanning THIS project's own source — which
+  is where every utility name in the demos lives, as C# string literals.
+*/
+@import "tailwindcss";

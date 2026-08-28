@@ -32,23 +32,23 @@ public sealed partial class ElementsFormsDemo : Component
                 Textarea.Value<string>(null).Id("bio").Class("form-control form-control-sm").Placeholder("About you…")
             ]
         ],
-        BsRow.Gutter(3).Class(Flex.Align(BsAlign.Center))[
-            BsCol.Auto(true)[
+        Div.Class($"grid grid-cols-12 gap-4 {"items-center"}")[
+            Div.Class("col-auto")[
                 Label.Class("form-label small mb-1")["Progress"], Br,
                 Progress.Value(0.6).Max(1.0)
             ],
-            BsCol.Auto(true)[
+            Div.Class("col-auto")[
                 Label.Class("form-label small mb-1")["Meter"], Br,
                 Meter.Value(0.8).Min(0).Max(1).Low(0.2).High(0.9).Optimum(1)
             ],
-            BsCol.Auto(true)[
+            Div.Class("col-auto")[
                 Label.Class("form-label small mb-1")["Output"], Br,
                 Output.For("fruit")["Pear"]
             ]
         ],
         Div[
-            BsButton.Type("submit").Color(BsColor.Primary).Size(BsSize.Sm)["Submit"], " ",
-            BsButton.Type("reset").Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm)["Reset"]
+            Button.Class(Ui.BtnPrimary).Type("submit")["Submit"], " ",
+            Button.Class(Ui.BtnOutlineSecondary).Type("reset")["Reset"]
         ]
     ];
 

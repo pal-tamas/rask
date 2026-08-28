@@ -49,7 +49,7 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
     protected override Component? Render() =>
         Div.Class("card shadow-sm border-0")[
             Div.Class("card-body")[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
                     Button.Class("btn btn-primary btn-sm").Id("webauthn-create").OnClickAsync(Create)[
                         I.Class("bi bi-fingerprint me-1"), "Create passkey"],
                     Button

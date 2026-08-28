@@ -14,7 +14,7 @@ public sealed partial class TagsFormDemo : Component
                 .Class("form-control form-control-sm")
                 .Placeholder("Jane Doe")
         ],
-        BsButton.Type("submit").Color(BsColor.Primary).Size(BsSize.Sm)["Submit"]
+        Button.Class(Ui.BtnPrimary).Type("submit")["Submit"]
     ];
 
     private sealed class Fields

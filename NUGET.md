@@ -97,7 +97,6 @@ dotnet add package Rask.SQLite.Browser                # a persistent SQLite data
 **UI and testing:**
 
 ```bash
-dotnet add package Rask.Bootstrap                     # typed Bootstrap 5.3 components
 dotnet add package Rask.Validation.DataAnnotations    # or Rask.Validation.FluentValidation
 dotnet add package Rask.Testing                       # render + drive components in unit tests
 ```
@@ -116,7 +115,6 @@ the page). It's a craft project built in the open, deep on Roslyn source generat
 - **Toast messages** — inject `IToaster` for transient messages that survive a client-side navigation.
 - **Tiny live updates** — a minimal edit-op diff ships instead of the whole page.
 - **Slow-link aware** — WASM boot shows download progress; a slow Server round-trip surfaces a pending bar.
-- **Optional typed Bootstrap** — `Rask.Bootstrap` adds typed Bootstrap 5.3 components (`BsButton`/`BsCard`/`BsModal`/…), layout primitives (`BsContainer`, the `BsRow`/`BsCol` responsive grid, and `BsStack`), `IFormControl<T>`-bound inputs including the zero-JS `BsSelect`/`BsMultiSelect` comboboxes (full keyboard/listbox a11y, opt-in `Filter` search, `OptionGroup` grouping, `OptionDisabled` per-option disable, and a multiselect `SelectAll` header), a typed `BsIcon`, typed utility classes, and a `BsDataGrid<T>` for list screens (typed columns, sorting, paging, footer totals, master-detail), with interactive components driven by the live runtime — no JavaScript. See [docs/bootstrap.md](https://github.com/pal-tamas/rask/blob/main/docs/bootstrap.md).
 
 ## Links
 

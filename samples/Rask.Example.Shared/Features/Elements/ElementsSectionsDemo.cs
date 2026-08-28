@@ -17,7 +17,7 @@ public sealed partial class ElementsSectionsDemo : Component
         Search.Class("my-2")[
             Input.Value<string>(null).Type(InputType.Search).Class("form-control form-control-sm").Placeholder("Search…")
         ],
-        BsRow[
+        Div.Class("grid grid-cols-12 gap-4")[
             Main.Class("col-8")[
                 Section.Id("a")[H2.Class("h6")["Section heading levels"],
                     P.Class("mb-1")["Headings ", Code["H1"], "–", Code["H6"], ":"],

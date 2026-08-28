@@ -16,7 +16,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
     protected override Component? Render() =>
         Div.Class("card shadow-sm border-0")[
             Div.Class("card-body")[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
                     Button.Class("btn btn-primary btn-sm").Id("fs-open").OnClickAsync(Open)[
                         I.Class("bi bi-folder2-open me-1"), "Open file"],
                     Button

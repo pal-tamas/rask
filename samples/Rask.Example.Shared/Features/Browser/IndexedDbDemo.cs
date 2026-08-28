@@ -20,21 +20,21 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
     protected override Component? Render() =>
         Div.Class("card shadow-sm border-0")[
             Div.Class("card-body")[
-                BsRow.Gutter(2).Class(Margin.Bottom(2))[
-                    BsCol.Sm(4)[
+                Div.Class($"grid grid-cols-12 gap-4 {"mb-2"}")[
+                    Div.Class("sm:col-span-4")[
                         Input
                             .Value(_key)
                             .Id("idb-key")
                             .Class("form-control form-control-sm")
                             .OnInput(v => _key = v)],
-                    BsCol.Sm(8)[
+                    Div.Class("sm:col-span-8")[
                         Input
                             .Value(_value)
                             .Id("idb-value")
                             .Class("form-control form-control-sm")
                             .OnInput(v => _value = v)]
                 ],
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
                     Button.Class("btn btn-primary btn-sm").Id("idb-set").OnClickAsync(Set)["Set"],
                     Button.Class("btn btn-outline-primary btn-sm").Id("idb-get").OnClickAsync(Get)["Get"],
                     Button.Class("btn btn-outline-secondary btn-sm").Id("idb-keys").OnClickAsync(Keys)["List keys"],

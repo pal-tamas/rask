@@ -12,19 +12,22 @@ namespace Rask.Example.Shared.Tests.Layout;
 public sealed class ShowcaseLayoutTests
 {
     [Fact]
-    public void RenderThroughApp_EmitsNavbarOffcanvasAndBrand()
+    public void RenderThroughApp_EmitsNavbarSidebarAndBrand()
     {
         var routeState = new RouteState { Path = "/" };
         var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
-        // The 5.3 dark navbar uses bg-dark + data-bs-theme (not the deprecated .navbar-dark).
-        Assert.Contains("navbar", html);
-        Assert.Contains("bg-dark", html);
-        Assert.Contains("data-bs-theme=\"dark\"", html);
+        // app-navbar and navbar-brand are hooks the scoped stylesheet and the E2E both select on;
+        // bg-slate-900 is what makes it the dark bar now that no framework decides that for us.
+        Assert.Contains("app-navbar", html);
+        Assert.Contains("bg-slate-900", html);
         Assert.Contains("navbar-brand", html);
         Assert.Contains("hamburger-btn", html);
-        // The sidebar is a responsive offcanvas (drawer below md, static above).
-        Assert.Contains("offcanvas-md offcanvas-start side-nav", html);
+
+        // The sidebar is in the flow from md up and a drawer below it. It was a Bootstrap responsive
+        // offcanvas; the behaviour is unchanged because the open state was always Rask state.
+        Assert.Contains("side-nav", html);
+        Assert.Contains("md:block", html);
     }
 
     [Fact]
@@ -38,12 +41,14 @@ public sealed class ShowcaseLayoutTests
         Assert.Contains(">Overview<", html);
         Assert.Contains(">Core<", html);
         Assert.Contains(">Apps<", html);
-        // The top-level sections are present, guides-first: Guides leads, then the demoted Examples. The
-        // Bootstrap examples now live in the Bootstrap guide (folded into docs/bootstrap.md), so there is
-        // no longer a separate Bootstrap section — but its guide sidebar group still renders below.
+        // The top-level sections are present, guides-first: Guides leads, then the demoted Examples.
         Assert.Contains(">Guides<", html);
         Assert.Contains(">Examples<", html);
-        Assert.Contains(">Bootstrap<", html);
+
+        // And no Bootstrap group at all: the package is gone, so a sidebar entry for it would be a link
+        // to nothing. Asserted as an ABSENCE because the category list is data — an empty category
+        // renders no heading, so its removal is invisible unless something looks for it.
+        Assert.DoesNotContain(">Bootstrap<", html);
     }
 
     [Fact]
@@ -55,12 +60,15 @@ public sealed class ShowcaseLayoutTests
         var routeState = new RouteState { Path = "/" };
         var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
-        var open = Regex.Matches(html, "class=\"collapse show\"").Count;
-        var closed = Regex.Matches(html, "class=\"collapse\"").Count;
-        Assert.True(open >= 5, $"expected the guide groups expanded by default, only {open} open");
+        // A closed group renders NO items element now, where BsCollapse rendered one with .collapse and
+        // hid it — so "expanded" is the presence of the container and "collapsed" is its absence. The
+        // toggle button is what is always there, one per group.
+        var toggles = Regex.Matches(html, "nav-group-toggle").Count;
+        var expanded = Regex.Matches(html, "nav-group-items").Count;
+        Assert.True(expanded >= 5, $"expected the guide groups expanded by default, only {expanded} open");
         // Most example pages are folded into guides now; the surviving Examples group(s) (e.g. Apps/Todos)
         // stay collapsed. The guides-expanded assertion above is the primary contract.
-        Assert.True(closed >= 1, $"expected the Examples groups collapsed, only {closed} closed");
+        Assert.True(toggles > expanded, $"expected some group collapsed: {toggles} toggles, {expanded} open");
     }
 
     [Fact]
@@ -159,7 +167,8 @@ public sealed class ShowcaseLayoutTests
         var hamburgerId = Regex.Match(page.Html, "hamburger-btn[^\"]*\"[^>]*data-rask-on-click=\"([^\"]+)\"")
             .Groups[1].Value;
         Assert.NotEqual("", hamburgerId);
-        Assert.Contains("offcanvas-backdrop", await page.InvokeAsync(hamburgerId));
+        // The open drawer renders its own backdrop element; BsOffcanvas called it .offcanvas-backdrop.
+        Assert.Contains("bg-black/40", await page.InvokeAsync(hamburgerId));
 
         // Navigate to /todos → RouteState.Changed fires → OnRouteChanged closes the drawer and expands the
         // group holding /todos. Without the subscription neither happens (the drawer stays open, Apps stays
@@ -167,7 +176,7 @@ public sealed class ShowcaseLayoutTests
         routeState.Path = Rask.Example.Shared.Features.Routes.TodosPage();
         var atTodos = CollapseWhitespace(page.Render());
         Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded
-        Assert.DoesNotContain("offcanvas-backdrop", atTodos);  // drawer closed
+        Assert.DoesNotContain("bg-black/40", atTodos);         // drawer closed
     }
 
     private static string CollapseWhitespace(string s) =>

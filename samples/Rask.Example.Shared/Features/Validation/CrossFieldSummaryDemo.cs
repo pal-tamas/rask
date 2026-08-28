@@ -10,7 +10,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         entries.Count == 0
             ? null
-            : BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+            : Div.Class($"{Ui.AlertDanger} small mb-0")[
                 Ul.Class("mb-0 ps-3")[
                     entries.Select((e, i) => Li.Key(i)[
                         e.Field.Length == 0
@@ -39,12 +39,12 @@ public sealed partial class CrossFieldSummaryDemo : Component
                 Input.Bind(() => _model.Return).Id("v5-return").Class("form-control")
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Airplane).Class("me-1"), "Book"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Airplane).Class("me-1"), "Book"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

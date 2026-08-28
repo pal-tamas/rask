@@ -82,7 +82,6 @@ trim/AOT-safe.
 | `Rask.Wasm.Hosting` | [![Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm.Hosting) | Serves a published WASM bundle from an ASP.NET host |
 | `Rask.Spa.Hosting` | [![Rask.Spa.Hosting](https://img.shields.io/nuget/v/Rask.Spa.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Spa.Hosting) | Serves a built TypeScript SPA, and generates its TypeScript from your C# contracts |
 | `Rask.Cli` | [![Rask.Cli](https://img.shields.io/nuget/v/Rask.Cli.svg?label=%20)](https://www.nuget.org/packages/Rask.Cli) | `new` · `dev` · `db` · `deploy` · `info` · `doctor` — the whole lifecycle, one tool |
-| `Rask.Bootstrap` | [![Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=%20)](https://www.nuget.org/packages/Rask.Bootstrap) | Typed Bootstrap 5.3 components, zero-JS interactivity, typed utility classes |
 | `Rask.Testing` | [![Rask.Testing](https://img.shields.io/nuget/v/Rask.Testing.svg?label=%20)](https://www.nuget.org/packages/Rask.Testing) | Render a component in a unit test and assert on its HTML |
 | **Vertical-slice back end** | | |
 | `Rask.Cqrs` | [![Rask.Cqrs](https://img.shields.io/nuget/v/Rask.Cqrs.svg?label=%20)](https://www.nuget.org/packages/Rask.Cqrs) | Source-generated, reflection-free queries / commands / notifications via `IDispatcher` |
@@ -121,7 +120,6 @@ transitively.
 | `Rask.Wasm.Hosting`                | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
 | `Rask.Validation.DataAnnotations`  | any host that hosts your forms                                      | drop `DataAnnotationsValidator` inside a `Form`             |
 | `Rask.Validation.FluentValidation` | any host that hosts your forms                                      | drop `FluentValidationValidator.Validator(myValidator)` inside |
-| `Rask.Bootstrap`                   | any host with your components                                       | link `BootstrapStyles` in `Head`, then chain the `Bs*` components |
 | `Rask.WebPush`                     | any backend (Server app or a WASM PWA's ASP.NET host)              | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
 | `Rask.Cqrs.Client`                 | a WASM app talking to its own server                               | `services.AddRaskCqrsClient()` — the same `IDispatcher`, now remote |

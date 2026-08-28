@@ -140,7 +140,7 @@ it on open (its `[autofocus]` element, else the element itself), `Tab`/`Shift+Ta
 closes. If the trap (or a descendant) carries `data-rask-dismiss`, `Escape` closes it by triggering that
 element's click handler — no per-keystroke server round-trip.
 
-`Rask.Bootstrap`'s `BsModal` opts in automatically: an open modal traps focus, is labelled (`aria-labelledby`
+A dialog should opt in deliberately: an open modal traps focus, is labelled (`aria-labelledby`
 its title, or `aria-label` from the title text), and dismisses on `Escape` (except with a static backdrop,
 which keeps `Escape` inert per Bootstrap). Build your own overlay the same way — add `data-rask-focus-trap`
 (via the `Data` dictionary) and mark your close control with `data-rask-dismiss`.

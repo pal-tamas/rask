@@ -9,18 +9,18 @@ public sealed partial class ElementsGroupingDemo : Component
         Blockquote.Class("blockquote fs-6 border-start ps-3").Cite("https://example.com")[
             "A small DSL, an honest day's HTML."],
         Hr,
-        BsRow[
-            BsCol[
+        Div.Class("grid grid-cols-12 gap-4")[
+            Div.Class("col-span-12")[
                 P.Class("fw-semibold mb-1")["Ordered (start=2, reversed)"],
                 Ol.Class("mb-0").Start(2).Reversed(true)[
                     Li.Value(2)["Second"], Li["First-ish"], Li["Zeroth-ish"]
                 ]
             ],
-            BsCol[
+            Div.Class("col-span-12")[
                 P.Class("fw-semibold mb-1")["Unordered"],
                 Ul.Class("mb-0")[Li["Alpha"], Li["Beta"], Li["Gamma"]]
             ],
-            BsCol[
+            Div.Class("col-span-12")[
                 P.Class("fw-semibold mb-1")["Description"],
                 Dl.Class("mb-0")[
                     Dt["Rask"], Dd.Class("mb-1")["A C# UI framework."],

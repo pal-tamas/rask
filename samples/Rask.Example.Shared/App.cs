@@ -45,16 +45,15 @@ public partial class App : Component
             .Rel("stylesheet")
             .Href("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700"
                 + "&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"),
-        // Bootstrap 5.3 + Bootstrap Icons, delivered by the Rask.Bootstrap package as static web
-        // assets under _content/Rask.Bootstrap (PathBase-aware). This dogfoods the package's own
-        // BootstrapStyles() helper instead of vendoring the CSS per app.
-        BootstrapStyles,
-        // Shared Rask design tokens (violet dark-first palette + the Bootstrap --bs-* bridge). AFTER
-        // BootstrapStyles() so the bridge wins the cascade, BEFORE global.css so app CSS can override.
-        RaskTokens,
+        // Tailwind, compiled from Styles/app.css at this project's build. It replaced a three-sheet
+        // stack — Bootstrap, the design tokens, then global.css overriding both — where the cascade
+        // ORDER was what decided the outcome and a comment was the only thing keeping it right.
+        Link
+            .Rel("stylesheet")
+            .Href(LiveOptions.PathBase + "/css/app.css"),
         // Brand palette + global cascade. Plain wwwroot stylesheet (not a scoped {Component}.css)
-        // because every rule targets :root, Bootstrap classes, or shell tags — things this
-        // component never stamps a scope id on. Linked here so it loads before the scoped links.
+        // because every rule targets :root or shell tags — things this component never stamps a
+        // scope id on. Linked after Tailwind so app CSS can override it.
         Link
             .Rel("stylesheet")
             .Href(LiveOptions.PathBase + "/global.css")

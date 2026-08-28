@@ -56,7 +56,7 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     protected override Component? Render() =>
         Div.Class("card shadow-sm border-0")[
             Div.Class("card-body")[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(3))[
+                Div.Class($"flex gap-2 flex-wrap items-center {"mb-3"}")[
                     Button.Class("btn btn-sm btn-primary").Id("ms-publish").OnClickAsync(Publish)["Publish metadata"],
                     Button
                         .Class("btn btn-sm btn-outline-primary")

@@ -19,19 +19,14 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
     private bool Listening => _session is not null;
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
-                    BsButton
-                        .Color(BsColor.Primary)
-                        .Size(BsSize.Sm)
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                    Button.Type("button").Class(Ui.BtnPrimary)
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
                         .OnClickAsync(Start)["Start listening"],
-                    BsButton
-                        .Color(BsColor.Danger)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    Button.Type("button").Class(Ui.BtnOutlineDanger)
                         .Id("speech-recognize-stop")
                         .Disabled(!Listening)
                         .OnClickAsync(Stop)["Stop"]

@@ -1,8 +1,0 @@
-# Scoped to Rask.Bootstrap. The Bs* components WRAP the core components and forward BOTH the sync
-# (OnX) and async (OnXAsync) event parameters straight through to the native component in a single
-# factory call, so the consumer's chosen delegate passes raw to the DOM element (preserving handler-
-# owner re-render). The consumer sets at most one handler per event — and RASK027 still enforces
-# that at their own Bs*(...) call site — so inside this forwarding layer the paired-handler check is
-# a false positive. Suppress it here only; it stays active everywhere else.
-[*.cs]
-dotnet_diagnostic.RASK027.severity = none

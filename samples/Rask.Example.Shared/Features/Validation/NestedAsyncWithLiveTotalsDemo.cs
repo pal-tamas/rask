@@ -38,7 +38,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 
     private static Component Checking() =>
         Span.Class("validating-indicator text-muted small mt-1")[
-            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking delivery zone…"
+            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking delivery zone…"
         ];
 
     private static async ValueTask<IEnumerable<string>> ValidatePostalAsync(
@@ -107,38 +107,38 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Div.Class("border rounded p-3")[
                     Div.Class("fw-semibold small mb-2")["Items"],
-                    BsRow.Gutter(2).Class(Bs.Join(Margin.Bottom(2), Flex.Align(BsAlign.Center)))[
-                        BsCol.Span(6)[
+                    Div.Class($"grid grid-cols-12 gap-4 {"mb-2 items-center"}")[
+                        Div.Class("col-span-6")[
                             Input.Bind(() => _model.Items[0].Name)
                                 .Id("v-nlive-item0-name")
                                 .Class("form-control form-control-sm")
                         ],
-                        BsCol.Span(3)[
+                        Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[0].Quantity)
                                 .Id("v-nlive-item0-qty")
                                 .Class("form-control form-control-sm")
                                 .Min("0")
                         ],
-                        BsCol.Span(3)[
+                        Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[0].UnitPrice)
                                 .Id("v-nlive-item0-price")
                                 .Class("form-control form-control-sm")
                                 .Step("0.01")
                         ]
                     ],
-                    BsRow.Gutter(2).Class(Flex.Align(BsAlign.Center))[
-                        BsCol.Span(6)[
+                    Div.Class($"grid grid-cols-12 gap-4 {"items-center"}")[
+                        Div.Class("col-span-6")[
                             Input.Bind(() => _model.Items[1].Name)
                                 .Id("v-nlive-item1-name")
                                 .Class("form-control form-control-sm")
                         ],
-                        BsCol.Span(3)[
+                        Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[1].Quantity)
                                 .Id("v-nlive-item1-qty")
                                 .Class("form-control form-control-sm")
                                 .Min("0")
                         ],
-                        BsCol.Span(3)[
+                        Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[1].UnitPrice)
                                 .Id("v-nlive-item1-price")
                                 .Class("form-control form-control-sm")
@@ -153,34 +153,34 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     Input.Bind(() => _model.DiscountCode).Id("v-nlive-promo").Class("form-control")
                 ],
                 Div.Id("v-nlive-totals").Class("bg-light rounded p-3 small")[
-                    BsStack.Justify(BsJustify.Between)[
+                    Div.Class("flex justify-between flex-wrap items-center")[
                         Span["Subtotal"],
                         Span.Id("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ],
-                    BsStack.Justify(BsJustify.Between)[
+                    Div.Class("flex justify-between flex-wrap items-center")[
                         Span[discountPct > 0m
                             ? $"Discount ({(int)(discountPct * 100)}%)"
                             : "Discount"],
                         Span.Id("v-nlive-discount")[$"-${discount.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ],
-                    BsStack.Justify(BsJustify.Between)[
+                    Div.Class("flex justify-between flex-wrap items-center")[
                         Span["Tax (8%)"],
                         Span.Id("v-nlive-tax")[$"${tax.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ],
                     Hr.Class("my-2"),
-                    BsStack.Justify(BsJustify.Between).Class(Font.Bold)[
+                    Div.Class($"flex justify-between flex-wrap items-center {"font-bold"}")[
                         Span["Total"],
                         Span.Id("v-nlive-total")[$"${total.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ]
                 ],
                 Div[
-                    BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.CreditCard).Class("me-1"), "Pay"]
+                    Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.CreditCard).Class("me-1"), "Pay"]
                 ]
             ],
             _submission is null
                 ? null
                 : Div.Id("v-nlive-submission").Class("alert alert-success small mt-3 mb-0")[
-                    BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission
+                    Icon.Name(IconName.CheckCircle).Class("me-2"), _submission
                 ]
         ];
     }

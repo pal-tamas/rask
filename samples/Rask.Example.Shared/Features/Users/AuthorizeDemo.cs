@@ -14,22 +14,22 @@ public sealed partial class AuthorizeDemo : Component
 
     protected override Component? Render() =>
         Div.Id("authorize-demo")[
-            BsStack.Gap(2).Class(Margin.Bottom(3))[
-                BsButton.Color(BsColor.Primary).Size(BsSize.Sm).OnClick(() => _auth.SignIn("alice", "user"))[
+            Div.Class($"flex gap-2 flex-wrap items-center {"mb-3"}")[
+                Button.Type("button").Class(Ui.BtnPrimary).OnClick(() => _auth.SignIn("alice", "user"))[
                     "Sign in as user"],
-                BsButton.Color(BsColor.Warning).Size(BsSize.Sm).OnClick(() => _auth.SignIn("rootadmin", "admin"))[
+                Button.Type("button").Class(Ui.BtnWarning).OnClick(() => _auth.SignIn("rootadmin", "admin"))[
                     "Sign in as admin"],
-                BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClick(_auth.SignOut)["Sign out"]
+                Button.Type("button").Class(Ui.BtnOutlineSecondary).OnClick(_auth.SignOut)["Sign out"]
             ],
             // admin → admin slot; any other signed-in user → inner "authorized" slot; anonymous → inner fallback.
             // The Authorized delegates greet the signed-in user by name straight off the principal.
             Authorize
                 .Roles(["admin"])
-                .Authorized(user => BsAlert.Color(BsColor.Warning).Class("py-2 mb-0")[
+                .Authorized(user => Div.Class($"{Ui.AlertWarning} py-2 mb-0")[
                     $"🔑 Admin-only content — welcome, {user.Identity!.Name}."])
                 .NotAuthorized(Authorize
-                    .Authorized(user => BsAlert.Color(BsColor.Success).Class("py-2 mb-0")[
+                    .Authorized(user => Div.Class($"{Ui.AlertSuccess} py-2 mb-0")[
                         $"✅ Signed in as {user.Identity!.Name} — standard access."])
-                    .NotAuthorized(BsAlert.Color(BsColor.Secondary).Class("py-2 mb-0")["🔒 Sign in to see member content."]))
+                    .NotAuthorized(Div.Class($"{Ui.AlertSecondary} py-2 mb-0")["🔒 Sign in to see member content."]))
         ];
 }

@@ -22,9 +22,9 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
     private MediaStreamId? _camera;
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
-                BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true).Class(Margin.Bottom(3))[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class($"flex gap-2 items-center flex-wrap items-center {"mb-3"}")[
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
                     FullscreenTrigger
                         .Template(g =>
@@ -56,7 +56,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         ? Span.Class("small text-secondary")["not prompted"]
                         : Span.Class("small")["install: ", Code.Id("install-outcome")[_install]]
                 ],
-                BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true).Class(Margin.Bottom(2))[
+                Div.Class($"flex gap-2 items-center flex-wrap items-center {"mb-2"}")[
                     EyeDropperTrigger
                         .Template(g =>
                             Button
@@ -80,7 +80,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                 ],
                 // MediaCaptureTrigger fills this <video> from the camera; PictureInPictureTrigger then pops
                 // that same element out — both resolve the element from its ElementRef.
-                BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true)[
+                Div.Class("flex gap-2 items-center flex-wrap items-center")[
                     // For and Template are the required steps, so they come first: until both are named
                     // the receiver is still a pending-required wrapper and has no optional setters on it.
                     MediaCaptureTrigger
