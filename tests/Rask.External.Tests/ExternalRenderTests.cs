@@ -29,13 +29,6 @@ public sealed partial class Gauge : LitComponent
     public double Value { get; set; }
 }
 
-/// <summary>A Lit gauge taking the module convention gives it.</summary>
-public sealed partial class Dial : LitComponent
-{
-    /// <summary>The needle position, 0..1.</summary>
-    public double Value { get; set; }
-}
-
 // Renders real components rather than asserting on generator output as text. What has to work is the
 // whole seam: the base class is discovered, the partial is generated, the host element serializes
 // with the diff-boundary marker, and the props JSON is exactly what the front end will be typed

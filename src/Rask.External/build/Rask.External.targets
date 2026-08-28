@@ -70,8 +70,13 @@
 
     The excludes are narrow on purpose. A **/* walk that reached node_modules would enumerate tens of
     thousands of files on every evaluation, costing far more than the build it feeds.
+
+    Discovered whether or not the project can BUNDLE. A project with no package.json still has front
+    end files worth type-checking against their C# props — a Lit or plain custom element imports
+    nothing from npm and checks cleanly with nothing installed. Gating discovery on the bundler would
+    have left the guarantee dormant in exactly the projects the no-npm path exists for.
   -->
-  <ItemGroup Condition="'$(_RaskExternalBundlable)' == 'true'">
+  <ItemGroup>
     <_RaskExternalFile Include="$(MSBuildProjectDirectory)/**/*.tsx;$(MSBuildProjectDirectory)/**/*.jsx"
                      Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
       <IslandName>%(Filename)</IslandName>
@@ -115,12 +120,15 @@
   -->
   <Target Name="_RaskExternalWritePropTypes"
           AfterTargets="CoreCompile"
+          DependsOnTargets="_RaskExternalPairLitFiles"
           Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
           Inputs="@(IntermediateAssembly)"
           Outputs="$(_RaskExternalObj)types.stamp">
     <WriteExternalPropTypesTask AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
                                 OutputDirectory="$(_RaskExternalTypes)"
                                 TsConfigPath="$(_RaskExternalObj)tsconfig.paths.json"
+                                CheckConfigPath="$(_RaskExternalObj)tsconfig.check.json"
+                                FrontEndFiles="@(_RaskExternalFile)"
                                 ProjectDirectory="$(MSBuildProjectDirectory)"/>
     <MakeDir Directories="$(_RaskExternalObj)"/>
     <Touch Files="$(_RaskExternalObj)types.stamp" AlwaysCreate="true"/>
@@ -141,7 +149,55 @@
     A target rather than an ItemGroup because the filter reads %(Sibling) per item, and metadata
     batching is only legal inside one.
   -->
-  <Target Name="_RaskExternalPairLitFiles" Condition="'$(_RaskExternalBundlable)' == 'true'">
+  <!--
+    Type-checks each front-end file against the props its C# declares. This is what makes the
+    two-way contract hold by DEFAULT rather than only for people who happen to run tsc.
+
+    When it runs, and why it is not simply "when node_modules exists" — measured, not assumed:
+
+      * a component with no npm imports (a Lit element, a plain custom element) type-checks with
+        nothing installed at all, and CATCHES prop drift while doing it. Requiring node_modules
+        would leave the guarantee dormant in exactly the projects the no-npm path is aimed at.
+      * a component that imports react cannot be checked before `npm install`, and there is no way
+        to weaken the check into working. Measured: tsgo's no-resolve mode does not merely tolerate
+        the missing package, it stops resolving the generated props too, so the contract error never
+        fires and correct and incorrect code fail identically with the same three resolution errors.
+
+    So the gate is the package.json probe already used for bundling: no package.json means no npm
+    dependencies to be missing, and the check runs. A package.json without node_modules means the
+    front end cannot build yet either, so it is skipped with a message rather than failed.
+
+    Roughly 0.2s for a small project. RaskExternalTypeCheck=false turns it off for anyone
+    mid-refactor with a deliberately red front end.
+  -->
+  <Target Name="_RaskExternalTypeCheck"
+          AfterTargets="_RaskExternalWritePropTypes"
+          Condition="'$(RaskExternalTypeCheck)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND '@(_RaskExternalFile)' != ''">
+    <PropertyGroup>
+      <_RaskExternalDepsMissing Condition="Exists('$(MSBuildProjectDirectory)/package.json') AND !Exists('$(MSBuildProjectDirectory)/node_modules')">true</_RaskExternalDepsMissing>
+    </PropertyGroup>
+
+    <Message Importance="high"
+             Condition="'$(_RaskExternalDepsMissing)' == 'true'"
+             Text="Rask.External: skipping the prop type-check — this project has a package.json but no node_modules, so its imports cannot resolve. Run the install to enable it."/>
+
+    <ResolveTypeScriptToolTask Tool="tsgo"
+                               Condition="'$(_RaskExternalDepsMissing)' != 'true' AND Exists('$(_RaskExternalObj)tsconfig.check.json')"
+                               Version="$(RaskTsgoVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskExternalTsgoPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.check.json&quot;"
+          Condition="'$(_RaskExternalTsgoPath)' != ''"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"
+          CustomErrorRegularExpression="error TS[0-9]+"/>
+  </Target>
+
+  <Target Name="_RaskExternalPairLitFiles">
     <ItemGroup>
       <_RaskExternalFile Include="@(_RaskExternalLitCandidate)" Condition="Exists('%(_RaskExternalLitCandidate.Sibling)')">
         <IslandName>%(Filename)</IslandName>

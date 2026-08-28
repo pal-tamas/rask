@@ -39,6 +39,15 @@ them until tagged releases begin.
   nothing"), a callback is an optional function returning `void` (there is no promise on that side to
   await), and a route parameter is an ordinary typed prop like any other.
 
+  **And `dotnet build` checks it.** Each front-end file is type-checked against the props its C#
+  declares, so the guarantee holds by default rather than for whoever remembers to run `tsc` —
+  `error TS2339: Property 'level' does not exist on type 'DialProps'` fails the build that generated
+  the type. Roughly 0.2s; `RaskExternalTypeCheck=false` opts out. A component importing nothing from
+  npm is checked with nothing installed, which is what keeps the no-npm path covered; a project with
+  a `package.json` it has not installed is skipped with a message, because there is no weaker mode
+  that works — TypeScript's no-resolve mode stops resolving the generated props too, so the contract
+  error never fires and correct and incorrect code fail identically.
+
   **C# owns the props.** They are declared as ordinary properties, so the chain, the required-prop
   rule and every existing analyzer apply unchanged, and they are serialized by generated
   `Utf8JsonWriter` code rather than by reflection — which is what lets them survive trimming and

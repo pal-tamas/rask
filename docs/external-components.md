@@ -155,6 +155,28 @@ their comments, key order and formatting, and would still surprise anyone who op
 mapping that is one line to add and obvious to remove. Nothing generated is committed, so a fresh
 clone shows the import unresolved until the first build.
 
+### The check runs as part of `dotnet build`
+
+`dotnet build` type-checks each front-end file against the props its C# declares, so the guarantee
+holds by default rather than only for people who run `tsc`:
+
+```
+error TS2339: Property 'level' does not exist on type 'DialProps'.
+```
+
+Turn it off with `<RaskExternalTypeCheck>false</RaskExternalTypeCheck>` — for a deliberately red front
+end mid-refactor, say. It costs roughly 0.2s.
+
+**A component that imports nothing from npm is checked with nothing installed.** A Lit element or a
+plain custom element resolves its generated props and no more, so the no-npm path is checked too —
+which is the case it would be easiest to leave uncovered.
+
+A project that *has* a `package.json` but has not installed it is skipped, with a message saying so.
+That is not a preference: a `.tsx` importing `react` cannot be checked before the install, and there
+is no weaker mode that works. TypeScript's no-resolve mode does not merely tolerate the missing
+package — it stops resolving the generated props as well, so the contract error never fires and
+correct and incorrect code fail identically.
+
 Supported prop types are the wire vocabulary the CQRS codecs use: the primitives, `string`, `Guid`,
 the date/time types, `Uri`, enums, `byte[]`, nullable versions of those, arrays and lists, string-keyed
 dictionaries, and records composed of the same. Anything else is
