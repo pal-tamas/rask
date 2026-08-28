@@ -4,9 +4,11 @@ Every DB-backed pillar keeps its state in a table in your application's own data
 `Rask.Dashboard` possible: one package reference and one line mounts an operator dashboard at `/_rask` over
 the outbox, background jobs, queued mail and cache — no exporter, no second datastore, no agent.
 
-```bash
-dotnet add package Rask.Dashboard
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Ops.Off());
+> ```
 
 ```csharp
 builder.Services.AddRaskDashboard<AppDbContext>();

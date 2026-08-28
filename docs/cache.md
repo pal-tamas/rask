@@ -8,9 +8,11 @@ anything else built on the abstraction) and adds a typed **`ICache`** convenienc
 `GetOrCreateAsync<T>`. Entries carry **absolute** and **sliding** expirations; a background worker sweeps
 expired rows.
 
-```bash
-dotnet add package Rask.Cache
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Cache.Off());
+> ```
 
 ## Why cache on the database
 

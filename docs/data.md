@@ -10,9 +10,11 @@ through EF Core interceptors and a one-line model convention, so no feature has 
 It is the foundation the [tutorial](tutorial/02-first-feature.md) builds its slices on — its
 `--soft-delete` / `--concurrency` / `--events` flags, packaged for direct use.
 
-```bash
-dotnet add package Rask.Data
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Data.Off());
+> ```
 
 ## The base entity
 

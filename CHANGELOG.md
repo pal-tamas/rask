@@ -44,6 +44,15 @@ them until tagged releases begin.
   **`Rask.Server` is unchanged and still lean.** An app with no database references it directly and
   carries no EF Core and no SQLite native bundles; that door is why this is a separate package.
 
+  **One package, server and browser.** `Rask` multi-targets, so the same single `PackageReference`
+  resolves to the ASP.NET host plus every server battery on `net10.0`, and to the WebAssembly host plus
+  the trim-safe ones on `net10.0-browser`. The browser group deliberately carries no EF Core, no SQLite
+  and no Jobs: those need `PublishTrimmed=false` in a browser build, and including them would force every
+  WASM app untrimmed. Measured on the showcase, the browser batteries cost **+8.8 KB brotli (+0.20%)**.
+
+  The install instructions throughout the docs now name only `Rask`; each battery's page shows its
+  off-switch instead of a `dotnet add package` line.
+
   One consequence worth knowing: because the batteries are on, an app that runs now creates its
   database, its log store (`logs.db`), its `mail-pickup/` directory and its `snapshots/` directory
   beside itself. `rask new` gitignores them; turn a battery off if you would rather it did not.

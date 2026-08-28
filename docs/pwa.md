@@ -284,9 +284,11 @@ and shows a notification from the JSON payload (`{ title, body, icon, tag, data:
 `Rask.WebPush` is a small, server-side package (it has no UI and no transport dependency, so it works
 from a `Rask.Server` app or the ASP.NET host behind a WASM PWA alike). Add it and register a sender:
 
-```bash
-dotnet add package Rask.WebPush
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Push.Off());
+> ```
 
 ```csharp
 using Rask.WebPush;
