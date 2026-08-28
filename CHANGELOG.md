@@ -8,10 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
-- **The TypeScript task assembly is now built before the targets that invoke it.** `main` went red
-  at #871: `pages` and `nightly` both failed with MSB4062 — the `ResolveTypeScriptToolTask` "could
-  not be loaded" from `src/Rask.Core/build/Rask.TypeScript.Tasks.dll` — and each took a downstream
-  job with it, so the docs site stopped deploying and no nightly prerelease was published
+- **Targets that invoke a generated MSBuild task now wait for the reference that produces it.**
+  `main` went red at #871: `pages` and `nightly` both failed with MSB4062 — the
+  `ResolveTypeScriptToolTask` "could not be loaded" from
+  `src/Rask.Core/build/Rask.TypeScript.Tasks.dll` — and each took a downstream job with it, so the
+  docs site stopped deploying and no nightly prerelease was published
   ([#878](https://github.com/pal-tamas/rask/issues/878)).
 
   The `UsingTask` registration was not the problem; the build-order edge was. `Rask.Wasm ->
@@ -22,11 +23,31 @@ them until tagged releases begin.
   `DependsOnTargets="ResolveProjectReferences"`, which is the dependency they always had.
 
   The DLL is generated and gitignored, so this only ever reproduced on a tree that had never built —
-  and the failed build left the DLL behind, so re-running the identical command passed. That is what
-  kept it invisible: the local gates build the solution, where MSBuild orders the task project ahead
-  of `Rask.Wasm`, and `ci.yml` builds only the two benchmark projects and references no WASM host at
-  all. Only a single-project `dotnet publish` from a clean tree — what `pages` and
-  `nightly/aot-publish` run — could see it.
+  and the failed build left the DLL behind, so re-running the identical command passed. Solution
+  builds order the task project ahead of its consumers, so every local gate was green. `ci.yml` was
+  green too, but *not* because it never reached the bug: it builds `Rask.Benchmarks`, which
+  references `Rask.Server` and so ran a broken call site on every clean-tree run. It won the race —
+  MSBuild happened to schedule `Rask.Core` (and through it the task project) ahead of `Rask.Server`
+  within the same reference batch. That is scheduling luck under a parallel build, not immunity, and
+  it is why the same commit could be green on `ci` and red on `pages`.
+
+  Fixing only the five sites would have left the rest of the pattern standing, so the invariant is
+  now enforced over all of it by
+  `PackagingContractTests.Every_generated_task_call_site_waits_for_the_reference_that_produces_it`.
+  It derives the guarded task names from the `UsingTask` declarations that load a `*.Tasks.dll` from
+  their own directory — the four generated task assemblies (`Rask.TypeScript.Tasks`,
+  `Rask.Tailwind.Tasks`, `Rask.Wasm.Tasks`, `Rask.Spa.Tasks`) — and scans the whole repository, since
+  a hand-written list of either names or directories rots. That widening earned its keep immediately:
+  it found three further call sites outside `src/`, in the `Rask.Core.Tests`, `Rask.Wasm.Tests` and
+  `Rask.Examples.E2E.Tests` fixture bundlers.
+
+  It also found a live one. `_RaskTailwindResolve` invokes `ResolveTailwindCliTask` from the equally
+  generated `Rask.Tailwind.Tasks.dll`, and its only caller runs at `BeforeTargets="BeforeBuild"` —
+  ahead of `CoreBuild`, so ahead of reference resolution. It has never bitten because nothing in-repo
+  imports `Rask.Tailwind.targets`; it would have, the first time anything did. All twelve call sites
+  now state the dependency, whether it is load-bearing there or merely true, because an exemption for
+  the ones a caller happens to order safely makes the invariant depend on a fact about a different
+  target. The guard was verified by failing it in both directions.
 - **The browser gate no longer needs PowerShell, and no longer skips itself quietly when it is
   missing.** `scripts/run-e2e-local.sh` installed the Playwright browsers by shelling out to
   `pwsh <path>/playwright.ps1 install chromium`, and skipped that step whenever `pwsh` was absent.
