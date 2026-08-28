@@ -192,6 +192,27 @@ them until tagged releases begin.
   work, tracked in [#868](https://github.com/pal-tamas/rask/issues/868).
 
 ### Fixed
+- **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
+  Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
+  file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours
+  with `NU5118`, and the package shipped a 163-byte import shim in place of the 3.7 KB props. Every
+  `RaskExternal*` property the targets stand on — the output directory, the public base path, the
+  enable switch — was simply absent for anyone consuming the package, while the `.targets` that reads
+  them shipped intact.
+
+  No gate in the repo could see it. In-repo builds import the real file straight off disk via
+  `Directory.Build.props`, so the build, the unit suite and every E2E run pass either way; only
+  `dotnet pack` notices, and only `nightly`/`release` pack. `Rask.External` was added to
+  `nightly.yml` in the same change that introduced it, so its first pack ever was after merge.
+  `Rask.Bootstrap` hit this first and solved it; the fix is the same one-line
+  `StaticWebAssetsDisableProjectBuildPropsFileGeneration`, plus the two guarded `Import`s our file
+  must now carry in the generated one's place — without them a consumer gets no URL for
+  `rask-external.js` and every external component fails to mount.
+
+  Two packaging contracts now pin it: a Razor-SDK project that hand-writes `build/<PackageId>.props`
+  must disable the generated one, and a project that disables it must import the static-web-asset
+  props it replaced. Both were proved by failing them.
+
 - **Targets that invoke a generated MSBuild task now wait for the reference that produces it.**
   `main` went red at #871: `pages` and `nightly` both failed with MSB4062 — the
   `ResolveTypeScriptToolTask` "could not be loaded" from
