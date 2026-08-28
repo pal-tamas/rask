@@ -173,6 +173,24 @@
   <Target Name="_RaskExternalTypeCheck"
           AfterTargets="_RaskExternalWritePropTypes"
           Condition="'$(RaskExternalTypeCheck)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND '@(_RaskExternalFile)' != ''">
+    <!--
+      ResolveTypeScriptToolTask belongs to Rask.Core's build integration, not this one, and this
+      target cannot register it: the task assembly lives in Rask.Core's build folder, whose path is
+      not knowable from inside this package.
+
+      In practice a project referencing Rask.External also references a host package that brings
+      Rask.Core's targets, so it is there. But "in practice" is how a dependency stays undeclared
+      until it is not — a scratch app built exactly as a consumer would build it failed here with
+      MSB4036, naming a task nobody wrote and pointing at the SDK directory.
+
+      RaskTsgoVersion is set by those same targets, so its absence means the toolchain is not here.
+      Skipped with a message rather than silently: a check that stops running and says nothing is
+      the failure this whole feature exists to avoid.
+    -->
+    <Message Importance="high"
+             Condition="'$(RaskTsgoVersion)' == ''"
+             Text="Rask.External: skipping the prop type-check — Rask.Core's TypeScript toolchain is not imported in this project, so tsgo cannot be resolved."/>
+
     <PropertyGroup>
       <_RaskExternalDepsMissing Condition="Exists('$(MSBuildProjectDirectory)/package.json') AND !Exists('$(MSBuildProjectDirectory)/node_modules')">true</_RaskExternalDepsMissing>
     </PropertyGroup>
@@ -182,7 +200,7 @@
              Text="Rask.External: skipping the prop type-check — this project has a package.json but no node_modules, so its imports cannot resolve. Run the install to enable it."/>
 
     <ResolveTypeScriptToolTask Tool="tsgo"
-                               Condition="'$(_RaskExternalDepsMissing)' != 'true' AND Exists('$(_RaskExternalObj)tsconfig.check.json')"
+                               Condition="'$(RaskTsgoVersion)' != '' AND '$(_RaskExternalDepsMissing)' != 'true' AND Exists('$(_RaskExternalObj)tsconfig.check.json')"
                                Version="$(RaskTsgoVersion)"
                                CacheRoot="$(RaskTypeScriptCacheRoot)"
                                Registry="$(RaskTypeScriptRegistry)"

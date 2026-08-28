@@ -1,5 +1,6 @@
 using System.Text;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.External;
 
@@ -71,9 +72,39 @@ public abstract partial class ExternalComponent : Component
     /// <summary>Everything below this element belongs to the front-end framework that rendered it.</summary>
     protected sealed override bool OpaqueSubtree => true;
 
-    /// <summary>Boots the client runtime. Deduplicated across every such component on the page.</summary>
+    /// <summary>
+    ///     Boots the client runtime. Deduplicated across every such component on the page.
+    /// </summary>
+    /// <remarks>
+    ///     Registered from <see cref="WriteAttributes" /> rather than left for the serializer to
+    ///     collect, and that is not a preference. The serializer only reads a component's head
+    ///     contribution in its COMPONENT branch, right after <c>RenderForLive()</c>. Anything with a
+    ///     <see cref="TagName" /> takes the element branch instead and never passes that code — so
+    ///     this override, on its own, produced an empty <c>&lt;head&gt;</c>, no runtime script, and a
+    ///     page where nothing could ever mount. It rendered perfectly and did nothing.
+    ///
+    ///     Kept as an override as well so the contribution is discoverable where a reader expects it.
+    /// </remarks>
     protected override Component? HeadAssets =>
         Script.Src(ExternalDefaults.RuntimeScriptUrl).Type("module");
+
+    /// <summary>
+    ///     Puts the runtime script in the page's <c>&lt;head&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    ///     The registry dedupes by the tag itself, so every component on the page can register the
+    ///     same script and exactly one is emitted. Doing it here costs nothing for ordinary elements —
+    ///     the alternative, reading <see cref="HeadAssets" /> for every element the serializer walks,
+    ///     would add a virtual call per <c>&lt;div&gt;</c> to the render hot path for a case only this
+    ///     component has.
+    /// </remarks>
+    private void RegisterRuntimeScript()
+    {
+        if (HeadAssets is { } script)
+        {
+            LiveRenderContext.CurrentSync?.HeadAssets.Add(script);
+        }
+    }
 
     /// <summary>
     ///     Never called: the serializer takes its element branch the moment <see cref="TagName" /> is
@@ -102,6 +133,8 @@ public abstract partial class ExternalComponent : Component
     /// <inheritdoc />
     protected sealed override void WriteAttributes(StringBuilder sb)
     {
+        RegisterRuntimeScript();
+
         AppendAttr(sb, ExternalDefaults.NameAttribute, ComponentName);
         AppendAttr(sb, ExternalDefaults.ModuleAttribute, Module);
         AppendAttr(sb, ExternalDefaults.RuntimeAttribute, Runtime);

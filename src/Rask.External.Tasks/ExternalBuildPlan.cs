@@ -135,6 +135,12 @@ internal static class ExternalBuildPlan
                 emptyOutDir: true,
                 rollupOptions: {
                   input,
+                  // Without this the chunk has NO exports at all. Vite treats an application entry as a
+                  // side-effect script and defaults preserveEntrySignatures to false, so Rollup drops the
+                  // `export default` the entry module was generated to carry — and the client runtime
+                  // then reports a chunk that "does not default-export an adapter", which is true, and
+                  // says nothing about why. The bundle builds, ships, loads, and mounts nothing.
+                  preserveEntrySignatures: 'strict',
                   output: { entryFileNames: 'assets/[name]-[hash].js', chunkFileNames: 'assets/[name]-[hash].js' },
                 },
               },
