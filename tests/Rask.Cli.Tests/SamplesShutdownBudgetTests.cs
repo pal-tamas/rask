@@ -58,6 +58,26 @@ public class SamplesShutdownBudgetTests
     }
 
     [Fact]
+    public void A_budget_already_chosen_before_AddRask_is_left_alone()
+    {
+        // The generic host binds HostOptions from configuration BEFORE AddRask runs, which is how
+        // ASPNETCORE_SHUTDOWNTIMEOUTSECONDS and the shutdownTimeoutSeconds key reach it. Writing the
+        // default unconditionally would silently discard both: an operator who raised the budget for a
+        // long drain would get 15s and no warning. Rask only replaces the value while it still holds
+        // .NET's own 30s default.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(42));
+        services.AddRask();
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<HostOptions>>().Value;
+
+        Assert.Equal(TimeSpan.FromSeconds(42), options.ShutdownTimeout);
+        Assert.True(options.ServicesStopConcurrently); // still applied — it has no config binding to defer to
+    }
+
+    [Fact]
     public void An_app_can_still_choose_its_own_budget()
     {
         // Rask picks a default; it does not overrule a decision. Options setups run in registration order,

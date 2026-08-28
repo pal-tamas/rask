@@ -48,6 +48,17 @@
   </ItemGroup>
 
   <!--
+    The host defaults every Rask web host applies, source-linked rather than shared through a package —
+    the same arrangement Rask.Wasm.Hosting and Rask.Spa.Hosting already use for this folder. Named file
+    by file instead of globbing it: the rest of Rask.Hosting.Shared is static-file serving that a live
+    server host has no use for, and pulling it in would put two unused types in this assembly.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskDataProtectionSetup.cs" Link="Shared\RaskDataProtectionSetup.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\RaskShutdownDefaults.cs" Link="Shared\RaskShutdownDefaults.cs"/>
+  </ItemGroup>
+
+  <!--
     Every file the two bundles can reach, so an edit to any of them re-bundles. Stated as an
     ItemGroup rather than in the targets' Inputs because a target's Inputs does not expand
     wildcards — it would treat the pattern as a literal filename and rebuild unconditionally.

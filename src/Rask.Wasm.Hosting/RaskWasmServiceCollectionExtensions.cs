@@ -1,7 +1,13 @@
 using System.IO.Compression;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Rask.Hosting.Shared;
 
 namespace Rask.Wasm.Hosting;
 
@@ -50,6 +56,25 @@ public static class RaskWasmServiceCollectionExtensions
 
         services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
         services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
+
+        // The same host defaults Rask.Server's AddRask applies, because this is a web host too and the
+        // failures do not care which package started it: an ephemeral key ring signs every user of a
+        // cookie-authenticated bundle host out on each deploy, and hosted services stopped one at a time
+        // sum past the SIGKILL. Source-linked from Rask.Hosting.Shared; TryAddEnumerable so an app that
+        // calls both this and AddRaskServer (the dashboard case) registers one of each.
+        //
+        // AddDataProtection FIRST, and unconditionally: it registers ASP.NET's own
+        // DataProtectionOptionsSetup, which overwrites ApplicationDiscriminator without checking. The
+        // scaffolded wasm-hosted app calls AddAuthentication below this line, which would otherwise pull
+        // Data Protection in afterwards and quietly revert the discriminator to the content-root default.
+        services.AddDataProtection();
+
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>());
 
         return services;
     }

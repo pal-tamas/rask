@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace Rask.Server;
+namespace Rask.Hosting.Shared;
 
 /// <summary>
 /// The shutdown budget <c>AddRask</c> applies to <see cref="HostOptions"/>, so an app finishes stopping
@@ -42,12 +42,29 @@ internal sealed class RaskShutdownDefaults : IConfigureOptions<HostOptions>
     /// <summary>The budget the app gives itself.</summary>
     internal const int HostShutdownSeconds = DockerStopSeconds - HostReserveSeconds;
 
+    /// <summary>.NET's own default, and the signal that nobody has chosen a budget yet.</summary>
+    /// <remarks>
+    /// The generic host binds <c>HostOptions</c> from configuration before this runs, which is how
+    /// <c>ASPNETCORE_SHUTDOWNTIMEOUTSECONDS</c> and the <c>shutdownTimeoutSeconds</c> key reach it.
+    /// Writing unconditionally would silently discard both — an operator who raised the budget for a long
+    /// drain would get 15 seconds and no warning — so the timeout is only replaced while it still holds
+    /// the framework default.
+    /// </remarks>
+    private static readonly TimeSpan FrameworkDefault = TimeSpan.FromSeconds(30);
+
     /// <inheritdoc/>
     public void Configure(HostOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        options.ShutdownTimeout = TimeSpan.FromSeconds(HostShutdownSeconds);
+        if (options.ShutdownTimeout == FrameworkDefault)
+        {
+            options.ShutdownTimeout = TimeSpan.FromSeconds(HostShutdownSeconds);
+        }
+
+        // Not conditional, unlike the timeout: this has no configuration binding to defer to, and stopping
+        // sequentially is never what an app with Rask's hosted services wants. Configure HostOptions after
+        // AddRask to set it back.
         options.ServicesStopConcurrently = true;
     }
 }

@@ -277,10 +277,6 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        // With --data the host owns a SQLite file, so shutdown has to leave room for the WAL checkpoint
-        // and the Litestream flush — the same budget the server template takes. Without it there is no
-        // file to close and nothing for the budget to cover.
-
         if (batteries.Ops)
         {
             Block(sb, """
