@@ -210,7 +210,7 @@ grace overlaps the others instead of queueing behind them:
 | Rung | Budget | Set by |
 | --- | --- | --- |
 | `docker stop -t` before `SIGKILL` | 20s | `rask deploy` |
-| App `HostOptions.ShutdownTimeout` | 15s | scaffolded `Program.cs` |
+| App `HostOptions.ShutdownTimeout` | 15s | `AddRask` |
 | Live-session drain | 5s | `RaskServerOptions.ShutdownDrainTimeout` |
 | Litestream final WAL flush | 10s | `LitestreamOptions.ShutdownGracePeriod` |
 | In-flight email send | 10s | `MailOptions.ShutdownGracePeriod` |
@@ -219,8 +219,18 @@ grace overlaps the others instead of queueing behind them:
 > **`ServicesStopConcurrently` is load-bearing, not a micro-optimisation.** Stopped one at a time — the
 > .NET default — those inner graces *sum*: 10 + 10 + 5 + 5 = 30s against a 15s budget, so whichever hosted
 > service stops last gets none of its grace at all, decided by the order of your `AddRaskX` calls in
-> `Program.cs`. Stopped concurrently they overlap at 10s, leaving real headroom. The scaffold sets it
+> `Program.cs`. Stopped concurrently they overlap at 10s, leaving real headroom. `AddRask` sets it
 > alongside the timeout for exactly this reason.
+
+Both come from `AddRask`, so this holds for any app rather than only a freshly scaffolded one — which is
+the point: before, the budget was sixteen lines of `Program.cs` that nine of the ten samples in this repo
+did not have, leaving them on .NET's 30s default against a 20s SIGKILL. To choose your own, configure
+`HostOptions` **after** `AddRask`:
+
+```csharp
+builder.Services.AddRask();
+builder.Services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(45));
+```
 
 These are budgets, not guarantees. Work that outlives its rung is cancelled: live sessions are aborted
 (`rask.shutdown.sessions.abandoned`), and a job, outbox message or email is re-run from the top on the next

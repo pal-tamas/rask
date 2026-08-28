@@ -8,6 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **`AddRask` now budgets the shutdown and stops hosted services concurrently.**
+  `HostOptions.ShutdownTimeout` becomes 15s (inside the 20s `rask deploy` allows between SIGTERM and
+  SIGKILL) and `ServicesStopConcurrently` becomes `true`.
+
+  The concurrency is the load-bearing half. Stopped one at a time — .NET's default — each pillar's own
+  shutdown grace *sums* inside the one budget: Litestream's final WAL flush (10s), an in-flight email send
+  (10s), a running job and an outbox message (5s each) add up to 30s, so whichever service stops last gets
+  none of it. Which one that is depends on the order of the `AddRaskX` calls in `Program.cs`, so the
+  symptom is a truncated write that moves when you reorder two unrelated lines. Stopped concurrently they
+  overlap at 10s.
+
+  This was previously a scaffolded `Program.cs` block, which meant it reached apps one at a time — and only
+  the ones generated after the block existed. **Nine of the ten web-host samples in this repo were sitting
+  on .NET's 30s default against a 20s SIGKILL**, and a reader copying from any of them inherited that. It
+  now holds for every app. Configure `HostOptions` after `AddRask` to choose your own.
 - **`AddRask` persists the Data Protection key ring, so a deploy stops signing everyone out.** When
   `/data` exists — which is exactly when `rask deploy` has mounted its volume — the ring is written to
   `/data/keys` and `ApplicationDiscriminator` is pinned to the application name.

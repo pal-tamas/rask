@@ -776,7 +776,6 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        sb.Append(ShutdownBudgetBlock(batteries.Data));
         AppendDatabaseAndBatteries(sb, batteries);
 
         sb.Append("""

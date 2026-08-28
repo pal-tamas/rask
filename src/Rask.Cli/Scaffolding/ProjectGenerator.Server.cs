@@ -325,7 +325,6 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        sb.Append(ShutdownBudgetBlock(batteries.Data));
 
         if (batteries.Cqrs)
         {
