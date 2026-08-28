@@ -41,34 +41,62 @@ internal sealed class QuiescenceScope : IDisposable
 
     /// <summary>The scope collecting work for the render currently running, if any.</summary>
     /// <remarks>
-    ///     A disposed scope is never current, and reading past one clears it. <see cref="Dispose" />
-    ///     can only clear the thread-static slot on the thread it happens to run on, and after an
-    ///     <c>await</c> that is routinely not the thread <see cref="Begin" /> ran on — so a finished
-    ///     pass leaves its scope visible to whatever renders on that pool thread next.
     ///     <para>
-    ///         The damage is silent rather than loud: work started by the next render is tracked into
-    ///         the dead scope while that render's own wave loop waits on its own, empty, set. It then
-    ///         serves a placeholder for data it never waited for — intermittently, and only under
-    ///         enough concurrency to recycle threads across renders, which is why it presents as a
-    ///         flaky test rather than as a bug.
+    ///         <b>The flow wins over the thread.</b> The <c>AsyncLocal</c> belongs to the render that is
+    ///         actually running here; the <c>ThreadStatic</c> is a fallback for code that crossed an
+    ///         <see cref="ExecutionContext.SuppressFlow" /> boundary. Consulting the thread first means a
+    ///         pool thread still carrying a DIFFERENT, live render's scope shadows this one — and the
+    ///         work this render started is then tracked against a stranger, while this render's own loop
+    ///         sees nothing pending and serves a placeholder for data it never waited for. It answers
+    ///         200 while doing it, so nothing anywhere reports a fault.
+    ///     </para>
+    ///     <para>
+    ///         Nothing needs the thread to win. The one path that loses the <c>AsyncLocal</c> —
+    ///         <c>LifecycleSyncContext</c>'s suppressed <c>Task.Run</c> — restores the captured scope
+    ///         with <see cref="Enter" />, which sets both slots, so the flow lookup finds it there too.
+    ///     </para>
+    ///     <para>
+    ///         A disposed scope is never current either, and reading past one clears it.
+    ///         <see cref="Dispose" /> can only clear the thread-static slot on the thread it happens to
+    ///         run on, and after an <c>await</c> that is routinely not the thread <see cref="Begin" />
+    ///         ran on — so a finished pass would otherwise stay visible to whatever renders on that pool
+    ///         thread next.
     ///     </para>
     /// </remarks>
     internal static QuiescenceScope? Current
     {
         get
         {
-            if (_syncCurrent is { } sync)
-            {
-                if (!sync._disposed)
-                {
-                    return sync;
-                }
+            var resolved = Resolve(_asyncCurrent.Value, _syncCurrent);
 
+            // Reading past a dead thread slot clears it, so the leak heals on first contact rather
+            // than persisting for the life of the thread.
+            if (_syncCurrent is { _disposed: true })
+            {
                 _syncCurrent = null;
             }
 
-            return _asyncCurrent.Value is { _disposed: false } async ? async : null;
+            return resolved;
         }
+    }
+
+    /// <summary>
+    ///     Which of the two slots a lookup should use, given what each holds.
+    /// </summary>
+    /// <remarks>
+    ///     Named so the rule can be asserted directly. The situation it exists for — this thread holding
+    ///     another render's LIVE scope while the flow carries our own — needs two renders interleaved on
+    ///     one pool thread, which is not something a test can arrange deterministically. The rule is the
+    ///     fix, so the rule is what is pinned.
+    /// </remarks>
+    internal static QuiescenceScope? Resolve(QuiescenceScope? flow, QuiescenceScope? thread)
+    {
+        if (flow is { _disposed: false })
+        {
+            return flow;
+        }
+
+        return thread is { _disposed: false } ? thread : null;
     }
 
     /// <summary>

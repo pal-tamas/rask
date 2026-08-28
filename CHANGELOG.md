@@ -8,6 +8,27 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+
+- **A render could hand its async work to a different render, and then serve a placeholder for it.**
+  `QuiescenceScope.Current` consulted the thread-static slot before the flow's `AsyncLocal`. A pool
+  thread keeps whatever scope `Begin` set on it — only a `Dispose` that happens to run on that same
+  thread clears it — so a thread can carry another render's **live** scope. When a render's later wave
+  resumed on such a thread, the work it started was tracked against a stranger, its own wave loop saw
+  nothing pending, and the page went out with a placeholder for data it never waited for.
+
+  It answers `200` while doing it, so nothing reports a fault. In tests it surfaced as an intermittent
+  failure that passed every time in isolation; in production it is the SSR path failing silently.
+
+  The flow now wins over the thread. Nothing needed the other order: the one path that loses the
+  `AsyncLocal` — `LifecycleSyncContext`'s suppressed `Task.Run` — restores the captured scope with
+  `Enter`, which sets both slots. `LiveRenderContext` already resolved this way; `QuiescenceScope` had
+  diverged from it.
+
+  Supersedes the earlier fix for the same symptom, which skipped *disposed* foreign scopes. That was
+  necessary and not sufficient — it covered the dead case, this covers the live one.
+
+
+### Fixed
 - **The browser gate no longer needs PowerShell, and no longer skips itself quietly when it is
   missing.** `scripts/run-e2e-local.sh` installed the Playwright browsers by shelling out to
   `pwsh <path>/playwright.ps1 install chromium`, and skipped that step whenever `pwsh` was absent.
