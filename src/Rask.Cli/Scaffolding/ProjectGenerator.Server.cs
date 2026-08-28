@@ -50,6 +50,11 @@ internal static partial class ProjectGenerator
 
         files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs(batteries.Styling)));
 
+        if (batteries is { Wasm: true, Cqrs: true })
+        {
+            files.Add(("Features/Shared/BrowserStartup.cs", BrowserStartupCs()));
+        }
+
         if (batteries.Pwa)
         {
             files.Add(("wwwroot/icon.svg", IconSvg));
@@ -155,6 +160,13 @@ internal static partial class ProjectGenerator
         if (batteries.Wasm)
         {
             packages.Add("Rask.Wasm.Hosting");
+
+            if (batteries.Cqrs)
+            {
+                // The endpoint half. Its counterpart, Rask.Cqrs.Client, is declared as a
+                // browser-only reference so it never reaches this process.
+                packages.Add("Rask.Cqrs.Server");
+            }
         }
 
         return packages;
@@ -188,6 +200,22 @@ internal static partial class ProjectGenerator
               // and fail to compile inside a nested publish -- an error a long way from anything the
               // author wrote.
               + "\n    <RaskBrowserRootComponent>$(RootNamespace).Features.Shared.App</RaskBrowserRootComponent>"
+              + (batteries.Cqrs
+                  ? "\n    <!-- The bundle registers its own services here: it has no Program.cs of its own. -->"
+                    + "\n    <RaskBrowserStartup>$(RootNamespace).Features.Shared.BrowserStartup</RaskBrowserStartup>"
+                  : "")
+            : "";
+
+        // The client transport belongs to the BUNDLE and must not reach the server: it is the half that
+        // calls the endpoints the server answers. RaskBrowserPackageReference is how one project says a
+        // reference is the browser's alone.
+        var browserOnlyPackages = batteries is { Wasm: true, Cqrs: true }
+            ? $"""
+
+              <ItemGroup>
+                <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="{version}"/>
+              </ItemGroup>
+            """
             : "";
 
         var litestreamProperty = batteries.Data
@@ -207,6 +235,7 @@ internal static partial class ProjectGenerator
           <ItemGroup>
             <PackageReference Include="Rask.Server" Version="{version}"/>{refs}
           </ItemGroup>
+        {browserOnlyPackages}
 
         </Project>
 
@@ -217,6 +246,42 @@ internal static partial class ProjectGenerator
     // commented registrations; without the separator they run together into one wall of text.
     private static void Block(StringBuilder target, string block) =>
         target.Append(block.Trim('\n')).Append("\n\n");
+
+    /// <summary>
+    ///     Where the browser half registers its services. Named by <c>RaskBrowserStartup</c> in the
+    ///     csproj, and called by the bundle's generated entry point before the app runs.
+    /// </summary>
+    /// <remarks>
+    ///     The bundle has no <c>Program.cs</c> of its own — that file is the server's, and the companion
+    ///     project excludes it — so without this there is nowhere for browser-only wiring to live.
+    /// </remarks>
+    private static string BrowserStartupCs() =>
+        $$"""
+          using Microsoft.Extensions.DependencyInjection;
+          using Rask.Cqrs;
+
+          namespace {{NameToken}}.Features.Shared;
+
+          /// <summary>Services the browser half needs. The server registers its own in Program.cs.</summary>
+          public static class BrowserStartup
+          {
+              public static void Configure(IServiceCollection services)
+              {
+                  // Every message this page dispatches travels to the server, over the same IDispatcher
+                  // call the server half makes in-process. Nothing on a message marks it remote: you
+                  // write a record and a handler, and where the handler lives decides where it runs.
+                  //
+                  // A client is a PURE client. A handler compiled into the bundle is BYPASSED — the
+                  // request goes to the server, which answers 404 for a name it has no handler for.
+                  // [LocalOnly] is the only way to keep a message in the browser, and it is what a
+                  // local counter or an offline queue needs.
+                  //
+                  // Handlers live under Server/, which the bundle does not compile — so a connection
+                  // string or a pricing rule cannot reach a download anybody can read.
+                  services.AddRaskCqrsClient();
+              }
+          }
+          """;
 
     private static string ServerProgram(ServerBatteries batteries)
     {
@@ -341,6 +406,18 @@ internal static partial class ProjectGenerator
                 // scoped per live session, so one visitor's results are never handed to another.
                 // See docs/query.md.
                 builder.Services.AddRaskQuery();
+
+                """.TrimStart('\n'));
+        }
+
+        if (batteries is { Wasm: true, Cqrs: true })
+        {
+            sb.Append("""
+                // The endpoint half of remote dispatch, for the pages that move into the browser.
+                // Fails closed: every message is authenticated by default, [AllowAnonymous] is the only
+                // way past, and an anonymous caller gets the same answer for a real message name as for
+                // a typo — so the endpoint cannot be walked to enumerate this app's messages.
+                builder.Services.AddRaskCqrsServer();
 
                 """.TrimStart('\n'));
         }
@@ -477,6 +554,18 @@ internal static partial class ProjectGenerator
                 // which would put routing ahead of this line however early it appears.
                 app.UseRaskWasmAssets();
                 app.UseRouting();
+
+                """.TrimStart('\n'));
+        }
+
+        if (batteries is { Wasm: true, Cqrs: true })
+        {
+            sb.Append("""
+                // Answers the messages the browser half dispatches. Two endpoints, not one per message:
+                // GET and POST on /_rask/cqrs/request/{name}, the verb carrying what IQuery and ICommand
+                // already declare — so a command is 405 on GET and cannot be fired by a URL or a
+                // prefetch. Mapped BEFORE UseRask, whose catch-all would otherwise answer these.
+                app.MapRaskCqrs();
 
                 """.TrimStart('\n'));
         }
