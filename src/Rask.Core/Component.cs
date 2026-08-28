@@ -2166,6 +2166,24 @@ public abstract partial class Component : RaskMarkup
                     owner.Live.StateDirty = true;
                     return true;
                 }
+                // The shape an external component's callback arrives as (see Rask.External). Its
+                // generated wrapper reads the argument out of the frame with code the generator
+                // emitted, so an Action<int> or Action<SomeRecord> is fed without reflection and
+                // without this switch needing a case per argument type.
+                //
+                // Necessary because there is no general Action<T> case and cannot be: T is only known
+                // where the component is compiled. Without it such a delegate fell to `default:` below,
+                // which DynamicInvokes with no arguments — so every argument-taking callback threw
+                // TargetParameterCountException on its first click and the error boundary replaced the
+                // page. It rendered, mounted, and died on use.
+                case Action<JsonElement> ap:
+                    ap(payload);
+                    return true;
+                case Func<JsonElement, Task> fp:
+                    await InvokeWithRenderingAsync(() => fp(payload)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+
                 default:
                 {
                     // Parameterless delegate shapes outside the fast-path list above can still arrive

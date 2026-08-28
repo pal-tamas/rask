@@ -529,8 +529,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             body.AppendLine("            {");
             body.AppendLine($"                writer.WritePropertyName(\"{handler.WireName}\");");
             body.AppendLine("                writer.WriteStartObject();");
+            // A callback with an argument is registered as a WRAPPER, not as itself. The dispatcher
+            // has no general Action<T> case and cannot have one — T is only known where the component
+            // is compiled — so the raw delegate fell through to a DynamicInvoke with no arguments and
+            // threw on the first click. The wrapper reads the argument here, where the type is known.
+            var registered = handler.Shape.Argument is null
+                ? $"this.{handler.ClrName}"
+                : $"__Arg{handler.ClrName}";
+
             body.AppendLine("                writer.WriteString(\"$h\", "
-                            + $"global::Rask.External.ExternalHandlers.Register(this, this.{handler.ClrName}));");
+                            + $"global::Rask.External.ExternalHandlers.Register(this, {registered}));");
             body.AppendLine("                writer.WriteEndObject();");
             body.AppendLine("            }");
         }
@@ -567,6 +575,46 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             sb.AppendLine();
         }
 
+        foreach (var handler in island.Handlers)
+        {
+            if (handler.Shape.Argument is null)
+            {
+                continue;
+            }
+
+            var read = ScalarRead(handler.Shape.Argument);
+            var type = handler.Shape.Argument.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var invoke = handler.Shape.IsAsync
+                ? $"global::System.Func<global::System.Text.Json.JsonElement, global::System.Threading.Tasks.Task>"
+                : "global::System.Action<global::System.Text.Json.JsonElement>";
+
+            sb.AppendLine($"    /// <summary>Feeds the argument to <c>{handler.ClrName}</c> from the dispatched frame.</summary>");
+            sb.AppendLine("    /// <remarks>");
+            sb.AppendLine("    ///     The client sends the argument as the first element of <c>args</c>. Read here, where");
+            sb.AppendLine("    ///     the type is known, so nothing reflects and the component still trims.");
+            sb.AppendLine("    /// </remarks>");
+            sb.AppendLine($"    private {invoke} __Arg{handler.ClrName} => __p =>");
+            sb.AppendLine("    {");
+            sb.AppendLine("        // A frame carrying no args is a stale id or a hand-written client; the default is a");
+            sb.AppendLine("        // better answer than an exception that takes the page down.");
+            sb.AppendLine($"        {type} __v = default!;");
+            sb.AppendLine("        if (__p.ValueKind == global::System.Text.Json.JsonValueKind.Object");
+            sb.AppendLine("            && __p.TryGetProperty(\"args\", out var __a)");
+            sb.AppendLine("            && __a.ValueKind == global::System.Text.Json.JsonValueKind.Array");
+            sb.AppendLine("            && __a.GetArrayLength() > 0)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            __v = {read};");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            // `return` only for the async shape: the sync one is an Action, and returning a value
+            // from a void-returning lambda is CS8030.
+            sb.AppendLine(handler.Shape.IsAsync
+                ? $"        return this.{handler.ClrName}!(__v);"
+                : $"        this.{handler.ClrName}!(__v);");
+            sb.AppendLine("    };");
+            sb.AppendLine();
+        }
+
         sb.AppendLine("    /// <summary>The props, as the JSON the client runtime hands to the adapter.</summary>");
         sb.AppendLine("    protected override string WriteProps()");
         sb.AppendLine("    {");
@@ -582,6 +630,47 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
         sb.AppendLine("}");
         return sb.ToString();
+    }
+
+
+    /// <summary>
+    ///     The expression that reads a callback argument of <paramref name="type" /> out of the frame.
+    /// </summary>
+    /// <remarks>
+    ///     Scalars only, deliberately. A richer argument needs the reflection-free reader the CQRS
+    ///     codecs already generate (WireCodecEmitter), which is not shared out of that assembly yet —
+    ///     and JsonSerializer.Deserialize would work today at the cost of the trimming and AOT
+    ///     guarantee this feature is built on. Anything outside this table is RASK060 rather than a
+    ///     silent default.
+    /// </remarks>
+    private static string? ScalarRead(ITypeSymbol type)
+    {
+        var element = "__a[0]";
+
+        if (type.TypeKind == TypeKind.Enum)
+        {
+            var underlying = (type as INamedTypeSymbol)?.EnumUnderlyingType?.SpecialType;
+            var reader = underlying == SpecialType.System_Int64 ? "GetInt64()" : "GetInt32()";
+            return $"({type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}){element}.{reader}";
+        }
+
+        return type.SpecialType switch
+        {
+            SpecialType.System_Int32 => $"{element}.GetInt32()",
+            SpecialType.System_Int64 => $"{element}.GetInt64()",
+            SpecialType.System_Double => $"{element}.GetDouble()",
+            SpecialType.System_Single => $"{element}.GetSingle()",
+            SpecialType.System_Decimal => $"{element}.GetDecimal()",
+            SpecialType.System_Boolean => $"{element}.GetBoolean()",
+            SpecialType.System_String => $"{element}.GetString()!",
+            _ => type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) switch
+            {
+                "global::System.Guid" => $"{element}.GetGuid()",
+                "global::System.DateTimeOffset" => $"{element}.GetDateTimeOffset()",
+                "global::System.DateTime" => $"{element}.GetDateTime()",
+                _ => null,
+            },
+        };
     }
 
     private sealed record CallbackShape(ITypeSymbol? Argument, bool IsAsync);
