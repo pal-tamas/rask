@@ -326,5 +326,14 @@ what to create — a custom element registers its own tag and nothing about the 
   since Angular components need the Angular compiler rather than plain Vite.
 - **Blazor.** `.razor` components, with props staying C# and never becoming JSON — and static prerender
   needing no bundler at all.
+### Both hosts, verified
+
+The same component, byte-identical `.tsx`, was built and driven in a browser on both hosts: it mounts,
+receives its C# props, and round-trips a typed callback back into C# — server state and React's own
+local state advancing together, which is what shows the adapter reconciles rather than remounts.
+
+On WASM the callback reaches C# through a `[JSExport]` call into this tab's runtime rather than over a
+socket; nothing in the front-end file knows which.
+
 - **Server-side rendering** for the bundler-backed runtimes, which is what would make `Hydration.None`
   broadly useful.
