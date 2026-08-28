@@ -53,7 +53,6 @@ public sealed class FeedCoverageTests
             {
                 "wasm" => ProjectGenerator.GenerateWasm(
                     Root, "App", auth: false, pwa: false, docker: false, Version, batteries),
-                "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
                 _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
             };
 
@@ -107,9 +106,6 @@ public sealed class FeedCoverageTests
 
         AssertFeedCovers(
             ProjectGenerator.GenerateServer(Root, "App", batteries, Version), "the server template with every battery");
-        AssertFeedCovers(
-            ProjectGenerator.GenerateWasmHosted(Root, "App", batteries with { Push = false }, Version),
-            "the wasm-hosted template with every battery");
     }
 
     /// <summary>Every front-end template, since each contributes the same host-side packages.</summary>

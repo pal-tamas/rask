@@ -7,6 +7,28 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+
+- **The `wasm-hosted` template.** `rask new --template wasm-hosted` is now a usage error naming the
+  templates that remain. Two are left, and they answer the only question that was ever an author's:
+  **does this app have a backend?** — `server` or `wasm`.
+
+  It scaffolded a Client/Server/Shared trio, which is the hand-written version of what the one-project
+  build now does automatically — except a hosted-WASM app is useless until its bundle lands, while
+  `rask new --wasm` is useful on first paint and degrades to the server when the bundle never arrives.
+  Pre-1.0, so it is removed rather than deprecated.
+
+  **Existing solutions of that shape keep working.** Only the scaffolding is gone: `rask dev` still
+  resolves the `.Server` host, `rask deploy` still ships it, and the operator dashboard still mounts
+  there. That detection is generic — this repo's own `Rask.Example.Wasm.Host` sample has the shape.
+
+  **One capability lost its only scaffold:** remote CQRS dispatch (`Rask.Cqrs.Client` /
+  `Rask.Cqrs.Server`) was wired by this template and by nothing else. The packages are unchanged and an
+  app can still wire them by hand — but nothing generates the arrangement, and a `--wasm` app whose
+  pages move to the browser is exactly what wants it. Wiring it into the one-project build is follow-up
+  work, tracked in [#868](https://github.com/pal-tamas/rask/issues/868).
+
+
 ### Fixed
 - **Targets that invoke a generated MSBuild task now wait for the reference that produces it.**
   `main` went red at #871: `pages` and `nightly` both failed with MSB4062 — the
