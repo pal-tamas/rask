@@ -8,6 +8,41 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Rask` — a new batteries-included package, and `RaskApp`, the host wired the way a Rask app nearly
+  always is.**
+
+  ```csharp
+  var app = RaskApp.Create(args);
+
+  app.Configure(c =>
+  {
+      c.Jobs.Off();                                            // this app has no background work
+      c.Mail.Configure(o => o.From = "no-reply@example.com");
+  });
+
+  app.MapEndpoints(e => e.MapPushSubscriptions());
+  app.Run<App>();
+  ```
+
+  **Every battery is on.** Referencing `Rask` is what turns them on — the database, mediator, jobs, mail,
+  cache, outbox, dashboard, durable logs, Web Push, snapshots and continuous backup — and `Program.cs` is
+  where an app says which it does *without*. There is nothing to opt into, and no `AddRaskX` to remember:
+  a `Program.cs` with no `Configure` block is an app with all of them running.
+
+  The database-backed batteries find your `DbContext` themselves, off the `AddDbContextFactory<T>()` call
+  you already wrote — nothing names it twice. To configure a battery, either use the block above or call
+  its own `AddRaskX` directly; the automatic wiring runs last and every `AddRaskX` is idempotent, so a
+  direct call wins and nothing has to be turned off first.
+
+  `RaskApp` also owns the middleware order that was duplicated across four scaffolder emitters and every
+  sample, which makes two silent failures unrepresentable rather than merely documented: endpoints mapped
+  after the catch-all never run (`MapEndpoints` replays them at the only position that works), and
+  `UseAuthentication` after `UseRask` leaves `HttpContext.User` empty on the initial GET and the WebSocket
+  upgrade so every authorized page challenges (RASK024) — now placed correctly, and only when a scheme is
+  actually registered.
+
+  **`Rask.Server` is unchanged and still lean.** An app with no database references it directly and
+  carries no EF Core and no SQLite native bundles; that door is why this is a separate package.
 - **The `spa` template now calls `AddRaskSpaHost()`.** It was scaffolding `app.UseRaskSpa()` with no
   matching `Add`, so the host shipped without response compression — the largest file in the app, served
   as `text/javascript`, went out uncompressed — and, once the host defaults moved into the framework,
