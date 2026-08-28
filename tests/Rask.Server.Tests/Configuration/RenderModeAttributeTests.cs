@@ -13,6 +13,7 @@ namespace Rask.Server.Tests.Configuration;
 // is biased towards keeping a connection — a page wrongly judged interactive behaves exactly as it
 // always has, while one wrongly judged static loses its interactivity silently. The attribute is for
 // what detection cannot see.
+[Collection("DiagnosticsSink")]
 public class RenderModeAttributeTests
 {
     [Fact]
