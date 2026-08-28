@@ -14,12 +14,27 @@
     (it gets a generated entry point instead) and minus anything under Server/, which is the
     convention for "this code only exists on the server".
 
+    Browser/ is the mirror of that, and the SERVER is what excludes it. It is the only place a file can
+    reference something from RaskBrowserPackageReference: that reference reaches the companion alone, so
+    a file using it would otherwise fail to compile in the server half, where the package is absent by
+    design. One project means one source glob, and these two folders are how a file says which half it
+    belongs to.
+
     Opt in with <RaskBrowserRung>true</RaskBrowserRung>, alongside RenderModes.Wasm in Program.cs. The
     build cannot read Program.cs, which is why this is a separate switch rather than inferred.
 
     Publish-only. A browser bundle takes minutes to link and buys nothing during development, where
     the page is server-live and hot-reloaded.
   -->
+
+  <!--
+    The server half does not compile Browser/. Only under RaskBrowserRung: without the one-project
+    build there is no second half, so a folder of that name is just a folder and removing its sources
+    would silently drop code the app expects to be compiled.
+  -->
+  <ItemGroup Condition=" '$(RaskBrowserRung)' == 'true' ">
+    <Compile Remove="Browser\**\*.cs"/>
+  </ItemGroup>
 
   <PropertyGroup>
     <RaskBrowserRung Condition=" '$(RaskBrowserRung)' == '' ">false</RaskBrowserRung>

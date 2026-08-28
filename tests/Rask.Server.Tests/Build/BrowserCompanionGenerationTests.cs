@@ -25,6 +25,10 @@ public class BrowserCompanionGenerationTests : IDisposable
         Directory.CreateDirectory(_dir);
         File.WriteAllText(Path.Combine(_dir, "App.cs"), "namespace Fixture; public sealed class App { }");
         File.WriteAllText(Path.Combine(_dir, "Program.cs"), "// the server half; the companion must not compile this");
+        Directory.CreateDirectory(Path.Combine(_dir, "Browser"));
+        File.WriteAllText(
+            Path.Combine(_dir, "Browser", "BrowserStartup.cs"),
+            "namespace Fixture.Browser; public static class BrowserStartup { }");
         File.WriteAllText(Path.Combine(_dir, "App.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -140,6 +144,44 @@ public class BrowserCompanionGenerationTests : IDisposable
         Assert.False(
             outputDir.StartsWith(companionDir + Path.DirectorySeparatorChar, StringComparison.Ordinal),
             "the companion's output directory must not sit inside its project directory");
+    }
+
+    [Fact]
+    public void TheServerDoesNotCompileTheBrowserHalfsOwnCode()
+    {
+        // The mirror of Server/, and the reason RaskBrowserPackageReference is usable at all: that
+        // reference reaches the companion ALONE, so a file using it has to be somewhere the server does
+        // not compile. Without this exclusion the browser-only reference is a seam nothing can sit on —
+        // the file lands in both halves and fails in the one missing the package.
+        var compile = Slashes(ServerCompileItems());
+
+        Assert.Contains("App.cs", compile, StringComparison.Ordinal);
+        Assert.DoesNotContain("Browser/BrowserStartup.cs", compile, StringComparison.Ordinal);
+    }
+
+    // What the SERVER half compiles, straight from MSBuild's own evaluation rather than from the
+    // generated companion — the exclusion under test is the one that never reaches that file.
+    private string ServerCompileItems()
+    {
+        var psi = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = _dir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        psi.ArgumentList.Add("msbuild");
+        psi.ArgumentList.Add("App.csproj");
+        psi.ArgumentList.Add("-getItem:Compile");
+        psi.ArgumentList.Add("-nologo");
+        psi.ArgumentList.Add("-nodeReuse:false");
+
+        using var p = Process.Start(psi)!;
+        var stdout = p.StandardOutput.ReadToEnd();
+        var stderr = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+
+        Assert.True(p.ExitCode == 0, $"evaluating the server's Compile items failed:\n{stdout}\n{stderr}");
+        return stdout;
     }
 
     // The generated project carries MSBuild's canonical '\\' separators, which MSBuild itself normalizes
