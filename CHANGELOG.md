@@ -8,6 +8,34 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Build-time prerendering for standalone WASM apps** — `<RaskPrerender>true</RaskPrerender>`.
+  Such an app has no server, so every visitor and every crawler receives the boot shell: a spinner
+  and the word "Loading", because the real markup does not exist until megabytes of runtime have
+  downloaded. The publish now renders each route to real HTML and writes it beside the bundle as a
+  directory per route (`/about` → `about/index.html`), so a static host serves it at the URL the app
+  routes to with no rewrite rule. Pages go through the same root boundary and the same wave loop a
+  server's first response uses, each in its own DI scope, so a page whose `OnMountAsync` loads
+  build-time data writes **the data** rather than its placeholder. Build is untouched; this is
+  publish-only, like the bundle.
+
+  **A route that throws, or does not settle inside the budget, is deliberately not written.** Both
+  still return perfectly ordinary HTML — an error document, and the placeholder that was on screen
+  when the budget ran out — so writing either would publish it under the route's own name with
+  nothing at build time saying so, and a baked spinner is worse than no prerender because it *looks*
+  prerendered. Parameterised and catch-all routes are skipped and **named in the log, even when the
+  list is empty**: a pass that quietly covered a site's static half would read exactly like one that
+  covered all of it. A pass that writes no pages at all raises a build warning, asked of the output
+  rather than the exit code.
+
+  Driven from the app's own `Program.cs`: a browser-wasm assembly cannot execute on the desktop, so
+  the app's sources compile a second time for `net10.0` into a companion under `obj/` carrying the
+  app's own project and package references, and `WasmHostBuilder.RunAsync` prerenders instead of
+  booting when `RASK_PRERENDER_OUT` is set — so the real entry point drives the pass and there is no
+  second place to keep service registrations in sync. The engine is public for direct use:
+  `RaskPrerender.PlanRoutes()` and `RaskPrerender.RenderDocumentAsync(...)`, the latter taking no
+  route on purpose, because the caller is what holds the route table. See
+  [`docs/prerendering.md`](docs/prerendering.md).
+
 - **The bundled chunks are registered as static web assets, so `app.MapStaticAssets()` serves them.**
   The bundle is written into `wwwroot` *after* the SDK has globbed it at evaluation, so nothing it
   discovered knew the files existed: a published app returned the page's own HTML for both the chunk
