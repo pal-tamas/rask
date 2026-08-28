@@ -640,7 +640,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     ///     Scalars only, deliberately. A richer argument needs the reflection-free reader the CQRS
     ///     codecs already generate (WireCodecEmitter), which is not shared out of that assembly yet —
     ///     and JsonSerializer.Deserialize would work today at the cost of the trimming and AOT
-    ///     guarantee this feature is built on. Anything outside this table is RASK060 rather than a
+    ///     guarantee this feature is built on. Anything outside this table is RASK057 rather than a
     ///     silent default.
     /// </remarks>
     private static string? ScalarRead(ITypeSymbol type)

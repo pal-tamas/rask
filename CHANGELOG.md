@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK060 reports a second `AddRask` on the same service collection.** A second call does not add to
+  the first: its options go in with `TryAddSingleton`, which keeps the registration already there, so
+  everything the later call configures is discarded while the call compiles and reads as though it worked.
+
+  The visible casualty is `configureCulture` — the second call builds a fresh `RaskCultureOptions`, runs
+  your callback over it, then loses the registration race, so an app that named its languages ships with
+  none. It is worse than a no-op: `AddRaskCulture` still flips the process-wide `RaskCulture.IsEnabled`, so
+  negotiation turns on over an empty catalog.
+
+  Scoped to two calls in the same method body on the same receiver as written, so a test file that builds
+  one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
+
 - **Build-time prerendering for standalone WASM apps** — `<RaskPrerender>true</RaskPrerender>`.
   Such an app has no server, so every visitor and every crawler receives the boot shell: a spinner
   and the word "Loading", because the real markup does not exist until megabytes of runtime have
