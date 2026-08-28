@@ -109,7 +109,7 @@ behaviour — each indicator stays invisible until a latency threshold is crosse
 ### WASM: boot progress
 
 The page shell (`src/Rask.Wasm/Browser/index.html`) carries a hidden
-`.rask-boot__progress` bar under the splash spinner. `main.js` wires the runtime's
+`.rask-boot__progress` bar under the splash spinner. `Browser/main.ts` wires the runtime's
 `onDownloadResourceProgress(resourcesLoaded, totalResources)` callback (via
 `dotnet.withModuleConfig(...)`) and reveals the bar with a determinate
 `loaded / total` percentage, so a slow link shows movement instead of an indefinite

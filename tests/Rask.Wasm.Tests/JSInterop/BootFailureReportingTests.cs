@@ -122,8 +122,7 @@ public sealed class BootFailureReportingTests
         Skip.If(node is null, "node is not on PATH, so the JS-driven boot fixture cannot run.");
 
         var repoRoot = LocateRepoRoot();
-        var fixtureScript = Path.Combine(
-            repoRoot, "tests", "Rask.Wasm.Tests", "JSInterop", "BootFailureFixture.mjs");
+        var fixtureScript = Path.Combine(AppContext.BaseDirectory, "node-fixtures", "BootFailureFixture.mjs");
         var mainJs = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "main.js");
         Assert.True(File.Exists(fixtureScript), $"Fixture script missing: {fixtureScript}");
         Assert.True(File.Exists(mainJs), $"Boot script missing: {mainJs}");

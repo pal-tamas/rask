@@ -1,6 +1,7 @@
-# JavaScript interop: element refs, scoped CSS & JS
+# JavaScript interop: element refs, scoped CSS & TypeScript
 
-Reaching the DOM and shipping component-scoped styles and scripts. The same code runs on
+Reaching the DOM and shipping component-scoped styles and scripts. Scoped scripts are
+TypeScript; a `.js` sibling is refused at build time (RASK055). The same code runs on
 both transports — Server (WebSocket) and WASM (`JSImport`/`JSExport`).
 
 ## On this page
@@ -8,7 +9,7 @@ both transports — Server (WebSocket) and WASM (`JSImport`/`JSExport`).
 - [IJSRuntime, typed APIs & refs](js-interop-runtime.md) — calling JS, the typed browser-API layer, element refs, wrapping a third-party lib.
 
 - [Scoped CSS](#scoped-css)
-- [Scoped JS](#scoped-js)
+- [Scoped TypeScript](#scoped-typescript)
 - [Delivery & caching](#delivery--caching)
 
 ---
@@ -65,26 +66,64 @@ Two components declare the **same** `.box` selector in their own `.css`; each is
 
 ---
 
-## Scoped JS
+## Scoped TypeScript
 
-A sibling `{Component}.js` is wrapped onto `window.Rask["{TypeName}"]`, with every
+A sibling `{Component}.ts` is compiled, then wrapped onto `window.Rask["{TypeName}"]`, with every
 `export function NAME` (or `export async function NAME`) becoming a method:
 
-```js
-// ElementRefDemo.js
-export function width(el) {
+```ts
+// ElementRefDemo.ts
+export function width(el: HTMLElement | null): number {
     return el ? el.getBoundingClientRect().width : 0;
 }
 
-// async exports work too — e.g. CodeSample.js
-export async function copy(text) {
+// async exports work too — e.g. CodeSample.ts
+export async function copy(text: string): Promise<void> {
     await navigator.clipboard.writeText(text);
 }
 ```
 
-becomes callable as `Rask.ElementRefDemo.width`. Two scoped-JS components that share a
+becomes callable as `Rask.ElementRefDemo.width`. Two scoped components that share a
 simple type name collide at `window.Rask[Name]` — **RASK020** warns about this
-(RASK017 / RASK018 cover orphan / ambiguous `.js`).
+(RASK017 / RASK018 cover orphan / ambiguous `.ts`).
+
+**A `.js` sibling is a build error — [RASK055](diagnostics.md#rask055).** TypeScript is a superset of
+JavaScript, so migrating an existing scoped script is the rename and nothing else; add annotations at
+whatever pace suits you. The reason it is an error rather than a quiet fallback is that the failure
+has nowhere else to surface: an unregistered scoped script leaves `window.Rask["Name"]` with no
+methods, so the component renders a control that does nothing, with no error anywhere.
+
+### What compiles it
+
+`tsgo` — the Go build of the TypeScript compiler — fetched once as a native binary into
+`~/.rask/typescript` and verified against the checksum its registry publishes. **No npm, no Node, no
+`node_modules`**, the same arrangement [Tailwind](tailwind.md) uses. `RaskTypeScriptBuild=false`
+turns it off, and `RaskTypeScriptOffline=true` refuses to fetch and fails naming the file to put in
+place.
+
+Ordinary builds compile without type-checking, so the inner loop stays fast; the check itself belongs
+in your test gate, where a failure is loud and attributable. Rask's own gate runs
+`tsgo --noEmit --strict` over every scoped file in the repository.
+
+Rask ships ambient declarations for its own browser globals (`window.DotNet`, `window.Rask`), so
+calling a `[JSInvokable]` needs no declaration of your own. For a third-party library, write a narrow
+`.d.ts` beside your code describing what you actually call — any `.d.ts` in the project is compiled
+alongside your scoped files. `samples/Rask.Example.Shared/Features/Gantt/frappe-gantt.d.ts` is a
+worked example.
+
+### What your editor reads
+
+`rask new` writes a `tsconfig.json`. **The build never reads it** — Rask hands `tsgo` an explicit
+file list and explicit flags, which is what keeps the emitted form the one the asset registry parses.
+It is there so your editor checks what the gate checks, with the same `strict`.
+
+Its `include` covers `obj/rask/types`, where the build stages Rask's ambient declarations. The real
+file ships inside the NuGet package, under a versioned cache directory no `tsconfig.json` can name,
+so the staged copy is what makes `window.Rask` and `window.DotNet` resolve while you are typing. It
+appears after the first build — before that, expect your editor not to know them yet.
+
+`noEmit` is set deliberately. An editor that decided to emit would write a `.js` beside your `.ts`,
+and that is [RASK055](diagnostics.md#rask055) — a confusing way to meet it.
 
 ---
 

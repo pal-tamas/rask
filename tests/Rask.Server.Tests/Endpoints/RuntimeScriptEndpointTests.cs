@@ -23,39 +23,36 @@ public class RuntimeScriptEndpointTests
         // Regression: Rask.* invokes must wait for Head-declared external
         // <script src>/<link rel=stylesheet> to load. Without this, a
         // CodeSample-like component would have to hand-roll its own load-event
-        // workaround (e.g. attaching a load listener to the hljs script). The
-        // gate primitives must be present in the served rask.js bundle.
+        // workaround (e.g. attaching a load listener to the hljs script).
+        //
+        // The gate's primitives are local bindings, and Release minifies the served runtime for
+        // real — `headAssetsReady` is a single letter in the shipped bytes. So the structure is
+        // asserted where it is legible, in rask.ts (HeadAssetGateSourceTests), and what is asked of
+        // the SERVED script here is the part minification preserves: the "Rask." discriminator the
+        // gate keys on, which is only in the bundle if the gate's module is.
         using var host = RaskTestHost.Create<TestApp>();
 
         var body = await (await host.Http.GetAsync("/rask/rask.js")).Content.ReadAsStringAsync();
 
-        Assert.Contains("pendingHeadAssets", body);
-        Assert.Contains("trackHeadAsset", body);
-        Assert.Contains("scanHeadAssets", body);
-        Assert.Contains("headAssetsReady", body);
-
-        // dispatchJsInvoke must consult headAssetsReady() (not just
-        // scopedJsReady) when deciding whether to park a Rask.* identifier.
-        var dispatchIdx = body.IndexOf("function dispatchJsInvoke", StringComparison.Ordinal);
-        Assert.True(dispatchIdx >= 0);
-        // Peek the next ~600 chars — the gate check sits in the function prologue.
-        var prelude = body.Substring(dispatchIdx, Math.Min(600, body.Length - dispatchIdx));
-        Assert.Contains("headAssetsReady", prelude);
+        Assert.Contains("\"Rask.\"", body, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Get_RaskJs_IncludesTransportAgnosticPwaHelpers()
     {
-        // The PWA helpers shared from Rask.Core/Resources/rask-pwa.js must be spliced into the Server
-        // client so IWebPush/INotifications/IBadge/IWakeLock can reach them.
+        // The PWA helpers imported from Rask.Core/Resources/rask-pwa.ts must reach the Server client
+        // so IWebPush/INotifications/IBadge/IWakeLock can find them.
+        //
+        // Asserted without the surrounding spaces: these are property names, which a minifier leaves
+        // alone, but the whitespace around the `=` does not survive Release.
         using var host = RaskTestHost.Create<TestApp>();
 
         var body = await (await host.Http.GetAsync("/rask/rask.js")).Content.ReadAsStringAsync();
 
-        Assert.Contains("window.__raskPush =", body);
-        Assert.Contains("window.__raskNotify =", body);
-        Assert.Contains("window.__raskBadge =", body);
-        Assert.Contains("window.__raskWakeLock =", body);
+        Assert.Contains("window.__raskPush", body, StringComparison.Ordinal);
+        Assert.Contains("window.__raskNotify", body, StringComparison.Ordinal);
+        Assert.Contains("window.__raskBadge", body, StringComparison.Ordinal);
+        Assert.Contains("window.__raskWakeLock", body, StringComparison.Ordinal);
     }
 
     [Fact]

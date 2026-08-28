@@ -51,12 +51,12 @@
 
   <!-- Embed the feature/shared sources verbatim so CodeSample can show the *real* file text
        beside the live Result (EmbeddedSource reads them as raksrc/{file}). A .cs stays compiled
-       too — this only adds its text as a manifest resource; the .js/.css remain scoped
+       too — this only adds its text as a manifest resource; the .ts/.css remain scoped
        assets. Guarantees the shown snippet always compiles and matches what runs.
        LogicalName is the bare leaf name, so leaf names must be unique across the assembly —
        VerifyUniqueEmbeddedSourceNames below fails the build if two embedded files collide. -->
   <ItemGroup>
-    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.js;Features/**/*.css;Shared/**/*.cs;Shared/**/*.js;Shared/**/*.css">
+    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.ts;Features/**/*.css;Shared/**/*.cs;Shared/**/*.ts;Shared/**/*.css">
       <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
@@ -69,7 +69,7 @@
       <_RaskEmbeddedLeaf Include="@(EmbeddedResource->'%(LogicalName)')"/>
     </ItemGroup>
     <Error Condition="'@(_RaskEmbeddedLeaf->Distinct()->Count())' != '@(_RaskEmbeddedLeaf->Count())'"
-           Text="Duplicate embedded-source leaf name(s) under Features/ or Shared/. EmbeddedSource resolves by bare filename (raksrc/{leaf}), so every embedded .cs/.js/.css must have a unique file name across the project. Rename the collision." />
+           Text="Duplicate embedded-source leaf name(s) under Features/ or Shared/. EmbeddedSource resolves by bare filename (raksrc/{leaf}), so every embedded .cs/.ts/.css must have a unique file name across the project. Rename the collision." />
   </Target>
 
 </Project>

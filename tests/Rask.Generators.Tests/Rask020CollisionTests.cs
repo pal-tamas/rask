@@ -11,7 +11,7 @@ namespace Rask.Generators.Tests;
 public class Rask020CollisionTests
 {
     [Fact]
-    public void TwoComponentsSameSimpleName_DifferentNamespaces_BothHaveJs_FiresRask020Warning()
+    public void TwoComponentsSameSimpleName_DifferentNamespaces_BothHaveTs_FiresRask020Warning()
     {
         var run = Run(
             new[]
@@ -23,8 +23,8 @@ public class Rask020CollisionTests
             },
             new[]
             {
-                ("/proj/PageA/Counter.js", "export function f() {}"),
-                ("/proj/PageB/Counter.js", "export function g() {}")
+                ("/proj/PageA/Counter.ts", "export function f() {}"),
+                ("/proj/PageB/Counter.ts", "export function g() {}")
             });
 
         var diag = run.Diagnostics.First(d => d.Id == "RASK020");
@@ -49,8 +49,8 @@ public class Rask020CollisionTests
             },
             new[]
             {
-                ("/proj/PageA/Counter.js", "export function f() {}")
-                // PageB/Counter has no .js sibling — only one registration → no collision.
+                ("/proj/PageA/Counter.ts", "export function f() {}")
+                // PageB/Counter has no .ts sibling — only one registration → no collision.
             });
 
         Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK020");
@@ -71,8 +71,8 @@ public class Rask020CollisionTests
             },
             new[]
             {
-                ("/proj/A/Widget.js", "export function f() {}"), ("/proj/B/Widget.js", "export function g() {}"),
-                ("/proj/C/Widget.js", "export function h() {}")
+                ("/proj/A/Widget.ts", "export function f() {}"), ("/proj/B/Widget.ts", "export function g() {}"),
+                ("/proj/C/Widget.ts", "export function h() {}")
             });
 
         // The fixture's Diagnostics property concatenates top-level + per-result, so a
@@ -103,7 +103,7 @@ public class Rask020CollisionTests
             },
             new[]
             {
-                ("/proj/A/Counter.js", "export function f() {}"), ("/proj/B/Toggle.js", "export function g() {}")
+                ("/proj/A/Counter.ts", "export function f() {}"), ("/proj/B/Toggle.ts", "export function g() {}")
             });
 
         Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK020");
@@ -118,7 +118,7 @@ public class Rask020CollisionTests
                 ("/proj/Counter.cs",
                     "namespace Foo; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }")
             },
-            new[] { ("/proj/Counter.js", "export function rendered(el) {}") });
+            new[] { ("/proj/Counter.ts", "export function rendered(el) {}") });
 
         var generated = run.GeneratedSource("__RaskScopedJsRegistration");
         Assert.Contains("global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterJs(typeof(global::Foo.Counter)",
@@ -129,6 +129,6 @@ public class Rask020CollisionTests
 
     private static GeneratorRun Run(
         (string Path, string Source)[] sources,
-        (string Path, string Contents)[] additionalJs) =>
-        GeneratorDriverFixture.Run(sources, new ComponentScopedJsGenerator(), additionalJs);
+        (string Path, string Contents)[] scopedTs) =>
+        GeneratorDriverFixture.RunScoped(sources, scopedTs);
 }

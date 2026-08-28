@@ -167,17 +167,33 @@ public sealed class PackagingContractTests
     [MemberData(nameof(PackedTaskAssemblies))]
     public void A_generated_task_assembly_is_packed_by_name_rather_than_left_to_a_glob(string package, string dll)
     {
-        var csproj = XDocument.Load(Path.Combine(_repoRoot, "src", package, $"{package}.csproj"));
-        var packItems = csproj.Descendants("None")
+        // Where the literal has to be depends on who packs this project's build folder.
+        //
+        // Most projects pack their own. Rask.Core does not — it is IsPackable=false and its build
+        // integration is packed INTO every host package by src/RaskCoreBuildPack.targets. A pack item
+        // in Rask.Core.csproj would pack nothing, and satisfying this guard that way would be the same
+        // false signal Rask_Core_does_not_pretend_to_pack_its_own_build_integration exists to forbid.
+        // The guarantee is unchanged either way: some literal Include names the DLL, so it is
+        // collected when the item is copied rather than when the project is evaluated.
+        var unpackable = File.ReadAllText(Path.Combine(_repoRoot, "src", package, $"{package}.csproj"))
+            .Contains("<IsPackable>false</IsPackable>", StringComparison.Ordinal);
+
+        var owner = unpackable ? "RaskCoreBuildPack.targets" : $"{package}.csproj";
+        var ownerPath = unpackable
+            ? Path.Combine(_repoRoot, "src", "RaskCoreBuildPack.targets")
+            : Path.Combine(_repoRoot, "src", package, $"{package}.csproj");
+
+        var packItems = XDocument.Load(ownerPath).Descendants("None")
             .Where(e => (e.Attribute("Include")?.Value ?? string.Empty)
-                .StartsWith(@"build\", StringComparison.Ordinal))
+                .Contains(@"build\", StringComparison.Ordinal))
             .ToArray();
 
-        var literal = packItems.SingleOrDefault(e => e.Attribute("Include")?.Value == $@"build\{dll}");
+        var literal = packItems.SingleOrDefault(e =>
+            (e.Attribute("Include")?.Value ?? string.Empty).EndsWith($@"build\{dll}", StringComparison.Ordinal));
 
         Assert.True(
             literal is not null,
-            $"{package}.csproj leaves build/{dll} to a glob, but build/{package}.targets loads it with a "
+            $"{owner} leaves build/{dll} to a glob, but build/{package}.targets loads it with a "
             + "UsingTask. A glob is expanded at evaluation, before the ProjectReference that produces the "
             + "DLL has built — so on a tree where it is not already on disk, pack SUCCEEDS and ships a "
             + $"package whose UsingTask points at a file that is not in it. Add: <None Include=\"build\\{dll}\" "
@@ -192,6 +208,53 @@ public sealed class PackagingContractTests
         {
             Assert.Contains(dll, glob.Attribute("Exclude")?.Value ?? string.Empty, StringComparison.Ordinal);
         }
+    }
+
+    /// <summary>
+    ///     No <c>UsingTask</c> for a generated task assembly is gated on that assembly existing.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A <c>UsingTask</c> Condition is evaluated at project EVALUATION, which precedes the
+    ///         build-order edge that produces the DLL. On a clean checkout the condition is false, the
+    ///         task is never registered, and the first project that uses it fails with MSB4036 — "the
+    ///         task was not found" — naming a task nobody wrote.
+    ///     </para>
+    ///     <para>
+    ///         Structural, and it has to be: a tree that has built once has the DLL on disk, so the
+    ///         guard is true and everything passes. The failure exists only on a machine that has never
+    ///         built this repository, which no local run ever is by the time a suite executes. It cost
+    ///         a red CI job on a green branch, on a rule this repository had already written down in
+    ///         Rask.Wasm.targets.
+    ///     </para>
+    ///     <para>
+    ///         Registering unconditionally is safe because AssemblyFile-based UsingTasks load lazily —
+    ///         only when the task is invoked — and every target that invokes one is itself conditioned
+    ///         on there being work to do.
+    ///     </para>
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(PackedTaskAssemblies))]
+    public void A_generated_task_assembly_is_registered_unconditionally(string package, string dll)
+    {
+        var targets = Path.Combine(_repoRoot, "src", package, "build", $"{package}.targets");
+        var declaration = XDocument.Load(targets).Descendants("UsingTask")
+            .SingleOrDefault(e => (e.Attribute("AssemblyFile")?.Value ?? string.Empty)
+                .EndsWith(dll, StringComparison.Ordinal));
+
+        Assert.True(declaration is not null, $"build/{package}.targets no longer declares a UsingTask for {dll}.");
+
+        // A condition on a PROPERTY is fine — $(RaskWasm) is known at evaluation and says nothing about
+        // what is on disk. What must not appear is a test of the DLL itself.
+        var condition = declaration!.Attribute("Condition")?.Value ?? string.Empty;
+
+        Assert.False(
+            condition.Contains("Exists(", StringComparison.Ordinal),
+            $"build/{package}.targets gates its UsingTask for {dll} on the file existing. That is "
+            + "evaluated before the build-order edge that produces the DLL, so on a clean checkout the "
+            + "task is never registered and the first project to use it fails with MSB4036 — while any "
+            + "tree that has already built passes, which is what makes it invisible locally. Register "
+            + "it unconditionally; an AssemblyFile UsingTask loads lazily.");
     }
 
     [Fact]
@@ -217,14 +280,78 @@ public sealed class PackagingContractTests
             .ToList();
 
         Assert.Contains(@"**\*.css", globs);
-        Assert.Contains(@"**\*.js", globs);
+
+        // Scoped TypeScript reaches the generator by a different route than CSS, so the assertion has
+        // to follow it. The .ts is globbed into a private item, compiled to obj/, and only the OUTPUT
+        // becomes an AdditionalFile — carrying the source path as metadata. Asserting on the glob
+        // alone would stay green if the AdditionalFiles contribution were dropped, and every consumer
+        // would silently lose scoped assets with a build that still succeeds.
+        var privateGlobs = targets.Descendants("_RaskScopedTs")
+            .Select(e => e.Attribute("Include")?.Value)
+            .ToList();
+
+        Assert.Contains(@"**\*.ts", privateGlobs);
+        Assert.Contains(globs, g => g is not null && g.Contains("_RaskCompiledScopedJs", StringComparison.Ordinal));
+
+        var metadata = targets.Descendants("CompilerVisibleItemMetadata")
+            .Select(e => (e.Attribute("Include")?.Value, e.Attribute("MetadataName")?.Value))
+            .ToList();
+
+        Assert.Contains(("AdditionalFiles", "RaskTsSource"), metadata);
+
+        // The framework's own ambient declarations have to be compiled alongside a consumer's scoped
+        // files, or every app calling a [JSInvokable] has to redeclare window.DotNet itself.
+        var typeGlobs = targets.Descendants("_RaskScopedTsTypes")
+            .Select(e => e.Attribute("Include")?.Value)
+            .ToList();
+
+        Assert.Contains(@"**\*.d.ts", typeGlobs);
+        Assert.Contains(typeGlobs, g => g is not null && g.EndsWith("rask-globals.d.ts", StringComparison.Ordinal));
+
+        // An author's .js must never reach csc: Rask no longer compiles one, and the only reason it
+        // is globbed at all is so the generator can name it in RASK055.
+        //
+        // EndsWith rather than Contains, because `Resources\**\*.json` contains ".js" — the classic
+        // substring assertion that matches the thing it was meant to exclude.
+        Assert.DoesNotContain(globs, g => g is not null && g.EndsWith(".js", StringComparison.Ordinal));
 
         var visible = targets.Descendants("CompilerVisibleProperty")
             .Select(e => e.Attribute("Include")?.Value)
             .ToList();
 
-        Assert.Contains("RaskScopedJsAutoInclude", visible);
+        Assert.Contains("RaskScopedTsAutoInclude", visible);
+        Assert.Contains("RaskStrayScopedJs", visible);
         Assert.Contains("RaskBuilderEntryInjection", visible);
+    }
+
+    /// <summary>
+    ///     The TypeScript compile ships with the build integration, and pack fails loudly if it does not.
+    /// </summary>
+    /// <remarks>
+    ///     A <c>&lt;None Include&gt;</c> of an absent file packs nothing and reports nothing, so the
+    ///     first sign of a missing task assembly would be MSB4062 in a consumer's build, naming a file
+    ///     they have never heard of. That is the same shape as #544, which hid for a year.
+    /// </remarks>
+    [Fact]
+    public void The_typescript_compiler_task_ships_with_the_build_integration()
+    {
+        var pack = XDocument.Load(Path.Combine(_repoRoot, "src", "RaskCoreBuildPack.targets"));
+
+        var packed = pack.Descendants("None")
+            .Where(e => e.Attribute("Pack")?.Value == "true")
+            .Select(e => e.Attribute("Include")?.Value ?? string.Empty)
+            .ToList();
+
+        Assert.Contains(packed, p => p.EndsWith("Rask.TypeScript.Tasks.dll", StringComparison.Ordinal));
+        Assert.Contains(packed, p => p.EndsWith("rask-globals.d.ts", StringComparison.Ordinal));
+
+        // And the guard that turns a missing one into an error at pack time rather than at a
+        // consumer's first build.
+        var guarded = pack.Descendants("Error")
+            .Select(e => e.Attribute("Condition")?.Value ?? string.Empty)
+            .ToList();
+
+        Assert.Contains(guarded, c => c.Contains("Rask.TypeScript.Tasks.dll", StringComparison.Ordinal));
     }
 
     /// <summary>

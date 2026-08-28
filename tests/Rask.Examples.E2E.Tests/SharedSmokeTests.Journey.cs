@@ -1687,8 +1687,8 @@ public abstract partial class SharedSmokeTests
         // CodeSample tabs + copy on the Element refs demo's source pane: switching tabs swaps one Raw
         // highlighted pane for another (must reparse into real token <span>s, not escaped text); copy
         // flashes "Copied!".
-        var codeCard = Page.Locator(".sample-code-col:has(.sample-tab:has-text('ElementRefDemo.js'))").First;
-        await codeCard.Locator(".sample-tab:has-text('ElementRefDemo.js')").ClickAsync();
+        var codeCard = Page.Locator(".sample-code-col:has(.sample-tab:has-text('ElementRefDemo.ts'))").First;
+        await codeCard.Locator(".sample-tab:has-text('ElementRefDemo.ts')").ClickAsync();
         await Expect(codeCard.Locator(".sample-code"))
             .ToContainTextAsync("getBoundingClientRect", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(codeCard.Locator(".sample-code code span[class]").First)

@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using Microsoft.Build.Framework;
 using Rask.Spa.Tasks;
+using Rask.TypeScript.Tasks;
 
 namespace Rask.Spa.Tasks.Tests;
 
@@ -14,7 +16,7 @@ namespace Rask.Spa.Tasks.Tests;
 ///         a malformed one.
 ///     </para>
 ///     <para>
-///         The compiler is tsgo — the native Go build of TypeScript — fetched through <c>npx</c>,
+///         The compiler is tsgo — the native Go build of TypeScript — fetched as a binary,
 ///         which caches the download itself, so there is no provisioning step of ours to keep
 ///         working. <c>RASK_TSC</c> overrides it with a compiler already on disk.
 ///     </para>
@@ -113,6 +115,19 @@ public class TypeScriptCompilesTests : IDisposable
     }
 
     /// <summary>The compiler to run, and anything that has to precede its own arguments.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         Resolved the way the framework's build resolves it: the tarball the registry publishes,
+    ///         verified against its own checksum and cached per user. Not through <c>npx</c>, which is
+    ///         what this used before Rask had a resolver of its own.
+    ///     </para>
+    ///     <para>
+    ///         The difference is whether the gate can be skipped. With <c>npx</c> the check depended on
+    ///         Node.js being installed, on a machine where nothing else about this repository does — and
+    ///         a gate whose first question is "is the tooling here?" is a gate that eventually answers
+    ///         no and stops running. This one fetches what it needs.
+    ///     </para>
+    /// </remarks>
     private static (string Command, string Prefix) Compiler()
     {
         if (Environment.GetEnvironmentVariable("RASK_TSC") is { Length: > 0 } configured &&
@@ -121,21 +136,55 @@ public class TypeScriptCompilesTests : IDisposable
             return (configured, string.Empty);
         }
 
-        var npx = OperatingSystem.IsWindows() ? "npx.cmd" : "npx";
-        Assert.True(
-            Which(npx) is not null,
-            "npx is not on PATH, so the generated TypeScript was never type-checked. Install Node.js, "
-            + "or point RASK_TSC at a tsgo/tsc binary yourself. Do not silence this — a type-check "
-            + "gate that reports success without running a type-checker is worse than none.");
+        var engine = new SilentBuildEngine();
+        var task = new ResolveTypeScriptToolTask
+        {
+            BuildEngine = engine,
+            Tool = "tsgo",
+            Version = CompilerVersion,
+        };
 
-        return (npx, $"--yes -p @typescript/native-preview@{CompilerVersion} tsgo ");
+        Assert.True(
+            task.Execute(),
+            "tsgo could not be resolved, so the generated TypeScript was never type-checked: "
+            + string.Join("; ", engine.Errors)
+            + ". Do not silence this — a type-check gate that reports success without running a "
+            + "type-checker is worse than none.");
+
+        return (task.ToolPath, string.Empty);
     }
 
-    private static string? Which(string command) =>
-        (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
-        .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-        .Select(directory => Path.Combine(directory, command))
-        .FirstOrDefault(File.Exists);
+    /// <summary>Swallows the task's logging; a failure is reported through the assertion above.</summary>
+    private sealed class SilentBuildEngine : IBuildEngine
+    {
+        public List<string> Errors { get; } = [];
+
+        public bool ContinueOnError => false;
+
+        public int LineNumberOfTaskNode => 0;
+
+        public int ColumnNumberOfTaskNode => 0;
+
+        public string ProjectFileOfTaskNode => string.Empty;
+
+        public void LogErrorEvent(BuildErrorEventArgs e) => Errors.Add(e.Message ?? "(no message)");
+
+        public void LogWarningEvent(BuildWarningEventArgs e)
+        {
+        }
+
+        public void LogMessageEvent(BuildMessageEventArgs e)
+        {
+        }
+
+        public void LogCustomEvent(CustomBuildEventArgs e)
+        {
+        }
+
+        public bool BuildProjectFile(
+            string projectFileName, string[] targetNames, System.Collections.IDictionary globalProperties,
+            System.Collections.IDictionary targetOutputs) => false;
+    }
 
     /// <summary>
     ///     What a call site is supposed to be able to write, asserted at the type level.

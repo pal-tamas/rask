@@ -6,6 +6,18 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Spa.Hosting</RootNamespace>
 
+    <!--
+      client/client.ts and client/query.ts are package CONTENT — vendored into a consumer's bundler
+      project and compiled by their toolchain, never by ours. Without this they would be treated as
+      scoped component assets: compiled into obj/ and then reported as orphans (RASK017), because
+      there is no Component named `client` beside them.
+
+      A property rather than an <_RaskScopedTs Remove="…"/>, because this project body is evaluated
+      before Directory.Build.targets imports Rask.Core.targets, so there is no item list here yet to
+      remove anything from.
+    -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
+
     <PackageId>Rask.Spa.Hosting</PackageId>
     <Title>Rask — TypeScript Single-Page App Host</Title>
     <Description>ASP.NET host for a built TypeScript single-page app — React, Vue, Angular, whichever bundler. `app.UseRaskSpa()` serves the bundler's dist/ with correct MIME types, bundler-aware cache headers, precompressed siblings and a SPA fallback that still 404s a missing asset. Pairs with Rask.Cqrs.Server, which gives the client a typed JSON wire and generates its TypeScript from your C# message records; a client that is not TypeScript is refused at build time rather than served half a guarantee. Depends on nothing else in Rask.</Description>

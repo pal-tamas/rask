@@ -106,7 +106,11 @@ fi
 # The watch gate runs a real `dotnet watch` session with 2-minute ceilings, so like the others it runs
 # only when this push touches the hot-reload path: the coordinator, the registries it refreshes, the
 # generators that emit them, the client branch, or `rask dev` itself.
-watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.js|src/Rask\.Wasm/(HotReload/|Resources/rask\.wasm\.js|Browser/main\.js)|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs|tests/Rask\.Examples\.E2E\.Tests/WasmWatchHotReloadTests\.cs)'
+#
+# src/Rask.Core/Resources/ is in scope as a whole. The client branch used to live entirely in each
+# host's own file, so naming those two was enough; both hosts now IMPORT the indicator, the morph and
+# the diff codec from there, and an edit to any of them changes what an edit does to a running app.
+watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing|Resources)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.ts|src/Rask\.Wasm/(HotReload/|Resources/rask\.wasm\.ts|Browser/main\.ts)|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs|tests/Rask\.Examples\.E2E\.Tests/WasmWatchHotReloadTests\.cs)'
 
 if [ "${RASK_SKIP_WATCH_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_WATCH_E2E=1 set — skipping the watch hot-reload gate."

@@ -231,14 +231,14 @@ public static partial class DemoRegistry
             // --- JS-interop guide: element refs, scoped CSS, scoped JS / IJSRuntime, and the asset-
             //     loading story (their standalone example pages folded into docs/js-interop.md). ---
             ["js-interop-elementref"] = () => CodeSample
-                .Files(["ElementRefDemo.cs", "ElementRefDemo.js"])
+                .Files(["ElementRefDemo.cs", "ElementRefDemo.ts"])
                 .Result(ElementRefDemo),
             ["js-interop-scoped-css"] = () => CodeSample
                 .Files(["ScopedRed.cs", "ScopedBlue.cs", "ScopedRed.css", "ScopedBlue.css"])
                 .Result(BsStack.Vertical(true).Gap(2)[ScopedRed, ScopedBlue]),
             ["js-interop-jsruntime"] = () => CodeSample.Files(["JsRuntimeDemo.cs"]).Result(JsRuntimeDemo),
             ["js-interop-thirdparty"] = () => CodeSample
-                .Files(["GanttDemo.cs", "Gantt.cs", "Gantt.js"])
+                .Files(["GanttDemo.cs", "Gantt.cs", "Gantt.ts"])
                 .Notes("A wrapper around frappe-gantt (MIT, vendored under wwwroot/lib). The library owns "
                 + "every node inside the host div, so the component renders that div as a leaf and lets "
                 + "Gantt.js fill it — props in, C# delegates out. Drag or resize a bar and the table below "
@@ -260,7 +260,7 @@ public static partial class DemoRegistry
             ["asset-basic-css"] = () => CodeSample
                 .Files(["BasicScopedCss.cs", "BasicScopedCss.css"])
                 .Result(BasicScopedCss),
-            ["asset-js-only"] = () => CodeSample.Files(["JsOnlyDemo.cs", "JsOnlyDemo.js"]).Result(JsOnlyDemo),
+            ["asset-js-only"] = () => CodeSample.Files(["JsOnlyDemo.cs", "JsOnlyDemo.ts"]).Result(JsOnlyDemo),
             ["asset-twin-bundle"] = () => CodeSample
                 .Files(["TwinA.cs", "TwinA.css"])
                 .Result(BsStack.Gap(2).WrapItems(true)[TwinA, TwinB]),

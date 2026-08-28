@@ -22,6 +22,7 @@ internal static partial class ProjectGenerator
             ("Features/Home/HomePage.cs", HomePageCs(batteries.Styling)),
             ("Properties/launchSettings.json", LaunchSettings),
             ("appsettings.json", AppSettings),
+            ("tsconfig.json", TsConfigJson),
             ("appsettings.Production.json", AppSettingsProduction),
         };
 

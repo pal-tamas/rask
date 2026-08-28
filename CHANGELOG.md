@@ -291,7 +291,7 @@ them until tagged releases begin.
   build generates the second project into `obj/` and drives it. It compiles the app's own sources: the
   same `App.cs`, the same pages, minus `Program.cs` (it gets a generated entry point) and minus
   `Server/**`, the convention for code that only exists on the server. A page that cannot move to the
-  browser goes there, and RASK054 says which those are.
+  browser goes there, and RASK055 says which those are.
 
   Publish-only. `dotnet run` is untouched, because a bundle takes minutes to link and buys nothing in
   development, where the page is server-live and hot-reloaded.
@@ -359,7 +359,7 @@ them until tagged releases begin.
   If the paint throws, the document has already changed hands and nothing is driving it, so the
   fallback is a full page load — one slow navigation rather than a link that does nothing.
 
-- **RASK054 reports a page that cannot run in the browser.** A routed page injecting something that
+- **RASK055 reports a page that cannot run in the browser.** A routed page injecting something that
   only exists in the server process — Entity Framework's `DbContext` or `IDbContextFactory<T>`, or
   anything from `Rask.Server` — stays server-live rather than moving into WebAssembly.
 
@@ -523,6 +523,305 @@ them until tagged releases begin.
   hold the response open for the full budget. Work deliberately detached from the hook — a polling
   loop started with `_ = LoopAsync()`, as `PollingPanel` does — is not waited on at all, and still
   reaches the browser through the live connection as it always did.
+
+### Changed
+- **The framework's browser runtime is TypeScript, bundled by esbuild instead of spliced by
+  MSBuild.** All 18 modules — the diff codec, the full-HTML morph, the delegated event router, the
+  rAF input coalescer, the ~50 typed browser-API wrappers, the PWA helpers, the dev-error and
+  hot-reload surfaces, and both host entry points — are `--strict` TypeScript with no `any` and no
+  implicit `any`.
+
+  What this replaces was an MSBuild `String.Replace`. `Rask.Server.csproj` pasted nine files into a
+  template at `// @@RASK_DOM@@`-style markers and `Rask.Wasm.csproj` pasted eleven, in an order the
+  build had to get right; cross-module calls went through implicit `window.__rask*` globals. Nothing
+  checked the order, the markers, or that a caller and its callee agreed. Those are now `import`
+  statements, and the compiler resolves them.
+
+  **Two hand-maintained JS dialects collapse into one.** The Server runtime was written in ES5
+  (`var`/`function`) and the WASM runtime as an ES module, because shared files had to parse as both.
+  esbuild downlevels per output, so both are authored as modern TypeScript.
+
+  **The "minifier" is deleted.** `build/Rask.MinifyJs.targets` was a 102-line comment stripper that
+  could not collapse whitespace or rename anything, and whose doc comment claimed a regex-literal
+  safety it did not have — it had no regex-literal state at all. Three source files carried comments
+  working around it. Release builds now minify for real:
+
+  | | before | after |
+  |---|---|---|
+  | `rask.wasm.js` (Release) | 283,254 B | **79,416 B** (−72%) |
+  | `rask.wasm.js` (Debug) | 283,254 B | 149,609 B (−47%) |
+  | `main.js` | 10,024 B | 3,394 B |
+  | WASM service worker | 2,514 B | 1,394 B |
+
+  `src/Rask.Wasm/Browser/{main,rask.wasm,rask-sw}.js` have **left git**. They were tracked because
+  the spliced result was the only place the runtime could be read as one thing; the TypeScript is
+  that place now, and they are build output.
+
+  Scoped component assets are unaffected — they are transpiled by tsgo and never bundled or
+  minified, because `ScopedAssetRegistry` parses `export function NAME(` out of them.
+
+### Fixed
+- **The WASM bundle silently lost its hot-reload indicator, and nearly shipped without a host.**
+  esbuild drops a module entirely — top-level side effects included — when the importing file never
+  references what it imported: TypeScript elides the unused import, esbuild then judges the module
+  unreachable. `hotReloadApplied()` called `window.__raskHotReloadPill` instead of the
+  `showHotReloadPill` it had imported, so `rask-hotreload.ts` was removed from the bundle and the
+  global that guard tested was never assigned. The same shape would have shipped both hosts without
+  either calling `setHost`, leaving every shared module without a `send`/`inRoot` to reach.
+
+  Both are fixed at the call site, `--noUnusedLocals` now guards the framework runtimes in the
+  type-check gate (where an unused import is not untidy, it is a module that will not be in the
+  bundle), and the esbuild behaviour itself is pinned by a test with a negative control.
+
+- **Several latent runtime defects the untyped original could not report**, among them: `morph`
+  could call `replaceChild` on a null parent; a revived `<script>` assumed a non-null `parentNode`;
+  a narrowing stored in a boolean stopped narrowing; the gesture bridge called `.catch` on a bare
+  thenable; and the serial-port wrapper dereferenced a nullable `readable`/`writable`.
+
+- **The Node test fixtures are TypeScript, and import what they test.** The seven harnesses that
+  drive the morph and the diff codec against a stub DOM in a subprocess read the framework module off
+  disk and evaluated it with `new Function(src + "return { morph, … }")` — the only way to reach a
+  bare declaration meant to be pasted into a host's scope, and it checked nothing. Two of them named
+  functions in that string they never used, and one used two it had not named. esbuild bundles each
+  fixture during the build, so one that no longer compiles fails the build rather than a test.
+
+  Seven copies of the same process-spawn boilerplate became one `NodeFixture` helper, and seven
+  hand-rolled DOM stubs one shared typed `stub-dom.ts`.
+
+- **Structural test assertions moved off the built artifacts and onto the sources.** A dozen
+  assertions named internal identifiers in the served runtime and the WASM bundle. They passed only
+  because "minification" meant a comment stripper that renamed nothing; against a real minifier they
+  would pass or fail on whichever configuration was built last. Internal structure is now asserted on
+  the TypeScript, and what is asked of a built artifact is what minification preserves — the globals
+  .NET reaches by name, and the string literals a gate keys on.
+
+- **`commitlint.config.mjs` is `commitlint.config.ts`.** The action's image carries the jiti-based
+  TypeScript loader, so it needs nothing from this repository — but its config resolution falls back
+  to conventional defaults *silently* when the path does not exist, so a rename that missed the
+  workflow would have left a green gate enforcing none of these rules. A test pins the two together.
+
+- **The two WASM Node fixtures are TypeScript**, with narrow declarations for the four Node modules
+  they use rather than `@types/node` — which would mean npm in a build that deliberately has none.
+  Converting them caught a wrong call: the head-asset fixture passes `beginInvokeJS` a task id and a
+  target instance id, both of which are strings because they cross the JSExport boundary as .NET
+  longs.
+
+- **Documentation caught up with the runtime.** `docs/architecture/live-rendering-codec.md` described
+  the splice, its marker names, and the two constraints it imposed — no `export`/`import`, and hoisted
+  `function` declarations so splice order could not matter. All three are gone. `getting-started.md`,
+  `cli.md`, `js-interop-runtime.md`, `composition-callbacks-context.md`, `llms.txt`, the benchmark
+  baselines and `rask dev`'s own console line named the scoped-asset convention or a framework source
+  as `.js`.
+
+  References to the SERVED artifacts are unchanged and still correct: `/rask/rask.js`,
+  `Browser/main.js`, `rask-sw.js` and the scoped-asset bundle are all still JavaScript at runtime.
+  Only the authoring language changed.
+
+- **`rask new` writes a `tsconfig.json`, and the build stages Rask's ambient declarations where an
+  editor can find them.** The build reads neither: it hands tsgo an explicit file list and explicit
+  flags, which is what keeps the emitted form the one `ScopedAssetRegistry` parses. Without them an
+  author got no checking and no completion for `window.Rask` or `window.DotNet` while writing a
+  scoped asset, and met the type system only when the gate ran — most of the guarantee thrown away.
+
+  `rask-globals.d.ts` ships inside the NuGet package, under a versioned cache directory no tsconfig
+  can name, so the build copies it to `obj/rask/types` and the tsconfig includes that. The two have
+  to agree on one path and nothing about the build would notice if they stopped, so a test pins them
+  together.
+
+- **The SPA contract type-check no longer needs Node.** It resolved tsgo through `npx`, which was the
+  only way before Rask had a resolver of its own — so the one gate that proves the generated
+  TypeScript compiles depended on Node.js being installed on a machine where nothing else about the
+  repository does. It now fetches the same checksum-verified binary the build does. A gate whose
+  first question is "is the tooling here?" is one that eventually answers no and stops running.
+
+  `ResolveTypeScriptToolTask.CacheRoot` is no longer `[Required]`: left empty it falls back to the
+  default root, so a caller with no opinion gets the right place instead of a 27 MB unpack into a
+  directory named by the empty string.
+
+### Changed
+- **The scoped-JavaScript diagnostic is RASK055.** `main` took RASK054 for "Page cannot run in the
+  browser" while this work was in flight, and two descriptors cannot share an id.
+
+### Fixed
+- **The scoped-TypeScript task was never registered on a clean checkout.** The `<UsingTask>` was gated
+  on `Exists(...Rask.TypeScript.Tasks.dll)`, and a `UsingTask` Condition is evaluated at project
+  EVALUATION — before the build-order edge that produces the DLL. On a machine that had never built
+  this repository the task went unregistered and the first project with a scoped `.ts` failed with
+  MSB4036, naming a task nobody wrote; any tree that had already built passed, which is what kept it
+  out of every local run.
+
+  `Rask.Wasm.targets` already carried this rule in as many words for its own task. A test now enforces
+  it across every generated task assembly, and fails when the guard is put back.
+
+- **Two regressions the conversion introduced, both invisible in a hand review.**
+
+  The interop task id changed type on the wire. `forceDispatchJsInvoke` did
+  `String(inv.id)` where the original passed `inv.id` through untouched — and that id is the server's
+  key for the pending .NET task, so a number became a string matching nothing and the awaiting
+  `InvokeAsync` never completed. The conversion invited it: `sendJsResult`'s parameter had been
+  declared `string`. Both are now as wide as the frame's own id, so the value goes back exactly as it
+  arrived.
+
+  `restoreResolve` returned `null` for "no match" and for "ambiguous key"; collapsing those into an
+  empty array turned every reconnect with nothing to restore into a TypeError. Both call sites test
+  `if (!group)`, `[]` is truthy, so they walked on to `group[0]` — undefined — and asked it for its
+  type. The field restore runs on session resume, which is what a login does when the auth ticket
+  closes and reopens the socket.
+
+  Found by diffing the converted file against the original structurally, with everything that exists
+  only for the compiler stripped out. Reading it did not find them.
+
+- **A scaffolded `tsconfig.json` made tsgo refuse the scoped-asset compile.** With files named on the
+  command line and a `tsconfig.json` in the working directory, tsgo errors `TS5112` rather than
+  quietly preferring one over the other — so adding the tsconfig broke the build of every project
+  that has one, which is now every project `rask new` writes. The compile passes `--ignoreConfig`.
+
+  Opting out of the refusal rather than around it is the point: the build names its own files and
+  flags because the emitted form is a contract — `ScopedAssetRegistry` parses `export function NAME(`
+  out of it — and a tsconfig setting `noEmit`, a different module format or an `outDir` of its own
+  would break that silently, in the browser.
+
+- **Scoped TypeScript paired against nothing in any project under a symlinked path**, which on macOS
+  is every project in a temp directory. A component's path reaches the generator from Roslyn, and a
+  scoped asset's from MSBuild as metadata on the compiled file; macOS symlinks `/var`, `/tmp` and
+  `/etc` into `/private`, Roslyn reports the resolved path and MSBuild's `%(FullPath)` keeps the short
+  one. A `.ts` beside its component reported RASK017 — "no matching component class" — naming a class
+  sitting right there.
+
+  Scoped CSS never had this, because both of its sides come from Roslyn and agree by construction.
+  TypeScript is the first pairing where one side is an MSBuild string.
+
+  Found by a new consumer-level test: a scaffolded project built against the PACKED framework, which
+  is the only place this is visible — an in-repo `ProjectReference` puts everything on an ordinary
+  path. It asserts both directions, that the annotation was stripped rather than the raw `.ts`
+  registered, that the emitted form is still the one `ScopedAssetRegistry` parses, and that a `.js`
+  sibling stops a consumer's build with RASK055.
+
+### Removed
+- **`build/Rask.MinifyJs.targets`** and the `@@RASK_*@@` splice markers, along with the
+  `_RaskBuildClientJs`, `_RaskSpliceClientJs` and `_RaskMinifyClientJs` targets and
+  `ResourcesSpliceTests` (which existed to catch the committed splice output drifting from its
+  template — neither the splice nor the committed output survives).
+
+### Changed
+- **The service workers are TypeScript, bundled by esbuild instead of spliced by MSBuild.** Both
+  Rask's workers — the Server one (offline fallback) and the WASM one (offline app shell, background
+  sync) — now `import` the shared push / notificationclick handlers instead of having them pasted in
+  at a `// @@RASK_SW@@` marker by an MSBuild `String.Replace`. The dependency is stated in the file
+  that has it and checked by a compiler, rather than assembled by a target that could not tell
+  whether the marker was still there.
+
+  The Server worker's embedded copy is now **genuinely minified** in Release. What it replaces could
+  only strip comments and blank lines: it had no regex-literal state at all, despite a doc comment
+  claiming that "regex literals stay untouched", and three source files carried comments working
+  around it (`// no regex literals here — the MSBuild client-JS splice mangles backslashes`). Those
+  constraints are gone. The WASM worker is minified in Release too, now that its output has left git.
+
+  Two real defects surfaced while converting, both of which the old arrangement could not have
+  reported: the Server worker's offline fallback could hand `respondWith` an `undefined` when the
+  install-time cache add had failed (offline on first load, or no `offline.html` deployed), which
+  surfaces as an opaque network error rather than a page; and the sync-forwarding handler's event was
+  never typed, so nothing checked that `event.tag` existed. Both are now stated and checked.
+
+  The framework's own TypeScript is type-checked by the same gate as everyone else's, in its own
+  pass: a service worker runs in a `ServiceWorkerGlobalScope` and needs the `webworker` lib where a
+  component's scoped file needs `dom`, and the two cannot share a compilation. Rask holding itself to
+  a lower standard than it holds its users to is the failure this migration exists to remove.
+
+### Fixed
+- **The TypeScript task assembly is now built before anything needs it.** `Rask.Core` takes a
+  build-order-only reference on `Rask.TypeScript.Tasks`, the same arrangement `Rask.Wasm` has with
+  `Rask.Wasm.Tasks`. Without it the assembly existed only on a machine that had already built that
+  project: a clean clone would evaluate the `<UsingTask>` `Exists()` guard as false, skip the compile
+  target, and produce an app whose scoped TypeScript silently never compiled — and the guard is
+  precisely what would keep that from being an error.
+
+### Changed
+- **BREAKING: scoped component assets are TypeScript. A `.js` sibling is a build error (RASK055).**
+  `Counter.cs` now pairs with `Counter.ts`, which Rask compiles before the browser sees it and
+  registers on `window.Rask["Counter"]` exactly as before. Migrating is the rename and nothing else —
+  TypeScript is a superset of JavaScript, so an existing ES module is already valid; add annotations
+  at whatever pace suits you.
+
+  **Why an error rather than a quiet fallback.** A scoped script that stops being registered does not
+  fail. `window.Rask["Name"]` simply has no methods on it, so every call from C# resolves to nothing
+  and the component renders a control that does nothing — no build error, no startup error, nothing
+  in the console. There is no later point at which that surfaces usefully, so it surfaces at the
+  build.
+
+  **It fires only for a real scoped asset**: a `.js` beside a non-abstract, non-generic `Component`
+  subclass of that name, which is exactly the set of files that worked as scoped JavaScript before.
+  A `Helpers.js` next to an ordinary static `Helpers.cs`, or anything under `wwwroot/`, is somebody
+  else's file and is left alone. That test needs the compilation, which is why the diagnostic lives in
+  the generator rather than in MSBuild — a filesystem rule would break those consumers with no opt-out
+  to reach for.
+
+  Compilation is **tsgo**, the Go build of the TypeScript compiler, fetched once as a native binary
+  and checksum-verified. **No npm, no Node, no `node_modules`** — the same arrangement Tailwind
+  already uses, so `dotnet build` remains all anyone needs. `RaskTypeScriptBuild=false` turns it off;
+  `RaskTypeScriptOffline=true` refuses to fetch and fails naming the file to put in place.
+
+  It has to be tsgo and not esbuild, and that is not a preference. **esbuild always hoists
+  declarations into a trailing `export { … }` clause** — with an esm format, with no bundling and no
+  minification — and `ScopedAssetRegistry` finds a component's methods by matching
+  `export function NAME(` at a line start. An esbuild-compiled scoped asset would therefore register
+  no methods at all, silently, in the browser only. tsgo's emit preserves the inline form. Both
+  behaviours are pinned by tests that run the real binaries.
+
+  Ordinary builds compile without type-checking, so the inner loop is not taxed for a verdict that
+  belongs in a gate; the repository's own unit gate runs `tsgo --noEmit --strict` over every scoped
+  file it has.
+
+  Rask now ships **ambient declarations for its own browser globals** (`window.DotNet`,
+  `window.Rask`), compiled alongside every consumer's scoped files — so calling a `[JSInvokable]`
+  needs no declaration of your own. For a third-party library, a narrow `.d.ts` beside your code is
+  compiled with it; `samples/Rask.Example.Shared/Features/Gantt/frappe-gantt.d.ts` is a worked
+  example of describing only what you actually call.
+
+  `RaskScopedJsAutoInclude` is now `RaskScopedTsAutoInclude`. RASK017, RASK018 and RASK020 keep their
+  ids and meanings, are reworded for TypeScript, and now **report at the `.ts`** rather than at
+  `Location.None` — previously they could name a generated file under `obj/` that the author never
+  wrote.
+
+### Fixed
+- **`rask dev` now actually reacts to a scoped asset edit.** It has always said "Edits to Render(),
+  scoped .css/.js apply live", and for the scoped files that was not true: `dotnet watch` collects
+  `@(Compile)`, `@(EmbeddedResource)` and the project file, while a scoped asset is a `None` item and
+  nothing in the build added it to `@(Watch)`. Both `.ts` and `.css` are now watched, so the promise
+  holds. Found while wiring the TypeScript compile, and unrelated to it.
+
+### Added
+- **A TypeScript toolchain that needs no npm and no Node.** `Rask.TypeScript.Tasks` resolves the two
+  native binaries Rask needs to turn TypeScript into something a browser runs — **esbuild** to bundle
+  and **tsgo** (the Go build of the TypeScript compiler) to emit and to type-check — fetching each
+  once into `~/.rask/typescript`, verified against the SHA-512 its registry publishes.
+
+  Both are distributed as npm packages, and neither needs npm to run: an npm package is a gzipped
+  tarball at a predictable URL, and these two contain a statically linked Go executable. So the
+  written promise stays true — `NUGET.md`, `docs/tailwind.md` and `scripts/run-unit-local.sh` all say
+  some form of "no npm required", and this is the first piece of the TypeScript migration rather than
+  the exception to them. `RaskTypeScriptBuild=false` turns the whole thing off,
+  `RaskTypeScriptOffline=true` refuses to fetch and fails naming the file and the URL to put there,
+  and `RaskTypeScriptRegistry` points the fetch at a mirror.
+
+  The pins live in `build/Rask.TypeScript.props` and a test resolves *those* versions and runs the
+  binaries, so a bump naming a version the registry does not have fails in the unit gate rather than
+  in somebody's first build. Unlike Tailwind there is no npm fallback and no musl variant, both
+  deliberately: these tools publish a native build for every platform they support at all, and their
+  Linux binary is static, so it runs on Alpine unchanged.
+
+  **Two facts about the tools are now pinned by tests, because both are invisible until they are
+  not.** esbuild always hoists declarations into a trailing `export { … }` clause — even with no
+  bundling and no minification — and `ScopedAssetRegistry` finds a component's methods by matching
+  `export function NAME(` at a line start, so an esbuild-compiled scoped asset would register **no
+  methods at all** on `window.Rask[Name]`: no error, at runtime, in the browser only. tsgo's emit
+  preserves the inline form. That is why the toolchain is two binaries and which one compiles what.
+
+  Unpacking is done here rather than by shelling out to `tar`: `System.Formats.Tar` arrived in .NET 7
+  and this assembly targets netstandard2.0 to load inside MSBuild, and the `tar` on Windows disagrees
+  with GNU tar about flags and about how it reports failure. The reader refuses any archive entry
+  that escapes its destination, which matters more than usual for a file about to be marked
+  executable and run by the build.
 
 ### Changed
 - **The Node floor moves to 22.12, and the scaffolded SPA image installs the current LTS.** The floor
