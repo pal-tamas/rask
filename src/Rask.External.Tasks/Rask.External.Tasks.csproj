@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      netstandard2.0 matches what MSBuild loads at build time: the task runs inside the MSBuild host
+      process, which on Windows may still be full-framework MSBuild.exe. Same constraint, and same
+      reasoning, as Rask.Spa.Tasks and Rask.Wasm.Tasks.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Rask.External.Tasks</RootNamespace>
+
+    <!-- Build-only: it ships inside Rask.External' build/ folder, loaded by an explicit <UsingTask>,
+         and is never a compile reference or a package of its own. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ExcludeAssets=runtime: MSBuild's own resolver provides this to a task at runtime, and shipping
+         a second copy risks loading two versions of the same assembly into one process. -->
+    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
+    <!-- For the linked GeneratedTypeScript reader: it walks PE metadata rather than loading the assembly. -->
+    <PackageReference Include="System.Reflection.Metadata" ExcludeAssets="runtime" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!--
+    Deploy next to Rask.External.targets so <UsingTask AssemblyFile="$(MSBuildThisFileDirectory)…"/>
+    resolves identically for in-repo consumers and for NuGet consumers, which get build/ verbatim.
+  -->
+  <Target Name="CopyTaskAssemblyToRaskExternalBuild" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.External\build\"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.External.Tasks.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The PE-metadata reader, shared as SOURCE with Rask.Spa.Tasks rather than duplicated. Both task
+      assemblies lift generated TypeScript back out of a compiled assembly the same way, and the
+      reasoning that shapes it — read the metadata, never LOAD the assembly, because an MSBuild worker
+      that has already loaded one of that name throws and node reuse makes that roughly one build in
+      three (#650) — is not something to keep in step across two copies.
+
+      Linked rather than moved: it keeps its Rask.Spa.Tasks namespace, which is where it was written
+      and where its other caller lives.
+    -->
+    <Compile Include="..\Rask.Spa.Tasks\GeneratedTypeScript.cs" Link="Shared\GeneratedTypeScript.cs"/>
+  </ItemGroup>
+
+</Project>

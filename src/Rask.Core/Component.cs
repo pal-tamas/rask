@@ -249,8 +249,19 @@ public abstract partial class Component : RaskMarkup
     protected virtual string? TagName => null;
     protected virtual bool SelfClosing => false;
 
+    // True when everything below this component's element is owned by something that is not Rask —
+    // a React root, a Lit element, a Blazor renderer (see Rask.External). The live diff must then
+    // treat the subtree as a single opaque node: it is reconciled by its own framework, on its own
+    // schedule, and patching into it means two writers on one subtree. That failure does not throw;
+    // it corrupts on the next parent re-render, which is why the marker is carried on the frame
+    // (FrameDiffer skips by SubtreeLength) AND written into the HTML as data-rask-opaque (the
+    // client morph refuses to descend). Both are needed — the diff and the full-HTML fallback are
+    // separate paths to the same DOM.
+    protected virtual bool OpaqueSubtree => false;
+
     internal string? TagNameInternal => TagName;
     internal bool SelfClosingInternal => SelfClosing;
+    internal bool OpaqueSubtreeInternal => OpaqueSubtree;
 
     // Nearest enclosing ErrorBoundary, stamped during the render walk (HtmlSerializer
     // default branch). Async lifecycle continuations + dispatcher catch sites consult this
@@ -1445,7 +1456,8 @@ public abstract partial class Component : RaskMarkup
                 Name = f.Name,
                 Value = f.Value,
                 SubtreeLength = f.SubtreeLength,
-                SelfClosing = f.SelfClosing
+                SelfClosing = f.SelfClosing,
+                Opaque = f.Opaque
             };
         }
 
@@ -2154,6 +2166,24 @@ public abstract partial class Component : RaskMarkup
                     owner.Live.StateDirty = true;
                     return true;
                 }
+                // The shape an external component's callback arrives as (see Rask.External). Its
+                // generated wrapper reads the argument out of the frame with code the generator
+                // emitted, so an Action<int> or Action<SomeRecord> is fed without reflection and
+                // without this switch needing a case per argument type.
+                //
+                // Necessary because there is no general Action<T> case and cannot be: T is only known
+                // where the component is compiled. Without it such a delegate fell to `default:` below,
+                // which DynamicInvokes with no arguments — so every argument-taking callback threw
+                // TargetParameterCountException on its first click and the error boundary replaced the
+                // page. It rendered, mounted, and died on use.
+                case Action<JsonElement> ap:
+                    ap(payload);
+                    return true;
+                case Func<JsonElement, Task> fp:
+                    await InvokeWithRenderingAsync(() => fp(payload)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+
                 default:
                 {
                     // Parameterless delegate shapes outside the fast-path list above can still arrive

@@ -40,6 +40,8 @@
         <Project Path="src/Rask.Outbox/Rask.Outbox.csproj"/>
         <Project Path="src/Rask.Outbox.Generators/Rask.Outbox.Generators.csproj"/>
         <Project Path="src/Rask.Html/Rask.Html.csproj"/>
+        <Project Path="src/Rask.External/Rask.External.csproj"/>
+        <Project Path="src/Rask.External.Tasks/Rask.External.Tasks.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
         <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
@@ -76,6 +78,8 @@
         <Project Path="tests/Rask.Dashboard.Tests/Rask.Dashboard.Tests.csproj"/>
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj"/>
         <Project Path="tests/Rask.Html.Tests/Rask.Html.Tests.csproj"/>
+        <Project Path="tests/Rask.External.Tests/Rask.External.Tests.csproj"/>
+        <Project Path="tests/Rask.External.Tasks.Tests/Rask.External.Tasks.Tests.csproj"/>
         <Project Path="tests/Rask.Jobs.Tests/Rask.Jobs.Tests.csproj"/>
         <Project Path="tests/Rask.Jobs.Generators.Tests/Rask.Jobs.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Logging.Tests/Rask.Logging.Tests.csproj"/>

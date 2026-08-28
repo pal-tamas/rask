@@ -238,23 +238,33 @@ public sealed class PackagingContractTests
     public void A_generated_task_assembly_is_registered_unconditionally(string package, string dll)
     {
         var targets = Path.Combine(_repoRoot, "src", package, "build", $"{package}.targets");
-        var declaration = XDocument.Load(targets).Descendants("UsingTask")
-            .SingleOrDefault(e => (e.Attribute("AssemblyFile")?.Value ?? string.Empty)
-                .EndsWith(dll, StringComparison.Ordinal));
 
-        Assert.True(declaration is not null, $"build/{package}.targets no longer declares a UsingTask for {dll}.");
+        // Every declaration, not one: an assembly may expose several tasks, and the rule is about each
+        // registration rather than about there being exactly one. Asserting a single element instead
+        // made adding a second task to an existing assembly fail with "Sequence contains more than one
+        // matching element", which says nothing about the contract being checked.
+        var declarations = XDocument.Load(targets).Descendants("UsingTask")
+            .Where(e => (e.Attribute("AssemblyFile")?.Value ?? string.Empty)
+                .EndsWith(dll, StringComparison.Ordinal))
+            .ToList();
 
-        // A condition on a PROPERTY is fine — $(RaskWasm) is known at evaluation and says nothing about
-        // what is on disk. What must not appear is a test of the DLL itself.
-        var condition = declaration!.Attribute("Condition")?.Value ?? string.Empty;
+        Assert.True(declarations.Count > 0, $"build/{package}.targets no longer declares a UsingTask for {dll}.");
 
-        Assert.False(
-            condition.Contains("Exists(", StringComparison.Ordinal),
-            $"build/{package}.targets gates its UsingTask for {dll} on the file existing. That is "
-            + "evaluated before the build-order edge that produces the DLL, so on a clean checkout the "
-            + "task is never registered and the first project to use it fails with MSB4036 — while any "
-            + "tree that has already built passes, which is what makes it invisible locally. Register "
-            + "it unconditionally; an AssemblyFile UsingTask loads lazily.");
+        foreach (var declaration in declarations)
+        {
+            // A condition on a PROPERTY is fine — $(RaskWasm) is known at evaluation and says nothing
+            // about what is on disk. What must not appear is a test of the DLL itself.
+            var condition = declaration.Attribute("Condition")?.Value ?? string.Empty;
+            var task = declaration.Attribute("TaskName")?.Value ?? "(unnamed)";
+
+            Assert.False(
+                condition.Contains("Exists(", StringComparison.Ordinal),
+                $"build/{package}.targets gates its UsingTask for {task} ({dll}) on the file existing. "
+                + "That is evaluated before the build-order edge that produces the DLL, so on a clean "
+                + "checkout the task is never registered and the first project to use it fails with "
+                + "MSB4036 — while any tree that has already built passes, which is what makes it "
+                + "invisible locally. Register it unconditionally; an AssemblyFile UsingTask loads lazily.");
+        }
     }
 
     [Fact]

@@ -4,18 +4,23 @@ using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
-namespace Rask.Cqrs.Generators;
+namespace Rask.Generators.Shared;
 
 /// <summary>
 ///     Turns a <see cref="WireType" /> tree into the TypeScript that describes it.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The second backend over the same model <see cref="WireCodecEmitter" /> uses, and
-///         deliberately so: the property names, the enum encoding and the null handling are decided
-///         once, by <see cref="WireShape" />, and both emitters read them. A TypeScript type derived
-///         any other way would drift from the codec, and a drift here is a runtime wire bug rather
-///         than a compile error.
+///         A second backend over the same model the C# codec emitter uses, and deliberately so: the
+///         property names, the enum encoding and the null handling are decided once, by
+///         <see cref="WireShape" />, and every emitter reads them. A TypeScript type derived any
+///         other way would drift from the codec, and a drift here is a runtime wire bug rather than
+///         a compile error.
+///     </para>
+///     <para>
+///         Shared source rather than a CQRS-owned type: the island generator emits prop interfaces
+///         from the same model, and two implementations of "what does this C# type look like in
+///         TypeScript" would disagree eventually — silently, and only on the wire.
 ///     </para>
 ///     <para>
 ///         Named shapes are registered <em>before</em> their body is emitted, so a type that refers
