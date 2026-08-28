@@ -125,7 +125,7 @@ public sealed class OutboxTests : IDisposable
         services.AddSingleton(_recorder);
         services.AddSingleton(_keywordRecorder);
         services.AddRaskCqrs();
-        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false); // the outbox owns delivery
+        services.AddRaskData(); // the outbox owns delivery
         services.AddRaskOutbox<OutboxDbContext>(o => o.PollInterval = TimeSpan.FromMilliseconds(50));
         services.AddDbContextFactory<OutboxDbContext>((sp, o) => o
             .UseSqlite($"Data Source={_dbPath}")

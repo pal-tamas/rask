@@ -15,6 +15,14 @@ public static class RaskDataServiceCollectionExtensions
     /// <c>AddDbContext(Factory)</c> callback, and call <c>modelBuilder.ApplyRaskConventions()</c> in
     /// <c>OnModelCreating</c>. Idempotent. Domain-event dispatch needs <c>AddRaskCqrs()</c>.
     /// </summary>
+    /// <remarks>
+    /// Domain events are published in-process unless something else owns delivery. Registering
+    /// <c>Rask.Outbox</c> is enough to hand delivery over — it registers an
+    /// <see cref="IDomainEventDeliveryOwner"/>, and this method needs no argument to match. The handover is
+    /// resolved when the container is built, so it holds whichever order the two <c>Add</c> calls appear
+    /// in. Override it in either direction with
+    /// <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>.
+    /// </remarks>
     public static IServiceCollection AddRaskData(this IServiceCollection services, Action<RaskDataOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -24,6 +32,10 @@ public static class RaskDataServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
 
+        // The interceptor reads this to honour an explicit DispatchDomainEventsInProcess. TryAdd keeps the
+        // first registration, matching the idempotence of the interceptor block below.
+        services.TryAddSingleton(options);
+
         // Registration order is the interception order: soft-delete rewrites Deleted -> Modified first, so
         // auditing then stamps + versions the resulting update.
         if (!services.Any(static d => d.ImplementationType == typeof(SoftDeleteInterceptor)))
@@ -31,7 +43,11 @@ public static class RaskDataServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 
-            if (options.DispatchDomainEventsInProcess)
+            // Registered unless the caller has explicitly said "never". WHETHER IT PUBLISHES is not decided
+            // here: DomainEventInterceptor asks the built container whether anything owns delivery. Deciding
+            // it at this line would freeze the answer before AddRaskOutbox has necessarily run, which is
+            // exactly the order-dependent silent failure this replaces.
+            if (options.DispatchDomainEventsInProcess is not false)
             {
                 services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
             }

@@ -29,7 +29,7 @@ public sealed class ShopPersistenceTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddRaskCqrs();
-        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+        services.AddRaskData();
         services.AddRaskOutbox<AppDbContext>();
         services.AddDbContextFactory<AppDbContext>((sp, o) => o
             .UseRaskSqlite($"Data Source={_dbPath}")

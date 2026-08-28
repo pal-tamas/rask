@@ -79,6 +79,15 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
   through `IDispatcher.PublishAsync` (in a fresh scope) and clears them. Any
   `INotificationHandler<T>` registered by `AddRaskCqrs()` reacts automatically.
 
+  It **stands down on its own** when something else owns delivery — [`Rask.Outbox`](outbox.md) claims it by
+  registering an `IDomainEventDeliveryOwner`. The handover is resolved when the container is built, not when
+  either `Add` call runs, so `AddRaskData()` needs no argument and the two calls work in either order.
+  That matters more than it looks: this interceptor *drains and clears* the events in `SavingChanges`, so
+  running it alongside an outbox would empty each entity before `OutboxInterceptor` could copy it — the
+  outbox table stays empty and delivery silently stops being durable, while every handler still runs and
+  nothing reports an error. `RaskDataOptions.DispatchDomainEventsInProcess` (a `bool?`, default `null` =
+  automatic) overrides the decision in both directions.
+
 ## Optimistic concurrency
 
 `IVersioned` makes `Version` an EF Core concurrency token. When two edits race, the second `SaveChanges`

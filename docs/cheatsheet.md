@@ -75,8 +75,7 @@ builder.Services.AddRaskJobs<ProductsDbContext>(o => { /* … */ });   modelBuil
 builder.Services.AddRaskMail<ProductsDbContext>(o => { /* … */ });   modelBuilder.AddRaskMail();
 builder.Services.AddRaskCache<ProductsDbContext>();                  modelBuilder.AddRaskCache();
 builder.Services.AddRaskOutbox<ProductsDbContext>(o => { /* … */ }); modelBuilder.AddRaskOutbox();
-// with the outbox, disable the in-process publisher:
-builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+// the outbox claims domain-event delivery on its own — AddRaskData stays bare, in any order
 
 // production SQLite — a drop-in for .UseSqlite that installs the pragma interceptor:
 .UseRaskSqlite("Data Source=app.db")
