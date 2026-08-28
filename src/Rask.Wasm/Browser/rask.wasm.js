@@ -4277,7 +4277,7 @@ function morph(from, to) {
             if (!raskShouldSuppressChecked(from, checked) && from.checked !== checked) from.checked = checked;
         }
     }
-    // This subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.TypeScript).
+    // This subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.External).
     // Attributes above still sync, which is exactly how a changed `props` reaches the adapter; the
     // children never do. Pairing them would let a full-document morph (scoped-CSS delivery, reconnect,
     // any untrusted structural op) delete DOM that renderer owns and is about to reuse.
@@ -5357,7 +5357,7 @@ async function send(payload) {
     }
 }
 
-// The island runtime (Rask.TypeScript) is a separate, opt-in module and cannot see `send` in this scope.
+// The island runtime (Rask.External) is a separate, opt-in module and cannot see `send` in this scope.
 // It must not open a channel of its own either: here that would mean an HTTP round trip to a server
 // that may not exist, when the handler it wants is already in this tab's .NET runtime. Going through
 // this bridge keeps an island callback a direct JSExport call, exactly like a DOM handler.

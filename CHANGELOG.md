@@ -14,8 +14,8 @@ them until tagged releases begin.
   of a `[Route]` page's `Render()`. There is deliberately no separate "page" concept: "React owns this
   route" is the case where the component happens to be the page root, so replaceability is a property
   of the *component* rather than of the route, and it composes at every level of the tree. New
-  `Rask.TypeScript` package; see
-  [docs/typescript-components.md](docs/typescript-components.md).
+  `Rask.External` package; see
+  [docs/external-components.md](docs/external-components.md).
 
   **The base class is the declaration.** It states the runtime in the one place that cannot disagree
   with what actually mounts, which is also what lets a Lit component pair with `./Name.ts` by
@@ -25,7 +25,7 @@ them until tagged releases begin.
   `ReactComponent`. That is the deliberate trade rather than an oversight — chrome in Rask comes from
   the chain, not from inheritance, so the answer is `BsCard[ Chart.Series(points) ]`.
 
-  It also lets the type system replace an analyzer. `TypeScriptComponent` seals `Render()`, so writing
+  It also lets the type system replace an analyzer. `ExternalComponent` seals `Render()`, so writing
   one is CS0239 from the compiler itself and **RASK057 is retired**; a rule the type system can state
   does not need an analyzer to notice it. Override `Module` with a *constant* string to point
   somewhere convention cannot reach — the bundler reads it at build time, so anything computed is
@@ -73,7 +73,7 @@ them until tagged releases begin.
   all `.razor`, never learns this package has a build step.
 
   **Slots.** One can wrap Rask-rendered content, so replacing a component mid-tree does not
-  strand its descendants: `Panel[ TypeScriptSlot.Named("footer")[…], Table.Rows(_rows) ]`. The server
+  strand its descendants: `Panel[ ExternalSlot.Named("footer")[…], Table.Rows(_rows) ]`. The server
   renders each slot into an inert `<template data-rask-slot="…">` — so Rask-owned nodes cannot flash
   between first paint and mount — and the client lifts it into a fragment the adapter places. React
   adopts into an empty ref'd container it never renders children into; Lit needs no trick, because a

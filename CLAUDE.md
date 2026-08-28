@@ -36,11 +36,11 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
-- `src/Rask.TypeScript` + `src/Rask.TypeScript.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
+- `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
   `partial` class from `ReactComponent`/`LitComponent` (the base class IS the declaration — no attribute), front-end
   file paired by filename like scoped JS. Props declared in C#, serialized reflection-free; callbacks re-enter C#
   over the existing handler channel AND escalate the page to interactive. Its subtree is a **diff boundary**
-  (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/typescript-components.md`.
+  (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/external-components.md`.
 - `samples/` — showcase apps. `tests/` — sibling `*.Tests` per project + `Rask.Examples.E2E.Tests` (Playwright). `benchmarks/`.
 
 ## Commands
@@ -98,5 +98,5 @@ started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.
   claiming it, AND again before you merge** — three assemblies allocate in this space and RS1019 only checks
   one compilation, so this line goes stale silently. The TypeScript-component ids claimed 054-057, then #865
   landed RASK054 on main first and every one had to shift; a grep at branch time is not enough. Retiring one
-  is fine and its number is never reused — RASK057 went when `TypeScriptComponent` sealed `Render()`, because
+  is fine and its number is never reused — RASK057 went when `ExternalComponent` sealed `Render()`, because
   a rule the type system can state does not need an analyzer.

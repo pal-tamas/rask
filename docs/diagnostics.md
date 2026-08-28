@@ -89,10 +89,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 | [RASK054](#rask054) | Info | Page cannot run in the browser |
-| [RASK055](#rask055) | Error | TypeScript component must be partial |
-| [RASK056](#rask056) | Error | TypeScript component prop has no wire encoding |
+| [RASK055](#rask055) | Error | external component must be partial |
+| [RASK056](#rask056) | Error | external component prop has no wire encoding |
 | RASK057 | — | *Retired* — `Render` is sealed by the base class, so the compiler reports it |
-| [RASK058](#rask058) | Error | TypeScript component name collision |
+| [RASK058](#rask058) | Error | external component name collision |
 | [RASK059](#rask059) | Error | Module override must be a constant string |
 
 ---
@@ -1209,7 +1209,7 @@ compiles against the server half and has no view of what a browser build referen
 
 ## RASK055
 
-**TypeScript component must be partial** · Error
+**external component must be partial** · Error
 
 A `ReactComponent` or `LitComponent` is completed by a second part of the class: its name, its module
 and its props writer. Without `partial` there is nowhere to put any of it.
@@ -1228,7 +1228,7 @@ produce is three "does not implement inherited abstract member" errors naming `C
 
 ## RASK056
 
-**TypeScript component prop has no wire encoding** · Error
+**external component prop has no wire encoding** · Error
 
 Props are serialized to JSON by generated code rather than by reflection — which is what lets them
 survive trimming and AOT — so a shape the generator cannot express has to be reported now rather than
@@ -1253,13 +1253,13 @@ should say so with `[SkipFactory]`, which keeps it out of the props entirely.
 **Retired.** It reported a `Render()` override on a component whose markup comes from a front-end
 file, where the override would never be called yet still read as the component's markup.
 
-`TypeScriptComponent` now seals `Render()`, so writing one is CS0239 from the compiler itself. A rule
+`ExternalComponent` now seals `Render()`, so writing one is CS0239 from the compiler itself. A rule
 the type system can state does not need an analyzer to notice it. For a placeholder shown until the
 component mounts, use the front-end file's own initial render.
 
 ## RASK058
 
-**TypeScript component name collision** · Error
+**external component name collision** · Error
 
 The client runtime resolves a module by the component's simple type name, so two sharing one name
 would resolve to whichever registered last — silently, and potentially differently between builds.

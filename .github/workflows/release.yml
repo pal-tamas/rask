@@ -43,8 +43,8 @@ jobs:
       - name: Pack Rask.Spa.Hosting
         run: dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release --no-build -o ./artifacts
 
-      - name: Pack Rask.TypeScript
-        run: dotnet pack src/Rask.TypeScript/Rask.TypeScript.csproj -c Release --no-build -o ./artifacts
+      - name: Pack Rask.External
+        run: dotnet pack src/Rask.External/Rask.External.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Tailwind
         run: dotnet pack src/Rask.Tailwind/Rask.Tailwind.csproj -c Release --no-build -o ./artifacts

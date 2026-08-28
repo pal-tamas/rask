@@ -1,0 +1,80 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <RootNamespace>Rask.External</RootNamespace>
+
+    <PackageId>Rask.External</PackageId>
+    <Title>Rask — Foreign Components</Title>
+    <Description>Lets a .tsx, .jsx or Lit component be an ordinary Rask component. Mark a component [Island], drop the front-end file beside it, and its props are declared in C# — the generator emits the TypeScript interface the file imports, so renaming a C# property stops the front end compiling. The live diff treats the island's subtree as opaque, because those nodes belong to its own renderer.</Description>
+    <PackageTags>web component framework wasm net10 react lit islands typescript interop</PackageTags>
+
+    <!-- Razor SDK for its static-web-asset pipeline only (no .razor files), same as Rask.Bootstrap:
+         it is what puts wwwroot/rask-external.js on a URL both hosts resolve identically, in-repo and
+         from the packed NuGet. Set explicitly so those two agree. -->
+    <StaticWebAssetBasePath>_content/Rask.External</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all" — Rask.Core and Rask.Html are IsPackable=false, so without it the nuspec
+         would list dependencies on packages that exist on no feed and every restore fails NU1101.
+         Consumers get both from whichever host package they already reference. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
+    <!--
+      The generator has to RUN here, not merely be available to consumers. A referenced library's
+      components cannot be reached from a chain unless that library publishes its own
+      RaskEntries{Assembly} class — which is what this emits. Without it ExternalSlot compiles, ships,
+      and is simply unreachable at every call site, with nothing reporting why.
+
+      It also publishes the required-property assembly attributes RASK038 reads across an assembly
+      boundary: metadata cannot distinguish `string Named` from `string Named = ""`, so a consumer
+      cannot re-derive which chain steps are mandatory.
+    -->
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Build-order-only edge to the MSBuild task project, which drops Rask.External.Tasks.dll into
+      build/ here (CopyTaskAssemblyToRaskExternalBuild) for <UsingTask> to load and for packing. The
+      DLL is a generated artifact, gitignored rather than committed, so this reference is what
+      guarantees it exists before this project builds or packs. ReferenceOutputAssembly="false" keeps
+      it purely an ordering edge — no compile reference, no nupkg dependency, and no cross-TFM
+      (net10.0 vs netstandard2.0) compatibility check.
+    -->
+    <ProjectReference Include="..\Rask.External.Tasks\Rask.External.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The task assembly is named EXPLICITLY and excluded from the glob beside it, because a glob is
+      expanded at project EVALUATION — before any target runs, including the build of the
+      ProjectReference that produces this DLL. On a tree where it is not already on disk the glob
+      matches nothing and `dotnet pack` SUCCEEDS, shipping a package whose <UsingTask> points at a
+      file that is not in it; the consumer fails with MSB4062, and a second pack on the same machine
+      looks fine because the first build left the DLL behind (#852).
+
+      A literal Include needs the file only when the item is copied, which is after the reference has
+      built — so it is collected, and if it is ever genuinely missing the pack FAILS instead of
+      quietly shipping without it.
+    -->
+    <None Include="build\**" Exclude="build\Rask.External.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\Rask.External.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <!-- The adapters, shipped as source the way Rask.Spa.Hosting ships its client. Vendored into obj/
+         on every build, so upgrading this package upgrades both halves together. -->
+    <None Include="client\**" Pack="true" PackagePath="client\"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.External.Tests"/>
+  </ItemGroup>
+
+</Project>

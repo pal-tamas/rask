@@ -1,6 +1,6 @@
 namespace Rask.Core.Tests.Live;
 
-// The third enforcement point of the island diff boundary (Rask.TypeScript). FrameDiffer skipping the
+// The third enforcement point of the island diff boundary (Rask.External). FrameDiffer skipping the
 // subtree is not enough on its own: a full-document morph is a SEPARATE path to the same DOM, taken
 // on scoped-CSS delivery, on reconnect, and on any structural op the diff can't trust.
 //

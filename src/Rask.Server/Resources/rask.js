@@ -1508,7 +1508,7 @@
         else queue.push(msg);
     }
 
-    // The island runtime (Rask.TypeScript) is a separate, opt-in module, so it cannot see `send` in this
+    // The island runtime (Rask.External) is a separate, opt-in module, so it cannot see `send` in this
     // scope — but it must not open a channel of its own either. Going through this one is what gets an
     // island callback the same guarantees every DOM handler already has: sequence stamping, the
     // queue-while-reconnecting, and the suppression window during an auth redirect.

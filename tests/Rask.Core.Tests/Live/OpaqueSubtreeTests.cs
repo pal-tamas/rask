@@ -5,7 +5,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-// The diff boundary, which is the load-bearing rule for islands (Rask.TypeScript): everything below an
+// The diff boundary, which is the load-bearing rule for islands (Rask.External): everything below an
 // opaque element belongs to a foreign renderer — React, Lit, Blazor — and Rask must never patch into
 // it. Two writers on one subtree does not throw; it corrupts on the next parent re-render, so these
 // tests are the regression guard for a failure that is otherwise silent.
@@ -125,7 +125,7 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     // A minimal stand-in for an island host: an element-shaped component that owns its own subtree.
     private sealed class Host(bool opaque, string? props = null) : Component
     {
-        protected override string? TagName => "rask-ts";
+        protected override string? TagName => "rask-external";
 
         protected override bool OpaqueSubtree => opaque;
 

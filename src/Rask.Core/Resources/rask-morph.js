@@ -497,7 +497,7 @@ function morph(from, to) {
             if (!raskShouldSuppressChecked(from, checked) && from.checked !== checked) from.checked = checked;
         }
     }
-    // This subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.TypeScript).
+    // This subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.External).
     // Attributes above still sync, which is exactly how a changed `props` reaches the adapter; the
     // children never do. Pairing them would let a full-document morph (scoped-CSS delivery, reconnect,
     // any untrusted structural op) delete DOM that renderer owns and is about to reuse.
