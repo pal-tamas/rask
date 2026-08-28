@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask</RootNamespace>
+
+    <PackageId>Rask</PackageId>
+    <Title>Rask — batteries included</Title>
+    <Description>The one reference a Rask application needs: the ASP.NET host plus every battery — database, mediator, background jobs, transactional email, cache, outbox, operator dashboard, durable logs, Web Push, and SQLite snapshots and continuous backup. Everything referenced is wired and on; RaskApp.Create builds the host and app.Configure(c =&gt; c.Jobs.Off()) is how an app does without one. Reference Rask.Server instead for a lean host with no database.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!--
+    The batteries. This package exists to declare them in ONE place rather than in every scaffolded
+    csproj: "batteries included" is then a property of the package rather than of whatever `rask new`
+    happened to write, and it stays true for an app somebody assembled by hand.
+
+    They are NOT PrivateAssets: a consumer must see these, since the whole point is that referencing
+    Rask means referencing all of them. Rask.Server keeps its own lean dependency set, so an app with
+    no database still has a door — that door is why this is a separate package rather than a change to
+    Rask.Server.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Server\Rask.Server.csproj"/>
+
+    <!-- PrivateAssets="all": Rask.Core is IsPackable=false and ships transitively inside Rask.Server's
+         lib/, so listing it as a nuspec dependency would name a package that exists on no feed. The same
+         arrangement Rask.Dashboard and Rask.Mail use, and guarded by PackageDependencyTests. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
+    <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
+
+    <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj"/>
+    <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
+    <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj"/>
+    <ProjectReference Include="..\Rask.Outbox\Rask.Outbox.csproj"/>
+
+    <ProjectReference Include="..\Rask.Dashboard\Rask.Dashboard.csproj"/>
+    <ProjectReference Include="..\Rask.Logging\Rask.Logging.csproj"/>
+    <ProjectReference Include="..\Rask.WebPush\Rask.WebPush.csproj"/>
+
+    <ProjectReference Include="..\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>
+    <ProjectReference Include="..\Rask.SQLite.Litestream\Rask.SQLite.Litestream.csproj"/>
+  </ItemGroup>
+
+</Project>

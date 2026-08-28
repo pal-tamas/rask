@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Rask;
 using Rask.Example.Auth;
-using Rask.Server;
 
 var app = RaskApp.Create(args);
 

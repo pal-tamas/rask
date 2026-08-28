@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Server.Tests.Infrastructure;
 
-namespace Rask.Server.Tests;
+
+namespace Rask.Tests;
 
 /// <summary>
 ///     <see cref="RaskApp"/> drives a real host over real HTTP.
@@ -20,7 +20,7 @@ namespace Rask.Server.Tests;
 ///     looks perfectly correct in a list of registrations. They only show up when a request goes through.
 ///     So each test starts the app on a real port and asks it a question.
 /// </remarks>
-[Collection("HostEnvironment")]
+
 public sealed class RaskAppTests
 {
     // Port 0 lets the OS choose, and the bound address is read back off the server feature. A fixed port
@@ -47,7 +47,7 @@ public sealed class RaskAppTests
     public async Task An_app_with_no_configuration_at_all_serves_its_root()
     {
         // The headline: this is the entire Program.cs of a working Rask app.
-        var app = NewApp().Build<NoOpApp>();
+        var app = NewApp().Build<TestApp>();
         await app.StartAsync();
 
         try
@@ -67,7 +67,7 @@ public sealed class RaskAppTests
         // It has to short-circuit BEFORE UseHttpsRedirection. `rask deploy` probes it internally over
         // plain HTTP with no X-Forwarded-Proto, so a redirected endpoint 307s to a port nothing listens
         // on and the blue-green swap is gated on a probe that can never succeed.
-        var app = NewApp().Build<NoOpApp>();
+        var app = NewApp().Build<TestApp>();
         await app.StartAsync();
 
         try
@@ -87,7 +87,7 @@ public sealed class RaskAppTests
         // The seam that exists because the bug is invisible. UseRask ends the pipeline with a catch-all
         // that serves the app for anything unmatched, so an endpoint mapped after it never runs — and
         // does not error either: the request renders the app where the author expected JSON.
-        var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<NoOpApp>();
+        var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<TestApp>();
         await app.StartAsync();
 
         try
@@ -108,7 +108,7 @@ public sealed class RaskAppTests
     {
         // The other half of the ordering: user endpoints go first, but they must not swallow the
         // catch-all. If they did, every page in the app would 404.
-        var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<NoOpApp>();
+        var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<TestApp>();
         await app.StartAsync();
 
         try
@@ -134,7 +134,7 @@ public sealed class RaskAppTests
         {
             scheme = ctx.Request.Scheme;
             return ctx.Request.Scheme;
-        }))).Build<NoOpApp>();
+        }))).Build<TestApp>();
 
         await app.StartAsync();
 
@@ -164,7 +164,7 @@ public sealed class RaskAppTests
                 scheme = ctx.Request.Scheme;
                 return ctx.Request.Scheme;
             }));
-        }).Build<NoOpApp>();
+        }).Build<TestApp>();
 
         await app.StartAsync();
 
@@ -186,7 +186,7 @@ public sealed class RaskAppTests
     public void The_host_defaults_still_apply_through_the_facade()
     {
         // RaskApp.Create calls AddRask, so everything Phase A moved into the framework comes with it.
-        var app = NewApp().Build<NoOpApp>();
+        var app = NewApp().Build<TestApp>();
 
         var options = app.Services
             .GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.Extensions.Hosting.HostOptions>>()

@@ -2,37 +2,41 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Core;
+using Rask.Server;
 
-namespace Rask.Server;
+namespace Rask;
 
 /// <summary>
-/// A Rask web application: the host, wired the way a Rask app is nearly always wired.
+/// A Rask application: the host and every battery, wired.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The point is what is <b>not</b> in your <c>Program.cs</c>. A scaffolded app used to carry three hundred
-/// lines describing the framework rather than the app — forwarded headers, the health endpoint's position
-/// relative to HTTPS redirection, a Data Protection key ring, a shutdown budget, and a middleware order
-/// whose comments were really instructions for avoiding silent failures. Every one of those is the same in
-/// every app, so it belongs here, and what is left in <c>Program.cs</c> is only what is true about yours.
+/// lines describing the framework rather than the app — a middleware order whose comments were really
+/// instructions for avoiding silent failures, and one <c>AddRaskX</c> per battery. Every one of those is
+/// the same in every app, so it belongs here, and what is left is only what is true about yours.
 /// </para>
 /// <para>
-/// It wraps <see cref="WebApplicationBuilder"/> rather than replacing it. <see cref="Services"/> is the
-/// same collection, <see cref="Create"/> hands you the builder itself if you need it, and nothing stops
-/// you from dropping back to <c>AddRask</c>/<c>UseRask</c> and composing the pipeline by hand — this is a
-/// layer over them, not a replacement for them.
+/// <b>Every battery is on.</b> Referencing this package is what turns them on; there is nothing to opt
+/// into. An app does without one by saying so:
 /// </para>
 /// <example>
 /// <code>
 /// var app = RaskApp.Create(args);
+///
+/// app.Configure(c =>
+/// {
+///     c.Jobs.Off();                                            // no background work here
+///     c.Mail.Configure(o => o.From = "no-reply@example.com");
+/// });
 ///
 /// app.Services.AddScoped&lt;PopularProducts&gt;();
 /// app.MapEndpoints(e =&gt; e.MapPushSubscriptions());
@@ -40,6 +44,11 @@ namespace Rask.Server;
 /// app.Run&lt;App&gt;();
 /// </code>
 /// </example>
+/// <para>
+/// It wraps <see cref="WebApplicationBuilder"/> rather than replacing it: <see cref="Services"/> is the
+/// same collection, <see cref="Create"/> hands you the builder itself, and <c>AddRask</c>/<c>UseRask</c>
+/// remain public. This is a layer over them.
+/// </para>
 /// </remarks>
 public sealed class RaskApp
 {
@@ -58,35 +67,23 @@ public sealed class RaskApp
     /// <summary>The host environment.</summary>
     public IWebHostEnvironment Environment => _builder.Environment;
 
-    /// <summary>
-    /// Creates the host with Rask's services registered and its host defaults applied.
-    /// </summary>
+    /// <summary>Creates the host with Rask's services registered and its host defaults applied.</summary>
     /// <param name="args">The process arguments, forwarded to <see cref="WebApplication.CreateBuilder(string[])"/>.</param>
     /// <param name="configure">
-    /// An escape hatch onto the underlying <see cref="WebApplicationBuilder"/>, run before
-    /// <c>AddRask</c>. For anything ASP.NET-shaped that has no place on this type — a different
-    /// configuration source, a Kestrel option, a logging provider.
+    /// An escape hatch onto the underlying <see cref="WebApplicationBuilder"/>, run before <c>AddRask</c> —
+    /// for anything ASP.NET-shaped that has no place on this type.
     /// </param>
     public static RaskApp Create(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
         var builder = WebApplication.CreateBuilder(args);
         configure?.Invoke(builder);
 
-        var app = new RaskApp(builder);
         builder.Services.AddRask();
         builder.Services.AddHealthChecks();
-        return app;
+        return new RaskApp(builder);
     }
 
-    /// <summary>
-    /// Configures how this app differs from a default one — and, once batteries are declared, which of
-    /// them it does without.
-    /// </summary>
-    /// <remarks>
-    /// One block rather than a scattering of <c>AddRaskX</c> callbacks, so there is a single place to read
-    /// the answer to "how is this app not the standard one". Applies immediately; call it as many times as
-    /// you like.
-    /// </remarks>
+    /// <summary>Says how this app differs from a default one — which batteries it does without, and how the rest are set up.</summary>
     public RaskApp Configure(Action<RaskAppOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
@@ -95,14 +92,13 @@ public sealed class RaskApp
     }
 
     /// <summary>
-    /// Maps your own endpoints. They are always mapped <b>before</b> Rask's catch-all, which is the only
-    /// position at which they can be reached.
+    /// Maps your own endpoints, always <b>before</b> Rask's catch-all — the only position at which they
+    /// can be reached.
     /// </summary>
     /// <remarks>
     /// A named seam rather than a documented ordering rule. <c>UseRask</c> ends the pipeline with a
-    /// catch-all that serves the app for anything unmatched, so a minimal API mapped after it is
-    /// unreachable — it does not error, it simply never runs, and the app renders where the author
-    /// expected JSON. Queuing the callback here makes that unrepresentable.
+    /// catch-all serving the app for anything unmatched, so a minimal API mapped after it never runs — and
+    /// does not error either: the request renders the app where the author expected JSON.
     /// </remarks>
     public RaskApp MapEndpoints(Action<IEndpointRouteBuilder> map)
     {
@@ -112,41 +108,32 @@ public sealed class RaskApp
     }
 
     /// <summary>Builds the pipeline and runs the app, with <typeparamref name="TApp"/> as the root component.</summary>
-    /// <typeparam name="TApp">The root <see cref="Component"/> rendered for every matched route.</typeparam>
-    /// <param name="pathBase">
-    /// Optional URL prefix, so two Rask servers can share one origin behind a reverse proxy.
-    /// </param>
     public void Run<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         string pathBase = "")
         where TApp : Component =>
         Build<TApp>(pathBase).Run();
 
     /// <summary>The awaitable <see cref="Run{TApp}"/>.</summary>
-    /// <typeparam name="TApp">The root <see cref="Component"/> rendered for every matched route.</typeparam>
-    /// <param name="pathBase">Optional URL prefix.</param>
     public Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         string pathBase = "")
         where TApp : Component =>
         Build<TApp>(pathBase).RunAsync();
 
-    /// <summary>
-    /// Builds the <see cref="WebApplication"/> and applies the pipeline, without running it — for tests
-    /// and for a host that wants to inspect or extend the result before starting.
-    /// </summary>
-    /// <typeparam name="TApp">The root <see cref="Component"/> rendered for every matched route.</typeparam>
-    /// <param name="pathBase">Optional URL prefix.</param>
+    /// <summary>Builds the <see cref="WebApplication"/> and applies the pipeline, without running it.</summary>
     public WebApplication Build<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         string pathBase = "")
         where TApp : Component
     {
+        // The batteries, LAST — after every Configure block and after anything Program.cs registered
+        // itself. Both halves matter: the off-switches are only known now, and every AddRaskX is
+        // idempotent, so an app that called one directly has already won.
+        RaskBatteryWiring.Apply(_builder, _options);
+
         var app = _builder.Build();
 
         // FIRST: rewrite Request.Scheme and RemoteIpAddress from the proxy's headers, so everything below
-        // — HSTS, redirects, the app's own logging — sees the request the visitor actually made.
-        //
-        // OPT-IN, and it stays that way. Trusting these headers from an arbitrary client lets it forge its
-        // own IP; it is only safe where a proxy is definitely in front, which is a fact about the
-        // deployment that no code here can check.
+        // — HSTS, redirects, the app's own logging — sees the request the visitor actually made. Opt-in,
+        // because trusting these from an arbitrary client lets it forge its own IP.
         if (_options.BehindProxy)
         {
             app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -156,8 +143,8 @@ public sealed class RaskApp
         }
 
         // Terminal middleware, so it short-circuits before UseHttpsRedirection and answers over plain HTTP.
-        // `rask deploy` probes this internally on http://…:8080 with no X-Forwarded-Proto, where a
-        // redirected endpoint would 307 to a port nothing is listening on and fail the blue-green gate.
+        // `rask deploy` probes this internally with no X-Forwarded-Proto, where a redirected endpoint would
+        // 307 to a port nothing is listening on and fail the blue-green gate.
         app.UseHealthChecks(_options.HealthPath);
 
         if (!app.Environment.IsDevelopment())
@@ -168,11 +155,9 @@ public sealed class RaskApp
 
         app.UseHttpsRedirection();
 
-        // MapStaticAssets THROWS when the build produced no static-asset manifest, which is the ordinary
-        // case for a host that is not a Web SDK project — a test host above all. Since this facade is the
-        // default path rather than something a user opted into, failing to boot there would be a poor
-        // first experience with nothing explaining it. Skipped with a warning instead: an app whose CSS is
-        // missing gets a line naming the reason, rather than a stack trace from inside routing.
+        // MapStaticAssets THROWS when the build produced no static-asset manifest, which is ordinary for a
+        // host that is not a Web SDK project — a test host above all. As the default path, failing to boot
+        // there with a stack trace from inside routing is a poor first experience.
         var manifest = Path.Combine(
             AppContext.BaseDirectory, $"{app.Environment.ApplicationName}.staticwebassets.endpoints.json");
         if (File.Exists(manifest))
@@ -190,23 +175,22 @@ public sealed class RaskApp
         // Give a bare status code — a 404 from an unmatched route — a readable body instead of a blank page.
         app.UseStatusCodePages();
 
-        // Before anything opens the database. Rask.Server cannot reference the SQLite packages, so the
-        // restore itself stays in the app; this is the point in the sequence it belongs at.
-        _options.RunBeforeDatabaseOpens?.Invoke(app.Services);
+        // Before anything opens the database: a restore that runs after the first query has already lost,
+        // and the failure is a fresh empty database on a machine that was supposed to have recovered.
+        if (_options.RunBeforeDatabaseOpensAsync is { } restore)
+        {
+            restore(app.Services).GetAwaiter().GetResult();
+        }
 
-        // Must precede UseRask so HttpContext.User is populated on the initial GET render and on the
-        // WebSocket upgrade — otherwise the principal is empty at both, and every authorized page
-        // challenges (RASK024).
-        //
-        // Conditional on authentication actually being registered: UseAuthentication throws when it is
-        // not, so calling it unconditionally would break every app that has no auth at all.
+        // Must precede UseRask so HttpContext.User is populated on the initial GET and the WebSocket
+        // upgrade — otherwise the principal is empty at both and every authorized page challenges
+        // (RASK024). Conditional, because UseAuthentication throws when no scheme is registered.
         if (app.Services.GetService<IAuthenticationSchemeProvider>() is not null)
         {
             app.UseAuthentication();
             app.UseAuthorization();
         }
 
-        // The app's own endpoints, at the only position that works — see MapEndpoints.
         foreach (var map in _endpoints)
         {
             map(app);
