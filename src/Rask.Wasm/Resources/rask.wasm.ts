@@ -728,6 +728,19 @@ async function send(payload: unknown): Promise<void> {
 // unreferenced would additionally let esbuild elide rask-host.ts from the bundle.
 setHost({send, inRoot});
 
+// And the same two facts again, on a global, for modules that are NOT in this bundle.
+//
+// setHost above is an intra-bundle contract: a shared module imports `send` from rask-host.ts and
+// the bundler resolves it. Rask.External is a separately published package, fetched by the browser
+// from its own URL as its own module graph, so it has no import path to reach that binding at all.
+//
+// It must not open a channel of its own either. On this host that would mean an HTTP round trip to
+// a server that may not exist, when the handler it wants is already in this tab's .NET runtime.
+// Going through this bridge keeps an external component's callback a direct JSExport call, exactly
+// like a DOM handler's.
+globalThis.__raskHost = globalThis.__raskHost || {};
+globalThis.__raskHost.send = send;
+
 document.addEventListener("click", (e) => {
     if (e.defaultPrevented) return;
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 
 namespace Rask.Cqrs.Generators;
 
@@ -117,7 +118,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
         if (emitTypeScript)
         {
-            spc.AddSource("__RaskTypeScript.g.cs", SourceText.From(TypeScript(contracts), Encoding.UTF8));
+            spc.AddSource("__RaskExternal.g.cs", SourceText.From(TypeScript(contracts), Encoding.UTF8));
         }
     }
 

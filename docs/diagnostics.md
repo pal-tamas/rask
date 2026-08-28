@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK055)
+# Rask diagnostics (RASK001–RASK059)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -90,6 +90,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 | [RASK054](#rask054) | Info | Page cannot run in the browser |
 | [RASK055](#rask055) | Error | Scoped JavaScript is no longer supported |
+| [RASK056](#rask056) | Error | External component must be partial |
+| [RASK057](#rask057) | Error | External component prop has no wire encoding |
+| [RASK058](#rask058) | Error | External component name collision |
+| [RASK059](#rask059) | Error | Module override must be a constant string |
 
 ---
 
@@ -1237,3 +1241,78 @@ else's file and is left alone.
 > Files under `wwwroot/`, `Resources/` and `Browser/` are outside the scoped-asset convention
 > entirely and are never considered. A plain site-wide script belongs in `wwwroot` and is linked from
 > your `Head`, exactly as before.
+
+## RASK056
+
+**External component must be partial** · Error
+
+A `ReactComponent` or `LitComponent` is completed by a second part of the class: its name, its module
+and its props writer. Without `partial` there is nowhere to put any of it.
+
+```csharp
+// ✗ RASK056 — nothing can be generated into it
+public sealed class Chart : ReactComponent { }
+
+// ✓
+public sealed partial class Chart : ReactComponent { }
+```
+
+Reported here, against the declaration, rather than left to the compiler: what it would otherwise
+produce is three "does not implement inherited abstract member" errors naming `ComponentName`,
+`Module` and `WriteProps`, none of which the author wrote or should have to know about.
+
+## RASK057
+
+**External component prop has no wire encoding** · Error
+
+Props are serialized to JSON by generated code rather than by reflection — which is what lets them
+survive trimming and AOT — so a shape the generator cannot express has to be reported now rather than
+arriving as `null` in the browser.
+
+The supported set is the same wire vocabulary [RASK053](#rask053) documents, plus callbacks as
+`Action`, `Action<T>`, `Func<Task>` and `Func<T, Task>`.
+
+```csharp
+// ✗ RASK057 — an interface names no single concrete type
+public IFilter? Filter { get; set; }
+
+// ✓ a concrete type has one shape
+public TextFilter? Filter { get; set; }
+```
+
+A property that is not meant to reach the browser at all — an injected service, a computed helper —
+should say so with `[SkipFactory]`, which keeps it out of the props entirely.
+
+## RASK058
+
+**External component name collision** · Error
+
+The client runtime resolves a module by the component's simple type name, so two sharing one name
+would resolve to whichever registered last — silently, and potentially differently between builds.
+
+```csharp
+// ✗ RASK058 — both are "Chart" to the browser
+namespace Sales    { public sealed partial class Chart : ReactComponent { } }
+namespace Support  { public sealed partial class Chart : ReactComponent { } }
+```
+
+Rename one, or give it an explicit module by overriding `Module`.
+
+## RASK059
+
+**Module override must be a constant string** · Error
+
+The bundler needs the module specifier at *build* time, to generate the entry that pairs the component
+with its adapter — long before any of this code runs. So the override has to be a literal the
+generator can read straight out of the syntax.
+
+```csharp
+// ✗ RASK059 — the build cannot evaluate this
+protected override string Module => $"./widgets/{Name}.ts";
+
+// ✓
+protected override string Module => "@acme/charts/Chart";
+```
+
+Anything computed would leave the browser resolving a name the bundle never built — markup pointing at
+a chunk that does not exist, with nothing failing until someone loads the page.

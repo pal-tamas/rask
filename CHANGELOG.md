@@ -8,6 +8,126 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The bundled chunks are registered as static web assets, so `app.MapStaticAssets()` serves them.**
+  The bundle is written into `wwwroot` *after* the SDK has globbed it at evaluation, so nothing it
+  discovered knew the files existed: a published app returned the page's own HTML for both the chunk
+  and `manifest.json`, and the client reported `Unexpected token '<'` with nothing mounted. Adding
+  `app.UseStaticFiles()` hid it, which is why the first browser runs looked fine. The build now
+  contributes the output through `DefineStaticWebAssets`/`DefineStaticWebAssetEndpoints` in the
+  computed **build** pass — the assets are `AssetKind=All`, so they reach the publish manifest
+  without being registered twice — and the generated directory is excluded from the `wwwroot` glob so
+  there is exactly one registration path on the first build and the tenth.
+
+  A publish that produces no endpoint for the bundle now **fails** with `RASKISLAND003`. The guard
+  reads the endpoints manifest rather than looking for the files, because the files were present and
+  correct the whole time the feature was broken — a file-existence check would have passed throughout.
+
+- **A `.tsx` or Lit file can now be an ordinary Rask component.** Derive from `ReactComponent` or
+  `LitComponent`, drop the front-end file beside it the way `Counter.js` already sits beside
+  `Counter.cs`, and place it anywhere the chain goes — a leaf inside a card, a subtree, or the whole
+  of a `[Route]` page's `Render()`. There is deliberately no separate "page" concept: "React owns this
+  route" is the case where the component happens to be the page root, so replaceability is a property
+  of the *component* rather than of the route, and it composes at every level of the tree. New
+  `Rask.External` package; see
+  [docs/external-components.md](docs/external-components.md).
+
+  **The base class is the declaration.** It states the runtime in the one place that cannot disagree
+  with what actually mounts, which is also what lets a Lit component pair with `./Name.ts` by
+  convention — a Lit file is ordinary TypeScript and no extension distinguishes it, so a marker
+  attribute would have meant naming the runtime twice with nothing keeping the two in step. The cost
+  is the single-inheritance slot: a component already extending `BsBlock` cannot also be a
+  `ReactComponent`. That is the deliberate trade rather than an oversight — chrome in Rask comes from
+  the chain, not from inheritance, so the answer is `BsCard[ Chart.Series(points) ]`.
+
+  It also lets the type system replace an analyzer. `ExternalComponent` seals `Render()`, so writing
+  one is CS0239 from the compiler itself, with no analyzer needed; a rule the type system can state
+  does not need an analyzer to notice it. Override `Module` with a *constant* string to point
+  somewhere convention cannot reach — the bundler reads it at build time, so anything computed is
+  **RASK059**.
+
+  **The props types cross back into TypeScript.** The generator emits an interface per component —
+  `ChartProps`, with any record it is composed of declared alongside it — so the `.tsx` imports the
+  shape rather than restating it. Renaming a C# property then stops the front end compiling instead
+  of arriving as `undefined` in a browser. Nullability survives (`heading: string | null`, still
+  required, because the writer emits the key with a JSON null and "never set" differs from "set to
+  nothing"), a callback is an optional function returning `void` (there is no promise on that side to
+  await), and a route parameter is an ordinary typed prop like any other.
+
+  **And `dotnet build` checks it.** Each front-end file is type-checked against the props its C#
+  declares, so the guarantee holds by default rather than for whoever remembers to run `tsc` —
+  `error TS2339: Property 'level' does not exist on type 'DialProps'` fails the build that generated
+  the type. Roughly 0.2s; `RaskExternalTypeCheck=false` opts out. A component importing nothing from
+  npm is checked with nothing installed, which is what keeps the no-npm path covered; a project with
+  a `package.json` it has not installed is skipped with a message, because there is no weaker mode
+  that works — TypeScript's no-resolve mode stops resolving the generated props too, so the contract
+  error never fires and correct and incorrect code fail identically.
+
+  **Vite is the only bundler, and the project needs Node.** An esbuild path with no npm was designed
+  and rejected: esbuild can do the whole job, but two bundlers means two failure modes and "why does
+  it work in project A but not B" for the life of the feature — and the no-npm audience was narrower
+  than it looked, since a real Lit component imports `lit` from npm. Rask itself stays npm-free;
+  needing React from npm is inherent to asking for a React component.
+
+  **Both hosts are verified in a browser.** The same byte-identical `.tsx` mounts, takes its C# props
+  and round-trips a typed callback on the Server host over the WebSocket and on WASM through a
+  `[JSExport]` call into the tab's own runtime — server state and React's local state advancing
+  together, which is what shows the adapter reconciles rather than remounts.
+
+  **C# owns the props.** They are declared as ordinary properties, so the chain, the required-prop
+  rule and every existing analyzer apply unchanged, and they are serialized by generated
+  `Utf8JsonWriter` code rather than by reflection — which is what lets them survive trimming and
+  AOT. The prop vocabulary is the one the CQRS codecs already use; `WireShape` and the TypeScript
+  emitter moved to `Rask.Generators.Shared` so there is one answer to "what does this C# type look
+  like on the wire", not two that drift.
+
+  **Callbacks re-enter C# over the channel every DOM handler already uses** — the open WebSocket on
+  the Server host, a direct `[JSExport]` call into this tab's runtime on WASM. Such a component never opens
+  a channel of its own, so a callback inherits sequence stamping, the queue-while-reconnecting and
+  the auth suppression window for free, and the `.tsx` is byte-identical on both hosts. A callback
+  prop also makes its page interactive under the auto render ladder, exactly as `data-rask-on-click`
+  does — a component whose callback could never fire would otherwise render, load its chunk and mount
+  looking finished, then do nothing on the first click. One with no callbacks still costs a
+  page nothing: it mounts from its own script tag and the page stays a plain document.
+
+  **The live diff treats the subtree as opaque**, because React reconciles those nodes on its
+  own schedule and two writers on one subtree does not throw — it corrupts on the next parent
+  re-render. `Component` gains `OpaqueSubtree`; the flag rides `RenderFrame` so the differ skips by
+  `SubtreeLength`, and is written into the HTML as `data-rask-opaque` so the client morph refuses to
+  descend. Both are needed: the diff and the full-HTML fallback are separate paths to the same DOM,
+  and the morph is the one that bites: inside the boundary the live DOM and the server's HTML
+  genuinely disagree — the framework has replaced what was rendered, and the slot templates were
+  lifted out at mount — so a positional walk would trim every mounted node.
+
+  What crosses the boundary is props, and only props. A changed prop travels as a single attribute op
+  and the client routes it to the adapter's `update`, so an update is a reconcile and never a
+  remount — the component keeps its scroll position, its focus, its open dropdown and its half-typed
+  field. Callbacks keep their identity across updates for the same reason: React compares props by
+  identity, so a fresh closure per render would invalidate every `useCallback` and `memo` keyed on it.
+
+  React and Lit ship first, and Preact rides the React adapter unchanged — a Preact project aliases
+  `react` to `preact/compat`, which is the same aliasing the TypeScript SPA lane already relies on.
+  The client runtime imports no framework at all: each built chunk default-exports its own
+  adapter, three functions wide, so further runtimes are additive.
+
+  `dotnet build` writes one entry module per component and hands Vite a generated config that builds a
+  chunk each plus the manifest the runtime resolves names through. **Node runs only when a project has
+  a `package.json`** — that single probe is the gate, so an app with none of them, and one whose components are
+  all `.razor`, never learns this package has a build step.
+
+  **Slots.** One can wrap Rask-rendered content, so replacing a component mid-tree does not
+  strand its descendants: `Panel[ ExternalSlot.Named("footer")[…], Table.Rows(_rows) ]`. The server
+  renders each slot into an inert `<template data-rask-slot="…">` — so Rask-owned nodes cannot flash
+  between first paint and mount — and the client lifts it into a fragment the adapter places. React
+  adopts into an empty ref'd container it never renders children into; Lit needs no trick, because a
+  custom element projects light-DOM children through `<slot>` natively. Slot content is placed once,
+  at mount: making it live needs updates addressed by marker rather than by DOM path, since the diff
+  addresses nodes positionally and an adapter has moved them by then.
+
+  New diagnostics RASK056–RASK059. These moved three times before landing: RASK051/052 turned out to
+  be taken by translations despite `CLAUDE.md` listing them free, then #865 took RASK054, then #871
+  took RASK055 — each after a grep at branch time said otherwise. Three assemblies allocate in this
+  space and RS1019 only checks one compilation, so a merge from main invalidates every id a branch
+  holds.
 - **`curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh` installs Rask on a machine with nothing
   on it.** Installing used to be one line — `dotnet tool install -g Rask.Cli` — which only works on a
   box that already has the .NET 10 SDK, and installs the tool and nothing else. The CLI shells out to

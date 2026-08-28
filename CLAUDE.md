@@ -38,6 +38,11 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
+- `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
+  `partial` class from `ReactComponent`/`LitComponent` (the base class IS the declaration — no attribute), front-end
+  file paired by filename like scoped JS. Props declared in C#, serialized reflection-free; callbacks re-enter C#
+  over the existing handler channel AND escalate the page to interactive. Its subtree is a **diff boundary**
+  (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/external-components.md`.
 - `samples/` — showcase apps. `tests/` — sibling `*.Tests` per project + `Rask.Examples.E2E.Tests` (Playwright). `benchmarks/`.
 
 ## Commands
@@ -84,11 +89,15 @@ dotnet run --project samples/Rask.Example.Server
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–053, RASK030/032/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–059, RASK030/032/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–055 are documented in `docs/diagnostics.md`
-  (RASK030/032/042/047/048/049/050 are retired and not to be recycled; RASK056 is next).
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–059 are documented in `docs/diagnostics.md`
+  (RASK030/032/042/047/048/049/050 are retired and never recycled; the next free id is RASK060). **Grep `src/`
+  for the id before you claim it, AND again before you merge** — three assemblies allocate in this space and
+  RS1019 only checks one compilation, so this line goes stale silently. This has now bitten three times on one
+  branch: #865 took RASK054, then #871 took RASK055, each after a branch-time grep said they were free. Treat
+  a merge from main as invalidating every id you hold.
