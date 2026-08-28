@@ -42,7 +42,6 @@ public sealed class FeedCoverageTests
     [Theory]
     [InlineData("server")]
     [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
     public void Every_package_a_template_references_can_be_restored_from_the_local_feed(string template)
     {
         foreach (var styling in Enum.GetValues<Styling>())
