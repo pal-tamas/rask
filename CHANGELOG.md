@@ -48,6 +48,17 @@ them until tagged releases begin.
   that works — TypeScript's no-resolve mode stops resolving the generated props too, so the contract
   error never fires and correct and incorrect code fail identically.
 
+  **Vite is the only bundler, and the project needs Node.** An esbuild path with no npm was designed
+  and rejected: esbuild can do the whole job, but two bundlers means two failure modes and "why does
+  it work in project A but not B" for the life of the feature — and the no-npm audience was narrower
+  than it looked, since a real Lit component imports `lit` from npm. Rask itself stays npm-free;
+  needing React from npm is inherent to asking for a React component.
+
+  **Both hosts are verified in a browser.** The same byte-identical `.tsx` mounts, takes its C# props
+  and round-trips a typed callback on the Server host over the WebSocket and on WASM through a
+  `[JSExport]` call into the tab's own runtime — server state and React's local state advancing
+  together, which is what shows the adapter reconciles rather than remounts.
+
   **C# owns the props.** They are declared as ordinary properties, so the chain, the required-prop
   rule and every existing analyzer apply unchanged, and they are serialized by generated
   `Utf8JsonWriter` code rather than by reflection — which is what lets them survive trimming and

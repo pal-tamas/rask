@@ -288,14 +288,35 @@ so `Chart.tsx` stays a plain React component with no Rask import in it — and h
 config that builds them into one chunk each, plus the manifest the client runtime resolves names
 through.
 
-**A project using them needs a `package.json`.** That single file is also the gate: a project without one
-runs no npm, probes for no node, and never learns this package has a build step. A Rask app with none of them
-is unaffected.
+**A project using them needs Node and a `package.json`.** That single file is also the gate: a project
+without one runs no npm, probes for no node, and never learns this package has a build step. A Rask app
+with no external components is unaffected, which is most of them.
 
 ```bash
 npm init -y
 npm install -D vite @vitejs/plugin-react react react-dom
 ```
+
+### Why Vite, and only Vite
+
+Rask itself stays npm-free — [#871](https://github.com/pal-tamas/rask/pull/871) fetches esbuild and
+tsgo as verified native binaries, and the framework's own browser code compiles with no package
+manager anywhere. That does not change here. What changes is that **you** asked for a React component,
+and React is an npm package: needing it is inherent to the choice rather than a gap in the framework.
+
+A second, esbuild-based path with no npm was designed and rejected. esbuild can do the whole job —
+`--splitting` gives one hashed chunk per component plus a shared chunk, `--metafile` maps each entry to
+what was actually emitted, `--jsx=automatic` handles `.tsx`, and two components bundle in about a
+millisecond. The problem is not capability, it is having two of everything: two bundlers, two failure
+modes, and "why does it work in project A but not B" for the life of the feature. That tax outlasts a
+one-time install.
+
+The no-npm audience was also narrower than it first appeared. A real Lit component starts
+`import { LitElement, html } from 'lit'` — which is npm. Only a dependency-free custom element
+qualified, which is a genuine case but a small one, and not worth a permanent second toolchain.
+
+Vite also makes the runtimes still to come cheap: Vue and Svelte single-file components are compiled
+by *Vite plugins*, so adding them is an adapter rather than a compiler integration.
 
 | Property | Default | |
 |---|---|---|
