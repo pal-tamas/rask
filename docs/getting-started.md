@@ -39,10 +39,14 @@ setup, and the components you write are identical across hosts, so nothing you l
 you switch later.
 
 ```bash
-dotnet tool install -g Rask.Cli      # one-time: install the rask CLI
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh   # one-time: the rask CLI + what it needs
 
 rask new MyApp                       # create a server app in ./MyApp (server is the default)
 ```
+
+The installer adds the .NET 10 SDK if you don't have one, plus `dotnet-ef`, the `wasm-tools`
+workload and Node — all under `$HOME`, no `sudo`. With the SDK already in place,
+`dotnet tool install -g Rask.Cli` is enough. See [Installing Rask](installation.md).
 
 `rask new` ships three templates:
 

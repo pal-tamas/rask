@@ -147,6 +147,27 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   push changes `DeployCommand`/`Host*`/`SshTarget`/`DockerProbe`/`DeployConfig` or the deploy tests
   (bypass with `RASK_SKIP_DEPLOY_E2E=1`). **Not covered:** real DNS and Let's Encrypt issuance — the gate
   uses a `.test` domain, so ACME never runs.
+- **The install gate runs locally, on pushes that touch the public installer.** `rask.sh` and `rask.ps1`
+  at the repo root are what [`docs/installation.md`](installation.md) tells people to `curl | sh`, and
+  they are published to GitHub Pages by `pages.yml`. Two things cover them.
+  `scripts/tests/install-script.test.sh` runs on **every** commit (it is a `scripts/tests/*.test.sh`, so
+  `run-unit-local.sh` picks it up): it sources `rask.sh` with `RASK_INSTALL_LIB_ONLY=1` to table-test the
+  pure helpers, drives the real `step_path` against a throwaway `HOME`, asserts the file stays POSIX `sh`
+  (`dash -n` plus greps for the bashisms `dash` accepts and then dies on), asserts truncation safety by
+  *running prefixes of the file* and requiring that none reaches `main`, and checks that the install URL
+  is byte-identical in all nine places it is written. `scripts/run-install-e2e-local.sh` is the other
+  half, and covers what that one structurally cannot: it runs the working tree's `rask.sh` inside
+  containers that genuinely lack a .NET SDK, Node and tools, then asserts a working `rask`, `dotnet-ef`
+  and Node ≥ 22.12 on the box afterwards, plus a scaffolded project that builds. It is slow (an SDK
+  download per case), so `.githooks/pre-push` runs it only when the push changes `rask.sh`, `rask.ps1` or
+  the gate itself (bypass with `RASK_SKIP_INSTALL_E2E=1`). **Not covered:** a real Windows host — case 7
+  runs `rask.ps1` under PowerShell on Linux with the Windows-only steps off, so the SDK install and the
+  user `PATH` write are unproven there.
+
+  Note that `rask.sh`/`rask.ps1` are also listed explicitly in the **pre-commit** path filter. They sit at
+  the repo root, which matched none of that filter's directory prefixes, so before they were added a
+  commit touching only the public installer was the one commit that ran neither the formatter nor its own
+  test.
 - `commitlint.yml` — Conventional Commits check on PRs.
 - `nightly.yml` — prerelease publish on `main`.
 - `release.yml` — tag-triggered stable publish.

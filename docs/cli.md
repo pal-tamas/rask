@@ -11,10 +11,13 @@ a consistent copy of a live database — and it never gets in the way of the too
 ## Install
 
 ```bash
-dotnet tool install -g Rask.Cli
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
 ```
 
-That puts a `rask` command on your `PATH`. Update it later with `dotnet tool update -g Rask.Cli`.
+That puts a `rask` command on your `PATH`, along with the .NET 10 SDK and the dependencies the CLI
+shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 SDK,
+`dotnet tool install -g Rask.Cli` installs just the tool, and `dotnet tool update -g Rask.Cli`
+upgrades it. Options, install locations and uninstall: [Installing Rask](installation.md).
 
 > `rask` is a thin, Rask-aware layer over the .NET SDK: it owns scaffolding end to end (`rask new`,
 > and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
