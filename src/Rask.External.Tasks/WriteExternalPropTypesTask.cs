@@ -62,11 +62,20 @@ public sealed class WriteExternalPropTypesTask : Task
     /// <inheritdoc />
     public override bool Execute()
     {
+        // The tsconfig fragment FIRST, and before the assembly check, because it does not depend on the
+        // assembly at all — it is a path mapping. The app's own tsconfig `extends` it, and Vite fails
+        // hard on an extends that points at a missing file, so on a clean tree the bundle would
+        // otherwise die before the compile that would have written this.
+        Directory.CreateDirectory(OutputDirectory);
+        var wroteConfig = WriteTsConfig();
+
         if (!File.Exists(AssemblyPath))
         {
-            // A build that produced no assembly has already failed for its own reasons; a second
-            // error here would only bury the first.
-            Log.LogMessage(MessageImportance.Low, $"Rask.External: no assembly at '{AssemblyPath}' — skipping.");
+            // Nothing to read yet — an early pass before the compile, or a build that already failed
+            // for its own reasons. Either way a second error here would only bury the first.
+            Log.LogMessage(
+                MessageImportance.Low,
+                $"Rask.External: no assembly at '{AssemblyPath}' yet — wrote the path mapping only.");
             return true;
         }
 
@@ -81,9 +90,7 @@ public sealed class WriteExternalPropTypesTask : Task
                 return true;
             }
 
-            Directory.CreateDirectory(OutputDirectory);
-
-            var written = 0;
+            var written = wroteConfig ? 1 : 0;
             foreach (var pair in constants)
             {
                 var path = Path.Combine(OutputDirectory, pair.Key + ".props.d.ts");
@@ -97,11 +104,6 @@ public sealed class WriteExternalPropTypesTask : Task
             // still type-checks, so the front end would keep compiling against something the server
             // no longer renders.
             Prune(constants.Keys);
-
-            if (WriteTsConfig())
-            {
-                written++;
-            }
 
             if (WriteCheckConfig())
             {
