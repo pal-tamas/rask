@@ -52,7 +52,7 @@ internal static partial class ProjectGenerator
 
         if (batteries is { Wasm: true, Cqrs: true })
         {
-            files.Add(("Features/Shared/BrowserStartup.cs", BrowserStartupCs()));
+            files.Add(("Browser/BrowserStartup.cs", BrowserStartupCs()));
         }
 
         if (batteries.Pwa)
@@ -202,7 +202,7 @@ internal static partial class ProjectGenerator
               + "\n    <RaskBrowserRootComponent>$(RootNamespace).Features.Shared.App</RaskBrowserRootComponent>"
               + (batteries.Cqrs
                   ? "\n    <!-- The bundle registers its own services here: it has no Program.cs of its own. -->"
-                    + "\n    <RaskBrowserStartup>$(RootNamespace).Features.Shared.BrowserStartup</RaskBrowserStartup>"
+                    + "\n    <RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>"
                   : "")
             : "";
 
@@ -254,13 +254,19 @@ internal static partial class ProjectGenerator
     /// <remarks>
     ///     The bundle has no <c>Program.cs</c> of its own — that file is the server's, and the companion
     ///     project excludes it — so without this there is nowhere for browser-only wiring to live.
+    ///     <para>
+    ///     Under <c>Browser/</c> rather than <c>Features/Shared/</c>, and that is load-bearing: it is
+    ///     the mirror of <c>Server/</c>, and the only place a file may reference a
+    ///     <c>RaskBrowserPackageReference</c>. Anywhere else this file would also compile into the
+    ///     server, where <c>Rask.Cqrs.Client</c> is absent by design.
+    ///     </para>
     /// </remarks>
     private static string BrowserStartupCs() =>
         $$"""
           using Microsoft.Extensions.DependencyInjection;
-          using Rask.Cqrs;
+          using Rask.Cqrs.Client;
 
-          namespace {{NameToken}}.Features.Shared;
+          namespace {{NameToken}}.Browser;
 
           /// <summary>Services the browser half needs. The server registers its own in Program.cs.</summary>
           public static class BrowserStartup
@@ -313,6 +319,14 @@ internal static partial class ProjectGenerator
         if (batteries.Wasm)
         {
             sb.Append("using Rask.Wasm.Hosting;\n");
+        }
+
+        // AddRaskCqrsServer and MapRaskCqrs are both in Rask.Cqrs.Server, which is a different namespace
+        // from the mediator's own — the endpoint half is a separate package precisely so the browser one
+        // can exist without it.
+        if (batteries is { Wasm: true, Cqrs: true })
+        {
+            sb.Append("using Rask.Cqrs.Server;\n");
         }
 
         sb.Append(DatabaseAndBatteryUsings(batteries));
@@ -412,19 +426,35 @@ internal static partial class ProjectGenerator
 
         if (batteries is { Wasm: true, Cqrs: true })
         {
-            sb.Append("""
-                // The endpoint half of remote dispatch, for the pages that move into the browser.
-                // Fails closed: every message is authenticated by default, [AllowAnonymous] is the only
-                // way past, and an anonymous caller gets the same answer for a real message name as for
-                // a typo — so the endpoint cannot be walked to enumerate this app's messages.
-                builder.Services.AddRaskCqrsServer();
+            // The secure default stands wherever there is a sign-in to enforce. Without --auth there is
+            // no authentication to require, and leaving it on would make every message answer 401 — the
+            // scaffold would ship a page that looks eligible for the browser and cannot reach its server.
+            sb.Append(batteries.Auth
+                ? """
+                  // The endpoint half of remote dispatch, for the pages that move into the browser.
+                  // Fails closed: every message is authenticated by default, [AllowAnonymous] is the only
+                  // way past, and an anonymous caller gets the same answer for a real message name as for
+                  // a typo — so the endpoint cannot be walked to enumerate this app's messages.
+                  builder.Services.AddRaskCqrsServer();
 
-                """.TrimStart('\n'));
+                  """.TrimStart('\n')
+                : """
+                  // The endpoint half of remote dispatch, for the pages that move into the browser.
+                  // An anonymous caller gets the same answer for a real message name as for a typo, so
+                  // the endpoint cannot be walked to enumerate this app's messages.
+                  //
+                  // RequireAuthenticatedUser is OFF because this app has no authentication to require —
+                  // left on, every message would answer 401 and nothing would work. Add a cookie or JWT
+                  // scheme and DELETE this argument: the default is on for a reason, and a message
+                  // reachable by anyone is a decision worth making per app.
+                  builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
+
+                  """.TrimStart('\n'));
         }
 
-        // The database and every DB-backed battery, shared verbatim with the wasm-hosted template:
-        // that template's .Server host wires the same AppDbContext and the same AddRaskX<AppDbContext>()
-        // calls, and a second copy of these blocks would drift the moment one of them was corrected.
+        // The database and every DB-backed battery, shared verbatim with the TypeScript-SPA host:
+        // that generator wires the same AppDbContext and the same AddRaskX<AppDbContext>() calls, and a
+        // second copy of these blocks would drift the moment one of them was corrected.
         AppendDatabaseAndBatteries(sb, batteries);
 
         if (batteries.Pwa)
