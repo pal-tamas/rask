@@ -58,7 +58,7 @@ public class LocalizationScaffoldTests
         // Between #849 and #846 this asserted the opposite for the WASM pair, because they took the flag
         // and scaffolded nothing — struck off rather than left as a silent no-op. They emit catalogs, the
         // negotiation and the ICU now, so the flag means the same thing wherever it is listed.
-        foreach (var key in new[] { "server", "wasm", "wasm-hosted" })
+        foreach (var key in new[] { "server", "wasm" })
         {
             Assert.True(TemplateCatalog.TryGet(key, out var template));
             Assert.Contains("localization", template!.SupportedFlags);
@@ -77,7 +77,7 @@ public class LocalizationScaffoldTests
         Assert.Empty(server!.OptInFlags);
         Assert.True(NewCommand.ToBatteries(server, []).Localization);
 
-        foreach (var key in new[] { "wasm", "wasm-hosted" })
+        foreach (var key in new[] { "wasm" })
         {
             Assert.True(TemplateCatalog.TryGet(key, out var template));
             Assert.Equal(["localization"], template!.OptInFlags);
@@ -109,41 +109,25 @@ public class LocalizationScaffoldTests
         Assert.Contains("/out/Resources/Strings.hu.json", paths);
     }
 
-    [Fact]
-    public void The_wasm_hosted_catalogs_live_in_the_client_that_renders()
-    {
-        // Not the .Server: it is a static-file host for the baked bundle, renders nothing, and has no
-        // text to translate. Putting them there would compile and never be read.
-        var result = ProjectGenerator.GenerateWasmHosted("/out", "Demo", Batteries("en", "hu"), "1.0.0");
-        var paths = result.Files.Select(f => f.Path).ToArray();
-
-        Assert.Contains("/out/Demo.Client/Resources/Strings.en.json", paths);
-        Assert.Contains("/out/Demo.Client/Resources/Strings.hu.json", paths);
-        Assert.DoesNotContain(paths, p => p.Contains("Demo.Server/Resources", StringComparison.Ordinal));
-    }
 
     /// <summary>
     /// The browser half of the negotiation: <c>host.UseCulture</c> is what tells the runtime which
     /// languages there are to choose between. Without it the catalogs compile and nothing selects them.
     /// </summary>
-    [Theory]
-    [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
-    public void The_wasm_program_registers_the_languages(string key)
+    [Fact]
+    public void The_wasm_program_registers_the_languages()
     {
-        var program = WasmProgramOf(key, Batteries("en", "hu"));
+        var program = WasmProgramOf(Batteries("en", "hu"));
 
         Assert.Contains("host.UseCulture(", program, StringComparison.Ordinal);
         Assert.Contains("new[] { \"en\", \"hu\" }", program, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
-    public void A_wasm_app_that_named_no_language_registers_none(string key)
+    [Fact]
+    public void A_wasm_app_that_named_no_language_registers_none()
     {
         Assert.DoesNotContain(
-            "UseCulture", WasmProgramOf(key, NewCommand.BatteriesOf([]).Normalized()), StringComparison.Ordinal);
+            "UseCulture", WasmProgramOf(NewCommand.BatteriesOf([]).Normalized()), StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -152,34 +136,30 @@ public class LocalizationScaffoldTests
     /// so Rask's resolver rejects EVERY configured language and the app boots with an empty supported
     /// list and a warning. Catalogs without this property would be the same no-op in a new costume.
     /// </summary>
-    [Theory]
-    [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
-    public void Naming_a_language_ships_the_ICU_that_makes_it_resolve(string key)
+    [Fact]
+    public void Naming_a_language_ships_the_ICU_that_makes_it_resolve()
     {
         Assert.Contains(
             "<RaskGlobalization>true</RaskGlobalization>",
-            WasmCsprojOf(key, Batteries("en", "hu")),
+            WasmCsprojOf(Batteries("en", "hu")),
             StringComparison.Ordinal);
 
         // And an app that named none keeps it commented out, so it costs nothing and is still findable.
-        var plain = WasmCsprojOf(key, NewCommand.BatteriesOf([]).Normalized());
+        var plain = WasmCsprojOf(NewCommand.BatteriesOf([]).Normalized());
         Assert.DoesNotContain("\n    <RaskGlobalization>true</RaskGlobalization>", plain, StringComparison.Ordinal);
         Assert.Contains("<!-- <RaskGlobalization>true</RaskGlobalization> -->", plain, StringComparison.Ordinal);
     }
 
-    private static string WasmProgramOf(string key, ServerBatteries batteries) =>
-        FileOf(key, batteries, key == "wasm" ? "/out/Program.cs" : "/out/Demo.Client/Program.cs");
+    private static string WasmProgramOf(ServerBatteries batteries) =>
+        FileOf(batteries, "/out/Program.cs");
 
-    private static string WasmCsprojOf(string key, ServerBatteries batteries) =>
-        FileOf(key, batteries, key == "wasm" ? "/out/Demo.csproj" : "/out/Demo.Client/Demo.Client.csproj");
+    private static string WasmCsprojOf(ServerBatteries batteries) =>
+        FileOf(batteries, "/out/Demo.csproj");
 
-    private static string FileOf(string key, ServerBatteries batteries, string path)
+    private static string FileOf(ServerBatteries batteries, string path)
     {
-        var result = key == "wasm"
-            ? ProjectGenerator.GenerateWasm(
-                "/out", "Demo", batteries.Auth, batteries.Pwa, batteries.Docker, "1.0.0", batteries)
-            : ProjectGenerator.GenerateWasmHosted("/out", "Demo", batteries, "1.0.0");
+        var result = ProjectGenerator.GenerateWasm(
+            "/out", "Demo", batteries.Auth, batteries.Pwa, batteries.Docker, "1.0.0", batteries);
 
         return result.Files.Single(f => f.Path == path).Content;
     }

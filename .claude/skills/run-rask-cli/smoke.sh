@@ -63,7 +63,7 @@ check "completion fish"  0 "complete -c rask"                 -- completion fish
 check "completion bad shell" 2 "Unknown 'rask completion' action" -- completion tcsh
 # Completion is generated from the schema, so subcommands and closed-set values come along for free.
 check "completion knows db's actions" 0 "backup"              -- completion bash
-check "completion knows --template's values" 0 "wasm-hosted"  -- completion zsh
+check "completion knows --template's values" 0 "wasm"         -- completion zsh
 
 echo "==> new --dry-run previews without writing"
 check "new --dry-run"    0 "would write"      -- new Ghost --template server --output "$WORK/Ghost" --dry-run
