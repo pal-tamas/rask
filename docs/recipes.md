@@ -123,7 +123,7 @@ outbox:
 public sealed record OrderCreated(Guid Id) : IOutboxEvent;   // then Raise(new OrderCreated(Id)) in Create
 ```
 ```csharp
-builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);   // was AddRaskData()
+builder.Services.AddRaskData();                                     // unchanged — the outbox claims delivery
 builder.Services.AddRaskOutbox<ProductsDbContext>(o => { /* … */ });
 modelBuilder.AddRaskOutbox();                                        // then: rask db add AddOutbox && rask db update
 ```

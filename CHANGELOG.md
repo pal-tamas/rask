@@ -8,6 +8,27 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **Registering the outbox now hands it domain-event delivery, instead of asking you to remember to.**
+  `AddRaskOutbox<TContext>()` registers an `IDomainEventDeliveryOwner`, and `DomainEventInterceptor` reads
+  that from the **built container** and stands down. `AddRaskData()` takes no argument, in any call order.
+
+  What this closes was a silent durability bug, not an inconvenience. `AddRaskData` decided whether to
+  register the in-process publisher at the moment it was called, from an option the caller had to set by
+  hand — so an app that forgot `o.DispatchDomainEventsInProcess = false`, or simply wrote the two `Add`
+  calls in the order `AddRaskData` first, got both interceptors. `DomainEventInterceptor` drains and
+  **clears** every entity's events in `SavingChanges`, before `OutboxInterceptor` can copy them: the outbox
+  table stayed permanently empty, delivery quietly stopped being durable, and **nothing failed**, because
+  the handlers still ran in-process. Every test passed. `tests/Rask.Outbox.Tests/OutboxDeliveryHandoverTests.cs`
+  pins both orders and the plain `AddRaskData()`; the first of those fails against the previous behaviour.
+
+  `RaskDataOptions.DispatchDomainEventsInProcess` is now a `bool?` — `null` (the default) is automatic,
+  `true` forces in-process publishing even alongside an outbox, `false` never registers the interceptor.
+  Existing `= false` call sites keep compiling and keep their meaning; they are simply no longer needed, and
+  have been removed from the scaffolder, the Shop sample, the tutorial, and the docs.
+
+  The scaffolder's other ordering claim went with it: `AddRaskOutbox` does **not** have to precede
+  `AddDbContextFactory`. That callback runs when the factory is first resolved, which is after `Build()`,
+  so it observes every registration whenever it was made — now covered by a test rather than a comment.
 - **The browser gate no longer needs PowerShell, and no longer skips itself quietly when it is
   missing.** `scripts/run-e2e-local.sh` installed the Playwright browsers by shelling out to
   `pwsh <path>/playwright.ps1 install chromium`, and skipped that step whenever `pwsh` was absent.

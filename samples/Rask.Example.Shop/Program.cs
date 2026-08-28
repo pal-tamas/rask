@@ -106,19 +106,14 @@ builder.Services.AddRaskCqrs();
 // `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
 // `rask generate feature X …` adds its DbSet to AppDbContext (it attaches to the app's context);
 // `rask db add <Name>` / `rask db update` create and apply the migration.
-builder.Services.AddRaskData(o =>
-{
-    // The outbox owns delivery, so the in-process publisher stays off. Leaving it on is a
-    // silent trap: DomainEventInterceptor drains and clears every entity's events before
-    // OutboxInterceptor can copy them, so the outbox table stays empty and delivery quietly
-    // stops being durable — and nothing fails, because the handlers still run in-process.
-    o.DispatchDomainEventsInProcess = false;
-});
+// Domain events go wherever delivery is owned: AddRaskOutbox below claims them, and this call needs
+// no argument to match. The handover is resolved when the container is built, so the two calls work
+// in either order.
+builder.Services.AddRaskData();
 var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
 // Transactional outbox: a domain event marked IOutboxEvent is written to the outbox table in
 // the SAME transaction as the change that raised it, then relayed at-least-once by a
-// background processor. Registered before the DbContext factory so its interceptor is in the
-// container when the factory resolves ISaveChangesInterceptor.
+// background processor. Registering it is also what hands it domain-event delivery.
 builder.Services.AddRaskOutbox<AppDbContext>();
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
     .UseRaskSqlite(connectionString)
