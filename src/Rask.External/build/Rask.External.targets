@@ -30,6 +30,9 @@
     -->
     <_RaskExternalObj>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask-external'))\</_RaskExternalObj>
     <_RaskExternalAdapters>$(_RaskExternalObj)rask\</_RaskExternalAdapters>
+    <!-- Where the generated prop types land. Under obj/ because they are build output: a generated
+         file in the source tree is one somebody edits by hand and loses on the next build. -->
+    <_RaskExternalTypes>$(_RaskExternalObj)types\</_RaskExternalTypes>
     <_RaskExternalOut>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskExternalOutputDir)'))</_RaskExternalOut>
     <_RaskExternalManifest>$(_RaskExternalOut)\manifest.json</_RaskExternalManifest>
 
@@ -95,6 +98,33 @@
 
     <_RaskExternalAdapterSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
   </ItemGroup>
+
+  <UsingTask TaskName="Rask.External.Tasks.WriteExternalPropTypesTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.External.Tasks.dll"/>
+
+  <!--
+    The typed boundary: each component's props, as TypeScript the front-end file imports.
+
+    Deliberately NOT gated on _RaskExternalEnabled. The types are worth having in a project that
+    never runs a bundler at all — an editor resolves them, `tsc` checks against them, and a Lit
+    component with no dependencies needs no build step to be worth type-checking. Gating this on the
+    bundler would mean the guarantee only holds for projects that already had one.
+
+    AfterTargets="CoreCompile" because the constants only exist once Roslyn has produced the
+    assembly, and before anything that compiles the front end.
+  -->
+  <Target Name="_RaskExternalWritePropTypes"
+          AfterTargets="CoreCompile"
+          Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
+          Inputs="@(IntermediateAssembly)"
+          Outputs="$(_RaskExternalObj)types.stamp">
+    <WriteExternalPropTypesTask AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
+                                OutputDirectory="$(_RaskExternalTypes)"
+                                TsConfigPath="$(_RaskExternalObj)tsconfig.paths.json"
+                                ProjectDirectory="$(MSBuildProjectDirectory)"/>
+    <MakeDir Directories="$(_RaskExternalObj)"/>
+    <Touch Files="$(_RaskExternalObj)types.stamp" AlwaysCreate="true"/>
+  </Target>
 
   <UsingTask TaskName="Rask.External.Tasks.WriteExternalBuildInputsTask"
              AssemblyFile="$(MSBuildThisFileDirectory)Rask.External.Tasks.dll"/>

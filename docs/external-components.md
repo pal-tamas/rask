@@ -107,14 +107,53 @@ Props are C# properties, declared like any other component's, so the chain, the 
 reflection-free `Utf8JsonWriter` writer for them, which is what lets a component survive trimming and
 AOT.
 
-The front-end file receives them as ordinary props:
+**And the types cross back.** The build generates an interface per component, so the front-end file
+imports the shape rather than restating it:
 
 ```tsx
 // Features/Dashboard/Chart.tsx
-export default function Chart({ series, heading }: { series: Point[]; heading?: string }) {
+import type { ChartProps } from '@rask/Chart.props'
+
+export default function Chart({ series, heading, onPointClick }: ChartProps) {
   return <figure><figcaption>{heading}</figcaption><Plot data={series} /></figure>
 }
 ```
+
+Rename `Series` to `Points` in `Chart.cs` and `Chart.tsx` **stops compiling**. That is the difference
+between this and embedding React by hand: the contract is checked in both directions rather than
+maintained by discipline.
+
+The generated file carries whatever the props are composed of, so one import is enough:
+
+```ts
+// obj/rask-external/types/Chart.props.d.ts — generated, do not edit
+export interface Point { label: string; value: number }
+
+export interface ChartProps {
+  series: Point[];
+  heading: string | null;
+  onPointClick?: (value: number) => void;
+}
+```
+
+Three things there are decisions rather than formatting. `heading` is **nullable but still required**,
+because the writer emits the key with a JSON `null` — "never set" and "set to nothing" are different
+facts, and `heading?: string` would describe the wrong one. A callback is **optional**, because an
+unwired one omits its key entirely. And it returns **`void` even for a `Func<T, Task>`**: the callback
+crosses as a handler reference and the client hands back a plain function that ships the payload, so
+there is no promise on that side to await.
+
+`@rask/*` comes from a tsconfig fragment the build writes into `obj/`. Extend it once:
+
+```jsonc
+// tsconfig.json
+{ "extends": "./obj/rask-external/tsconfig.paths.json" }
+```
+
+A fragment rather than an edit to your own tsconfig: rewriting someone else's config means preserving
+their comments, key order and formatting, and would still surprise anyone who opened it — for a path
+mapping that is one line to add and obvious to remove. Nothing generated is committed, so a fresh
+clone shows the import unresolved until the first build.
 
 Supported prop types are the wire vocabulary the CQRS codecs use: the primitives, `string`, `Guid`,
 the date/time types, `Uri`, enums, `byte[]`, nullable versions of those, arrays and lists, string-keyed

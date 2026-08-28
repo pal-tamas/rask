@@ -22,6 +22,8 @@
     <!-- ExcludeAssets=runtime: MSBuild's own resolver provides this to a task at runtime, and shipping
          a second copy risks loading two versions of the same assembly into one process. -->
     <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
+    <!-- For the linked GeneratedTypeScript reader: it walks PE metadata rather than loading the assembly. -->
+    <PackageReference Include="System.Reflection.Metadata" ExcludeAssets="runtime" PrivateAssets="all"/>
   </ItemGroup>
 
   <!--
@@ -35,6 +37,20 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.External.Tasks.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The PE-metadata reader, shared as SOURCE with Rask.Spa.Tasks rather than duplicated. Both task
+      assemblies lift generated TypeScript back out of a compiled assembly the same way, and the
+      reasoning that shapes it — read the metadata, never LOAD the assembly, because an MSBuild worker
+      that has already loaded one of that name throws and node reuse makes that roughly one build in
+      three (#650) — is not something to keep in step across two copies.
+
+      Linked rather than moved: it keeps its Rask.Spa.Tasks namespace, which is where it was written
+      and where its other caller lives.
+    -->
+    <Compile Include="..\Rask.Spa.Tasks\GeneratedTypeScript.cs" Link="Shared\GeneratedTypeScript.cs"/>
   </ItemGroup>
 
 </Project>

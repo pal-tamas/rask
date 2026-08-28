@@ -23,10 +23,10 @@ namespace Rask.Spa.Tasks;
 ///         constant is metadata; it does not need a runtime, a resolver, or the reference closure.
 ///     </para>
 /// </remarks>
-internal static class GeneratedTypeScript
+public static class GeneratedTypeScript
 {
-    private const string Namespace = "Rask.Cqrs.Generated";
-    private const string TypeName = "RaskGeneratedTypeScript";
+    private const string CqrsNamespace = "Rask.Cqrs.Generated";
+    private const string CqrsTypeName = "RaskGeneratedTypeScript";
 
     /// <summary>
     ///     The constants on <c>Rask.Cqrs.Generated.RaskGeneratedTypeScript</c>, keyed by field name.
@@ -35,7 +35,20 @@ internal static class GeneratedTypeScript
     ///     An empty dictionary when the type is absent, which is the ordinary state of an assembly
     ///     whose project never opted in — not an error.
     /// </returns>
-    public static IReadOnlyDictionary<string, string> Read(string assemblyPath)
+    public static IReadOnlyDictionary<string, string> Read(string assemblyPath) =>
+        Read(assemblyPath, CqrsNamespace, CqrsTypeName);
+
+    /// <summary>
+    ///     The constants on <paramref name="typeName" /> in <paramref name="namespaceName" />, keyed by
+    ///     field name.
+    /// </summary>
+    /// <remarks>
+    ///     Parameterised because two generators use this arrangement — the CQRS contracts and the
+    ///     external components' prop types — and the PE-metadata read is the same walk either way.
+    ///     Duplicating it would leave two copies of the #650 reasoning to keep in step.
+    /// </remarks>
+    public static IReadOnlyDictionary<string, string> Read(
+        string assemblyPath, string namespaceName, string typeName)
     {
         var found = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -51,8 +64,8 @@ internal static class GeneratedTypeScript
             foreach (var handle in reader.TypeDefinitions)
             {
                 var type = reader.GetTypeDefinition(handle);
-                if (!reader.StringComparer.Equals(type.Name, TypeName) ||
-                    !reader.StringComparer.Equals(type.Namespace, Namespace))
+                if (!reader.StringComparer.Equals(type.Name, typeName) ||
+                    !reader.StringComparer.Equals(type.Namespace, namespaceName))
                 {
                     continue;
                 }
