@@ -52,10 +52,27 @@ public sealed class RaskRenderModes
     ///     always worked.
     /// </summary>
     /// <remarks>
-    ///     Turning it off means a page is served as HTML and becomes interactive only once the
-    ///     browser bundle boots: no socket is ever opened. That is the offline-first and edge-hosted
-    ///     arrangement, and it requires <see cref="Wasm" />, since otherwise a page with a handler
-    ///     would have no way to answer it at all.
+    ///     <para>
+    ///         Turning it off is a declaration rather than a preference: <b>no page ever gets a live
+    ///         session</b>. Every page is served as a document — no session, no socket, no runtime
+    ///         script — and the WebSocket endpoint answers 404 as though it were not there.
+    ///     </para>
+    ///     <para>
+    ///         That is stronger than <see cref="Static" />, which is <em>detected</em> per page and
+    ///         deliberately biased towards keeping a connection. Here nothing is detected, so nothing
+    ///         can bias: an app that serves only content gets only content.
+    ///     </para>
+    ///     <para>
+    ///         With <see cref="Wasm" /> on it is the offline-first, edge-hosted arrangement — static
+    ///         HTML that hands over to WebAssembly, with no socket ever opened. With <see cref="Wasm" />
+    ///         off it is plain server-side rendering, which is the right answer for a content site and
+    ///         used to be refused.
+    ///     </para>
+    ///     <para>
+    ///         The cost is real and is reported rather than prevented: a page that renders a handler
+    ///         has nothing to answer it, and says so through the <c>Rask.Ssr</c> diagnostic. Refusing
+    ///         to start was the wrong response to that — it made "serve only content" unreachable.
+    ///     </para>
     /// </remarks>
     public bool ServerInteractivity { get; set; } = true;
 
@@ -126,14 +143,5 @@ public sealed class RaskRenderModes
                 + "boot module's URL, or leave it at its default of /main.js.");
         }
 
-        if (!ServerInteractivity && !Wasm)
-        {
-            throw new InvalidOperationException(
-                "RenderModes.ServerInteractivity is off and RenderModes.Wasm is off, which leaves no "
-                + "way for any page to become interactive: a click would reach neither a server "
-                + "session nor a browser runtime. Turn one of them on. If this app genuinely serves "
-                + "only content, leave ServerInteractivity on — a page that needs nothing live is "
-                + "already served as a plain document when RenderModes.Static is enabled.");
-        }
     }
 }

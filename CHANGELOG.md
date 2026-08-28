@@ -48,6 +48,27 @@ them until tagged releases begin.
   now state the dependency, whether it is load-bearing there or merely true, because an exemption for
   the ones a caller happens to order safely makes the invariant depend on a fact about a different
   target. The guard was verified by failing it in both directions.
+
+- **`RenderModes.ServerInteractivity` did nothing.** The property was read nowhere outside its own
+  validation, so turning it off with `Wasm` on was accepted and silently ignored — pages still opened
+  WebSockets — and turning it off with `Wasm` off threw, telling you to turn it back on. It lied either
+  way.
+
+  It now means what it says: **no page ever gets a live session.** Every page is served as a document,
+  and the WebSocket endpoint answers `404` as though it were not there. That is stronger than
+  `RenderModes.Static`, which is detected per page and biased towards keeping a connection; this is
+  declared, so nothing is detected and nothing can bias.
+
+  Both combinations now work rather than one throwing: with `Wasm` off it is plain server-side
+  rendering — a content site, which used to be refused — and with `Wasm` on it is static HTML that
+  hands over to WebAssembly with no socket ever opened.
+
+  A page that renders a handler in this mode has nothing to answer it. That is reported through the
+  `Rask.Ssr` diagnostic rather than prevented by refusing to start, which had made "serve only content"
+  unreachable.
+
+
+### Fixed
 - **The browser gate no longer needs PowerShell, and no longer skips itself quietly when it is
   missing.** `scripts/run-e2e-local.sh` installed the Playwright browsers by shelling out to
   `pwsh <path>/playwright.ps1 install chromium`, and skipped that step whenever `pwsh` was absent.
