@@ -285,6 +285,73 @@
   </Target>
 
   <!--
+    The bundle is written INTO wwwroot but after @(Content) has already been globbed, so nothing the
+    SDK discovered at evaluation knows about it. MapStaticAssets serves only what reached the
+    endpoints manifest, so without this the chunk and manifest.json fall through to the UseRask
+    catch-all and come back as the page's own HTML — the client then reports
+    `Unexpected token '<'` and no component mounts (#884). app.UseStaticFiles() papered over it by
+    serving the physical directory; that is a workaround for a missing registration, not a fix.
+
+    Registered in the BUILD computed pass only. The assets are AssetKind=All, so they flow into the
+    publish manifest on their own; contributing in both passes double-registers the same ItemSpec and
+    trips the SDK's duplicate-key guard — the same rule Rask.Wasm's scoped bake documents.
+
+    ContentRoot is wwwroot rather than the bundle directory, with RelativePathPattern="wwwroot/**",
+    exactly as the SDK's own ResolveProjectStaticWebAssets does it: the relative path has to keep the
+    _rask/external/ prefix or the files would be served from the root. FingerprintCandidates stays
+    false because Vite has already hashed the chunk names and the generated manifest points at them —
+    a second fingerprint would rename the file out from under it.
+  -->
+  <Target Name="_RaskExternalStaticWebAssets"
+          BeforeTargets="GenerateComputedBuildStaticWebAssets"
+          DependsOnTargets="_RaskExternalBundle"
+          Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">
+    <ItemGroup>
+      <_RaskExternalBundled Include="$(RaskExternalOutputDir)/**/*"/>
+    </ItemGroup>
+    <DefineStaticWebAssets Condition=" '@(_RaskExternalBundled)' != '' "
+                           CandidateAssets="@(_RaskExternalBundled)"
+                           SourceType="Computed"
+                           SourceId="$(PackageId)"
+                           ContentRoot="$(MSBuildProjectDirectory)\wwwroot\"
+                           BasePath="$(StaticWebAssetBasePath)"
+                           RelativePathPattern="wwwroot/**"
+                           FingerprintCandidates="false">
+      <Output TaskParameter="Assets" ItemName="StaticWebAsset"/>
+      <Output TaskParameter="Assets" ItemName="_RaskExternalStaticWebAsset"/>
+    </DefineStaticWebAssets>
+    <DefineStaticWebAssetEndpoints Condition=" '@(_RaskExternalStaticWebAsset)' != '' "
+                                   CandidateAssets="@(_RaskExternalStaticWebAsset)"
+                                   ExistingEndpoints="@(StaticWebAssetEndpoint)"
+                                   ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
+      <Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint"/>
+    </DefineStaticWebAssetEndpoints>
+  </Target>
+
+  <!--
+    Assert on the SHIPPED artifact, not on the files.
+
+    #884 published every chunk correctly and still served none of them: the files reached
+    $(PublishDir)wwwroot but never reached the endpoints manifest, and MapStaticAssets serves only
+    what is in that manifest. A guard that checked for the files on disk — which is what the scoped
+    asset guard in Rask.Wasm does — would have passed the whole time the feature was broken. So this
+    one reads the manifest that decides whether a URL answers.
+  -->
+  <Target Name="_RaskExternalVerifyPublishedAssets"
+          AfterTargets="Publish"
+          Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">
+    <PropertyGroup>
+      <_RaskExternalEndpoints>$(PublishDir)$(AssemblyName).staticwebassets.endpoints.json</_RaskExternalEndpoints>
+      <_RaskExternalEndpointsText Condition="Exists('$(_RaskExternalEndpoints)')">$([System.IO.File]::ReadAllText('$(_RaskExternalEndpoints)'))</_RaskExternalEndpointsText>
+      <!-- The manifest stores routes without a leading slash, so probe on the trimmed prefix. -->
+      <_RaskExternalRouteProbe>$(RaskExternalPublicBase.TrimStart('/'))</_RaskExternalRouteProbe>
+    </PropertyGroup>
+    <Error Condition="Exists('$(_RaskExternalEndpoints)') AND !$(_RaskExternalEndpointsText.Contains('$(_RaskExternalRouteProbe)'))"
+           Code="RASKISLAND003"
+           Text="Rask.External: the bundle was published but no endpoint serves it. '$(_RaskExternalEndpoints)' contains no route under '$(RaskExternalPublicBase)', and app.MapStaticAssets() serves only what that manifest lists — so every chunk request would fall through to the UseRask catch-all and come back as the page's HTML, and the client would report `Unexpected token '&lt;'` with nothing mounted. The bundle output has to be registered as a static web asset, which _RaskExternalStaticWebAssets does; check it ran and that RaskExternalOutputDir still sits under wwwroot (#884)."/>
+  </Target>
+
+  <!--
     The manifest is listed first among the Outputs so that deleting the bundle by hand forces a
     rebuild even though the stamp file survives.
   -->

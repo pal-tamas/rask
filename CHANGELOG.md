@@ -8,6 +8,20 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The bundled chunks are registered as static web assets, so `app.MapStaticAssets()` serves them.**
+  The bundle is written into `wwwroot` *after* the SDK has globbed it at evaluation, so nothing it
+  discovered knew the files existed: a published app returned the page's own HTML for both the chunk
+  and `manifest.json`, and the client reported `Unexpected token '<'` with nothing mounted. Adding
+  `app.UseStaticFiles()` hid it, which is why the first browser runs looked fine. The build now
+  contributes the output through `DefineStaticWebAssets`/`DefineStaticWebAssetEndpoints` in the
+  computed **build** pass — the assets are `AssetKind=All`, so they reach the publish manifest
+  without being registered twice — and the generated directory is excluded from the `wwwroot` glob so
+  there is exactly one registration path on the first build and the tenth.
+
+  A publish that produces no endpoint for the bundle now **fails** with `RASKISLAND003`. The guard
+  reads the endpoints manifest rather than looking for the files, because the files were present and
+  correct the whole time the feature was broken — a file-existence check would have passed throughout.
+
 - **A `.tsx` or Lit file can now be an ordinary Rask component.** Derive from `ReactComponent` or
   `LitComponent`, drop the front-end file beside it the way `Counter.js` already sits beside
   `Counter.cs`, and place it anywhere the chain goes — a leaf inside a card, a subtree, or the whole

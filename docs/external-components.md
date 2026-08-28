@@ -322,6 +322,15 @@ by *Vite plugins*, so adding them is an adapter rather than a compiler integrati
 |---|---|---|
 | `RaskExternalBuild` | `true` | `false` skips node entirely. They still render their host elements. |
 | `RaskExternalOutputDir` | `wwwroot/_rask/external` | Under `wwwroot` so the SDK publishes it with no publish target of its own. |
+
+The bundle is written after `wwwroot` has already been globbed, so the build registers it as a
+**static web asset** rather than relying on that glob. Without it `app.MapStaticAssets()` — which
+serves only what reached the endpoints manifest — would answer every chunk request with the page's
+own HTML, and the client would report `Unexpected token '<'` with nothing mounted. Nothing extra is
+needed in `Program.cs`; in particular `app.UseStaticFiles()` is **not** required. A publish that
+somehow produced no endpoint for the bundle fails the build with `RASKISLAND003` rather than
+shipping an app whose components silently never mount.
+
 | `RaskExternalPublicBase` | `/_rask/external/` | The URL prefix the manifest gives each chunk. |
 
 A `.ts` is picked up when a `.cs` of the same name sits beside it. Declare one explicitly only when it

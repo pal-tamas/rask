@@ -25,6 +25,16 @@
     -->
     <RaskExternalOutputDir Condition="'$(RaskExternalOutputDir)' == ''">wwwroot/_rask/external</RaskExternalOutputDir>
 
+    <!--
+      ...but kept OUT of the wwwroot glob that runs at evaluation. The SDK discovers static web assets
+      from @(Content) matched against wwwroot/**, and @(Content) is globbed before the bundler has
+      written anything — so on a clean tree the chunks are absent from the endpoints manifest that
+      MapStaticAssets serves from, and on the NEXT build they are present, discovered, and then
+      registered a second time by _RaskExternalStaticWebAssets below, which trips the SDK's duplicate
+      guard. Excluding here leaves exactly one registration path on every build (#884).
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(RaskExternalOutputDir)/**</DefaultItemExcludes>
+
     <!-- The URL prefix those files are served from. Must match RaskExternalOutputDir's position under
          wwwroot, and is what the generated manifest prefixes every chunk with. -->
     <RaskExternalPublicBase Condition="'$(RaskExternalPublicBase)' == ''">/_rask/external/</RaskExternalPublicBase>
