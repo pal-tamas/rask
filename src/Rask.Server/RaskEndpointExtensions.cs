@@ -491,7 +491,9 @@ public static partial class RaskEndpointExtensions
             // built detached and admitted afterwards, so a page that turns out to need nothing live
             // costs no slot. The cheap AtCapacity probe keeps a saturated host from doing the work
             // anyway; the authoritative check is still the atomic one, at TryRegister below.
-            var staticPages = limits.StaticPages;
+            // With server interactivity off, every page is a document whether or not the walk found
+            // a reason to keep one — there is nothing for a session to be for.
+            var staticPages = limits.StaticPages || !limits.ServerInteractivity;
             var session = staticPages
                 ? (store.IsDraining || store.AtCapacity ? null : store.CreateDetached(appFactory))
                 : store.TryCreate(appFactory);
@@ -594,14 +596,19 @@ public static partial class RaskEndpointExtensions
                                  && chain.Count > 0
                                  && DeclaredRenderModes.Of(chain[^1]) == RenderMode.Static;
 
-            var interactive = !(staticPages || declaredStatic)
-                              || session.RequiresLiveSession
-                              || session.LastRenderFaulted
-                              // A JS call issued from a continuation AFTER the walk is invisible to
-                              // the render context, but it is still queued waiting for a frame that
-                              // only a socket can carry.
-                              || session.JsInvokes.HasPending
-                              || LiveOptions.IsDevelopment == true;
+            // Gated as a whole rather than folded in as another reason: every clause below assumes a
+            // session is AVAILABLE, and with server interactivity off none of them can be honoured —
+            // including the Development one, which would otherwise make every page live while you are
+            // developing the very thing you turned off.
+            var interactive = limits.ServerInteractivity
+                              && (!(staticPages || declaredStatic)
+                                  || session.RequiresLiveSession
+                                  || session.LastRenderFaulted
+                                  // A JS call issued from a continuation AFTER the walk is invisible
+                                  // to the render context, but it is still queued waiting for a frame
+                                  // that only a socket can carry.
+                                  || session.JsInvokes.HasPending
+                                  || LiveOptions.IsDevelopment == true);
 
             // A page that asked to be static and turned out to need a connection keeps the connection —
             // a request, not a command. Reported, because the two facts contradict each other and the
@@ -854,6 +861,18 @@ public static partial class RaskEndpointExtensions
                 // Resolve the per-host safety limits once per connection (not per frame) — the receive
                 // loop reads them via instance fields on the hot path.
                 var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
+
+                // Server interactivity off means no page may become live, so this endpoint has nothing
+                // to serve. Answered as 404 rather than 400 or 426: to anything probing, an app that
+                // cannot go live should be indistinguishable from one that never had a socket. Refused
+                // here rather than left unmapped so the mapping stays one shape — the marker below and
+                // the other framework endpoints are registered together.
+                if (!limits.ServerInteractivity)
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+
                 if (!ctx.WebSockets.IsWebSocketRequest)
                 {
                     ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
