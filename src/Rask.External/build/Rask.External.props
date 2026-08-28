@@ -1,5 +1,17 @@
 <Project>
 
+  <!-- The Static Web Assets SDK normally auto-generates this build/$(PackageId).props to import the
+       static-web-asset wiring. We provide it ourselves (StaticWebAssetsDisableProjectBuildPropsFileGeneration
+       in the csproj) so the same file can ALSO carry the RaskExternal* knobs below — the SDK-documented
+       extension point. These imports must stay, or NuGet consumers won't get wwwroot/rask-external.js on
+       a URL and every island fails to mount. They are guarded by Exists() because Directory.Build.props
+       imports THIS file in-repo (for the knobs), where the sibling SDK props live only in the packed
+       layout, not on disk. Same shape as Rask.Bootstrap. -->
+  <Import Project="$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssets.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssets.props')"/>
+  <Import Project="$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssetEndpoints.props')"/>
+
   <!--
     Consumer-facing knobs for the island bundle. Override any of these in your project, or with -p:.
 

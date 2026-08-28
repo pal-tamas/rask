@@ -536,6 +536,103 @@ public sealed class PackagingContractTests
     }
 
     /// <summary>Every MSBuild file in the repo that is ours, skipping build output and nested worktrees.</summary>
+    [Fact]
+    public void Razor_SDK_packages_that_ship_their_own_build_props_disable_the_generated_one()
+    {
+        // The Static Web Assets SDK auto-generates build/<PackageId>.props to import its wiring. A
+        // project that ALSO hand-writes that file has two producers for one package path: the SDK's
+        // is packed first and the hand-written one is dropped with NU5118, so the package ships a
+        // ~160-byte import shim where the real props should be. Every consumer-facing property the
+        // .targets stands on silently vanishes.
+        //
+        // Nothing else in the repo can see this. In-repo builds import the real file straight off
+        // disk via Directory.Build.props, so build, unit and E2E all pass; only `dotnet pack`
+        // notices, and only the nightly/release workflows pack. Rask.Bootstrap hit it first,
+        // Rask.External repeated it. Hence a contract, not a comment.
+        var offenders = new List<string>();
+
+        foreach (var csproj in Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories))
+        {
+            var doc = TryLoad(csproj);
+            if (doc?.Root is null)
+                continue;
+
+            var sdk = doc.Root.Attribute("Sdk")?.Value;
+            if (sdk is null || !sdk.Contains("Razor", StringComparison.Ordinal))
+                continue;
+
+            var dir = Path.GetDirectoryName(csproj)!;
+            var packageId = doc.Root.Descendants("PackageId").FirstOrDefault()?.Value
+                            ?? Path.GetFileNameWithoutExtension(csproj);
+
+            // Only a project that hand-writes the file has a collision to avoid.
+            if (!File.Exists(Path.Combine(dir, "build", $"{packageId}.props")))
+                continue;
+
+            var disabled = doc.Root
+                .Descendants("StaticWebAssetsDisableProjectBuildPropsFileGeneration")
+                .Any(e => string.Equals(e.Value.Trim(), "true", StringComparison.OrdinalIgnoreCase));
+
+            if (!disabled)
+                offenders.Add($"{packageId} hand-writes build/{packageId}.props but does not set "
+                              + "StaticWebAssetsDisableProjectBuildPropsFileGeneration, so pack drops it "
+                              + "for the SDK-generated shim (NU5118).");
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
+    public void Hand_written_build_props_import_the_static_web_asset_wiring_they_replaced()
+    {
+        // Disabling the generated props means taking over its job. The SDK still packs
+        // build/Microsoft.AspNetCore.StaticWebAssets*.props, but nothing imports them unless our file
+        // does - and without them a consumer gets no URL for the package's wwwroot assets, so every
+        // island fails to mount with a 404 that points nowhere near this file.
+        string[] required =
+        [
+            "Microsoft.AspNetCore.StaticWebAssets.props",
+            "Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+        ];
+
+        var offenders = new List<string>();
+
+        foreach (var csproj in Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories))
+        {
+            var doc = TryLoad(csproj);
+            if (doc?.Root is null)
+                continue;
+
+            var disabled = doc.Root
+                .Descendants("StaticWebAssetsDisableProjectBuildPropsFileGeneration")
+                .Any(e => string.Equals(e.Value.Trim(), "true", StringComparison.OrdinalIgnoreCase));
+
+            if (!disabled)
+                continue;
+
+            var dir = Path.GetDirectoryName(csproj)!;
+            var packageId = doc.Root.Descendants("PackageId").FirstOrDefault()?.Value
+                            ?? Path.GetFileNameWithoutExtension(csproj);
+            var props = Path.Combine(dir, "build", $"{packageId}.props");
+
+            if (!File.Exists(props))
+            {
+                offenders.Add($"{packageId} disables the generated build props but ships no build/{packageId}.props to replace it.");
+                continue;
+            }
+
+            var text = File.ReadAllText(props);
+
+            foreach (var import in required)
+            {
+                if (!text.Contains(import, StringComparison.Ordinal))
+                    offenders.Add($"{packageId}: build/{packageId}.props does not import {import}, so consumers get no static web assets.");
+            }
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
     private static IEnumerable<string> EnumerateBuildFiles()
     {
         string[] skip = ["obj", "bin", "node_modules", ".git", ".claude", "artifacts"];
