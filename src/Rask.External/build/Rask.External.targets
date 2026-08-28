@@ -117,11 +117,26 @@
 
     AfterTargets="CoreCompile" because the constants only exist once Roslyn has produced the
     assembly, and before anything that compiles the front end.
+
+    The Exists() guard is for THIS repo, not for consumers. Directory.Build.targets imports this file
+    into every project here, but Rask.External.Tasks.dll is produced by a ProjectReference edge only
+    projects referencing Rask.External have — so on a cold tree every other project died with MSB4062
+    naming a file nobody had written yet. Locally a previous build always left the DLL on disk, which
+    is why only CI ever saw it.
+
+    A target Condition rather than a guard on the import or on @(_RaskExternalFile), because neither
+    works: an Import Condition is evaluated in the property/import pass, before items exist, so it
+    excludes every project; and the Lit half of @(_RaskExternalFile) is not populated until
+    _RaskExternalPairLitFiles has run, so gating on it silently emits no prop types for a Lit-only
+    project. A target Condition is evaluated at execution time, by which point ResolveProjectReferences
+    has built the DLL for any project holding the edge. In the shipped package the DLL always sits
+    beside this file, so the guard never fires there.
   -->
   <Target Name="_RaskExternalWritePropTypes"
           AfterTargets="CoreCompile"
           DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles"
-          Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
+          Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'
+                     AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')"
           Inputs="@(IntermediateAssembly)"
           Outputs="$(_RaskExternalObj)types.stamp">
     <WriteExternalPropTypesTask AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
