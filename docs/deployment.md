@@ -240,26 +240,33 @@ Those keys sign the auth cookie, and the default ring is written inside the cont
 replaces the container, would mint a fresh ring and invalidate every cookie already issued. Every signed-in
 user would be silently signed out by every deploy, with nothing in the logs to say why.
 
-`rask new` scaffolds the fix, and it has two halves that are equally load-bearing:
+**`AddRask` does this for you**, and there is nothing to write. When `/data` exists — which is exactly when
+`rask deploy` has mounted the volume — the key ring is persisted to `/data/keys` and the application
+discriminator is pinned to the application name. Both halves are load-bearing: the default discriminator is
+derived from the content root, which differs between the build and runtime images, so a persisted ring alone
+would still fail to unprotect.
+
+On a plain `dotnet run` there is no `/data`, so Rask declines to choose and ASP.NET's per-user development
+ring applies exactly as before. Two knobs, both rarely needed:
+
+| Setting | Effect |
+| --- | --- |
+| `Rask:DataProtection:KeyPath` | Put the ring somewhere other than `/data/keys`. |
+| `Rask:DataProtection:KeyPath` = `""` | Opt out entirely, and manage the ring yourself. |
+
+To take it over completely, configure Data Protection **after** `AddRask` — options setups run in
+registration order, so yours is the last writer and wins:
 
 ```csharp
-var keyRingPath = builder.Configuration["Rask:DataProtection:KeyPath"]
-                  ?? (Directory.Exists("/data") ? "/data/keys" : null);
-if (keyRingPath is not null)
-{
-    builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(Directory.CreateDirectory(keyRingPath))
-        .SetApplicationName(builder.Environment.ApplicationName);
-}
+builder.Services.AddRask();
+builder.Services.AddDataProtection()
+    .PersistKeysToAzureBlobStorage(/* … */)
+    .SetApplicationName("my-app");
 ```
 
-`SetApplicationName` is not optional garnish: the default discriminator is derived from the content root,
-which differs between the build and runtime images, so a persisted ring alone would still fail to unprotect.
-Set `Rask:DataProtection:KeyPath` to put the ring elsewhere. On a plain `dotnet run` there is no `/data`
-and no override, so the block is skipped and ASP.NET's per-user development ring applies.
-
-If you're carrying an app that predates this, add the block — an existing deployment will sign everyone out
-once, when the persisted ring first replaces the ephemeral one, and never again.
+If you're carrying an app that predates this and wrote the block by hand, you can delete it. An app that
+never had it will sign everyone out once, when the persisted ring first replaces the ephemeral one, and
+never again.
 
 ### The log store
 
