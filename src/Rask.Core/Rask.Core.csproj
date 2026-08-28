@@ -54,8 +54,8 @@
     <!-- Islands render a host element whose subtree a foreign renderer owns, so they set Component's
          OpaqueSubtreeInternal — the seam the live diff and the client morph both read to stop at the
          island's border. -->
-    <InternalsVisibleTo Include="Rask.Islands"/>
-    <InternalsVisibleTo Include="Rask.Islands.Tests"/>
+    <InternalsVisibleTo Include="Rask.TypeScript"/>
+    <InternalsVisibleTo Include="Rask.TypeScript.Tests"/>
     <!-- For Navigator.EnterHandler: the remote-dispatch file bridge extends Navigator, so its tests need
          the same handler scope Rask.Core.Tests uses to exercise Download. -->
     <InternalsVisibleTo Include="Rask.Cqrs.Client.Tests"/>

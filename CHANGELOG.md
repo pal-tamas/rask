@@ -8,44 +8,53 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
-- **A `.tsx` or Lit file can now be an ordinary Rask component.** Mark a component `[Island]`, drop
-  the front-end file beside it the way `Counter.js` already sits beside `Counter.cs`, and place it
-  anywhere the chain goes — a leaf inside a card, a subtree, or the whole of a `[Route]` page's
-  `Render()`. There is deliberately no separate "page" concept: "React owns this route" is the case
-  where the island happens to be the page root, so replaceability is a property of the *component*
-  rather than of the route, and it composes at every level of the tree. New `Rask.Islands` package;
-  see [docs/islands.md](docs/islands.md).
+- **A `.tsx` or Lit file can now be an ordinary Rask component.** Derive from `ReactComponent` or
+  `LitComponent`, drop the front-end file beside it the way `Counter.js` already sits beside
+  `Counter.cs`, and place it anywhere the chain goes — a leaf inside a card, a subtree, or the whole
+  of a `[Route]` page's `Render()`. There is deliberately no separate "page" concept: "React owns this
+  route" is the case where the component happens to be the page root, so replaceability is a property
+  of the *component* rather than of the route, and it composes at every level of the tree. New
+  `Rask.TypeScript` package; see
+  [docs/typescript-components.md](docs/typescript-components.md).
 
-  An island is an ordinary component carrying an attribute, **not** a subclass of an island base
-  type. A base class would spend the single-inheritance slot, so a component already extending
-  `BsBlock` or an app's own base could never become island-backed — and it would be the one feature
-  in the framework that works by inheritance rather than by a declaration a generator reads.
-  Migrating an existing component is an attribute and a deletion: add `[Island]`, remove `Render()`,
-  and every call site is unchanged.
+  **The base class is the declaration.** It states the runtime in the one place that cannot disagree
+  with what actually mounts, which is also what lets a Lit component pair with `./Name.ts` by
+  convention — a Lit file is ordinary TypeScript and no extension distinguishes it, so a marker
+  attribute would have meant naming the runtime twice with nothing keeping the two in step. The cost
+  is the single-inheritance slot: a component already extending `BsBlock` cannot also be a
+  `ReactComponent`. That is the deliberate trade rather than an oversight — chrome in Rask comes from
+  the chain, not from inheritance, so the answer is `BsCard[ Chart.Series(points) ]`.
+
+  It also lets the type system replace an analyzer. `TypeScriptComponent` seals `Render()`, so writing
+  one is CS0239 from the compiler itself and **RASK057 is retired**; a rule the type system can state
+  does not need an analyzer to notice it. Override `Module` with a *constant* string to point
+  somewhere convention cannot reach — the bundler reads it at build time, so anything computed is
+  **RASK059**.
 
   **C# owns the props.** They are declared as ordinary properties, so the chain, the required-prop
   rule and every existing analyzer apply unchanged, and they are serialized by generated
-  `Utf8JsonWriter` code rather than by reflection — which is what lets an island survive trimming and
+  `Utf8JsonWriter` code rather than by reflection — which is what lets them survive trimming and
   AOT. The prop vocabulary is the one the CQRS codecs already use; `WireShape` and the TypeScript
   emitter moved to `Rask.Generators.Shared` so there is one answer to "what does this C# type look
   like on the wire", not two that drift.
 
   **Callbacks re-enter C# over the channel every DOM handler already uses** — the open WebSocket on
-  the Server host, a direct `[JSExport]` call into this tab's runtime on WASM. An island never opens
+  the Server host, a direct `[JSExport]` call into this tab's runtime on WASM. Such a component never opens
   a channel of its own, so a callback inherits sequence stamping, the queue-while-reconnecting and
   the auth suppression window for free, and the `.tsx` is byte-identical on both hosts. A callback
   prop also makes its page interactive under the auto render ladder, exactly as `data-rask-on-click`
-  does — an island whose callback could never fire would otherwise render, load its chunk and mount
-  looking finished, then do nothing on the first click. An island with no callbacks still costs a
+  does — a component whose callback could never fire would otherwise render, load its chunk and mount
+  looking finished, then do nothing on the first click. One with no callbacks still costs a
   page nothing: it mounts from its own script tag and the page stays a plain document.
 
-  **The live diff treats an island's subtree as opaque**, because React reconciles those nodes on its
+  **The live diff treats the subtree as opaque**, because React reconciles those nodes on its
   own schedule and two writers on one subtree does not throw — it corrupts on the next parent
   re-render. `Component` gains `OpaqueSubtree`; the flag rides `RenderFrame` so the differ skips by
   `SubtreeLength`, and is written into the HTML as `data-rask-opaque` so the client morph refuses to
   descend. Both are needed: the diff and the full-HTML fallback are separate paths to the same DOM,
-  and the morph is the one that bites, since the server renders an island *empty* and a positional
-  walk would trim every mounted node.
+  and the morph is the one that bites: inside the boundary the live DOM and the server's HTML
+  genuinely disagree — the framework has replaced what was rendered, and the slot templates were
+  lifted out at mount — so a positional walk would trim every mounted node.
 
   What crosses the boundary is props, and only props. A changed prop travels as a single attribute op
   and the client routes it to the adapter's `update`, so an update is a reconcile and never a
@@ -55,16 +64,16 @@ them until tagged releases begin.
 
   React and Lit ship first, and Preact rides the React adapter unchanged — a Preact project aliases
   `react` to `preact/compat`, which is the same aliasing the TypeScript SPA lane already relies on.
-  The client runtime imports no framework at all: each island's built chunk default-exports its own
+  The client runtime imports no framework at all: each built chunk default-exports its own
   adapter, three functions wide, so further runtimes are additive.
 
-  `dotnet build` writes one entry module per island and hands Vite a generated config that builds a
+  `dotnet build` writes one entry module per component and hands Vite a generated config that builds a
   chunk each plus the manifest the runtime resolves names through. **Node runs only when a project has
-  a `package.json`** — that single probe is the gate, so an island-free app, and one whose islands are
+  a `package.json`** — that single probe is the gate, so an app with none of them, and one whose components are
   all `.razor`, never learns this package has a build step.
 
-  **Slots.** An island can wrap Rask-rendered content, so replacing a component mid-tree does not
-  strand its descendants: `Panel[ IslandSlot.Named("footer")[…], Table.Rows(_rows) ]`. The server
+  **Slots.** One can wrap Rask-rendered content, so replacing a component mid-tree does not
+  strand its descendants: `Panel[ TypeScriptSlot.Named("footer")[…], Table.Rows(_rows) ]`. The server
   renders each slot into an inert `<template data-rask-slot="…">` — so Rask-owned nodes cannot flash
   between first paint and mount — and the client lifts it into a fragment the adapter places. React
   adopts into an empty ref'd container it never renders children into; Lit needs no trick, because a

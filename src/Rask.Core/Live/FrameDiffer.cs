@@ -372,7 +372,7 @@ public static class FrameDiffer
                         path, domSlot, output);
 
                     // An opaque element's DOM belongs to a foreign renderer — React, Lit, Blazor (see
-                    // Rask.Islands). Its attributes still diff above, which is how changed props reach
+                    // Rask.TypeScript). Its attributes still diff above, which is how changed props reach
                     // the adapter; its children never do. Recursing here would put two writers on one
                     // subtree, and that does not throw — it corrupts the moment the parent re-renders.
                     //

@@ -23,13 +23,13 @@
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Spa.Hosting\build\Rask.Spa.Hosting.targets') "/>
 
   <!--
-    Rask.Islands gates itself on the project having a package.json — an island cannot be bundled
+    Rask.TypeScript gates itself on the project having a package.json — an island cannot be bundled
     without one, and that single file probe is what keeps this import free for the ~100 projects in
     this repo that have no front end. Without it, every project would walk its own source tree looking
     for a .tsx on every evaluation, design-time builds included.
   -->
-  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Islands\build\Rask.Islands.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Islands\build\Rask.Islands.targets') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.TypeScript\build\Rask.TypeScript.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.TypeScript\build\Rask.TypeScript.targets') "/>
 
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets') "/>

@@ -4277,13 +4277,19 @@ function morph(from, to) {
             if (!raskShouldSuppressChecked(from, checked) && from.checked !== checked) from.checked = checked;
         }
     }
-    // An island's subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.Islands).
+    // This subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.TypeScript).
     // Attributes above still sync, which is exactly how a changed `props` reaches the adapter; the
     // children never do. Pairing them would let a full-document morph (scoped-CSS delivery, reconnect,
-    // any untrusted structural op) delete DOM that renderer owns and is about to reuse — and because
-    // the server renders an island as an EMPTY element, `tc` is empty here, so the positional walk
-    // below would trim every mounted node. Distinct from data-rask-managed, which skips a node as a
-    // sibling; this one keeps the node and stops at its border.
+    // any untrusted structural op) delete DOM that renderer owns and is about to reuse.
+    //
+    // The two sides genuinely disagree here, permanently and by design, which is why this cannot be
+    // softened into a smarter walk. `from` holds whatever the framework rendered; `to` holds the
+    // server's idea of it — an empty element, or one still carrying the <template data-rask-slot>
+    // children the client lifted out and deleted at mount. A positional walk would trim every mounted
+    // node, and re-inserting the templates would hand the adapter its slot content a second time.
+    //
+    // Distinct from data-rask-managed, which skips a node as a sibling; this one keeps the node and
+    // stops at its border.
     if (from.hasAttribute && (from.hasAttribute("data-rask-opaque") || to.hasAttribute("data-rask-opaque"))) {
         return;
     }
@@ -5351,7 +5357,7 @@ async function send(payload) {
     }
 }
 
-// The island runtime (Rask.Islands) is a separate, opt-in module and cannot see `send` in this scope.
+// The island runtime (Rask.TypeScript) is a separate, opt-in module and cannot see `send` in this scope.
 // It must not open a channel of its own either: here that would mean an HTTP round trip to a server
 // that may not exist, when the handler it wants is already in this tab's .NET runtime. Going through
 // this bridge keeps an island callback a direct JSExport call, exactly like a DOM handler.

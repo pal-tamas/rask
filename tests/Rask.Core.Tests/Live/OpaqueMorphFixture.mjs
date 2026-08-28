@@ -24,7 +24,7 @@ const {morph} = loadMorph(morphPath);
 function liveIsland(props, opaque) {
     const attrs = {name: "Chart", props};
     if (opaque) attrs["data-rask-opaque"] = "";
-    return withKids("RASK-ISLAND", [
+    return withKids("RASK-TS", [
         withKids("DIV", [makeEl("SVG"), makeEl("SPAN", {}, "41,200")], {class: "recharts-wrapper"})
     ], attrs);
 }
@@ -33,7 +33,7 @@ function liveIsland(props, opaque) {
 function renderedIsland(props, opaque) {
     const attrs = {name: "Chart", props};
     if (opaque) attrs["data-rask-opaque"] = "";
-    return makeEl("RASK-ISLAND", attrs);
+    return makeEl("RASK-TS", attrs);
 }
 
 function run(opaque) {

@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      netstandard2.0 matches what MSBuild loads at build time: the task runs inside the MSBuild host
+      process, which on Windows may still be full-framework MSBuild.exe. Same constraint, and same
+      reasoning, as Rask.Spa.Tasks and Rask.Wasm.Tasks.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Rask.TypeScript.Tasks</RootNamespace>
+
+    <!-- Build-only: it ships inside Rask.TypeScript' build/ folder, loaded by an explicit <UsingTask>,
+         and is never a compile reference or a package of its own. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ExcludeAssets=runtime: MSBuild's own resolver provides this to a task at runtime, and shipping
+         a second copy risks loading two versions of the same assembly into one process. -->
+    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!--
+    Deploy next to Rask.TypeScript.targets so <UsingTask AssemblyFile="$(MSBuildThisFileDirectory)…"/>
+    resolves identically for in-repo consumers and for NuGet consumers, which get build/ verbatim.
+  -->
+  <Target Name="CopyTaskAssemblyToRaskTypeScriptBuild" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.TypeScript\build\"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.TypeScript.Tasks.Tests"/>
+  </ItemGroup>
+
+</Project>

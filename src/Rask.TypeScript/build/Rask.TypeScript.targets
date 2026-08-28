@@ -1,0 +1,172 @@
+<Project>
+
+  <!--
+    Rask.TypeScript build integration: turn the front-end files sitting beside components into one
+    bundled chunk each, plus the manifest the client runtime resolves names through.
+
+      1. Find the island sources (a .tsx/.jsx beside a .cs, or an explicit <RaskTypeScript> item).
+      2. No islands -> stop. Nothing below runs, and node is never probed.
+      3. Vendor the adapters into obj/, so the generated entries import a stable path.
+      4. Write one entry module per island, plus the Vite config, into obj/.
+      5. `npm ci` / `npm install`, then `vite build` with that config.
+
+    Everything is conditioned on an island actually existing, because this file is imported into EVERY
+    project of every consumer — same as Rask.Spa.Hosting.targets.
+
+    The MSBuild rules that shape all of it, both learned the hard way in the SPA targets:
+
+      * Item-list references are illegal in a property Condition (MSB4099), so "do we have islands?"
+        cannot be a property computed from @(_RaskTypeScriptFile). It is a target Condition instead.
+      * Properties evaluate in an EARLIER PASS than items, so a property that reads @(SomeItem) reads
+        nothing at all — silently, producing an empty string rather than an error.
+  -->
+
+  <PropertyGroup>
+    <!--
+      ABSOLUTE, deliberately. IntermediateOutputPath is relative to the project, and these paths are
+      written into generated JavaScript as import specifiers — where a relative path with no leading
+      './' is not a relative path at all but a BARE specifier, which the bundler resolves against
+      node_modules and fails on. The failure names a package nobody wrote.
+    -->
+    <_RaskTypeScriptObj>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask-ts'))\</_RaskTypeScriptObj>
+    <_RaskTypeScriptAdapters>$(_RaskTypeScriptObj)rask\</_RaskTypeScriptAdapters>
+    <_RaskTypeScriptOut>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTypeScriptOutputDir)'))</_RaskTypeScriptOut>
+    <_RaskTypeScriptManifest>$(_RaskTypeScriptOut)\manifest.json</_RaskTypeScriptManifest>
+
+    <!--
+      A project can only bundle islands if it has a package.json, so its absence is the cheapest
+      correct gate — one file probe, and it is what makes this file free to import into every project
+      of every consumer. The glob below would otherwise walk each project's source tree on every
+      evaluation, design-time builds included, to discover that almost none of them have a .tsx.
+
+      The cost of gating here is that "I added Chart.tsx and nothing happened" gets no diagnostic in a
+      project that has no package.json. That is the trade taken deliberately: the bundle could not
+      have run there anyway, the CLI's island scaffolding writes the package.json, and
+      docs/islands.md says so up front.
+    -->
+    <_RaskTypeScriptBundlable Condition="Exists('$(MSBuildProjectDirectory)/package.json')">true</_RaskTypeScriptBundlable>
+
+    <!-- Design-time builds are excluded everywhere below: an IDE reloading the project must never
+         shell out to npm. -->
+    <_RaskTypeScriptEnabled Condition="'$(RaskTypeScriptBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND '$(_RaskTypeScriptBundlable)' == 'true'">true</_RaskTypeScriptEnabled>
+  </PropertyGroup>
+
+  <!--
+    The island sources.
+
+    A .tsx/.jsx anywhere in the project pairs with the component of the same name beside it — the same
+    convention scoped CSS and scoped JS already use, so there is nothing new to learn and nothing to
+    register.
+
+    A .ts is only picked up when a .cs of the SAME NAME sits beside it, and that filter is what makes
+    Lit workable here. A bare **/*.ts glob would sweep up every piece of TypeScript in the project;
+    requiring the C# sibling narrows it to exactly the pairs a LitComponent declares. It has to match,
+    too: the C# side now infers `./Name.ts` from the base class, so a build that ignored those files
+    would render a module the bundle never built — markup pointing at a chunk that does not exist,
+    with nothing failing until the browser asks for it.
+
+    The excludes are narrow on purpose. A **/* walk that reached node_modules would enumerate tens of
+    thousands of files on every evaluation, costing far more than the build it feeds.
+  -->
+  <ItemGroup Condition="'$(_RaskTypeScriptBundlable)' == 'true'">
+    <_RaskTypeScriptFile Include="$(MSBuildProjectDirectory)/**/*.tsx;$(MSBuildProjectDirectory)/**/*.jsx"
+                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
+      <IslandName>%(Filename)</IslandName>
+      <Runtime>react</Runtime>
+    </_RaskTypeScriptFile>
+
+    <!-- .d.ts carries no code, and its %(Filename) still ends in '.d' — so it would pair with nothing
+         and name a component nobody declared. -->
+    <_RaskTypeScriptLitCandidate Include="$(MSBuildProjectDirectory)/**/*.ts"
+                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*;$(MSBuildProjectDirectory)/**/*.d.ts">
+      <Sibling>%(RootDir)%(Directory)%(Filename).cs</Sibling>
+    </_RaskTypeScriptLitCandidate>
+
+    <_RaskTypeScriptFile Include="@(_RaskTypeScriptLitCandidate)" Condition="Exists('%(_RaskTypeScriptLitCandidate.Sibling)')">
+      <IslandName>%(Filename)</IslandName>
+      <Runtime>lit</Runtime>
+    </_RaskTypeScriptFile>
+
+    <!-- Still available for a file convention cannot reach — the build-side counterpart of overriding
+         Module in C#. The two have to agree; nothing checks that they do. -->
+    <_RaskTypeScriptFile Include="@(RaskTypeScript)">
+      <IslandName Condition="'%(RaskTypeScript.IslandName)' == ''">%(Filename)</IslandName>
+      <Runtime Condition="'%(RaskTypeScript.Runtime)' == ''">lit</Runtime>
+    </_RaskTypeScriptFile>
+
+    <_RaskTypeScriptAdapterSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
+  </ItemGroup>
+
+  <UsingTask TaskName="Rask.TypeScript.Tasks.WriteTypeScriptBuildInputsTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.TypeScript.Tasks.dll"/>
+
+  <!--
+    The adapters, vendored into obj/ rather than into the author's source tree. They are refreshed
+    from the package on every build, which is what keeps the client half wire-locked to the C# half:
+    upgrading Rask.TypeScript upgrades both together or the pair drifts.
+  -->
+  <Target Name="_RaskTypeScriptVendorAdapters"
+          Condition="'$(_RaskTypeScriptEnabled)' == 'true'"
+          Inputs="@(_RaskTypeScriptAdapterSource)"
+          Outputs="@(_RaskTypeScriptAdapterSource->'$(_RaskTypeScriptAdapters)%(Filename)%(Extension)')">
+    <Copy SourceFiles="@(_RaskTypeScriptAdapterSource)" DestinationFolder="$(_RaskTypeScriptAdapters)"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
+  <!--
+    AFTER the compile: the island's C# has to be valid before its front end is worth bundling, and a
+    bundle that preceded the compile would build against a component the generator has not accepted.
+  -->
+  <Target Name="_RaskTypeScriptWriteInputs"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="_RaskTypeScriptVendorAdapters"
+          Condition="'$(_RaskTypeScriptEnabled)' == 'true' AND '@(_RaskTypeScriptFile)' != ''">
+    <WriteTypeScriptBuildInputsTask Islands="@(_RaskTypeScriptFile)"
+                                IntermediateDirectory="$(_RaskTypeScriptObj)"
+                                AdapterDirectory="$(_RaskTypeScriptAdapters)"
+                                OutputDirectory="$(_RaskTypeScriptOut)"
+                                ManifestPath="$(_RaskTypeScriptManifest)"
+                                PublicBase="$(RaskTypeScriptPublicBase)">
+      <Output TaskParameter="ConfigPath" PropertyName="_RaskTypeScriptConfig"/>
+    </WriteTypeScriptBuildInputsTask>
+  </Target>
+
+  <!-- Its own target with its own up-to-date check, because it is the expensive one. -->
+  <Target Name="_RaskTypeScriptInstall"
+          DependsOnTargets="_RaskTypeScriptWriteInputs"
+          Condition="'$(_RaskTypeScriptEnabled)' == 'true' AND '@(_RaskTypeScriptFile)' != ''"
+          Inputs="$(MSBuildProjectDirectory)/package.json"
+          Outputs="$(IntermediateOutputPath)rask-ts.install.stamp">
+    <PropertyGroup>
+      <_RaskTypeScriptInstall Condition="Exists('$(MSBuildProjectDirectory)/package-lock.json')">$(RaskTypeScriptInstallCommand)</_RaskTypeScriptInstall>
+      <_RaskTypeScriptInstall Condition="'$(_RaskTypeScriptInstall)' == ''">$(RaskTypeScriptFirstInstallCommand)</_RaskTypeScriptInstall>
+    </PropertyGroup>
+    <Message Importance="high" Text="Rask.TypeScript: $(_RaskTypeScriptInstall) in $(MSBuildProjectDirectory)"/>
+    <Exec Command="$(_RaskTypeScriptInstall)" WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"/>
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <Touch Files="$(IntermediateOutputPath)rask-ts.install.stamp" AlwaysCreate="true"/>
+  </Target>
+
+  <!--
+    The manifest is listed first among the Outputs so that deleting the bundle by hand forces a
+    rebuild even though the stamp file survives.
+  -->
+  <Target Name="_RaskTypeScriptBundle"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="_RaskTypeScriptInstall"
+          Condition="'$(_RaskTypeScriptEnabled)' == 'true' AND '@(_RaskTypeScriptFile)' != ''"
+          Inputs="@(_RaskTypeScriptFile);$(_RaskTypeScriptConfig)"
+          Outputs="$(_RaskTypeScriptManifest);$(IntermediateOutputPath)rask-ts.build.stamp">
+    <Message Importance="high" Text="Rask.TypeScript: bundling @(_RaskTypeScriptFile->Count()) island(s) ($(Configuration))"/>
+    <Exec Command="$(RaskTypeScriptBuildCommand) &quot;$(_RaskTypeScriptConfig)&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"/>
+    <Error Condition="!Exists('$(_RaskTypeScriptManifest)')"
+           Code="RASKISLAND002"
+           Text="Rask.TypeScript: the bundler finished but wrote no manifest at '$(_RaskTypeScriptManifest)'. The client runtime resolves an island's chunk through that file, so every island on the page would fail to mount."/>
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <Touch Files="$(IntermediateOutputPath)rask-ts.build.stamp" AlwaysCreate="true"/>
+  </Target>
+
+</Project>

@@ -93,7 +93,7 @@ public struct RenderFrame
 
     /// <summary>
     ///     For <see cref="RenderFrameKind.Element" />: whether everything below this element is owned
-    ///     by a foreign renderer (see <c>Rask.Islands</c>). <see cref="FrameDiffer" /> compares such an
+    ///     by a foreign renderer (see <c>Rask.TypeScript</c>). <see cref="FrameDiffer" /> compares such an
     ///     element's attributes and then skips its whole subtree by <see cref="SubtreeLength" />,
     ///     because those nodes belong to React/Lit/Blazor and are reconciled on their schedule, not
     ///     ours. Packs into the padding beside <see cref="SelfClosing" />, so the frame does not grow.

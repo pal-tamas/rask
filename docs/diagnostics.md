@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK058)
+# Rask diagnostics (RASK001–RASK059)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -89,10 +89,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 | [RASK054](#rask054) | Info | Page cannot run in the browser |
-| [RASK055](#rask055) | Error | Island component must be partial |
-| [RASK056](#rask056) | Error | Island prop has no wire encoding |
-| [RASK057](#rask057) | Error | Island declares its own Render |
-| [RASK058](#rask058) | Error | Island name collision |
+| [RASK055](#rask055) | Error | TypeScript component must be partial |
+| [RASK056](#rask056) | Error | TypeScript component prop has no wire encoding |
+| RASK057 | — | *Retired* — `Render` is sealed by the base class, so the compiler reports it |
+| [RASK058](#rask058) | Error | TypeScript component name collision |
+| [RASK059](#rask059) | Error | Module override must be a constant string |
 
 ---
 
@@ -1208,33 +1209,30 @@ compiles against the server half and has no view of what a browser build referen
 
 ## RASK055
 
-**Island component must be partial** · Error
+**TypeScript component must be partial** · Error
 
-Everything that makes a component an island is generated into a second part of the class: the host
-element, the diff boundary, the hydration step, the props writer. Without `partial` there is nowhere
-to put any of it.
+A `ReactComponent` or `LitComponent` is completed by a second part of the class: its name, its module
+and its props writer. Without `partial` there is nowhere to put any of it.
 
 ```csharp
-// ✗ RASK054 — nothing can be generated into it
-[Island]
-public sealed class Chart : Component { }
+// ✗ RASK055 — nothing can be generated into it
+public sealed class Chart : ReactComponent { }
 
 // ✓
-[Island]
-public sealed partial class Chart : Component { }
+public sealed partial class Chart : ReactComponent { }
 ```
 
-Reported as an error rather than left to the compiler because the failure is otherwise a *silent wrong
-answer*: the class still compiles as an ordinary Rask component and renders its own markup instead of
-the front-end file beside it.
+Reported here, against the declaration, rather than left to the compiler: what it would otherwise
+produce is three "does not implement inherited abstract member" errors naming `ComponentName`,
+`Module` and `WriteProps`, none of which the author wrote or should have to know about.
 
 ## RASK056
 
-**Island prop has no wire encoding** · Error
+**TypeScript component prop has no wire encoding** · Error
 
-An island's props are serialized to JSON by generated code rather than by reflection — which is what
-lets an island survive trimming and AOT — so a shape the generator cannot express has to be reported
-now rather than arriving as `null` in the browser.
+Props are serialized to JSON by generated code rather than by reflection — which is what lets them
+survive trimming and AOT — so a shape the generator cannot express has to be reported now rather than
+arriving as `null` in the browser.
 
 The supported set is the same wire vocabulary [RASK053](#rask053) documents, plus callbacks as
 `Action`, `Action<T>`, `Func<Task>` and `Func<T, Task>`.
@@ -1252,36 +1250,43 @@ should say so with `[SkipFactory]`, which keeps it out of the props entirely.
 
 ## RASK057
 
-**Island declares its own Render** · Error
+**Retired.** It reported a `Render()` override on a component whose markup comes from a front-end
+file, where the override would never be called yet still read as the component's markup.
 
-An island renders a host element and lets its own framework fill the subtree, so a `Render()` override
-is never called.
-
-```csharp
-// ✗ RASK057 — never called; the markup comes from Chart.tsx
-[Island]
-public sealed partial class Chart : Component
-{
-    protected override Component? Render() => Div["loading…"];
-}
-```
-
-Left in place it reads as the component's markup while having no effect at all, which is worse than
-either behaviour on its own. For a placeholder shown until the island mounts, use the front-end file's
-own initial render.
+`TypeScriptComponent` now seals `Render()`, so writing one is CS0239 from the compiler itself. A rule
+the type system can state does not need an analyzer to notice it. For a placeholder shown until the
+component mounts, use the front-end file's own initial render.
 
 ## RASK058
 
-**Island name collision** · Error
+**TypeScript component name collision** · Error
 
-The client runtime resolves an island's module by its simple type name, so two islands sharing one
-name would resolve to whichever registered last — silently, and potentially differently between
-builds.
+The client runtime resolves a module by the component's simple type name, so two sharing one name
+would resolve to whichever registered last — silently, and potentially differently between builds.
 
 ```csharp
 // ✗ RASK058 — both are "Chart" to the browser
-namespace Sales    { [Island] public sealed partial class Chart : Component { } }
-namespace Support  { [Island] public sealed partial class Chart : Component { } }
+namespace Sales    { public sealed partial class Chart : ReactComponent { } }
+namespace Support  { public sealed partial class Chart : ReactComponent { } }
 ```
 
-Rename one, or give it an explicit module with `[Island("./SupportChart.tsx")]`.
+Rename one, or give it an explicit module by overriding `Module`.
+
+## RASK059
+
+**Module override must be a constant string** · Error
+
+The bundler needs the module specifier at *build* time, to generate the entry that pairs the component
+with its adapter — long before any of this code runs. So the override has to be a literal the
+generator can read straight out of the syntax.
+
+```csharp
+// ✗ RASK059 — the build cannot evaluate this
+protected override string Module => $"./widgets/{Name}.ts";
+
+// ✓
+protected override string Module => "@acme/charts/Chart";
+```
+
+Anything computed would leave the browser resolving a name the bundle never built — markup pointing at
+a chunk that does not exist, with nothing failing until someone loads the page.
