@@ -1,0 +1,26 @@
+/*
+  This sample's stylesheet, compiled by Rask.Tailwind into wwwroot/css/app.css.
+
+  It replaced two CDN <link>s (Bootstrap and Bootstrap Icons) and a hand-written palette that existed
+  only to override Bootstrap's variables. Nothing here is a component class: the markup says what it
+  looks like, and this file carries only the palette the utilities read.
+*/
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #7c3aed;
+  --color-accent-strong: #512bd4;
+  --color-accent-soft: #f1ebfd;
+}
+
+/*
+  Preflight strips link colour, and these samples lean on plain <a> in prose rather than styling every
+  one at the call site.
+*/
+a {
+  color: var(--color-accent);
+}
+
+a:hover {
+  color: var(--color-accent-strong);
+}

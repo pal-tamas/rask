@@ -14,28 +14,28 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
-                    Button.Class("btn btn-primary btn-sm").Id("fs-open").OnClickAsync(Open)[
-                        I.Class("bi bi-folder2-open me-1"), "Open file"],
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
+                    Button.Class(Ui.BtnPrimary).Id("fs-open").OnClickAsync(Open)[
+                        Icon.Name(IconName.Folder2Open).Class("me-1"), "Open file"],
                     Button
-                        .Class("btn btn-outline-primary btn-sm")
+                        .Class(Ui.BtnOutlinePrimary)
                         .Id("fs-save")
                         .Disabled(_handle is null)
-                        .OnClickAsync(Save)[I.Class("bi bi-save me-1"), "Save"],
-                    Button.Class("btn btn-outline-primary btn-sm").Id("fs-saveas").OnClickAsync(SaveAs)[
+                        .OnClickAsync(Save)[Icon.Name(IconName.Save).Class("me-1"), "Save"],
+                    Button.Class(Ui.BtnOutlinePrimary).Id("fs-saveas").OnClickAsync(SaveAs)[
                         "Save as…"]
                 ],
-                Div.Class("mb-2 small text-secondary")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
+                Div.Class("mb-2 text-sm text-slate-500 dark:text-slate-400")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
                 Textarea
                     .Value(_text)
                     .Id("fs-text")
-                    .Class("form-control mb-2")
+                    .Class($"{Ui.Input} mb-2")
                     .Rows(8)
                     .Placeholder("Open a text file, or type here and Save as…")
                     .OnInput(v => _text = v),
-                Div.Class("small text-secondary")["Status: ", Code.Id("fs-status")[_status]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("fs-status")[_status]]
             ]
         ];
 

@@ -13,7 +13,7 @@ public sealed partial class NestedListForeachDemo : Component
         _model.Items.Add(new LineItem { Description = "Coffee beans (250g)", Quantity = 2 });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     protected override Component? Render()
     {
@@ -23,11 +23,11 @@ public sealed partial class NestedListForeachDemo : Component
             var captured = item; // foreach already captures per-iteration but make it loud.
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Input.Bind(() => captured.Description).Class("form-control form-control-sm"),
+                    Input.Bind(() => captured.Description).Class(Ui.Input),
                     ValidationMessage.Template(FieldError).For(() => captured.Description)
                 ],
                 Td.Style("width: 6rem;")[
-                    Input.Bind(() => captured.Quantity).Class("form-control form-control-sm"),
+                    Input.Bind(() => captured.Quantity).Class(Ui.Input),
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
@@ -39,9 +39,9 @@ public sealed partial class NestedListForeachDemo : Component
 
         return
         [
-            Form.Model(_model).OnValidSubmit(m => _submission = $"Submitted {m.Items.Count} line item(s).").Class("vstack gap-3")[
+            Form.Model(_model).OnValidSubmit(m => _submission = $"Submitted {m.Items.Count} line item(s).").Class("flex flex-col gap-3")[
                 DataAnnotationsValidator,
-                Table.Class("table table-sm align-middle mb-0")[
+                Table.Class($"{Ui.Table} text-sm align-middle mb-0")[
                     Thead[Tr[Th["Description"], Th["Quantity"], Th]],
                     Tbody[rows]
                 ],
@@ -57,7 +57,7 @@ public sealed partial class NestedListForeachDemo : Component
             ],
             _submission is null
                 ? null
-                : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0").Id("nf-list-result")[_submission]
+                : Div.Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
         ];
     }
 }

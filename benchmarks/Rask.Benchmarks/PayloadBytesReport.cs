@@ -277,7 +277,7 @@ internal static partial class PayloadBytesReport
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
                 Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),
@@ -289,7 +289,7 @@ internal static partial class PayloadBytesReport
             Doctype,
             Html[
                 Body[
-                    Div.Class("container").Id("root")[
+                    Div.Class("wrap").Id("root")[
                         Div.Class("counter").Id("counter")[Span.Class("value")[counter.ToString()]],
                         Div.Class("body")[rows]
                     ]
@@ -305,7 +305,7 @@ internal static partial class PayloadBytesReport
         {
             var idx = order[i];
             rows.Add(Div
-                .Class("row")
+                .Class("line")
                 .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
                 Span[$"Item {idx}"]
             ]);
@@ -334,7 +334,7 @@ internal static partial class PayloadBytesReport
         var nav = new List<Component>(12);
         for (var i = 0; i < 12; i++)
         {
-            nav.Add(A.Href($"/guides/{i}").Class("nav-link").Key(i)[$"Guide {i}"]);
+            nav.Add(A.Href($"/guides/{i}").Class("menu-link").Key(i)[$"Guide {i}"]);
         }
 
         return [
@@ -362,7 +362,7 @@ internal static partial class PayloadBytesReport
         for (var i = 0; i < rowCount; i++)
         {
             var text = i == rowCount / 2 ? $"ticker {counter}" : $"Item {i}";
-            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
                 Span.Class("label")[text],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
                 Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),

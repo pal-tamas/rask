@@ -1,4 +1,5 @@
 using System.Text;
+using Rask.Example.Shared;
 using Rask.Wasm.Browser;
 
 namespace Rask.Example.Wasm.Features;
@@ -18,49 +19,49 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                Div.Class("d-flex gap-2 flex-wrap align-items-center mb-2")[
-                    Label.Class("small text-secondary mb-0").For("serial-baud")["Baud"],
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
+                    Label.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").For("serial-baud")["Baud"],
                     Input
                         .Value(_baudRate.ToString())
                         .Id("serial-baud")
                         .Type(InputType.Number)
-                        .Class("form-control form-control-sm")
+                        .Class(Ui.Input)
                         .Style("width: 7rem")
                         .Disabled(_port is not null)
                         .OnInput(v => int.TryParse(v, out _baudRate)),
                     Button
-                        .Class("btn btn-primary btn-sm")
+                        .Class(Ui.BtnPrimary)
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClickAsync(Connect)[I.Class("bi bi-usb-plug me-1"), "Connect"],
+                        .OnClickAsync(Connect)[Icon.Name(IconName.UsbPlug).Class("me-1"), "Connect"],
                     Button
-                        .Class("btn btn-outline-danger btn-sm")
+                        .Class(Ui.BtnOutlineDanger)
                         .Id("serial-disconnect")
                         .Disabled(_port is null)
                         .OnClickAsync(Disconnect)["Disconnect"]
                 ],
-                Div.Class("input-group input-group-sm mb-2")[
+                Div.Class($"{Ui.InputGroup} mb-2")[
                     Input
                         .Value(_outgoing)
                         .Id("serial-outgoing")
-                        .Class("form-control")
+                        .Class(Ui.Input)
                         .Placeholder("Line to send")
                         .Disabled(_port is null)
                         .OnInput(v => _outgoing = v),
                     Button
-                        .Class("btn btn-primary")
+                        .Class(Ui.BtnPrimary)
                         .Id("serial-send")
                         .Disabled(_port is null)
                         .OnClickAsync(Send)["Send"]
                 ],
                 Pre
-                    .Class("small bg-dark text-light rounded p-2 mb-2")
+                    .Class("text-sm bg-slate-900 text-slate-100 rounded p-2 mb-2")
                     .Id("serial-log")
                     .Style("min-height: 6rem; max-height: 12rem; overflow: auto")[
                     _log.Count == 0 ? "(no data yet)" : string.Join("\n", _log)],
-                Div.Class("small text-secondary")["Status: ", Code.Id("serial-status")[_status]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("serial-status")[_status]]
             ]
         ];
 

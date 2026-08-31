@@ -17,20 +17,20 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     _watch is null
-                        ? Button.Class("btn btn-primary btn-sm").Id("geowatch-start").OnClickAsync(Start)[
+                        ? Button.Class(Ui.BtnPrimary).Id("geowatch-start").OnClickAsync(Start)[
                             "Start watching"]
-                        : Button.Class("btn btn-outline-danger btn-sm").Id("geowatch-stop").OnClickAsync(Stop)[
+                        : Button.Class(Ui.BtnOutlineDanger).Id("geowatch-stop").OnClickAsync(Stop)[
                             "Stop"]
                 ],
-                Div.Class("small text-secondary")[
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "Position: ", Code.Id("geowatch-value")[_location ?? "(not watching)"],
                     Span.Class("ms-2").Id("geowatch-fixes")[$"({_fixes} fix(es))"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("geowatch-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("geowatch-status")[_status ?? "(idle)"]]
             ]
         ];
 

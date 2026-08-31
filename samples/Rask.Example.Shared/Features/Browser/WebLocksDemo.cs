@@ -18,7 +18,7 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
     protected override Component? Render() =>
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Ui.BtnPrimary).Id("locks-hold").OnClickAsync(Hold)[
                         "Hold exclusive for 2s"],
                     Button.Type("button").Class(Ui.BtnOutlinePrimary)
@@ -30,10 +30,10 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
                         .OnClickAsync(Query)[
                         "Query held locks"]
                 ],
-                Div.Class("small text-secondary mb-1")["Status: ", Code.Id("locks-status")[_status]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Status: ", Code.Id("locks-status")[_status]],
                 _snapshot.Count == 0
-                    ? Div.Class("small text-secondary fst-italic").Id("locks-snapshot")["(query to see held locks)"]
-                    : Ul.Class("small mb-0").Id("locks-snapshot")[
+                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("locks-snapshot")["(query to see held locks)"]
+                    : Ul.Class("text-sm mb-0").Id("locks-snapshot")[
                         _snapshot.Select(l => Li.Key($"{l.Name}:{l.ClientId}:{l.Held}")[
                             $"{l.Name} — {l.Mode} — {(l.Held ? "held" : "pending")}"])
                     ]

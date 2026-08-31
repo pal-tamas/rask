@@ -94,7 +94,7 @@ public sealed partial class GuideChrome : Component
         NavLink
             .Href(Features.Routes.GuidesIndexPage())
             .ActiveClass("")
-            .Class("inline-flex items-center mb-3 no-underline small guide-backlink")[
+            .Class("inline-flex items-center mb-3 no-underline text-sm guide-backlink")[
             Icon.Name(IconName.ArrowLeft).Class("me-1"), "All guides"
         ];
 

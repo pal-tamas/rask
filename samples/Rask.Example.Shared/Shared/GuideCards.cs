@@ -28,19 +28,19 @@ public sealed partial class GuideCards : Component
             }
 
             yield return H2
-                .Class("font-bold uppercase text-slate-500 mt-4 mb-3 h6 feature-section")[group];
+                .Class("font-bold uppercase text-slate-500 mt-4 mb-3 text-base font-semibold feature-section")[group];
             yield return Div.Class("grid grid-cols-12 gap-4")[cards.Select(c => (Component)Card(c))];
         }
     }
 
     private static Component Card(GuideEntry g) =>
         Div.Class("md:col-span-6 lg:col-span-4").Key(g.Slug)[
-            NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("text-decoration-none")[
+            NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("no-underline")[
                 Div.Class($"{Ui.Card} h-full border-0 shadow-sm feature-card")[
                     Div.Class($"{Ui.CardBody} p-4")[
-                        Div.Class("feature-icon mb-3")[I.Class($"bi {g.Icon}")],
-                        H3.Class("font-semibold mb-2 h6 text-body")[g.Title],
-                        P.Class("text-slate-500 mb-0 small")[g.Blurb]
+                        Div.Class("feature-icon mb-3")[Icon.Name(g.Icon).Class("text-2xl")],
+                        H3.Class("font-semibold mb-2 text-base text-slate-900 dark:text-slate-100")[g.Title],
+                        P.Class("text-slate-500 mb-0 text-sm")[g.Blurb]
                     ]
                 ]
             ]

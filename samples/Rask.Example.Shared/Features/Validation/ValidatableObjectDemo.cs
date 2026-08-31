@@ -14,7 +14,7 @@ public sealed partial class ValidatableObjectDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
@@ -24,29 +24,29 @@ public sealed partial class ValidatableObjectDemo : Component
             return null;
         }
 
-        return Div.Class($"{Ui.AlertDanger} small mb-0")[
+        return Div.Class($"{Ui.AlertDanger} text-sm mb-0")[
             Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
         ];
     }
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("flex flex-col gap-3")[
             DataAnnotationsValidator,
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Label.For("v11-name").Class("form-label small mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("v11-name").Class("form-control"),
+                Label.For("v11-name").Class($"{Ui.Label} text-sm mb-1")["Name"],
+                Input.Bind(() => _model.Name).Id("v11-name").Class(Ui.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                Label.For("v11-departure").Class("form-label small mb-1")["Departure"],
-                Input.Bind(() => _model.Departure).Id("v11-departure").Class("form-control"),
+                Label.For("v11-departure").Class($"{Ui.Label} text-sm mb-1")["Departure"],
+                Input.Bind(() => _model.Departure).Id("v11-departure").Class(Ui.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Departure)
             ],
             Div[
-                Label.For("v11-arrival").Class("form-label small mb-1")["Arrival"],
-                Input.Bind(() => _model.Arrival).Id("v11-arrival").Class("form-control"),
+                Label.For("v11-arrival").Class($"{Ui.Label} text-sm mb-1")["Arrival"],
+                Input.Bind(() => _model.Arrival).Id("v11-arrival").Class(Ui.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
@@ -55,7 +55,7 @@ public sealed partial class ValidatableObjectDemo : Component
         ],
         _submission is null
             ? null
-            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

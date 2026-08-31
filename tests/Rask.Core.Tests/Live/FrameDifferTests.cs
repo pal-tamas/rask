@@ -13,8 +13,8 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Diff_IdenticalTrees_ProducesZeroOps()
     {
-        var before = Frames(Div.Class("row")[Span["Item 5"]]);
-        var after = Frames(Div.Class("row")[Span["Item 5"]]);
+        var before = Frames(Div.Class("line")[Span["Item 5"]]);
+        var after = Frames(Div.Class("line")[Span["Item 5"]]);
 
         var ops = new List<EditOp>();
         var count = FrameDiffer.Diff(before, after, ops);
@@ -1099,12 +1099,12 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Key(i)[
                 Span.Class("label")[$"Item {i}"]
             ]);
         }
 
-        return Div.Class("container")[
+        return Div.Class("wrap")[
             Div.Class("counter")[Span.Class("value")[counter.ToString()]],
             Div.Class("body")[rows]
         ];

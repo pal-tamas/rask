@@ -15,8 +15,8 @@ public sealed partial class VisualViewportDemo(IVisualViewport viewport) : Compo
                     .Id("vv-read")
                     .OnClickAsync(Read)[
                     "Read visual viewport"],
-                Div.Class("small text-secondary")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("vv-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("vv-status")[_status ?? "(idle)"]]
             ]
         ];
 

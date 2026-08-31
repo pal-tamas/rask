@@ -12,7 +12,7 @@ public sealed class AppTests
 
         Assert.StartsWith("<!DOCTYPE html>", html);
         Assert.Contains("<html lang=\"en\">", html);
-        Assert.Contains("<body class=\"bg-body-tertiary\">", html);
+        Assert.Contains("<body class=\"bg-slate-50 dark:bg-slate-900\">", html);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class AppTests
         var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
         // Router rendered the matched chain — ShowcaseLayout contributes the navbar.
-        Assert.Contains("navbar-brand", html);
+        Assert.Contains("app-brand", html);
         Assert.Contains("</body>", html);
         Assert.EndsWith("</html>", html.TrimEnd());
     }

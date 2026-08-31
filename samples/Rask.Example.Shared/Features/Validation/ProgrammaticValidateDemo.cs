@@ -16,10 +16,10 @@ public sealed partial class ProgrammaticValidateDemo : Component
     }
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-muted small mt-1")[
+        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
             Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking…"
         ];
 
@@ -27,10 +27,10 @@ public sealed partial class ProgrammaticValidateDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
             Div[
-                Label.For("v6-title").Class("form-label small mb-1")["Title"],
-                Input.Bind(() => _model.Title).Id("v6-title").Class("form-control"),
+                Label.For("v6-title").Class($"{Ui.Label} text-sm mb-1")["Title"],
+                Input.Bind(() => _model.Title).Id("v6-title").Class(Ui.Input),
                 ValidatingIndicator.Template(Checking).For(() => _model.Title),
                 ValidationMessage.Template(FieldError).For(() => _model.Title)
             ],
@@ -43,7 +43,7 @@ public sealed partial class ProgrammaticValidateDemo : Component
         ],
         _submission is null
             ? null
-            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

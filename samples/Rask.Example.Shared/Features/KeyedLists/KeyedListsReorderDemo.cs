@@ -21,12 +21,12 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Div.Class($"flex gap-2 items-center flex-wrap items-center {"mb-3"}")[
+            Div.Class("flex gap-2 items-center flex-wrap mb-3")[
                 Button
-                    .Class(_useKeys ? "btn btn-success btn-sm" : "btn btn-outline-secondary btn-sm")
+                    .Class(_useKeys ? $"{Ui.BtnSuccess}" : $"{Ui.BtnOutlineSecondary}")
                     .Id("kl-toggle-keys")
                     .OnClick(() => _useKeys = !_useKeys)[
-                    I.Class(_useKeys ? "bi bi-key-fill me-1" : "bi bi-key me-1"),
+                    Icon.Name(_useKeys ? IconName.KeyFill : IconName.Key).Class("me-1"),
                     _useKeys ? "Keys: ON" : "Keys: OFF"
                 ],
                 Span.Class("vr mx-1"),
@@ -46,7 +46,7 @@ public sealed partial class KeyedListsReorderDemo : Component
                     Icon.Name(IconName.DashLg).Class("me-1"), "Remove top"
                 ]
             ],
-            Ul.Class("list-group").Id("kl-list")[BuildRows()]
+            Ul.Class(Ui.ListGroup).Id("kl-list")[BuildRows()]
         ];
 
     private List<Component> BuildRows()
@@ -59,8 +59,8 @@ public sealed partial class KeyedListsReorderDemo : Component
             // reconciliation; RASK022 would otherwise flag it.
 #pragma warning disable RASK022
             rows.Add(_useKeys
-                ? Li.Key(f.Id).Class("list-group-item d-flex align-items-center gap-3")[Row(f, i)]
-                : Li.Class("list-group-item d-flex align-items-center gap-3")[Row(f, i)]);
+                ? Li.Key(f.Id).Class($"{Ui.ListGroupItem} flex items-center gap-3")[Row(f, i)]
+                : Li.Class($"{Ui.ListGroupItem} flex items-center gap-3")[Row(f, i)]);
 #pragma warning restore RASK022
         }
 
@@ -70,10 +70,10 @@ public sealed partial class KeyedListsReorderDemo : Component
     private static List<Component> Row(Fruit f, int index) =>
     [
         Span.Class(Ui.BadgeSecondary)[index + 1],
-        Span.Class("fw-semibold").Style("min-width: 7rem;")[f.Name],
+        Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
         Input.Value<string>(null)
             .Type(InputType.Text)
-            .Class("form-control form-control-sm kl-note")
+            .Class($"{Ui.Input} kl-note")
             .Placeholder("type here, then reorder…")
     ];
 

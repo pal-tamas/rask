@@ -50,7 +50,7 @@ public sealed class PlaygroundCompilerTests
             public sealed partial class Badge : Component
             {
                 public required string Label { get; set; }
-                protected override Component? Render() => Span.Class("badge")[Label];
+                protected override Component? Render() => Span.Class("pill")[Label];
             }
 
             public sealed partial class Playground : Component
@@ -62,8 +62,8 @@ public sealed class PlaygroundCompilerTests
 
         Assert.True(result.Succeeded, DumpDiagnostics(result));
         var html = result.Component!.ToHtml();
-        Assert.Contains("<span class=\"badge\">new</span>", html);
-        Assert.Contains("<span class=\"badge\">hot</span>", html);
+        Assert.Contains("<span class=\"pill\">new</span>", html);
+        Assert.Contains("<span class=\"pill\">hot</span>", html);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class PlaygroundCompilerTests
             public sealed partial class Badge : Component
             {
                 public required string Message { get; set; }
-                protected override Component? Render() => Span.Class("badge")[Message];
+                protected override Component? Render() => Span.Class("pill")[Message];
             }
 
             public sealed partial class Playground : Component
@@ -95,8 +95,8 @@ public sealed class PlaygroundCompilerTests
 
         Assert.True(result.Succeeded, DumpDiagnostics(result));
         var html = result.Component!.ToHtml();
-        Assert.Contains("<span class=\"badge\">new</span>", html);
-        Assert.Contains("<span class=\"badge\">hot</span>", html);
+        Assert.Contains("<span class=\"pill\">new</span>", html);
+        Assert.Contains("<span class=\"pill\">hot</span>", html);
     }
 
     [Fact]

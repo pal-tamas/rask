@@ -124,10 +124,9 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
   `EqualityComparer<TItem>.Default`) — you usually need the explicit `CheckboxGroup<string>` when the
   collection is a concrete `List<T>`. Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` +
   `ValidateFieldAsync`, so DataAnnotations / FluentValidation rules apply.
-- Each item renders Bootstrap 5.3
-  [check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/) — a
-  `<div class="form-check">` wrapping a `.form-check-input` and a `.form-check-label` tied together by
-  `id`/`for`. `ItemClass` adds extra classes (e.g. `"form-check-inline"`); `OptionLabel` customizes the label.
+- Each item renders an `<input>` and a `<label>` tied together by `id`/`for`, so the pair is one
+  target for a pointer and one stop for a screen reader. `ItemClass` adds extra classes;
+  `OptionLabel` customizes the label.
 - On a radio or checkbox group of your own, pass a label to give the group an accessible
   name: the options are then wrapped in a `<fieldset>` titled by a `<legend>`, which is the correct
   grouping semantics for a set of related radios/checkboxes. Without a `Label` you get the bare per-item
@@ -190,7 +189,7 @@ Two things to know when building a form:
 
 ```csharp
 Div.Data("rask-no-restore")[
-    Input.Bind(() => _model.CouponCode).Class("form-control")   // never carried across a reload
+    Input.Bind(() => _model.CouponCode).Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100")   // never carried across a reload
 ]
 ```
 

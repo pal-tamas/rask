@@ -196,62 +196,64 @@ public sealed partial class PragmaDemoPage(
     protected override Component? Render() =>
     [
         Div.Class("mb-4")[
-            H1.Class("h3 mb-1")["SQLite production pragmas"],
-            P.Class("text-secondary mb-0")[
+            H1.Class("text-2xl font-semibold mb-1")["SQLite production pragmas"],
+            P.Class("text-slate-500 dark:text-slate-400 mb-0")[
                 "One line — ", Code["UseRaskSqlite"],
                 " — puts the production pragma set (WAL, foreign_keys, busy_timeout, …) on every connection."
             ]
         ],
 
         // Code above, live result below.
-        Div.Class("card shadow-sm mb-4")[
-            Div.Class("card-header bg-dark text-light py-2")[
-                I.Class("bi bi-code-slash me-2"), "Program.cs"
+        Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700 mb-4")[
+            Div.Class("border-b border-slate-200 px-5 py-3 font-medium dark:border-slate-700 bg-slate-900 text-slate-100 py-2")[
+                Span.Class("me-2").Attributes(("aria-hidden", "true"))["⟨⟩"], "Program.cs"
             ],
-            Pre.Class("mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
+            Pre.Class("mb-0 p-3 bg-slate-900 text-slate-100 rounded-bottom overflow-auto")[
                 Code[WiringSnippet]
             ]
         ],
 
         !_loaded
-            ? Div.Class("text-secondary")[Span.Class("spinner-border spinner-border-sm me-2"), "Loading…"]
+            ? Div.Class("text-slate-500 dark:text-slate-400")[Span.Class("inline-block size-5 animate-spin rounded-full border-2 border-current border-r-transparent size-4 me-2"), "Loading…"]
             : Div[
-                Div.Class("card shadow-sm mb-4")[
-                    Div.Class("card-header py-2 fw-semibold")[
-                        I.Class("bi bi-sliders me-2"), "Live pragma values on this connection"
+                Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700 mb-4")[
+                    Div.Class("border-b border-slate-200 px-5 py-3 font-medium dark:border-slate-700 py-2 font-semibold")[
+                        Span.Class("me-2").Attributes(("aria-hidden", "true"))["🎚"], "Live pragma values on this connection"
                     ],
-                    Table.Class("table table-striped align-middle mb-0")[
-                        Thead[Tr[Th["PRAGMA"], Th.Class("text-end")["Value"]]],
+                    Table.Class("w-full text-left text-sm [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-2 [&_tbody_tr:nth-child(odd)]:bg-slate-50 align-middle mb-0")[
+                        Thead[Tr[Th["PRAGMA"], Th.Class("text-right")["Value"]]],
                         Tbody[
                             _pragmas.Select(p => Tr.Key(p.Name)[
-                                Td.Class("fw-semibold font-monospace")[p.Name],
-                                Td.Class("text-end font-monospace")[p.Value]
+                                Td.Class("font-semibold font-mono")[p.Name],
+                                Td.Class("text-right font-mono")[p.Value]
                             ])
                         ]
                     ]
                 ],
 
-                Div.Class("card shadow-sm")[
-                    Div.Class("card-body")[
-                        H2.Class("h5")["Concurrent writers"],
-                        P.Class("text-secondary")[
+                Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700")[
+                    Div.Class("p-5")[
+                        H2.Class("text-lg font-semibold")["Concurrent writers"],
+                        P.Class("text-slate-500 dark:text-slate-400")[
                             $"Fire {Workers.ToString(CultureInfo.InvariantCulture)} writers at the database at once. ",
                             "WAL lets readers and the writer coexist, and the 5-second ",
                             Code["busy_timeout"],
                             " absorbs the momentary write-lock contention — so every writer commits."
                         ],
-                        Button.Type("button").Class("btn btn-primary").OnClickAsync(RunWritersAsync)[
-                            I.Class("bi bi-lightning-charge me-1"),
+                        Button.Type("button").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").OnClickAsync(RunWritersAsync)[
+                            Span.Class("me-1").Attributes(("aria-hidden", "true"))["⚡"],
                             $"Run {Workers.ToString(CultureInfo.InvariantCulture)} concurrent writers"
                         ],
                         !_hasRun
-                            ? Div.Class("text-secondary mt-3 mb-0")[
+                            ? Div.Class("text-slate-500 dark:text-slate-400 mt-3 mb-0")[
                                 $"Total rows written so far: {_rowCount.ToString(CultureInfo.InvariantCulture)}."
                             ]
                             : Div
-                                .Class($"alert mt-3 mb-0 {(_succeeded == _attempted ? "alert-success" : "alert-danger")}")[
-                                I
-                                    .Class($"bi me-2 {(_succeeded == _attempted ? "bi-check-circle" : "bi-exclamation-triangle")}"),
+                                .Role("status")
+                                .Class($"rounded-lg px-4 py-3 text-sm mt-3 mb-0 {(_succeeded == _attempted ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200" : "bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200")}")[
+                                Span
+                                    .Class("me-2")
+                                    .Attributes(("aria-hidden", "true"))[_succeeded == _attempted ? "\u2713" : "\u26a0"],
                                 $"{_succeeded.ToString(CultureInfo.InvariantCulture)} of {_attempted.ToString(CultureInfo.InvariantCulture)} writers committed. ",
                                 $"Total rows now: {_rowCount.ToString(CultureInfo.InvariantCulture)}."
                             ]
@@ -259,29 +261,29 @@ public sealed partial class PragmaDemoPage(
                 ],
 
                 // Second demo: the non-blocking BEGIN IMMEDIATE + fair-interval retry write path (raw factory).
-                Div.Class("card shadow-sm mb-4 mt-4")[
-                    Div.Class("card-header bg-dark text-light py-2")[
-                        I.Class("bi bi-code-slash me-2"), "Non-blocking IMMEDIATE write"
+                Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700 mb-4 mt-4")[
+                    Div.Class("border-b border-slate-200 px-5 py-3 font-medium dark:border-slate-700 bg-slate-900 text-slate-100 py-2")[
+                        Span.Class("me-2").Attributes(("aria-hidden", "true"))["⟨⟩"], "Non-blocking IMMEDIATE write"
                     ],
-                    Pre.Class("mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
+                    Pre.Class("mb-0 p-3 bg-slate-900 text-slate-100 rounded-bottom overflow-auto")[
                         Code[ImmediateSnippet]
                     ]
                 ],
 
                 // Third demo: loading many rows at once — the bulk insert EF Core leaves out.
-                Div.Class("card shadow-sm mb-4 mt-4")[
-                    Div.Class("card-header bg-dark text-light py-2")[
-                        I.Class("bi bi-code-slash me-2"), "Bulk import"
+                Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700 mb-4 mt-4")[
+                    Div.Class("border-b border-slate-200 px-5 py-3 font-medium dark:border-slate-700 bg-slate-900 text-slate-100 py-2")[
+                        Span.Class("me-2").Attributes(("aria-hidden", "true"))["⟨⟩"], "Bulk import"
                     ],
-                    Pre.Class("mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
+                    Pre.Class("mb-0 p-3 bg-slate-900 text-slate-100 rounded-bottom overflow-auto")[
                         Code[BulkSnippet]
                     ]
                 ],
 
-                Div.Class("card shadow-sm")[
-                    Div.Class("card-body")[
-                        H2.Class("h5")["Bulk import"],
-                        P.Class("text-secondary")[
+                Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700")[
+                    Div.Class("p-5")[
+                        H2.Class("text-lg font-semibold")["Bulk import"],
+                        P.Class("text-slate-500 dark:text-slate-400")[
                             "EF Core has ", Code["ExecuteUpdate"], " and ", Code["ExecuteDelete"],
                             " but no bulk insert, so ", Code["BulkInsertAsync"], " is Rask's. Import ",
                             ImportRows.ToString("N0", CultureInfo.InvariantCulture),
@@ -289,17 +291,17 @@ public sealed partial class PragmaDemoPage(
                             "while ", Code["SkipChangeTracking"],
                             " writes them with one prepared INSERT and no entity entries at all."
                         ],
-                        Div.Class("d-flex gap-2 flex-wrap")[
-                            Button.Type("button").Id("import-tracked").Class("btn btn-outline-primary")
+                        Div.Class("flex gap-2 flex-wrap")[
+                            Button.Type("button").Id("import-tracked").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-transparent ring-1 text-violet-700 ring-violet-300 hover:bg-violet-50 dark:text-violet-300 dark:ring-violet-700 dark:hover:bg-violet-950")
                                 .OnClickAsync(() => ImportAsync(skipChangeTracking: false))[
-                                I.Class("bi bi-database-add me-1"), "Import through the change tracker"
+                                Span.Class("me-1").Attributes(("aria-hidden", "true"))["🗄"], "Import through the change tracker"
                             ],
-                            Button.Type("button").Id("import-raw").Class("btn btn-primary")
+                            Button.Type("button").Id("import-raw").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500")
                                 .OnClickAsync(() => ImportAsync(skipChangeTracking: true))[
-                                I.Class("bi bi-lightning-charge me-1"), "Import with SkipChangeTracking"
+                                Span.Class("me-1").Attributes(("aria-hidden", "true"))["⚡"], "Import with SkipChangeTracking"
                             ]
                         ],
-                        Div.Id("import-result").Class("mt-3 mb-0 text-secondary")[
+                        Div.Id("import-result").Class("mt-3 mb-0 text-slate-500 dark:text-slate-400")[
                             _trackedMs == 0 && _rawMs == 0
                                 ? $"Rows imported so far: {_readingCount.ToString("N0", CultureInfo.InvariantCulture)}."
                                 : (Component)Div[
@@ -323,28 +325,30 @@ public sealed partial class PragmaDemoPage(
                     ]
                 ],
 
-                Div.Class("card shadow-sm")[
-                    Div.Class("card-body")[
-                        H2.Class("h5")["Concurrent IMMEDIATE writers (non-blocking)"],
-                        P.Class("text-secondary")[
+                Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700")[
+                    Div.Class("p-5")[
+                        H2.Class("text-lg font-semibold")["Concurrent IMMEDIATE writers (non-blocking)"],
+                        P.Class("text-slate-500 dark:text-slate-400")[
                             $"Fire {Workers.ToString(CultureInfo.InvariantCulture)} writers through ",
                             Code["ExecuteInImmediateTransactionAsync"],
                             ". Each takes the write lock with ", Code["BEGIN IMMEDIATE"],
                             " and, when it's contended, polls every 1 ms — yielding the thread while it waits, ",
                             "a fair-interval busy handler — so every writer commits with no thread blocked."
                         ],
-                        Button.Type("button").Class("btn btn-primary").OnClickAsync(RunImmediateWritersAsync)[
-                            I.Class("bi bi-lightning-charge me-1"),
+                        Button.Type("button").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").OnClickAsync(RunImmediateWritersAsync)[
+                            Span.Class("me-1").Attributes(("aria-hidden", "true"))["⚡"],
                             $"Run {Workers.ToString(CultureInfo.InvariantCulture)} IMMEDIATE writers"
                         ],
                         !_immediateHasRun
-                            ? Div.Class("text-secondary mt-3 mb-0")[
+                            ? Div.Class("text-slate-500 dark:text-slate-400 mt-3 mb-0")[
                                 "One BEGIN IMMEDIATE transaction per writer, all committing via the fair-interval retry."
                             ]
                             : Div
-                                .Class($"alert mt-3 mb-0 {(_immediateSucceeded == _immediateAttempted ? "alert-success" : "alert-danger")}")[
-                                I
-                                    .Class($"bi me-2 {(_immediateSucceeded == _immediateAttempted ? "bi-check-circle" : "bi-exclamation-triangle")}"),
+                                .Role("status")
+                                .Class($"rounded-lg px-4 py-3 text-sm mt-3 mb-0 {(_immediateSucceeded == _immediateAttempted ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200" : "bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200")}")[
+                                Span
+                                    .Class("me-2")
+                                    .Attributes(("aria-hidden", "true"))[_immediateSucceeded == _immediateAttempted ? "\u2713" : "\u26a0"],
                                 $"{_immediateSucceeded.ToString(CultureInfo.InvariantCulture)} of {_immediateAttempted.ToString(CultureInfo.InvariantCulture)} IMMEDIATE writers committed. ",
                                 $"Total rows now: {_rowCount.ToString(CultureInfo.InvariantCulture)}."
                             ]

@@ -14,15 +14,15 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
                 Input
                     .Value(_text)
                     .Id("speech-text")
-                    .Class("form-control form-control-sm mb-2")
+                    .Class($"{Ui.Input} mb-2")
                     .OnInput(v => _text = v),
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Ui.BtnPrimary).Id("speech-speak").OnClickAsync(Speak)["Speak"],
                     Button.Type("button").Class(Ui.BtnOutlineDanger)
                         .Id("speech-cancel")
                         .OnClickAsync(Cancel)["Stop"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
             ]
         ];
 

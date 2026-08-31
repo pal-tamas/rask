@@ -14,7 +14,7 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
     protected override Component? Render() =>
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("notif-permission")
                         .OnClickAsync(RequestPermission)["Request permission"],
@@ -28,7 +28,7 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
                         .Id("badge-clear")
                         .OnClickAsync(ClearBadge)["Clear badge"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
             ]
         ];
 

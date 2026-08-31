@@ -1,4 +1,5 @@
 using Rask.Core;
+using Rask.Example.Shared;
 using Rask.Wasm.Browser;
 
 namespace Rask.Example.Wasm.Features;
@@ -14,22 +15,22 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
                 Div
                     .Ref(_stage)
-                    .Class("border rounded bg-light d-flex align-items-center justify-content-center mb-2")
+                    .Class("border rounded bg-slate-100 flex items-center justify-center mb-2")
                     .Style("min-height: 8rem")[
-                    Span.Class("text-secondary small")["This box goes fullscreen."]
+                    Span.Class("text-slate-500 dark:text-slate-400 text-sm")["This box goes fullscreen."]
                 ],
-                Div.Class("d-flex gap-2 flex-wrap mb-2")[
-                    Button.Class("btn btn-primary btn-sm").Id("fullscreen-enter").OnClickAsync(Enter)[
+                Div.Class("flex gap-2 flex-wrap mb-2")[
+                    Button.Class(Ui.BtnPrimary).Id("fullscreen-enter").OnClickAsync(Enter)[
                         "Fullscreen this box"],
-                    Button.Class("btn btn-outline-primary btn-sm").Id("fullscreen-page").OnClickAsync(EnterPage)[
+                    Button.Class(Ui.BtnOutlinePrimary).Id("fullscreen-page").OnClickAsync(EnterPage)[
                         "Fullscreen the page"],
-                    Button.Class("btn btn-outline-danger btn-sm").Id("fullscreen-exit").OnClickAsync(Exit)["Exit"]
+                    Button.Class(Ui.BtnOutlineDanger).Id("fullscreen-exit").OnClickAsync(Exit)["Exit"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
             ]
         ];
 

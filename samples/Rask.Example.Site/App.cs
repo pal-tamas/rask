@@ -64,8 +64,7 @@ public partial class App : Component
     private const string Btn =
         "inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold no-underline transition";
 
-    // btn-primary rides along because SiteExampleTests clicks "a.btn-primary". It styles nothing.
-    private const string BtnPrimary = Btn + " btn-primary bg-accent text-white hover:bg-accent-2";
+    private const string BtnPrimary = Btn + " bg-accent text-white hover:bg-accent-2";
 
     private const string BtnGhost =
         Btn + " border border-line text-ink hover:border-accent hover:text-accent-ink";
@@ -94,7 +93,7 @@ public partial class App : Component
                 Span.Class("flex items-center gap-2 text-lg font-semibold tracking-tight text-ink [&>svg]:size-7 [&>svg]:rounded-lg")[
                     Raw.Value(BrandSvg), " Rask"
                 ],
-                Nav.Class("flex items-center gap-5 text-sm text-muted")[
+                Nav.Class("flex items-center gap-5 text-sm text-slate-500 dark:text-slate-400")[
                     // Hidden on a narrow viewport rather than wrapped: the bar is chrome, and three links
                     // stacking over two lines pushes the hero below the fold on a phone.
                     A.Class("hidden no-underline hover:text-ink sm:inline").Href("docs/").Target("_blank").Rel("noopener")["Docs"],
@@ -103,7 +102,7 @@ public partial class App : Component
                     Button
                         .Id("themeToggle")
                         .Type("button")
-                        .Class("rounded-lg border border-line px-2.5 py-1.5 text-xs text-muted hover:text-ink")
+                        .Class("rounded-lg border border-line px-2.5 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-ink")
                         .Aria(Attr("label", "Toggle color theme"))["◐ theme"]
                 ]
             ]
@@ -133,7 +132,7 @@ public partial class App : Component
                             // Named for what they are. The Pages site is three apps — this landing page at
                             // the root, the live showcase at docs/, the playground at playground/ — and
                             // calling docs/ "the live demo" left the docs themselves with no name at all.
-                            A.Class(BtnPrimary).Href("docs/").Target("_blank").Rel("noopener")["Docs"],
+                            A.Id("cta-docs").Class(BtnPrimary).Href("docs/").Target("_blank").Rel("noopener")["Docs"],
                             A.Class(BtnGhost).Href("playground/").Target("_blank").Rel("noopener")["Playground"]
                         ],
                         Div.Class("mt-8 flex flex-wrap gap-2")[
@@ -144,7 +143,7 @@ public partial class App : Component
                         ]
                     ],
                     Div.Class($"{Card} overflow-hidden p-4")[
-                        Div.Class("mb-3 flex items-center justify-between text-[0.7rem] uppercase tracking-widest text-muted")[
+                        Div.Class("mb-3 flex items-center justify-between text-[0.7rem] uppercase tracking-widest text-slate-500 dark:text-slate-400")[
                             Span["wire · one state change"],
                             Span["live diff"]
                         ],
@@ -154,7 +153,7 @@ public partial class App : Component
                             .Class("h-auto w-full rounded-xl bg-panel-2")
                             .Ref(_canvas)
                             .Aria(Attr("label", "A full 24 KB page versus Rask's tiny 41-byte diff traveling the wire")),
-                        Div.Class("mt-3 flex flex-wrap gap-4 text-xs text-muted")[
+                        Div.Class("mt-3 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400")[
                             Span.Class("flex items-center gap-2")[Dot("var(--color-blazor)"), "full page ", B["24 KB"]],
                             Span.Class("flex items-center gap-2")[Dot("var(--color-accent)"), "Rask diff ", B["~41 B"]]
                         ],
@@ -175,7 +174,7 @@ public partial class App : Component
         Span.Class("size-2.5 shrink-0 rounded-full").Style($"background:{color}");
 
     // Term, not Key: Key is Component's reconciliation identity, and a helper of that name hides it.
-    private static Component Term(string text) => Dt.Class("text-muted")[text];
+    private static Component Term(string text) => Dt.Class("text-slate-500 dark:text-slate-400")[text];
 
     private static Component Val(params Component?[] body) => Dd.Class("m-0 text-right text-ink")[body];
 
@@ -202,7 +201,7 @@ public partial class App : Component
                     Div.Class($"{Card} overflow-hidden")[
                         Div.Class("flex items-center gap-2 border-b border-line bg-panel-2 px-4 py-2.5")[
                             Dot("#ff5f57"), Dot("#febc2e"), Dot("#28c840"),
-                            Span.Class("ml-2 font-mono text-xs text-muted")["Counter.cs"]
+                            Span.Class("ml-2 font-mono text-xs text-slate-500 dark:text-slate-400")["Counter.cs"]
                         ],
                         Pre.Class("overflow-x-auto p-4 text-xs leading-relaxed")[
                             Code.Class("font-mono")[Raw.Value(CounterCodeHtml)]
@@ -232,7 +231,7 @@ public partial class App : Component
         Div.Class($"{Card} p-5")[
             Div.Class("text-2xl font-semibold tabular-nums tracking-tight text-ink")[kpi],
             Div.Class("mt-1 text-sm text-ink-soft")[lab],
-            Div.Class("mt-1 text-xs text-muted")[sub]
+            Div.Class("mt-1 text-xs text-slate-500 dark:text-slate-400")[sub]
         ];
 
     private Component BytesSection() =>
@@ -248,7 +247,7 @@ public partial class App : Component
                         BarCol("6,522 B", 240, "441 B", 16, "14.8×", "Deep mutation ×200"),
                         BarCol("2,080 B", 240, "37 B", 5, "56×", "Remove 100 rows")
                     ],
-                    Div.Class("mt-6 flex flex-wrap justify-center gap-6 border-t border-line pt-4 text-xs text-muted")[
+                    Div.Class("mt-6 flex flex-wrap justify-center gap-6 border-t border-line pt-4 text-xs text-slate-500 dark:text-slate-400")[
                         Span.Class("flex items-center gap-2")[Dot("var(--color-blazor)"), "Blazor — full payload"],
                         Span.Class("flex items-center gap-2")[Dot("var(--color-accent)"), "Rask — the diff"]
                     ]
@@ -271,7 +270,7 @@ public partial class App : Component
         Div.Class($"{Card} p-6")[
             Span.Class("font-mono text-xs text-accent-ink")[tag],
             H3.Class("mt-2 text-lg font-semibold text-ink")[title],
-            P.Class("mt-2 text-sm leading-relaxed text-muted")[body],
+            P.Class("mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400")[body],
             Span.Class("mt-4 block font-mono text-xs text-ink-soft")[prev]
         ];
 
@@ -298,7 +297,7 @@ public partial class App : Component
             Div.Class("flex items-center gap-2 text-sm font-semibold text-ink")[
                 Span.Class("text-accent-ink")[glyph], " ", title
             ],
-            P.Class("mt-2 text-sm leading-relaxed text-muted")[desc]
+            P.Class("mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400")[desc]
         ];
 
     private Component FeaturesSection() =>
@@ -374,7 +373,7 @@ public partial class App : Component
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],
-                    P.Class("mt-8 text-xs text-muted")[Span.Class("text-accent-ink")["⚡"], " Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
+                    P.Class("mt-8 text-xs text-slate-500 dark:text-slate-400")[Span.Class("text-accent-ink")["⚡"], " Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
                 ]
             ]
         ];

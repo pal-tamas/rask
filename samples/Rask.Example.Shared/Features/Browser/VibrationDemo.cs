@@ -10,7 +10,7 @@ public sealed partial class VibrationDemo(IVibration vibration) : Component
     protected override Component? Render() =>
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("vibrate-buzz")
                         .OnClickAsync(Buzz)["Buzz"],
@@ -22,7 +22,7 @@ public sealed partial class VibrationDemo(IVibration vibration) : Component
                         .Id("vibrate-cancel")
                         .OnClickAsync(Cancel)["Cancel"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
             ]
         ];
 

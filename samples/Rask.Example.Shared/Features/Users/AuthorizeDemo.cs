@@ -14,7 +14,7 @@ public sealed partial class AuthorizeDemo : Component
 
     protected override Component? Render() =>
         Div.Id("authorize-demo")[
-            Div.Class($"flex gap-2 flex-wrap items-center {"mb-3"}")[
+            Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 Button.Type("button").Class(Ui.BtnPrimary).OnClick(() => _auth.SignIn("alice", "user"))[
                     "Sign in as user"],
                 Button.Type("button").Class(Ui.BtnWarning).OnClick(() => _auth.SignIn("rootadmin", "admin"))[

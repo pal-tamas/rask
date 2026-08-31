@@ -19,13 +19,13 @@ internal static partial class LargePageWithCounter
         var rows = new List<Component>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
-            rows.Add(Div.Class("row").Id($"r{i}")[
+            rows.Add(Div.Class("line").Id($"r{i}")[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
             ]);
         }
 
-        return Div.Class("container").Id("root")[
+        return Div.Class("wrap").Id("root")[
             Div.Class("counter").Id("counter")[
                 Span.Class("value")[counter.ToString()]
             ],
@@ -43,7 +43,7 @@ internal static partial class LargePageWithCounter
         for (var i = 0; i < LargePageRowCount; i++)
         {
             var text = i == LargePageRowCount / 2 ? $"ticker {counter}" : $"Item {i}";
-            rows.Add(Div.Class("row").Id($"r{i}")[
+            rows.Add(Div.Class("line").Id($"r{i}")[
                 Span.Class("label")[text],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
             ]);
@@ -59,7 +59,7 @@ internal static partial class LargePageWithCounter
         protected override void BuildRenderTree(RenderTreeBuilder b)
         {
             b.OpenElement(0, "div");
-            b.AddAttribute(1, "class", "container");
+            b.AddAttribute(1, "class", "wrap");
             b.AddAttribute(2, "id", "root");
 
             b.OpenElement(3, "div");
@@ -76,7 +76,7 @@ internal static partial class LargePageWithCounter
             for (var i = 0; i < LargePageRowCount; i++)
             {
                 b.OpenElement(11, "div");
-                b.AddAttribute(12, "class", "row");
+                b.AddAttribute(12, "class", "line");
                 b.AddAttribute(13, "id", $"r{i}");
 
                 b.OpenElement(14, "span");
@@ -111,7 +111,7 @@ internal static partial class LargePageWithCounter
             {
                 var text = i == LargePageRowCount / 2 ? $"ticker {Counter}" : $"Item {i}";
                 b.OpenElement(2, "div");
-                b.AddAttribute(3, "class", "row");
+                b.AddAttribute(3, "class", "line");
                 b.AddAttribute(4, "id", $"r{i}");
 
                 b.OpenElement(5, "span");

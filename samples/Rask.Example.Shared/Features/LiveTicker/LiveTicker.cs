@@ -198,29 +198,29 @@ public sealed partial class LiveTicker : Component
 
         return Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
-                Div.Class($"flex justify-between items-baseline flex-wrap items-center {"mb-3"}")[
-                    H3.Class("h4 mb-0 fw-semibold").Id("ticker-symbol")[Symbol],
-                    Span.Class("text-secondary small")[
+                Div.Class("flex justify-between items-baseline flex-wrap items-center mb-3")[
+                    H3.Class("text-xl font-semibold mb-0").Id("ticker-symbol")[Symbol],
+                    Span.Class("text-slate-500 dark:text-slate-400 text-sm")[
                         $"poll {IntervalMs} ms · {_history.Count}/{HistoryCapacity} pts"]
                 ],
-                Div.Class($"flex gap-3 items-baseline flex-wrap items-center {"mb-3"}")[
+                Div.Class("flex gap-3 items-baseline flex-wrap items-center mb-3")[
                     // One element, one class list, whichever state we're in — the price *text* changes,
                     // the box doesn't. Two spellings (fs-3 text-secondary → fs-2 fw-bold) meant the first
                     // tick resized and re-weighted the headline number 50 ms after mount, shoving the chart
                     // below it; and because the difference lived in a class attribute, it also made this
                     // demo's golden markup a race against the wall clock (#618).
-                    Span.Class("fs-2 fw-bold").Id("ticker-price")[
+                    Span.Class("text-3xl font-bold").Id("ticker-price")[
                         _history.Count == 0
                             ? "Waiting for first tick…"
                             : $"${current.ToString("N2", CultureInfo.InvariantCulture)}"],
                     _history.Count > 1
-                        ? Span.Class($"fs-6 fw-semibold {changeClass}").Id("ticker-change")[
+                        ? Span.Class($"text-base font-semibold{changeClass}").Id("ticker-change")[
                             $"{changeSign}{change.ToString("F2", CultureInfo.InvariantCulture)}% since first sample"]
                         : null
                 ],
                 _error is null
                     ? null
-                    : Div.Class($"{Ui.AlertWarning} py-2 px-3 small mb-3").Id("ticker-error")[
+                    : Div.Class($"{Ui.AlertWarning} py-2 px-3 text-sm mb-3").Id("ticker-error")[
                         Icon.Name(IconName.ExclamationTriangle).Class("me-2"), $"Feed error: {_error}"
                     ],
                 // The chart is a server-rendered SVG drawn straight from the rolling buffer —

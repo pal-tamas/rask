@@ -54,25 +54,25 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     }
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-3"}")[
-                    Button.Class("btn btn-sm btn-primary").Id("ms-publish").OnClickAsync(Publish)["Publish metadata"],
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-3")[
+                    Button.Class(Ui.BtnPrimary).Id("ms-publish").OnClickAsync(Publish)["Publish metadata"],
                     Button
-                        .Class("btn btn-sm btn-outline-primary")
+                        .Class(Ui.BtnOutlinePrimary)
                         .Id("ms-playing")
                         .OnClickAsync(() => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
                     Button
-                        .Class("btn btn-sm btn-outline-primary")
+                        .Class(Ui.BtnOutlinePrimary)
                         .Id("ms-paused")
                         .OnClickAsync(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
-                    Button.Class("btn btn-sm btn-outline-danger").Id("ms-clear").OnClickAsync(Clear)["Clear"]
+                    Button.Class(Ui.BtnOutlineDanger).Id("ms-clear").OnClickAsync(Clear)["Clear"]
                 ],
-                P.Class("small text-secondary mb-2")[
+                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "
                     + "shows below. Lock-screen integration activates fully while audio is playing."],
-                Div.Class("small text-secondary")["Status: ", Code.Id("ms-status")[_status]],
-                Div.Class("small text-secondary")["Last action: ", Code.Id("ms-last")[_last]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("ms-status")[_status]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Last action: ", Code.Id("ms-last")[_last]]
             ]
         ];
 

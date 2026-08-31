@@ -33,7 +33,7 @@ public sealed partial class GanttDemo : Component
     private GanttViewMode _viewMode = GanttViewMode.Day;
 
     protected override Component? Render() =>
-        Div.Class("vstack gap-3")[
+        Div.Class("flex flex-col gap-3")[
             Div.Class("flex gap-2 items-center flex-wrap items-center")[
                 // A segmented control: the selected mode carries the filled style, the rest the outline
                 // one. BsButtonGroup's .Active() was a prop; here it is just which class string wins.
@@ -69,11 +69,11 @@ public sealed partial class GanttDemo : Component
 
             Div.Class($"{Ui.Card} gantt-log")[
                 Div.Class($"{Ui.CardBody} py-2")[
-                    Div.Class("small text-secondary mb-1")["Events from the chart:"],
+                    Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Events from the chart:"],
                     _log.Count == 0
-                        ? Div.Class("small fst-italic text-secondary")[
+                        ? Div.Class("text-sm italic text-slate-500 dark:text-slate-400")[
                             "Nothing yet — click a bar, or drag one to move it."]
-                        : Ul.Class("list-unstyled small mb-0 font-monospace")[
+                        : Ul.Class("list-unstyled text-sm mb-0 font-mono")[
                             _log.Select(e => Li.Key(e.Seq.ToString())[e.Text])]
                 ]
             ],
@@ -81,14 +81,14 @@ public sealed partial class GanttDemo : Component
             // The C# state, rendered normally. This is what proves the round trip: it can only change
             // because the browser pushed an event into the callbacks above.
             Table.Class("w-full border-collapse text-left text-sm")[
-                Thead[Tr[Th["Task"], Th["Start"], Th["End"], Th.Class("text-end")["Progress"]]],
+                Thead[Tr[Th["Task"], Th["Start"], Th["End"], Th.Class("text-right")["Progress"]]],
                 Tbody[
                     _tasks.Select(t =>
                         Tr.Key(t.Id)[
                             Td[t.Name],
-                            Td.Class("font-monospace small")[t.Start.ToString("yyyy-MM-dd")],
-                            Td.Class("font-monospace small")[t.End.ToString("yyyy-MM-dd")],
-                            Td.Class("text-end")[Span.Class(Ui.BadgeSecondary)[$"{t.Progress:F0}%"]]
+                            Td.Class("font-mono text-sm")[t.Start.ToString("yyyy-MM-dd")],
+                            Td.Class("font-mono text-sm")[t.End.ToString("yyyy-MM-dd")],
+                            Td.Class("text-right")[Span.Class(Ui.BadgeSecondary)[$"{t.Progress:F0}%"]]
                         ])
                 ]
             ]

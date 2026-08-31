@@ -15,7 +15,7 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
     protected override Component? Render() =>
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("perm-geo")
                         .OnClickAsync(QueryGeo)[
@@ -25,9 +25,9 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
                         .OnClickAsync(QueryClipboard)[
                         "Query clipboard-read"]
                 ],
-                Div.Class("small text-secondary")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
-                Div.Class("small text-secondary")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
             ]
         ];
 

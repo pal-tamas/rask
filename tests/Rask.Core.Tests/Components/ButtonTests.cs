@@ -79,14 +79,14 @@ public partial class ButtonTests : global::Rask.Core.RaskMarkup
     public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder()
     {
         Assert.Equal(
-            "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
+            "<button id=\"go\" class=\"action\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
             Button
                 .Type("submit")
                 .Disabled(true)
                 .Name("action")
                 .Value("save")
                 .Id("go")
-                .Class("btn")
+                .Class("action")
                 .Style("color:red")
                 .Data(new Dictionary<string, string?> { ["test-id"] = "primary" }).ToHtml());
     }

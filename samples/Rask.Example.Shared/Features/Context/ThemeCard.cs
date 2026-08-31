@@ -9,7 +9,7 @@ public sealed partial class ThemeCard : Component
 {
     protected override Component? Render() =>
         Div.Class("flex gap-2 items-center flex-wrap items-center")[
-            Span.Class("small text-secondary")["Deeply nested, no theme prop passed in:"],
+            Span.Class("text-sm text-slate-500 dark:text-slate-400")["Deeply nested, no theme prop passed in:"],
             ThemeBadge
         ];
 }

@@ -22,13 +22,13 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
                         .Class(Ui.Input)
                         .Id("storage-input")
                         .Placeholder("Value to persist")
-                        .OnChange(v => _input = v),
+                        .OnInput(v => _input = v),
                     Button.Type("button").Class(Ui.BtnPrimary).Id("storage-set").OnClickAsync(Set)["Set"],
                     Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("storage-read").OnClickAsync(Read)["Read"],
                     Button.Type("button").Class(Ui.BtnOutlineDanger).Id("storage-remove").OnClickAsync(Remove)["Remove"]
                 ],
-                Div.Class("small text-secondary")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]
             ]
         ];
 

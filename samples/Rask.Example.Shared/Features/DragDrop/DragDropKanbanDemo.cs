@@ -55,8 +55,8 @@ public sealed partial class DragDropKanbanDemo : Component
                     .OnDropAsync(ctx.Drop(zone, index))
                     .OnDragEnd(ctx.DragEnd)
                     .Data(new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
-                    Div.Class($"{Ui.CardBody} p-2 d-flex align-items-center gap-2")[
-                        Icon.Name(IconName.GripVertical).Class("text-secondary"),
+                    Div.Class($"{Ui.CardBody} p-2 flex items-center gap-2")[
+                        Icon.Name(IconName.GripVertical).Class("text-slate-500 dark:text-slate-400"),
                         Span[card.Title]
                     ]
                 ]);
@@ -73,10 +73,10 @@ public sealed partial class DragDropKanbanDemo : Component
                 bodyCls += " dd-drop-target";
             }
 
-            cols.Add(Div.Key(zone).Class("col")[
-                Div.Class("dd-column h-100")[
-                    Div.Class("dd-column-header d-flex justify-content-between align-items-center")[
-                        Span.Class("fw-semibold")[_columnLabels[zone]],
+            cols.Add(Div.Key(zone).Class("col-span-12")[
+                Div.Class("dd-column h-full")[
+                    Div.Class("dd-column-header flex justify-between items-center")[
+                        Span.Class("font-semibold")[_columnLabels[zone]],
                         Span.Class(Ui.BadgeSecondary)[cards.Count.ToString()]
                     ],
                     Div
@@ -88,7 +88,7 @@ public sealed partial class DragDropKanbanDemo : Component
             ]);
         }
 
-        return Div.Class($"grid grid-cols-12 gap-4 {"dd-board"}")[cols];
+        return Div.Class("grid grid-cols-12 gap-4 dd-board")[cols];
     }
 
     private void MoveCard(DragDropMove move)

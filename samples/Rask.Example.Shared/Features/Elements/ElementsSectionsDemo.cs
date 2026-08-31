@@ -7,30 +7,30 @@ public sealed partial class ElementsSectionsDemo : Component
     protected override Component? Render() => Article.Class("border rounded p-3")[
         Header[
             Hgroup[
-                H1.Class("h4 mb-1")["Article title"],
-                P.Class("text-secondary mb-0")["A subtitle grouped with the heading"]
+                H1.Class("text-xl font-semibold mb-1")["Article title"],
+                P.Class("text-slate-500 dark:text-slate-400 mb-0")["A subtitle grouped with the heading"]
             ],
-            Nav.Class("small")[
+            Nav.Class("text-sm")[
                 A.Href("#a").Class("me-2")["Intro"], A.Href("#b")["Details"]
             ]
         ],
         Search.Class("my-2")[
-            Input.Value<string>(null).Type(InputType.Search).Class("form-control form-control-sm").Placeholder("Search…")
+            Input.Value<string>(null).Type(InputType.Search).Class(Ui.Input).Placeholder("Search…")
         ],
         Div.Class("grid grid-cols-12 gap-4")[
-            Main.Class("col-8")[
-                Section.Id("a")[H2.Class("h6")["Section heading levels"],
+            Main.Class("col-span-8")[
+                Section.Id("a")[H2.Class("text-base font-semibold")["Section heading levels"],
                     P.Class("mb-1")["Headings ", Code["H1"], "–", Code["H6"], ":"],
-                    H3.Class("h6 mb-0")["H3"], H4.Class("h6 mb-0")["H4"],
-                    H5.Class("h6 mb-0")["H5"], H6.Class("h6 mb-0")["H6"]
+                    H3.Class("text-base font-semibold mb-0")["H3"], H4.Class("text-base font-semibold mb-0")["H4"],
+                    H5.Class("text-base font-semibold mb-0")["H5"], H6.Class("text-base font-semibold mb-0")["H6"]
                 ]
             ],
-            Aside.Class("col-4 text-secondary small")[
+            Aside.Class("col-span-4 text-slate-500 dark:text-slate-400 text-sm")[
                 "An ", Code["aside"], " — complementary content."
             ]
         ],
-        Footer.Class("border-top pt-2 mt-2 small text-secondary")[
-            "Footer · ", Address.Class("d-inline fst-italic")["contact@example.com"]
+        Footer.Class("border-t pt-2 mt-2 text-sm text-slate-500 dark:text-slate-400")[
+            "Footer · ", Address.Class("inline italic")["contact@example.com"]
         ]
     ];
 }

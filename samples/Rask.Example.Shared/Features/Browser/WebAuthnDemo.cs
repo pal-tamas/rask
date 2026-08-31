@@ -47,19 +47,19 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
     }
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
-                    Button.Class("btn btn-primary btn-sm").Id("webauthn-create").OnClickAsync(Create)[
-                        I.Class("bi bi-fingerprint me-1"), "Create passkey"],
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
+                    Button.Class(Ui.BtnPrimary).Id("webauthn-create").OnClickAsync(Create)[
+                        Icon.Name(IconName.Fingerprint).Class("me-1"), "Create passkey"],
                     Button
-                        .Class("btn btn-outline-primary btn-sm")
+                        .Class(Ui.BtnOutlinePrimary)
                         .Id("webauthn-auth")
                         .Disabled(_credentialId is null)
                         .OnClickAsync(Authenticate)["Authenticate"]
                 ],
-                Div.Class("small text-secondary")["Support: ", Code.Id("webauthn-support")[_support]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("webauthn-status")[_status]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Support: ", Code.Id("webauthn-support")[_support]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("webauthn-status")[_status]]
             ]
         ];
 

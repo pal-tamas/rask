@@ -14,13 +14,13 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
                 Div.Class(Ui.CardBody)[
                     Div.Class("grid grid-cols-12 gap-4")[
                         Div.Class("md:col-span-6")[
-                            Span.Class("text-secondary small text-uppercase")["Path"],
-                            Div[Code.Class("fs-6").Id("nav-path")[route.Path]]
+                            Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Path"],
+                            Div[Code.Class("text-base").Id("nav-path")[route.Path]]
                         ],
                         Div.Class("md:col-span-6")[
-                            Span.Class("text-secondary small text-uppercase")["Query"],
+                            Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Query"],
                             Div[
-                                Code.Class("fs-6").Id("nav-query")[
+                                Code.Class("text-base").Id("nav-query")[
                                     route.Query.Count == 0 ? "(empty)" : BuildQuery(route)
                                 ]
                             ]
@@ -28,7 +28,7 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
                     ]
                 ]
             ],
-            Div.Class("btn-group flex-wrap")[
+            Div.Class("flex-wrap")[
                 Button.Type("button").Class(Ui.BtnOutlinePrimary)
                     .Id("nav-set-page1")
                     .OnClick(() => nav.SetQuery("page", "1"))[

@@ -102,7 +102,7 @@ public partial class GlobalAttributeTests : global::Rask.Core.RaskMarkup
     public void An_element_naming_no_global_renders_exactly_as_before() =>
         // The whole point of the flag-bit/LiveState storage: adding ten properties must cost the common
         // element nothing, in output or in footprint.
-        Assert.Equal("<div class=\"card\"><span>hi</span></div>", Div.Class("card")[Span["hi"]].ToHtml());
+        Assert.Equal("<div class=\"panel\"><span>hi</span></div>", Div.Class("panel")[Span["hi"]].ToHtml());
 
     [Fact]
     public void Hidden_and_Inert_share_the_flags_byte_with_Component_and_must_not_alias_it()

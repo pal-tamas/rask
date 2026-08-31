@@ -34,10 +34,10 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-muted small mt-1")[
+        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
             Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking delivery zone…"
         ];
 
@@ -82,12 +82,12 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
             Form.Model(_model)
                 .OnValidSubmit(m =>
                     _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}")
-                .Class("vstack gap-3")[
+                .Class("flex flex-col gap-3")[
                 Div[
-                    Label.For("v-nlive-name").Class("form-label small mb-1")["Customer name"],
+                    Label.For("v-nlive-name").Class($"{Ui.Label} text-sm mb-1")["Customer name"],
                     Input.Bind(() => _model.CustomerName)
                         .Id("v-nlive-name")
-                        .Class("form-control")
+                        .Class(Ui.Input)
                         .Validate(v =>
                             string.IsNullOrWhiteSpace(v)
                                 ? new[] { "Name is required." }
@@ -95,64 +95,64 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Div[
-                    Label.For("v-nlive-postal").Class("form-label small mb-1")[
-                        "Postal code ", Span.Class("text-muted")["(try 12345, 99999, or any 5-digit code)"]
+                    Label.For("v-nlive-postal").Class($"{Ui.Label} text-sm mb-1")[
+                        "Postal code ", Span.Class("text-slate-500 dark:text-slate-400")["(try 12345, 99999, or any 5-digit code)"]
                     ],
                     Input.Bind(() => _model.Address.PostalCode)
                         .Id("v-nlive-postal")
-                        .Class("form-control")
+                        .Class(Ui.Input)
                         .ValidateAsync(ValidatePostalAsync),
                     ValidatingIndicator.Template(Checking).For(() => _model.Address.PostalCode),
                     ValidationMessage.Template(FieldError).For(() => _model.Address.PostalCode)
                 ],
                 Div.Class("border rounded p-3")[
-                    Div.Class("fw-semibold small mb-2")["Items"],
-                    Div.Class($"grid grid-cols-12 gap-4 {"mb-2 items-center"}")[
+                    Div.Class("font-semibold text-sm mb-2")["Items"],
+                    Div.Class("grid grid-cols-12 gap-4 mb-2 items-center")[
                         Div.Class("col-span-6")[
                             Input.Bind(() => _model.Items[0].Name)
                                 .Id("v-nlive-item0-name")
-                                .Class("form-control form-control-sm")
+                                .Class(Ui.Input)
                         ],
                         Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[0].Quantity)
                                 .Id("v-nlive-item0-qty")
-                                .Class("form-control form-control-sm")
+                                .Class(Ui.Input)
                                 .Min("0")
                         ],
                         Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[0].UnitPrice)
                                 .Id("v-nlive-item0-price")
-                                .Class("form-control form-control-sm")
+                                .Class(Ui.Input)
                                 .Step("0.01")
                         ]
                     ],
-                    Div.Class($"grid grid-cols-12 gap-4 {"items-center"}")[
+                    Div.Class("grid grid-cols-12 gap-4 items-center")[
                         Div.Class("col-span-6")[
                             Input.Bind(() => _model.Items[1].Name)
                                 .Id("v-nlive-item1-name")
-                                .Class("form-control form-control-sm")
+                                .Class(Ui.Input)
                         ],
                         Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[1].Quantity)
                                 .Id("v-nlive-item1-qty")
-                                .Class("form-control form-control-sm")
+                                .Class(Ui.Input)
                                 .Min("0")
                         ],
                         Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[1].UnitPrice)
                                 .Id("v-nlive-item1-price")
-                                .Class("form-control form-control-sm")
+                                .Class(Ui.Input)
                                 .Step("0.01")
                         ]
                     ]
                 ],
                 Div[
-                    Label.For("v-nlive-promo").Class("form-label small mb-1")[
-                        "Promo code ", Span.Class("text-muted")["(try SAVE10 or SAVE25)"]
+                    Label.For("v-nlive-promo").Class($"{Ui.Label} text-sm mb-1")[
+                        "Promo code ", Span.Class("text-slate-500 dark:text-slate-400")["(try SAVE10 or SAVE25)"]
                     ],
-                    Input.Bind(() => _model.DiscountCode).Id("v-nlive-promo").Class("form-control")
+                    Input.Bind(() => _model.DiscountCode).Id("v-nlive-promo").Class(Ui.Input)
                 ],
-                Div.Id("v-nlive-totals").Class("bg-light rounded p-3 small")[
+                Div.Id("v-nlive-totals").Class("bg-slate-100 rounded p-3 text-sm")[
                     Div.Class("flex justify-between flex-wrap items-center")[
                         Span["Subtotal"],
                         Span.Id("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]
@@ -168,7 +168,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                         Span.Id("v-nlive-tax")[$"${tax.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ],
                     Hr.Class("my-2"),
-                    Div.Class($"flex justify-between flex-wrap items-center {"font-bold"}")[
+                    Div.Class("flex justify-between flex-wrap items-center font-bold")[
                         Span["Total"],
                         Span.Id("v-nlive-total")[$"${total.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ]
@@ -179,7 +179,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
             ],
             _submission is null
                 ? null
-                : Div.Id("v-nlive-submission").Class("alert alert-success small mt-3 mb-0")[
+                : Div.Id("v-nlive-submission").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[
                     Icon.Name(IconName.CheckCircle).Class("me-2"), _submission
                 ]
         ];

@@ -31,13 +31,13 @@ internal static partial class AttributeHeavyElements
             }
 
             elements.Add(Div
-                .Class("row item")
+                .Class("line item")
                 .Id($"r{i}")
                 .Style("display:block")
                 .Data(data));
         }
 
-        return Div.Class("container")[elements];
+        return Div.Class("wrap")[elements];
     }
 
     /// <summary>
@@ -60,13 +60,13 @@ internal static partial class AttributeHeavyElements
             }
 
             elements.Add(Div
-                .Class("row item")
+                .Class("line item")
                 .Id($"r{i}")
                 .Style("display:block")
                 .Data(data));
         }
 
-        return Div.Class("container")[elements];
+        return Div.Class("wrap")[elements];
     }
 
     public sealed class BlazorAttributeHeavy : ComponentBase
@@ -78,11 +78,11 @@ internal static partial class AttributeHeavyElements
             var dataAttrCount = Math.Max(0, AttrCount - 3);
 
             b.OpenElement(0, "div");
-            b.AddAttribute(1, "class", "container");
+            b.AddAttribute(1, "class", "wrap");
             for (var i = 0; i < ElementCount; i++)
             {
                 b.OpenElement(2, "div");
-                b.AddAttribute(3, "class", "row item");
+                b.AddAttribute(3, "class", "line item");
                 b.AddAttribute(4, "id", $"r{i}");
                 b.AddAttribute(5, "style", "display:block");
 #pragma warning disable ASP0006 // computed sequence numbers are intentional for variable-length attr loops
@@ -110,11 +110,11 @@ internal static partial class AttributeHeavyElements
             const int mutateIndex = ElementCount / 2;
 
             b.OpenElement(0, "div");
-            b.AddAttribute(1, "class", "container");
+            b.AddAttribute(1, "class", "wrap");
             for (var i = 0; i < ElementCount; i++)
             {
                 b.OpenElement(2, "div");
-                b.AddAttribute(3, "class", "row item");
+                b.AddAttribute(3, "class", "line item");
                 b.AddAttribute(4, "id", $"r{i}");
                 b.AddAttribute(5, "style", "display:block");
 #pragma warning disable ASP0006

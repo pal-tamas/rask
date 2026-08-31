@@ -14,7 +14,7 @@ public sealed partial class NestedListIndexerDemo : Component
     public NestedListIndexerDemo() => _model.Skus.Add(new SkuRow { Code = "WIDGET-1", Price = 9.99m });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     protected override Component? Render()
     {
@@ -23,13 +23,13 @@ public sealed partial class NestedListIndexerDemo : Component
         {
             var i = idx; // Per-iteration capture — without this every lambda closes over Skus.Count.
             rows.Add(Tr.Key(_model.Skus[i].Id)[
-                Td.Class("text-secondary small")[$"#{i + 1}"],
+                Td.Class("text-slate-500 dark:text-slate-400 text-sm")[$"#{i + 1}"],
                 Td[
-                    Input.Bind(() => _model.Skus[i].Code).Class("form-control form-control-sm"),
+                    Input.Bind(() => _model.Skus[i].Code).Class(Ui.Input),
                     ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Code)
                 ],
                 Td.Style("width: 7rem;")[
-                    Input.Bind(() => _model.Skus[i].Price).Class("form-control form-control-sm"),
+                    Input.Bind(() => _model.Skus[i].Price).Class(Ui.Input),
                     ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Td.Style("width: 5rem;")[
@@ -46,9 +46,9 @@ public sealed partial class NestedListIndexerDemo : Component
         return
         [
             Form.Model(_model).OnValidSubmit(m => _submission =
-                    $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}").Class("vstack gap-3")[
+                    $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}").Class("flex flex-col gap-3")[
                 DataAnnotationsValidator,
-                Table.Class("table table-sm align-middle mb-0")[
+                Table.Class($"{Ui.Table} text-sm align-middle mb-0")[
                     Thead[Tr[Th.Style("width: 3rem;")["#"], Th["SKU"], Th["Price"], Th]],
                     Tbody[rows]
                 ],
@@ -63,7 +63,7 @@ public sealed partial class NestedListIndexerDemo : Component
             ],
             _submission is null
                 ? null
-                : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0").Id("nf-idx-result")[_submission]
+                : Div.Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
         ];
     }
 }

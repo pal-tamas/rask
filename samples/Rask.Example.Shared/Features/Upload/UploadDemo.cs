@@ -33,20 +33,20 @@ public sealed partial class UploadDemo : Component
             Input.Value<string>(null)
                 .Id("upload-input")
                 .Type(InputType.File)
-                .Class("form-control mb-3")
+                .Class($"{Ui.Input} mb-3")
                 .OnFiles(OnFiles),
             _name is null
-                ? (Component)Div.Class("text-secondary small")["No file selected yet."]
-                : Dl.Class("row small mb-0")[
-                    Dt.Class("col-4 text-secondary")["Name"],
-                    Dd.Class("col-8 text-break").Data(Meta("name"))[_name],
-                    Dt.Class("col-4 text-secondary")["Size"],
-                    Dd.Class("col-8").Data(Meta("size"))[_size.ToString("N0", CultureInfo.InvariantCulture),
+                ? (Component)Div.Class("text-slate-500 dark:text-slate-400 text-sm")["No file selected yet."]
+                : Dl.Class("grid grid-cols-12 gap-4 text-sm mb-0")[
+                    Dt.Class("col-span-4 text-slate-500 dark:text-slate-400")["Name"],
+                    Dd.Class("col-span-8 text-break").Data(Meta("name"))[_name],
+                    Dt.Class("col-span-4 text-slate-500 dark:text-slate-400")["Size"],
+                    Dd.Class("col-span-8").Data(Meta("size"))[_size.ToString("N0", CultureInfo.InvariantCulture),
                         " bytes"],
-                    Dt.Class("col-4 text-secondary")["Type"],
-                    Dd.Class("col-8").Data(Meta("type"))[_contentType ?? string.Empty],
-                    Dt.Class("col-4 text-secondary")["Modified"],
-                    Dd.Class("col-8 mb-0").Data(Meta("modified"))[
+                    Dt.Class("col-span-4 text-slate-500 dark:text-slate-400")["Type"],
+                    Dd.Class("col-span-8").Data(Meta("type"))[_contentType ?? string.Empty],
+                    Dt.Class("col-span-4 text-slate-500 dark:text-slate-400")["Modified"],
+                    Dd.Class("col-span-8 mb-0").Data(Meta("modified"))[
                         _modified.ToString("u", CultureInfo.InvariantCulture)]
                 ]
         ];

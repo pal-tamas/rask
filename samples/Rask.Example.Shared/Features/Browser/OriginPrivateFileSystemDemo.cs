@@ -21,7 +21,7 @@ public sealed partial class OriginPrivateFileSystemDemo(
     protected override Component? Render() =>
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
-                Div.Class("d-flex flex-wrap gap-2 mb-2")[
+                Div.Class("flex flex-wrap gap-2 mb-2")[
                     Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("opfs-write")
                         .OnClickAsync(Write)[
@@ -35,9 +35,9 @@ public sealed partial class OriginPrivateFileSystemDemo(
                         .OnClickAsync(Persist)[
                         "Request persistence"]
                 ],
-                Div.Class("small text-secondary")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
-                Div.Class("small text-secondary")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
             ]
         ];
 

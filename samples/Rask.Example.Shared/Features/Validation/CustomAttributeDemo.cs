@@ -17,25 +17,25 @@ public sealed partial class CustomAttributeDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Welcome, {m.Username}!").Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Welcome, {m.Username}!").Class("flex flex-col gap-3")[
             DataAnnotationsValidator,
             Div[
-                Label.For("v12-username").Class("form-label small mb-1")["Username"],
-                Input.Bind(() => _model.Username).Id("v12-username").Class("form-control"),
+                Label.For("v12-username").Class($"{Ui.Label} text-sm mb-1")["Username"],
+                Input.Bind(() => _model.Username).Id("v12-username").Class(Ui.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Username)
             ],
             Div[
-                Label.For("v12-password").Class("form-label small mb-1")["Password"],
-                Input.Bind(() => _model.Password).Id("v12-password").Type(InputType.Password).Class("form-control"),
+                Label.For("v12-password").Class($"{Ui.Label} text-sm mb-1")["Password"],
+                Input.Bind(() => _model.Password).Id("v12-password").Type(InputType.Password).Class(Ui.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Password)
             ],
             Div[
-                Label.For("v12-confirm").Class("form-label small mb-1")["Confirm password"],
-                Input.Bind(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class("form-control"),
+                Label.For("v12-confirm").Class($"{Ui.Label} text-sm mb-1")["Confirm password"],
+                Input.Bind(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class(Ui.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[
@@ -44,7 +44,7 @@ public sealed partial class CustomAttributeDemo : Component
         ],
         _submission is null
             ? null
-            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

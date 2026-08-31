@@ -17,11 +17,11 @@ public sealed class ShowcaseLayoutTests
         var routeState = new RouteState { Path = "/" };
         var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
-        // app-navbar and navbar-brand are hooks the scoped stylesheet and the E2E both select on;
+        // app-navbar and app-brand are hooks the scoped stylesheet and the E2E both select on;
         // bg-slate-900 is what makes it the dark bar now that no framework decides that for us.
         Assert.Contains("app-navbar", html);
         Assert.Contains("bg-slate-900", html);
-        Assert.Contains("navbar-brand", html);
+        Assert.Contains("app-brand", html);
         Assert.Contains("hamburger-btn", html);
 
         // The sidebar is in the flow from md up and a drawer below it. It was a Bootstrap responsive

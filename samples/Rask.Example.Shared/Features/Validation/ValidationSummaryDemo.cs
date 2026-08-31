@@ -8,8 +8,8 @@ public sealed partial class ValidationSummaryDemo : Component
     private string? _submission;
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
-        Div.Class($"{Ui.AlertDanger} small mb-0")[
-            Div.Class("fw-semibold mb-1")[
+        Div.Class($"{Ui.AlertDanger} text-sm mb-0")[
+            Div.Class("font-semibold mb-1")[
                 Icon.Name(IconName.ExclamationTriangle).Class("me-1"),
                 $"Please fix {entries.Count} error{(entries.Count == 1 ? "" : "s")}:"
             ],
@@ -24,27 +24,27 @@ public sealed partial class ValidationSummaryDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
             DataAnnotationsValidator,
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Label.For("v2-name").Class("form-label small mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("v2-name").Class("form-control")
+                Label.For("v2-name").Class($"{Ui.Label} text-sm mb-1")["Name"],
+                Input.Bind(() => _model.Name).Id("v2-name").Class(Ui.Input)
             ],
             Div[
-                Label.For("v2-email").Class("form-label small mb-1")["Email"],
+                Label.For("v2-email").Class($"{Ui.Label} text-sm mb-1")["Email"],
                 Input.Bind(() => _model.Email)
                     .Id("v2-email")
                     .Type(InputType.Email)
-                    .Class("form-control")
+                    .Class(Ui.Input)
             ],
             Div[
-                Label.For("v2-age").Class("form-label small mb-1")["Age"],
-                Input.Bind(() => _model.Age).Id("v2-age").Class("form-control")
+                Label.For("v2-age").Class($"{Ui.Label} text-sm mb-1")["Age"],
+                Input.Bind(() => _model.Age).Id("v2-age").Class(Ui.Input)
             ],
             Div[
-                Label.For("v2-plan").Class("form-label small mb-1")["Plan"],
-                Select.Bind(() => _model.Plan).Id("v2-plan").Class("form-select")[
+                Label.For("v2-plan").Class($"{Ui.Label} text-sm mb-1")["Plan"],
+                Select.Bind(() => _model.Plan).Id("v2-plan").Class(Ui.Select)[
                     Option.Value("")["— choose —"],
                     Option.Value("free")["Free"],
                     Option.Value("pro")["Pro"],
@@ -57,6 +57,6 @@ public sealed partial class ValidationSummaryDemo : Component
         ],
         _submission is null
             ? null
-            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }

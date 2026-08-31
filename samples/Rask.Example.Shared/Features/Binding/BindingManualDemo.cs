@@ -14,10 +14,10 @@ public sealed partial class BindingManualDemo : Component
         Input
             .Value(_typed)
             .Type(InputType.Text)
-            .Class("form-control mb-2")
+            .Class($"{Ui.Input} mb-2")
             .Placeholder("Type something")
             .OnInput(v => _typed = v),
-        P.Class("small mb-0")[
+        P.Class("text-sm mb-0")[
             "Echo: ",
             Code[string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""]
         ]

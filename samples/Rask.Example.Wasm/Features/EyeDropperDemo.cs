@@ -1,3 +1,4 @@
+using Rask.Example.Shared;
 using Rask.Wasm.Browser;
 
 namespace Rask.Example.Wasm.Features;
@@ -12,22 +13,22 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                Div.Class("d-flex align-items-center gap-3 mb-2")[
-                    Button.Class("btn btn-primary btn-sm").Id("eyedropper-pick").OnClickAsync(Pick)[
-                        I.Class("bi bi-eyedropper me-1"), "Pick a color"],
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex items-center gap-3 mb-2")[
+                    Button.Class(Ui.BtnPrimary).Id("eyedropper-pick").OnClickAsync(Pick)[
+                        Icon.Name(IconName.Eyedropper).Class("me-1"), "Pick a color"],
                     _hex is null
-                        ? (Component)Span.Class("text-secondary small")["No color picked yet"]
-                        : Div.Class("d-flex align-items-center gap-2")[
+                        ? (Component)Span.Class("text-slate-500 dark:text-slate-400 text-sm")["No color picked yet"]
+                        : Div.Class("flex items-center gap-2")[
                             Span
                                 .Id("eyedropper-swatch")
-                                .Class("d-inline-block rounded border")
+                                .Class("inline-block rounded border")
                                 .Style($"width: 2rem; height: 2rem; background: {_hex}"),
                             Code.Id("eyedropper-hex")[_hex]
                         ]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("eyedropper-status")[_status]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("eyedropper-status")[_status]]
             ]
         ];
 

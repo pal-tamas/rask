@@ -116,7 +116,7 @@ public class KeyOpensChainAnalyzerTests
 
     // The exemption that keeps this off the common call site. An element is re-specified in full every
     // render — whatever its chain does not name, the deferred reset puts back — so it is never claimed
-    // and nothing written before its Key can be lost. `Div.Class("row").Key(i)` is written in its
+    // and nothing written before its Key can be lost. `Div.Class("line").Key(i)` is written in its
     // hundreds across the samples and must stay exactly as it reads.
     [Fact]
     public async Task An_element_chain_with_Key_last_is_clean()
@@ -126,7 +126,7 @@ public class KeyOpensChainAnalyzerTests
             {
                 public sealed partial class Page : Rask.Core.Component
                 {
-                    protected override Rask.Core.Component? Render() => Div.Class("row").Key(1);
+                    protected override Rask.Core.Component? Render() => Div.Class("line").Key(1);
                 }
             }
             """));

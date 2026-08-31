@@ -110,6 +110,37 @@ them until tagged releases begin.
   by hand would have been 45 chances to get path data subtly wrong in a way nothing tests, because a
   wrong glyph still renders.
 
+  **And its class names, everywhere.** Deleting the package removed the `Bs*` components but left the
+  raw Bootstrap class strings behind — `btn btn-primary`, `card`, `alert alert-danger`, `form-control`
+  and the rest, across 200+ sample files and the docs. They compiled, they read as though they styled
+  something, and they styled nothing at all. They are now Tailwind utilities, routed through the
+  showcase's `Ui` vocabulary where the project can see it and inlined where it cannot
+  (`Rask.Example.Sqlite` and the auth samples do not reference the shared showcase).
+
+  Nothing is left alone. Illustrative class names in docs and changelog snippets are renamed to names
+  this project owns (`panel`, `action`, `pill`, `notice`), and the app's own hooks that merely shared a
+  Bootstrap spelling are renamed with every selector that reads them — `navbar-brand` became `app-brand`
+  across the markup, the stylesheet, two unit tests and the browser journey in one change. A class name
+  that reads as Bootstrap is a claim that Bootstrap is still here, and it is not.
+
+  A dead `ErrorPageBootstrapBody` in the CLI scaffolder went too. It still named `BsCard`, `BsCardBody`
+  and `BsCardTitle` — types that no longer exist — and survived the styling-axis removal because it is
+  a string constant, so nothing could fail on it.
+
+  **And the catalogue entries that outlived their subjects.** `llms.txt` — the index an AI agent reads —
+  still carried 14 entries describing `Rask.Bootstrap`'s components and linking 14 docs files that were
+  deleted with them; `README.md` still linked `docs/bootstrap.md`. Both are gone. So are 444 lines of
+  browser journey: six `WalkDataGrid*` methods driving `BsDataGrid`, and the walks for `BsMultiSelect` /
+  `BsRadioGroup` / `BsCheckboxGroup`. Nothing called the first six, so they compiled and never ran — the
+  quietest way for test code to describe a feature that does not exist.
+
+  A new convention test, `NoBootstrapClassesTests`, now fails the build on any Bootstrap class name in a
+  class position — `.Class(…)`, `Class:`, `class="…"`, and Blazor's `AddAttribute(n, "class", …)` in the
+  comparison benchmarks. It deliberately does NOT list the spellings the two frameworks share (`border`,
+  `rounded`, `shadow-sm`, `bg-white`, `col-span-*`, `gap-*`), because a convention test that fails on
+  correct code is one that gets switched off. It was proved by planting `btn btn-primary` and watching it
+  go red, naming the file, the line and both tokens.
+
 ### Changed
 - **BREAKING: `rask new` has no styling axis — Tailwind is built in.** It is a battery like any other:
   always referenced, always wired, so every scaffolded project is Tailwind and there is nothing to choose.
@@ -160,6 +191,35 @@ them until tagged releases begin.
   `Retry`, `Archive`, `Outbox`, `Gear`, `Storage`, `Warning`) carry the same meanings.
 
 ### Fixed
+- **The showcase's sidebar filter searched only when you left the box.** `BsInput` wired its controlled
+  callback to `oninput`; the core `Input` that replaced it binds `OnChange` to the DOM `change` event,
+  which for a text box fires on blur. So typing into "Filter guides & examples…" did nothing until focus
+  moved — on a live-search field, which is the one control where that is not a subtle difference. It is
+  `OnInput` now, which the API documents as the hook for exactly this. The two demo inputs converted the
+  same way are fixed with it; they were masked because clicking their button blurs the field first.
+
+- **Every sidebar row rendered its icon's NAME as text.** The icon was an empty `<i>` carrying a
+  Bootstrap Icons font class, and the conversion turned it into a `<span>` *containing* that class name —
+  so the nav read "bi-plug Wake lock", "bi-book All guides". The icon name is now an `IconName` rather
+  than a string, which is what makes this a compile error instead of a rendering one, and the two records
+  that carry it (`ShowcaseNavEntry`, `GuideEntry`) are typed accordingly.
+
+- **The todo list's edit and delete buttons had no accessible name.** They are icon-only, and the glyph
+  that replaced the icon font is `aria-hidden`, so a screen reader announced "button" and nothing else.
+  Both carry an `aria-label` naming the row they act on.
+
+  The same was true of the EfCore catalogue's row actions. Four icon-only controls in total now say what
+  they do, and the browser journey addresses them by that name rather than by the colour class it used
+  to reach for — an anchor a restyle cannot silently break, because a user can perceive it.
+
+- **31 class strings had two utilities fused into one.** `$"{Ui.AlertSuccess}text-sm"` renders
+  `…dark:text-emerald-200text-sm`: the constant's last utility and the next class run together into a
+  name that matches no rule, so both are silently lost. It compiles, and no test that does not read the
+  class attribute can see it.
+
+- **13 submit-result banners now announce themselves.** They report the outcome of an action and were
+  invisible to assistive tech; they are `role="status"` live regions, and the localization warning is
+  `role="alert"`.
 - **A resumed console session came back as the host application.** The WebSocket endpoint is mapped once
   per host rather than once per root, so it captured whichever root the first `UseRask` supplied — and that
   is what session *resume* rebuilds with. A console session resuming after a restart or an eviction would
@@ -2187,7 +2247,7 @@ them until tagged releases begin.
 
 ### Removed
 - **The generated `Generated.X(...)` factory is gone; the chain is the only way to write markup.**
-  `Div.Class("card")[Span["hi"]]` was already the documented surface — the factory was the one it
+  `Div.Class("panel")[Span["hi"]]` was already the documented surface — the factory was the one it
   replaced, kept alongside it so a migration could land project by project. Every call site in the repo
   is converted (the deterministic rewriter in `tools/RaskBuilderRewrite` did all but six of them, and
   trial-compiled each rewrite before accepting it), so what goes now is the second way to say the same
@@ -3161,7 +3221,7 @@ them until tagged releases begin.
   - **Nothing changes at the call site.** `Rask.Html` is `IsPackable=false` and bundled into the
     `Rask.Server` / `Rask.Wasm` package `lib/` folders next to `Rask.Core.dll`, exactly
     like `Rask.Client`. `[assembly: RaskFactoryNamespace("Rask.Html.Components")]` — the same opt-in
-    each host uses — makes a consuming app's generator surface the factories, so `Div.Class("card")`
+    each host uses — makes a consuming app's generator surface the factories, so `Div.Class("panel")`
     and `Generated.Img(…)` resolve with no per-file `using`.
   - **The factory namespace had to change** (`Rask.Core.Components` → `Rask.Html.Components`): the
     generator emits one `public static partial class Generated` per compilation, and Core still declares
@@ -3292,7 +3352,7 @@ them until tagged releases begin.
 
   **Elements are exempt**, and not as a carve-out: an element is re-specified in full every render — what
   its chain does not name, the deferred reset puts back — so its instance carries nothing and is never
-  claimed. `Div.Class("row").Key(i)` is unchanged, which is the spelling used in its hundreds.
+  claimed. `Div.Class("line").Key(i)` is unchanged, which is the spelling used in its hundreds.
 
   RASK046 found **nine** live instances of the trap while this was being written — in `Rask.Bootstrap`,
   `Rask.Dashboard`, the samples and the benchmarks. `BsToaster` and the toast demos are the clearest:
@@ -3591,7 +3651,7 @@ them until tagged releases begin.
   one:
 
   ```csharp
-  Div.Class("card")[Span["hi"]]                       // reads exactly as before
+  Div.Class("panel")[Span["hi"]]                       // reads exactly as before
   BsButton.Color(BsColor.Primary).OnClick(Save)["Save"]
   ```
 
@@ -3661,7 +3721,7 @@ them until tagged releases begin.
   Form.Model(_m)
       .Validate(CheckoutRules.Check)
       .OnValidSubmit(Save)
-      .Class("vstack gap-3")[ … ]
+      .Class("flex flex-col gap-3")[ … ]
   ```
 
   The submit handlers now receive the model itself instead of a `Delegate` the component had to
@@ -3718,7 +3778,7 @@ them until tagged releases begin.
   BsSelect.Bind(() => _m.Plan).Options(Plans)     // the option IS the value
   BsRadioGroup.Options(AllPlans).Value(_plan)
   BsToast.Id(7).Message("Saved")                   // or .Message("Saved").Id(7)
-  Div.Class("card")[…]                             // nothing required — unchanged
+  Div.Class("panel")[…]                             // nothing required — unchanged
   ```
 
   Three things stop being possible to write, rather than being reported after the fact:
@@ -4278,7 +4338,7 @@ them until tagged releases begin.
   Entries now restore the state the factory would have left — but in two halves, because the reset and
   the `propsChanged` fold want opposite moments. Non-folding props (raw delegates, carriers, `Key`)
   are defaulted when the entry is created; they never call `Track`, so nothing can be disturbed. Folding
-  props cannot be: blanking `Class` before `.Class("card")` runs would make the fold compare against the
+  props cannot be: blanking `Class` before `.Class("panel")` runs would make the fold compare against the
   *default* instead of last render's value, so every constant prop would report a change every frame and
   no entry-built component would ever hit the render cache. Those are instead marked *pending*, each
   setter clears its own bit as it writes, and whatever is still pending when the parent's `Render()`
@@ -7196,7 +7256,7 @@ them until tagged releases begin.
   asked for. A single-entity run is byte-for-byte unchanged.
 - **Bootstrap layout primitives: `BsContainer`, `BsRow`/`BsCol`, `BsStack`.** The typed answer to the page
   shell and the 12-unit responsive grid, so a layout no longer means hand-writing
-  `Div(Class: "container")` / `Div(Class: "row g-4")` / `Div(Class: "d-flex gap-2")`. `BsContainer` takes
+  `Div(Class: "wrap")` / `Div(Class: "line gap-4")` / `Div(Class: "flex gap-2")`. `BsContainer` takes
   `Fluid` and `FluidBelow: Bp` (named for the behaviour — Bootstrap's `.container-md` is really the fluid
   one *below* md, capped from md up). `BsRow` takes `Gutter` (`.g-0`…`.g-5`). `BsCol` takes per-breakpoint
   spans that stack exactly as the class names do — `BsCol(Md: 6, Lg: 4)` → `.col-md-6 .col-lg-4` — plus

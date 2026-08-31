@@ -62,8 +62,8 @@ public sealed class SiteExampleTests
 
             // The front door links into the nested docs + playground sub-apps, and names them for what
             // they are — the site is three apps, and calling /docs/ "the live demo" left the docs unnamed.
-            await Expect(page.Locator("a.btn-primary").First).ToHaveAttributeAsync("href", "docs/");
-            await Expect(page.Locator("a.btn-primary").First).ToHaveTextAsync("Docs");
+            await Expect(page.Locator("#cta-docs")).ToHaveAttributeAsync("href", "docs/");
+            await Expect(page.Locator("#cta-docs")).ToHaveTextAsync("Docs");
 
             // The nav "Docs" entry points at the on-site showcase (/docs/), and the old external
             // GitHub-docs link is gone — no nav link targets the repo's markdown folder anymore.

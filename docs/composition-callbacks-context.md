@@ -20,7 +20,7 @@ public sealed partial class RatingStars : Component
     public Action<int>? OnRate { get; set; }
 
     protected override Component? Render() =>
-        Div.Class("d-inline-flex gap-1")[
+        Div.Class("inline-flex gap-1")[
             Enumerable.Range(1, 5).Select(i => (Component)Button.OnClick(() => OnRate?.Invoke(i))// raise the event
 .Key(i)[i <= Value ? "★" : "☆"])
         ];

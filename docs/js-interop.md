@@ -42,7 +42,7 @@ package up transitively needs its own reference (the same reach the implicit glo
 `bin/`, `obj/`, `node_modules/` and `wwwroot/` are excluded from the glob.
 
 **Global styles** (a brand palette, `:root` variables, shell tags like `body`, or framework
-classes like Bootstrap's) don't belong in a scoped `{Component}.css` — there is no opt-out
+classes from a third-party stylesheet) don't belong in a scoped `{Component}.css` — there is no opt-out
 selector. Put them in a plain stylesheet under `wwwroot` and link it from your App
 component's `<Head>`, exactly as you would any other static stylesheet:
 

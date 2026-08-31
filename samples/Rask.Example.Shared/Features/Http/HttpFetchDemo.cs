@@ -57,17 +57,17 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
 
         if (_post is null)
         {
-            return Div.Class("text-secondary d-flex align-items-center")[
-                Span.Class("spinner-border spinner-border-sm me-2"),
+            return Div.Class("text-slate-500 dark:text-slate-400 flex items-center")[
+                Span.Class($"{Ui.Spinner} size-4 me-2"),
                 "Loading…"
             ];
         }
 
-        return Article.Class("card border-0 bg-light")[
+        return Article.Class($"{Ui.Card} border-0 bg-slate-100")[
             Div.Class(Ui.CardBody)[
-                Div.Class("small text-secondary text-uppercase mb-1")[$"Post #{_post.Id}"],
-                H3.Class("h6 fw-semibold")[_post.Title],
-                P.Class("mb-0 small")[_post.Body]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 uppercase mb-1")[$"Post #{_post.Id}"],
+                H3.Class("text-base font-semibold")[_post.Title],
+                P.Class("mb-0 text-sm")[_post.Body]
             ]
         ];
     }

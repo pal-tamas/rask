@@ -42,14 +42,14 @@ public sealed class PlaygroundExampleTests
             // Compile + run the default starter. First compile downloads the framework assemblies as Roslyn
             // references and compiles interpreted, so allow generous headroom.
             await page.ClickAsync(".pg-run");
-            await Expect(page.Locator(".pg-preview .card"))
+            await Expect(page.Locator(".pg-preview .panel"))
                 .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 180_000 });
-            await Expect(page.Locator(".pg-preview .card p")).ToContainTextAsync("0 times");
+            await Expect(page.Locator(".pg-preview .panel p")).ToContainTextAsync("0 times");
 
             // Interactivity: the compiled component's click handler dispatches through the playground's
             // single live session and re-renders the preview subtree in place.
-            await page.ClickAsync(".pg-preview .card .btn");
-            await Expect(page.Locator(".pg-preview .card p"))
+            await page.ClickAsync(".pg-preview .panel .action");
+            await Expect(page.Locator(".pg-preview .panel p"))
                 .ToContainTextAsync("1 times", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
             // Regression guard: Monaco injects its theme colours as a <style> in <head>; the live-diff
@@ -106,7 +106,7 @@ public sealed class PlaygroundExampleTests
 
             // Insert: the compiled component's handler runs SaveChangesAsync against SQLite, reloads, and
             // the row — stamped by Rask.Data's AuditingInterceptor — paints through the live session.
-            await page.ClickAsync(".pg-preview .card .btn");
+            await page.ClickAsync(".pg-preview .panel .action");
             await Expect(page.Locator(".pg-preview"))
                 .ToContainTextAsync("Espresso",
                     new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });

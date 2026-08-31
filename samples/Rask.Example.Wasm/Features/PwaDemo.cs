@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Rask.Core.Browser;
+using Rask.Example.Shared;
 
 namespace Rask.Example.Wasm.Features;
 
@@ -24,55 +25,55 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
 
     protected override Component? Render() =>
     [
-        Div.Class("card shadow-sm border-0 mb-3")[
-            Div.Class("card-body")[
-                H6.Class("fw-bold")[I.Class("bi bi-bell me-2"), "Local notification (INotifications)"],
-                P.Class("small text-secondary")[
+        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Ui.CardBody)[
+                H6.Class("font-bold")[Icon.Name(IconName.Bell).Class("me-2"), "Local notification (INotifications)"],
+                P.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "Requests permission, then shows a notification straight from C# — no server."
                 ],
-                Button.Class("btn btn-primary btn-sm mb-2").Id("pwa-notify").OnClickAsync(ShowNotification)[
+                Button.Class($"{Ui.BtnPrimary} mb-2").Id("pwa-notify").OnClickAsync(ShowNotification)[
                     "Show a notification"],
-                Div.Class("small text-secondary")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
             ]
         ],
 
-        Div.Class("card shadow-sm border-0 mb-3")[
-            Div.Class("card-body")[
-                H6.Class("fw-bold")[I.Class("bi bi-broadcast me-2"), "Web Push (IWebPush)"],
-                P.Class("small text-secondary")[
+        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Ui.CardBody)[
+                H6.Class("font-bold")[Icon.Name(IconName.Broadcast).Class("me-2"), "Web Push (IWebPush)"],
+                P.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "Subscribes with a demo VAPID key and registers with this app's ", Code["Rask.WebPush"],
                     " backend, then sends a real push that the service worker shows even when the tab is ",
                     "closed. Run the hosted sample (", Code["Rask.Example.Wasm.Host"],
                     ") for the full loop — see ", Code["docs/pwa.md"], "."
                 ],
-                Div.Class("d-flex gap-2 flex-wrap mb-2")[
-                    Button.Class("btn btn-outline-primary btn-sm").Id("pwa-push").OnClickAsync(EnablePush)[
+                Div.Class("flex gap-2 flex-wrap mb-2")[
+                    Button.Class(Ui.BtnOutlinePrimary).Id("pwa-push").OnClickAsync(EnablePush)[
                         "Enable push (subscribe)"],
                     Button
-                        .Class("btn btn-primary btn-sm")
+                        .Class(Ui.BtnPrimary)
                         .Id("pwa-push-send")
                         .Disabled(!_subscribed)
                         .OnClickAsync(SendTestPush)[
                         "Send a test push"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("pwa-push-status")[_pushStatus ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("pwa-push-status")[_pushStatus ?? "(idle)"]]
             ]
         ],
 
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                H6.Class("fw-bold")[I.Class("bi bi-app-indicator me-2"), "App badge (IBadge)"],
-                P.Class("small text-secondary")[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                H6.Class("font-bold")[Icon.Name(IconName.AppIndicator).Class("me-2"), "App badge (IBadge)"],
+                P.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "Sets a count on the installed app's icon — install the PWA first, then watch the icon. ",
                     "A silent no-op in a normal browser tab."
                 ],
-                Div.Class("d-flex gap-2 flex-wrap mb-2")[
-                    Button.Class("btn btn-outline-primary btn-sm").Id("pwa-badge-inc").OnClickAsync(BumpBadge)[
+                Div.Class("flex gap-2 flex-wrap mb-2")[
+                    Button.Class(Ui.BtnOutlinePrimary).Id("pwa-badge-inc").OnClickAsync(BumpBadge)[
                         "Increment badge"],
-                    Button.Class("btn btn-outline-danger btn-sm").Id("pwa-badge-clear").OnClickAsync(ClearBadge)[
+                    Button.Class(Ui.BtnOutlineDanger).Id("pwa-badge-clear").OnClickAsync(ClearBadge)[
                         "Clear badge"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]
             ]
         ]
     ];

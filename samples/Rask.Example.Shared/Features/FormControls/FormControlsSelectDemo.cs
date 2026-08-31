@@ -13,26 +13,26 @@ public sealed partial class FormControlsSelectDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("md:col-span-6")[
-                Label.Class("form-label fw-semibold")["Controlled (Value + OnChange)"],
+                Label.Class($"{Ui.Label} font-semibold")["Controlled (Value + OnChange)"],
                 Select
                     .Value(_controlled)
                     .OnChange(v => _controlled = v)
-                    .Class("form-select mb-2")
+                    .Class($"{Ui.Select} mb-2")
                     .Id("fc-select-controlled")[
                     Option.Value("Rask"), Option.Value("Blazor"), Option.Value("htmx")
                 ],
-                P.Class("small text-secondary mb-0").Id("fc-select-controlled-out")[
+                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-select-controlled-out")[
                     "Picked: ", Strong[_controlled]
                 ]
             ],
             Div.Class("md:col-span-6")[
-                Label.Class("form-label fw-semibold")["Bound (two-way)"],
+                Label.Class($"{Ui.Label} font-semibold")["Bound (two-way)"],
                 Form.Model(_model)[
-                    Select.Bind(() => _model.Framework).Class("form-select mb-2").Id("fc-select-bound")[
+                    Select.Bind(() => _model.Framework).Class($"{Ui.Select} mb-2").Id("fc-select-bound")[
                         Option.Value("Rask"), Option.Value("Blazor"), Option.Value("htmx")
                     ]
                 ],
-                P.Class("small text-secondary mb-0").Id("fc-select-bound-out")[
+                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-select-bound-out")[
                     "Picked: ", Strong[_model.Framework]
                 ]
             ]

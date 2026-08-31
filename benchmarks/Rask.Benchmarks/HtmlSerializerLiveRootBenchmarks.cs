@@ -53,7 +53,7 @@ public partial class HtmlSerializerLiveRootBenchmarks : global::Rask.Core.RaskMa
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Key(i)[
                 Span.Class("label")[$"Item {i}"]
             ]);
         }
@@ -66,7 +66,7 @@ public partial class HtmlSerializerLiveRootBenchmarks : global::Rask.Core.RaskMa
                 // the head-asset sentinel and resolves IRaskHeadContribution regardless of children.
                 Head,
                 Body[
-                    Div.Class("container").Id("root")[rows]
+                    Div.Class("wrap").Id("root")[rows]
                 ]
             ]
         ];

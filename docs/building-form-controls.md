@@ -127,10 +127,10 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
             buttons.Add(Button.Type("button").Class(active ? "btn btn-primary" : "btn btn-outline-primary").OnClickAsync(() => SelectAsync(acc, ctx, fid, captured)).Key(i++)[OptionLabel is { } label ? label(option) : option?.ToString() ?? ""]);
         }
 
-        var children = new List<Component> { Div.Class("btn-group")[buttons] };
+        var children = new List<Component> { Div.Class("action-group")[buttons] };
         if (Bind is not null)
         {
-            children.Add(ValidationMessage(Bind, msgs => Div.Class("invalid-feedback d-block")[msgs[0]]));
+            children.Add(ValidationMessage(Bind, msgs => Div.Class("field-error block")[msgs[0]]));
         }
 
         return Div.Class(Class ?? "segmented")[children];

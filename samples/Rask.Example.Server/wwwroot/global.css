@@ -41,8 +41,7 @@ body {
 
 /* Headings carry the display face — tighter tracking, a touch more weight than Bootstrap's default. */
 h1, h2, h3, h4, h5, h6,
-.navbar-brand,
-.display-1, .display-2, .display-3, .display-4, .display-5, .display-6 {
+.app-brand {
     font-family: var(--font-display);
     letter-spacing: -0.022em;
 }
@@ -122,7 +121,7 @@ button, a, [role="button"] {
         flex-wrap: nowrap;
     }
 
-    .app-navbar .navbar-brand .badge {
+    .app-navbar .app-brand .rask-badge {
         display: none;
     }
 }

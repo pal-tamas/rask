@@ -19,6 +19,12 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+    <!-- Tailwind, compiled at this project's build. Build-only: it contributes an MSBuild task and a
+         CLI run, not an assembly. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -37,5 +43,13 @@
   <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">
     <MakeDir Directories="wwwroot"/>
   </Target>
+
+
+  <!-- In-repo consumers import these by hand: a ProjectReference carries no build props, so referencing
+       Rask.Tailwind alone would compile nothing and produce no stylesheet, silently. -->
+  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.props"
+          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.props')"/>
+  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets"
+          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets')"/>
 
 </Project>

@@ -89,7 +89,7 @@ Beyond the constraint/affordance attributes shared with plain HTML (`Min`/`Max`/
 `MaxLength`/`MinLength`/`Multiple`/`Accept`/`List`/`Autocomplete`/`Autofocus`), the core `Input` also
 carries the mobile & accessibility hints `InputMode` (on-screen keyboard), `EnterKeyHint` (action-key
 label), `Spellcheck` (the enumerated `spellcheck="true|false"`), `Capture` (camera/mic for a file
-input), and `Dirname`. The Bootstrap `BsInput`/`BsTextarea` forward all of these (see
+input), and `Dirname`. A control of your own forwards them the same way (see
 [building-form-controls.md](building-form-controls.md)).
 
 > **Fractional numbers get `step="any"` automatically.** A `decimal`/`double`/`float`/`Half` binding
@@ -243,9 +243,9 @@ controls (`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect`).
 
 <!-- demo:form-controls-select -->
 
-**Floating labels.** The reusable `Floating*` wrappers (input/select/textarea) render Bootstrap's
-floating-label markup with the label derived from the bound property, and surface validation via
-`.invalid-feedback`:
+**Floating labels.** The reusable `Floating*` wrappers (input/select/textarea) render a
+floating-label field with the label derived from the bound property, and surface validation via
+`.field-error`:
 
 <!-- demo:floating-labels -->
 

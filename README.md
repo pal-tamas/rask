@@ -151,7 +151,7 @@ transitively.
 | **[Composition](docs/composition.md)** · **[Lifecycle](docs/lifecycle.md)** · **[Routing](docs/routing.md)** · **[Forms](docs/forms.md)** | Context, callbacks, children; mount/update/dispose; URLs and the form pipeline |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup |
 | **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[Email](docs/mail.md)** · **[Cache](docs/cache.md)** · **[Outbox](docs/outbox.md)** · **[Logging](docs/logging.md)** · **[SQLite](docs/sqlite.md)** | The DB-backed pillars |
-| **[Bootstrap](docs/bootstrap.md)** · **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** | Typed Bootstrap 5.3, 53 typed Web-API wrappers, installable PWAs |
+| **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** | 53 typed Web-API wrappers, installable PWAs |
 | **[Best practices](docs/best-practices.md)** · **[Testing](docs/testing.md)** · **[Accessibility](docs/accessibility.md)** · **[AOT](docs/aot.md)** | Patterns and pitfalls; unit + E2E; a11y; opt-in full WASM AOT |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | Day-to-day differences side by side; every RASK build error and its fix |
 

@@ -62,8 +62,8 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     {
         using var _ = BeginRoute("/dashboard");
         Assert.Equal(
-            "<a class=\"nav-link active\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink.Href("/dashboard").Class("nav-link").ToHtml());
+            "<a class=\"menu-link active\" href=\"/dashboard\" data-rask-nav></a>",
+            NavLink.Href("/dashboard").Class("menu-link").ToHtml());
     }
 
     [Fact]
@@ -71,8 +71,8 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     {
         using var _ = BeginRoute("/other");
         Assert.Equal(
-            "<a class=\"nav-link\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink.Href("/dashboard").Class("nav-link").ToHtml());
+            "<a class=\"menu-link\" href=\"/dashboard\" data-rask-nav></a>",
+            NavLink.Href("/dashboard").Class("menu-link").ToHtml());
     }
 
     [Fact]
@@ -165,8 +165,8 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     public void Render_NoLiveRenderContext_NoActiveClass()
     {
         Assert.Equal(
-            "<a class=\"nav-link\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink.Href("/dashboard").Class("nav-link").ToHtml());
+            "<a class=\"menu-link\" href=\"/dashboard\" data-rask-nav></a>",
+            NavLink.Href("/dashboard").Class("menu-link").ToHtml());
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
         using var _ = LiveRenderContext.Begin(new StubComponent(Span), services);
 
         Assert.Equal(
-            "<a class=\"nav-link\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink.Href("/dashboard").Class("nav-link").ToHtml());
+            "<a class=\"menu-link\" href=\"/dashboard\" data-rask-nav></a>",
+            NavLink.Href("/dashboard").Class("menu-link").ToHtml());
     }
 }

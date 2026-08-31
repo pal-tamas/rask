@@ -53,10 +53,10 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
                 !_supported
-                    ? Div.Class("small text-secondary fst-italic").Id("rtc-state")[
+                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("rtc-state")[
                         "This browser has no WebRTC support."]
                     : Div[
-                        Div.Class("d-flex gap-2 mb-2")[
+                        Div.Class("flex gap-2 mb-2")[
                             Button.Type("button").Class(Ui.BtnPrimary)
                                 .Id("rtc-connect")
                                 .Disabled(_connecting)
@@ -66,15 +66,15 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                                 .Disabled(!_everConnected)
                                 .OnClickAsync(SendAsync)["Send a message"]
                         ],
-                        Div.Class("small text-secondary mb-1")[
+                        Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
                             "Connection state: ", Span.Id("rtc-state")[_state]],
-                        Div.Class("small text-secondary mb-1")[
+                        Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
                             "Local ICE candidates gathered: ",
                             Span.Id("rtc-candidates")[_localCandidates.ToString()]],
-                        Div.Class("small text-secondary mb-1")["Received by the other peer:"],
+                        Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Received by the other peer:"],
                         _log.Count == 0
-                            ? Div.Class("small text-secondary fst-italic").Id("rtc-log")["(nothing yet)"]
-                            : Ul.Class("small mb-0").Id("rtc-log")[
+                            ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("rtc-log")["(nothing yet)"]
+                            : Ul.Class("text-sm mb-0").Id("rtc-log")[
                                 _log.Select(m => Li.Key(m)[m])
                             ]
                     ]

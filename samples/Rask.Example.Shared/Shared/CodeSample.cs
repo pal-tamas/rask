@@ -102,11 +102,11 @@ public sealed partial class CodeSample : Component
         return Div.Class($"{Ui.Card} shadow-sm border-0 mb-4 sample-card")[
             Title is null && Notes is null
                 ? null
-                : Div.Class($"{Ui.CardHeader} bg-white border-bottom")[
-                    Title is null ? null : H5.Class("mb-0 fw-semibold")[Title],
+                : Div.Class($"{Ui.CardHeader} bg-white border-b")[
+                    Title is null ? null : H5.Class("mb-0 font-semibold")[Title],
                     Notes is null
                         ? null
-                        : P.Class($"text-secondary small mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
+                        : P.Class($"text-slate-500 dark:text-slate-400 text-sm mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
                 ],
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
             // top-to-bottom — the code you'd write, then what it renders — and never squeezes either

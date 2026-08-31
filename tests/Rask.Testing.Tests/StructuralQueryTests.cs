@@ -6,7 +6,7 @@ namespace Rask.Testing.Tests;
 
 /// <summary>
 ///     The structural surface #610 asked for: find an element, say which one, and assert on what it holds
-///     — rather than <c>Assert.Contains("&lt;span class=\"badge\"&gt;3&lt;/span&gt;", page.Html)</c>, which is brittle
+///     — rather than <c>Assert.Contains("&lt;span class=\"pill\"&gt;3&lt;/span&gt;", page.Html)</c>, which is brittle
 ///     against the very attribute-order invariant this framework's own suite goes to lengths to pin.
 /// </summary>
 public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
@@ -14,13 +14,13 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     private sealed class Card : Component
     {
         protected override Component? Render() =>
-            Div.Class("card shadow-sm")[
+            Div.Class("panel shadow-sm")[
                 H2.Class("title")["Orders"],
                 Ul.Id("items")[
-                    Li.Class("item")[Span.Class("badge")["3"], " pending"],
-                    Li.Class("item selected")[Span.Class("badge")["7"], " shipped"]
+                    Li.Class("item")[Span.Class("pill")["3"], " pending"],
+                    Li.Class("item selected")[Span.Class("pill")["7"], " shipped"]
                 ],
-                Button.Class("btn").Data(new Dictionary<string, string?> { ["testid"] = "refresh" })["Refresh"]
+                Button.Class("action").Data(new Dictionary<string, string?> { ["testid"] = "refresh" })["Refresh"]
             ];
     }
 
@@ -29,17 +29,17 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Find_ReturnsTheElement_NotJustAnAttribute()
     {
-        var badge = Page().Find("#items li.selected .badge");
+        var badge = Page().Find("#items li.selected .pill");
 
         Assert.Equal("span", badge.Tag);
         Assert.Equal("7", badge.TextContent);
-        Assert.True(badge.HasClass("badge"));
+        Assert.True(badge.HasClass("pill"));
     }
 
     [Fact]
     public void FindAll_IsInDocumentOrder()
     {
-        var badges = Page().FindAll(".badge");
+        var badges = Page().FindAll(".pill");
 
         Assert.Equal(["3", "7"], badges.Select(b => b.TextContent));
     }
@@ -97,7 +97,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Path_NamesTheElement_SoAFailureIsFindable()
     {
-        Assert.Equal("div.card.shadow-sm > ul#items > li.item.selected", Page().Find("li.selected").Path());
+        Assert.Equal("div.panel.shadow-sm > ul#items > li.item.selected", Page().Find("li.selected").Path());
     }
 
     [Theory]

@@ -21,7 +21,7 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
     protected override Component? Render() =>
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-2"}")[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Ui.BtnPrimary)
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
@@ -31,12 +31,12 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
                         .Disabled(!Listening)
                         .OnClickAsync(Stop)["Stop"]
                 ],
-                Div.Class("small text-secondary mb-1")[
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
                     "Transcript: ",
                     Code.Id("speech-recognize-transcript")[_transcript.Length == 0 ? "(none)" : _transcript],
-                    _interim.Length == 0 ? (Component?)null : Span.Class("text-secondary fst-italic")[" ", _interim]
+                    _interim.Length == 0 ? (Component?)null : Span.Class("text-slate-500 dark:text-slate-400 italic")[" ", _interim]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("speech-recognize-status")[_status]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("speech-recognize-status")[_status]]
             ]
         ];
 

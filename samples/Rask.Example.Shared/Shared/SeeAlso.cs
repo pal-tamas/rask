@@ -21,6 +21,6 @@ internal static partial class SeeAlso
             .Key(g.Slug)[g.Title]));
 
         return Div
-            .Class("flex flex-wrap items-center gap-2 mt-5 pt-3 border-t small")[children];
+            .Class("flex flex-wrap items-center gap-2 mt-5 pt-3 border-t text-sm")[children];
     }
 }

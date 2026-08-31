@@ -46,16 +46,16 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
     }
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                Div.Class($"flex gap-2 flex-wrap items-center {"mb-3"}")[
-                    Button.Class("btn btn-sm btn-primary").Id("mo-add").OnClick(() => _items++)["Add item"],
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-3")[
+                    Button.Class(Ui.BtnPrimary).Id("mo-add").OnClick(() => _items++)["Add item"],
                     Button
-                        .Class("btn btn-sm btn-outline-primary")
+                        .Class(Ui.BtnOutlinePrimary)
                         .Id("mo-remove")
                         .OnClick(() => { if (_items > 0) _items--; })["Remove item"],
                     Button
-                        .Class("btn btn-sm btn-outline-secondary")
+                        .Class(Ui.BtnOutlineSecondary)
                         .Id("mo-toggle")
                         .OnClick(() => _highlight = !_highlight)["Toggle attribute"]
                 ],
@@ -67,11 +67,11 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
                         Enumerable.Range(1, _items).Select(i => Li.Key(i.ToString())[$"item {i}"])
                     ]
                 ],
-                Div.Class("small text-secondary")[
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "childList changes: ", Code.Id("mo-child")[$"{_childChanges}"],
                     " · attribute changes: ", Code.Id("mo-attr")[$"{_attrChanges}"]
                 ],
-                Div.Class("small text-secondary")["Last: ", Code.Id("mo-last")[_last]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Last: ", Code.Id("mo-last")[_last]]
             ]
         ];
 

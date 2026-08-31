@@ -100,7 +100,7 @@ you own it through `Template`, which receives the messages plus a `dismiss(id)` 
 
 ```csharp
 ToastOutlet.Template((messages, dismiss) =>
-    Div[messages.Select(m => (Component)Div.Class("alert").Key(m.Id.ToString())[
+    Div[messages.Select(m => (Component)Div.Class("notice").Key(m.Id.ToString())[
         m.Message,
         Button.OnClick(() => dismiss(m.Id))["×"]])])
 ```

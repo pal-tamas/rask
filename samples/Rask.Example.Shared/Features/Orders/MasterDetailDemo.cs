@@ -45,9 +45,9 @@ public sealed partial class MasterDetailDemo : Component
         var orders = SortOrders(_orders, _orderSort);
 
         return Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class("table-responsive")[
-                Table.Id("md-orders").Class("table table-hover align-middle mb-0")[
-                    Thead.Class("table-light")[
+            Div.Class("overflow-x-auto")[
+                Table.Id("md-orders").Class($"{Ui.Table} [&_tbody_tr:hover]:bg-slate-50 align-middle mb-0")[
+                    Thead.Class("bg-slate-100")[
                         Tr[_orderColumns.Select(c =>
                             c.Sortable
                                 ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
@@ -69,16 +69,16 @@ public sealed partial class MasterDetailDemo : Component
             rows.Add(Tr.Key(order.Id).Class("md-row")[
                 Td.Style("width:44px;")[
                     Button
-                        .Class("btn btn-sm btn-link p-0 text-decoration-none")
+                        .Class($"{Ui.BtnLink} p-0 no-underline")
                         .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
                         .OnClick(() => Toggle(order.Id))[
-                        I.Class(open ? "bi bi-chevron-down" : "bi bi-chevron-right")
+                        Icon.Name(open ? IconName.ChevronDown : IconName.ChevronRight)
                     ]
                 ],
-                Td.Class("fw-semibold")[order.Customer],
-                Td.Class("text-secondary small")[order.Placed.ToString("yyyy-MM-dd")],
-                Td[Span.Class($"badge {StatusBadge(order.Status)}")[order.Status]],
-                Td.Class("text-secondary")[order.Items.Count],
+                Td.Class("font-semibold")[order.Customer],
+                Td.Class("text-slate-500 dark:text-slate-400 text-sm")[order.Placed.ToString("yyyy-MM-dd")],
+                Td[Span.Class(StatusBadge(order.Status))[order.Status]],
+                Td.Class("text-slate-500 dark:text-slate-400")[order.Items.Count],
                 Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
                 ]
@@ -87,7 +87,7 @@ public sealed partial class MasterDetailDemo : Component
             if (open)
             {
                 rows.Add(Tr.Key($"detail-{order.Id}").Class("md-detail")[
-                    Td.Colspan(_orderColumns.Length).Class("p-0 bg-light")[
+                    Td.Colspan(_orderColumns.Length).Class("p-0 bg-slate-100")[
                         Div
                             .Class("p-3")
                             .Data(new Dictionary<string, string?> { ["testid"] = $"inner-{order.Id}" })[
@@ -106,7 +106,7 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Table.Class("table table-sm table-striped align-middle mb-0 bg-white")[
+        return Table.Class($"{Ui.Table} text-sm [&_tbody_tr:nth-child(odd)]:bg-slate-50 align-middle mb-0 bg-white")[
             Thead[
                 Tr[_itemColumns.Select(c =>
                     SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))]
@@ -116,7 +116,7 @@ public sealed partial class MasterDetailDemo : Component
                     Tr.Key(it.Id)[
                         Td[Code[it.Sku]],
                         Td[it.Product],
-                        Td.Class("text-secondary")[it.Qty],
+                        Td.Class("text-slate-500 dark:text-slate-400")[it.Qty],
                         Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                             "$" + it.UnitPrice.ToString("N2", CultureInfo.InvariantCulture)
                         ],
@@ -205,28 +205,28 @@ public sealed partial class MasterDetailDemo : Component
     {
         var sorted = sort.Col == columnId;
         var icon = sorted
-            ? sort.Asc ? "bi-chevron-up" : "bi-chevron-down"
-            : "bi-chevron-expand text-secondary opacity-50";
+            ? sort.Asc ? IconName.ChevronUp : IconName.ChevronDown
+            : IconName.ArrowDownUp;
 
         return Th.Scope("col").Key(columnId)[
             Button
                 .Type("button")
-                .Class("btn btn-link p-0 text-decoration-none text-dark fw-semibold d-inline-flex " +
-                       "align-items-center gap-1")
+                .Class($"{Ui.BtnLink} p-0 no-underline text-slate-900 dark:text-slate-100 font-semibold inline-flex" +
+                       "items-center gap-1")
                 .OnClick(() => toggle(columnId))[
                 Span[header],
-                I.Class($"bi {icon} small")
+                Icon.Name(icon).Class(sorted ? "text-xs" : "text-xs opacity-50")
             ]
         ];
     }
 
     private static string StatusBadge(string status) => status switch
     {
-        "Shipped" => "text-bg-success",
-        "Processing" => "text-bg-primary",
-        "Pending" => "text-bg-warning",
-        "Cancelled" => "text-bg-danger",
-        _ => "text-bg-secondary"
+        "Shipped" => Ui.BadgeSuccess,
+        "Processing" => Ui.BadgePrimary,
+        "Pending" => Ui.BadgeWarning,
+        "Cancelled" => Ui.BadgeDanger,
+        _ => Ui.BadgeSecondary
     };
 
     private static Order[] BuildOrders()

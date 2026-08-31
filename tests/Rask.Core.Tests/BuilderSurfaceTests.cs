@@ -11,7 +11,7 @@ namespace Rask.Core.Tests;
 internal sealed partial class BuilderProbe : Component
 {
     protected override Component? Render() =>
-        Div.Id("root").Class("card")[
+        Div.Id("root").Class("panel")[
             H1.Class("title")["Products"],
             Table[
                 Thead[
@@ -22,7 +22,7 @@ internal sealed partial class BuilderProbe : Component
                     Tr.Key(2)[Td["2"], Td["Gadget"]]
                 ]
             ],
-            NavLink.Class("btn")["New Product"]
+            NavLink.Class("action")["New Product"]
         ];
 }
 
@@ -31,13 +31,13 @@ public partial class BuilderSurfaceTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_chain_serializes_the_whole_tree() =>
         Assert.Equal(
-            "<div id=\"root\" class=\"card\"><h1 class=\"title\">Products</h1><table><thead><tr><th>#</th><th>Name</th></tr></thead><tbody><tr data-rask-key=\"1\"><td>1</td><td>Widget</td></tr><tr data-rask-key=\"2\"><td>2</td><td>Gadget</td></tr></tbody></table><a class=\"btn\" data-rask-nav>New Product</a></div>",
+            "<div id=\"root\" class=\"panel\"><h1 class=\"title\">Products</h1><table><thead><tr><th>#</th><th>Name</th></tr></thead><tbody><tr data-rask-key=\"1\"><td>1</td><td>Widget</td></tr><tr data-rask-key=\"2\"><td>2</td><td>Gadget</td></tr></tbody></table><a class=\"action\" data-rask-nav>New Product</a></div>",
             BuilderProbe.Value.ToHtml());
 
     [Fact]
     public void The_chain_preserves_attribute_order() =>
         Assert.Contains(
-            "<div id=\"root\" class=\"card\">",
+            "<div id=\"root\" class=\"panel\">",
             BuilderProbe.Value.ToHtml(),
             StringComparison.Ordinal);
 }

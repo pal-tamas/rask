@@ -30,12 +30,12 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
     // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
     // exact-match only.
-    private static readonly (string Path, string Label, string Icon, string Group, string? MatchPrefix)[] Links =
+    private static readonly (string Path, string Label, IconName Icon, string Group, string? MatchPrefix)[] Links =
     [
         // Paths are type-safe, generator-emitted route URLs (Features.Routes.*) — RouteUrl converts
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
-        (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null)
+        (Features.Routes.TodosPage(), "Todos", IconName.Check2Square, "Apps", null)
         // Many example pages are now folded into their guides as inline live demos: HttpClient+DI /
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
         // APIs (docs/browser-apis.md); Events + Toast messages → Composition (docs/composition.md); the
@@ -85,7 +85,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             NavLink
                 .Href(Features.Routes.GuidesIndexPage())
                 .ActiveClass("")
-                .Class("navbar-brand font-semibold inline-flex items-center gap-2")[
+                .Class("app-brand font-semibold inline-flex items-center gap-2")[
                 RaskLogo.Size(24).GradientId("brandBolt"),
                 Span["Rask"],
                 Span.Class($"{Ui.BadgeSecondary} rask-badge")["showcase"],
@@ -143,7 +143,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         Div.Class("side-nav-search")[
             Input
                 .Value(_filter)
-                .OnChange(v => _filter = v ?? "")
+                .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…")
                 .Class($"side-nav-filter {Ui.Input}")
         ],
@@ -154,7 +154,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // default via OpenGuideGroups), followed by the interactive Examples (the framework/core showcase
     // plus any host-contributed entries, e.g. the WASM PWA examples) and the Bootstrap-component
     // showcase — both demoted below the guides and collapsed until visited.
-    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> Links)> Sections()
+    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> Links)> Sections()
     {
         yield return ("Guides", GuidesNav());
         yield return ("Examples",
@@ -162,9 +162,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     }
 
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
-    private static IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> GuidesNav()
+    private static IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
     {
-        yield return (Features.Routes.GuidesIndexPage(), "All guides", "bi-book", "Overview", null);
+        yield return (Features.Routes.GuidesIndexPage(), "All guides", IconName.Book, "Overview", null);
         foreach (var g in Features.GuideCatalog.All)
         {
             yield return (Features.Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);
@@ -206,7 +206,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
         if (children.Count == 0)
         {
-            children.Add(Div.Class("side-nav-empty text-secondary small")["Nothing matches that filter."]);
+            children.Add(Div.Class("side-nav-empty text-slate-500 dark:text-slate-400 text-sm")["Nothing matches that filter."]);
         }
 
         return children;
@@ -214,13 +214,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     private Component GroupBlock(
         string key, string group, bool open,
-        IReadOnlyList<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> items) =>
+        IReadOnlyList<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> items) =>
         Div.Class("nav-group").Key(key)[
             Button
                 .Type("button")
                 .Class(open ? "nav-group-toggle open" : "nav-group-toggle")
                 .OnClick(() => ToggleGroup(key))[
-                I.Class(open ? "bi bi-chevron-down nav-group-chevron" : "bi bi-chevron-right nav-group-chevron"),
+                Icon.Name(open ? IconName.ChevronDown : IconName.ChevronRight).Class("nav-group-chevron"),
                 Span.Class("nav-group-label")[group]
             ],
             !open
@@ -245,7 +245,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                             .Match(match)
                             .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
                             .Class("side-nav-link")[
-                            Span.Class("me-2")[i.Icon],
+                            Icon.Name(i.Icon).Class("me-2"),
                             Span[i.Label]
                         ];
                     })
@@ -291,11 +291,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     // Groups consecutive links by their Group label, preserving the array order (the sidebar shows
     // groups in the order their first item appears, exactly as the flat list was authored).
-    private static IEnumerable<(string Group, List<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> Items)>
-        GroupConsecutive(IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> links)
+    private static IEnumerable<(string Group, List<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> Items)>
+        GroupConsecutive(IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> links)
     {
         string? current = null;
-        List<(string Path, string Label, string Icon, string Group, string? MatchPrefix)>? bucket = null;
+        List<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)>? bucket = null;
 
         foreach (var link in links)
         {

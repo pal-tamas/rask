@@ -73,10 +73,12 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     {
         var html = RaskTest.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
 
-        // Bootstrap floating-label markup across all three controls.
-        Assert.Contains("form-floating", html);
-        Assert.Contains("form-control", html);   // input + textarea
-        Assert.Contains("form-select", html);    // select
+        // All three controls render. The assertion is on the TAGS: the classes that used to stand in
+        // for them (.form-control, .form-select) were Bootstrap's, and a class is the one part of
+        // this markup a restyle is entitled to change.
+        Assert.Contains("<input ", html);
+        Assert.Contains("<textarea ", html);
+        Assert.Contains("<select ", html);
 
         // Ids are derived from the bound property name (ff-{Property}) and the label links to them.
         foreach (var prop in new[] { "FullName", "Email", "Age", "Plan", "Bio" })
@@ -92,7 +94,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
 
         Assert.Contains(">Create account<", html);
         // No messages until a failed submit.
-        Assert.DoesNotContain("invalid-feedback", html);
+        Assert.DoesNotContain("field-error", html);
     }
 
     [Fact]

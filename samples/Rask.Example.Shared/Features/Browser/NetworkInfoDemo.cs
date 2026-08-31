@@ -15,8 +15,8 @@ public sealed partial class NetworkInfoDemo(INetworkInfo network) : Component
                     .Id("net-read")
                     .OnClickAsync(Read)[
                     "Read network status"],
-                Div.Class("small text-secondary")["Connection: ", Code.Id("net-value")[_value ?? "(not requested)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("net-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Connection: ", Code.Id("net-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("net-status")[_status ?? "(idle)"]]
             ]
         ];
 

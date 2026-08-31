@@ -11,13 +11,13 @@ public sealed partial class PropsCommandDemo : Component
     protected override Component? Render() =>
         Div[
             Button
-                .Class("btn btn-outline-primary")
+                .Class(Ui.BtnOutlinePrimary)
                 .Command("show-modal")
                 .CommandFor("props-command-dialog")["Open the dialog"],
             Dialog.Id("props-command-dialog").Class("p-3 border-0 rounded shadow")[
                 P.Class("mb-3")["Opened by ", Code["command"], ", with no handler on either side."],
                 Button
-                    .Class("btn btn-sm btn-secondary")
+                    .Class(Ui.BtnSecondary)
                     .Command("close")
                     .CommandFor("props-command-dialog")["Close"]]];
 }

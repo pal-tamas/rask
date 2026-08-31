@@ -106,7 +106,7 @@ public partial class PayloadBytesPerUpdate : global::Rask.Core.RaskMarkup
         var rows = new List<Component>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
-            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
                 Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),
@@ -118,7 +118,7 @@ public partial class PayloadBytesPerUpdate : global::Rask.Core.RaskMarkup
             Doctype,
             Html[
                 Body[
-                    Div.Class("container").Id("root")[
+                    Div.Class("wrap").Id("root")[
                         Div.Class("counter").Id("counter")[
                             Span.Class("value")[counter.ToString()]
                         ],
@@ -136,7 +136,7 @@ public partial class PayloadBytesPerUpdate : global::Rask.Core.RaskMarkup
         {
             var idx = order[i];
             rows.Add(Div
-                .Class("row")
+                .Class("line")
                 .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
                 Span[$"Item {idx}"]
             ]);
@@ -160,7 +160,7 @@ public partial class PayloadBytesPerUpdate : global::Rask.Core.RaskMarkup
         for (var i = 0; i < LargePageRowCount; i++)
         {
             var text = i == LargePageRowCount / 2 ? $"ticker {counter}" : $"Item {i}";
-            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
                 Span.Class("label")[text],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
                 Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),

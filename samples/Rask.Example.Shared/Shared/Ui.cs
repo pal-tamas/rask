@@ -118,4 +118,75 @@ public static class Ui
         "w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 "
         + "placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 "
         + "dark:bg-slate-900 dark:text-slate-100";
+
+    /// <summary>A button drawn as a link — no fill, no ring.</summary>
+    public const string BtnLink =
+        "inline-flex items-center gap-1.5 p-0 text-sm font-medium text-violet-700 underline-offset-2 "
+        + "hover:underline dark:text-violet-300";
+
+    /// <summary>A panel's footer strip.</summary>
+    public const string CardFooter =
+        "border-t border-slate-200 px-5 py-3 text-sm dark:border-slate-700";
+
+    /// <summary>A panel's title.</summary>
+    public const string CardTitle = "mb-1 text-lg font-semibold";
+
+    /// <summary>A panel's secondary title.</summary>
+    public const string CardSubtitle = "mb-2 text-sm text-slate-500 dark:text-slate-400";
+
+    /// <summary>A select, shaped like <see cref="Input" />.</summary>
+    public const string Select = Input;
+
+    /// <summary>A form field's label.</summary>
+    public const string Label = "mb-1 block text-sm font-medium";
+
+    /// <summary>The hint under a field.</summary>
+    public const string FormText = "mt-1 text-xs text-slate-500 dark:text-slate-400";
+
+    /// <summary>A checkbox or radio.</summary>
+    public const string CheckInput = "size-4 rounded border-slate-300 text-violet-600";
+
+    /// <summary>The label beside a checkbox or radio.</summary>
+    public const string CheckLabel = "text-sm";
+
+    /// <summary>An input with something butted against it.</summary>
+    public const string InputGroup = "flex items-stretch gap-2";
+
+    /// <summary>A bordered list.</summary>
+    public const string ListGroup =
+        "divide-y divide-slate-200 overflow-hidden rounded-lg ring-1 ring-slate-200 "
+        + "dark:divide-slate-700 dark:ring-slate-700";
+
+    /// <summary>One row of a bordered list.</summary>
+    public const string ListGroupItem = "flex items-center gap-2 bg-white px-4 py-2 dark:bg-slate-800";
+
+    /// <summary>A data table.</summary>
+    public const string Table = "w-full text-left text-sm [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-2";
+
+    /// <summary>A busy indicator.</summary>
+    public const string Spinner =
+        "inline-block size-5 animate-spin rounded-full border-2 border-current border-r-transparent";
+
+    /// <summary>A progress track.</summary>
+    public const string Progress = "h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700";
+
+    /// <summary>The filled part of a progress track.</summary>
+    public const string ProgressBar = "h-full bg-violet-600 transition-all";
+
+    /// <summary>A tab-shaped navigation link.</summary>
+    public const string NavLink =
+        "rounded-md px-3 py-1.5 text-sm no-underline hover:bg-slate-100 dark:hover:bg-slate-800";
+
+    /// <summary>A row of tabs.</summary>
+    public const string NavTabs = "flex flex-wrap items-center gap-1 border-b border-slate-200 dark:border-slate-700";
+
+    /// <summary>A pulled quote.</summary>
+    public const string Blockquote =
+        "border-l-4 border-slate-300 pl-4 italic text-slate-700 dark:border-slate-600 dark:text-slate-300";
+
+    /// <summary>A caption under a figure.</summary>
+    public const string FigureCaption = "mt-2 text-sm text-slate-500 dark:text-slate-400";
+
+    /// <summary>A field whose label floats over the control.</summary>
+    public const string FormFloating = "relative";
 }

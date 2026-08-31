@@ -102,7 +102,8 @@ public sealed partial class TodosPage : Component
             ],
             _todos.Count == 0
                 ? Div.Class("text-slate-500 dark:text-slate-400 text-sm")["No todos yet — click \"New todo\" to add one."]
-                : Ul.Class("divide-y divide-slate-200 rounded-lg ring-1 ring-slate-200 dark:divide-slate-700 dark:ring-slate-700")[
+                : Ul.Id("todo-list")
+                    .Class("divide-y divide-slate-200 rounded-lg ring-1 ring-slate-200 dark:divide-slate-700 dark:ring-slate-700")[
                     _todos.Select(item => Li
                         .Key(item.Id)
                         .Class("flex items-center gap-2 px-3 py-2")[
@@ -114,11 +115,17 @@ public sealed partial class TodosPage : Component
                             .Id($"todo-done-{item.Id}")
                             .Class("size-4"),
                         Span.Class(item.Completed ? "todo-title completed" : "todo-title")[item.Title],
+                        // Icon-only, so the glyph is the whole button: without an accessible name a
+                        // screen reader announces "button" and nothing else. Bootstrap Icons carried no
+                        // name either -- the label is what the icon was always standing in for.
                         Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                            .Aria(new Dictionary<string, string?> { ["label"] = $"Edit {item.Title}" })
                             .OnClick(() => OpenEdit(item))[
                             Icon.Name(IconName.Pencil)
                         ],
-                        Button.Type("button").Class(Ui.BtnOutlineDanger).OnClick(() => Delete(item))[
+                        Button.Type("button").Class(Ui.BtnOutlineDanger)
+                            .Aria(new Dictionary<string, string?> { ["label"] = $"Delete {item.Title}" })
+                            .OnClick(() => Delete(item))[
                             Icon.Name(IconName.Trash)
                         ]
                     ])

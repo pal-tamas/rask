@@ -24,7 +24,7 @@ namespace Rask.Core;
 ///     </para>
 ///     <para>
 ///         It stays out of the way otherwise: the implicit conversion to <typeparamref name="T" /> is what
-///         lets markup read exactly as it did — <c>Div.Class("card")[Span["hi"]]</c> — and lets a chain be
+///         lets markup read exactly as it did — <c>Div.Class("panel")[Span["hi"]]</c> — and lets a chain be
 ///         returned from <c>Render()</c>, passed to a <c>Component</c> parameter (through
 ///         <typeparamref name="T" />), or nested as a child with no cast.
 ///     </para>
@@ -33,7 +33,7 @@ namespace Rask.Core;
 ///         was given is the sequence of steps at its call site and nothing else. It is a CONVENTION, not a
 ///         guarantee: <see cref="Value" /> is hidden from completion rather than removed, and the implicit
 ///         conversion hands back the concrete component anyway, so
-///         <c>Div d = Div.Class("card"); d.Id = "x";</c> compiles. Forbidding that needs an analyzer —
+///         <c>Div d = Div.Class("panel"); d.Id = "x";</c> compiles. Forbidding that needs an analyzer —
 ///         nothing in the type system can, once a chain converts to what it built.
 ///     </para>
 ///     <para>

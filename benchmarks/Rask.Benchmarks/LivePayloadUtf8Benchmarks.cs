@@ -28,7 +28,7 @@ public class LivePayloadUtf8Benchmarks
         var rows = new StringBuilder();
         for (var i = 0; i < 200; i++)
         {
-            rows.Append("<div class=\"row\" id=\"r").Append(i)
+            rows.Append("<div class=\"line\" id=\"r").Append(i)
                 .Append("\"><span>Item ").Append(i)
                 .Append("</span><a href=\"/item/").Append(i)
                 .Append("\">open</a><input type=\"text\" value=\"v").Append(i).Append("\"></div>");
@@ -44,7 +44,7 @@ public class LivePayloadUtf8Benchmarks
         var largeRows = new StringBuilder();
         for (var i = 0; i < 1000; i++)
         {
-            largeRows.Append("<div class=\"row\" id=\"r").Append(i)
+            largeRows.Append("<div class=\"line\" id=\"r").Append(i)
                 .Append("\"><span class=\"label\">Item ").Append(i)
                 .Append("</span><a href=\"/item/").Append(i)
                 .Append("\" class=\"lnk\">open ").Append(i)

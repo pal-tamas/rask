@@ -223,7 +223,7 @@ and can also produce a component whose required properties were never set.
 
 ```csharp
 // ✗ new Div
-// ✓ Div.Class("card")[ ... ]
+// ✓ Div.Class("panel")[ ... ]
 ```
 
 **Fix:** name it and chain onto it — `Counter.Start(3)`, or `Counter` alone when it needs nothing. In
@@ -963,7 +963,7 @@ nothing, it is never claimed, and its DOM identity comes from `data-rask-key` in
 than from the parent's child map. So the common spelling stays exactly as it reads:
 
 ```csharp
-Div.Class("row").Key(index)[cells]   // ✓ an element is never claimed
+Div.Class("line").Key(index)[cells]   // ✓ an element is never claimed
 ```
 
 **Fix:** move `.Key(…)` to the front of the chain. See [composition → keys](composition.md#children--fragments)

@@ -29,7 +29,7 @@ internal static partial class ThemeSwitch
         };
 
         return Div.Class(cls).Style(style).Data(data)[
-            Section.Class("card")[
+            Section.Class("panel")[
                 H2["Welcome"],
                 P["Pick a theme to taste."]
             ],
@@ -52,7 +52,7 @@ internal static partial class ThemeSwitch
             b.AddAttribute(6, "data-theme-contrast", Dark ? "high" : "normal");
 
             b.OpenElement(7, "section");
-            b.AddAttribute(8, "class", "card");
+            b.AddAttribute(8, "class", "panel");
 
             b.OpenElement(9, "h2");
             b.AddContent(10, "Welcome");

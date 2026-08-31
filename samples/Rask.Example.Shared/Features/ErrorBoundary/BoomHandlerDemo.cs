@@ -10,19 +10,19 @@ public sealed partial class BoomHandlerDemo : Component
         ErrorBoundary
             .Fallback(BoundaryFallback)[
             Div.Class("p-3 border rounded bg-white").Id("boom-handler-host")[
-                P.Class("text-secondary small mb-2")["Healthy subtree — click to throw."],
+                P.Class("text-slate-500 dark:text-slate-400 text-sm mb-2")["Healthy subtree — click to throw."],
                 Button.Type("button").Class(Ui.BtnDanger).Id("boom-throw").OnClick(ThrowFromHandler)[Icon.Name(IconName.ExclamationTriangle).Class("me-2"),
                     "Throw a handler exception"]
             ]
         ];
 
     private static Component BoundaryFallback(Exception ex, Action recover) =>
-        Div.Class($"{Ui.AlertDanger} d-flex align-items-start").Id("boom-fallback")[
-            Icon.Name(IconName.ExclamationOctagonFill).Class("me-3 fs-4"),
+        Div.Class($"{Ui.AlertDanger} flex items-start").Id("boom-fallback")[
+            Icon.Name(IconName.ExclamationOctagonFill).Class("me-3 text-xl"),
             Div[
                 Strong["Boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],
-                P.Class("mb-2 mt-1 small")[ex.Message],
+                P.Class("mb-2 mt-1 text-sm")[ex.Message],
                 Button.Type("button").Class(Ui.BtnOutlineSecondary).Id("boom-recover").OnClick(recover)[Icon.Name(IconName.ArrowCounterclockwise).Class("me-1"), "Recover"]
             ]
         ];

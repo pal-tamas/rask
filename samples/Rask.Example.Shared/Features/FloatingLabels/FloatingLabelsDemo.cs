@@ -10,7 +10,7 @@ public sealed partial class FloatingLabelsDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Created account for {m.FullName} <{m.Email}>").Class("vstack gap-2")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Created account for {m.FullName} <{m.Email}>").Class("flex flex-col gap-2")[
             DataAnnotationsValidator,
             // One line per field — the Floating* components wrap Input/Select/Textarea + Label +
             // ValidationMessage in Bootstrap's .form-floating markup. The label is read from each
@@ -33,7 +33,7 @@ public sealed partial class FloatingLabelsDemo : Component
         ],
         _submission is null
             ? null
-            : Div.Class($"{Ui.AlertSuccess} small mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

@@ -10,7 +10,7 @@ public sealed partial class DisposalUnmountDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Div.Class($"flex gap-2 flex-wrap items-center {"mb-3"}")[
+            Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 Button.Type("button").Class(Ui.BtnPrimary)
                     .Id("unmount-hook-mount")
                     .Disabled(_hookMounted)
@@ -22,7 +22,7 @@ public sealed partial class DisposalUnmountDemo : Component
             ],
             _hookMounted
                 ? UnmountTimerProbe.Log(AppendHookLog).InstanceId(_nextHookId)
-                : P.Class("text-secondary fst-italic mb-0")["Ticker not running."],
+                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Ticker not running."],
             DisposalDemoLog.Entries(_hookLog).ListId("unmount-hook-log")
         ];
 

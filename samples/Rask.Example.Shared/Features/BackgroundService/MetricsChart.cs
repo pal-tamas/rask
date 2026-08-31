@@ -24,7 +24,7 @@ public sealed partial class MetricsChart(IMetricsFeed feed) : Component
     protected override Component? Render() =>
         Div.Class($"{Ui.Card} shadow-sm border-0 h-full")[
             Div.Class(Ui.CardBody)[
-                H3.Class("h6 text-secondary text-uppercase small mb-3")["CPU %, last minute"],
+                H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mb-3")["CPU %, last minute"],
                 Div
                     .Class("metrics-chart-container")
                     .Id("metrics-chart")

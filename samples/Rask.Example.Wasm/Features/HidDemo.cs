@@ -1,3 +1,4 @@
+using Rask.Example.Shared;
 using Rask.Wasm.Browser;
 
 namespace Rask.Example.Wasm.Features;
@@ -17,35 +18,35 @@ public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                Div.Class("d-flex gap-2 flex-wrap mb-2")[
-                    Button.Class("btn btn-primary btn-sm").Id("hid-request").OnClickAsync(RequestDevice)[
-                        I.Class("bi bi-controller me-1"), "Pair device"],
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap mb-2")[
+                    Button.Class(Ui.BtnPrimary).Id("hid-request").OnClickAsync(RequestDevice)[
+                        Icon.Name(IconName.Controller).Class("me-1"), "Pair device"],
                     Button
-                        .Class("btn btn-outline-primary btn-sm")
+                        .Class(Ui.BtnOutlinePrimary)
                         .Id("hid-watch")
                         .Disabled(_device is null || _watch is not null)
                         .OnClickAsync(Watch)["Open & watch"],
                     Button
-                        .Class("btn btn-outline-danger btn-sm")
+                        .Class(Ui.BtnOutlineDanger)
                         .Id("hid-close")
                         .Disabled(_device is null)
                         .OnClickAsync(Release)["Release"]
                 ],
                 _info is null
-                    ? Div.Class("small text-secondary")["No device paired."]
-                    : Dl.Class("row small mb-2").Id("hid-info")[
-                        Dt.Class("col-5 col-sm-4 text-secondary")["Vendor ID"],
-                        Dd.Class("col-7 col-sm-8")[Code["0x" + _info.VendorId.ToString("x4")]],
-                        Dt.Class("col-5 col-sm-4 text-secondary")["Product ID"],
-                        Dd.Class("col-7 col-sm-8")[Code["0x" + _info.ProductId.ToString("x4")]],
-                        Dt.Class("col-5 col-sm-4 text-secondary")["Product"],
-                        Dd.Class("col-7 col-sm-8")[_info.ProductName ?? "—"]
+                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400")["No device paired."]
+                    : Dl.Class("grid grid-cols-12 gap-4 text-sm mb-2").Id("hid-info")[
+                        Dt.Class("col-span-5 sm:col-span-4 text-slate-500 dark:text-slate-400")["Vendor ID"],
+                        Dd.Class("col-span-7 sm:col-span-8")[Code["0x" + _info.VendorId.ToString("x4")]],
+                        Dt.Class("col-span-5 sm:col-span-4 text-slate-500 dark:text-slate-400")["Product ID"],
+                        Dd.Class("col-span-7 sm:col-span-8")[Code["0x" + _info.ProductId.ToString("x4")]],
+                        Dt.Class("col-span-5 sm:col-span-4 text-slate-500 dark:text-slate-400")["Product"],
+                        Dd.Class("col-span-7 sm:col-span-8")[_info.ProductName ?? "—"]
                     ],
-                Div.Class("small text-secondary")["Reports: ", Code.Id("hid-count")[_reportCount.ToString()]],
-                Div.Class("small text-secondary")["Last: ", Code.Id("hid-last")[_lastReport]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("hid-status")[_status]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Reports: ", Code.Id("hid-count")[_reportCount.ToString()]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Last: ", Code.Id("hid-last")[_lastReport]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("hid-status")[_status]]
             ]
         ];
 

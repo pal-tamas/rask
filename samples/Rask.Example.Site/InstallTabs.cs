@@ -24,7 +24,7 @@ public sealed partial class InstallTabs : Component
             Div.Class("term overflow-x-auto rounded-2xl border border-line bg-panel-2 p-5 text-left")[
                 Terminal()
             ],
-            P.Class("mt-4 text-center text-xs text-muted")[
+            P.Class("mt-4 text-center text-xs text-slate-500 dark:text-slate-400")[
                 "Add ", Code["--auth"], " for a cookie/JWT starter · full path in the ",
                 A
                     .Class("text-accent-ink no-underline hover:underline")
@@ -42,7 +42,7 @@ public sealed partial class InstallTabs : Component
             .Key(i)
             .Class(i == _active
                 ? "rounded-lg border border-line bg-panel px-4 py-1.5 text-sm font-medium text-ink"
-                : "rounded-lg border border-transparent px-4 py-1.5 text-sm text-muted hover:text-ink")
+                : "rounded-lg border border-transparent px-4 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-ink")
             .Type("button")
             .Role("tab")
             .Aria(new Dictionary<string, string?> { ["selected"] = i == _active ? "true" : "false" })
@@ -51,13 +51,13 @@ public sealed partial class InstallTabs : Component
     private Component Terminal() => _active switch
     {
         1 => Pre.Class("font-mono text-xs leading-relaxed text-ink-soft")[Code[
-            Span.Class("text-muted")["# standalone browser-WASM SPA, installable and offline\n"],
+            Span.Class("text-slate-500 dark:text-slate-400")["# standalone browser-WASM SPA, installable and offline\n"],
             Line("$", " dotnet tool install -g Rask.Cli"),
             Line("$", " rask new MyApp --template wasm"),
             Span.Class("select-none text-accent-ink")["$"], " cd MyApp && rask dev"
         ]],
         _ => Pre.Class("font-mono text-xs leading-relaxed text-ink-soft")[Code[
-            Span.Class("text-muted")["# ASP.NET live-server app, batteries included\n"],
+            Span.Class("text-slate-500 dark:text-slate-400")["# ASP.NET live-server app, batteries included\n"],
             Line("$", " dotnet tool install -g Rask.Cli"),
             Line("$", " rask new MyApp"),
             Span.Class("select-none text-accent-ink")["$"], " cd MyApp && rask dev"

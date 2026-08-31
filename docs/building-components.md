@@ -4,8 +4,8 @@ Markup in Rask is C#. You name a component and chain onto it; there is no `new`,
 `using` to remember.
 
 ```csharp
-Div.Class("card")[
-    H2.Class("card-title")["Products"],
+Div.Class("panel")[
+    H2.Class("mb-1 text-lg font-semibold")["Products"],
     P["Everything we sell."]
 ]
 ```

@@ -15,8 +15,8 @@ public sealed partial class FullscreenPage : Component
 
     protected override Component? Render() =>
     [
-        H1.Class("h2 mb-1")["Fullscreen"],
-        P.Class("text-secondary")[
+        H1.Class("text-3xl font-bold mb-1")["Fullscreen"],
+        P.Class("text-slate-500 dark:text-slate-400")[
             "Present an element — or the whole page — fullscreen via IFullscreen (the Fullscreen API), ",
             "passing an ElementRef to target one box. WASM-only: requestFullscreen needs a live user ",
             "gesture. Pairs with Orientation — locking the orientation generally requires fullscreen first."

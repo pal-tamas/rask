@@ -39,10 +39,10 @@ public sealed partial class BroadcastChannelDemo(IBroadcastChannel bus) : Compon
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
                 Button.Class($"{Ui.BtnPrimary} mb-2").Type("button").Id("bc-send").OnClickAsync(Send)["Broadcast a message"],
-                Div.Class("small text-secondary mb-1")["Received (from other connections/tabs):"],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Received (from other connections/tabs):"],
                 _received.Count == 0
-                    ? Div.Class("small text-secondary fst-italic").Id("bc-log")["(none yet)"]
-                    : Ul.Class("small mb-0").Id("bc-log")[
+                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("bc-log")["(none yet)"]
+                    : Ul.Class("text-sm mb-0").Id("bc-log")[
                         _received.Select(m => Li.Key(m)[m])
                     ]
             ]

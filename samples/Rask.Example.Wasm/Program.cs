@@ -43,17 +43,17 @@ host.UsePwa(new WebAppManifest
 });
 // WASM-only example pages — contribute their sidebar entries to the shared ShowcaseLayout. These APIs
 // can't run on the Server transport, so they live in the WASM host rather than the shared showcase.
-host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", "bi-phone", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/install", "Install prompt", "bi-download", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", "bi-display", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", "bi-phone-landscape", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/fullscreen", "Fullscreen", "bi-fullscreen", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/picture-in-picture", "Picture-in-Picture", "bi-pip", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/eyedropper", "EyeDropper", "bi-eyedropper", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/idle", "Idle detection", "bi-hourglass-split", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/media-devices", "Camera & mic", "bi-camera-video", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/serial", "Serial port", "bi-usb-symbol", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/usb", "USB device", "bi-usb-drive", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/hid", "HID device", "bi-controller", "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/bluetooth", "Bluetooth", "bi-bluetooth", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", IconName.Phone, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/install", "Install prompt", IconName.Download, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", IconName.Display, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", IconName.PhoneLandscape, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/fullscreen", "Fullscreen", IconName.Fullscreen, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/picture-in-picture", "Picture-in-Picture", IconName.Pip, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/eyedropper", "EyeDropper", IconName.Eyedropper, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/idle", "Idle detection", IconName.HourglassSplit, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/media-devices", "Camera & mic", IconName.CameraVideo, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/serial", "Serial port", IconName.UsbSymbol, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/usb", "USB device", IconName.UsbDrive, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/hid", "HID device", IconName.Controller, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/bluetooth", "Bluetooth", IconName.Bluetooth, "PWA"));
 await host.RunAsync<App>();

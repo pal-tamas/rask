@@ -10,7 +10,7 @@ public partial class App : Component
     // every demo component), dedupes by rendered HTML, resolves singleton tags
     // (<title>, <base>) so the latest contributor wins, and auto-appends the
     // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
-    // the scoped-css link so global.css's brand palette overrides Bootstrap.
+    // the scoped-css link, so a page's own stylesheet still wins over them.
     // Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
     // across the site/docs/playground on the same origin) or the OS preference, BEFORE any stylesheet
     // matches — so there's no flash of the wrong theme. Also re-applies the SAVED choice from
@@ -59,7 +59,7 @@ public partial class App : Component
             .Href(LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override string? BodyClass => "bg-body-tertiary";
+    protected override string? BodyClass => "bg-slate-50 dark:bg-slate-900";
 
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
     protected override Component? Render() => Router;

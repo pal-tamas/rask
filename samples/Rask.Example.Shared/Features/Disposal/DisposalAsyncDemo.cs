@@ -10,7 +10,7 @@ public sealed partial class DisposalAsyncDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Div.Class($"flex gap-2 flex-wrap items-center {"mb-3"}")[
+            Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 Button.Type("button").Class(Ui.BtnPrimary)
                     .Id("dispose-async-mount")
                     .Disabled(_asyncMounted)
@@ -22,7 +22,7 @@ public sealed partial class DisposalAsyncDemo : Component
             ],
             _asyncMounted
                 ? DisposableAsyncProbe.Log(AppendAsyncLog).InstanceId(_nextAsyncId)
-                : P.Class("text-secondary fst-italic mb-0")["Probe not mounted."],
+                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Probe not mounted."],
             DisposalDemoLog.Entries(_asyncLog).ListId("dispose-async-log")
         ];
 

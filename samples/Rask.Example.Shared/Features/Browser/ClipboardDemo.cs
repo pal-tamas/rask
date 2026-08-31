@@ -13,12 +13,12 @@ public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
         Div.Class($"{Ui.Card} shadow-sm border-0")[
             Div.Class(Ui.CardBody)[
                 Div.Class("mb-2 flex gap-2")[
-                    Input.Value(_input).Class(Ui.Input).Id("clipboard-input").OnChange(v => _input = v),
+                    Input.Value(_input).Class(Ui.Input).Id("clipboard-input").OnInput(v => _input = v),
                     Button.Type("button").Class(Ui.BtnPrimary).Id("clipboard-copy").OnClickAsync(Copy)["Copy"],
                     Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("clipboard-paste").OnClickAsync(Paste)["Paste"]
                 ],
-                Div.Class("small text-secondary")["Pasted: ", Code.Id("clipboard-read-value")[_read ?? "(nothing yet)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("clipboard-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Pasted: ", Code.Id("clipboard-read-value")[_read ?? "(nothing yet)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("clipboard-status")[_status ?? "(idle)"]]
             ]
         ];
 

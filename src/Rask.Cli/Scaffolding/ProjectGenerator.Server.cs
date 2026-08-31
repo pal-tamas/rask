@@ -660,33 +660,8 @@ internal static partial class ProjectGenerator
 
         """;
 
-    // The correlation id is the only detail either body renders — and the comment saying why travels with
-    // the generated code, because that is where someone is standing when they consider adding more.
-    private static readonly string ErrorPageBootstrapBody =
-        """
-                Div.Class("mx-auto my-5").Style("max-width:540px")[
-                    BsCard.Class("shadow-sm")[
-                        BsCardBody[
-                            BsCardTitle["Something went wrong"],
-                            BsCardText.Class("text-body-secondary")[
-                                "The request couldn't be completed. The error has been logged."
-                            ],
-                            // The correlation id, and deliberately nothing else. Never render the
-                            // exception, its message, or a stack trace here — this page is served to
-                            // whoever hit the error, and the detail already went to ILogger where you can
-                            // match it by this id.
-                            Activity.Current?.Id is { Length: > 0 } traceId
-                                ? P.Class("mb-3 small text-body-secondary")[
-                                    "Reference: ",
-                                    Code[traceId]
-                                ]
-                                : null,
-                            NavLink.Href(HomeRoutes.HomePage()).Class("btn btn-primary")["Back to the app"]
-                        ]
-                    ]
-                ];
-        """.Trim('\n');
-
+    // The correlation id is the only detail this body renders, and the comment saying why travels
+    // with the generated code, because that is where someone stands when they consider adding more.
     // Tailwind utilities, like every other scaffolded page. It was written in .card and .small while the
     // shell carried a hand-written baseline stylesheet defining them; that stylesheet is gone, and classes
     // with no CSS behind them render as an unstyled page rather than as an error anyone would notice.

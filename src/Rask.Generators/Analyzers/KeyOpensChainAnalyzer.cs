@@ -17,7 +17,7 @@ namespace Rask.Generators.Analyzers;
 ///     <para>
 ///         Elements are exempt and that is not a carve-out: an element is fully re-specified by its chain
 ///         every render (whatever the chain does not name, the deferred reset puts back), so it is never
-///         claimed and nothing can be lost. <c>Div.Class("row").Key(i)</c> stays exactly as it reads.
+///         claimed and nothing can be lost. <c>Div.Class("line").Key(i)</c> stays exactly as it reads.
 ///     </para>
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
