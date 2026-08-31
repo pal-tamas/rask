@@ -119,14 +119,14 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             // closes it. The open state was already Rask state — the drawer never needed script.
             Aside
                 .Class(_drawerOpen
-                    ? "side-nav fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto bg-white p-4 "
+                    ? "side-nav flex fixed inset-y-0 left-0 z-50 w-72 bg-white p-4 "
                       + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none dark:bg-slate-900"
-                    : "side-nav hidden w-64 overflow-y-auto p-4 md:block")[
+                    : "side-nav hidden w-64 p-4 md:flex")[
                 SidebarBody()
             ],
             _drawerOpen
                 ? Div
-                    .Class("fixed inset-0 z-40 bg-black/40 md:hidden")
+                    .Class("nav-backdrop fixed inset-0 z-40 bg-black/40 md:hidden")
                     .OnClick(() => _drawerOpen = false)
                 : null,
             Main.Class("grow py-4 px-3 md:px-5 page-main")[

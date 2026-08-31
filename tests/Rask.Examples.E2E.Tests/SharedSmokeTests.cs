@@ -16,6 +16,7 @@ namespace Rask.Examples.E2E.Tests;
 public abstract partial class SharedSmokeTests : IAsyncLifetime
 {
     private readonly List<string> _console = new();
+    private readonly List<string> _stylesheetFailures = new();
     private readonly PlaywrightFixture _pw;
     private IBrowserContext _ctx = default!;
 
@@ -96,6 +97,26 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
             lock (_console)
             {
                 _console.Add($"[pageerror] {err}");
+            }
+        };
+
+        // A stylesheet that 404s is INVISIBLE: the page still renders, just with none of its CSS, and
+        // nothing throws. The showcase shipped that way -- it linked /css/app.css while the file is
+        // published under _content/{assembly}/ -- and every layout assertion that should have caught it
+        // instead failed as "element unexpectedly in viewport", which reads like a selector problem.
+        // The font CDNs are aborted deliberately above, so they are not failures.
+        Page.Response += (_, res) =>
+        {
+            if (res.Ok || !res.Url.Contains(".css", StringComparison.OrdinalIgnoreCase)
+                || res.Url.Contains("fonts.googleapis.com", StringComparison.Ordinal)
+                || res.Url.Contains("fonts.gstatic.com", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            lock (_console)
+            {
+                _stylesheetFailures.Add($"{res.Status} {res.Url}");
             }
         };
     }
@@ -285,5 +306,22 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         }
 
         Console.WriteLine($"===== /E2E DIAG {FixtureName}.{testName} =====");
+    }
+
+    /// <summary>
+    ///     Fails if any stylesheet the page asked for did not come back OK. Separate from the console
+    ///     dump because a 404 stylesheet does not throw — the only symptom is that nothing is styled.
+    /// </summary>
+    protected void AssertStylesheetsLoaded()
+    {
+        string[] failures;
+        lock (_console)
+        {
+            failures = _stylesheetFailures.ToArray();
+        }
+
+        Assert.True(
+            failures.Length == 0,
+            "a stylesheet failed to load, so the page rendered unstyled:\n  " + string.Join("\n  ", failures));
     }
 }

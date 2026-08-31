@@ -39,7 +39,7 @@
 }
 
 .sample-code-label {
-    font-family: var(--bs-font-monospace);
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     color: rgba(255, 255, 255, 0.45);
 }
@@ -57,7 +57,7 @@
     border: 0;
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
-    font-family: var(--bs-font-monospace);
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     padding: 0.15rem 0.55rem;
     border-radius: 0.35rem;

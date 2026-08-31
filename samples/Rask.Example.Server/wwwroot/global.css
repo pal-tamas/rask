@@ -4,11 +4,11 @@
    Plain global stylesheet served from wwwroot and linked from App.cs's <Head>. */
 
 :root {
-    /* The violet dark-first palette + the Bootstrap --bs-* bridge now live in the shared
-       _content/Rask.Bootstrap/tokens.css (linked before this file). This block keeps only what's
-       specific to the showcase: the type system, the fixed nav height, thin --rask-* aliases so the
-       existing var(--rask-*) references across this file + GuideChrome.css resolve to the shared
-       palette, and the two fixed-dark code-surface tokens (code blocks stay dark in both themes). */
+    /* The violet dark-first palette lives in Styles/app.css now, compiled into this project's own
+       stylesheet — it used to come from Rask.Bootstrap's tokens.css, which is gone. This block keeps
+       what is specific to the showcase: the type system, the fixed nav height, thin --rask-* aliases so
+       the existing var(--rask-*) references across this file + GuideChrome.css keep resolving, and the
+       two fixed-dark code-surface tokens (code blocks stay dark in both themes). */
     --rask-accent: var(--accent);
     --rask-accent-strong: var(--accent-2);
     --rask-accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
@@ -25,8 +25,6 @@
     --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    --bs-font-sans-serif: var(--font-body);
-    --bs-font-monospace: var(--font-mono);
 
     --nav-h: 56px;
 }
@@ -107,10 +105,10 @@ button, a, [role="button"] {
 }
 
 /* From ShowcaseLayout: lock body scroll while the mobile nav drawer (the responsive offcanvas) is
-   shown — :has() reaches up from the .show descendant; body is a shell tag so this rule belongs in the
+   shown — :has() reaches up from the backdrop the open drawer renders; body is a shell tag, so this
    global stylesheet (it could never be component-scoped). */
 @media (max-width: 767.98px) {
-    body:has(.side-nav.show) {
+    body:has(.nav-backdrop) {
         overflow: hidden;
         height: 100vh;
     }
@@ -242,15 +240,16 @@ button, a, [role="button"] {
 
 /* The sidebar is a responsive offcanvas (offcanvas-md): a slide-in drawer below md, a fixed-width
    static column at >=md. */
-.side-nav {
-    --bs-offcanvas-width: min(82vw, 320px);
-}
-
 /* The body is a non-scrolling flex column: a pinned filter header over a single scrolling list. The
    filter is a real flex header (not position:sticky) because a sticky child of a flex container does
    not stick in Safari — it would scroll away with the list. This is bulletproof across browsers. */
-.side-nav .offcanvas-body {
-    display: flex;
+/* The sidebar body is a non-scrolling flex column: the filter is a pinned header and the LIST inside
+   scrolls. BsOffcanvas used to supply this container as .offcanvas-body; the container is now the
+   <aside> itself, and loading after the utilities is what lets overflow:hidden beat its overflow-y-auto. */
+.side-nav {
+    /* NO display here. This file loads after the utilities, so `display: flex` would beat the
+       `hidden` utility and the mobile drawer could never close. Tailwind owns display (hidden /
+       md:flex on the element); this rule owns only the column layout the pinned filter needs. */
     flex-direction: column;
     padding: 1rem 0.75rem;
     overflow: hidden;
@@ -262,7 +261,7 @@ button, a, [role="button"] {
     flex: 0 0 auto;
     padding-bottom: 0.5rem;
     margin-bottom: 0.25rem;
-    background: var(--bs-body-bg, #fff);
+    background: var(--ground);
     border-bottom: 1px solid var(--rask-line);
 }
 
@@ -307,7 +306,7 @@ button, a, [role="button"] {
     width: 100%;
     border: 0;
     background: transparent;
-    color: var(--bs-secondary-color);
+    color: var(--muted);
     font-family: var(--font-mono);
     font-size: 0.7rem;
     font-weight: 600;
@@ -389,7 +388,7 @@ button, a, [role="button"] {
 /* Desktop: pin the static sidebar under the navbar and let only its list scroll, so a long list
    never stretches the page or hides its bottom entries below the fold. */
 @media (min-width: 768px) {
-    .side-nav.offcanvas-md {
+    .side-nav {
         flex: 0 0 280px;
         width: 280px;
         position: sticky;
@@ -406,7 +405,7 @@ button, a, [role="button"] {
 
 /* Mobile drawer: account for the fixed navbar and notch insets when the offcanvas slides in. */
 @media (max-width: 767.98px) {
-    .side-nav.offcanvas-md {
+    .side-nav {
         padding-top: calc(var(--nav-h) + env(safe-area-inset-top));
     }
 }
@@ -436,7 +435,7 @@ button, a, [role="button"] {
     margin-top: 2.5rem;
     margin-bottom: 0.75rem;
     padding-bottom: 0.3rem;
-    border-bottom: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--line);
 }
 
 .markdown-body h3 {
@@ -513,7 +512,7 @@ button, a, [role="button"] {
 
 .markdown-body th,
 .markdown-body td {
-    border: 1px solid var(--bs-border-color);
+    border: 1px solid var(--line);
     padding: 0.5rem 0.75rem;
     text-align: left;
 }
@@ -530,7 +529,7 @@ button, a, [role="button"] {
 .markdown-body hr {
     margin: 2rem 0;
     border: 0;
-    border-top: 1px solid var(--bs-border-color);
+    border-top: 1px solid var(--line);
 }
 
 /* SeeAlso: small accent pills linking a demo page to its guide(s). A dedicated class (not Bootstrap's

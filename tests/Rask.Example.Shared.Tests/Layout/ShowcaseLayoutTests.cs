@@ -27,7 +27,7 @@ public sealed class ShowcaseLayoutTests
         // The sidebar is in the flow from md up and a drawer below it. It was a Bootstrap responsive
         // offcanvas; the behaviour is unchanged because the open state was always Rask state.
         Assert.Contains("side-nav", html);
-        Assert.Contains("md:block", html);
+        Assert.Contains("md:flex", html);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public sealed class ShowcaseLayoutTests
             .Groups[1].Value;
         Assert.NotEqual("", hamburgerId);
         // The open drawer renders its own backdrop element; BsOffcanvas called it .offcanvas-backdrop.
-        Assert.Contains("bg-black/40", await page.InvokeAsync(hamburgerId));
+        Assert.Contains("nav-backdrop", await page.InvokeAsync(hamburgerId));
 
         // Navigate to /todos → RouteState.Changed fires → OnRouteChanged closes the drawer and expands the
         // group holding /todos. Without the subscription neither happens (the drawer stays open, Apps stays
@@ -176,7 +176,7 @@ public sealed class ShowcaseLayoutTests
         routeState.Path = Rask.Example.Shared.Features.Routes.TodosPage();
         var atTodos = CollapseWhitespace(page.Render());
         Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded
-        Assert.DoesNotContain("bg-black/40", atTodos);         // drawer closed
+        Assert.DoesNotContain("nav-backdrop", atTodos);         // drawer closed
     }
 
     private static string CollapseWhitespace(string s) =>

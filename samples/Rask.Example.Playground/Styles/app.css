@@ -16,6 +16,25 @@
   --color-pg-muted: oklch(0.72 0.02 285);
 }
 
+/*
+  PlaygroundView.css was written against the shared design tokens that shipped in Rask.Bootstrap's
+  tokens.css, and still makes 24 var(--accent) / var(--ink) / var(--panel) references. That file is
+  gone, and an undefined custom property is SILENT — the declaration is dropped and the pane simply
+  loses its colour. Alias the old names onto this project's own palette rather than carry a second one.
+*/
+:root {
+  --ground: var(--color-pg-ground);
+  --panel: var(--color-pg-panel);
+  --panel-2: oklch(0.25 0.02 285);
+  --line: var(--color-pg-line);
+  --ink: var(--color-pg-ink);
+  --ink-soft: oklch(0.84 0.02 285);
+  --muted: var(--color-pg-muted);
+  --accent: #8b5cf6;
+  --accent-2: #7c3aed;
+  --warn: #f59e0b;
+}
+
 @layer base {
   html,
   body {

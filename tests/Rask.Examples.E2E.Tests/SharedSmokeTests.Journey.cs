@@ -51,9 +51,13 @@ public abstract partial class SharedSmokeTests
         await NavigateToAsync("/");
         // Guides-first: "/" is the guides index now (the Welcome landing page is gone); its PageHeader
         // renders an <h1 class="h2">Guides</h1>.
-        await Expect(Page.Locator("main h1.h2"))
+        await Expect(Page.Locator("main h1"))
             .ToContainTextAsync("Guides",
                 new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+
+        // The shell has loaded its stylesheets by now. Check them before walking the layout: every
+        // responsive assertion below is meaningless if the CSS never arrived.
+        AssertStylesheetsLoaded();
 
         // Plant a sentinel on window — every in-SPA nav below must preserve it (proves no full
         // reload happened and the SPA context survived).
@@ -104,7 +108,7 @@ public abstract partial class SharedSmokeTests
 
     // In-SPA navigation via the sidebar + heading assertion. Works on every host once the shell is
     // loaded; on StandaloneWasm the sidebar click is the only navigation path available.
-    protected async Task SideAsync(string label, string heading, string headingSelector = "main h1.h2")
+    protected async Task SideAsync(string label, string heading, string headingSelector = "main h1")
     {
         await ClickSidebar(label);
         await Expect(Page.Locator(headingSelector).First).ToContainTextAsync(heading,
@@ -155,7 +159,9 @@ public abstract partial class SharedSmokeTests
         // demoted Examples group stays collapsed so the long item list isn't dumped at once.
         await Expect(Page.Locator(".side-nav .nav-group-toggle").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        var open = await Page.Locator(".side-nav .collapse.show").CountAsync();
+        // A collapsed group renders NO items element at all now, where BsCollapse rendered one and hid
+        // it with .collapse — so "expanded" is the presence of the items container, not a class on it.
+        var open = await Page.Locator(".side-nav .nav-group-items").CountAsync();
         Assert.True(open >= 5, $"expected the guide groups expanded by default, got {open}");
         var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
         // The five guide groups (Overview + the four GuideCatalog categories) plus the surviving Examples
@@ -192,7 +198,7 @@ public abstract partial class SharedSmokeTests
         // Dismiss by tapping the backdrop. A real tap lands on the visible backdrop strip beside the
         // drawer, but Playwright's centre-click would be intercepted by the panel that overlays it —
         // so dispatch the click straight to the backdrop element (its data-rask-on-click still fires).
-        await Page.Locator(".offcanvas-backdrop").DispatchEventAsync("click");
+        await Page.Locator(".nav-backdrop").DispatchEventAsync("click");
         await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await Page.SetViewportSizeAsync(1280, 720);
@@ -344,7 +350,7 @@ public abstract partial class SharedSmokeTests
         // Context: toggling a provider updates a deep consumer straight through a render-cached
         // intermediate. Scope to this demo — badges appear in other demos on the page too.
         var ctxDemo = Page.Locator(".guide-demo:has(button:has-text('Toggle theme'))");
-        var ctxBadge = ctxDemo.Locator("span").Filter(new LocatorFilterOptions { HasTextRegex = new Regex("Light|Dark") });
+        var ctxBadge = ctxDemo.Locator(".theme-badge");
         await Expect(ctxBadge).ToContainTextAsync("Light", contains);
         await ctxDemo.Locator("button:has-text('Toggle theme')").ClickAsync();
         await Expect(ctxBadge).ToContainTextAsync("Dark", contains);
@@ -386,21 +392,14 @@ public abstract partial class SharedSmokeTests
 
         // ---- lists, toasts, drag & error boundaries (docs/composition-lists.md) ----
         await SideAsync("Composition — lists & more", "lists, toasts, drag", "main .markdown-body h1");
-        await AssertGuideDemosAsync(10, "composition-lists");
+        await AssertGuideDemosAsync(9, "composition-lists");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the page still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
-        // Toast: a producer raises an IToaster message; the headless ToastOutlet drains it (consumed-once)
-        // and renders a dismissible BsAlert — live-diff state, no client JS. The demo's ToastOutlet sets
-        // AutoDismissAfter: 5s, so the toast clears itself with no click — driven entirely by a server/WASM
-        // -side timer over live-diff. (Manual × dismissal is covered by the ToastOutlet unit tests.)
-        await Page.Locator(".guide-demo button:has-text('Success')").First.ClickAsync();
-        var toastAlert = Page.GetByText("Your changes were saved.");
-        await Expect(toastAlert).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // Auto-dismiss: gone on its own within the 5s delay (+ slack for transport + render).
-        await Expect(toastAlert).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 12_000 });
+        // The toast walk that stood here drove BsToast / the dismissible BsAlert it rendered. Both went
+        // with Rask.Bootstrap, and no sample raises an IToaster message any more.
 
         // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).
         var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
@@ -412,10 +411,10 @@ public abstract partial class SharedSmokeTests
         // caret riding its keyed row across the move — is exercised by the keyed-reconciliation unit
         // tests in Rask.Core.Tests; asserting it through the browser on the co-mounted guide is
         // timing-fragile, so the E2E proves the reverse re-renders the live keyed list instead.)
-        await Expect(Page.Locator("#kl-list li").First.Locator("span.fw-semibold"))
+        await Expect(Page.Locator("#kl-list li").First.Locator("span.font-semibold"))
             .ToContainTextAsync("Apple", contains);
         await Page.Locator("#kl-reverse").ClickAsync();
-        await Expect(Page.Locator("#kl-list li").First.Locator("span.fw-semibold"))
+        await Expect(Page.Locator("#kl-list li").First.Locator("span.font-semibold"))
             .ToContainTextAsync("Elderberry", contains);
 
         // Master-detail (its /master-detail page folded into this section): expanding a row inserts a keyed
@@ -580,7 +579,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkRoutingGuideAsync()
     {
         await SideAsync("Routing", "Routing", "main .markdown-body h1");
-        await AssertGuideDemosAsync(4, "routing");
+        await AssertGuideDemosAsync(3, "routing");
         var navDemo = Page.Locator(".guide-demo:has(#nav-query)");
         await Expect(navDemo.Locator("#nav-query")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
@@ -999,7 +998,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkElementsGuideAsync()
     {
         await SideAsync("Elements & the DSL", "Elements & the DSL", "main .markdown-body h1");
-        await AssertGuideDemosAsync(26, "elements");
+        await AssertGuideDemosAsync(28, "elements");
         // Gate on a late demo's distinctive element (the Interactive-elements demo, near the end).
         await Expect(Page.Locator(".guide-demo .sample-result-body details[open] summary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
@@ -1065,7 +1064,7 @@ public abstract partial class SharedSmokeTests
         // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
         // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
         await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(16, "forms");
+        await AssertGuideDemosAsync(13, "forms");
         // The hub co-mounts its forms demos on one (large) page; wait for a late demo's control (the
         // floating-label form, the last marker on the page) before driving any interaction so clicks
         // never race hydration.
@@ -1168,17 +1167,14 @@ public abstract partial class SharedSmokeTests
         // read — poll for each rather than asserting once.
         await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // The brand palette actually overrides Bootstrap's :root defaults: tokens.css (linked after
-        // bootstrap.min.css) maps --bs-primary onto the violet --accent through the Bootstrap 5.3
-        // --bs-*-rgb bridge. The exact shade tracks the active theme — dark rgb(139,92,246) / light
-        // rgb(124,58,237) — so assert the primary is one of the two brand violets and NOT Bootstrap's
-        // default blue, rather than a single hard-coded hex. Read --bs-primary-rgb (a literal triplet)
-        // rather than --bs-primary (a var(--accent) whose computed spelling varies), and normalise
-        // whitespace so the comma spacing the browser returns doesn't matter.
+        // The brand palette is applied: --accent is the violet the showcase publishes, and its exact
+        // shade tracks the active theme — dark #8b5cf6 / light #7c3aed. Assert it is one of the two
+        // rather than a single hard-coded value, and normalise whitespace and case so the browser's
+        // own spelling of the colour does not matter.
         await Page.WaitForFunctionAsync(
-            "() => { const p = getComputedStyle(document.documentElement)"
-            + ".getPropertyValue('--bs-primary-rgb').replace(/\\s+/g, '');"
-            + " return p === '139,92,246' || p === '124,58,237'; }",
+            "() => { const a = getComputedStyle(document.documentElement)"
+            + ".getPropertyValue('--accent').replace(/\\s+/g, '').toLowerCase();"
+            + " return a === '#8b5cf6' || a === '#7c3aed'; }",
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 
@@ -1193,7 +1189,7 @@ public abstract partial class SharedSmokeTests
         var navScroll = await Page.Locator(".side-nav .side-nav-scroll").First.EvaluateAsync<string>(
             @"el => {
                 const cs = getComputedStyle(el);
-                const body = getComputedStyle(el.closest('.offcanvas-body'));
+                const body = getComputedStyle(el.closest('.side-nav'));
                 const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'));
                 return JSON.stringify({
                     overflowY: cs.overflowY,
@@ -1216,16 +1212,17 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
-        // BsModal opens centered over a .modal-backdrop; clicking the modal area outside the dialog cancels.
-        await Expect(Page.Locator(".modal.show")).ToBeVisibleAsync(
+        // The dialog opens centered over its own backdrop; clicking the backdrop outside it cancels.
+        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Expect(Page.Locator(".modal-backdrop")).ToBeVisibleAsync(
+        await Expect(Page.Locator(".dialog-backdrop")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        // BsModal's focus trap moves focus into the dialog on open (the .modal itself carries tabindex=-1),
-        // so the keyboard primitive works with no prior click.
-        await Expect(Page.Locator(".modal.show")).ToBeFocusedAsync(
-            new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
-        // Escape closes the modal: the runtime focus trap routes Escape to the dismiss target (OnClose → cancel).
+        // Escape closes. A non-modal <dialog> fires no `cancel` event, so the page reads the key from a
+        // keydown handler ON THE DIALOG and routes back through the same cancel the backdrop uses — no
+        // client script. Focus has to be inside the dialog for that handler to hear the key, which any
+        // interaction gives it: `autofocus` is rendered but browsers only honour it for elements present
+        // at parse time, not ones the live diff inserts. Click the field first, as a user would.
+        await Page.Locator("dialog[open] #todo-title").ClickAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
@@ -1234,9 +1231,9 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
-        await Expect(Page.Locator(".modal.show")).ToBeVisibleAsync(
+        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Page.Locator(".modal button:has-text('Cancel')").ClickAsync();
+        await Page.Locator("dialog[open] button:has-text('Cancel')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         // Reopen for the rest of the flow.
@@ -1289,7 +1286,7 @@ public abstract partial class SharedSmokeTests
         // The demos all live on the reference subpage — the hub is prose and carries none, so walking it
         // would assert nothing (docs/browser-apis.md has zero `<!-- demo: -->` markers).
         await SideAsync("Browser APIs — reference & demos", "reference & live demos", "main .markdown-body h1");
-        await AssertGuideDemosAsync(35, "browser-apis-reference");
+        await AssertGuideDemosAsync(36, "browser-apis-reference");
         await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -1420,7 +1417,7 @@ public abstract partial class SharedSmokeTests
             history.pushState({ rask: true }, '', '/in-session-missing');
             window.dispatchEvent(new PopStateEvent('popstate'));
         }");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Page not found",
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Page not found",
             new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator(".side-nav a.side-nav-link.active")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
@@ -1428,7 +1425,7 @@ public abstract partial class SharedSmokeTests
         // "Back to guides" is an in-session nav to "/" — returns us to a known page so the journey
         // can continue, and proves recovery from the not-found state.
         await Page.Locator("main button:has-text(\"Back to guides\")").ClickAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Guides",
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Guides",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
     }
 
@@ -1441,49 +1438,29 @@ public abstract partial class SharedSmokeTests
         await Page.GoBackAsync();
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
         await Page.GoForwardAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Todos",
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
 
-        // Data table: a [QueryParam]-driven grid — every interaction is a URL query mutation → rebind →
-        // re-render. Its /table route is unlisted (folded code-only into routing.md) but still a real page;
-        // exercise it here (post-sentinel) since reaching it is a hard nav. Sort → ?sort=name, filter →
-        // ?filter=…, page-size → 25 rows.
-        await Page.GotoAsync("/table");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(10,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await Page.Locator("th button:has-text('Name')").First.ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]sort=name"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Page.Locator("input[type='search']").FillAsync("Linus");
-        await Page.WaitForTimeoutAsync(300);
-        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]filter=Linus"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        var filteredRows = await Page.Locator("tbody tr").CountAsync();
-        Assert.True(filteredRows is > 0 and < 10, $"filter should reduce rows; got {filteredRows}");
-        await Page.Locator("input[type='search']").FillAsync("");
-        await Page.Locator("select").SelectOptionAsync("25");
-        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // The [QueryParam]-driven data table that stood here was the BsDataGrid showcase at /table.
+        // It went with Rask.Bootstrap, and the route is gone with it.
 
         if (opts.DeepLink)
         {
             // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)
-            // and re-emit server-highlighted spans. The Data table page's only language-code block is
-            // its own highlighted page-source sample, so every match must carry token spans.
-            await Page.GotoAsync("/table");
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
+            // and re-emit server-highlighted spans. Todos is the page used here now: its only
+            // language-code block is its own highlighted page source, so every match must carry spans.
+            await Page.GotoAsync("/todos");
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
             await Page.ReloadAsync();
             Assert.Equal(0, await Page.Locator(".rask-error-boundary h1:has-text(\"Something went wrong\")").CountAsync());
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
             await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
             var total = await Page.Locator("pre code[class*='language-']").CountAsync();
             var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
             Assert.True(total > 0 && total == highlighted,
-                $"/table after refresh: {highlighted}/{total} highlighted.");
+                $"/todos after refresh: {highlighted}/{total} highlighted.");
 
             // Guide prose code fences are syntax-highlighted server-side (Markdig has no highlighter, so
             // Markdown.HighlightCodeBlocks runs ColorCode) — a fresh load must carry token spans.
@@ -1504,7 +1481,7 @@ public abstract partial class SharedSmokeTests
 
             // A deep link to an unknown route renders the [NotFound] page inside the layout shell.
             await Page.GotoAsync("/this-route-definitely-does-not-exist");
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Page not found",
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Page not found",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         }
 
@@ -1513,7 +1490,7 @@ public abstract partial class SharedSmokeTests
             // WasmAppHost serves only /index.html; a reload there must always boot the runtime.
             await Page.GotoAsync("/index.html");
             await Page.ReloadAsync();
-            await Expect(Page.Locator("main h1.h2"))
+            await Expect(Page.Locator("main h1"))
                 .ToContainTextAsync("Guides",
                     new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
         }
@@ -1633,15 +1610,12 @@ public abstract partial class SharedSmokeTests
     protected async Task AssertNavigationScrollAsync()
     {
         // --- a forward nav resets scroll to the top ---------------------------------------------
-        // The data table at 25 rows is reliably taller than the viewport; scroll to the bottom and
-        // confirm the document actually moved before navigating away. (Its /table route is unlisted now —
-        // folded code-only into routing.md — so reach it directly.)
-        await Page.GotoAsync("/table");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await Page.Locator("select").SelectOptionAsync("25");
-        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // Any page reliably taller than the viewport will do; a guide is. (The data table that used to
+        // serve this purpose was the BsDataGrid showcase and went with Rask.Bootstrap.) Scroll to the
+        // bottom and confirm the document actually moved before navigating away.
+        await Page.GotoAsync("/guides/getting-started");
+        await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await Page.EvaluateAsync("() => window.scrollTo(0, document.documentElement.scrollHeight)");
         await Page.WaitForFunctionAsync("() => window.scrollY > 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });

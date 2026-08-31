@@ -50,7 +50,10 @@ public partial class App : Component
         // ORDER was what decided the outcome and a comment was the only thing keeping it right.
         Link
             .Rel("stylesheet")
-            .Href(LiveOptions.PathBase + "/css/app.css"),
+            // Served from the SHARED project, so it lives under _content/{assembly}/ -- not /css/, which is
+        // this host's own wwwroot and has no css/ directory at all. Linking /css/app.css 404s, and a
+        // 404 stylesheet is invisible: the page renders, unstyled, with nothing failing.
+        .Href(LiveOptions.PathBase + "/_content/Rask.Example.Shared/css/app.css"),
         // Brand palette + global cascade. Plain wwwroot stylesheet (not a scoped {Component}.css)
         // because every rule targets :root or shell tags — things this component never stamps a
         // scope id on. Linked after Tailwind so app CSS can override it.

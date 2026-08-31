@@ -134,6 +134,12 @@ them until tagged releases begin.
   `BsRadioGroup` / `BsCheckboxGroup`. Nothing called the first six, so they compiled and never ran — the
   quietest way for test code to describe a feature that does not exist.
 
+  The browser journey lost another 200 lines that drove deleted components: the `/table` data-table
+  walk (`BsDataGrid`), the toast walk (`BsToast`), and three guide demo counts that were asserted at
+  their pre-deletion numbers. Two places had borrowed `/table` for unrelated reasons — a refresh check
+  and a scroll-reset test that only needed a page taller than the viewport — and both were re-pointed
+  rather than dropped.
+
   A new convention test, `NoBootstrapClassesTests`, now fails the build on any Bootstrap class name in a
   class position — `.Class(…)`, `Class:`, `class="…"`, and Blazor's `AddAttribute(n, "class", …)` in the
   comparison benchmarks. It deliberately does NOT list the spellings the two frameworks share (`border`,
@@ -220,6 +226,36 @@ them until tagged releases begin.
 - **13 submit-result banners now announce themselves.** They report the outcome of an action and were
   invisible to assistive tech; they are `role="status"` live regions, and the localization warning is
   `role="alert"`.
+
+- **The Server and WASM showcases were rendering completely unstyled.** The shared shell linked
+  `/css/app.css`, but that stylesheet belongs to the `Rask.Example.Shared` *library*, so it publishes to
+  `/_content/Rask.Example.Shared/css/app.css` — the host's own `wwwroot/` has no `css/` directory at all.
+  The link 404'd, and a 404 stylesheet is invisible: the page renders, nothing throws, and every utility
+  is simply inert. The sidebar could not hide because `.hidden{display:none}` had never loaded.
+
+- **22 CSS custom properties were referenced but never defined.** `--accent`, `--ink`, `--panel`,
+  `--muted`, `--ground`, `--line` and the rest were the design tokens that shipped in `Rask.Bootstrap`'s
+  `tokens.css`; `global.css` still said so in a comment pointing at the deleted file. An undefined custom
+  property is silent — the declaration is dropped and the palette is just gone. The values are restored
+  verbatim from history into the showcase's own stylesheet, dark-first with the light deviation and both
+  `[data-theme]` blocks. The playground had the same 24 dangling references and is fixed with it.
+
+- **The sidebar's pinned-filter layout had stopped applying.** The rule that makes the body a
+  non-scrolling flex column — so the filter stays put and the list scrolls inside it — was attached to
+  `.side-nav .offcanvas-body`, `BsOffcanvas`'s wrapper. That element no longer exists, so the rule
+  matched nothing. It targets the `<aside>` now, and deliberately sets no `display`: `global.css` loads
+  after the utilities, so a `display` here would beat `hidden` and the mobile drawer could never close.
+
+- **The todo dialog lost its backdrop and its Escape key.** `BsModal` supplied a backdrop, Escape-to-
+  dismiss and a focus trap; a `<dialog>` rendered with the `open` attribute is non-modal and supplies
+  none of them. The first two are back — a sibling overlay that carries the cancel click, and a keydown
+  handler that routes Escape through the same cancel, no client script. The real focus TRAP needs
+  `showModal()` and therefore JS; that one stays given up, and the source says so rather than implying
+  otherwise.
+
+  `autofocus` is on the field, which is correct markup and fires on a deep link to `/todos/new` — but
+  browsers only honour it for elements present at PARSE time, not ones the live diff inserts, so it is
+  documented for what it actually does.
 - **A resumed console session came back as the host application.** The WebSocket endpoint is mapped once
   per host rather than once per root, so it captured whichever root the first `UseRask` supplied — and that
   is what session *resume* rebuilds with. A console session resuming after a restart or an eviction would

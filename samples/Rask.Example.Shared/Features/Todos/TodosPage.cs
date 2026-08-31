@@ -167,28 +167,49 @@ public sealed partial class TodoFormDialog : Component
     // Template is required, so it is the chain's opening step: a validation message with no way to
     // render itself is not a thing the type system lets you ask for.
     private static Component FieldError(IReadOnlyList<string> errors) =>
-        Div.Class("text-sm text-red-600 dark:text-red-400")[errors.Select(e => Div.Key(e)[e])];
+        Div.Class("field-error text-sm text-red-600 dark:text-red-400")[errors.Select(e => Div.Key(e)[e])];
 
     protected override Component? Render() =>
-        // The native <dialog>. BsModal supplied a focus trap, Escape-to-dismiss and a backdrop; a
-        // <dialog> rendered with the `open` attribute is NON-modal, so it gets the backdrop from a
-        // sibling overlay here and loses the focus trap. That is a real reduction, and the honest one:
-        // the trap needs showModal(), which needs JS, and this page exists to show a routed CRUD flow
-        // rather than to reimplement a dialog.
-        Dialog.Open(Open).Class(
-            "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-white p-5 shadow-xl "
-            + "dark:bg-slate-800")[
-            H2.Class("mb-3 text-lg font-semibold")[IsAdding ? "Add todo" : "Edit todo"],
-            Form.Model(Model).OnValidSubmit(OnSave).Class("flex flex-col gap-3")[
-                DataAnnotationsValidator,
-                Label.For("todo-title").Class("text-sm font-medium")["Title"],
-                Input.Bind(() => Model.Title).Id("todo-title").Class(Ui.Input),
-                ValidationMessage.Template(FieldError).For(() => Model.Title),
-                Div.Class("flex justify-end gap-2")[
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary).OnClick(OnCancel)["Cancel"],
-                    Button.Class(Ui.BtnPrimary).Type("submit")[
-                        Icon.Name(IconName.Check2Circle).Class("me-1"),
-                        IsAdding ? "Add" : "Save"
+        // The native <dialog>. BsModal supplied a backdrop, Escape-to-dismiss and a focus trap. A
+        // <dialog> rendered with the `open` attribute is NON-modal, so it supplies none of the three —
+        // showModal() would, but it needs JS. The first two are cheap to keep as Rask state and a
+        // dialog without them is a worse dialog, so they are rebuilt below. The true focus TRAP (tab
+        // cannot leave) is the part that genuinely needs showModal, and is the honest reduction.
+        [
+            // A non-modal <dialog open> paints no backdrop of its own, so without this there is nothing
+            // dimming the page and nothing to click outside the dialog. It carries the click that cancels.
+            !Open
+                ? null
+                : Div.Class("dialog-backdrop fixed inset-0 z-40 bg-black/40").OnClick(() => OnCancel?.Invoke()),
+            Dialog.Open(Open).Class(
+                "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-white p-5 shadow-xl "
+                + "dark:bg-slate-800")
+                // Escape dismisses. A non-modal dialog fires no `cancel` event, so the key is read
+                // where it lands — no client script, just the same routed cancel the backdrop uses.
+                .OnKeyDown(e =>
+                {
+                    if (e.Key == "Escape")
+                    {
+                        OnCancel?.Invoke();
+                    }
+                })[
+                H2.Class("mb-3 text-lg font-semibold")[IsAdding ? "Add todo" : "Edit todo"],
+                Form.Model(Model).OnValidSubmit(OnSave).Class("flex flex-col gap-3")[
+                    DataAnnotationsValidator,
+                    Label.For("todo-title").Class("text-sm font-medium")["Title"],
+                    // autofocus fires when the browser PARSES the element -- a deep link to /todos/new
+                    // lands in the field. Opening the dialog through the live diff inserts it after
+                    // parse, where browsers ignore the attribute, so that path still needs a click.
+                    // Reliable focus-on-open would need ElementRef + IJSRuntime; this page is a routed
+                    // CRUD flow, not a dialog implementation.
+                    Input.Bind(() => Model.Title).Id("todo-title").Autofocus(true).Class(Ui.Input),
+                    ValidationMessage.Template(FieldError).For(() => Model.Title),
+                    Div.Class("flex justify-end gap-2")[
+                        Button.Type("button").Class(Ui.BtnOutlineSecondary).OnClick(OnCancel)["Cancel"],
+                        Button.Class(Ui.BtnPrimary).Type("submit")[
+                            Icon.Name(IconName.Check2Circle).Class("me-1"),
+                            IsAdding ? "Add" : "Save"
+                        ]
                     ]
                 ]
             ]
