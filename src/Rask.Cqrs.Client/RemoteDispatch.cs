@@ -96,13 +96,28 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
             await configure(request, cancellationToken).ConfigureAwait(false);
         }
 
+        // The timeout is applied HERE, per attempt, rather than on the HttpClient — because on the path
+        // most clients take the client is not ours to configure. ResolveHttpClient only sets
+        // HttpClient.Timeout when it constructs the client itself, and a same-origin browser app takes
+        // the other branch: it reuses the container's HttpClient, whose BaseAddress is the page origin.
+        // So options.Timeout was accepted and then disregarded on exactly the default path (#893).
+        //
+        // Setting Timeout on the shared instance instead would be wrong twice over: the client belongs
+        // to the app, and the property throws once a request has been started on it.
+        //
+        // Scoped to this send, not to the whole method: a chunked upload is many requests and a budget
+        // spanning all of them would abort a large, healthy transfer. "Per attempt" is what the option
+        // documents.
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(options.Timeout);
+
         HttpResponseMessage response;
         try
         {
             // ResponseHeadersRead so a streamed download is not buffered into memory before the caller
             // ever sees it — the difference between a constant-memory export and one that isn't.
             response = await http
-                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token)
                 .ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException &&

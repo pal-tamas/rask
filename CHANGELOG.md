@@ -328,6 +328,24 @@ them until tagged releases begin.
   ([#868](https://github.com/pal-tamas/rask/issues/868)); see the entry under **Added** above.
 
 ### Fixed
+- **`RaskCqrsClientOptions.Timeout` now applies on the path a browser client actually takes.**
+  ([#893](https://github.com/pal-tamas/rask/issues/893)) `ResolveHttpClient` set `HttpClient.Timeout`
+  only when it *constructed* the client itself. A same-origin WASM app takes the other branch — it
+  reuses the container's `HttpClient`, whose `BaseAddress` is the page origin, which is exactly what
+  `AddRaskCqrsClient()` is documented as needing no configuration for. So the option was accepted and
+  then disregarded on the default path: this repository's most expensive bug class.
+
+  The timeout is applied **per request** now, through a `CancellationTokenSource` linked to the
+  caller's token, which is also what the option's own summary has always promised ("applies per
+  attempt"). Setting it on the shared client instead would be wrong twice over — the client belongs to
+  the app, and `HttpClient.Timeout` throws once a request has been started on it. It is scoped to the
+  send rather than the whole dispatch, so a chunked upload of many requests is not aborted mid-transfer
+  by a budget meant for one.
+
+  The test asserts **elapsed time**, not just the exception, and that half is load-bearing: without it
+  the test still passes against the bug after ~100 s, on `HttpClient`'s own default timeout. Verified
+  by reverting the fix — it went green in 1 m 40 s instead of milliseconds, which is a test passing for
+  the wrong reason.
 - **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
   Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
   file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours
