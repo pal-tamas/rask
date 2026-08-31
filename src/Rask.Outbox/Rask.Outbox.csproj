@@ -36,9 +36,13 @@
     <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
 
-  <!-- The registration source generator is referenced as an analyzer (no runtime assembly reference). -->
+  <!--
+    The registration source generator is referenced as an analyzer (no runtime assembly reference).
+    In-repo only: analyzers do not flow through a ProjectReference, so this is what makes the outbox
+    registry generate for projects that reference Rask.Outbox from the source tree.
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\Rask.Outbox.Generators\Rask.Outbox.Generators.csproj"
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
@@ -48,10 +52,11 @@
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
-  <!-- Pack the source generator into analyzers/dotnet/cs/ so NuGet consumers run it. -->
-  <ItemGroup>
-    <None Include="..\Rask.Outbox.Generators\bin\$(Configuration)\netstandard2.0\Rask.Outbox.Generators.dll"
-          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
-  </ItemGroup>
+  <!--
+    This package deliberately does NOT pack the generator. The outbox registry generator shares an
+    assembly with the CQRS and jobs ones, and Rask.Cqrs — which this package depends on — is the one
+    place that ships it, so it arrives here transitively. Packing a second copy would put the same
+    generator on a consumer's analyzer path twice and emit every registry type twice.
+  -->
 
 </Project>

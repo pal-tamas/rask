@@ -121,6 +121,62 @@ public sealed class RemoteDispatchTests
         Assert.IsType<HttpRequestException>(error.InnerException);
     }
 
+    /// <summary>
+    ///     <c>options.Timeout</c> applies on the path a same-origin browser client actually takes.
+    /// </summary>
+    /// <remarks>
+    ///     It did not (#893). <c>ResolveHttpClient</c> set <c>HttpClient.Timeout</c> only when it
+    ///     constructed the client itself; a browser app hits the other branch and reuses the container's
+    ///     <c>HttpClient</c>, whose <c>BaseAddress</c> is the page origin — so the option was accepted and
+    ///     then disregarded on the default path, which is this repository's most expensive bug class.
+    ///     <para>
+    ///         The registration below deliberately leaves <c>HttpClient.Timeout</c> at its own default, as
+    ///         a browser template's does — and the ELAPSED assertion is the load-bearing half. Without it
+    ///         this test still passes against the bug, after ~100 s, on the client's own default timeout:
+    ///         verified by reverting the fix, where it went green in 1 m 40 s instead of milliseconds.
+    ///         Asserting only the exception would have been a test that passes for the wrong reason.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public async Task The_configured_timeout_applies_to_a_client_the_app_registered()
+    {
+        using var handler = new HangingHandler();
+        var started = System.Diagnostics.Stopwatch.StartNew();
+
+        var error = await Assert.ThrowsAsync<RemoteDispatchException>(
+            () => Dispatcher(handler, o => o.Timeout = TimeSpan.FromMilliseconds(80))
+                .DispatchAsync(new GetThing(1)));
+
+        started.Stop();
+
+        // Reported as "never reached the server", exactly as any other failure to arrive: the null status
+        // is what separates it from an answer.
+        Assert.Null(error.StatusCode);
+        Assert.Equal("Rask.Cqrs.Client.Tests.GetThing", error.MessageName);
+
+        // Generous against the 80 ms asked for, because this must not flake under a loaded gate — and
+        // still an order of magnitude under the 100 s that HttpClient's own default would take, which is
+        // the only thing this needs to separate.
+        Assert.True(
+            started.Elapsed < TimeSpan.FromSeconds(20),
+            $"the configured 80 ms timeout was not what ended the request — it took {started.Elapsed}. "
+            + "That is HttpClient's own default expiring instead, which is the bug (#893).");
+    }
+
+    [Fact]
+    public async Task A_caller_cancelling_beats_the_timeout_and_still_propagates()
+    {
+        // The timeout must not swallow a cancellation the caller asked for — the linked source has to
+        // keep the two distinguishable, or an unmounting component looks like a transport fault.
+        using var handler = new HangingHandler();
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => Dispatcher(handler, o => o.Timeout = TimeSpan.FromMinutes(5))
+                .DispatchAsync(new GetThing(1), cts.Token));
+    }
+
     [Fact]
     public async Task A_cancellation_the_caller_asked_for_propagates_rather_than_being_reported_as_a_transport_failure()
     {
@@ -173,9 +229,12 @@ public sealed class RemoteDispatchTests
         Assert.Contains("BaseAddress", error.Message, StringComparison.Ordinal);
     }
 
-    private static IDispatcher Dispatcher(FakeHandler handler, Action<RaskCqrsClientOptions>? configure = null)
+    private static IDispatcher Dispatcher(HttpMessageHandler handler, Action<RaskCqrsClientOptions>? configure = null)
     {
         var services = new ServiceCollection();
+
+        // Timeout deliberately left at HttpClient's own default, the way a browser template's
+        // registration does — so a test asserting options.Timeout cannot pass on the client's instead.
         services.AddSingleton(new HttpClient(handler) { BaseAddress = new Uri("https://unit.test/") });
         services.AddRaskCqrsClient(configure);
         return services.BuildServiceProvider().GetRequiredService<IDispatcher>();
@@ -207,6 +266,20 @@ public sealed class RemoteDispatchTests
             bytes.Length > maxAllowedSize
                 ? throw new IOException($"'{name}' is {bytes.Length} bytes, over the {maxAllowedSize} ceiling.")
                 : new MemoryStream(bytes, writable: false);
+    }
+
+    /// <summary>A server that accepts the request and never answers — what a timeout is for.</summary>
+    private sealed class HangingHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            // Waits on the token rather than sleeping a fixed span, so the test finishes the moment
+            // something cancels it and does not trade a real assertion for a timing race.
+            await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("unreachable");
+        }
     }
 
     private sealed class FakeHandler(HttpResponseMessage? response, Exception? failure) : HttpMessageHandler

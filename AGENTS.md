@@ -20,6 +20,9 @@ Apply the matching playbook automatically:
 1. `dotnet format Rask.slnx` (+ `--verify-no-changes`) — the full pass, not `whitespace`; the
    `pre-commit` gate verifies it too.
 2. `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true` (analyzers clean).
+   The same build runs the **public-API gate**: a public member you added, renamed or removed is an
+   error until it is recorded in `src/<Project>/PublicAPI/<tfm>/PublicAPI.Unshipped.txt`. Names obey
+   [`docs/api-style.md`](docs/api-style.md); that file's diff is the API review.
 3. **Unit test every feature**; **E2E test every `samples/` change**.
 4. **Benchmark every framework/render-hotpath change** (quote the Allocated delta).
 5. **User-facing change → add/update a sample + docs/README** (keep `docs/`, `README.md`, `NUGET.md`,

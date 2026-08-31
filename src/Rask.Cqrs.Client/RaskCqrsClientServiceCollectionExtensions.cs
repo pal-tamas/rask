@@ -136,6 +136,10 @@ public static class RaskCqrsClientServiceCollectionExtensions
         var existing = provider.GetService<HttpClient>();
         if (existing?.BaseAddress is not null)
         {
+            // Returned as-is, Timeout included. It belongs to the app — setting Timeout on it would be
+            // mutating someone else's object, and the property throws once a request has been started.
+            // options.Timeout is honoured for this branch by RemoteDispatch, which applies it per
+            // request; before that it was silently dropped on the path most clients take (#893).
             return existing;
         }
 

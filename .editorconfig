@@ -250,3 +250,24 @@ dotnet_naming_style.begins_with_i.capitalization = pascal_case
 # Display formatting is the opposite case and passes a culture explicitly.
 [src/Rask.Core/**.cs]
 dotnet_diagnostic.CA1305.severity = error
+
+# The public-API gate (docs/api-style.md) is for TRACKING the surface, not for freezing it.
+#
+# RS0016/RS0017 are the rules we want: a public member missing from PublicAPI.Unshipped.txt, or an
+# entry with no member behind it. Both stay errors under warnings-as-errors, which is what makes a
+# surface change show up as a reviewable diff.
+#
+# RS0026 ("do not add multiple overloads with optional parameters") and RS0027 ("an overload with
+# optional parameters should have the most parameters") are a different job: they protect callers of
+# a FROZEN API from a source-breaking recompile. Two things make them wrong here.
+#
+# Rask is pre-1.0 and breaks deliberately rather than deprecating, so there is no frozen surface to
+# protect. And every awaitable in the framework ends in a defaulted `CancellationToken` by rule
+# (docs/api-style.md #4), so any interface with more than one overload -- IBus, ICache, Navigator,
+# Route -- trips RS0026 by construction. The overloads it names differ in their FIRST parameter and
+# are never ambiguous at a call site; the rule is about how such a set evolves, not how it reads.
+#
+# Revisit at 1.0, when a frozen surface makes them mean what they say.
+[*.cs]
+dotnet_diagnostic.RS0026.severity = none
+dotnet_diagnostic.RS0027.severity = none

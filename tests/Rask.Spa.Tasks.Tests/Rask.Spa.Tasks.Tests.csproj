@@ -46,7 +46,7 @@
       the test would fail at run time on a missing Microsoft.Build.Framework.
     -->
     <ProjectReference Include="..\..\src\Rask.TypeScript.Tasks\Rask.TypeScript.Tasks.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
   </ItemGroup>
 

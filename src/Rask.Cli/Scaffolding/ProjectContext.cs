@@ -89,7 +89,7 @@ internal sealed partial class ProjectContext(
     /// Each signal is matched precisely rather than as a substring, because a false positive here is not
     /// cosmetic: it hands a server project the browser next-steps and adds <c>Rask.SQLite.Browser</c> to
     /// it, which doesn't resolve there. The one that bites is <c>Rask.Wasm.Hosting</c> — referenced by the
-    /// <b>Server</b> half of a <c>wasm-hosted</c> solution, which is precisely the project a background
+    /// <b>Server</b> half of a client-plus-host solution, which is precisely the project a background
     /// job belongs in. Keeping the closing quote on the package check is what separates the two.
     /// </para>
     /// </remarks>

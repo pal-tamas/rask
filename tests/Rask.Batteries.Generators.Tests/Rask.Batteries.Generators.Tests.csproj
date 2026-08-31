@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Generators.TestSupport"/>
+  </ItemGroup>
+
+  <!-- Shared with Rask.Generators.Tests so every generator is driven identically. -->
+  <ItemGroup>
+    <Compile Include="..\Shared.GeneratorTests\GeneratorHarness.cs" Link="GeneratorHarness.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Drive the generators manually, so reference the analyzer (and the runtimes) as normal assemblies
+      rather than as analyzers. One suite covers all three battery generators now that they share an
+      assembly; the harness resolves a test compilation's references by assembly name, so every runtime
+      a generated snippet compiles against has to be referenced here.
+    -->
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Outbox\Rask.Outbox.csproj"/>
+  </ItemGroup>
+
+</Project>

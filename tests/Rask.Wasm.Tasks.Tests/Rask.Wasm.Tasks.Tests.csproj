@@ -14,6 +14,10 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Build.Utilities.Core"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <!-- FullIcuPropertyNameTests reads the installed WebAssembly SDK pack, which a machine without the
+         wasm-tools workload does not have. Skipped there rather than failed — but LOUDLY, since a
+         silent pass is how the bug it guards survived in the first place. -->
+    <PackageReference Include="Xunit.SkippableFact"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>

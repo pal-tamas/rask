@@ -27,12 +27,12 @@
   </ItemGroup>
 
   <!--
-    The dispatch source generator is referenced as an analyzer (no runtime assembly reference),
+    The batteries source generator is referenced as an analyzer (no runtime assembly reference),
     keeping Rask.Cqrs self-contained: consumers get the generator without pulling in the Rask
-    component/routes generators. See src/Rask.Cqrs.Generators.
+    component/routes generators. See src/Rask.Batteries.Generators.
   -->
   <ItemGroup>
-    <ProjectReference Include="..\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
@@ -42,10 +42,30 @@
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
-  <!-- Pack the source generator into analyzers/dotnet/cs/ so NuGet consumers run it. -->
+  <!--
+    Pack the batteries source generator into analyzers/dotnet/cs/ so NuGet consumers run it.
+
+    This package is the ONLY one that ships it, and that is load-bearing rather than incidental. The
+    assembly holds the jobs and outbox registry generators as well as the CQRS ones, and Rask.Jobs and
+    Rask.Outbox both take a package dependency on Rask.Cqrs — so the analyzer reaches every consumer
+    transitively, and reaches it exactly ONCE. Packing it from Rask.Jobs or Rask.Outbox too would put
+    the same generator on the analyzer path two or three times for anything referencing more than one
+    battery (the Rask metapackage references all of them), and each copy emits the same registry type
+    again.
+  -->
   <ItemGroup>
-    <None Include="..\Rask.Cqrs.Generators\bin\$(Configuration)\netstandard2.0\Rask.Cqrs.Generators.dll"
+    <None Include="..\Rask.Batteries.Generators\bin\$(Configuration)\netstandard2.0\Rask.Batteries.Generators.dll"
           Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
   </ItemGroup>
+
+  <!--
+    Fail loud at pack time if the analyzer is missing, instead of shipping a package that silently
+    generates nothing: a <None Include> of an absent file packs nothing and emits no error. Mirrors
+    _RaskVerifyAnalyzersPacked in RaskAnalyzerPack.targets, which guards the host packages the same way.
+  -->
+  <Target Name="_RaskVerifyBatteriesAnalyzerPacked" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('..\Rask.Batteries.Generators\bin\$(Configuration)\netstandard2.0\Rask.Batteries.Generators.dll')"
+           Text="Rask.Batteries.Generators.dll not found at '..\Rask.Batteries.Generators\bin\$(Configuration)\netstandard2.0\Rask.Batteries.Generators.dll' — build Rask.Batteries.Generators before packing, or consumers get no CQRS dispatch, job registry or outbox registry generation." />
+  </Target>
 
 </Project>

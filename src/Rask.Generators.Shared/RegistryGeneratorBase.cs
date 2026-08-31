@@ -20,6 +20,11 @@ namespace Rask.Generators.Shared;
 /// base so a fix to the naming rules (see <c>SymbolRegistration</c>) can only ever land in both. Public
 /// because Roslyn only discovers a <c>[Generator]</c> on a public type, and a public type cannot derive
 /// from an internal base.
+/// <para>
+/// They now also share an assembly (<c>Rask.Batteries.Generators</c>), so this file is compiled once
+/// rather than linked into two analyzers. That is what stopped RASK035 below being declared by two
+/// shipped assemblies at once — a duplicate RS1019 cannot see across an assembly boundary.
+/// </para>
 /// </remarks>
 public abstract class RegistryGeneratorBase : IIncrementalGenerator
 {

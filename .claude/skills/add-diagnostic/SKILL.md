@@ -6,11 +6,14 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 # add-diagnostic
 
 ## 1. Pick the next ID
-RASK001–RASK042 are in use (028/029 in Rask.Cqrs.Generators, 035 in Rask.Generators.Shared, 036 and
-040–042 in the builder surface) → **next free is RASK043**. Confirm with:
+RASK001–RASK042 are in use (028/029/053 in Rask.Batteries.Generators, 035 in Rask.Generators.Shared,
+036 and 040–042 in the builder surface) → **next free is RASK043**. Confirm with:
 ```bash
-grep -rhoE 'RASK[0-9]{3}' src/Rask.Generators | sort -u | tail
+grep -rhoE 'RASK[0-9]{3}' src/Rask.Generators src/Rask.Batteries.Generators src/Rask.Generators.Shared \
+  | sort -u | tail
 ```
+Grep **both** analyzer assemblies plus the shared sources. RS1019 only sees duplicate descriptor ids
+*within* one assembly, so an id reused across them compiles clean and ships twice.
 
 ## 2. Define the descriptor
 In the owning generator/analyzer under `src/Rask.Generators/` (factory rules in

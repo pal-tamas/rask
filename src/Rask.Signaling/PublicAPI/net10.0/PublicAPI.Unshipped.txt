@@ -1,0 +1,40 @@
+#nullable enable
+Rask.Signaling.RaskSignalingExtensions
+Rask.Signaling.RaskSignalingOptions
+Rask.Signaling.RaskSignalingOptions.AuthorizeRoom.get -> System.Func<Rask.Signaling.SignalingJoinContext, System.Threading.Tasks.ValueTask<bool>>!
+Rask.Signaling.RaskSignalingOptions.AuthorizeRoom.set -> void
+Rask.Signaling.RaskSignalingOptions.MaxMessageBytes.get -> int
+Rask.Signaling.RaskSignalingOptions.MaxMessageBytes.set -> void
+Rask.Signaling.RaskSignalingOptions.MaxMessagesPerSecond.get -> int
+Rask.Signaling.RaskSignalingOptions.MaxMessagesPerSecond.set -> void
+Rask.Signaling.RaskSignalingOptions.MaxPayloadBytes.get -> int
+Rask.Signaling.RaskSignalingOptions.MaxPayloadBytes.set -> void
+Rask.Signaling.RaskSignalingOptions.MaxPeersPerRoom.get -> int
+Rask.Signaling.RaskSignalingOptions.MaxPeersPerRoom.set -> void
+Rask.Signaling.RaskSignalingOptions.MaxRoomIdLength.get -> int
+Rask.Signaling.RaskSignalingOptions.MaxRoomIdLength.set -> void
+Rask.Signaling.RaskSignalingOptions.MaxRooms.get -> int
+Rask.Signaling.RaskSignalingOptions.MaxRooms.set -> void
+Rask.Signaling.RaskSignalingOptions.Path.get -> string!
+Rask.Signaling.RaskSignalingOptions.Path.set -> void
+Rask.Signaling.RaskSignalingOptions.RaskSignalingOptions() -> void
+Rask.Signaling.RaskSignalingOptions.RequireAuthorization.get -> bool
+Rask.Signaling.RaskSignalingOptions.RequireAuthorization.set -> void
+Rask.Signaling.SignalingJoinContext
+Rask.Signaling.SignalingJoinContext.Deconstruct(out string! Room, out System.Security.Claims.ClaimsPrincipal! User, out System.IServiceProvider! Services) -> void
+Rask.Signaling.SignalingJoinContext.Equals(Rask.Signaling.SignalingJoinContext other) -> bool
+Rask.Signaling.SignalingJoinContext.Room.get -> string!
+Rask.Signaling.SignalingJoinContext.Room.init -> void
+Rask.Signaling.SignalingJoinContext.Services.get -> System.IServiceProvider!
+Rask.Signaling.SignalingJoinContext.Services.init -> void
+Rask.Signaling.SignalingJoinContext.SignalingJoinContext() -> void
+Rask.Signaling.SignalingJoinContext.SignalingJoinContext(string! Room, System.Security.Claims.ClaimsPrincipal! User, System.IServiceProvider! Services) -> void
+Rask.Signaling.SignalingJoinContext.User.get -> System.Security.Claims.ClaimsPrincipal!
+Rask.Signaling.SignalingJoinContext.User.init -> void
+override Rask.Signaling.SignalingJoinContext.GetHashCode() -> int
+static Rask.Signaling.RaskSignalingExtensions.AddRaskSignaling(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Signaling.RaskSignalingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Signaling.RaskSignalingExtensions.MapRaskSignaling(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Signaling.SignalingJoinContext.operator !=(Rask.Signaling.SignalingJoinContext left, Rask.Signaling.SignalingJoinContext right) -> bool
+static Rask.Signaling.SignalingJoinContext.operator ==(Rask.Signaling.SignalingJoinContext left, Rask.Signaling.SignalingJoinContext right) -> bool
+~override Rask.Signaling.SignalingJoinContext.Equals(object obj) -> bool
+~override Rask.Signaling.SignalingJoinContext.ToString() -> string

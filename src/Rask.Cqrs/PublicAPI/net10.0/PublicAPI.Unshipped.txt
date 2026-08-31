@@ -1,0 +1,197 @@
+#nullable enable
+Rask.Cqrs.CqrsOptions
+Rask.Cqrs.CqrsOptions.AddBehavior<TRequest, TResult, TImplementation>() -> Rask.Cqrs.CqrsOptions!
+Rask.Cqrs.CqrsOptions.AddOpenBehavior(System.Type! openBehaviorType) -> Rask.Cqrs.CqrsOptions!
+Rask.Cqrs.CqrsOptions.CqrsOptions() -> void
+Rask.Cqrs.CqrsOptions.HandlerLifetime.get -> Microsoft.Extensions.DependencyInjection.ServiceLifetime
+Rask.Cqrs.CqrsOptions.HandlerLifetime.set -> void
+Rask.Cqrs.CqrsOptions.NotificationPublishStrategy.get -> Rask.Cqrs.NotificationPublishStrategy
+Rask.Cqrs.CqrsOptions.NotificationPublishStrategy.set -> void
+Rask.Cqrs.CqrsOptions.StopOnFirstNotificationException.get -> bool
+Rask.Cqrs.CqrsOptions.StopOnFirstNotificationException.set -> void
+Rask.Cqrs.CqrsRegistry
+Rask.Cqrs.CqrsRegistry.NotificationInvoker
+Rask.Cqrs.CqrsRegistry.RequestInvoker
+Rask.Cqrs.CqrsServiceCollectionExtensions
+Rask.Cqrs.FileDownload
+Rask.Cqrs.FileDownload.ContentType.get -> string!
+Rask.Cqrs.FileDownload.FileName.get -> string!
+Rask.Cqrs.FileDownload.Length.get -> long?
+Rask.Cqrs.FileDownload.OpenReadStream() -> System.IO.Stream!
+Rask.Cqrs.FileDownload.WriteToAsync(System.IO.Stream! destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cqrs.ICommand
+Rask.Cqrs.ICommand<TResult>
+Rask.Cqrs.ICommandHandler<TCommand, TResult>
+Rask.Cqrs.ICommandHandler<TCommand, TResult>.HandleAsync(TCommand command, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.ICommandHandler<TCommand>
+Rask.Cqrs.ICommandHandler<TCommand>.HandleAsync(TCommand command, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IDispatcher
+Rask.Cqrs.IDispatcher.DispatchAsync(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IDispatcher.DispatchAsync<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IDispatcher.DispatchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IDispatcher.PublishAsync<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cqrs.INotification
+Rask.Cqrs.INotificationHandler<TNotification>
+Rask.Cqrs.INotificationHandler<TNotification>.HandleAsync(TNotification notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IPipelineBehavior<TRequest, TResult>
+Rask.Cqrs.IPipelineBehavior<TRequest, TResult>.HandleAsync(TRequest request, Rask.Cqrs.RequestHandlerDelegate<TResult>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IQuery<TResult>
+Rask.Cqrs.IQueryHandler<TQuery, TResult>
+Rask.Cqrs.IQueryHandler<TQuery, TResult>.HandleAsync(TQuery query, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IRemoteDispatch
+Rask.Cqrs.IRemoteDispatch.PublishAsync(Rask.Cqrs.RemoteContract! contract, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IRemoteDispatch.SendAsync(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IRemoteDispatch.SendAsync<TResult>(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.LocalOnlyAttribute
+Rask.Cqrs.LocalOnlyAttribute.LocalOnlyAttribute() -> void
+Rask.Cqrs.NotificationDispatch
+Rask.Cqrs.NotificationPublishStrategy
+Rask.Cqrs.NotificationPublishStrategy.Sequential = 0 -> Rask.Cqrs.NotificationPublishStrategy
+Rask.Cqrs.NotificationPublishStrategy.WhenAll = 1 -> Rask.Cqrs.NotificationPublishStrategy
+Rask.Cqrs.RaskCqrsTransportAttribute
+Rask.Cqrs.RaskCqrsTransportAttribute.RaskCqrsTransportAttribute() -> void
+Rask.Cqrs.RemoteContract
+Rask.Cqrs.RemoteContract.AllowAnonymous.get -> bool
+Rask.Cqrs.RemoteContract.AllowAnonymous.init -> void
+Rask.Cqrs.RemoteContract.CarriesFiles.get -> bool
+Rask.Cqrs.RemoteContract.CarriesFiles.init -> void
+Rask.Cqrs.RemoteContract.Invoker.get -> Rask.Cqrs.CqrsRegistry.RequestInvoker?
+Rask.Cqrs.RemoteContract.Invoker.init -> void
+Rask.Cqrs.RemoteContract.Kind.get -> Rask.Cqrs.RemoteMessageKind
+Rask.Cqrs.RemoteContract.Kind.init -> void
+Rask.Cqrs.RemoteContract.LocalInvoker.get -> Rask.Cqrs.RemoteLocalInvoker?
+Rask.Cqrs.RemoteContract.LocalInvoker.init -> void
+Rask.Cqrs.RemoteContract.MessageType.get -> System.Type!
+Rask.Cqrs.RemoteContract.MessageType.init -> void
+Rask.Cqrs.RemoteContract.Name.get -> string!
+Rask.Cqrs.RemoteContract.Name.init -> void
+Rask.Cqrs.RemoteContract.Policy.get -> string?
+Rask.Cqrs.RemoteContract.Policy.init -> void
+Rask.Cqrs.RemoteContract.ReadMessage.get -> Rask.Cqrs.RemoteMessageReader!
+Rask.Cqrs.RemoteContract.ReadMessage.init -> void
+Rask.Cqrs.RemoteContract.ReadResult.get -> Rask.Cqrs.RemoteResultReader?
+Rask.Cqrs.RemoteContract.ReadResult.init -> void
+Rask.Cqrs.RemoteContract.RemoteContract() -> void
+Rask.Cqrs.RemoteContract.ResultType.get -> System.Type!
+Rask.Cqrs.RemoteContract.ResultType.init -> void
+Rask.Cqrs.RemoteContract.ReturnsFile.get -> bool
+Rask.Cqrs.RemoteContract.ReturnsFile.init -> void
+Rask.Cqrs.RemoteContract.Roles.get -> string?
+Rask.Cqrs.RemoteContract.Roles.init -> void
+Rask.Cqrs.RemoteContract.WriteMessage.get -> Rask.Cqrs.RemoteMessageWriter!
+Rask.Cqrs.RemoteContract.WriteMessage.init -> void
+Rask.Cqrs.RemoteContract.WriteResult.get -> Rask.Cqrs.RemoteResultWriter?
+Rask.Cqrs.RemoteContract.WriteResult.init -> void
+Rask.Cqrs.RemoteContractRegistry
+Rask.Cqrs.RemoteDispatchException
+Rask.Cqrs.RemoteDispatchException.Detail.get -> string?
+Rask.Cqrs.RemoteDispatchException.Detail.init -> void
+Rask.Cqrs.RemoteDispatchException.MessageName.get -> string?
+Rask.Cqrs.RemoteDispatchException.MessageName.init -> void
+Rask.Cqrs.RemoteDispatchException.ProblemType.get -> string?
+Rask.Cqrs.RemoteDispatchException.ProblemType.init -> void
+Rask.Cqrs.RemoteDispatchException.RemoteDispatchException() -> void
+Rask.Cqrs.RemoteDispatchException.RemoteDispatchException(string! message) -> void
+Rask.Cqrs.RemoteDispatchException.RemoteDispatchException(string! message, System.Exception? innerException) -> void
+Rask.Cqrs.RemoteDispatchException.StatusCode.get -> int?
+Rask.Cqrs.RemoteDispatchException.StatusCode.init -> void
+Rask.Cqrs.RemoteEndpointDefaults
+Rask.Cqrs.RemoteFile
+Rask.Cqrs.RemoteFile.RemoteFile() -> void
+Rask.Cqrs.RemoteLocalInvoker
+Rask.Cqrs.RemoteMessageKind
+Rask.Cqrs.RemoteMessageKind.Notification = 3 -> Rask.Cqrs.RemoteMessageKind
+Rask.Cqrs.RemoteMessageKind.Query = 0 -> Rask.Cqrs.RemoteMessageKind
+Rask.Cqrs.RemoteMessageKind.ResultCommand = 2 -> Rask.Cqrs.RemoteMessageKind
+Rask.Cqrs.RemoteMessageKind.VoidCommand = 1 -> Rask.Cqrs.RemoteMessageKind
+Rask.Cqrs.RemoteMessageReader
+Rask.Cqrs.RemoteMessageWriter
+Rask.Cqrs.RemoteResultReader
+Rask.Cqrs.RemoteResultWriter
+Rask.Cqrs.RequestHandlerDelegate<TResult>
+Rask.Cqrs.Unit
+Rask.Cqrs.Unit.Equals(Rask.Cqrs.Unit other) -> bool
+Rask.Cqrs.Unit.Unit() -> void
+Rask.Cqrs.WireJson
+abstract Rask.Cqrs.RemoteFile.ContentType.get -> string!
+abstract Rask.Cqrs.RemoteFile.Name.get -> string!
+abstract Rask.Cqrs.RemoteFile.OpenReadStream(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
+abstract Rask.Cqrs.RemoteFile.Size.get -> long
+const Rask.Cqrs.RemoteEndpointDefaults.ChunkedUploadThreshold = 4194304 -> long
+const Rask.Cqrs.RemoteEndpointDefaults.MaxQueryUrlLength = 2000 -> int
+const Rask.Cqrs.RemoteEndpointDefaults.MessageQueryParameter = "m" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.RequestHeader = "X-Rask-Cqrs" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.RequestHeaderValue = "1" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.RoutePrefix = "/_rask/cqrs/request" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.UploadChunkSize = 1048576 -> long
+const Rask.Cqrs.RemoteEndpointDefaults.UploadFileHeader = "X-Rask-Upload-File" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.UploadHeader = "X-Rask-Upload" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.UploadNameHeader = "X-Rask-Upload-Name" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.UploadOffsetHeader = "X-Rask-Upload-Offset" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.UploadSegment = "upload" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.UploadTypeHeader = "X-Rask-Upload-Type" -> string!
+const Rask.Cqrs.RemoteFile.UnknownSize = -1 -> long
+override Rask.Cqrs.Unit.Equals(object? obj) -> bool
+override Rask.Cqrs.Unit.GetHashCode() -> int
+override Rask.Cqrs.Unit.ToString() -> string!
+static Rask.Cqrs.CqrsRegistry.FindNotificationInvoker(System.Type! notificationType) -> Rask.Cqrs.CqrsRegistry.NotificationInvoker?
+static Rask.Cqrs.CqrsRegistry.RegisterNotification(System.Type! notificationType, Rask.Cqrs.CqrsRegistry.NotificationInvoker! invoker) -> void
+static Rask.Cqrs.CqrsRegistry.RegisterRequest(System.Type! requestType, Rask.Cqrs.CqrsRegistry.RequestInvoker! invoker) -> void
+static Rask.Cqrs.CqrsRegistry.RegisterServices(System.Action<Microsoft.Extensions.DependencyInjection.IServiceCollection!, Microsoft.Extensions.DependencyInjection.ServiceLifetime>! registration) -> void
+static Rask.Cqrs.CqrsRegistry.ReplaceNotifications(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.CqrsRegistry.NotificationInvoker! Invoker)>! registrations) -> void
+static Rask.Cqrs.CqrsRegistry.ReplaceRequests(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.CqrsRegistry.RequestInvoker! Invoker)>! registrations) -> void
+static Rask.Cqrs.CqrsServiceCollectionExtensions.AddRaskCqrs(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.CqrsOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Cqrs.FileDownload.FromBytes(string! fileName, string? contentType, byte[]! bytes) -> Rask.Cqrs.FileDownload!
+static Rask.Cqrs.FileDownload.FromStream(string! fileName, string? contentType, System.IO.Stream! stream, long? length = null) -> Rask.Cqrs.FileDownload!
+static Rask.Cqrs.NotificationDispatch.PublishAll<TNotification>(System.IServiceProvider! provider, TNotification notification, System.Collections.Generic.IEnumerable<Rask.Cqrs.INotificationHandler<TNotification>!>! handlers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.RemoteContractRegistry.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RemoteContract!>!
+static Rask.Cqrs.RemoteContractRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.Cqrs.RemoteContract!>! contracts) -> void
+static Rask.Cqrs.RemoteContractRegistry.TryGet(System.Type! messageType, out Rask.Cqrs.RemoteContract? contract) -> bool
+static Rask.Cqrs.RemoteContractRegistry.TryGet(string! name, out Rask.Cqrs.RemoteContract? contract) -> bool
+static Rask.Cqrs.RemoteFile.FromBytes(string! name, string? contentType, byte[]! bytes, System.DateTimeOffset? lastModified = null) -> Rask.Cqrs.RemoteFile!
+static Rask.Cqrs.RemoteFile.FromStream(string! name, string? contentType, long size, System.Func<System.Threading.CancellationToken, System.IO.Stream!>! openReadStream, System.DateTimeOffset? lastModified = null) -> Rask.Cqrs.RemoteFile!
+static Rask.Cqrs.Unit.Task.get -> System.Threading.Tasks.Task<Rask.Cqrs.Unit>!
+static Rask.Cqrs.Unit.operator !=(Rask.Cqrs.Unit left, Rask.Cqrs.Unit right) -> bool
+static Rask.Cqrs.Unit.operator ==(Rask.Cqrs.Unit left, Rask.Cqrs.Unit right) -> bool
+static Rask.Cqrs.WireJson.ExpectStartArray(ref System.Text.Json.Utf8JsonReader reader, string! property) -> void
+static Rask.Cqrs.WireJson.ExpectStartObject(ref System.Text.Json.Utf8JsonReader reader, string! property) -> void
+static Rask.Cqrs.WireJson.ReadBoolean(ref System.Text.Json.Utf8JsonReader reader, string! property) -> bool
+static Rask.Cqrs.WireJson.ReadByte(ref System.Text.Json.Utf8JsonReader reader, string! property) -> byte
+static Rask.Cqrs.WireJson.ReadBytes(ref System.Text.Json.Utf8JsonReader reader, string! property) -> byte[]?
+static Rask.Cqrs.WireJson.ReadChar(ref System.Text.Json.Utf8JsonReader reader, string! property) -> char
+static Rask.Cqrs.WireJson.ReadDateOnly(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateOnly
+static Rask.Cqrs.WireJson.ReadDateTime(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateTime
+static Rask.Cqrs.WireJson.ReadDateTimeOffset(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateTimeOffset
+static Rask.Cqrs.WireJson.ReadDecimal(ref System.Text.Json.Utf8JsonReader reader, string! property) -> decimal
+static Rask.Cqrs.WireJson.ReadDouble(ref System.Text.Json.Utf8JsonReader reader, string! property) -> double
+static Rask.Cqrs.WireJson.ReadGuid(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.Guid
+static Rask.Cqrs.WireJson.ReadInt16(ref System.Text.Json.Utf8JsonReader reader, string! property) -> short
+static Rask.Cqrs.WireJson.ReadInt32(ref System.Text.Json.Utf8JsonReader reader, string! property) -> int
+static Rask.Cqrs.WireJson.ReadInt64(ref System.Text.Json.Utf8JsonReader reader, string! property) -> long
+static Rask.Cqrs.WireJson.ReadRequiredString(ref System.Text.Json.Utf8JsonReader reader, string! property) -> string!
+static Rask.Cqrs.WireJson.ReadSByte(ref System.Text.Json.Utf8JsonReader reader, string! property) -> sbyte
+static Rask.Cqrs.WireJson.ReadSingle(ref System.Text.Json.Utf8JsonReader reader, string! property) -> float
+static Rask.Cqrs.WireJson.ReadString(ref System.Text.Json.Utf8JsonReader reader, string! property) -> string?
+static Rask.Cqrs.WireJson.ReadTimeOnly(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.TimeOnly
+static Rask.Cqrs.WireJson.ReadTimeSpan(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.TimeSpan
+static Rask.Cqrs.WireJson.ReadUInt16(ref System.Text.Json.Utf8JsonReader reader, string! property) -> ushort
+static Rask.Cqrs.WireJson.ReadUInt32(ref System.Text.Json.Utf8JsonReader reader, string! property) -> uint
+static Rask.Cqrs.WireJson.ReadUInt64(ref System.Text.Json.Utf8JsonReader reader, string! property) -> ulong
+static Rask.Cqrs.WireJson.ReadUri(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.Uri?
+static Rask.Cqrs.WireJson.ResolveFile(System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RemoteFile!>! files, int index, string! property) -> Rask.Cqrs.RemoteFile?
+static Rask.Cqrs.WireJson.SkipValue(ref System.Text.Json.Utf8JsonReader reader) -> void
+static Rask.Cqrs.WireJson.WriteCharValue(System.Text.Json.Utf8JsonWriter! writer, char value) -> void
+static Rask.Cqrs.WireJson.WriteDateOnlyValue(System.Text.Json.Utf8JsonWriter! writer, System.DateOnly value) -> void
+static Rask.Cqrs.WireJson.WriteTimeOnlyValue(System.Text.Json.Utf8JsonWriter! writer, System.TimeOnly value) -> void
+static Rask.Cqrs.WireJson.WriteTimeSpanValue(System.Text.Json.Utf8JsonWriter! writer, System.TimeSpan value) -> void
+static Rask.Cqrs.WireJson.WriteUriValue(System.Text.Json.Utf8JsonWriter! writer, System.Uri? value) -> void
+static readonly Rask.Cqrs.Unit.Value -> Rask.Cqrs.Unit
+virtual Rask.Cqrs.CqrsRegistry.NotificationInvoker.Invoke(System.IServiceProvider! provider, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+virtual Rask.Cqrs.CqrsRegistry.RequestInvoker.Invoke(System.IServiceProvider! provider, object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+virtual Rask.Cqrs.RemoteFile.LastModified.get -> System.DateTimeOffset?
+virtual Rask.Cqrs.RemoteLocalInvoker.Invoke(System.IServiceProvider! provider, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<object?>!
+virtual Rask.Cqrs.RemoteMessageReader.Invoke(ref System.Text.Json.Utf8JsonReader reader, System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RemoteFile!>! files) -> object!
+virtual Rask.Cqrs.RemoteMessageWriter.Invoke(System.Text.Json.Utf8JsonWriter! writer, object! message, System.Collections.Generic.IList<Rask.Cqrs.RemoteFile!>! files) -> void
+virtual Rask.Cqrs.RemoteResultReader.Invoke(ref System.Text.Json.Utf8JsonReader reader) -> object?
+virtual Rask.Cqrs.RemoteResultWriter.Invoke(System.Text.Json.Utf8JsonWriter! writer, object? result) -> void
+virtual Rask.Cqrs.RequestHandlerDelegate<TResult>.Invoke() -> System.Threading.Tasks.Task<TResult>!

@@ -246,10 +246,25 @@ public sealed class AttachReceiptHandler : ICommandHandler<AttachReceipt>
 
 Where the message runs in-process the handler simply gets the picked file. Where it travels, the
 generated codec carries the bytes and hands the handler a `RaskFile` over what arrived — so the *host*
-changes and the code does not. Neither direction buffers: every host reads a `RaskFile` in bounded
-slices (the browser ones through `Blob.slice`), and a download is streamed back headers-first.
+changes and the code does not. Every host reads a `RaskFile` in bounded slices (the browser ones
+through `Blob.slice`), and a download is streamed back headers-first.
 
 Bounded by the server's `MaxUploadBytes` and `MaxFileCount`.
+
+**`ChunkedUploadThreshold` is load-bearing in the browser, not a tuning knob.** `fetch` has no request
+streaming, so a browser reads a whole request body into memory before sending it — a single-shot
+multipart upload of a 500 MB file costs 500 MB *in the tab*. Above the threshold the file goes up in
+bounded pieces first and the message follows carrying only the session id, which is what keeps the
+request small as well as the read. Raising it raises the browser's peak memory by the same amount.
+
+**A dropped chunk resumes.** Every chunk response echoes `X-Rask-Upload-Offset`, and a chunk that does
+not follow on from what the server holds is answered `409` carrying the offset it *does* hold — 409
+rather than 400 because the request is well-formed, it is just out of step. The client restarts from
+that offset, bounded by a small retry count per file, so one lost chunk does not fail an upload that
+the protocol can recover.
+
+The limit is **in-session**: a browser's `File` handle dies with the page, so resuming across a reload
+is not possible and the upload starts again.
 
 ### Wire codecs, and RASK053
 
@@ -296,4 +311,4 @@ compile-time closed-generic map, so a WASM app using `Rask.Cqrs` publishes with 
 Handlers are plain classes — unit-test them directly, no dispatcher required. To test wiring, register
 `AddRaskCqrs` into a `ServiceCollection`, build the provider, and dispatch. See
 [`tests/Rask.Cqrs.Tests`](../tests/Rask.Cqrs.Tests) and the generator tests in
-[`tests/Rask.Cqrs.Generators.Tests`](../tests/Rask.Cqrs.Generators.Tests).
+[`tests/Rask.Batteries.Generators.Tests`](../tests/Rask.Batteries.Generators.Tests).

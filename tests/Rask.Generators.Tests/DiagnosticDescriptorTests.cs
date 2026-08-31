@@ -11,7 +11,7 @@ namespace Rask.Generators.Tests;
 /// </summary>
 public class DiagnosticDescriptorTests
 {
-    // Every descriptor declared by every analyzer and generator in the three analyzer assemblies. Read by
+    // Every descriptor declared by every analyzer and generator in both analyzer assemblies. Read by
     // reflection because that is the only way to enumerate the ones generators hold in private statics —
     // and generator descriptors are exactly the half a per-analyzer check would miss.
     private static IReadOnlyList<DiagnosticDescriptor> AllDescriptors()
@@ -22,7 +22,6 @@ public class DiagnosticDescriptorTests
                  {
                      typeof(RoutesGenerator).Assembly,
                      typeof(Rask.Cqrs.Generators.CqrsDispatchGenerator).Assembly,
-                     typeof(Rask.Jobs.Generators.JobRegistryGenerator).Assembly,
                  })
         {
             foreach (var type in assembly.GetTypes())
@@ -76,7 +75,6 @@ public class DiagnosticDescriptorTests
                  {
                      typeof(RoutesGenerator).Assembly,
                      typeof(Rask.Cqrs.Generators.CqrsDispatchGenerator).Assembly,
-                     typeof(Rask.Jobs.Generators.JobRegistryGenerator).Assembly,
                  })
         {
             foreach (var type in assembly.GetTypes())

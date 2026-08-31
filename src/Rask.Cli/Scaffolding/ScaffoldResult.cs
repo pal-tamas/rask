@@ -55,7 +55,8 @@ internal sealed record ScaffoldResult(IReadOnlyList<ScaffoldFile> Files, string?
     /// <summary>
     /// The project/solution the command should restore (and guard against overwriting), relative to the target
     /// directory. <c>null</c> means the single-project default (<c>{name}.csproj</c> at the target root). A
-    /// multi-project template (e.g. <c>wasm-hosted</c>) sets this to its <c>{name}.slnx</c>, which has no root csproj.
+    /// multi-project template — a front-end one, with its client beside an ASP.NET host — sets this to its
+    /// <c>{name}.slnx</c>, which has no root csproj.
     /// </summary>
     public string? RestoreTarget { get; init; }
 

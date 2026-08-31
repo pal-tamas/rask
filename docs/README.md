@@ -107,6 +107,7 @@ its own page:
 |-----------|----------------|
 | [Diagnostics (RASK001–042)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
+| [Public API style](api-style.md) | How every public name is chosen, and the gate that records the surface. |
 
 ## Contributing
 
