@@ -24,6 +24,12 @@ internal sealed class DoctorCommand(
     IProcessRunner process,
     string workingDirectory) : CliCommand(console)
 {
+    /// <summary>
+    ///     The major .NET the framework targets. Compared rather than merely reported, because a .NET 9
+    ///     box showed a green SDK row and then failed at the first build.
+    /// </summary>
+    private const int DotnetFloor = 10;
+
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
@@ -116,10 +122,7 @@ internal sealed class DoctorCommand(
         {
             new("rask", DoctorStatus.Ok, CliMetadata.Version, null),
             new("os", DoctorStatus.Ok, RuntimeInformation.OSDescription, null),
-            sdk is null
-                // The one environment check that IS fatal to everything: every command shells out to it.
-                ? new DoctorCheck("dotnet sdk", DoctorStatus.Fail, "not found", "Install .NET from https://dot.net.")
-                : new DoctorCheck("dotnet sdk", DoctorStatus.Ok, sdk, null),
+            SdkCheck(sdk),
         };
 
         var efInstalled = await EfToolProbe.IsInstalledAsync(_process, cancellationToken).ConfigureAwait(false);
@@ -131,6 +134,34 @@ internal sealed class DoctorCommand(
                 "dotnet-ef", DoctorStatus.Warn, "not installed",
                 "`rask db` will install it on first use, or: dotnet tool install -g dotnet-ef"));
 
+        // The workload, first of the four that used to be discovered by failure. It is the one with no
+        // check anywhere and the least legible failure: a missing wasm-tools surfaces as NETSDK1147,
+        // which reads like a broken machine rather than a missing install, and the requirement was
+        // documented only in prose in the README.
+        checks.Add(await WorkloadCheckAsync(cancellationToken).ConfigureAwait(false));
+
+        var node = await CaptureAsync(["--version"], cancellationToken, "node").ConfigureAwait(false);
+        checks.Add(NodeCheck(node));
+
+        var npm = await CaptureAsync(["--version"], cancellationToken, "npm").ConfigureAwait(false);
+        checks.Add(npm is null
+            ? new DoctorCheck(
+                "npm", DoctorStatus.Warn, "not found",
+                "`rask dev` starts the client dev server with it on a front-end template. "
+                + "It ships with Node.js.")
+            : new DoctorCheck("npm", DoctorStatus.Ok, npm, null));
+
+        var git = await CaptureAsync(["--version"], cancellationToken, "git").ConfigureAwait(false);
+        checks.Add(git is null
+            ? new DoctorCheck(
+                "git", DoctorStatus.Warn, "not found",
+                "`rask new` skips its first commit without it — https://git-scm.com/downloads")
+            : new DoctorCheck("git", DoctorStatus.Ok, Shorten(git), null));
+
+        // `ssh -V` writes to STDERR and prints nothing at all on stdout, so the shared CaptureAsync —
+        // which reads stdout only — reports a perfectly good ssh as missing. Hence its own probe.
+        checks.Add(await SshCheckAsync(cancellationToken).ConfigureAwait(false));
+
         var docker = await CaptureAsync(["--version"], cancellationToken, "docker").ConfigureAwait(false);
         checks.Add(docker is null
             ? new DoctorCheck(
@@ -139,6 +170,123 @@ internal sealed class DoctorCommand(
             : new DoctorCheck("docker", DoctorStatus.Ok, docker, null));
 
         return checks;
+    }
+
+    /// <summary>
+    ///     The SDK row, which is the only fatal one — and now the only one that compares a version.
+    /// </summary>
+    /// <remarks>
+    ///     Presence was never the whole question. A .NET 9 box reported a green `dotnet sdk` row and then
+    ///     failed at the first build, because the row printed whatever string the tool returned and read
+    ///     nothing into it. Reported as a warning rather than a failure when it is merely too old: the
+    ///     tool IS there, and `dotnet --version` answers for the SDK selected in this directory, which a
+    ///     global.json can pin below a newer one that is also installed.
+    /// </remarks>
+    private static DoctorCheck SdkCheck(string? sdk)
+    {
+        if (sdk is null)
+        {
+            // The one environment check that IS fatal to everything: every command shells out to it.
+            return new DoctorCheck("dotnet sdk", DoctorStatus.Fail, "not found", "Install .NET from https://dot.net.");
+        }
+
+        var version = NodeRequirement.Parse(sdk);
+        if (version is not null && version.Major < DotnetFloor)
+        {
+            return new DoctorCheck(
+                "dotnet sdk", DoctorStatus.Warn, $"{sdk} (older than {DotnetFloor}.0)",
+                $"Rask targets net{DotnetFloor}.0, so every build fails on this SDK. Install .NET "
+                + $"{DotnetFloor} from https://dot.net — a global.json here can also be pinning an older one.");
+        }
+
+        return new DoctorCheck("dotnet sdk", DoctorStatus.Ok, sdk, null);
+    }
+
+    /// <summary>The Node row, measured against the LTS line the scaffolders themselves track.</summary>
+    private static DoctorCheck NodeCheck(string? node)
+    {
+        if (node is null)
+        {
+            return new DoctorCheck(
+                "node", DoctorStatus.Warn, "not found",
+                "`rask new --template react|vue|svelte|solid|lit|preact|angular` scaffolds with it. "
+                + NodeRequirement.InstallHint);
+        }
+
+        var version = NodeRequirement.Parse(node);
+        if (version is not null && version < NodeRequirement.ScaffoldLine)
+        {
+            // Warn, never fail: this Node still BUILDS an app above RaskSpaMinimumNode. What it cannot
+            // reliably do is scaffold a new one, because that shells out to somebody else's current CLI.
+            var buildsFine = version >= NodeRequirement.BuildFloor;
+            return new DoctorCheck(
+                "node", DoctorStatus.Warn,
+                $"{node} (below the {NodeRequirement.ScaffoldLine.Major} LTS line)",
+                buildsFine
+                    ? "Existing apps build on it, but `rask new` on a front-end template may not: "
+                      + "create-vite and the Angular CLI raise their own floors, and Angular already "
+                      + $"refuses below v{NodeRequirement.ScaffoldLine}. " + NodeRequirement.InstallHint
+                    : $"Below RaskSpaMinimumNode ({NodeRequirement.BuildFloor}) too, so a front-end "
+                      + "build fails with RASKSPA005. " + NodeRequirement.InstallHint);
+        }
+
+        return new DoctorCheck("node", DoctorStatus.Ok, node, null);
+    }
+
+    /// <summary>Is the `wasm-tools` workload installed? Every `net10.0-browser` build needs it.</summary>
+    /// <remarks>
+    ///     There is no `dotnet wasm-tools --version` to probe, so this reads `dotnet workload list`.
+    ///     Matched on a line whose FIRST column is the id, because the table's header and its trailing
+    ///     prose both contain the word elsewhere, and a plain substring test would report the workload
+    ///     as installed on a machine that has none.
+    /// </remarks>
+    private async Task<DoctorCheck> WorkloadCheckAsync(CancellationToken cancellationToken)
+    {
+        var listed = await CaptureAsync(["workload", "list"], cancellationToken).ConfigureAwait(false);
+
+        var installed = listed is not null && listed
+            .Split('\n')
+            .Select(line => line.TrimStart())
+            .Any(line => line.StartsWith("wasm-tools", StringComparison.Ordinal));
+
+        return installed
+            ? new DoctorCheck("wasm-tools", DoctorStatus.Ok, "installed", null)
+            : new DoctorCheck(
+                "wasm-tools", DoctorStatus.Warn, "not installed",
+                "Every browser-WASM build needs it — `rask new --wasm`, the wasm template, and "
+                + "`dotnet publish` of either. Without it the build fails with NETSDK1147, which reads "
+                + "like a broken machine rather than a missing install. Fix: dotnet workload install wasm-tools");
+    }
+
+    /// <summary>`ssh`, which `rask deploy` shells out to for its host probe and bootstrap.</summary>
+    private async Task<DoctorCheck> SshCheckAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // -V, and read BOTH streams: OpenSSH prints its banner to stderr and leaves stdout empty.
+            var result = await _process.CaptureAsync("ssh", ["-V"], null, cancellationToken).ConfigureAwait(false);
+            var reported = string.Concat(result.StandardOutput, result.StandardError).Trim();
+
+            if (reported.Length > 0)
+            {
+                return new DoctorCheck("ssh", DoctorStatus.Ok, Shorten(reported), null);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Not on PATH throws rather than exiting non-zero, same as every other probe here.
+        }
+
+        return new DoctorCheck(
+            "ssh", DoctorStatus.Warn, "not found",
+            "`rask deploy` probes and bootstraps the host over it, and hard-stops mid-deploy without it.");
+    }
+
+    /// <summary>First line only — `ssh -V` and `git --version` can be verbose.</summary>
+    private static string Shorten(string reported)
+    {
+        var line = reported.Split('\n')[0].Trim();
+        return line.Length <= 60 ? line : line[..60];
     }
 
     private IReadOnlyList<DoctorCheck> ProjectChecks()

@@ -724,6 +724,16 @@ through, having already done some of the work.
   ok    rask                0.20.1
   ok    dotnet sdk          10.0.302
   ok    dotnet-ef           installed
+  warn  wasm-tools          not installed
+                            Every browser-WASM build needs it — `rask new --wasm`, the wasm
+                            template, and `dotnet publish` of either. Fix: dotnet workload
+                            install wasm-tools
+  warn  node                v24.14.0 (below the 24 LTS line)
+                            Existing apps build on it, but `rask new` on a front-end template
+                            may not: create-vite and the Angular CLI raise their own floors.
+  ok    npm                 11.19.0
+  ok    git                 git version 2.50.1
+  ok    ssh                 OpenSSH_9.8p1, LibreSSL 3.3.6
   warn  docker              not found
                             Only `rask deploy` needs it — https://docs.docker.com/get-docker/
   ok    project             /src/Shop
@@ -732,9 +742,25 @@ through, having already done some of the work.
                             Until it parses, its remembered settings are silently ignored.
 ```
 
+**All seven things the CLI shells out to, not three.** It used to probe `dotnet`, `dotnet-ef` and
+Docker; the `wasm-tools` workload, Node, npm, `git` and `ssh` were each discovered by failure instead
+([#883](https://github.com/pal-tamas/rask/issues/883)). The workload was the worst of them: nothing
+checked for it anywhere, and a missing one surfaces as `NETSDK1147`, which reads like a broken machine
+rather than a missing install.
+
+**Two of them compare a version, rather than echoing one.** A .NET 9 box used to show a green
+`dotnet sdk` row and then fail at the first build, because the row printed whatever string the tool
+returned. Node is measured against the current Active LTS line — not against `RaskSpaMinimumNode`,
+which is the lower bar an *already-scaffolded* app builds on. The gap between the two is real: `rask
+new --template angular` shells out to `@angular/cli@latest`, which refuses below `^22.22.3 ||
+^24.15.0 || >=26.0.0`, so a Node that builds every existing project can still fail to scaffold a new
+one — after the project directory exists
+([#886](https://github.com/pal-tamas/rask/issues/886)).
+
 **Warnings aren't failures.** Docker missing is fatal to `rask deploy` and irrelevant to everyone else,
 so only a genuinely broken thing sets the exit code (`1`); a machine that can start every command exits
-`0`.
+`0`. Every row added above is a warning for the same reason — `dotnet` is the one dependency fatal to
+everything, because every command shells out to it.
 
 **It is read-only.** It reports; it never installs or fixes. A doctor that quietly installed the tooling
 it found missing would be doing the thing you ran it to avoid.

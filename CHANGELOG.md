@@ -192,6 +192,44 @@ them until tagged releases begin.
   work, tracked in [#868](https://github.com/pal-tamas/rask/issues/868).
 
 ### Fixed
+- **`rask doctor` reports all seven dependencies the CLI shells out to, and two of them by version.**
+  It probed three ([#883](https://github.com/pal-tamas/rask/issues/883)). The `wasm-tools` workload,
+  Node, npm, `git` and `ssh` were each discovered by failure instead — the workload worst of all,
+  since nothing checked for it anywhere and a missing one surfaces as `NETSDK1147`, which reads like a
+  broken machine rather than a missing install.
+
+  Two probes needed more than presence. A .NET 9 box showed a **green** `dotnet sdk` row and then
+  failed at the first build, because the row printed whatever string the tool returned and read
+  nothing into it. And `ssh -V` writes its banner to **stderr**, leaving stdout empty — so the shared
+  capture helper, which reads stdout only, reported a perfectly good `ssh` as missing; it has its own
+  probe now. Every new row is a warning, never a failure: `dotnet` remains the one dependency fatal to
+  everything.
+
+  The test double had to change first. It answered every `CaptureAsync` with one fixed result, and all
+  six tools are asked `--version` — so no test could tell them apart, and a probe wired to the wrong
+  executable would have passed. It now dispatches on the executable, and each probe is asserted with
+  exactly one tool broken and the rest healthy.
+
+- **The Node version Rask asks for is the one that can actually scaffold.**
+  ([#886](https://github.com/pal-tamas/rask/issues/886)) There are two numbers here and they had been
+  conflated. `RaskSpaMinimumNode` (22.12.0) is the floor an **already-scaffolded** app builds on,
+  enforced as RASKSPA005, and it is unchanged — raising it would break projects that build fine today.
+  What `rask new` needs is higher, because scaffolding a front-end template shells out to somebody
+  else's current CLI: `create-vite@latest` and `@angular/cli@latest` track the Active LTS and raise
+  their own floors whenever they like. Angular's already refuses below `^22.22.3 || ^24.15.0 ||
+  >=26.0.0`.
+
+  So a machine on 24.14.0 installed cleanly, built everything, and then failed `rask new --template
+  angular` at exit 1 — *after* the project directory existed — having been told 22.12 was enough. The
+  CLI now names the LTS line (24 "Krypton"), `rask doctor` warns when Node is below it, and the
+  installers' `RASK_INSTALL_NODE_MIN` rises to 24.15.0 so a box with an older Node is upgraded rather
+  than left unable to use what was just installed.
+
+  The external scaffolders are deliberately **not pinned**: pinning would freeze every generated
+  project on a scaffolder that ages out, and these templates are meant to be whatever those tools ship
+  today. The floor moves instead. Both numbers live in one place (`NodeRequirement`), and a test reads
+  `RaskSpaMinimumNode` out of the **shipped** props file and fails if the two ever disagree — a copy
+  of a version number is otherwise just a third place for it to be wrong.
 - **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
   Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
   file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours
