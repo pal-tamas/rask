@@ -10,10 +10,10 @@ them until tagged releases begin.
 ### Added
 - **The public API is governed, and the build enforces it.** Rask's pitch is that you can read a Rask
   program aloud, and nothing was holding the names to it: the same operation was `DispatchAsync` in
-  `Rask.Cqrs` and `MutateAsync`/`FetchAsync`/`Query` in `Rask.Query`, `ICache` spelled "remember this"
-  as `GetOrCreateAsync`, and two adjacent `Action<T>?` parameters on `AddRaskSqlite` could be swapped
-  without the compiler noticing. There was no written rule to point at in review and no gate that could
-  see a public member appear, change or vanish.
+  `Rask.Cqrs` and `MutateAsync`/`FetchAsync`/`Query` in `Rask.Query`. `ICache.GetOrCreateAsync` named
+  two operations, one of them a lie on a hit. Two adjacent `Action<T>?` parameters on `AddRaskSqlite`
+  could be swapped without the compiler noticing. There was no written rule to point at in review, and
+  no gate that could see a public member appear, change or vanish.
 
   [`docs/api-style.md`](docs/api-style.md) is now that rule — ten of them, each with the call site in
   this repo that motivated it. `Microsoft.CodeAnalysis.PublicApiAnalyzers` is the gate: every project

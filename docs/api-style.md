@@ -12,46 +12,63 @@ them.
 
 ## The rules
 
-### 1. A type is named for the idea, not the mechanism
+### 1. A short noun, with the mechanism left out
 
-`IMail`, not `IMailQueue`. That the mail is queued is true, and it is an implementation detail the
-caller does not act on — a queue that became a direct SMTP write would leave every call site correct
-and every name a lie. Name the capability the caller wants.
-
-```csharp
-IMail    IJobs    ICache    IBus    IQueries    IPush    ISqlite    ILogs
-```
-
-### 2. A method is a verb a person would say
-
-The test is literal: read the call site out loud to someone who does not know the framework.
+The name is the shortest thing that says what it is. Mechanism suffixes go — `Queue`, `Store`,
+`ConnectionFactory` — and so does the `Rask` prefix, which the namespace already carries.
 
 ```csharp
-await cache.RememberAsync("products", LoadProducts);   // "remember products"
-await cache.ForgetAsync("products");                   // "forget products"
+IMail    IJobs    ICache    ILogs    ISqlite    IWebPush
 ```
 
-not
+not `IMailQueue`, `IJobQueue`, `ILogStore`, `IRaskSqliteConnectionFactory`.
+
+That the mail is queued is true, and it is a fact the caller never acts on — a queue that became a
+direct SMTP write would leave every call site correct and every name a lie. The guarantee belongs in
+the doc comment, where it can be stated properly, not smuggled into a noun.
+
+**A noun that names a role rather than a mechanism stays, however long.** `IDispatcher` is not
+`IDispatchQueue`; it is the thing that dispatches, which is exactly what you want to know.
+`IQueryClient` is the client side of the query pipeline — a role, not a plumbing detail. The rule is
+against mechanism, not against length, and `Queue`/`Store`/`ConnectionFactory` fail it because they
+describe how the thing is built rather than what it is for.
+
+### 2. The verb .NET already uses, not a nicer one
+
+When the BCL has a word for the operation, that is the word — a reader who knows C# should not have to
+learn Rask's synonym for something they already do.
 
 ```csharp
-await cache.GetOrCreateAsync("products", LoadProducts);   // three verbs, one of them a lie on a hit
-await cache.RemoveAsync("products");
+await cache.GetOrAddAsync("products", LoadProducts, ct);   // as ConcurrentDictionary / IMemoryCache
+await cache.RemoveAsync("products", ct);
 ```
+
+not `RememberAsync` / `ForgetAsync`. Those read beautifully in isolation and cost every reader a
+translation step, forever, for one moment of charm.
+
+**Unless it stutters against its own parameter.** `ILogs.QueryAsync(LogQuery query)` says "query" twice
+and its type a third time; `SearchAsync(LogQuery)` is what the operator at `/_rask` is actually doing.
+Plain English wins where the borrowed word has stopped carrying information.
 
 ### 3. One concept, one verb, everywhere
 
-A verb means the same thing in every package, and a concept has exactly one verb. Ask a question with
-`AskAsync`, tell the system to do something with `SendAsync`, announce that something happened with
-`PublishAsync` — in `Rask.Cqrs`, in `Rask.Query`, in anything that comes later.
+A verb means the same thing in every package. Ask for data with `QueryAsync`, tell the system to do
+something with `SendAsync`, announce that something happened with `PublishAsync` — in `Rask.Cqrs`, and
+in anything that comes later.
 
-This is the rule the codebase broke worst: `IDispatcher.DispatchAsync` was the same operation
-`IQueryClient` called `MutateAsync`, `FetchAsync` and `Query`, so moving between two first-party
-packages meant relearning four words for two ideas.
+This is the rule the codebase broke worst. One `DispatchAsync` did three jobs, distinguished only by
+parameter type, and the same operations were called `MutateAsync`, `FetchAsync` and `Query` one package
+over — four words for two ideas, so moving between two first-party packages meant relearning both.
+
+**Different semantics earn a different verb.** `Rask.Query`'s `Query(...)` deliberately does *not*
+share the mediator's `QueryAsync`: it returns an observable `Query<T>` that re-renders its component,
+not a `Task<T>` you await once. Two names because they are two things — which is the rule, not an
+exception to it. The test is whether a caller could swap one for the other and be right.
 
 ### 4. Every awaitable ends in `Async` and takes a cancellation token
 
 ```csharp
-Task<TResult> AskAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default);
+Task<TResult> QueryAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default);
 ```
 
 The suffix is the .NET convention every C# developer and analyzer already reads, and the token is
@@ -119,6 +136,25 @@ finds half the story.
 `IEndpointRouteBuilder`. These are borrowed words with settled meanings; a framework that redefines
 them makes every reader translate. Most apps never type them at all — [`RaskApp`](one-person-framework.md)
 wires the batteries — but the escape hatch obeys the same law as everything else.
+
+## The vocabulary
+
+What the rules above settled, so a new package has one place to look rather than a precedent to guess at.
+
+| Idea | Noun | Verbs |
+|---|---|---|
+| Transactional email | `IMail` | `SendAsync`, `ScheduleAsync` |
+| Background work | `IJobs` | `EnqueueAsync`, `ScheduleAsync` |
+| Cache | `ICache` | `GetAsync`, `SetAsync`, `GetOrAddAsync`, `RemoveAsync` |
+| Mediator | `IDispatcher` | `QueryAsync`, `SendAsync`, `PublishAsync` |
+| Cached reads | `IQueryClient` | `Query`, `MutateAsync`, `Invalidate` |
+| Durable log | `ILogs` | `SearchAsync` |
+| SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
+| Web Push | `IWebPush` | `SubscribeAsync` (browser), `SendAsync` (server) |
+
+`IWebPush` is deliberately one name on both sides of the wire, in two namespaces
+(`Rask.Core.Browser` subscribes, `Rask.WebPush` sends) over one shared `PushSubscription`. A file that
+needs both aliases one; no file does today.
 
 ## The gate
 
