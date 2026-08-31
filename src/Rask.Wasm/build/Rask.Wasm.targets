@@ -30,6 +30,11 @@
     Rask.Core.targets has no sibling here (it is packed from Rask.Core's own build/ folder), and an
     unguarded import of a missing file is MSB4019 across every project in the repo.
   -->
+  <!-- Build-time prerendering. Gates itself on RaskPrerender, so importing it always costs an app
+       that has not opted in nothing. -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm.Prerender.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Prerender.targets') "/>
+
   <Import Project="$(MSBuildThisFileDirectory)Rask.Core.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Core.targets') "/>
 
