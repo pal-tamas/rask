@@ -109,6 +109,41 @@ them until tagged releases begin.
   route on purpose, because the caller is what holds the route table. See
   [`docs/prerendering.md`](docs/prerendering.md).
 
+- **`rask new --wasm` scaffolds remote CQRS dispatch, which nothing had done since the `wasm-hosted`
+  template was removed** ([#868](https://github.com/pal-tamas/rask/issues/868)). A `--wasm` app is
+  exactly what wants it: the browser rung moves an eligible page into WebAssembly, and `RASK054` steers
+  authors towards reaching data through a CQRS message *precisely because* those already cross the wire
+  — but they only cross it when the transports are wired. Left in-process, a page that looks eligible
+  either fails in the browser or answers from nowhere.
+
+  The one-project build made this simpler in one way and harder in another. Simpler, because one set of
+  sources compiles into both halves, so the message records are shared by construction and there is no
+  Shared project to put them in. Harder, because the same collapse removes the natural place to keep the
+  two transports **apart** — one project means one reference list, and `Rask.Cqrs.Client` in the server
+  would ship endpoint-calling code into the process that answers those endpoints, which is the
+  arrangement those two packages were split up to prevent. Two new seams on the browser companion and
+  one folder convention restore it:
+
+  - **`RaskBrowserPackageReference`** — a reference the bundle gets and the server does not.
+  - **`RaskBrowserStartup`** — names a type whose `Configure(IServiceCollection)` the generated entry
+    point calls **before** the app runs. The browser half has no `Program.cs` of its own (that file is
+    the server's, and the companion excludes it), so without this there was nowhere to register
+    anything at all.
+  - **`Browser/` is the mirror of `Server/`**, and the server is what excludes it. A browser-only
+    reference reaches the companion alone, so a file using one has to sit somewhere the server does not
+    compile — without this the reference seam had no possible user, and the scaffolded app failed to
+    build in the half missing the package. The two folder names are now how a file says which half it
+    belongs to; everything else still compiles into both from one copy.
+
+  `MapRaskCqrs()` is mapped after `UseRouting` and before `UseRask`, whose catch-all would otherwise
+  answer those endpoints. **Without `--auth` the scaffold sets `RequireAuthenticatedUser = false` and
+  says why**: the default is on and right for an app with a sign-in, but an app with no authentication
+  to require would answer 401 to every message, and that failure reads as broken transport rather than
+  as the secure default working.
+
+  All three are general rather than CQRS-specific, and `RaskBrowserPackageReference` is the one the
+  feed-coverage guard could not see — it is not a `PackageReference`, so it never reached `ScaffoldResult.Packages`, the exact shape
+  where a missing package means no build case can *exist* rather than one that fails.
 - **The bundled chunks are registered as static web assets, so `app.MapStaticAssets()` serves them.**
   The bundle is written into `wwwroot` *after* the SDK has globbed it at evaluation, so nothing it
   discovered knew the files existed: a published app returned the page's own HTML for both the chunk
@@ -273,6 +308,30 @@ them until tagged releases begin.
 
 ### Removed
 
+- **`--culture` and `--no-localization`. Languages are configured in `Program.cs`, and only there.**
+  ([#854](https://github.com/pal-tamas/rask/issues/854)) A scaffolded server app already registers
+  English in an `AddRask(configureCulture: ...)` block, and adding a second language is a line in that
+  block. A flag could only restate at scaffold time what the file goes on being the truth about — and
+  the file is the half that stays correct.
+
+  Both are refused by name rather than ignored. `--culture` took a *value*, which makes ignoring it
+  worse than usual: the tag would be swallowed as a stray argument and the app scaffolded in English
+  while the command line said Hungarian, with nothing reporting it.
+
+  The generated block is now one `c.SupportedCultures.Add("en");` per language rather than a `foreach`
+  over an array. It is the place an app adds its second language, so it has to read as a list you
+  extend rather than a loop to understand first — and at one language the loop was only noise.
+
+  **`TemplateInfo.OptInFlags` goes with it.** Localization was its only member, so what remained was
+  four call sites and an unreachable error message; `ShipsLocalization` says the one thing that is
+  actually per-template. `localization` also leaves `SupportedFlags`, which is printed back to users
+  verbatim ("It supports: auth, docker, pwa") — leaving it there would have advertised a flag that no
+  longer exists.
+
+  Browser-WASM still scaffolds no language registration, and the reason is unchanged: culture data is
+  roughly a megabyte on the wire, and it is the one part `Program.cs` cannot switch on by itself, since
+  `RaskGlobalization` is an MSBuild property. That property is scaffolded **commented out** with the
+  reason beside it, so shipping a language there stays two deliberate edits.
 - **The `wasm-hosted` template.** `rask new --template wasm-hosted` is now a usage error naming the
   templates that remain. Two are left, and they answer the only question that was ever an author's:
   **does this app have a backend?** — `server` or `wasm`.
@@ -287,12 +346,88 @@ them until tagged releases begin.
   there. That detection is generic — this repo's own `Rask.Example.Wasm.Host` sample has the shape.
 
   **One capability lost its only scaffold:** remote CQRS dispatch (`Rask.Cqrs.Client` /
-  `Rask.Cqrs.Server`) was wired by this template and by nothing else. The packages are unchanged and an
-  app can still wire them by hand — but nothing generates the arrangement, and a `--wasm` app whose
-  pages move to the browser is exactly what wants it. Wiring it into the one-project build is follow-up
-  work, tracked in [#868](https://github.com/pal-tamas/rask/issues/868).
+  `Rask.Cqrs.Server`) was wired by this template and by nothing else. The packages were unchanged and an
+  app could still wire them by hand — but nothing generated the arrangement, and a `--wasm` app whose
+  pages move to the browser is exactly what wants it. `rask new --wasm` now scaffolds it again
+  ([#868](https://github.com/pal-tamas/rask/issues/868)); see the entry under **Added** above.
 
 ### Fixed
+- **A gate that does not run now says so, and a red run under contention says that too.** Two reports
+  about the same failure mode — a gate whose silence is indistinguishable from success
+  ([#845](https://github.com/pal-tamas/rask/issues/845),
+  [#850](https://github.com/pal-tamas/rask/issues/850)).
+
+  The four path-filtered `pre-push` gates — CLI build, watch hot-reload, deploy, install — took a bare
+  `:` branch when nothing in a push matched their paths, printing **nothing at all**. Each now prints
+  one `… SKIPPED — nothing in this push matches the … paths.` line. And one filter was wrong:
+  `src/Rask.Core/build/` was not in `watch_paths`, so a change to `Rask.Core.targets` — the file that
+  *builds* `@(Watch)`, and therefore decides what `dotnet watch` can see at all — did not select the
+  hot-reload gate. The one hot-reload change the hot-reload filter could not catch was a change to the
+  watch list itself.
+
+  **#845's stated mechanism turned out not to be the cause, and is recorded as such.** It reported
+  that a push from a worktree runs the *main checkout's* hooks, because `core.hooksPath` is relative.
+  It does not: git resolves that path against the pushing worktree's own top level. Verified on git
+  2.50.1 in a throwaway repo, pushing from a linked worktree whose `.githooks/pre-push` differed from
+  the main checkout's, from the worktree root and from a subdirectory — the worktree's copy ran both
+  times. So a hook change *is* exercised by the push that introduces it. One real caveat did come out
+  of it: a branch containing no `.githooks/` runs **no hook at all**, with no fallback and no message.
+  `CONTRIBUTING.md` and `docs/development-workflow.md` now state the resolved behaviour instead of
+  leaving it to inference.
+
+  For #850, contention is now *named at the moment of failure* rather than guarded against in advance,
+  which is where the cost actually sits: a timing-sensitive suite that goes red under a competing
+  build reads as a real bug for hours. `run-e2e-local.sh`'s test run was the script's last statement
+  under `set -e`, so a red suite propagated an exit code with no explanation layer — unlike its own
+  build step. Both it and `run-unit-local.sh` now check for a competing heavy build (`dotnet
+  build`/`test`/`publish`/`msbuild`/`pack`, ignoring MSBuild worker nodes so one build is not reported
+  as eight) and add a line asking for a re-run alone before investigating. `pre-commit` warns when a
+  browser gate is live and **never refuses** — every commit runs that hook, and a blocked commit is
+  worse than a slow one.
+
+  Also fixed: the concurrency guard's own refusal was classified as `unknown`, so the hook printed
+  "look for a failing assertion, a timeout, or a host that exited early" — about a suite that never
+  started — directly beneath the guard's correct "wait for the run above to finish". There is now a
+  `busy` kind saying nothing ran. It sits below `code`: a real `error CS` still wins, because if
+  something got far enough to fail compiling then something did run.
+- **`rask doctor` reports all seven dependencies the CLI shells out to, and two of them by version.**
+  It probed three ([#883](https://github.com/pal-tamas/rask/issues/883)). The `wasm-tools` workload,
+  Node, npm, `git` and `ssh` were each discovered by failure instead — the workload worst of all,
+  since nothing checked for it anywhere and a missing one surfaces as `NETSDK1147`, which reads like a
+  broken machine rather than a missing install.
+
+  Two probes needed more than presence. A .NET 9 box showed a **green** `dotnet sdk` row and then
+  failed at the first build, because the row printed whatever string the tool returned and read
+  nothing into it. And `ssh -V` writes its banner to **stderr**, leaving stdout empty — so the shared
+  capture helper, which reads stdout only, reported a perfectly good `ssh` as missing; it has its own
+  probe now. Every new row is a warning, never a failure: `dotnet` remains the one dependency fatal to
+  everything.
+
+  The test double had to change first. It answered every `CaptureAsync` with one fixed result, and all
+  six tools are asked `--version` — so no test could tell them apart, and a probe wired to the wrong
+  executable would have passed. It now dispatches on the executable, and each probe is asserted with
+  exactly one tool broken and the rest healthy.
+
+- **The Node version Rask asks for is the one that can actually scaffold.**
+  ([#886](https://github.com/pal-tamas/rask/issues/886)) There are two numbers here and they had been
+  conflated. `RaskSpaMinimumNode` (22.12.0) is the floor an **already-scaffolded** app builds on,
+  enforced as RASKSPA005, and it is unchanged — raising it would break projects that build fine today.
+  What `rask new` needs is higher, because scaffolding a front-end template shells out to somebody
+  else's current CLI: `create-vite@latest` and `@angular/cli@latest` track the Active LTS and raise
+  their own floors whenever they like. Angular's already refuses below `^22.22.3 || ^24.15.0 ||
+  >=26.0.0`.
+
+  So a machine on 24.14.0 installed cleanly, built everything, and then failed `rask new --template
+  angular` at exit 1 — *after* the project directory existed — having been told 22.12 was enough. The
+  CLI now names the LTS line (24 "Krypton"), `rask doctor` warns when Node is below it, and the
+  installers' `RASK_INSTALL_NODE_MIN` rises to 24.15.0 so a box with an older Node is upgraded rather
+  than left unable to use what was just installed.
+
+  The external scaffolders are deliberately **not pinned**: pinning would freeze every generated
+  project on a scaffolder that ages out, and these templates are meant to be whatever those tools ship
+  today. The floor moves instead. Both numbers live in one place (`NodeRequirement`), and a test reads
+  `RaskSpaMinimumNode` out of the **shipped** props file and fails if the two ever disagree — a copy
+  of a version number is otherwise just a third place for it to be wrong.
 - **Editing an ambient `.d.ts` reaches the build again, and the whole scoped-asset watch list is now
   tested.** `rask dev` has claimed that scoped assets apply live since long before they did
   ([#862](https://github.com/pal-tamas/rask/issues/862)). The wiring itself landed with the TypeScript

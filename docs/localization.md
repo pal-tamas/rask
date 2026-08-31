@@ -3,21 +3,22 @@
 Ship your app in more than one language: dates and numbers in the visitor's format, text in their
 language, and `<html lang>` that tells the truth.
 
-```bash
-rask new Shop --culture en --culture hu
-```
-
-The first language named is the default. To add it to an app you already have, three lines:
+Every scaffolded server app already ships one language, English, registered in `Program.cs`. Adding a
+second is a line in the block that is already there:
 
 ```csharp
 builder.Services.AddRask(configureCulture: c =>
 {
     c.SupportedCultures.Add("en");   // the default
-    c.SupportedCultures.Add("hu");
+    c.SupportedCultures.Add("hu");   // add another to ship another
 });
 ```
 
-Until you name a language, **nothing changes**: `<html lang="en">`, no `dir` attribute, and no cost on
+The first entry is the default a visitor falls back to. **This is the only place languages are
+configured** — there is no CLI flag for it, because the file is where the answer lives and stays
+([#854](https://github.com/pal-tamas/rask/issues/854)).
+
+Until you add a second, **nothing changes**: `<html lang="en">`, no `dir` attribute, and no cost on
 the render path.
 
 ## How a visitor's language is chosen
@@ -195,6 +196,22 @@ public sealed partial class LanguageMenu(IRaskCulture culture) : Component
 
 `SetAsync` switches the session, remembers the choice, and repaints. No reload.
 
+**No template scaffolds this, deliberately** ([#854](https://github.com/pal-tamas/rask/issues/854)).
+A new project starts with English and the registration above in `Program.cs`; adding a language is
+another `c.SupportedCultures.Add(...)` line there. That is the whole configuration surface — there is
+no `--culture` flag, because a flag would only restate what the file already says, and it would say it
+once at scaffold time while the file goes on being the truth.
+
+*Where* a language control belongs in your chrome is a different question, and it is a design decision
+about your app rather than wiring — the same line `--auth` and the styling flags sit on. So a
+scaffolded app negotiates language correctly out of the box, and a visitor can be *sent* to a language
+by link, but there is no affordance for choosing one until you add the component above.
+
+That is worth stating rather than leaving to be discovered: negotiation working end to end reads very
+much like a switcher being present somewhere. `RaskCultureNegotiator.TrySelect` is kept separate from
+`Negotiate` precisely so an explicit pick is honoured regardless of `UseQueryString`, which is what
+keeps the menu above at ten lines instead of a feature.
+
 ## Right-to-left
 
 A right-to-left culture emits `dir="rtl"` on `<html>`; everything else emits no `dir` at all, because
@@ -204,12 +221,19 @@ and the layout follows.
 ## WASM and ICU
 
 A WASM app needs culture data, and Rask does **not** ship it by default, because it is the one part of
-this feature you can measure on the download. `rask new --template wasm --culture hu` sets it for you;
-add it by hand to an app that grows a second language later:
+this feature you can measure on the download — and the one part `Program.cs` cannot switch on by
+itself, since it is an MSBuild property. `rask new --template wasm` scaffolds it **commented out**,
+with the reason beside it, so an app that grows a second language later uncomments one line:
 
 ```xml
 <RaskGlobalization>true</RaskGlobalization>
 ```
+
+That is also why a browser-WASM app scaffolds no language registration at all, where the server
+template scaffolds English: on the server the runtime carries ICU regardless and it costs nothing, and
+in the browser it is roughly a megabyte. Configure the languages in `Program.cs` **and** uncomment the
+property — catalogs without ICU are a no-op, because the resolver refuses to let a culture pose as
+supported when the data is not there, and the app boots with an empty supported list and one warning.
 
 Measured on the WASM showcase, publishing the same trimmed app with and without it:
 

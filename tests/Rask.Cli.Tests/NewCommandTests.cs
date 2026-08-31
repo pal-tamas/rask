@@ -274,7 +274,9 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("nothing to change for: --no-cqrs", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("It supports: auth, docker, localization, pwa.", console.ErrorText, StringComparison.Ordinal);
+        // localization is no longer listed, because it is no longer a flag (#854). Listing it here would
+        // name something the user cannot then pass.
+        Assert.Contains("It supports: auth, docker, pwa.", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -599,17 +601,30 @@ public sealed class NewCommandTests
         Assert.Contains("--all-batteries is gone", console.ErrorText, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task Naming_a_culture_while_turning_localization_off_is_a_usage_error()
+    /// <summary>
+    ///     The language flags are gone (#854), and refused by name rather than quietly ignored.
+    /// </summary>
+    /// <remarks>
+    ///     <c>--culture</c> took a VALUE, which is what makes ignoring it worse than usual: the tag would
+    ///     be swallowed as a stray argument and the app scaffolded in English while the command line said
+    ///     Hungarian. Nothing would report it. The message names Program.cs, because "where do I put my
+    ///     languages now" is the only question a reader of this error has.
+    /// </remarks>
+    [Theory]
+    [InlineData("--culture", "hu")]
+    [InlineData("--culture=hu", null)]
+    [InlineData("--no-localization", null)]
+    [InlineData("--localization", null)]
+    public async Task The_language_flags_are_refused_and_say_where_languages_live(string flag, string? value)
     {
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(
-            ["MyApp", "--culture", "hu", "--no-localization"], CancellationToken.None);
+        string[] args = value is null ? ["MyApp", flag] : ["MyApp", flag, value];
+        var exit = await command.ExecuteAsync(args, CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("--no-localization", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Program.cs", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>
