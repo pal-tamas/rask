@@ -121,10 +121,9 @@ what it can do:
   runtime, which takes minutes; `dotnet run` is unaffected.
 - **styling** — plain CSS by default, `--bootstrap` or `--tailwind` instead.
 
-On the browser-WASM templates there is a third, for the same reason: `--culture <tag>` adds
-localization, which is supported there but not standard, because naming a language means shipping ICU
-and that is about a megabyte of extra download. See
-[which template supports which flag](#which-template-supports-which-flag) below.
+Languages are **not** on that list, and not on the command line at all: a scaffolded server app ships
+English registered in `Program.cs`, and adding another is a line in the block that is already there.
+See [localization](localization.md).
 
 Everything else has a `--no-` to leave it out: `--no-jobs`, `--no-push`, `--no-ops`, and so on. There is
 no `--minimal`; taking three things out reads as three flags, and you can see from the command line
@@ -231,11 +230,9 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
 | `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. |
-| `--no-localization` | Leave out the `Resources/Strings.<culture>.json` catalogs and the `AddRask(configureCulture:)` registration that negotiates a visitor's language. Can't be combined with `--culture`. On the WASM templates localization is opt-in rather than standard, so there is nothing to turn off and this is refused — pass `--culture` to turn it *on*. |
 | `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
 | `--bootstrap` | Render the generated pages with `Rask.Bootstrap`'s `Bs*` components over Bootstrap 5.3, self-hosted (no CDN). |
 | `--tailwind` | Style the generated pages with Tailwind CSS, compiled from your own source at build time — no npm required. |
-| `--culture` | A language to translate the UI into, repeatable — `--culture en --culture hu`. The first is the default a visitor falls back to. Without it you get `en`. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore` and the migration). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
@@ -275,7 +272,7 @@ default list: the default set *is* the column.
 | PWA | ✅ | ✅ | ✅ |
 | Web Push | ✅ | — | ✅ |
 | Docker | ✅ | ✅ | ✅ |
-| localization | ✅ | opt-in² | — |
+| localization *(in `Program.cs`, not a flag)* | ✅ | —² | — |
 | `--auth` *(opt-in)* | ✅ | ✅ | — |
 | `--wasm` *(opt-in)* | ✅ | — | — |
 | `--bootstrap` | ✅ | ✅ | — |
@@ -286,18 +283,16 @@ rather than ignored. `--auth` is left out rather than half-scaffolded: a sign-in
 in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
 scaffolded there — see [TypeScript front ends](spa.md#installable-and-push-capable).
 
-² Localization works on the browser templates, but is not part of what a bare `rask new` gives you
-there. Naming a language means shipping ICU, and ICU is roughly **a megabyte of extra download** — on
-the WASM showcase, a published trimmed bundle goes from 3.28 MB to 4.33 MB brotli (+32%). A battery is
-wiring you would otherwise write by hand; a third more download for a feature most apps never use is an
-opinion about your app, which is the same line auth and styling sit on. So `--culture hu` turns it on
-and pays for it knowingly:
+² Languages are configured in `Program.cs`, never on the command line — there is no `--culture` and no
+`--no-localization`. On `server` a scaffolded app already registers English there, because ICU is in
+the runtime regardless and it costs nothing.
 
-```console
-$ rask new Shop --template wasm --culture en --culture hu
-```
-
-On the `server` template ICU is already in the runtime, so it costs nothing and comes as standard.
+A browser-WASM app scaffolds no registration, because there it is not free: culture data is roughly **a
+megabyte of extra download** — on the WASM showcase a published trimmed bundle goes from 3.28 MB to
+4.33 MB brotli (+32%). It is also the one part `Program.cs` cannot switch on by itself, since
+`RaskGlobalization` is an MSBuild property. It is scaffolded **commented out** with the reason beside
+it, so shipping a language there is two deliberate edits: uncomment the property, add the languages.
+See [localization](localization.md#wasm-and-icu).
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
 combination that is then rejected. On the command line, turning off something a template never had is a
@@ -305,7 +300,7 @@ usage error that names both halves:
 
 ```console
 $ rask new X --template wasm --no-data
-Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker, localization, pwa.
+Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker, pwa.
 ```
 
 The database-backed batteries need an ASP.NET host to put a database in, which the `server` template is

@@ -186,7 +186,10 @@ public sealed class ServerBatteriesTests
     [Fact]
     public void Turning_localization_off_clears_the_language_list()
     {
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, ["localization"]);
+        // Reduced() still has to hold, even though no command line can reach it any more: the language
+        // list belongs to localization, so a shape carrying one with the feature off is incoherent and
+        // would scaffold catalogs nothing registers.
+        var batteries = new ServerBatteries { Localization = false, CultureList = "en,hu" }.Reduced();
 
         Assert.False(batteries.Localization);
         Assert.Empty(batteries.Cultures);
