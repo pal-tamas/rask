@@ -1,6 +1,6 @@
 #nullable enable
-Rask.WebPush.IWebPushSender
-Rask.WebPush.IWebPushSender.SendAsync(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+Rask.WebPush.IWebPush
+Rask.WebPush.IWebPush.SendAsync(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
 Rask.WebPush.PushSubscription
 Rask.WebPush.PushSubscription.<Clone>$() -> Rask.WebPush.PushSubscription!
 Rask.WebPush.PushSubscription.Auth.get -> string!

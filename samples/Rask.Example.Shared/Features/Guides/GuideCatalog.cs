@@ -197,7 +197,7 @@ public static class GuideCatalog
             "bi-globe", "Mobile & devices"),
         new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.",
             "bi-phone", "Mobile & devices"),
-        new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPushSender, delivery results.",
+        new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPush, delivery results.",
             "bi-send", "Mobile & devices"),
 
         // ---- Browser API reference ----

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Jobs;
 
 /// <summary>
-/// A persisted background job awaiting (or having completed) execution. Written by <see cref="IJobQueue"/>
+/// A persisted background job awaiting (or having completed) execution. Written by <see cref="IJob"/>
 /// and drained by the <see cref="JobProcessor{TContext}"/>.
 /// </summary>
 public sealed class Job

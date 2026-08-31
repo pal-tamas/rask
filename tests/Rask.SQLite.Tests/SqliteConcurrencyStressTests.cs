@@ -12,7 +12,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-stress-{Guid.NewGuid():N}.db");
     private readonly ServiceProvider _provider;
-    private readonly IRaskSqliteConnectionFactory _factory;
+    private readonly ISqlite _factory;
 
     public SqliteConcurrencyStressTests()
     {
@@ -27,7 +27,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
         // A generous per-writer timeout so a busy CI box under heavy contention never spuriously times out.
         services.AddRaskSqlite($"Data Source={_dbPath}", configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30));
         _provider = services.BuildServiceProvider();
-        _factory = _provider.GetRequiredService<IRaskSqliteConnectionFactory>();
+        _factory = _provider.GetRequiredService<ISqlite>();
     }
 
     [Theory]
@@ -38,7 +38,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
         // Task.Run forces every writer onto the thread pool at once, so they genuinely contend for the
         // single write lock (a lazy Select would start them one-by-one, each finishing before the next).
         var tasks = Enumerable.Range(0, writers).Select(worker =>
-            Task.Run(() => _factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+            Task.Run(() => _factory.InImmediateTransactionAsync(async (connection, ct) =>
             {
                 await using var command = connection.CreateCommand();
                 command.CommandText = "INSERT INTO writes(worker) VALUES ($worker);";
@@ -66,7 +66,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
         {
             const int writers = 400;
             var tasks = Enumerable.Range(0, writers).Select(worker =>
-                Task.Run(() => _factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+                Task.Run(() => _factory.InImmediateTransactionAsync(async (connection, ct) =>
                 {
                     await using var command = connection.CreateCommand();
                     command.CommandText = "INSERT INTO writes(worker) VALUES ($worker);";

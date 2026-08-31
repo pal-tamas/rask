@@ -23,8 +23,8 @@ namespace Rask.Example.Shop.Features.Orders;
 /// </remarks>
 public sealed partial class OrderCreatedHandler(
     IDbContextFactory<AppDbContext> factory,
-    IMailQueue mail,
-    IJobQueue jobs,
+    IMail mail,
+    IJob jobs,
     ILogger<OrderCreatedHandler> logger)
     : RaskMarkup, INotificationHandler<OrderCreated>
 {

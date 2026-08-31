@@ -66,7 +66,7 @@ internal sealed class MixedRawScenario : MixedScenario
     private readonly ConcurrentDictionary<int, Random> _random = new();
     private readonly bool _pinWal;
     private ServiceProvider? _provider;
-    private IRaskSqliteConnectionFactory? _factory;
+    private ISqlite? _factory;
     private SqliteConnection? _pinnedReader;
 
     /// <param name="name">Arm id — the soak reuses this workload under its own names.</param>
@@ -90,7 +90,7 @@ internal sealed class MixedRawScenario : MixedScenario
         var services = new ServiceCollection();
         services.AddRaskSqlite(Db.ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30));
         _provider = services.BuildServiceProvider();
-        _factory = _provider.GetRequiredService<IRaskSqliteConnectionFactory>();
+        _factory = _provider.GetRequiredService<ISqlite>();
 
 
         if (_pinWal)
@@ -111,7 +111,7 @@ internal sealed class MixedRawScenario : MixedScenario
 
         if (write)
         {
-            await _factory!.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+            await _factory!.InImmediateTransactionAsync(async (connection, ct) =>
             {
                 await using var command = connection.CreateCommand();
                 command.CommandText =

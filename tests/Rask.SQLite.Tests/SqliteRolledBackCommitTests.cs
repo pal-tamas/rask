@@ -119,7 +119,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
         await using var connection = await OpenAsync();
 
         var invocations = 0;
-        await connection.ExecuteInImmediateTransactionAsync(
+        await connection.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5) },
             async (c, ct) =>
             {
@@ -151,7 +151,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
 
         var invocations = 0;
         var exception = await Assert.ThrowsAsync<SqliteException>(() =>
-            connection.ExecuteInImmediateTransactionAsync(
+            connection.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions { Timeout = TimeSpan.FromMilliseconds(50) },
                 (_, _) =>
                 {
@@ -184,7 +184,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
 
         var invocations = 0;
         var exception = await Assert.ThrowsAsync<SqliteException>(() =>
-            connection.ExecuteInImmediateTransactionAsync(
+            connection.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5) },
                 async (c, ct) =>
                 {
@@ -208,13 +208,13 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
     {
         // Teardown used to take the caller's token, and the retry checks for cancellation before its
         // first attempt — so a write cancelled mid-transaction skipped the rollback entirely and handed a
-        // mid-transaction handle to the pool. Only the next ExecuteInImmediateTransactionAsync lease
+        // mid-transaction handle to the pool. Only the next InImmediateTransactionAsync lease
         // cleared it; a plain query, EF, or the pragma batch on reopen inherited the open transaction.
         await using var connection = await OpenAsync();
         using var cts = new CancellationTokenSource();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            connection.ExecuteInImmediateTransactionAsync(
+            connection.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions(),
                 async (c, ct) =>
                 {

@@ -65,7 +65,7 @@ public sealed class LogRetentionTests
 
         await harness.RunUntilAsync(async () => await harness.Store.CountAsync() == 5);
 
-        var page = await harness.Store.QueryAsync(new LogQuery());
+        var page = await harness.Store.SearchAsync(new LogQuery());
         Assert.Equal(
             ["entry 19", "entry 18", "entry 17", "entry 16", "entry 15"],
             page.Entries.Select(e => e.Message));
@@ -129,7 +129,7 @@ public sealed class LogRetentionTests
 
         Assert.Equal(2400, removed);
         Assert.Equal(100, await store.CountAsync());
-        Assert.Equal("entry 2499", (await store.QueryAsync(new LogQuery())).Entries[0].Message);
+        Assert.Equal("entry 2499", (await store.SearchAsync(new LogQuery())).Entries[0].Message);
     }
 
     [Fact]

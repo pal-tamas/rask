@@ -66,7 +66,7 @@ o.UseRaskSqlite($"Data Source={dbPath}", configureRetry: _ => { });
 ```
 
 The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
-(`ExecuteInImmediateTransactionAsync`); see the docs for when to reach for it.
+(`InImmediateTransactionAsync`); see the docs for when to reach for it.
 
 ## Non-overlapping ranges
 
@@ -76,6 +76,6 @@ The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
 table. Both are inert until an entity declares a rule.
 
 Not using EF Core? Use `Rask.SQLite` directly: `services.AddRaskSqlite(cs)` + inject
-`IRaskSqliteConnectionFactory`.
+`ISqlite`.
 
 Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/sqlite.md>

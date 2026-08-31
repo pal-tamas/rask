@@ -52,7 +52,7 @@ public enum SqliteTempStore
 }
 
 /// <summary>
-/// The SQLite pragmas <see cref="IRaskSqliteConnectionFactory"/> (for raw ADO.NET) — and the Entity
+/// The SQLite pragmas <see cref="ISqlite"/> (for raw ADO.NET) — and the Entity
 /// Framework Core interceptor in the <c>Rask.SQLite.EntityFrameworkCore</c> package — apply to every
 /// connection they open.
 /// Every property defaults to a tuned production value

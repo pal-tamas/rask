@@ -5,7 +5,7 @@
 `Rask.Cache` caches computed values in the app's own database — no message broker, no Redis. It implements
 the standard **`IDistributedCache`** (so it drops straight into ASP.NET session state, output caching, and
 anything else built on the abstraction) and adds a typed **`ICache`** convenience layer with a read-through
-`GetOrCreateAsync<T>`. Entries carry **absolute** and **sliding** expirations; a background worker sweeps
+`GetOrAddAsync<T>`. Entries carry **absolute** and **sliding** expirations; a background worker sweeps
 expired rows.
 
 > Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
@@ -47,7 +47,7 @@ Add a migration for the new table before running — `rask db add AddCache && ra
 
 ```csharp
 // read-through: the factory runs once on a miss, then the value is served from the DB.
-var rates = await cache.GetOrCreateAsync(
+var rates = await cache.GetOrAddAsync(
     $"rates:{date:yyyyMMdd}",
     ct => exchange.FetchRatesAsync(date, ct),
     new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) });
@@ -71,8 +71,8 @@ it with `builder.Services.AddSession()` and `AddRaskCache` provides the store.
   short-lived context). It stores one `CacheEntry` row per key: the bytes, an optional absolute deadline, an
   optional sliding window, and the effective **`ExpiresAt`**. A read past `ExpiresAt` is a **miss** and the row
   is evicted lazily; a read of a sliding entry **renews** `ExpiresAt` (capped by any absolute deadline).
-- **`ICache` / `Cache`** — the typed layer. `GetOrCreateAsync<T>`, `GetAsync<T>`, `SetAsync<T>`, `RemoveAsync`,
-  serializing `T` with `System.Text.Json`. `GetOrCreateAsync` runs the factory **once** on a miss, stores the
+- **`ICache` / `Cache`** — the typed layer. `GetOrAddAsync<T>`, `GetAsync<T>`, `SetAsync<T>`, `RemoveAsync`,
+  serializing `T` with `System.Text.Json`. `GetOrAddAsync` runs the factory **once** on a miss, stores the
   result, and returns it; a concurrent second caller may also run the factory (the cache is not a lock), so
   keep factories idempotent.
 - **`CachePurger<TContext>`** — a hosted `BackgroundService` that bulk-deletes rows past `ExpiresAt` on
@@ -81,7 +81,7 @@ it with `builder.Services.AddSession()` and `AddRaskCache` provides the store.
 
 ## Trim / AOT
 
-The typed `GetOrCreateAsync<T>` / `GetAsync<T>` / `SetAsync<T>` overloads use reflection-based
+The typed `GetOrAddAsync<T>` / `GetAsync<T>` / `SetAsync<T>` overloads use reflection-based
 `System.Text.Json` and are annotated `[RequiresUnreferencedCode]` / `[RequiresDynamicCode]`. In a trimmed or
 AOT app, use the `JsonTypeInfo<T>` overloads with a source-generated `JsonSerializerContext`:
 
@@ -103,7 +103,7 @@ builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:63
 builder.Services.AddRaskCache();   // no <AppDbContext> — the store is Redis
 ```
 
-That is the whole change. `ICache` and `GetOrCreateAsync` behave identically, because the typed layer only
+That is the whole change. `ICache` and `GetOrAddAsync` behave identically, because the typed layer only
 ever talks to `IDistributedCache`; nothing about your calling code moves.
 
 There is **no `Rask.Cache.Redis` package**, and there shouldn't be:

@@ -23,7 +23,7 @@ host.Services.AddRaskCqrs();
 host.Services.AddRaskJobs<AppDbContext>(o => o.PollInterval = TimeSpan.FromMilliseconds(250));
 ```
 
-`GreetJob` is an `IJob`, its handler is an ordinary `ICommandHandler<GreetJob>`, and both would compile
+`GreetJob` is an `IBackgroundJob`, its handler is an ordinary `ICommandHandler<GreetJob>`, and both would compile
 and run unchanged on `Rask.Server`. The job tables are the same tables (`modelBuilder.AddRaskJobs()`),
 claimed with the same lease, retried with the same backoff.
 

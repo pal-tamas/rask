@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace Rask.Logging;
 
 /// <summary>
-/// Drains <see cref="LogChannel"/> into <see cref="ILogStore"/> on a timer, and enforces retention.
+/// Drains <see cref="LogChannel"/> into <see cref="ILogs"/> on a timer, and enforces retention.
 /// <para>
 /// The flush is on a timer rather than per entry because the interval <i>is</i> the coalescing window: a
 /// chatty second becomes one transaction instead of hundreds. It is also the worst-case delay before a
@@ -13,7 +13,7 @@ namespace Rask.Logging;
 /// </summary>
 internal sealed class LogWriter(
     LogChannel channel,
-    ILogStore store,
+    ILogs store,
     RaskLoggingOptions options,
     LogMetrics metrics,
     TimeProvider timeProvider,

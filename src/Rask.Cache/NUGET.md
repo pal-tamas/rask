@@ -4,7 +4,7 @@ A **developer-facing cache** for a Rask app — stored in the app's own database
 
 - Implements the standard **`IDistributedCache`**, so it drops straight into ASP.NET session state, output
   caching, and anything else built on the abstraction.
-- A typed **`ICache`** convenience layer adds `GetOrCreateAsync<T>` read-through, plus `GetAsync<T>` /
+- A typed **`ICache`** convenience layer adds `GetOrAddAsync<T>` read-through, plus `GetAsync<T>` /
   `SetAsync<T>` / `RemoveAsync` (JSON under the hood).
 - Entries carry **absolute** and **sliding** expirations; a read renews a sliding entry and an expired entry is
   evicted lazily. A background **`CachePurger`** sweeps expired rows on an interval.
@@ -21,7 +21,7 @@ builder.Services.AddRaskCache<AppDbContext>();
 
 ```csharp
 // read-through: the factory runs once on a miss, then the value is served from the DB.
-var rates = await cache.GetOrCreateAsync(
+var rates = await cache.GetOrAddAsync(
     $"rates:{date:yyyyMMdd}",
     ct => exchange.FetchRatesAsync(date, ct),
     new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) });
@@ -45,6 +45,6 @@ There is deliberately no `Rask.Cache.Redis` package —
 `CacheOptions`, because both of them are implemented by the database-backed store and would silently do
 nothing against another one.
 
-> **Trim / AOT:** the typed `GetOrCreateAsync<T>`/`GetAsync<T>`/`SetAsync<T>` overloads use reflection-based
+> **Trim / AOT:** the typed `GetOrAddAsync<T>`/`GetAsync<T>`/`SetAsync<T>` overloads use reflection-based
 > `System.Text.Json`. In a trimmed or AOT app, use the `JsonTypeInfo<T>` overloads with a source-generated
 > `JsonSerializerContext`. The `IDistributedCache` (`byte[]`) surface is fully trim-safe.

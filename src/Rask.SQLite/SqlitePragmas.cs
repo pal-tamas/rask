@@ -8,7 +8,7 @@ namespace Rask.SQLite;
 /// <summary>
 /// Turns a <see cref="SqlitePragmaOptions"/> into the <c>PRAGMA …;</c> batch and runs it on an open
 /// connection. This is the single source of truth shared by the raw-ADO factory
-/// (<see cref="IRaskSqliteConnectionFactory"/>) and the Entity Framework Core interceptor in the
+/// (<see cref="ISqlite"/>) and the Entity Framework Core interceptor in the
 /// <c>Rask.SQLite.EntityFrameworkCore</c> package.
 /// </summary>
 public static class SqlitePragmas

@@ -11,7 +11,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
         services.AddRaskSqlite("Data Source=test.db");
 
         using var provider = services.BuildServiceProvider();
-        Assert.NotNull(provider.GetService<IRaskSqliteConnectionFactory>());
+        Assert.NotNull(provider.GetService<ISqlite>());
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
         services.AddRaskSqlite("Data Source=first.db");
         services.AddRaskSqlite("Data Source=second.db");
 
-        Assert.Single(services, d => d.ServiceType == typeof(IRaskSqliteConnectionFactory));
+        Assert.Single(services, d => d.ServiceType == typeof(ISqlite));
     }
 
     [Fact]

@@ -24,7 +24,7 @@ builder.Services.AddRaskWebPush(o =>
     o.Subject   = "mailto:admin@example.com";    // a contact the push service can reach
 });
 
-// ... inject IWebPushSender, then given a PushSubscription the browser sent you:
+// ... inject IWebPush, then given a PushSubscription the browser sent you:
 var result = await sender.SendAsync(
     subscription,
     new WebPushMessage { Title = "Hello", Body = "from the server" },

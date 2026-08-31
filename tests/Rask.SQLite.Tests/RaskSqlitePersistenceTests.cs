@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.SQLite.Tests;
 
 // Exercises the on-device data mechanism a SQLite-backed store relies on: CRUD through the
-// raw IRaskSqliteConnectionFactory against a real file database, and — the point of persistence — that
+// raw ISqlite against a real file database, and — the point of persistence — that
 // rows written on one connection are still there on a fresh one (as they would be after an app restart).
 public sealed class RaskSqlitePersistenceTests : IDisposable
 {
@@ -16,7 +16,7 @@ public sealed class RaskSqlitePersistenceTests : IDisposable
         var services = new ServiceCollection();
         services.AddRaskSqlite($"Data Source={_dbPath}");
         await using var provider = services.BuildServiceProvider();
-        var factory = provider.GetRequiredService<IRaskSqliteConnectionFactory>();
+        var factory = provider.GetRequiredService<ISqlite>();
 
         // Write via one connection (create the table + insert), then dispose it.
         await using (var write = await factory.CreateOpenAsync())

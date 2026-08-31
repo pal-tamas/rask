@@ -204,7 +204,7 @@ public sealed partial class ShopRenderGoldenTests : global::Rask.Core.RaskMarkup
     {
         using var page = new Rask.Example.Shop.Features.Ops.OpsPage(
             _provider.GetRequiredService<IDbContextFactory<AppDbContext>>(),
-            _provider.GetRequiredService<IJobQueue>(),
+            _provider.GetRequiredService<IJob>(),
             _provider.GetRequiredService<PopularProducts>(),
             _provider.GetRequiredService<IConfiguration>());
 

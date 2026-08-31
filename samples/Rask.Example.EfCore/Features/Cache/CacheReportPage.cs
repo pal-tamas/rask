@@ -4,7 +4,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.EfCore.Features.Cache;
 
-// Vertical slice: a read-through cache on the app's own SQLite database. GetOrCreateAsync runs the
+// Vertical slice: a read-through cache on the app's own SQLite database. GetOrAddAsync runs the
 // "expensive" factory only on a miss and stores the result as a CacheEntry row; a second load within the
 // sliding window is served straight from the DB — no recompute, no Redis. "Clear" removes the entry so the
 // next load recomputes, proving the cache is what's serving the repeated reads.
@@ -21,7 +21,7 @@ public sealed partial class CacheReportPage(ICache cache) : Component
     private async Task LoadAsync()
     {
         var factoryRan = false;
-        _report = await cache.GetOrCreateAsync(
+        _report = await cache.GetOrAddAsync(
             CacheKey,
             async ct =>
             {

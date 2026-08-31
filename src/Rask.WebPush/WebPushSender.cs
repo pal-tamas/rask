@@ -9,10 +9,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Rask.WebPush;
 
-// Default IWebPushSender. Stateless apart from the validated options; one instance is shared and the
+// Default IWebPush. Stateless apart from the validated options; one instance is shared and the
 // HttpClient is supplied by IHttpClientFactory (see AddRaskWebPush).
 /// <summary>
-///     The default <see cref="IWebPushSender" />. Registered by <c>AddRaskWebPush</c> as a typed
+///     The default <see cref="IWebPush" />. Registered by <c>AddRaskWebPush</c> as a typed
 ///     <see cref="HttpClient" />, so inject the interface rather than constructing this.
 /// </summary>
 /// <remarks>
@@ -20,7 +20,7 @@ namespace Rask.WebPush;
 ///     headers are cached per authority: broadcasting to a thousand subscribers on one service signs once,
 ///     not a thousand times.
 /// </remarks>
-public sealed partial class WebPushSender : IWebPushSender
+public sealed partial class WebPushSender : IWebPush
 {
     // A VAPID token is valid for any request to the same push-service authority until it expires, so
     // cache the signed Authorization header per authority instead of re-signing on every send — a
@@ -48,7 +48,7 @@ public sealed partial class WebPushSender : IWebPushSender
         _logger = logger ?? NullLogger<WebPushSender>.Instance;
     }
 
-    /// <inheritdoc cref="IWebPushSender.SendAsync" />
+    /// <inheritdoc cref="IWebPush.SendAsync" />
     public async Task<WebPushResult> SendAsync(
         PushSubscription subscription,
         WebPushMessage message,

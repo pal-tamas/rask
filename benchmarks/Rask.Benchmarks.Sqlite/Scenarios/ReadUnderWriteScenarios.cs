@@ -24,7 +24,7 @@ internal sealed class ReadUnderWriteScenario : LoadScenario
     private readonly List<Task> _writerTasks = [];
     private CancellationTokenSource? _writerCts;
     private ServiceProvider? _provider;
-    private IRaskSqliteConnectionFactory? _factory;
+    private ISqlite? _factory;
 
     internal ReadUnderWriteScenario(string name, string journalMode, int writers)
     {
@@ -65,7 +65,7 @@ internal sealed class ReadUnderWriteScenario : LoadScenario
             configure: o => o.JournalMode = _journalMode == "WAL" ? SqliteJournalMode.Wal : SqliteJournalMode.Delete,
             configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30));
         _provider = services.BuildServiceProvider();
-        _factory = _provider.GetRequiredService<IRaskSqliteConnectionFactory>();
+        _factory = _provider.GetRequiredService<ISqlite>();
 
         // The writers are load, not measurement: they run outside the VU pool and are never timed. Only the
         // readers' latency is the answer to "do readers block?".
@@ -85,7 +85,7 @@ internal sealed class ReadUnderWriteScenario : LoadScenario
         {
             try
             {
-                await _factory!.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+                await _factory!.InImmediateTransactionAsync(async (connection, ct) =>
                 {
                     await using var command = connection.CreateCommand();
                     command.CommandText = "INSERT INTO writes(worker, payload) VALUES ($worker, 'w');";

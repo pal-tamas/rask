@@ -30,14 +30,14 @@ internal abstract class WriteScenario(string label) : LoadScenario
 }
 
 /// <summary>
-/// The recommendation: <c>ExecuteInImmediateTransactionAsync</c> takes the write lock through the raw
+/// The recommendation: <c>InImmediateTransactionAsync</c> takes the write lock through the raw
 /// sqlite3 handle with the native busy handler off, and awaits a constant fair interval between attempts —
 /// so a contended writer frees its thread instead of pinning it.
 /// </summary>
 internal sealed class RawNonBlockingScenario() : WriteScenario("raw-nonblocking")
 {
     private ServiceProvider? _provider;
-    private IRaskSqliteConnectionFactory? _factory;
+    private ISqlite? _factory;
 
     internal override string Name => "raw-nonblocking";
 
@@ -50,13 +50,13 @@ internal sealed class RawNonBlockingScenario() : WriteScenario("raw-nonblocking"
         var services = new ServiceCollection();
         services.AddRaskSqlite(Db.ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30));
         _provider = services.BuildServiceProvider();
-        _factory = _provider.GetRequiredService<IRaskSqliteConnectionFactory>();
+        _factory = _provider.GetRequiredService<ISqlite>();
         return Task.CompletedTask;
     }
 
     internal override async ValueTask<OpOutcome> ExecuteAsync(int vuser, CancellationToken cancellationToken)
     {
-        await _factory!.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+        await _factory!.InImmediateTransactionAsync(async (connection, ct) =>
         {
             await using var command = connection.CreateCommand();
             command.CommandText = WriteScenarios.Insert;

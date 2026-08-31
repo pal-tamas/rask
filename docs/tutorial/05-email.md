@@ -77,12 +77,12 @@ rask db update
 ## 3. Send it from the job
 
 Remember the `SendOrderReceipt` job from Chapter 4? That's exactly where the email belongs — off the request
-thread. Inject `IMailQueue` into the handler and send:
+thread. Inject `IMail` into the handler and send:
 
 ```csharp
 public sealed class SendOrderReceiptHandler(
     IDbContextFactory<AppDbContext> dbFactory,
-    IMailQueue mail) : ICommandHandler<SendOrderReceipt>
+    IMail mail) : ICommandHandler<SendOrderReceipt>
 {
     public async Task HandleAsync(SendOrderReceipt job, CancellationToken ct)
     {

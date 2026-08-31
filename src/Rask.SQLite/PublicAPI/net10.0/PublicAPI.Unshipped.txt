@@ -1,10 +1,10 @@
 #nullable enable
-Rask.SQLite.IRaskSqliteConnectionFactory
-Rask.SQLite.IRaskSqliteConnectionFactory.Create() -> Microsoft.Data.Sqlite.SqliteConnection!
-Rask.SQLite.IRaskSqliteConnectionFactory.CreateOpen() -> Microsoft.Data.Sqlite.SqliteConnection!
-Rask.SQLite.IRaskSqliteConnectionFactory.CreateOpenAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Data.Sqlite.SqliteConnection!>!
-Rask.SQLite.IRaskSqliteConnectionFactory.ExecuteInImmediateTransactionAsync(System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.SQLite.IRaskSqliteConnectionFactory.ExecuteInImmediateTransactionAsync<T>(System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! work, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
+Rask.SQLite.ISqlite
+Rask.SQLite.ISqlite.Create() -> Microsoft.Data.Sqlite.SqliteConnection!
+Rask.SQLite.ISqlite.CreateOpen() -> Microsoft.Data.Sqlite.SqliteConnection!
+Rask.SQLite.ISqlite.CreateOpenAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Data.Sqlite.SqliteConnection!>!
+Rask.SQLite.ISqlite.InImmediateTransactionAsync(System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.SQLite.ISqlite.InImmediateTransactionAsync<T>(System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! work, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
 Rask.SQLite.SqliteBusyRetryOptions
 Rask.SQLite.SqliteBusyRetryOptions.PollInterval.get -> System.TimeSpan
 Rask.SQLite.SqliteBusyRetryOptions.PollInterval.set -> void
@@ -59,8 +59,8 @@ Rask.SQLite.SqliteTempStore.Memory = 2 -> Rask.SQLite.SqliteTempStore
 const Rask.SQLite.SqliteCollations.Decimal = "EF_DECIMAL" -> string!
 static Rask.SQLite.SqliteCollations.Apply(Microsoft.Data.Sqlite.SqliteConnection! connection) -> void
 static Rask.SQLite.SqliteConnectionExtensions.BeginImmediate(this Microsoft.Data.Sqlite.SqliteConnection! connection) -> Microsoft.Data.Sqlite.SqliteTransaction!
-static Rask.SQLite.SqliteConnectionExtensions.ExecuteInImmediateTransactionAsync(this Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteBusyRetryOptions! retry, System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-static Rask.SQLite.SqliteConnectionExtensions.ExecuteInImmediateTransactionAsync<T>(this Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteBusyRetryOptions! retry, System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! work, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
+static Rask.SQLite.SqliteConnectionExtensions.InImmediateTransactionAsync(this Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteBusyRetryOptions! retry, System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.SQLite.SqliteConnectionExtensions.InImmediateTransactionAsync<T>(this Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteBusyRetryOptions! retry, System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! work, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
 static Rask.SQLite.SqlitePragmas.Apply(Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqlitePragmaOptions! options) -> void
 static Rask.SQLite.SqlitePragmas.ApplyAsync(Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqlitePragmaOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.SQLite.SqlitePragmas.BuildScript(Rask.SQLite.SqlitePragmaOptions! options) -> string!

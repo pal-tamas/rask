@@ -1,12 +1,18 @@
-using Rask.Cqrs;
-
 namespace Rask.Jobs;
 
 /// <summary>
-/// A unit of background work. Enqueue it with <see cref="IJobQueue"/>; the
-/// <see cref="JobProcessor{TContext}"/> runs it later by dispatching it to its single
-/// <see cref="ICommandHandler{TCommand}"/> through <c>Rask.Cqrs</c>. A job <b>is</b> a command — one
-/// executed off the request thread, persisted durably, and retried on failure — so you write an ordinary
-/// <c>ICommandHandler&lt;TJob&gt;</c> to handle it.
+/// Enqueues background jobs onto the app's database. Inject it and call <see cref="EnqueueAsync"/> to run a
+/// job as soon as the processor next polls, or <see cref="ScheduleAsync(IBackgroundJob, TimeSpan, CancellationToken)"/>
+/// to run it later.
 /// </summary>
-public interface IJob : ICommand;
+public interface IJob
+{
+    /// <summary>Enqueues a job to run as soon as possible.</summary>
+    Task EnqueueAsync(IBackgroundJob job, CancellationToken cancellationToken = default);
+
+    /// <summary>Enqueues a job to run no earlier than <paramref name="delay"/> from now.</summary>
+    Task ScheduleAsync(IBackgroundJob job, TimeSpan delay, CancellationToken cancellationToken = default);
+
+    /// <summary>Enqueues a job to run no earlier than <paramref name="runAt"/>.</summary>
+    Task ScheduleAsync(IBackgroundJob job, DateTimeOffset runAt, CancellationToken cancellationToken = default);
+}

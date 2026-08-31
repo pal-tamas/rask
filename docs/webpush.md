@@ -49,7 +49,7 @@ POSTs three fields — `Endpoint`, `P256dh`, `Auth` — which you persist as a `
 **4. Send** a notification, and act on the result:
 
 ```csharp
-public sealed class Notifier(IWebPushSender sender, ISubscriptionStore store)
+public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
 {
     public async Task NotifyAsync(Guid userId, string title, string body, string url, CancellationToken ct)
     {
@@ -78,7 +78,7 @@ public sealed class Notifier(IWebPushSender sender, ISubscriptionStore store)
   the common case; `WebPushMessage.Raw(json)` (or setting `RawPayload`) sends a hand-built payload verbatim for
   your own worker. `Urgency` ([RFC 8030](https://www.rfc-editor.org/rfc/rfc8030) §5.3), `Ttl`, and `Topic` (a
   ≤32-char collapse key) map to the corresponding push-service semantics.
-- **`IWebPushSender.SendAsync`** — signs (VAPID), encrypts (aes128gcm), and POSTs via an `IHttpClientFactory`
+- **`IWebPush.SendAsync`** — signs (VAPID), encrypts (aes128gcm), and POSTs via an `IHttpClientFactory`
   typed client, returning a **`WebPushResult`**.
 - **`WebPushResult`** — classifies the outcome so the caller knows what to do: `IsSuccess`, `ShouldDelete`
   (HTTP 404/410 — the subscription expired, remove it from your store), `ShouldRetry` (429/5xx — transient,

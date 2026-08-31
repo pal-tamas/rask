@@ -1,11 +1,11 @@
 #nullable enable
-Rask.Logging.ILogStore
-Rask.Logging.ILogStore.AppendAsync(System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>! records, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Logging.ILogStore.CategoriesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
-Rask.Logging.ILogStore.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Logging.ILogStore.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
-Rask.Logging.ILogStore.PurgeAsync(System.TimeSpan retention, int maxRows, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
-Rask.Logging.ILogStore.QueryAsync(Rask.Logging.LogQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Logging.LogPage!>!
+Rask.Logging.ILogs
+Rask.Logging.ILogs.AppendAsync(System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>! records, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Logging.ILogs.CategoriesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+Rask.Logging.ILogs.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Logging.ILogs.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Rask.Logging.ILogs.PurgeAsync(System.TimeSpan retention, int maxRows, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Logging.ILogs.SearchAsync(Rask.Logging.LogQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Logging.LogPage!>!
 Rask.Logging.LogMetrics
 Rask.Logging.LogMetrics.Dispose() -> void
 Rask.Logging.LogMetrics.Dropped(int count = 1) -> void

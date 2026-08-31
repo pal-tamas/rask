@@ -119,7 +119,7 @@ public sealed class MailHarness : IAsyncDisposable
 
     public RecordingMailSender Sender { get; }
 
-    public IMailQueue Queue => _provider.GetRequiredService<IMailQueue>();
+    public IMail Queue => _provider.GetRequiredService<IMail>();
 
     public IHostedService Processor =>
         _provider.GetServices<IHostedService>().OfType<MailProcessor<MailDbContext>>().Single();

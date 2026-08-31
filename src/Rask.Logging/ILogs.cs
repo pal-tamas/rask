@@ -8,7 +8,7 @@ namespace Rask.Logging;
 /// Read it from an operator UI (<c>Rask.Dashboard</c>'s Logs page does exactly that) or from your own code.
 /// </para>
 /// </summary>
-public interface ILogStore
+public interface ILogs
 {
     /// <summary>
     /// Appends a batch of entries, assigning each an id. Called only by the background writer, which
@@ -17,7 +17,7 @@ public interface ILogStore
     Task AppendAsync(IReadOnlyList<LogRecord> records, CancellationToken cancellationToken = default);
 
     /// <summary>Reads one page of entries matching <paramref name="query"/>, newest first.</summary>
-    Task<LogPage> QueryAsync(LogQuery query, CancellationToken cancellationToken = default);
+    Task<LogPage> SearchAsync(LogQuery query, CancellationToken cancellationToken = default);
 
     /// <summary>The distinct categories currently stored, ordered, for a filter dropdown.</summary>
     Task<IReadOnlyList<string>> CategoriesAsync(CancellationToken cancellationToken = default);

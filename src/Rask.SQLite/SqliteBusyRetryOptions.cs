@@ -2,8 +2,8 @@ namespace Rask.SQLite;
 
 /// <summary>
 /// Controls the non-blocking, fair-interval busy-retry used when a write lock is contended — by
-/// <see cref="SqliteConnectionExtensions.ExecuteInImmediateTransactionAsync{T}"/> /
-/// <see cref="IRaskSqliteConnectionFactory.ExecuteInImmediateTransactionAsync{T}"/> on the raw ADO.NET
+/// <see cref="SqliteConnectionExtensions.InImmediateTransactionAsync{T}"/> /
+/// <see cref="ISqlite.InImmediateTransactionAsync{T}"/> on the raw ADO.NET
 /// path, and by the Entity Framework Core execution strategy in the <c>Rask.SQLite.EntityFrameworkCore</c>
 /// package.
 /// </summary>

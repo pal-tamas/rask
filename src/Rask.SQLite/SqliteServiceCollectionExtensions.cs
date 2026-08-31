@@ -7,7 +7,7 @@ namespace Rask.SQLite;
 public static class SqliteServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers an <see cref="IRaskSqliteConnectionFactory"/> that opens connections for
+    /// Registers an <see cref="ISqlite"/> that opens connections for
     /// <paramref name="connectionString"/> with the production pragmas applied on every
     /// open (overridable via <paramref name="configure"/>). For Entity Framework Core use
     /// <c>UseRaskSqlite</c> on the <c>DbContextOptionsBuilder</c> instead — this is for code that uses
@@ -41,7 +41,7 @@ public static class SqliteServiceCollectionExtensions
 
         services.TryAddSingleton(options);
         services.TryAddSingleton(retry);
-        services.TryAddSingleton<IRaskSqliteConnectionFactory>(
+        services.TryAddSingleton<ISqlite>(
             new RaskSqliteConnectionFactory(connectionString, options, retry));
 
         return services;

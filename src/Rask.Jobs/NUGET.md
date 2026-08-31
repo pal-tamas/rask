@@ -3,7 +3,7 @@
 **Durable background jobs** for a Rask app — enqueued work that runs off the request thread, stored in the
 app's own database, with no broker or Redis.
 
-- Mark a type **`IJob`** and it dispatches to an ordinary [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs)
+- Mark a type **`IBackgroundJob`** and it dispatches to an ordinary [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs)
   **`ICommandHandler<TJob>`** — a job *is* a command executed later.
 - A background **`JobProcessor`** polls the `Job` table and runs each due job — **at-least-once**, with
   **exponential-backoff** retries up to `MaxAttempts` (then left as a dead letter for inspection).
@@ -12,12 +12,12 @@ app's own database, with no broker or Redis.
   from `JobOptions.RecurringJobs`.
 - **Metrics** on the `Rask.Jobs` meter: processed / failed / **dead-lettered** counters, a duration
   histogram, and pending / dead-letter gauges. `rask.jobs.deadletters` is the one to alert on.
-- A **source generator** registers every `IJob` type for reflection-free rehydration on the run path.
+- A **source generator** registers every `IBackgroundJob` type for reflection-free rehydration on the run path.
 
 ## Use
 
 ```csharp
-public sealed record SendWelcomeEmail(Guid UserId) : IJob;
+public sealed record SendWelcomeEmail(Guid UserId) : IBackgroundJob;
 
 public sealed class SendWelcomeEmailHandler(IEmailSender email) : ICommandHandler<SendWelcomeEmail>
 {
@@ -34,7 +34,7 @@ builder.Services.AddRaskJobs<AppDbContext>(o =>
 ```
 
 ```csharp
-// enqueue from anywhere IJobQueue is injected:
+// enqueue from anywhere IJob is injected:
 await jobs.EnqueueAsync(new SendWelcomeEmail(user.Id));
 await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(24));
 ```
