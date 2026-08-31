@@ -339,24 +339,32 @@ internal static partial class ProjectGenerator
             // registered with TryAddSingleton, so the first (empty) registration wins and the app
             // silently ships with no languages at all. RASK060 now reports that in the reader's own
             // code; this comment is why the scaffold never emits it in the first place.
-            var languages = string.Join(", ", batteries.Cultures.Select(c => $"\"{c}\""));
             // Configured on the SAME call for the same reason the cultures are: the options are
             // registered with TryAddSingleton, so a second AddRask would be dropped on the floor.
             var browserRung = batteries.Wasm ? "configureServer: o => o.RenderModes.Wasm = true, " : "";
+
+            // One Add per language rather than a foreach over an array. This block IS the place an app
+            // adds its second language -- there is no --culture flag any more (#854) -- so it has to read
+            // as a list you extend, not as a loop you have to understand first. At one language a foreach
+            // is also just noise.
+            var adds = string.Join(
+                "\n",
+                batteries.Cultures.Select(c => $"    c.SupportedCultures.Add(\"{c}\");"));
+
             sb.Append($$"""
-                // The languages this app ships. The FIRST is the default a visitor falls back to when
-                // nothing else matches. Their language is negotiated per request -- ?culture= beats a
-                // remembered cookie, which beats the browser's Accept-Language -- and then belongs to
-                // their session, so it survives every render over the live socket.
+                // The languages this app ships, and the one place to change them. The FIRST is the default
+                // a visitor falls back to when nothing else matches; add another line to ship another.
+                //
+                // A visitor's language is negotiated per request -- ?culture= beats a remembered cookie,
+                // which beats the browser's Accept-Language -- and then belongs to their session, so it
+                // survives every render over the live socket. Nothing scaffolds a language switcher: see
+                // docs/localization.md for the ten-line component, and for why that is your call.
                 //
                 // Text comes from Resources/Strings.{culture}.json, compiled into typed members: a
                 // missing key is a build error rather than a blank on the page (docs/diagnostics.md).
                 builder.Services.AddRask({{browserRung}}configureCulture: c =>
                 {
-                    foreach (var language in new[] { {{languages}} })
-                    {
-                        c.SupportedCultures.Add(language);
-                    }
+                {{adds}}
                 });
 
                 """);
