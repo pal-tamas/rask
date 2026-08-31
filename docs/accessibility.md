@@ -23,8 +23,9 @@ emits a bare attribute.
 Button.Aria(new() { ["label"] = "Close", ["expanded"] = "false" })["✕"]
 // <button aria-label="Close" aria-expanded="false">✕</button>
 
-I.Class("bi bi-trash").Aria(new() { ["hidden"] = "true" })
-// <i class="bi bi-trash" aria-hidden="true"></i>  — decorative icon, skipped by screen readers
+Span.Class("icon").Aria(new() { ["hidden"] = "true" })["\U0001F5D1"]
+// <span class="icon" aria-hidden="true">🗑</span>  — decorative icon, skipped by screen readers.
+// The glyph carries no meaning a reader needs; the BUTTON around it carries the accessible name.
 ```
 
 Because it's a dictionary, the full [WAI-ARIA](https://www.w3.org/TR/wai-aria-1.2/) vocabulary is
@@ -102,9 +103,8 @@ for everything else.
 
 ## Form validation
 
-The Bootstrap form controls (`BsInput`, `BsTextarea`, `BsSelect`, `BsCheck`) wire validation state to
-assistive tech automatically — you don't add anything. When a bound field has validation messages the
-control renders:
+A bound form control wires validation state to assistive tech automatically — you don't add
+anything. When a bound field has validation messages the control renders:
 
 - `aria-invalid="true"` on the input/select/textarea, so the failed state is exposed programmatically
   (not just the visual `.is-invalid` red border);
@@ -134,15 +134,15 @@ the message in a `Div.Id(errorId).Role("alert")`. See [forms-validation.md](form
 ## Focus trapping (overlays)
 
 Any element that carries `data-rask-focus-trap` gets accessible-overlay focus management from the
-runtime — no `bootstrap.js`, no per-component wiring. While the element is in the DOM, focus moves into
+runtime — no component library's JavaScript, no per-component wiring. While the element is in the DOM, focus moves into
 it on open (its `[autofocus]` element, else the element itself), `Tab`/`Shift+Tab` cycle **within** it
 (focus can't reach the inert page behind), and focus returns to the previously-focused element when it
 closes. If the trap (or a descendant) carries `data-rask-dismiss`, `Escape` closes it by triggering that
 element's click handler — no per-keystroke server round-trip.
 
-`Rask.Bootstrap`'s `BsModal` opts in automatically: an open modal traps focus, is labelled (`aria-labelledby`
+A dialog should opt in deliberately: an open modal traps focus, is labelled (`aria-labelledby`
 its title, or `aria-label` from the title text), and dismisses on `Escape` (except with a static backdrop,
-which keeps `Escape` inert per Bootstrap). Build your own overlay the same way — add `data-rask-focus-trap`
+which keeps `Escape` inert). Build your own overlay the same way — add `data-rask-focus-trap`
 (via the `Data` dictionary) and mark your close control with `data-rask-dismiss`.
 
 A sibling runtime helper keys off `data-rask-popover` to place the Bs dropdown-family menus (the

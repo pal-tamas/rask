@@ -49,7 +49,7 @@ builder.Services.AddRaskPwa(new WebAppManifest
 // Server-side Web Push backend (Rask.WebPush) for the Server PWA demo's subscribe→send loop.
 builder.Services.AddPushDemo(builder.Configuration);
 // The Server-only PWA showcase page contributes its sidebar entry to the shared ShowcaseLayout.
-builder.Services.AddSingleton(new ShowcaseNavEntry("/server-pwa", "Server PWA", "bi-phone", "PWA"));
+builder.Services.AddSingleton(new ShowcaseNavEntry("/server-pwa", "Server PWA", IconName.Phone, "PWA"));
 // Live-session capacity health check (Healthy / Degraded ≥80% / Unhealthy at cap), surfaced at
 // /health below. Pairs with the OpenTelemetry-ready "Rask.Server" meter + activity source — see
 // docs/observability.md.

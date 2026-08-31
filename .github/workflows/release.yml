@@ -49,17 +49,12 @@ jobs:
       - name: Pack Rask.External
         run: dotnet pack src/Rask.External/Rask.External.csproj -c Release --no-build -o ./artifacts
 
-      - name: Pack Rask.Tailwind
-        run: dotnet pack src/Rask.Tailwind/Rask.Tailwind.csproj -c Release --no-build -o ./artifacts
-
       - name: Pack Rask.Validation.DataAnnotations
         run: dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Validation.FluentValidation
         run: dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release --no-build -o ./artifacts
 
-      - name: Pack Rask.Bootstrap
-        run: dotnet pack src/Rask.Bootstrap/Rask.Bootstrap.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Cqrs
         run: dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release --no-build -o ./artifacts

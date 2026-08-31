@@ -29,7 +29,7 @@ mistake, the rule notes the ID.
 - **Make every component `sealed partial`.** Components aren't an inheritance hierarchy; sealing states
   intent and keeps the generator's analysis simple, and `partial` is where the generator puts the chain
   surface (**RASK036** without it). Every sample does this.
-- **Build components with the chain, never `new`.** `Div.Class("card")`, `Counter`,
+- **Build components with the chain, never `new`.** `Div.Class("panel")`, `Counter`,
   `RatingStars.Value(3)` — the chain wires keys, children, callbacks, and DI that `new` skips.
   Outside `Rask.Core`, `new`-ing a component is **RASK014**. (Test files that define their own
   `Component` subclasses opt out with `#pragma warning disable RASK014`.)
@@ -210,7 +210,7 @@ mistake, the rule notes the ID.
   ambiguous assets are **RASK015–018**, a `.js` sibling is **RASK055**, and two scoped components sharing a simple type name
   collide at `window.Rask[Name]` (**RASK020**).
 - **Put global styles in `wwwroot`, not a scoped CSS file.** Scoped CSS has no opt-out selector, so a
-  brand palette, `:root` variables, shell tags, or Bootstrap belong in a plain stylesheet linked from
+  brand palette, `:root` variables or shell tags belong in a plain stylesheet linked from
   your App's `Head` (use `LiveOptions.PathBase` for the URL). See [JS interop → scoped
   CSS](js-interop.md#scoped-css).
 

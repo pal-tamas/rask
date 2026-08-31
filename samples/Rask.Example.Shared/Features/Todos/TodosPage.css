@@ -1,24 +1,10 @@
-/* BsCheck renders its checkbox inside a .form-check wrapper; in a list row we want just the box,
-   so drop the wrapper's block spacing and indent and let it sit inline with the title. */
-.list-group-item .form-check {
-    min-height: 0;
-    margin-bottom: 0;
-    padding-left: 0;
-    display: flex;
-    align-items: center;
-}
-
-.list-group-item .form-check .form-check-input {
-    margin-left: 0;
-    margin-top: 0;
-    float: none;
-}
-
+/* The row layout and the done state. Everything that used to unpick Bootstrap's .form-check wrapper
+   is gone with it: the checkbox is a plain <input> now, so there is no wrapper to undo. */
 .todo-title {
     flex: 1 1 auto;
 }
 
 .todo-title.completed {
     text-decoration: line-through;
-    color: var(--bs-secondary-color);
+    color: color-mix(in srgb, currentColor 55%, transparent);
 }

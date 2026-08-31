@@ -40,7 +40,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// Auth and wasm are the two left off, because they are the ones that change what the app <em>is</em>
     /// rather than what it can do. A login wall in front of a project you are about to show someone is a
     /// decision, not a convenience; and shipping a browser bundle makes every publish link a WebAssembly
-    /// runtime and starts moving pages off the server. Styling is the third decision, and its own axis.
+    /// runtime and starts moving pages off the server. Styling is not a decision: Tailwind is built in.
     /// </para>
     /// </remarks>
     internal static readonly string[] BatteryFlags =
@@ -63,7 +63,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override IReadOnlyList<string> Examples =>
     [
         "rask new Shop",
-        "rask new Shop --auth --bootstrap",
+        "rask new Shop --auth --data",
         "rask new Shop --wasm",
         "rask new Shop --template wasm",
         "rask new Blog --no-push --no-ops",
@@ -80,8 +80,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("name", 'n', "name", "Project name, if not given positionally.")
             .Flag("auth", description: "Add cookie authentication (login + members pages). Off by default, like --wasm.")
             .Flag("wasm", description: "Also publish a browser bundle from this project, so an eligible page moves into WebAssembly once it has downloaded. Publish takes minutes longer; `dotnet run` is unaffected.")
-            .Flag("bootstrap", description: "Render pages with Rask.Bootstrap's Bs* components over Bootstrap 5.3.")
-            .Flag("tailwind", description: "Style with Tailwind CSS, compiled from your own source at build time (no npm needed).")
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
             .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
             .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, which every scaffolded feature dispatches through.")
@@ -210,22 +208,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 + "through it, so it is the template rather than a battery in it.");
         }
 
-        // Styling is one axis with three answers, so asking for two of them says nothing coherent.
-        // Picking a winner would scaffold something the command line did not ask for, and the wizard
-        // cannot produce this pair at all — only a hand-written command can.
-        if (parsed.HasFlag("bootstrap") && parsed.HasFlag("tailwind"))
-        {
-            return Fail("--bootstrap and --tailwind are alternatives; pass one, or neither for plain CSS.");
-        }
-
-        // Plain CSS is the default: it is the one answer that assumes nothing about what you are building.
-        // Bootstrap and Tailwind are both opinions, and neither should be what you get by not choosing.
-        // The pair is rejected above, so this order never has to arbitrate.
-        var styling = parsed.HasFlag("tailwind") ? Styling.Tailwind
-            : parsed.HasFlag("bootstrap") ? Styling.Bootstrap
-            : Styling.Plain;
-
-        var batteries = ToBatteries(template, off, styling, auth, wasm);
+        var batteries = ToBatteries(template, off, auth, wasm);
 
         // Every template is generated directly by the CLI; the key here is one the catalog knows
         // (validated by TemplateCatalog.TryGet).
@@ -276,6 +259,20 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 continue;
             }
 
+            // Both named an answer on an axis that no longer exists. Tailwind is not an option a project
+            // picks, it is what a Rask project is styled with — so there is nothing left for either flag
+            // to mean, and someone's muscle memory still has them in it.
+            if (name.Equals("tailwind", StringComparison.Ordinal))
+            {
+                return "--tailwind is gone: Tailwind is built in, so every project is scaffolded with it.";
+            }
+
+            if (name.Equals("bootstrap", StringComparison.Ordinal))
+            {
+                return "--bootstrap is gone: Rask.Bootstrap has been removed and every project is styled "
+                    + "with Tailwind, which is built in.";
+            }
+
             if (name.Equals("all-batteries", StringComparison.Ordinal))
             {
                 return "--all-batteries is gone: every battery is on by default now. "
@@ -306,7 +303,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
     /// <summary>
     /// The batteries a project gets: everything <paramref name="template"/> supports, minus whatever
-    /// <paramref name="off"/> names, with auth and styling asked for separately.
+    /// <paramref name="off"/> names, with auth asked for separately.
     /// </summary>
     /// <remarks>
     /// <b>This is where "batteries included" is decided</b>, and it is decided here rather than on
@@ -342,11 +339,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// </para>
     /// </remarks>
     internal static ServerBatteries BatteriesOf(
-        IReadOnlyCollection<string> on,
-        Styling styling = Styling.Plain) =>
+        IReadOnlyCollection<string> on) =>
         new()
         {
-            Styling = styling,
             Localization = on.Contains("localization"),
             Auth = on.Contains("auth"),
             Wasm = on.Contains("wasm"),
@@ -367,7 +362,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     internal static ServerBatteries ToBatteries(
         TemplateInfo template,
         IReadOnlyCollection<string> off,
-        Styling styling = Styling.Plain,
         bool auth = false,
         bool wasm = false)
     {
@@ -378,7 +372,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         return new ServerBatteries
         {
-            Styling = styling,
             Auth = auth,
             // Like auth: asked for by name, and only honoured by a template that can host it.
             Wasm = wasm && template.SupportedFlags.Contains("wasm"),
@@ -448,26 +441,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         _ = TemplateCatalog.TryGet(templateKey, out var template);
 
 
-        // Styling. One question with three answers rather than a pair of booleans: plain, Bootstrap and
-        // Tailwind are alternatives, and a flag pair would have had to define what --bootstrap --tailwind
-        // means. Plain leads because it is the one answer that assumes nothing about what you are
-        // building.
-        if (!parsed.HasFlag("bootstrap") && !parsed.HasFlag("tailwind"))
-        {
-            var styling = prompt.Select(
-                "Styling",
-                [
-                    ("plain", "[bold]Plain CSS[/] [dim]— a small stylesheet the project owns, no framework[/]"),
-                    ("tailwind", "[bold]Tailwind[/] [dim]— utilities compiled from your own source, no npm needed[/]"),
-                    ("bootstrap", "[bold]Rask.Bootstrap[/] [dim]— Bs* components over Bootstrap 5.3, no CDN[/]"),
-                ],
-                "plain");
-
-            if (styling != "plain")
-            {
-                filled.Add("--" + styling);
-            }
-        }
+        // Styling asks nothing: Tailwind is built in, so there is no answer a project could give.
 
         // Auth and the browser rung get questions of their own because they are the two that are off by
         // default. Everything else on the list is already on, so the checklist below is about taking
@@ -555,12 +529,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // Resolved through the same path the scaffold will take, rather than read back off the flags. The
         // summary's whole job is to be what happens next, and a second reading of the same answers is how
         // it comes to say something the generator then contradicts.
-        var styling = args.Contains("--tailwind", StringComparer.Ordinal) ? Styling.Tailwind
-            : args.Contains("--bootstrap", StringComparer.Ordinal) ? Styling.Bootstrap
-            : Styling.Plain;
         var off = BatteryFlags.Where(f => args.Contains("--" + OffFlag(f), StringComparer.Ordinal)).ToArray();
         var batteries = ToBatteries(
-            template, off, styling,
+            template, off,
             auth: args.Contains("--auth", StringComparer.Ordinal),
             wasm: args.Contains("--wasm", StringComparer.Ordinal));
 
@@ -571,15 +542,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         grid.AddColumn();
         grid.AddRow(Label("📦", "Project"), new Text(args[0]));
         grid.AddRow(Label("🧩", "Type"), new Text(template.DisplayName));
-
-        grid.AddRow(
-            Label("🎨", "Styling"),
-            new Text(styling switch
-            {
-                Styling.Tailwind => "Tailwind",
-                Styling.Bootstrap => "Rask.Bootstrap",
-                _ => "plain CSS",
-            }));
 
         grid.AddRow(
             Label("🔑", "Auth"),

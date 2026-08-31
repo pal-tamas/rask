@@ -10,9 +10,6 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
-    <!-- The grid slice (ProductGridPage) uses BsDataGrid. The rest of this sample stays plain Core
-         components over the Bootstrap CSS the shell links from a CDN. -->
-    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <!-- UseRaskSqlite: the production SQLite pragmas (WAL, foreign_keys, busy_timeout) on every connection. -->
     <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
     <!-- The mail slice (SendMailPage) queues transactional email on the same SQLite database. -->
@@ -22,6 +19,12 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+    <!-- Tailwind, compiled at this project's build. Build-only: it contributes an MSBuild task and a
+         CLI run, not an assembly. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -34,12 +37,12 @@
 
   <ItemGroup>
     <!-- Bs* types and their generated factories, matching how a consuming app gets them. -->
-    <Using Include="Rask.Bootstrap"/>
   </ItemGroup>
 
   <!-- The ASP.NET Web SDK requires a wwwroot to exist even when there are no static files. -->
   <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">
     <MakeDir Directories="wwwroot"/>
   </Target>
+
 
 </Project>

@@ -72,8 +72,8 @@ public sealed class ChainSnippetTests
                 private string _text = "";
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
-                        H2.Class("card-title")["Products"],
+                    Div.Class("panel")[
+                        H2.Class("panel-title")["Products"],
                         P["Everything we sell."]
                     ];
 
@@ -118,7 +118,7 @@ public sealed class ChainSnippetTests
                 public Action? OnPick { get; set; }
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H2[Title],
                         P[Subtitle ?? ""],
                         Button.OnClick(() => OnPick?.Invoke())["Pick"]

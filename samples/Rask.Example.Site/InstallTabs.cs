@@ -6,9 +6,9 @@ namespace Rask.Example.Site;
 /// </summary>
 public sealed partial class InstallTabs : Component
 {
-    private int _active; // 0 = Server, 1 = WASM
-
     private static readonly string[] Labels = ["Server", "WASM"];
+
+    private int _active; // 0 = Server, 1 = WASM
 
     /// <summary>
     /// The install command, spelled once. It is the same string in the README, NUGET.md, docs/cli.md,
@@ -20,52 +20,62 @@ public sealed partial class InstallTabs : Component
 
     private const string WindowsInstallCommand = "irm https://pal-tamas.github.io/rask/rask.ps1 | iex";
 
-    private Component Tab(int i) =>
-        Button
-            .Class("tab")
-            .Type("button")
-            .Role("tab")
-            .Aria(new Dictionary<string, string?> { ["selected"] = i == _active ? "true" : "false" })
-            .OnClick(() => _active = i)[Labels[i]];
-
-    private static Component Line(string prompt, string rest) =>
-        [Span.Class("prompt")[prompt], rest + "\n"];
-
-    private Component Terminal() => _active switch
-    {
-        1 => Pre[Code[
-            Span.Class("cmt")["# standalone browser-WASM SPA, installable and offline\n"],
-            Line("$", " " + InstallCommand),
-            Line("$", " rask new MyApp --template wasm"),
-            Span.Class("prompt")["$"], " cd MyApp && rask dev"
-        ]],
-        _ => Pre[Code[
-            Span.Class("cmt")["# ASP.NET live-server app, batteries included\n"],
-            Line("$", " " + InstallCommand),
-            Line("$", " rask new MyApp"),
-            Span.Class("prompt")["$"], " cd MyApp && rask dev"
-        ]]
-    };
-
+    /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("install-wrap")[
+        Div.Class("mx-auto max-w-2xl")[
             Div
-                .Class("tabs")
+                .Class("mb-3 flex justify-center gap-2")
                 .Role("tablist")
                 .Aria(new Dictionary<string, string?> { ["label"] = "Project template" })[
                 Tab(0), Tab(1)
             ],
-            Div.Class("term")[Terminal()],
-            P.Class("install-foot")[
+            // .term and .install-foot are TEST contracts: SiteExampleTests reads the rendered command and
+            // the Windows one-liner out of them, and a locator that resolves to nothing fails by timing
+            // out rather than by naming what moved.
+            Div.Class("term overflow-x-auto rounded-2xl border border-line bg-panel-2 p-5 text-left")[
+                Terminal()
+            ],
+            P.Class("install-foot mt-4 text-center text-xs text-slate-500 dark:text-slate-400")[
                 "Nothing preinstalled — it adds the .NET 10 SDK too, under ", Code["$HOME"],
                 ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
             ],
-            P.Class("install-foot")[
+            P.Class("install-foot mt-4 text-center text-xs text-slate-500 dark:text-slate-400")[
                 "Add ", Code["--auth"], " for a cookie/JWT starter · full path in the ",
                 A
+                    .Class("text-accent-ink no-underline hover:underline")
                     .Href("https://github.com/pal-tamas/rask/blob/main/docs/getting-started.md")
                     .Target("_blank")
                     .Rel("noopener")["getting-started guide"], "."
             ]
         ];
+
+    private static Component Line(string prompt, string rest) =>
+        [Span.Class("select-none text-accent-ink")[prompt], rest + "\n"];
+
+    private Component Tab(int i) =>
+        Button
+            .Key(i)
+            .Class(i == _active
+                ? "rounded-lg border border-line bg-panel px-4 py-1.5 text-sm font-medium text-ink"
+                : "rounded-lg border border-transparent px-4 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-ink")
+            .Type("button")
+            .Role("tab")
+            .Aria(new Dictionary<string, string?> { ["selected"] = i == _active ? "true" : "false" })
+            .OnClick(() => _active = i)[Labels[i]];
+
+    private Component Terminal() => _active switch
+    {
+        1 => Pre.Class("font-mono text-xs leading-relaxed text-ink-soft")[Code[
+            Span.Class("text-slate-500 dark:text-slate-400")["# standalone browser-WASM SPA, installable and offline\n"],
+            Line("$", " " + InstallCommand),
+            Line("$", " rask new MyApp --template wasm"),
+            Span.Class("select-none text-accent-ink")["$"], " cd MyApp && rask dev"
+        ]],
+        _ => Pre.Class("font-mono text-xs leading-relaxed text-ink-soft")[Code[
+            Span.Class("text-slate-500 dark:text-slate-400")["# ASP.NET live-server app, batteries included\n"],
+            Line("$", " " + InstallCommand),
+            Line("$", " rask new MyApp"),
+            Span.Class("select-none text-accent-ink")["$"], " cd MyApp && rask dev"
+        ]]
+    };
 }

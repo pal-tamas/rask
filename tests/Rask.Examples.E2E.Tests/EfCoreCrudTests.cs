@@ -39,7 +39,7 @@ public sealed class EfCoreCrudTests(EfCoreExampleAppFixture app, PlaywrightFixtu
         await Assertions.Expect(createdRow).ToContainTextAsync("7");
 
         // EDIT — follow the row's edit link, rename, save.
-        await createdRow.Locator("a.btn-outline-secondary").ClickAsync();
+        await createdRow.Locator("a[aria-label^='Edit ']").ClickAsync();
         await _page.FillAsync("#p-name", "E2E gizmo");
         await _page.ClickAsync("button[type=submit]");
 
@@ -47,7 +47,7 @@ public sealed class EfCoreCrudTests(EfCoreExampleAppFixture app, PlaywrightFixtu
         await Assertions.Expect(_page.Locator("tr:has-text('E2E gadget')")).ToHaveCountAsync(0);
 
         // DELETE
-        await _page.Locator("tr:has-text('E2E gizmo')").Locator("button.btn-outline-danger").ClickAsync();
+        await _page.Locator("tr:has-text('E2E gizmo')").Locator("button[aria-label^='Delete ']").ClickAsync();
         await Assertions.Expect(_page.Locator("tr:has-text('E2E gizmo')")).ToHaveCountAsync(0);
     }
 

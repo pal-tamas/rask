@@ -54,22 +54,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Bring the generated Bs* factories into scope unqualified (BsButton()/BsLink()/BsBadge()/BsIcon()/
-         BootstrapStyles()/RaskTokens()), matching how the other samples consume Rask.Bootstrap. -->
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <!-- Rask.Wasm references Rask.Core with PrivateAssets="all" (kept out of its nuspec), so it doesn't
          flow transitively — reference it directly, as any Rask app that doesn't go through the showcase
          shared library would. Microsoft.JSInterop likewise, for IJSRuntime in the editor interop. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <!-- Typed Bootstrap primitives for the IDE chrome (topbar buttons/badge/theme toggle), so the
-         playground shares the same Bs* component language + the shared design tokens as the docs. Bundles
-         Bootstrap's CSS as static web assets under _content/Rask.Bootstrap — negligible next to the
-         untrimmed multi-MB Roslyn payload this sub-app already ships. -->
-    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
+    <!-- Build-order edge only. The Tailwind wiring itself arrives from Directory.Build.{props,targets}
+         (and, for a scaffolded app, from inside the host package) — this reference exists so that
+         Rask.Tailwind.Tasks.dll is on disk before the UsingTask that loads it runs. Build-only: an
+         MSBuild task and a CLI run, not an assembly, so the payload is unchanged. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
     <PackageReference Include="Microsoft.JSInterop"/>
     <!-- Roslyn, shipped to the browser (a normal reference, so Microsoft.CodeAnalysis.* land in
          _framework and load at runtime). This is the ~15-20 MB the sub-app isolation exists to contain.
@@ -98,5 +96,6 @@
          the same conventions `rask generate feature` scaffolds into a real project. -->
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
+
 
 </Project>

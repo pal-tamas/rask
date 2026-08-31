@@ -1,0 +1,74 @@
+<Project>
+
+  <!--
+    Shared packing of the Tailwind build integration (the props defaults, the compile targets and the
+    task assembly that resolves the compiler) into each host package's build/ folder. Imported by the
+    host packages (Rask.Server, Rask.Wasm). Both live at src/<Name>/, so the ..\Rask.Tailwind relative
+    path — evaluated relative to the IMPORTING project's directory — resolves identically from either
+    of them, keeping the two packages' Tailwind payload in lockstep from one place.
+
+    This is the whole of "Tailwind is built in". It is not a package you add and not a flag you pass:
+    referencing a Rask host is what puts the compiler in your build, the same way referencing one is
+    what puts scoped CSS there. An app that upgrades its host package gets it with nothing to edit.
+
+    Rask.Tailwind is IsPackable=false for the same reason Rask.Core is — a second package carrying
+    these same files would be imported ALONGSIDE the host's copy, and the Tailwind target would run
+    twice against one output.
+
+    NuGet auto-imports only build/<PackageId>.{props,targets}, so build/Rask.Tailwind.{props,targets}
+    are payload, not entry points — each host package's own build/<PackageId>.{props,targets} imports
+    them, guarded on Exists because these files are packed from Rask.Tailwind's tree and so have no
+    sibling in the source tree. In-repo projects take the Directory.Build.{props,targets} route
+    instead, so the two routes can never both fire for one project.
+  -->
+  <ItemGroup>
+    <None Include="..\Rask.Tailwind\build\Rask.Tailwind.props"
+          Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="..\Rask.Tailwind\build\Rask.Tailwind.targets"
+          Pack="true" PackagePath="build\" Visible="false"/>
+
+    <!--
+      The engine-resolution task, loaded by the <UsingTask> in Rask.Tailwind.targets. Named literally
+      rather than globbed: a glob is expanded at project EVALUATION, before the ProjectReference that
+      produces this DLL has built, so on a tree where it is not already on disk the pack SUCCEEDS and
+      ships a package whose <UsingTask> points at a file that is not in it (#852).
+    -->
+    <None Include="..\Rask.Tailwind\build\Rask.Tailwind.Tasks.dll"
+          Pack="true" PackagePath="build\" Visible="false"/>
+  </ItemGroup>
+
+  <!--
+    Build-order-only edge, so Rask.Tailwind.Tasks.dll is on disk before this package packs it. Without
+    it the <None Include> above collects nothing on a clean tree and says nothing about it.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Tailwind.Tasks\Rask.Tailwind.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!--
+    Fail loud at pack time rather than shipping a host package whose consumers get no stylesheet. A
+    <None Include> of an absent file packs nothing and emits no error, and the first sign would be
+    every page rendering as unstyled HTML in an app that never asked for Tailwind and cannot tell it
+    is missing — precisely the failure the Rask.Core equivalent exists to prevent (#544).
+  -->
+  <Target Name="_RaskVerifyTailwindBuildPacked" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('..\Rask.Tailwind\build\Rask.Tailwind.props')"
+           Text="Rask.Tailwind.props not found at '..\Rask.Tailwind\build\Rask.Tailwind.props' — it must ship in this package's build/ folder, or consumers get none of the Tailwind defaults (version pin, input, output, cache root)." />
+    <Error Condition="!Exists('..\Rask.Tailwind\build\Rask.Tailwind.targets')"
+           Text="Rask.Tailwind.targets not found at '..\Rask.Tailwind\build\Rask.Tailwind.targets' — it must ship in this package's build/ folder, or consumers get no compiled stylesheet and every page renders unstyled." />
+    <Error Condition="!Exists('build\$(PackageId).props')"
+           Text="build\$(PackageId).props is missing — NuGet auto-imports only build/&lt;PackageId&gt;.{props,targets}, so without it the packed build/Rask.Tailwind.props is never imported and every RaskTailwind* default is empty." />
+    <Error Condition="!Exists('build\$(PackageId).targets')"
+           Text="build\$(PackageId).targets is missing — NuGet auto-imports only build/&lt;PackageId&gt;.{props,targets}, so without it the packed build/Rask.Tailwind.targets is never imported by a consumer." />
+    <!--
+      Same failure mode one package later: an absent DLL packs nothing and says nothing, and the first
+      sign is MSB4062 ("could not load the ResolveTailwindCliTask task") in a consumer's build, naming
+      a file they have never heard of.
+    -->
+    <Error Condition="!Exists('..\Rask.Tailwind\build\Rask.Tailwind.Tasks.dll')"
+           Text="Rask.Tailwind.Tasks.dll is not in src/Rask.Tailwind/build/ — build src/Rask.Tailwind.Tasks first (its CopyTaskAssemblyToRaskTailwindBuild target puts it there). Without it the packed Rask.Tailwind.targets declares a &lt;UsingTask&gt; pointing at nothing, and every consumer fails with MSB4062." />
+  </Target>
+
+</Project>

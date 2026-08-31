@@ -34,16 +34,6 @@ public static partial class DemoRegistry
             // Live: mutate the current URL's query through the scoped Navigator (its standalone example
             // page folded into docs/routing.md). Embed NavigatorDemo.cs as the teaching source.
             ["routing-navigator"] = () => CodeSample.Files(["NavigatorDemo.cs"]).Result(NavigatorQueryDemo),
-            // Code-only: the Data table page is a full [QueryParam]-driven grid. It binds sort/filter/page/size
-            // from the URL, so it can't be a co-mounted live demo (a guide can't own query params) — the live
-            // page lives (unlisted) at /table; here we show its source as the query-param teaching example.
-            ["routing-querytable"] = () => CodeSample
-                .Files(["TablePage.cs"])
-                .Title("A [QueryParam]-driven data table")
-                .Notes("Sort, filter, page and page-size are [QueryParam] properties bound from the URL; each header "
-                + "click and pager button writes them back via Navigator.SetQuery, so the page re-resolves "
-                + "against the new query and the state is shareable, bookmarkable, and replayed by browser "
-                + "back/forward. Visit /table to see it live."),
 
             // --- Forms guide: two-way binding ---
             ["binding-manual"] = () => CodeSample
@@ -153,9 +143,6 @@ public static partial class DemoRegistry
             ["form-controls-input"] = () => CodeSample.Files(["FormControlsInputDemo.cs"]).Result(FormControlsInputDemo),
             ["form-controls-textarea"] = () => CodeSample.Files(["FormControlsTextareaDemo.cs"]).Result(FormControlsTextareaDemo),
             ["form-controls-select"] = () => CodeSample.Files(["FormControlsSelectDemo.cs"]).Result(FormControlsSelectDemo),
-            ["form-controls-radio"] = () => CodeSample.Files(["FormControlsRadioDemo.cs"]).Result(FormControlsRadioDemo),
-            ["form-controls-checkbox"] = () => CodeSample.Files(["FormControlsCheckboxDemo.cs"]).Result(FormControlsCheckboxDemo),
-            ["form-controls-multiselect"] = () => CodeSample.Files(["FormControlsMultiSelectDemo.cs"]).Result(FormControlsMultiSelectDemo),
             ["floating-labels"] = () => CodeSample.Files(["FloatingLabelsDemo.cs"]).Result(FloatingLabelsDemo),
 
             // --- Forms guide: the remaining validation demos (their standalone /validation page folded in). ---
@@ -177,12 +164,6 @@ public static partial class DemoRegistry
             ["nested-fluent"] = () => CodeSample.Files(["NestedFluentValidationDemo.cs"]).Result(NestedFluentValidationDemo),
 
             // --- Forms guide: radio/checkbox groups + multi-select example components. ---
-            ["form-groups"] = () => CodeSample.Files(["FormGroupsDemo.cs"]).Result(FormGroupsDemo),
-            ["multi-select"] = () => CodeSample.Files(["MultiSelectDemo.cs"]).Result(MultiSelectDemo),
-            ["multi-select-controlled"] = () => CodeSample.Files(["MultiSelectControlledDemo.cs"]).Result(MultiSelectControlledDemo),
-            ["multi-select-checkbox"] = () => CodeSample.Files(["MultiSelectCheckboxDemo.cs"]).Result(MultiSelectCheckboxDemo),
-            ["multi-select-radio"] = () => CodeSample.Files(["MultiSelectRadioDemo.cs"]).Result(MultiSelectRadioDemo),
-            ["multi-select-native"] = () => CodeSample.Files(["NativeMultiSelectDemo.cs"]).Result(NativeMultiSelectDemo),
 
             // --- Composition guide: context, callbacks, virtualize, keyed lists, drag & drop, error
             //     boundaries (their standalone example pages folded into docs/composition.md). ---
@@ -235,7 +216,7 @@ public static partial class DemoRegistry
                 .Result(ElementRefDemo),
             ["js-interop-scoped-css"] = () => CodeSample
                 .Files(["ScopedRed.cs", "ScopedBlue.cs", "ScopedRed.css", "ScopedBlue.css"])
-                .Result(BsStack.Vertical(true).Gap(2)[ScopedRed, ScopedBlue]),
+                .Result(Div.Class("flex gap-2 flex-col")[ScopedRed, ScopedBlue]),
             ["js-interop-jsruntime"] = () => CodeSample.Files(["JsRuntimeDemo.cs"]).Result(JsRuntimeDemo),
             ["js-interop-thirdparty"] = () => CodeSample
                 .Files(["GanttDemo.cs", "Gantt.cs", "Gantt.ts"])
@@ -263,36 +244,10 @@ public static partial class DemoRegistry
             ["asset-js-only"] = () => CodeSample.Files(["JsOnlyDemo.cs", "JsOnlyDemo.ts"]).Result(JsOnlyDemo),
             ["asset-twin-bundle"] = () => CodeSample
                 .Files(["TwinA.cs", "TwinA.css"])
-                .Result(BsStack.Gap(2).WrapItems(true)[TwinA, TwinB]),
+                .Result(Div.Class("flex gap-2 flex-wrap items-center")[TwinA, TwinB]),
             ["asset-lazy-mount"] = () => CodeSample
                 .Files(["LazyMount.cs", "LazyChild.cs", "LazyChild.css"])
                 .Result(LazyMount),
-
-            // --- Bootstrap guide: the Rask.Bootstrap component showcase (its standalone example pages
-            //     folded into docs/bootstrap.md). Each demo already lived in its own Bs*Demo.cs. ---
-            ["bootstrap-layout"] = () => CodeSample.Files(["BsLayoutDemo.cs"]).Result(BsLayoutDemo),
-            ["bootstrap-nav"] = () => CodeSample.Files(["BsNavDemo.cs"]).Result(BsNavDemo),
-            ["bootstrap-buttons"] = () => CodeSample.Files(["BsButtonsDemo.cs"]).Result(BsButtonsDemo),
-            ["bootstrap-cards"] = () => CodeSample.Files(["BsCardsDemo.cs"]).Result(BsCardsDemo),
-            ["bootstrap-breadcrumb"] = () => CodeSample.Files(["BsBreadcrumbDemo.cs"]).Result(BsBreadcrumbDemo),
-            ["bootstrap-listgroup"] = () => CodeSample.Files(["BsListGroupDemo.cs"]).Result(BsListGroupDemo),
-            ["bootstrap-placeholder"] = () => CodeSample.Files(["BsPlaceholderDemo.cs"]).Result(BsPlaceholderDemo),
-            ["bootstrap-alerts"] = () => CodeSample.Files(["BsAlertsDemo.cs"]).Result(BsAlertsDemo),
-            ["bootstrap-icons"] = () => CodeSample.Files(["BsIconsDemo.cs"]).Result(BsIconsDemo),
-            ["bootstrap-modal"] = () => CodeSample.Files(["BsModalDemo.cs"]).Result(BsModalDemo),
-            ["bootstrap-tabs"] = () => CodeSample.Files(["BsTabsDemo.cs"]).Result(BsTabsDemo),
-            ["bootstrap-table"] = () => CodeSample.Files(["BsTableDemo.cs"]).Result(BsTableDemo),
-            ["bootstrap-pagination"] = () => CodeSample.Files(["BsPaginationDemo.cs"]).Result(BsPaginationDemo),
-            ["bootstrap-offcanvas"] = () => CodeSample.Files(["BsOffcanvasDemo.cs"]).Result(BsOffcanvasDemo),
-            ["bootstrap-confirm"] = () => CodeSample.Files(["BsConfirmDialogDemo.cs"]).Result(BsConfirmDialogDemo),
-            ["bootstrap-collapse"] = () => CodeSample.Files(["BsCollapseDemo.cs"]).Result(BsCollapseDemo),
-            ["bootstrap-spinner"] = () => CodeSample.Files(["BsSpinnerDemo.cs"]).Result(BsSpinnerDemo),
-            ["bootstrap-progress"] = () => CodeSample.Files(["BsProgressDemo.cs"]).Result(BsProgressDemo),
-            ["bootstrap-dropdown"] = () => CodeSample.Files(["BsDropdownDemo.cs"]).Result(BsDropdownDemo),
-            ["bootstrap-forms"] = () => CodeSample.Files(["BsFormsDemo.cs"]).Result(BsFormsDemo),
-            ["bootstrap-select"] = () => CodeSample.Files(["BsSelectDemo.cs"]).Result(BsSelectDemo),
-            ["bootstrap-multiselect"] = () => CodeSample.Files(["BsMultiSelectDemo.cs"]).Result(BsMultiSelectDemo),
-            ["bootstrap-pickers"] = () => CodeSample.Files(["BsPickersDemo.cs"]).Result(BsPickersDemo),
 
             // --- Localization guide ---
             ["localization-formats"] = () => CodeSample.Files(["CultureFormatsDemo.cs"])
@@ -300,76 +255,6 @@ public static partial class DemoRegistry
                 .Notes("Fixed sample values and an explicit CultureInfo per call — a demo that read the "
                        + "ambient culture would reformat every other demo on this page.")
                 .Result(CultureFormatsDemo),
-            ["bootstrap-utilities"] = () => CodeSample.Files(["BsUtilitiesDemo.cs"]).Result(BsUtilitiesDemo),
-
-            // --- Data grid guide (docs/data-grid.md). Three separate grids rather than one kitchen sink, so
-            //     each demo stays readable and each has its own id for the browser tests to target. ---
-            ["data-grid"] = () => CodeSample.Files(["BsDataGridDemo.cs"]).Result(BsDataGridDemo),
-            ["data-grid-detail"] = () => CodeSample
-                .Files(["BsDataGridDetailDemo.cs"])
-                .Notes("Expanding a row inserts a keyed detail <tr> after it, so the live diff reconciles it "
-                       + "as an in-place insert: other open rows keep their state. RowKey is what ties "
-                       + "expansion to the row rather than to its position — sort with a row open and it "
-                       + "follows.")
-                .Result(BsDataGridDetailDemo),
-            ["data-grid-empty"] = () => CodeSample.Files(["BsDataGridEmptyDemo.cs"]).Result(BsDataGridEmptyDemo),
-            ["data-grid-row"] = () => CodeSample
-                .Files(["BsDataGridRowDemo.cs"])
-                .Notes("OnRowClick is attached to the cells of the RowClickable columns — by default the Value "
-                       + "columns, never the Template ones. That is what keeps the Open button alive: the "
-                       + "client cancels the default action of every click it dispatches, so a handler above "
-                       + "the button would swallow its click, and a link or checkbox would go dead the same "
-                       + "way. A clickable row is a pointer shortcut, so the button stays the real, "
-                       + "keyboard-reachable control.")
-                .Result(BsDataGridRowDemo),
-            ["data-grid-group"] = () => CodeSample
-                .Files(["BsDataGridGroupDemo.cs"])
-                .Notes("Field names the column by reading the member off the expression (Field = d => d.Region "
-                       + "-> \"region\"), which is what Grouped carries and what a URL would. Value could not: "
-                       + "a compiled Func has no member name. The source list is not ordered by region — a "
-                       + "band is a run of CONSECUTIVE rows, so the grid orders by the group keys first and "
-                       + "the user's sort applies inside each band. Click Amount and watch the rows re-sort "
-                       + "within the bands rather than scattering them. Subtotals reuse each column's Footer "
-                       + "delegate over the band's rows, and see only the rows on this page. A grouped column "
-                       + "folds away by default — its value already names the band header — so 'Show grouped "
-                       + "column' flips ShowGroupedColumns to keep it in the table too.")
-                .Result(BsDataGridGroupDemo),
-            ["data-grid-columns"] = () => CodeSample
-                .Files(["BsDataGridColumnsDemo.cs"])
-                .Notes("ColumnChooser adds a 'Columns' menu: a checkbox per column to show or hide it, and move "
-                       + "earlier/later buttons to reorder it — every action a real button or checkbox, so it "
-                       + "works from the keyboard alone. Dragging a header onto another reorders it too, as a "
-                       + "mouse accelerator. HiddenColumns and ColumnOrder are token lists of Field names, just "
-                       + "like Grouped, so a real app persists them into the URL and a laid-out grid survives a "
-                       + "reload. Hide, reorder and grouped-away folding all funnel through one visible-column "
-                       + "list, so sort, footers and colspans follow for free.")
-                .Result(BsDataGridColumnsDemo),
-            ["data-grid-selection"] = () => CodeSample
-                .Files(["BsDataGridSelectionDemo.cs"])
-                .Notes("Selection is tracked by RowKey, not by position, so it follows a row through a sort "
-                       + "and accumulates across pages — pick a row, sort, page, and it stays picked. "
-                       + "OnSelectionChange reports the full set of KEYS after every click, not a delta and "
-                       + "not rows: under TotalCount or an IQueryable the grid only ever holds the current "
-                       + "page, so it cannot turn a key from a page you have left back into a row. The "
-                       + "header checkbox says 'select all rows on this page' because the page is all it can "
-                       + "reach.")
-                .Result(BsDataGridSelectionDemo),
-            ["data-grid-loading"] = () => CodeSample
-                .Files(["BsDataGridLoadingDemo.cs"])
-                .Notes("Loading is bool?, and the three states differ: null means the grid isn't using the "
-                       + "feature and renders exactly as before; false means in use and idle; true means "
-                       + "fetching. That distinction lets the position-relative wrapper stay put across the "
-                       + "flip instead of appearing under the table — the live diff matches sibling elements "
-                       + "by tag name, so a wrapper that came and went would be paired with whatever div sat "
-                       + "at its slot. aria-busy goes on the table and the spinner outside it, because a "
-                       + "role=status live region inside an aria-busy subtree never announces.")
-                .Result(BsDataGridLoadingDemo),
-            ["data-grid-sticky"] = () => CodeSample
-                .Files(["BsDataGridStickyDemo.cs"])
-                .Notes("StickyHeader needs MaxHeight: a sticky header sticks to its nearest scroll container, "
-                       + "so without a bounded height there is nothing to stick to and it scrolls away with "
-                       + "the page.")
-                .Result(BsDataGridStickyDemo),
 
             // --- Elements & the DSL guide: primitives, tag factories, universal props, SVG, and the
             //     HTML element catalog (their standalone example pages folded into docs/elements.md).
@@ -445,22 +330,6 @@ public static partial class DemoRegistry
                 .Files(["EventsFormDemo.cs"])
                 .Notes("OnSubmit receives a FormData object collected from all named form fields.")
                 .Result(EventsFormDemo),
-            // Toast → composition.md ("Toast messages").
-            ["toaster"] = () => CodeSample
-                .Files(["ToasterDemo.cs"])
-                .Notes("ToasterDemo injects IToaster and calls toast.Success(...) / .Error(...) on click. The headless "
-                + "ToastOutlet — subscribed to IToaster.Changed — drains the queue (consumed-once) and renders a "
-                + "dismissible BsAlert stack; AutoDismissAfter clears each message after 5s, or the × dismisses "
-                + "it early via the Template's dismiss(id). No StateHasChanged, no JS.")
-                .Result(ToasterDemo),
-            // Toast → bootstrap.md (the Rask.Bootstrap BsToast component).
-            ["bootstrap-toast"] = () => CodeSample
-                .Files(["ToastDemo.cs"])
-                .Notes("BsToast renders class=\"toast show\", so a toast exists in the tree only while visible; the × "
-                + "fires OnClose(Id) — an Action<int> the host binds as a method group — so the framework "
-                + "re-renders the host, dropping it from the list. Auto-hide is a one-shot Timer in OnMount, "
-                + "disposed in OnUnmount. Each toast carries a Key for the keyed diff.")
-                .Result(ToastDemo),
             // User & auth → authentication.md (imperative gate + declarative Authorize).
             ["auth-user-gate"] = () => CodeSample
                 .Files(["UserGateDemo.cs"])

@@ -15,8 +15,8 @@ public sealed partial class UsbPage : Component
 
     protected override Component? Render() =>
     [
-        H1.Class("h2 mb-1")["WebUSB"],
-        P.Class("text-secondary")[
+        H1.Class("text-3xl font-bold mb-1")["WebUSB"],
+        P.Class("text-slate-500 dark:text-slate-400")[
             "Pair with and drive a USB device — custom hardware, a dev board, an instrument — straight from C# ",
             "via IUsb (the WebUSB API): show its descriptor, open it, claim an interface, and run ",
             "bulk / interrupt / control transfers. WASM-only: requestDevice() needs a live user gesture and the ",

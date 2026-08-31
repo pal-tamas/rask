@@ -184,8 +184,6 @@ the sort column and direction, the current page and page size — in `[QueryPara
 header click and pager button back through `Navigator.SetQuery`. Because the state lives in the URL, it's
 shareable and bookmarkable, and browser back/forward replay it for free. The source (the whole page, verbatim):
 
-<!-- demo:routing-querytable -->
-
 ## Nested routes — `[ParentRoute]` + `Outlet()`
 
 A page can declare a parent layout with `[ParentRoute]`. The child's template is joined onto the

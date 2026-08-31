@@ -62,7 +62,7 @@ public sealed class TailwindVersionPinTests
         get
         {
             var result = ProjectGenerator.GenerateSpa(
-                "/proj/App", "App", SpaFramework.React, new ServerBatteries { Styling = Styling.Tailwind }, "9.9.9");
+                "/proj/App", "App", SpaFramework.React, new ServerBatteries(), "9.9.9");
 
             var patch = result.Patches.Single(p => p.Path.EndsWith("package.json", StringComparison.Ordinal));
             var json = patch.Transform("""{ "dependencies": {}, "devDependencies": {}, "scripts": {} }""");

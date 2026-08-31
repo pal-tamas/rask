@@ -14,6 +14,12 @@
       Rask.Example.Auth.WasmJwt.Host is the sample that does wire the handler; it keeps the JwtBearer reference.
     -->
     <PackageReference Include="System.IdentityModel.Tokens.Jwt"/>
+    <!-- Tailwind, compiled at this project's build. Build-only: it contributes an MSBuild task and a
+         CLI run, not an assembly. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -28,5 +34,6 @@
   <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">
     <MakeDir Directories="wwwroot"/>
   </Target>
+
 
 </Project>

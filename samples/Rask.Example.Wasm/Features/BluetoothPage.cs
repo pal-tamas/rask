@@ -15,8 +15,8 @@ public sealed partial class BluetoothPage : Component
 
     protected override Component? Render() =>
     [
-        H1.Class("h2 mb-1")["Web Bluetooth"],
-        P.Class("text-secondary")[
+        H1.Class("text-3xl font-bold mb-1")["Web Bluetooth"],
+        P.Class("text-slate-500 dark:text-slate-400")[
             "Pair with a Bluetooth Low Energy device and talk to its GATT services from C# — connect, read / ",
             "write characteristics, and subscribe to notifications (heart-rate monitors, thermometers, fitness ",
             "sensors, custom hardware) — via IBluetooth (the Web Bluetooth API). WASM-only: requestDevice() ",

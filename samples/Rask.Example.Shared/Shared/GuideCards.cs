@@ -28,20 +28,19 @@ public sealed partial class GuideCards : Component
             }
 
             yield return H2
-                .Class(Bs.Join(Font.Bold, Txt.Uppercase, Txt.Color(BsColor.Secondary),
-                Margin.Top(4), Margin.Bottom(3), "h6", "feature-section"))[group];
-            yield return BsRow.Gutter(3)[cards.Select(c => (Component)Card(c))];
+                .Class("font-bold uppercase text-slate-500 mt-4 mb-3 text-base font-semibold feature-section")[group];
+            yield return Div.Class("grid grid-cols-12 gap-4")[cards.Select(c => (Component)Card(c))];
         }
     }
 
     private static Component Card(GuideEntry g) =>
-        BsCol.Key(g.Slug).Md(6).Lg(4)[
-            NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("text-decoration-none")[
-                BsCard.Class(Bs.Join(Sizing.H(100), Border.None, Shadow.Sm, "feature-card"))[
-                    BsCardBody.Class("p-4")[
-                        Div.Class("feature-icon mb-3")[I.Class($"bi {g.Icon}")],
-                        H3.Class(Bs.Join(Font.Semibold, Margin.Bottom(2), "h6", "text-body"))[g.Title],
-                        P.Class(Bs.Join(Txt.Color(BsColor.Secondary), Margin.Bottom(0), "small"))[g.Blurb]
+        Div.Class("md:col-span-6 lg:col-span-4").Key(g.Slug)[
+            NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("no-underline")[
+                Div.Class($"{Ui.Card} h-full border-0 shadow-sm feature-card")[
+                    Div.Class($"{Ui.CardBody} p-4")[
+                        Div.Class("feature-icon mb-3")[Icon.Name(g.Icon).Class("text-2xl")],
+                        H3.Class("font-semibold mb-2 text-base text-slate-900 dark:text-slate-100")[g.Title],
+                        P.Class("text-slate-500 mb-0 text-sm")[g.Blurb]
                     ]
                 ]
             ]

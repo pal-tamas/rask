@@ -9,19 +9,26 @@ public sealed partial class LiveCounter : Component
 {
     private int _count;
 
+    /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("card live")[
-            Div.Class("card-bar")[
-                Span.Class("traf").Style("background:var(--accent)"),
-                Span.Class("fn")["running · /counter"]
+        Div.Class("rounded-2xl border border-line bg-panel")[
+            Div.Class("flex items-center gap-2 border-b border-line bg-panel-2 px-4 py-2.5")[
+                Span.Class("size-2.5 shrink-0 rounded-full").Style("background:var(--color-accent)"),
+                Span.Class("font-mono text-xs text-slate-500 dark:text-slate-400")["running · /counter"]
             ],
-            Div.Class("live-body")[
-                H3["Current count"],
-                Div.Class("count")[_count],
-                Button.Class("count-btn").Type("button").OnClick(() => _count++)["Click me"]
+            Div.Class("flex flex-col items-center gap-3 px-6 py-8")[
+                H3.Class("text-sm font-medium text-slate-500 dark:text-slate-400")["Current count"],
+                // .count and .count-btn are a TEST contract, not styling: SiteExampleTests reads the
+                // value and clicks the button by these names, and a Playwright locator that resolves to
+                // nothing fails by timing out rather than by naming what moved.
+                Div.Class("count text-5xl font-semibold tabular-nums tracking-tight text-ink")[_count],
+                Button
+                    .Class("count-btn inline-flex items-center rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-2")
+                    .Type("button")
+                    .OnClick(() => _count++)["Click me"]
             ],
-            Div.Class("live-note")[
-                "Each click ships a ", B["~41-byte diff"], " — not a re-render of the page."
+            Div.Class("border-t border-line px-4 py-3 text-center text-xs text-slate-500 dark:text-slate-400")[
+                "Each click ships a ", B.Class("text-ink-soft")["~41-byte diff"], " — not a re-render of the page."
             ]
         ];
 }

@@ -8,29 +8,29 @@ public sealed partial class FluentValidationDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Ordered {m.Quantity} × {m.Product}").Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Ordered {m.Quantity} × {m.Product}").Class("flex flex-col gap-3")[
             FluentValidationValidator.Validator(new OrderValidator()),
             Div[
-                Label.For("v7-product").Class("form-label small mb-1")["Product"],
-                Input.Bind(() => _model.Product).Id("v7-product").Class("form-control"),
+                Label.For("v7-product").Class($"{Ui.Label} text-sm mb-1")["Product"],
+                Input.Bind(() => _model.Product).Id("v7-product").Class(Ui.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Product)
             ],
             Div[
-                Label.For("v7-quantity").Class("form-label small mb-1")["Quantity"],
-                Input.Bind(() => _model.Quantity).Id("v7-quantity").Class("form-control"),
+                Label.For("v7-quantity").Class($"{Ui.Label} text-sm mb-1")["Quantity"],
+                Input.Bind(() => _model.Quantity).Id("v7-quantity").Class(Ui.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Quantity)
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.BagCheck).Class("me-1"), "Order"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.BagCheck).Class("me-1"), "Order"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

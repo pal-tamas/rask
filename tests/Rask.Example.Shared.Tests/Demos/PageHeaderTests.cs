@@ -13,9 +13,10 @@ public sealed partial class PageHeaderTests : global::Rask.Core.RaskMarkup
             () => PageHeader
                 .Title("Greetings").Lead("A welcoming subtitle."),
             TestServices.Default()).RenderAsLiveRoot();
-        // PageHeader uses H1 with bootstrap class "h2" (visual sizing, not HTML tag).
-        Assert.Contains("<h1 class=\"h2 fw-bold mb-2\">Greetings</h1>", html);
-        Assert.Contains("<p class=\"lead text-secondary mb-0\">A welcoming subtitle.</p>", html);
+        // <h1> is the heading LEVEL; the utilities set its size, which used to be Bootstrap's .h2.
+        Assert.Contains("<h1 class=\"text-3xl font-bold mb-2\">Greetings</h1>", html);
+        Assert.Contains(
+            "<p class=\"text-lg text-slate-500 dark:text-slate-400 mb-0\">A welcoming subtitle.</p>", html);
     }
 
     [Fact]

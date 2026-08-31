@@ -177,7 +177,7 @@ shows up as a diff in a text file, in the same PR, where a reviewer reads it as 
 reconstructing it from a thousand lines of implementation.
 
 Generated public API is recorded too. Rask hand-writes almost none of the surface a user types —
-`Div.Class("card")`, `HomePage.Url()` and every chain step are emitted by the generators — so a gate
+`Div.Class("panel")`, `HomePage.Url()` and every chain step are emitted by the generators — so a gate
 that skipped generated code would skip the part people actually call. It also cannot be skipped
 cleanly: path-scoped `.editorconfig` severity does not reach generator-produced trees, so an exclusion
 would have to be a project-wide `NoWarn`, which is a hole rather than a rule.

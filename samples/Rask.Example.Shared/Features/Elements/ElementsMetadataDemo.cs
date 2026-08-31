@@ -24,20 +24,20 @@ public sealed partial class ElementsMetadataDemo : Component
     ];
 #pragma warning restore RASK019
 
-    protected override Component? Render() => Div.Class("vstack gap-3")[
+    protected override Component? Render() => Div.Class("flex flex-col gap-3")[
         Div[
-            P.Class("small mb-1 text-secondary")[
+            P.Class("text-sm mb-1 text-slate-500 dark:text-slate-400")[
                 "The structural elements compose a document. Here is a real shell and its serialized HTML:"],
-            Pre.Class("bg-dark text-light rounded p-3 mb-0").Style("white-space:pre-wrap;word-break:break-word")[
+            Pre.Class("bg-slate-900 text-slate-100 rounded p-3 mb-0").Style("white-space:pre-wrap;word-break:break-word")[
                 Code[Shell().ToHtml()]]
         ],
         Div[
-            P.Class("small mb-1 text-secondary")[
+            P.Class("text-sm mb-1 text-slate-500 dark:text-slate-400")[
                 "template holds inert content (cloned by JS); slot is a shadow-DOM placeholder:"],
             Div.Class("border rounded p-2")[
                 Template.Id("row-tmpl")[Li["Inert template content"]],
                 Slot.Name("label")["Default slot content"],
-                P.Class("mb-0 mt-1 text-secondary small")[
+                P.Class("mb-0 mt-1 text-slate-500 dark:text-slate-400 text-sm")[
                     "(the ", Code["template"], " content is hidden by the browser until cloned)"]
             ]
         ]

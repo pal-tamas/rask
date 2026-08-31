@@ -11,26 +11,23 @@ public sealed partial class CancellationDemo : Component
 
     protected override Component? Render() =>
         Div[
-            BsStack.Gap(2).Class(Margin.Bottom(3))[
-                BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("cancel-mount").Disabled(_mounted).OnClick(MountProbe)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount probe"],
-                BsButton
-                    .Color(BsColor.Secondary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+            Div.Class("flex gap-2 flex-wrap items-center mb-3")[
+                Button.Type("button").Class(Ui.BtnPrimary).Id("cancel-mount").Disabled(_mounted).OnClick(MountProbe)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Mount probe"],
+                Button.Type("button").Class(Ui.BtnOutlineSecondary)
                     .Id("cancel-unmount")
                     .Disabled(!_mounted)
-                    .OnClick(UnmountProbe)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount probe"]
+                    .OnClick(UnmountProbe)[Icon.Name(IconName.StopCircle).Class("me-1"), "Unmount probe"]
             ],
             _mounted
                 ? CancellationProbe.Log(AppendLog).InstanceId(_nextInstance)
-                : P.Class("text-secondary fst-italic mb-0")["Probe is not mounted."],
-            H3.Class("h6 text-secondary text-uppercase small mt-4")["Log"],
+                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Probe is not mounted."],
+            H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mt-4")["Log"],
             _log.Count == 0
-                ? P.Class("text-secondary small mb-0")["Mount and unmount the probe to populate this log."]
-                : Ol.Class("list-group list-group-numbered list-group-flush cancel-log").Id("cancel-log")[
+                ? P.Class("text-slate-500 dark:text-slate-400 text-sm mb-0")["Mount and unmount the probe to populate this log."]
+                : Ol.Class($"{Ui.ListGroup} list-decimal list-inside divide-y divide-slate-200 dark:divide-slate-700 cancel-log").Id("cancel-log")[
                     _log.Select(line => Li
                         .Key(line)
-                        .Class("list-group-item ps-2 small")[Code.Class("small")[line]])]
+                        .Class($"{Ui.ListGroupItem} ps-2 text-sm")[Code.Class("text-sm")[line]])]
         ];
 
     private void MountProbe()

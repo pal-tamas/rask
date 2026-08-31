@@ -15,21 +15,21 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
-                Div.Class("input-group input-group-sm mb-2")[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class($"{Ui.InputGroup} mb-2")[
                     Input
                         .Value(_input)
                         .Id("cookie-input")
-                        .Class("form-control")
+                        .Class(Ui.Input)
                         .Placeholder("Cookie value")
                         .OnInput(v => _input = v),
-                    BsButton.Color(BsColor.Primary).Id("cookie-set").OnClickAsync(Set)["Set"],
-                    BsButton.Color(BsColor.Primary).Outline(true).Id("cookie-get").OnClickAsync(Get)["Get"],
-                    BsButton.Color(BsColor.Danger).Outline(true).Id("cookie-delete").OnClickAsync(Delete)["Delete"]
+                    Button.Type("button").Class(Ui.BtnPrimary).Id("cookie-set").OnClickAsync(Set)["Set"],
+                    Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("cookie-get").OnClickAsync(Get)["Get"],
+                    Button.Type("button").Class(Ui.BtnOutlineDanger).Id("cookie-delete").OnClickAsync(Delete)["Delete"]
                 ],
-                Div.Class("small text-secondary")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
             ]
         ];
 

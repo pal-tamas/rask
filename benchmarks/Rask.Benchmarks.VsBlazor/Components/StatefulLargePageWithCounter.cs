@@ -41,14 +41,14 @@ public sealed partial class StatefulLargePageWithCounter : Component
             _rows = new List<Component>(LargePageRowCount);
             for (var i = 0; i < LargePageRowCount; i++)
             {
-                _rows.Add(Div.Class("row").Id($"r{i}")[
+                _rows.Add(Div.Class("line").Id($"r{i}")[
                     Span.Class("label")[$"Item {i}"],
                     A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
                 ]);
             }
         }
 
-        return Div.Class("container").Id("root")[
+        return Div.Class("wrap").Id("root")[
             Div.Class("counter").Id("counter")[
                 Span.Class("value")[Counter.ToString()]
             ],
@@ -92,14 +92,14 @@ public sealed partial class StatefulLargePageWithDeepTextCell : Component
                     continue; // built fresh each render
                 }
 
-                _rowsByIndex[i] = Div.Class("row").Id($"r{i}")[
+                _rowsByIndex[i] = Div.Class("line").Id($"r{i}")[
                     Span.Class("label")[$"Item {i}"],
                     A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
                 ];
             }
         }
 
-        _rowsByIndex[MutatingIndex] = Div.Class("row").Id($"r{MutatingIndex}")[
+        _rowsByIndex[MutatingIndex] = Div.Class("line").Id($"r{MutatingIndex}")[
             Span.Class("label")[$"ticker {Counter}"],
             A.Href($"/item/{MutatingIndex}").Class("lnk")[$"open {MutatingIndex}"]
         ];

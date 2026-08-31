@@ -15,9 +15,11 @@ namespace Rask.Example.Site;
 //
 // Three constraints shape it:
 //
-//   * Every colour is `var(--token, #literal)`. Rendered inline in the page the SVG inherits global.css's
-//     tokens and follows the site's theme toggle for free; rendered standalone into a file the custom
-//     properties are undefined and every colour falls back to its literal. An <img>-loaded SVG can
+//   * Every colour is `var(--color-token, #literal)`. Rendered inline in the page the SVG inherits the
+//     stylesheet's @theme tokens and follows the site's theme toggle for free; rendered standalone into a
+//     file the custom properties are undefined and every colour falls back to its literal. The names must
+//     match Styles/app.css exactly -- a rename leaves the animation RENDERING, on its fallbacks, silently
+//     no longer following the theme. An <img>-loaded SVG can
 //     otherwise only ever follow the OS theme, never the page's.
 //   * An SVG <style> inline in an HTML document is NOT scoped to the SVG — its rules apply to the whole
 //     page. Hence the `rc-` prefix on every class and keyframe name; a test enforces it.
@@ -394,36 +396,36 @@ internal sealed partial class ChainAnimation : Component
         var sb = new StringBuilder();
 
         sb.Append("""
-            .rc-win { fill: var(--panel, #14141f); }
-            .rc-bar { fill: var(--panel-2, #1b1b2a); }
-            .rc-edge { fill: none; stroke: var(--line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
-            .rc-rule { stroke: var(--line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
-            .rc-dot { fill: var(--muted, #8a8aa4); opacity: 0.45; }
+            .rc-win { fill: var(--color-panel, #14141f); }
+            .rc-bar { fill: var(--color-panel-2, #1b1b2a); }
+            .rc-edge { fill: none; stroke: var(--color-line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
+            .rc-rule { stroke: var(--color-line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
+            .rc-dot { fill: var(--color-muted, #8a8aa4); opacity: 0.45; }
             .rc-t {
               font-family: var(--mono, "SFMono-Regular", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace);
               font-size: 18px;
-              fill: var(--ink, #e9e9f2);
+              fill: var(--color-ink, #e9e9f2);
             }
             .rc-md { font-size: 17px; }
             .rc-sm { font-size: 15px; }
             .rc-xs { font-size: 14px; }
             .rc-xxs { font-size: 13px; }
-            .rc-mut { fill: var(--muted, #8a8aa4); }
-            .rc-soft { fill: var(--ink-soft, #c3c2d6); }
-            .rc-kw { fill: var(--accent-ink, #c4b5fd); }
-            .rc-ent { fill: var(--accent, #8b5cf6); }
-            .rc-mem { fill: var(--ink, #e9e9f2); }
-            .rc-str { fill: var(--signal, #34d399); }
-            .rc-op { fill: var(--ink-soft, #c3c2d6); }
-            .rc-interp { fill: var(--accent-ink, #c4b5fd); }
-            .rc-chip { fill: var(--accent, #8b5cf6); opacity: 0.35; }
+            .rc-mut { fill: var(--color-muted, #8a8aa4); }
+            .rc-soft { fill: var(--color-ink-soft, #c3c2d6); }
+            .rc-kw { fill: var(--color-accent-ink, #c4b5fd); }
+            .rc-ent { fill: var(--color-accent, #8b5cf6); }
+            .rc-mem { fill: var(--color-ink, #e9e9f2); }
+            .rc-str { fill: var(--color-signal, #34d399); }
+            .rc-op { fill: var(--color-ink-soft, #c3c2d6); }
+            .rc-interp { fill: var(--color-accent-ink, #c4b5fd); }
+            .rc-chip { fill: var(--color-accent, #8b5cf6); opacity: 0.35; }
             /* fill-opacity, not opacity: .rc-hl on the same element has its opacity driven by keyframes,
                and two opacity declarations would let the animation paint a solid block over the row. */
-            .rc-hlbar { fill: var(--accent, #8b5cf6); fill-opacity: 0.18; }
+            .rc-hlbar { fill: var(--color-accent, #8b5cf6); fill-opacity: 0.18; }
             /* transform-origin is per segment — the text's right edge, not the cover's. See the note on
                the cover's Bleed at the top of the file. */
             .rc-cv { transform-box: fill-box; }
-            .rc-ct { fill: var(--accent, #8b5cf6); }
+            .rc-ct { fill: var(--color-accent, #8b5cf6); }
 
             /* Base state == the final frame: everything typed, every hint dismissed. */
             .rc-cv { transform: scaleX(0); }

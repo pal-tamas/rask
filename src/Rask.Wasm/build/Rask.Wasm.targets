@@ -326,4 +326,19 @@
     <Error Text="Rask: RaskGlobalization is true but InvariantGlobalization is also true, so the runtime would ship without culture data and every culture would format identically — CultureInfo.GetCultureInfo(&quot;hu-HU&quot;) would throw. Remove the InvariantGlobalization property; RaskGlobalization owns it."/>
   </Target>
 
+  <!--
+    Tailwind. Packed alongside this file by src\RaskTailwindBuildPack.targets, and imported from here
+    because NuGet auto-imports only build/<PackageId>.{props,targets}. Referencing this host package is
+    the whole of how an app gets Tailwind: there is no Rask.Tailwind package to add and no flag to pass.
+
+    It gates itself on the project having a stylesheet to compile, so importing it unconditionally costs
+    a project without one nothing.
+
+    The Exists guard is for the source tree: Rask.Tailwind.targets is packed from Rask.Tailwind's own
+    build/ folder and has no sibling here, so in-repo projects take the Directory.Build.targets route
+    instead and this import is a no-op.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Tailwind.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Tailwind.targets') "/>
+
 </Project>

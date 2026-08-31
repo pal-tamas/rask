@@ -3,11 +3,11 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class TagsTextDemo : Component
 {
     protected override Component? Render() => Article[
-        H1.Class("h4")["Tags are just methods."],
+        H1.Class("text-xl font-semibold")["Tags are just methods."],
         P[
             "You can ", Strong["emphasize"], " or ", Em["italicize"],
             " by composing them."
         ],
-        Blockquote.Class("blockquote fs-6")["A small DSL, an honest day's HTML."]
+        Blockquote.Class($"{Ui.Blockquote} text-base")["A small DSL, an honest day's HTML."]
     ];
 }

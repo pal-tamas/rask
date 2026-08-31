@@ -73,7 +73,7 @@ public sealed class TutorialChaptersTests
         // A fresh database: EnsureCreated ran, and the table is empty.
         await page.WaitForAsync(html => html.Contains("No rows yet", StringComparison.Ordinal));
 
-        await page.On(".btn").ClickAsync();
+        await page.On(".action").ClickAsync();
 
         await page.WaitForAsync(html => html.Contains("Espresso", StringComparison.Ordinal));
         Assert.Contains("1 row(s)", page.Html, StringComparison.Ordinal);

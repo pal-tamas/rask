@@ -16,11 +16,11 @@ public sealed partial class FloatingSelect<TProp> : Component
     protected override Component? Render()
     {
         var (id, label) = FloatingField.Resolve(Bind);
-        return Div.Class("form-floating mb-3")[
+        return Div.Class($"{Ui.FormFloating} mb-3")[
             // form-select (not form-control); the caller's <option>s flow in as Children.
-            Select.Bind(Bind).Id(id).Class("form-select")[Children ?? Array.Empty<Component>()],
+            Select.Bind(Bind).Id(id).Class(Ui.Select)[Children ?? Array.Empty<Component>()],
             Label.For(id)[label],
-            ValidationMessage.Template(msgs => Div.Class("invalid-feedback d-block")[msgs[0]]).For(Bind)
+            ValidationMessage.Template(msgs => Div.Class("field-error mt-1 text-sm text-red-600 dark:text-red-400")[msgs[0]]).For(Bind)
         ];
     }
 }

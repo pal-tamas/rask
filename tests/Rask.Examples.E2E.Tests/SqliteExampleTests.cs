@@ -44,7 +44,7 @@ public sealed class SqliteExampleTests(SqliteExampleAppFixture app, PlaywrightFi
         await _page.ClickAsync("button:has-text('concurrent writers')");
 
         // With WAL + busy_timeout every writer commits — the success alert reports 25 of 25.
-        var result = _page.Locator(".alert-success");
+        var result = _page.Locator("[role='status']");
         await Assertions.Expect(result).ToBeVisibleAsync();
         await Assertions.Expect(result).ToContainTextAsync("25 of 25 writers committed");
     }
@@ -57,7 +57,7 @@ public sealed class SqliteExampleTests(SqliteExampleAppFixture app, PlaywrightFi
         await _page.ClickAsync("button:has-text('IMMEDIATE writers')");
 
         // The BEGIN IMMEDIATE + non-blocking fair-interval retry commits every writer — 25 of 25.
-        var result = _page.Locator(".alert-success:has-text('IMMEDIATE')");
+        var result = _page.Locator("[role='status']:has-text('IMMEDIATE')");
         await Assertions.Expect(result).ToBeVisibleAsync();
         await Assertions.Expect(result).ToContainTextAsync("25 of 25 IMMEDIATE writers committed");
     }

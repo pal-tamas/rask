@@ -10,29 +10,24 @@ public sealed partial class App : Component
         Title["Rask — SQLite production pragmas"],
         Meta.Charset("utf-8"),
         Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
-        Link
-            .Rel("stylesheet")
-            .Href("https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"),
-        Link
-            .Rel("stylesheet")
-            .Href("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css")
+        Link.Rel("stylesheet").Href("/css/app.css")
     ];
 
-    protected override string? BodyClass => "bg-body-tertiary";
+    protected override string? BodyClass => "bg-slate-50 dark:bg-slate-900";
 
     protected override Component? Render() =>
     [
-        Nav.Class("navbar navbar-dark bg-dark border-bottom shadow-sm")[
-            Div.Class("container")[
-                Span.Class("navbar-brand fw-bold")[
-                    I.Class("bi bi-database-check me-2"), "Rask · SQLite pragmas"
+        Nav.Class("flex items-center border-b border-slate-800 bg-slate-900 text-slate-100 shadow-sm")[
+            Div.Class("mx-auto w-full max-w-6xl px-4")[
+                Span.Class("app-brand font-bold")[
+                    Span.Class("me-2").Attributes(("aria-hidden", "true"))["🗄"], "Rask · SQLite pragmas"
                 ],
                 A
                     .Href("https://github.com/pal-tamas/rask")
                     .Target("_blank")
-                    .Class("btn btn-outline-light btn-sm")[I.Class("bi bi-github me-1"), "GitHub"]
+                    .Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-transparent ring-1 text-slate-700 ring-slate-200 hover:bg-slate-50")[Span.Class("me-1").Attributes(("aria-hidden", "true"))["⌥"], "GitHub"]
             ]
         ],
-        Main.Class("container py-4")[Router]
+        Main.Class("mx-auto w-full max-w-6xl px-4 py-4")[Router]
     ];
 }

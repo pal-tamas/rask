@@ -76,7 +76,7 @@ internal static partial class TableSortFilter
                 _scratch.Add(GetOrCreateRow(VisibleOrder[i]));
             }
 
-            return Div.Class("table-shell")[
+            return Div.Class("sheet-shell")[
                 Table[
                     Thead[Tr[
                         Th["ID"],
@@ -115,7 +115,7 @@ internal static partial class TableSortFilter
         protected override void BuildRenderTree(RenderTreeBuilder b)
         {
             b.OpenElement(0, "div");
-            b.AddAttribute(1, "class", "table-shell");
+            b.AddAttribute(1, "class", "sheet-shell");
 
             b.OpenElement(2, "table");
 

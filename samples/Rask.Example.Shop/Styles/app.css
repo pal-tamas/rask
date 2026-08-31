@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+/* Your own CSS goes here. Anything below participates in the same build, so @apply and
+   @theme work, and the output still contains only what this project actually uses. */

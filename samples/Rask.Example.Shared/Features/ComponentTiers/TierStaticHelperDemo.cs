@@ -10,14 +10,14 @@ namespace Rask.Example.Shared.Features;
 internal static partial class TierStaticHelper
 {
     public static Component Badge(string label) =>
-        BsBadge.Color(BsColor.Secondary)[label];
+        Span.Class(Ui.BadgeSecondary)[label];
 }
 
 // Call site: invoke it like any method — no generated factory, no reconciliation identity.
 public sealed partial class TierStaticHelperDemo : Component
 {
     protected override Component? Render() =>
-        BsStack.Gap(2)[
+        Div.Class("flex gap-2 flex-wrap items-center")[
             TierStaticHelper.Badge("inlined"),
             TierStaticHelper.Badge("no state"),
             TierStaticHelper.Badge("no lifecycle")

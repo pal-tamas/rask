@@ -11,8 +11,8 @@ public sealed partial class App : Component
         Title["Rask.Example.Shop"],
         Meta.Charset("utf-8"),
         Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
-        // Bootstrap 5.3 + Icons via Rask.Bootstrap (served from _content/Rask.Bootstrap).
-        BootstrapStyles
+        // Compiled from Styles/app.css by Rask.Tailwind, scanning this project's own source.
+        Link.Rel("stylesheet").Href("/css/app.css")
     ];
 
     // The body's content. Rask emits the doctype, <html lang>, <head> and <body> around this —

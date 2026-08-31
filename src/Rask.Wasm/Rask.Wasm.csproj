@@ -230,6 +230,7 @@
   <Import Project="..\RaskAnalyzerPack.targets"/>
   <!-- Rask.Core's build integration packed to build/, imported by build/Rask.Wasm.targets. -->
   <Import Project="..\RaskCoreBuildPack.targets"/>
+  <Import Project="..\RaskTailwindBuildPack.targets"/>
 
   <PropertyGroup>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_RaskAddCoreToLib</TargetsForTfmSpecificContentInPackage>

@@ -23,11 +23,18 @@
     >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindOutput)'))</_RaskTailwindOutput>
 
     <!--
-      Whether any of this happens. Design-time builds are excluded: an IDE reloading the project must
-      never download a binary or shell out to a compiler.
+      Whether any of this happens. Two conditions, and neither is a switch.
+
+      Design-time builds are excluded: an IDE reloading the project must never download a binary or
+      shell out to a compiler.
+
+      The input stylesheet must exist. This file is imported by every Rask host package, so it is
+      evaluated in projects that have no UI at all — a class library, a test project, the static-file
+      half of a hosted WASM app. Those have nothing to compile, and compiling nothing is correct for
+      them. A project that DOES have a stylesheet has no way to skip it.
     -->
     <_RaskTailwindDoBuild
-      Condition="'$(RaskTailwindBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_RaskTailwindInput)')"
+      Condition="'$(DesignTimeBuild)' != 'true' AND Exists('$(_RaskTailwindInput)')"
     >true</_RaskTailwindDoBuild>
   </PropertyGroup>
 

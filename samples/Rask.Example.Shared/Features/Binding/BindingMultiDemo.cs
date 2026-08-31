@@ -8,37 +8,37 @@ public sealed partial class BindingMultiDemo : Component
 
     protected override Component? Render() =>
     [
-        Div.Class("mb-3 form-check")[
+        Div.Class("mb-3 flex items-center gap-2")[
             Input.Bind(() => _model.Subscribe)
                 .Id("bind-subscribe")
-                .Class("form-check-input"),
-            Label.For("bind-subscribe").Class("form-check-label ms-1")["Subscribe to the newsletter"]
+                .Class(Ui.CheckInput),
+            Label.For("bind-subscribe").Class($"{Ui.CheckLabel} ms-1")["Subscribe to the newsletter"]
         ],
         Div.Class("mb-3")[
-            Label.For("bind-age").Class("form-label small")["Age"],
+            Label.For("bind-age").Class($"{Ui.Label} text-sm")["Age"],
             Input.Bind(() => _model.Age)
                 .Id("bind-age")
-                .Class("form-control")
+                .Class(Ui.Input)
                 .Min("0")
                 .Max("120")
         ],
         Div.Class("mb-3")[
-            Label.For("bind-start").Class("form-label small")["Start date"],
+            Label.For("bind-start").Class($"{Ui.Label} text-sm")["Start date"],
             Input.Bind(() => _model.StartDate)
                 .Id("bind-start")
-                .Class("form-control")
+                .Class(Ui.Input)
         ],
         Div.Class("mb-3")[
-            Label.For("bind-favorite").Class("form-label small")["Favourite colour"],
+            Label.For("bind-favorite").Class($"{Ui.Label} text-sm")["Favourite colour"],
             Select.Bind(() => _model.Favorite)
                 .Id("bind-favorite")
-                .Class("form-select")[
+                .Class(Ui.Select)[
                 Option.Value("Red")["Red"],
                 Option.Value("Green")["Green"],
                 Option.Value("Blue")["Blue"]
             ]
         ],
-        Pre.Class("small mb-0 p-3 bg-light border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[
             Code[
                 $"Subscribe = {(_model.Subscribe ? "true" : "false")}\n" +
                 $"Age       = {_model.Age}\n" +

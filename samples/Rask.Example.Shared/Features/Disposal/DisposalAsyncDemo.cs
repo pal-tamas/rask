@@ -10,24 +10,19 @@ public sealed partial class DisposalAsyncDemo : Component
 
     protected override Component? Render() =>
         Div[
-            BsStack.Gap(2).Class(Margin.Bottom(3))[
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Size(BsSize.Sm)
+            Div.Class("flex gap-2 flex-wrap items-center mb-3")[
+                Button.Type("button").Class(Ui.BtnPrimary)
                     .Id("dispose-async-mount")
                     .Disabled(_asyncMounted)
-                    .OnClick(MountAsync)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount async probe"],
-                BsButton
-                    .Color(BsColor.Secondary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                    .OnClick(MountAsync)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Mount async probe"],
+                Button.Type("button").Class(Ui.BtnOutlineSecondary)
                     .Id("dispose-async-unmount")
                     .Disabled(!_asyncMounted)
-                    .OnClick(UnmountAsync)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount async probe"]
+                    .OnClick(UnmountAsync)[Icon.Name(IconName.StopCircle).Class("me-1"), "Unmount async probe"]
             ],
             _asyncMounted
                 ? DisposableAsyncProbe.Log(AppendAsyncLog).InstanceId(_nextAsyncId)
-                : P.Class("text-secondary fst-italic mb-0")["Probe not mounted."],
+                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Probe not mounted."],
             DisposalDemoLog.Entries(_asyncLog).ListId("dispose-async-log")
         ];
 

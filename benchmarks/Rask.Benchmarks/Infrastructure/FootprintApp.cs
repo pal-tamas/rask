@@ -73,12 +73,12 @@ public sealed partial class FootprintApp : Component
             Html[
                 Head,
                 Body[
-                    Div.Class("container").Id("root")[
+                    Div.Class("wrap").Id("root")[
                         Div.Class("header")[
                             Span[$"rows={RowCount} counter={Counter}"],
                             ShowExtraAction ? Button.OnClick(() => { })["extra"] : null
                         ],
-                        Table.Class("table")[Tbody[rows]]
+                        Table.Class("sheet")[Tbody[rows]]
                     ]
                 ]
             ]
@@ -92,7 +92,7 @@ public sealed partial class FootprintRow : Component
     public int Index { get; set; }
 
     protected override Component? Render() =>
-        Tr.Class("row")[
+        Tr.Class("line")[
             Td[$"#{Index}"],
             Td[$"Item {Index}"],
             Td[$"{Index * 37 % 1000} units"],

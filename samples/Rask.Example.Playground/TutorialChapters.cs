@@ -60,7 +60,7 @@ public static class TutorialChapters
             public sealed partial class Playground : Component
             {
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Rask Coffee ☕"],
                         P.Class("muted")["Everything below is rendered from the C# on the left."],
                         Ul.Class("list")[
@@ -94,12 +94,12 @@ public static class TutorialChapters
                 private int _stock;
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Espresso"],
                         P[$"{_stock} bags in stock."],
-                        Div.Class("row")[
-                            Button.Class("btn").OnClick(() => _stock++)["Restock"],
-                            Button.Class("btn").OnClick(() => _stock--).Disabled(_stock == 0)["Sell"]
+                        Div.Class("line")[
+                            Button.Class("action").OnClick(() => _stock++)["Restock"],
+                            Button.Class("action").OnClick(() => _stock--).Disabled(_stock == 0)["Sell"]
                         ]
                     ];
             }
@@ -148,7 +148,7 @@ public static class TutorialChapters
                 private static readonly string[] Menu = ["Espresso", "Flat white", "Cold brew"];
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Menu"],
                         Ul.Class("list")[
                             // .Key(…) is the row's identity across re-renders — always set it on a list.
@@ -159,7 +159,7 @@ public static class TutorialChapters
                                 .InStock(!_sold.Contains(name))
                                 .Key(name))
                         ],
-                        Button.Class("btn").OnClick(() => _sold.Clear())["Restock everything"]
+                        Button.Class("action").OnClick(() => _sold.Clear())["Restock everything"]
                     ];
             }
             """),
@@ -193,7 +193,7 @@ public static class TutorialChapters
                 private readonly List<string> _added = new();
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Add a product"],
                         Form.Model(_model).OnValidSubmit(Add)[
                             Label["Name"],
@@ -210,7 +210,7 @@ public static class TutorialChapters
                             Label["Price"],
                             Input.Bind(() => _model.Price).Class("field"),
 
-                            Button.Type("submit").Class("btn")["Add"]
+                            Button.Type("submit").Class("action")["Add"]
                         ],
                         _added.Count == 0
                             ? null
@@ -321,9 +321,9 @@ public static class TutorialChapters
                 }
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Stock"],
-                        Button.Class("btn").OnClickAsync(AddAsync)["Add a bag of espresso"],
+                        Button.Class("action").OnClickAsync(AddAsync)["Add a bag of espresso"],
                         _products.Count == 0
                             ? P.Class("muted")["No rows yet — press the button."]
                             : Ul.Class("list")[
@@ -421,11 +421,11 @@ public static class TutorialChapters
                 }
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Catalogue"],
-                        Div.Class("row")[
+                        Div.Class("line")[
                             Input.Bind(() => _search.Term).Class("field").Placeholder("Search by name…"),
-                            Button.Class("btn").OnClickAsync(SearchAsync)["Search"]
+                            Button.Class("action").OnClickAsync(SearchAsync)["Search"]
                         ],
                         _results.Count == 0
                             ? P.Class("muted")["Nothing matched."]
@@ -553,7 +553,7 @@ public static class TutorialChapters
                 }
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Catalogue"],
                         Ul.Class("list")[
                             _products.Select(p => Li.Key(p.Id).Class(p.DeletedAt is null ? null : "done")[
@@ -562,7 +562,7 @@ public static class TutorialChapters
                                 Button.Class("link").OnClickAsync(() => DeleteAsync(p.Id))["Delete"]
                             ])
                         ],
-                        Button.Class("btn").OnClickAsync(ToggleAsync)[
+                        Button.Class("action").OnClickAsync(ToggleAsync)[
                             _showDeleted ? "Hide deleted" : "Show deleted"
                         ],
                         P.Class("muted")[
@@ -677,7 +677,7 @@ public static class TutorialChapters
                 }
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Orders"],
                         // A list of children goes in an indexer of its own — an enumerable can't sit
                         // alongside single components in the same one.

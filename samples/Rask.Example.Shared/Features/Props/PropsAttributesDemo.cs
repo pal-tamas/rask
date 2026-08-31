@@ -12,7 +12,7 @@ public sealed partial class PropsAttributesDemo : Component
     protected override Component? Render() =>
         P.Class("mb-0")[
             "The dish arrived with an air of ",
-            Span.Class("fst-italic").Lang("fr")["déjà vu"],
+            Span.Class("italic").Lang("fr")["déjà vu"],
             " — and for what has no typed property, a bare ",
             Code.Attributes(new Dictionary<string, string?> { ["data-demo"] = null })["data-demo"],
             ", written verbatim."];

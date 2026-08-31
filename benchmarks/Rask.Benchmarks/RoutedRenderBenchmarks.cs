@@ -69,10 +69,10 @@ public partial class RoutedRenderBenchmarks
             var rows = new List<Component>(Rows);
             for (var i = 0; i < Rows; i++)
             {
-                rows.Add(Div.Class("row").Id($"r{i}").Key(i)[Span.Class("label")[$"Item {i}"]]);
+                rows.Add(Div.Class("line").Id($"r{i}").Key(i)[Span.Class("label")[$"Item {i}"]]);
             }
 
-            return Div.Class("container")[rows];
+            return Div.Class("wrap")[rows];
         }
     }
 }

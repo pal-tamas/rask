@@ -12,11 +12,11 @@ public sealed class AppTests
 
         Assert.StartsWith("<!DOCTYPE html>", html);
         Assert.Contains("<html lang=\"en\">", html);
-        Assert.Contains("<body class=\"bg-body-tertiary\">", html);
+        Assert.Contains("<body class=\"bg-slate-50 dark:bg-slate-900\">", html);
     }
 
     [Fact]
-    public void LiveRender_EmitsBootstrapLinksAndMeta_InHead()
+    public void LiveRender_EmitsStylesheetAndMeta_InHead()
     {
         var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
@@ -27,8 +27,9 @@ public sealed class AppTests
         Assert.Contains(">Guides &#x2014; Rask</title>", html);
         Assert.Contains("charset=\"utf-8\"", html);
         Assert.Contains("viewport", html);
-        Assert.Contains("/_content/Rask.Bootstrap/css/bootstrap.min.css", html);
-        Assert.Contains("/_content/Rask.Bootstrap/icons/bootstrap-icons.min.css", html);
+        // One stylesheet, compiled by Rask.Tailwind from this project's own source. It replaced three
+        // (Bootstrap, the design tokens, global.css) whose CASCADE ORDER decided the outcome.
+        Assert.Contains("/css/app.css", html);
     }
 
     [Fact]
@@ -37,7 +38,7 @@ public sealed class AppTests
         var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
         // Router rendered the matched chain — ShowcaseLayout contributes the navbar.
-        Assert.Contains("navbar-brand", html);
+        Assert.Contains("app-brand", html);
         Assert.Contains("</body>", html);
         Assert.EndsWith("</html>", html.TrimEnd());
     }

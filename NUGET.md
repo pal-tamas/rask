@@ -50,8 +50,12 @@ dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
 dotnet add package Rask.Spa.Hosting       # host a built TypeScript SPA on ASP.NET
 dotnet add package Rask.External           # a .tsx or Lit component as a Rask component (needs Node)
-dotnet add package Rask.Tailwind          # Tailwind CSS on any host, no npm required
 ```
+
+Tailwind is not on that list because it is not a package: the compiler ships inside `Rask` /
+`Rask.Server` / `Rask.Wasm`, so any of them puts it in your build. Add a `Styles/app.css` holding
+`@import "tailwindcss";`, link `/css/app.css` from your shell, and `dotnet build` compiles it — no
+npm, no config file, nothing to switch on.
 
 With `Rask`, that is the whole of `Program.cs` — every battery is on, and the file says only what this
 app does *without*:
@@ -99,7 +103,6 @@ dotnet add package Rask.SQLite.Browser                # a persistent SQLite data
 **UI and testing:**
 
 ```bash
-dotnet add package Rask.Bootstrap                     # typed Bootstrap 5.3 components
 dotnet add package Rask.Validation.DataAnnotations    # or Rask.Validation.FluentValidation
 dotnet add package Rask.Testing                       # render + drive components in unit tests
 ```
@@ -112,13 +115,12 @@ the *same* code on Server or WASM, and treats the network as the bottleneck (a s
 the page). It's a craft project built in the open, deep on Roslyn source generators and tree diffing.
 
 - **One component model, two hosts** — the same C# component runs Server (live diff over WS) or WASM.
-- **Markup is a chain** — a Roslyn generator emits `Div.Class("card")`, `Counter.Start(3)` and type-safe routes, so the IDE lists every step and a missing one is a compile error.
+- **Markup is a chain** — a Roslyn generator emits `Div.Class("panel")`, `Counter.Start(3)` and type-safe routes, so the IDE lists every step and a missing one is a compile error.
 - **Scoped CSS & TypeScript** — sibling `Component.css`/`Component.ts`, compiled with no npm, content-addressed and cached.
 - **Routing, lifecycle, forms, validation, auth** — batteries included, no JavaScript required.
 - **Toast messages** — inject `IToaster` for transient messages that survive a client-side navigation.
 - **Tiny live updates** — a minimal edit-op diff ships instead of the whole page.
 - **Slow-link aware** — WASM boot shows download progress; a slow Server round-trip surfaces a pending bar.
-- **Optional typed Bootstrap** — `Rask.Bootstrap` adds typed Bootstrap 5.3 components (`BsButton`/`BsCard`/`BsModal`/…), layout primitives (`BsContainer`, the `BsRow`/`BsCol` responsive grid, and `BsStack`), `IFormControl<T>`-bound inputs including the zero-JS `BsSelect`/`BsMultiSelect` comboboxes (full keyboard/listbox a11y, opt-in `Filter` search, `OptionGroup` grouping, `OptionDisabled` per-option disable, and a multiselect `SelectAll` header), a typed `BsIcon`, typed utility classes, and a `BsDataGrid<T>` for list screens (typed columns, sorting, paging, footer totals, master-detail), with interactive components driven by the live runtime — no JavaScript. See [docs/bootstrap.md](https://github.com/pal-tamas/rask/blob/main/docs/bootstrap.md).
 
 ## Links
 

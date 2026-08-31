@@ -42,11 +42,11 @@ public partial class AccessibilityAttributesBenchmarks : global::Rask.Core.RaskM
                 ["label"] = $"row {i}",
                 ["selected"] = "false"
             };
-            rows.Add(Div.Class("row").Role("row").TabIndex(i).Aria(aria).Key($"k{i}")[
+            rows.Add(Div.Class("line").Role("row").TabIndex(i).Aria(aria).Key($"k{i}")[
                 Span.Role("gridcell").Aria(new Dictionary<string, string?> { ["hidden"] = "false" })[$"Item {i}"]
             ]);
         }
 
-        return Div.Class("container").Role("grid").TabIndex(0)[rows];
+        return Div.Class("wrap").Role("grid").TabIndex(0)[rows];
     }
 }

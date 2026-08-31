@@ -36,11 +36,11 @@ public partial class CrossParentKeyedMoveTests : global::Rask.Core.RaskMarkup
             var children = new List<Component>();
             foreach (var id in cards)
             {
-                children.Add(Div.Key(id).Class("card")[Div.Class("card-body")[Span[$"card{id}"]]]);
+                children.Add(Div.Key(id).Class("panel")[Div.Class("panel-body")[Span[$"card{id}"]]]);
             }
 
             children.Add(Div.Key($"{zone}-end").Class("tail"));
-            return Div.Key(zone).Class("col")[
+            return Div.Key(zone).Class("cell")[
                 Div.Class("dd-column")[
                     Div.Class("dd-column-header")[Span[zone], Span[cards.Count.ToString()]],
                     Div.Class("dd-column-body")[children]

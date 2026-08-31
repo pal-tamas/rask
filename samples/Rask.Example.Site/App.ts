@@ -44,7 +44,7 @@ export function init(canvas: HTMLCanvasElement | null): void {
 }
 
 // ---- theme toggle: the pre-boot snippet (index.html) sets the initial theme from localStorage/OS;
-// this stamps BOTH data-theme and data-bs-theme on <html> and persists the choice so it carries across
+// this stamps data-theme on <html> and persists the choice so it carries across
 // the site, docs and playground on the same origin. ----
 function wireThemeToggle(): void {
   const btn = document.getElementById('themeToggle');
@@ -55,7 +55,6 @@ function wireThemeToggle(): void {
     if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     const next = cur === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
-    root.setAttribute('data-bs-theme', next);
     try { localStorage.setItem('rask-theme', next); } catch { /* private mode: session-only */ }
   });
 }
@@ -122,7 +121,7 @@ function wireHeroCanvas(canvas: HTMLCanvasElement | null): void {
     ctx.closePath();
   }
   function wire(y: number): void {
-    ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
+    ctx.strokeStyle = css('--color-line'); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(X0, y); ctx.lineTo(X1, y); ctx.stroke();
     ctx.fillStyle = css('--muted');
     ctx.beginPath(); ctx.arc(X0, y, 3.5, 0, 7); ctx.fill();
@@ -138,7 +137,7 @@ function wireHeroCanvas(canvas: HTMLCanvasElement | null): void {
     rings.push({ x: x, y: y, r: 4, life: 1, col: col });
   }
   function blazorBlock(x: number): void {
-    const col = css('--blazor');
+    const col = css('--color-blazor');
     const w = 56, h = 26, xx = x - w / 2, yy = LB - h / 2;
     ctx.save();
     ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(0,0,0,.55)';
@@ -148,7 +147,7 @@ function wireHeroCanvas(canvas: HTMLCanvasElement | null): void {
     ctx.restore();
   }
   function raskBolt(x: number): void {
-    const col = css('--accent');
+    const col = css('--color-accent');
     ctx.save(); ctx.lineCap = 'round';
     for (let i = 1; i < trail.length; i++) {
       const a = i / trail.length;
@@ -195,7 +194,7 @@ function wireHeroCanvas(canvas: HTMLCanvasElement | null): void {
     ctx.textAlign = 'left';
     ctx.fillStyle = css('--muted'); ctx.font = '11px ui-monospace, monospace';
     ctx.fillText('Full page · 24 KB', X0, LB - 22);
-    ctx.fillStyle = css('--accent-ink'); ctx.font = '700 11px ui-monospace, monospace';
+    ctx.fillStyle = css('--color-accent-ink'); ctx.font = '700 11px ui-monospace, monospace';
     ctx.fillText('Rask diff · 41 B', X0, LR + 28);
   }
 
@@ -208,15 +207,15 @@ function wireHeroCanvas(canvas: HTMLCanvasElement | null): void {
 
     const bph = (el * BLZ_SPD) % 1;
     blazorBlock(X0 + bph * span);
-    if (bph < prevB) burst(X1, LB, css('--blazor'), 12, 55);
+    if (bph < prevB) burst(X1, LB, css('--color-blazor'), 12, 55);
     prevB = bph;
 
     const rph = (el * RASK_SPD) % 1;
     const rx = X0 + rph * span;
     if (rph < prevR) {
       trail = [{ x: rx }];
-      burst(X1, LR, css('--accent'), 24, 150);
-      flashes.push({ x: X1 - 8, y: LR - 18, txt: 'delivered · 41 B', col: css('--accent-ink'), life: 1 });
+      burst(X1, LR, css('--color-accent'), 24, 150);
+      flashes.push({ x: X1 - 8, y: LR - 18, txt: 'delivered · 41 B', col: css('--color-accent-ink'), life: 1 });
     }
     prevR = rph;
     trail.push({ x: rx }); if (trail.length > 20) trail.shift();
@@ -233,7 +232,7 @@ function wireHeroCanvas(canvas: HTMLCanvasElement | null): void {
     trail = [];
     for (let q = 0; q < 16; q++) trail.push({ x: X0 + (0.5 + q * 0.028) * span });
     raskBolt(X0 + 0.94 * span);
-    rings.push({ x: X1, y: LR, r: 12, life: 0.85, col: css('--accent') });
+    rings.push({ x: X1, y: LR, r: 12, life: 0.85, col: css('--color-accent') });
     stepFx(0.016); labels();
   } else {
     requestAnimationFrame(frame);

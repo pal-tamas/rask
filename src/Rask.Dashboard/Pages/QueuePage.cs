@@ -78,11 +78,10 @@ public sealed partial class QueuePage(
         }
 
         return [
-            Div.Class("d-flex align-items-center gap-2 mb-3")[
-                BsIcon.Name(_panel.Icon).Class("fs-4"),
-                H1.Class("h4 mb-0")[_panel.Title],
-                Div.Class("ms-auto d-flex gap-2")[QueueActionButtons()]
-            ],
+            OpsHeader
+                .Heading(_panel.Title)
+                .Icon(_panel.Icon)
+                .Actions(Div.Class("flex flex-wrap gap-2")[QueueActionButtons()]),
             DashboardError.Message(LoadError),
             ActionResult(),
             FilterTabs(),
@@ -93,23 +92,24 @@ public sealed partial class QueuePage(
     }
 
     private Component FilterTabs() =>
-        BsNav.Class("nav-pills gap-1 mb-3")[
-            Tab(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, null),
-            Tab(QueueFilter.Due, "Due", _counts.Due, null),
-            Tab(QueueFilter.Delayed, "Delayed", _counts.Delayed, null),
-            Tab(QueueFilter.Failed, "Failed", _counts.Failed, _counts.Failed > 0 ? BsColor.Danger : null),
-            Tab(QueueFilter.Processed, "Processed", _counts.Processed, null)
-        ];
-
-    private Component Tab(QueueFilter filter, string label, int count, BsColor? tone) =>
-        BsNavItem[
-            BsLink
-                .Href(Routes.QueuePage(_panel!.Slug, Show: filter.ToString().ToLowerInvariant()))
-                .Class(Bs.Join("nav-link d-flex align-items-center gap-2", Filter == filter ? "active" : null))[
-                Span[label],
-                BsBadge.Color(tone ?? (Filter == filter ? BsColor.Light : BsColor.Secondary)).Pill(true)[count.ToString()]
+        Div.Class("mb-5")[
+            OpsTabs[
+                Tab(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, alarm: false),
+                Tab(QueueFilter.Due, "Due", _counts.Due, alarm: false),
+                Tab(QueueFilter.Delayed, "Delayed", _counts.Delayed, alarm: false),
+                Tab(QueueFilter.Failed, "Failed", _counts.Failed, alarm: _counts.Failed > 0),
+                Tab(QueueFilter.Processed, "Processed", _counts.Processed, alarm: false)
             ]
         ];
+
+    private Component Tab(QueueFilter filter, string label, int count, bool alarm) =>
+        OpsTab
+            .Key(label)
+            .Href(Routes.QueuePage(_panel!.Slug, Show: filter.ToString().ToLowerInvariant()))
+            .Label(label)
+            .Active(Filter == filter)
+            .Count(count.ToString())
+            .Alarm(alarm);
 
     private Component EmptyForFilter() => DashboardEmpty.Heading($"Nothing {Filter.ToString().ToLowerInvariant()}")
         .Detail(Filter == QueueFilter.Failed
@@ -119,10 +119,17 @@ public sealed partial class QueuePage(
     private Component RowsTable()
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        return BsTable.Small(true).Hover(true).Responsive(true)[
-            Thead[Tr[
-                Th["#"], Th[TypeColumnLabel()], Th["When"], Th["Attempts"], Th["Status"], Th
-            ]],
+        return OpsTable[
+            Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
+                Tr[
+                    Th.Class("px-3 py-2 font-medium")["#"],
+                    Th.Class("px-3 py-2 font-medium")[TypeColumnLabel()],
+                    Th.Class("px-3 py-2 font-medium")["When"],
+                    Th.Class("px-3 py-2 font-medium")["Attempts"],
+                    Th.Class("px-3 py-2 font-medium")["Status"],
+                    Th.Class("px-3 py-2")
+                ]
+            ],
             Tbody[_rows.SelectMany(r => Row(r, now))]
         ];
     }
@@ -133,20 +140,28 @@ public sealed partial class QueuePage(
     private IEnumerable<Component> Row(QueueRow row, DateTime now)
     {
         var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
-        yield return Tr.Key(row.Id).Class(isDead ? "table-danger" : null)[
-            Td.Class("text-body-secondary")[row.Id.ToString()],
-            Td[Div.Class("text-truncate").Style("max-width:28rem").Title(row.Type)[row.Type]],
-            Td.Title(row.CreatedAt.ToString("u"))[DashboardParts.Ago(row.CreatedAt, now)],
-            Td[row.Attempts.ToString()],
-            Td[StatusBadge(row, isDead, now)],
-            Td.Class("text-end")[
-                Div.Class("d-flex gap-1 justify-content-end")[RowButtons(row, isDead)]
+        yield return Tr.Key(row.Id).Class(isDead
+            ? "border-b border-ops-line/60 bg-red-500/5 last:border-0"
+            : "border-b border-ops-line/60 last:border-0")[
+            Td.Class($"px-3 py-2 text-ops-muted {Ops.Mono}")[row.Id.ToString()],
+            Td.Class("px-3 py-2")[
+                Div.Class("max-w-[28rem] truncate").Title(row.Type)[row.Type]
+            ],
+            Td.Class("px-3 py-2 text-xs text-ops-muted").Title(row.CreatedAt.ToString("u"))[
+                DashboardParts.Ago(row.CreatedAt, now)
+            ],
+            Td.Class("px-3 py-2 tabular-nums")[row.Attempts.ToString()],
+            Td.Class("px-3 py-2")[StatusBadge(row, isDead, now)],
+            Td.Class("px-3 py-2 text-right")[
+                Div.Class("flex justify-end gap-1")[RowButtons(row, isDead)]
             ]
         ];
 
         if (_expanded == row.Id)
         {
-            yield return Tr.Key($"{row.Id}-details")[Td.Colspan(6).Class("bg-body-tertiary")[Details(row)]];
+            yield return Tr.Key($"{row.Id}-details")[
+                Td.Colspan(6).Class("border-b border-ops-line/60 bg-black/20 px-3 py-3")[Details(row)]
+            ];
         }
     }
 
@@ -157,32 +172,32 @@ public sealed partial class QueuePage(
             yield return button;
         }
 
-        yield return BsButton
+        yield return Button
             .Key("details")
-            .Color(BsColor.Secondary)
-            .Outline(true)
-            .Size(BsSize.Sm)
+            .Type("button")
+            .Class(Ops.Button)
             .OnClick(() => Toggle(row.Id))[_expanded == row.Id ? "Hide" : "Details"];
     }
 
     private Component StatusBadge(QueueRow row, bool isDead, DateTime now) => row switch
     {
-        { ProcessedAt: not null } => BsBadge.Color(BsColor.Success)["done"],
-        _ when isDead => BsBadge.Color(BsColor.Danger)["dead letter"],
-        _ when row.RunAt > now => BsBadge.Color(BsColor.Secondary)[$"retries in {DashboardParts.Duration(row.RunAt - now)}"],
-        _ => BsBadge.Color(BsColor.Info)["due"],
+        { ProcessedAt: not null } => OpsBadge.Label("done").Tone("ok"),
+        _ when isDead => OpsBadge.Label("dead letter").Tone("danger"),
+        _ when row.RunAt > now =>
+            OpsBadge.Label($"retries in {DashboardParts.Duration(row.RunAt - now)}"),
+        _ => OpsBadge.Label("due").Tone("info"),
     };
 
     private static new Component Details(QueueRow row) =>
-        Div.Class("small")[
+        Div.Class("text-xs")[
             row.Error is { } error
-                ? Div.Class("mb-2")[
-                    Div.Class("fw-semibold text-danger")["Last error"],
-                    Pre.Class("mb-0 text-body-secondary text-wrap")[error]
+                ? Div.Class("mb-3")[
+                    Div.Class("mb-1 font-medium text-red-300")["Last error"],
+                    Pre.Class($"whitespace-pre-wrap break-all text-ops-muted {Ops.Mono}")[error]
                 ]
                 : null,
-            Div.Class("fw-semibold")["Payload"],
-            Pre.Class("mb-0 text-body-secondary text-wrap")[row.Payload]
+            Div.Class("mb-1 font-medium text-ops-muted")["Payload"],
+            Pre.Class($"whitespace-pre-wrap break-all text-ops-muted {Ops.Mono}")[row.Payload]
         ];
 
     private void Toggle(long id)
@@ -204,25 +219,24 @@ public sealed partial class QueuePage(
 
         if (_counts.Failed > 0)
         {
-            yield return BsButton
+            yield return Button
                 .Key("retry-all")
-                .Color(BsColor.Danger)
-                .Size(BsSize.Sm)
+                .Type("button")
+                .Class(Ops.Danger)
                 .OnClickAsync(() => RunAsync(
                     $"Retry all {_counts.Failed} dead letters?",
                     async ct => $"Re-queued {await _panel!.RetryAllAsync(ct).ConfigureAwait(false)}."))[
-                BsIcon.Name(BsIconName.ArrowRepeat),
-                Span.Class("ms-1")["Retry all failed"]
+                OpsIcon.Name(OpsIconName.Retry).Class("size-4"),
+                Span["Retry all failed"]
             ];
         }
 
         if (_counts.Processed > 0)
         {
-            yield return BsButton
+            yield return Button
                 .Key("purge")
-                .Color(BsColor.Secondary)
-                .Outline(true)
-                .Size(BsSize.Sm)
+                .Type("button")
+                .Class(Ops.Button)
                 .OnClickAsync(() => RunAsync(
                     "Delete processed rows older than 7 days? Outstanding work and dead letters are kept.",
                     async ct => $"Purged {await _panel!.PurgeProcessedAsync(TimeSpan.FromDays(7), ct).ConfigureAwait(false)}."))[
@@ -235,11 +249,10 @@ public sealed partial class QueuePage(
     {
         if (isDead && options.Actions.HasFlag(RaskDashboardActions.Safe))
         {
-            yield return BsButton
+            yield return Button
                 .Key("retry")
-                .Color(BsColor.Danger)
-                .Outline(true)
-                .Size(BsSize.Sm)
+                .Type("button")
+                .Class(Ops.Danger)
                 .OnClickAsync(() => RunAsync(
                     null,   // retrying one dead letter is reversible enough not to need a confirmation
                     async ct => await _panel!.RetryAsync(row.Id, ct).ConfigureAwait(false) > 0
@@ -249,11 +262,10 @@ public sealed partial class QueuePage(
 
         if (row.ProcessedAt is null && options.Actions.HasFlag(RaskDashboardActions.Destructive))
         {
-            yield return BsButton
+            yield return Button
                 .Key("delete")
-                .Color(BsColor.Danger)
-                .Outline(true)
-                .Size(BsSize.Sm)
+                .Type("button")
+                .Class(Ops.Danger)
                 .OnClickAsync(() => RunAsync(
                     $"Delete #{row.Id}? The work is discarded and cannot be recovered.",
                     async ct => await _panel!.DeleteAsync(row.Id, ct).ConfigureAwait(false) > 0
@@ -300,17 +312,21 @@ public sealed partial class QueuePage(
     {
         if (_pending is { } pending)
         {
-            return BsAlert.Color(BsColor.Warning).Class("d-flex align-items-center gap-2")[
-                Span.Class("flex-grow-1")[pending.Prompt],
-                BsButton.Color(BsColor.Danger).Size(BsSize.Sm).OnClickAsync(() => ExecuteAsync(pending.Action))["Confirm"],
-                BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClick(Cancel)["Cancel"]
+            return OpsNotice.Tone("warn")[
+                Span.Class("grow")[pending.Prompt],
+                Button.Type("button").Class(Ops.Danger)
+                    .OnClickAsync(() => ExecuteAsync(pending.Action))["Confirm"],
+                Button.Type("button").Class(Ops.Button).OnClick(Cancel)["Cancel"]
             ];
         }
 
         return _message is { } message
-            ? BsAlert.Color(BsColor.Info).Class("d-flex align-items-center gap-2")[
-                Span.Class("flex-grow-1")[message],
-                BsCloseButton.OnClick(Dismiss)
+            ? OpsNotice.Tone("info")[
+                Span.Class("grow")[message],
+                Button.Type("button")
+                    .Class(Ops.Quiet)
+                    .Aria(new Dictionary<string, string?> { ["label"] = "Dismiss" })
+                    .OnClick(Dismiss)["Dismiss"]
             ]
             : null;
     }
@@ -335,18 +351,12 @@ public sealed partial class QueuePage(
             return null;
         }
 
-        return Div.Class("d-flex align-items-center gap-2")[
-            BsButton
-                .Color(BsColor.Secondary)
-                .Outline(true)
-                .Size(BsSize.Sm)
+        return Div.Class("mt-4 flex items-center gap-3")[
+            Button.Type("button").Class(Ops.Button)
                 .Disabled(_page == 0)
                 .OnClickAsync(() => GoAsync(_page - 1))["Previous"],
-            Span.Class("small text-body-secondary")[$"Page {_page + 1} of {pages} — {_total} rows"],
-            BsButton
-                .Color(BsColor.Secondary)
-                .Outline(true)
-                .Size(BsSize.Sm)
+            Span.Class("text-xs text-ops-muted")[$"Page {_page + 1} of {pages} — {_total} rows"],
+            Button.Type("button").Class(Ops.Button)
                 .Disabled(_page >= pages - 1)
                 .OnClickAsync(() => GoAsync(_page + 1))["Next"]
         ];

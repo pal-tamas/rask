@@ -16,8 +16,8 @@ public sealed partial class PwaPage : Component
 
     protected override Component? Render() =>
     [
-        H1.Class("h2 mb-1")["PWA — notifications & push"],
-        P.Class("text-secondary")[
+        H1.Class("text-3xl font-bold mb-1")["PWA — notifications & push"],
+        P.Class("text-slate-500 dark:text-slate-400")[
             "A live demo of the WASM-only PWA APIs. This site is itself an installable, offline PWA — ",
             "install it from your browser's address bar, then try the buttons below."
         ],

@@ -15,8 +15,8 @@ public sealed partial class OrientationPage : Component
 
     protected override Component? Render() =>
     [
-        H1.Class("h2 mb-1")["Orientation"],
-        P.Class("text-secondary")[
+        H1.Class("text-3xl font-bold mb-1")["Orientation"],
+        P.Class("text-slate-500 dark:text-slate-400")[
             "Read the screen orientation via IScreenOrientation and, for an installed or fullscreen app, ",
             "lock it. Locking is usually rejected outside fullscreen and is often unsupported on desktop."
         ],

@@ -36,7 +36,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("PWA demo");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("PWA — notifications & push",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("PWA — notifications & push",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator("#pwa-notify")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -61,7 +61,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Wake lock");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Wake lock",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Wake lock",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator("#wakelock-toggle")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -77,7 +77,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Orientation");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Orientation",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Orientation",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
         await Page.Locator("#orientation-read").ClickAsync();
@@ -111,7 +111,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Fullscreen");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Fullscreen",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Fullscreen",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator("#fullscreen-enter")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -131,7 +131,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Install prompt");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Install prompt",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Install prompt",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator("#install-status")).ToContainTextAsync("not installable yet",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
@@ -151,7 +151,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Picture-in-Picture");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Picture-in-Picture",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Picture-in-Picture",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator("#pip-enter")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -169,7 +169,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("EyeDropper");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("EyeDropper",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("EyeDropper",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator("#eyedropper-pick")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -187,7 +187,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Idle detection");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Idle detection",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Idle detection",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator("#idle-start")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -206,7 +206,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Camera & mic");
-        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Camera & microphone",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Camera & microphone",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator("#media-start")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });

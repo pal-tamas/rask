@@ -64,9 +64,9 @@ public partial class EmitFromFramesTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void NestedElements() =>
-        AssertReplayMatches(Div.Class("container")[
-            Div.Class("row")[Span["a"], Span["b"]],
-            Div.Class("row")[Span["c"]]
+        AssertReplayMatches(Div.Class("wrap")[
+            Div.Class("line")[Span["a"], Span["b"]],
+            Div.Class("line")[Span["c"]]
         ]);
 
     [Fact]
@@ -114,7 +114,7 @@ public partial class EmitFromFramesTests : global::Rask.Core.RaskMarkup
         var rows = new List<Component>(200);
         for (var i = 0; i < 200; i++)
         {
-            rows.Add(Div.Key(i).Class("row").Id($"r{i}")[
+            rows.Add(Div.Key(i).Class("line").Id($"r{i}")[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
             ]);

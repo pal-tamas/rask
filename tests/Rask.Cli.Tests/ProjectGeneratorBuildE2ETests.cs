@@ -85,7 +85,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = ProjectGenerator.GenerateServer(
-                projectDir, name, new ServerBatteries { Styling = Styling.Plain, Auth = auth }, version);
+                projectDir, name, new ServerBatteries { Auth = auth }, version);
 
             Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
 
@@ -700,7 +700,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         var projectDir = Path.Combine(temp, name);
         try
         {
-            var batteries = new ServerBatteries { Styling = Styling.Tailwind };
+            var batteries = new ServerBatteries();
             var result = wasm
                 ? ProjectGenerator.GenerateWasm(
                     projectDir, name, auth: false, pwa: false, docker: false, version, batteries)

@@ -114,7 +114,7 @@ them until tagged releases begin.
   ones with a single framework today, so gaining a second one yields an empty baseline to fill rather
   than a gate that contradicts itself. **Generated API is recorded** — 7,208 of the baseline's 20,651
   members: Rask hand-writes almost none of what a user types, so skipping it would skip
-  `Div.Class("card")` and `HomePage.Url()`, and it cannot be skipped cleanly anyway, since
+  `Div.Class("panel")` and `HomePage.Url()`, and it cannot be skipped cleanly anyway, since
   path-scoped `.editorconfig` severity does not reach generator-produced trees. And **RS0026/RS0027
   are off**: they protect callers of a frozen API from a source-breaking recompile, while Rask is
   pre-1.0 and breaks deliberately — and since every awaitable ends in a defaulted `CancellationToken`
@@ -834,6 +834,297 @@ them until tagged releases begin.
 
 
 ### Fixed
+### Added
+- **The children indexer accepts a projection of chains, and literals mixed with one.** A chain that
+  ends at a STEP is typed `Build<T>`, and the implicit conversion that makes it a component does not
+  lift through `IEnumerable<>` — so `rows.Select(r => Badge.Key(r.Id).Label(r.Name))` was not a
+  sequence of components, and every such list needed a `(Component)` cast or a named method per list.
+
+  ```csharp
+  Div[scopes.Select(s => OpsBadge.Key(s.Key).Label($"{s.Key}={s.Value}"))]
+  Div["Showing ", rows.Select(r => Row.Key(r.Id).For(r)), " of ", total]   // no Concat
+  ```
+
+  A `params object?[]` overload on `Component` and both `Build<>` structs, coercing each element the
+  way the implicit operators already do and flattening a nested sequence. `object?` rather than a
+  sequence type is what makes the mixed list expressible: `..` is only grammar inside a collection
+  expression, never in an argument list. The typed overloads carry
+  `[OverloadResolutionPriority(1)]`, which is load-bearing — `string` implements `IEnumerable`, and
+  without it `Div["hi"]` would bind loose and render one child per character.
+
+  This is the one place in the chain where a mistake is not a compile error: an element that is
+  neither a component, nor a chain, nor a value with a text representation throws while rendering,
+  naming the type. The typed version is not expressible — C# forbids generic indexers, and a C# 14
+  extension block cannot declare an indexer at all (`CS9282`).
+
+- **`Rask` — a new batteries-included package, and `RaskApp`, the host wired the way a Rask app nearly
+  always is.**
+
+  ```csharp
+  var app = RaskApp.Create(args);
+
+  app.Configure(c =>
+  {
+      c.Jobs.Off();                                            // this app has no background work
+      c.Mail.Configure(o => o.From = "no-reply@example.com");
+  });
+
+  app.MapEndpoints(e => e.MapPushSubscriptions());
+  app.Run<App>();
+  ```
+
+  **Every battery is on.** Referencing `Rask` is what turns them on — the database, mediator, jobs, mail,
+  cache, outbox, dashboard, durable logs, Web Push, snapshots and continuous backup — and `Program.cs` is
+  where an app says which it does *without*. There is nothing to opt into, and no `AddRaskX` to remember:
+  a `Program.cs` with no `Configure` block is an app with all of them running.
+
+  The database-backed batteries find your `DbContext` themselves, off the `AddDbContextFactory<T>()` call
+  you already wrote — nothing names it twice. To configure a battery, either use the block above or call
+  its own `AddRaskX` directly; the automatic wiring runs last and every `AddRaskX` is idempotent, so a
+  direct call wins and nothing has to be turned off first.
+
+  `RaskApp` also owns the middleware order that was duplicated across four scaffolder emitters and every
+  sample, which makes two silent failures unrepresentable rather than merely documented: endpoints mapped
+  after the catch-all never run (`MapEndpoints` replays them at the only position that works), and
+  `UseAuthentication` after `UseRask` leaves `HttpContext.User` empty on the initial GET and the WebSocket
+  upgrade so every authorized page challenges (RASK024) — now placed correctly, and only when a scheme is
+  actually registered.
+
+  **`Rask.Server` is unchanged and still lean.** An app with no database references it directly and
+  carries no EF Core and no SQLite native bundles; that door is why this is a separate package.
+
+  **One package, server and browser.** `Rask` multi-targets, so the same single `PackageReference`
+  resolves to the ASP.NET host plus every server battery on `net10.0`, and to the WebAssembly host plus
+  the trim-safe ones on `net10.0-browser`. The browser group deliberately carries no EF Core, no SQLite
+  and no Jobs: those need `PublishTrimmed=false` in a browser build, and including them would force every
+  WASM app untrimmed. Measured on the showcase, the browser batteries cost **+8.8 KB brotli (+0.20%)**.
+
+  The install instructions throughout the docs now name only `Rask`; each battery's page shows its
+  off-switch instead of a `dotnet add package` line.
+
+  One consequence worth knowing: because the batteries are on, an app that runs now creates its
+  database, its log store (`logs.db`), its `mail-pickup/` directory and its `snapshots/` directory
+  beside itself. `rask new` gitignores them; turn a battery off if you would rather it did not.
+- **The `spa` template now calls `AddRaskSpaHost()`.** It was scaffolding `app.UseRaskSpa()` with no
+  matching `Add`, so the host shipped without response compression — the largest file in the app, served
+  as `text/javascript`, went out uncompressed — and, once the host defaults moved into the framework,
+  without those either. `Add` and `Use` are now scaffolded as the pair they are.
+- **RASK056 reports a second `AddRask` on the same service collection.** A second call does not add to
+  the first: its options go in with `TryAddSingleton`, which keeps the registration already there, so
+  everything the later call configures is discarded while the call compiles and reads as though it worked.
+
+  The visible casualty is `configureCulture` — the second call builds a fresh `RaskCultureOptions`, runs
+  your callback over it, then loses the registration race, so an app that named its languages ships with
+  none. It is worse than a no-op: `AddRaskCulture` still flips the process-wide `RaskCulture.IsEnabled`, so
+  negotiation turns on over an empty catalog.
+
+  Scoped to two calls in the same method body on the same receiver as written, so a test file that builds
+  one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
+
+### Removed
+- **BREAKING: `Rask.Bootstrap` is gone.** The package, its tests, its 17 guides and every reference to
+  it. Styling is Tailwind — built in, compiled from your own source at build time — so a second,
+  optional styling package was a second answer to a question that no longer has one.
+
+  Its typed `Bs*` components went with it, and that is a real reduction rather than a rename:
+  `BsDataGrid`, `BsMultiSelect`, `BsSelect`, the date/time pickers, `BsModal`, `BsToast`,
+  `BsConfirmDialog`, `BsCheckboxGroup` and `BsRadioGroup` were components with behaviour — sorting,
+  paging, selection, dismissal, focus management — and Tailwind has nothing to swap them for. The
+  showcase demos whose SUBJECT was one of them are deleted; the demos that merely used `Bs*` for
+  chrome are converted. `docs/building-form-controls.md` is the path for building your own.
+
+  The showcase's icons are now a small `Icon` component over Unicode glyphs. Transcribing 45 SVG paths
+  by hand would have been 45 chances to get path data subtly wrong in a way nothing tests, because a
+  wrong glyph still renders.
+
+  **And its class names, everywhere.** Deleting the package removed the `Bs*` components but left the
+  raw Bootstrap class strings behind — `btn btn-primary`, `card`, `alert alert-danger`, `form-control`
+  and the rest, across 200+ sample files and the docs. They compiled, they read as though they styled
+  something, and they styled nothing at all. They are now Tailwind utilities, routed through the
+  showcase's `Ui` vocabulary where the project can see it and inlined where it cannot
+  (`Rask.Example.Sqlite` and the auth samples do not reference the shared showcase).
+
+  Nothing is left alone. Illustrative class names in docs and changelog snippets are renamed to names
+  this project owns (`panel`, `action`, `pill`, `notice`), and the app's own hooks that merely shared a
+  Bootstrap spelling are renamed with every selector that reads them — `navbar-brand` became `app-brand`
+  across the markup, the stylesheet, two unit tests and the browser journey in one change. A class name
+  that reads as Bootstrap is a claim that Bootstrap is still here, and it is not.
+
+  A dead `ErrorPageBootstrapBody` in the CLI scaffolder went too. It still named `BsCard`, `BsCardBody`
+  and `BsCardTitle` — types that no longer exist — and survived the styling-axis removal because it is
+  a string constant, so nothing could fail on it.
+
+  **And the catalogue entries that outlived their subjects.** `llms.txt` — the index an AI agent reads —
+  still carried 14 entries describing `Rask.Bootstrap`'s components and linking 14 docs files that were
+  deleted with them; `README.md` still linked `docs/bootstrap.md`. Both are gone. So are 444 lines of
+  browser journey: six `WalkDataGrid*` methods driving `BsDataGrid`, and the walks for `BsMultiSelect` /
+  `BsRadioGroup` / `BsCheckboxGroup`. Nothing called the first six, so they compiled and never ran — the
+  quietest way for test code to describe a feature that does not exist.
+
+  The browser journey lost another 200 lines that drove deleted components: the `/table` data-table
+  walk (`BsDataGrid`), the toast walk (`BsToast`), and three guide demo counts that were asserted at
+  their pre-deletion numbers. Two places had borrowed `/table` for unrelated reasons — a refresh check
+  and a scroll-reset test that only needed a page taller than the viewport — and both were re-pointed
+  rather than dropped.
+
+  A new convention test, `NoBootstrapClassesTests`, now fails the build on any Bootstrap class name in a
+  class position — `.Class(…)`, `Class:`, `class="…"`, and Blazor's `AddAttribute(n, "class", …)` in the
+  comparison benchmarks. It deliberately does NOT list the spellings the two frameworks share (`border`,
+  `rounded`, `shadow-sm`, `bg-white`, `col-span-*`, `gap-*`), because a convention test that fails on
+  correct code is one that gets switched off. It was proved by planting `btn btn-primary` and watching it
+  go red, naming the file, the line and both tokens.
+
+### Changed
+- **BREAKING: Tailwind ships inside the host packages, and `Rask.Tailwind` is no longer published.**
+  "Built in" now means built *in*: `src/RaskTailwindBuildPack.targets` packs the Tailwind props,
+  targets and engine-resolution task into `Rask.Server` and `Rask.Wasm`, each of which imports them
+  from its own `build/<PackageId>.{props,targets}` — the arrangement `Rask.Core`'s scoped-CSS
+  integration already used. A scaffolded `.csproj` names no styling package at all, and an existing app
+  gets Tailwind on its next host upgrade with nothing to edit.
+
+  `Rask.Tailwind` is `IsPackable=false` and both CI workflows stop packing it. That is not tidiness:
+  an app referencing both a host package and `Rask.Tailwind` would import the same targets twice and
+  run the compiler twice over one output file — which is why `Rask.Core` and `Rask.Html` are
+  unpackable too.
+
+- **BREAKING: `RaskTailwindBuild` is removed — the Tailwind build has no off switch.** Every page of a
+  Rask app is written in utilities, so a build that quietly produced no CSS would serve unstyled HTML:
+  a failure nobody notices until a user does, and one no test of the C# can see. The property is gone
+  from `Rask.Tailwind.props`, out of the gate in `Rask.Tailwind.targets`, and out of the three resolver
+  errors that used to offer it as the way out — those now name the way *through* (install Node, seed
+  the per-user cache, unset `RaskTailwindOffline`), which between the standalone and npm engines is
+  always available on every platform.
+
+  What remains in the gate is a design-time-build check and `Exists($(RaskTailwindInput))`. The second
+  is what lets the targets be imported into every project in a solution — a class library with no
+  stylesheet has nothing to compile — and is not a switch: a project that HAS a stylesheet cannot
+  decline to compile it.
+
+- **BREAKING: `rask new` has no styling axis — Tailwind is built in.** Every scaffolded project is
+  Tailwind and there is nothing to choose.
+  `--bootstrap` and `--tailwind` are removed and both are **refused** rather than ignored, because a flag
+  the CLI accepts and then disregards is this repository's most expensive bug class. The wizard no longer
+  asks a Styling question — one keypress shorter — and `rask new`'s summary drops a row that would read the
+  same on every project.
+
+  The Bootstrap and plain-baseline variants of the app shell, home page and error page are gone with it.
+  The error page's body was written in `.card` and `.small`, which the deleted baseline stylesheet defined,
+  so it is rewritten in utilities: classes with no CSS behind them render as an unstyled page rather than
+  as an error anyone would notice.
+
+  `wasm-hosted`'s `.Server` half drops the Tailwind reference explicitly. It is a static-file host that
+  renders no components, so a stylesheet compiled by scanning *it* would be almost empty — the classes
+  Tailwind is looking for are in the `.Client`, which takes the reference instead.
+
+- **The ops console is a separate application, served at `/_rask` with its own document.** Its pages used
+  to join the host application's route table simply by being referenced — `RouteRegistry` is process-wide —
+  so the host's own root rendered them, inside the host's document. That is not cosmetic: the console's
+  stylesheet then applied to the host's pages, and the host's `[NotFound]` answered a mistyped console URL.
+
+  Nothing to write. `AddRaskDashboard` registers the mount, and `UseRask` serves it. A wasm-hosted app can
+  now delete its hand-written `app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}")` — the console
+  mounts identically on every template instead of being a line you have to remember on one of them.
+
+  Isolation is by **provenance**, not by path: `RouteRegistry` already grouped registrations per assembly
+  so hot reload could swap one assembly's routes without touching another's, and `BuildTree(Assembly)` /
+  `BuildTreeExcept(…)` are views over that grouping. The fallback rule applies per subset, so a console
+  URL that matches nothing gets the console's own `[NotFound]` rather than the host application's.
+
+  Entering and leaving the console is a browser navigation rather than a live one, and the console gets its
+  own WebSocket session — so an operator polling a queue never shares a render session with an end user's
+  page.
+
+- **The ops dashboard is styled by Tailwind and no longer depends on `Rask.Bootstrap`.** Its stylesheet
+  is compiled from `Styles/dashboard.css` at this package's own build, embedded in the assembly, and
+  inlined as a `<style>` through head assets — so the console is styled correctly inside a host that
+  links no stylesheet of its own, and `Rask.Dashboard` ships no static web assets, needs no Razor SDK,
+  and can be bundled as a plain assembly. It carries Tailwind's full reset, which is safe because the
+  console owns its document — see the mount above.
+
+  Icons are inline SVG paths (Heroicons, MIT) rather than a webfont, which removes the last asset the
+  dashboard needed to fetch.
+
+  **Breaking:** `IQueuePanel.Icon` is now `OpsIconName` rather than `BsIconName`. A custom queue panel
+  picks from the new enum; the members it is likely to want (`Queue`, `Database`, `Envelope`, `Clock`,
+  `Retry`, `Archive`, `Outbox`, `Gear`, `Storage`, `Warning`) carry the same meanings.
+
+### Fixed
+- **The showcase's sidebar filter searched only when you left the box.** `BsInput` wired its controlled
+  callback to `oninput`; the core `Input` that replaced it binds `OnChange` to the DOM `change` event,
+  which for a text box fires on blur. So typing into "Filter guides & examples…" did nothing until focus
+  moved — on a live-search field, which is the one control where that is not a subtle difference. It is
+  `OnInput` now, which the API documents as the hook for exactly this. The two demo inputs converted the
+  same way are fixed with it; they were masked because clicking their button blurs the field first.
+
+- **Every sidebar row rendered its icon's NAME as text.** The icon was an empty `<i>` carrying a
+  Bootstrap Icons font class, and the conversion turned it into a `<span>` *containing* that class name —
+  so the nav read "bi-plug Wake lock", "bi-book All guides". The icon name is now an `IconName` rather
+  than a string, which is what makes this a compile error instead of a rendering one, and the two records
+  that carry it (`ShowcaseNavEntry`, `GuideEntry`) are typed accordingly.
+
+- **The todo list's edit and delete buttons had no accessible name.** They are icon-only, and the glyph
+  that replaced the icon font is `aria-hidden`, so a screen reader announced "button" and nothing else.
+  Both carry an `aria-label` naming the row they act on.
+
+  The same was true of the EfCore catalogue's row actions. Four icon-only controls in total now say what
+  they do, and the browser journey addresses them by that name rather than by the colour class it used
+  to reach for — an anchor a restyle cannot silently break, because a user can perceive it.
+
+- **31 class strings had two utilities fused into one.** `$"{Ui.AlertSuccess}text-sm"` renders
+  `…dark:text-emerald-200text-sm`: the constant's last utility and the next class run together into a
+  name that matches no rule, so both are silently lost. It compiles, and no test that does not read the
+  class attribute can see it.
+
+- **13 submit-result banners now announce themselves.** They report the outcome of an action and were
+  invisible to assistive tech; they are `role="status"` live regions, and the localization warning is
+  `role="alert"`.
+
+- **The Server and WASM showcases were rendering completely unstyled.** The shared shell linked
+  `/css/app.css`, but that stylesheet belongs to the `Rask.Example.Shared` *library*, so it publishes to
+  `/_content/Rask.Example.Shared/css/app.css` — the host's own `wwwroot/` has no `css/` directory at all.
+  The link 404'd, and a 404 stylesheet is invisible: the page renders, nothing throws, and every utility
+  is simply inert. The sidebar could not hide because `.hidden{display:none}` had never loaded.
+
+- **22 CSS custom properties were referenced but never defined.** `--accent`, `--ink`, `--panel`,
+  `--muted`, `--ground`, `--line` and the rest were the design tokens that shipped in `Rask.Bootstrap`'s
+  `tokens.css`; `global.css` still said so in a comment pointing at the deleted file. An undefined custom
+  property is silent — the declaration is dropped and the palette is just gone. The values are restored
+  verbatim from history into the showcase's own stylesheet, dark-first with the light deviation and both
+  `[data-theme]` blocks. The playground had the same 24 dangling references and is fixed with it.
+
+- **The sidebar's pinned-filter layout had stopped applying.** The rule that makes the body a
+  non-scrolling flex column — so the filter stays put and the list scrolls inside it — was attached to
+  `.side-nav .offcanvas-body`, `BsOffcanvas`'s wrapper. That element no longer exists, so the rule
+  matched nothing. It targets the `<aside>` now, and deliberately sets no `display`: `global.css` loads
+  after the utilities, so a `display` here would beat `hidden` and the mobile drawer could never close.
+
+- **The todo dialog lost its backdrop and its Escape key.** `BsModal` supplied a backdrop, Escape-to-
+  dismiss and a focus trap; a `<dialog>` rendered with the `open` attribute is non-modal and supplies
+  none of them. The first two are back — a sibling overlay that carries the cancel click, and a keydown
+  handler that routes Escape through the same cancel, no client script. The real focus TRAP needs
+  `showModal()` and therefore JS; that one stays given up, and the source says so rather than implying
+  otherwise.
+
+  `autofocus` is on the field, which is correct markup and fires on a deep link to `/todos/new` — but
+  browsers only honour it for elements present at PARSE time, not ones the live diff inserts, so it is
+  documented for what it actually does.
+- **A resumed console session came back as the host application.** The WebSocket endpoint is mapped once
+  per host rather than once per root, so it captured whichever root the first `UseRask` supplied — and that
+  is what session *resume* rebuilds with. A console session resuming after a restart or an eviction would
+  therefore have been rebuilt as the host app, under the console's URL, with nothing reporting it. Resume
+  now reads the path out of the resume record first and picks the root the same way the initial GET does.
+
+- **Three test classes raced over `RaskDiagnostics.Sink`.** It is a process-wide static and xUnit runs
+  classes in parallel, but only one of the three that swap it was serialized — so two could overlap and one
+  would see an empty capture. It fails as an assertion against an empty collection, only under load, and
+  passes when run alone, which is the signature that gets it waved through as a flake.
+
+ `Build<T>` is a struct, so it inherits from
+  nothing and the analyzer's Component-derived check saw no child — the key requirement was skipped
+  and an unkeyed list passed silently. The shape was unreachable until the children indexer above
+  made a projection of chains valid children, so this shipped in the same change that created it.
+  Unkeyed list items reconcile by position, which loses focus and input state on surviving rows.
+
 - **Every Rask web host now budgets the shutdown and stops hosted services concurrently.**
   `HostOptions.ShutdownTimeout` becomes 15s (inside the 20s `rask deploy` allows between SIGTERM and
   SIGKILL) and `ServicesStopConcurrently` becomes `true` — from `Rask.Server`'s `AddRask`,
@@ -2844,7 +3135,7 @@ them until tagged releases begin.
 
 ### Removed
 - **The generated `Generated.X(...)` factory is gone; the chain is the only way to write markup.**
-  `Div.Class("card")[Span["hi"]]` was already the documented surface — the factory was the one it
+  `Div.Class("panel")[Span["hi"]]` was already the documented surface — the factory was the one it
   replaced, kept alongside it so a migration could land project by project. Every call site in the repo
   is converted (the deterministic rewriter in `tools/RaskBuilderRewrite` did all but six of them, and
   trial-compiled each rewrite before accepting it), so what goes now is the second way to say the same
@@ -3818,7 +4109,7 @@ them until tagged releases begin.
   - **Nothing changes at the call site.** `Rask.Html` is `IsPackable=false` and bundled into the
     `Rask.Server` / `Rask.Wasm` package `lib/` folders next to `Rask.Core.dll`, exactly
     like `Rask.Client`. `[assembly: RaskFactoryNamespace("Rask.Html.Components")]` — the same opt-in
-    each host uses — makes a consuming app's generator surface the factories, so `Div.Class("card")`
+    each host uses — makes a consuming app's generator surface the factories, so `Div.Class("panel")`
     and `Generated.Img(…)` resolve with no per-file `using`.
   - **The factory namespace had to change** (`Rask.Core.Components` → `Rask.Html.Components`): the
     generator emits one `public static partial class Generated` per compilation, and Core still declares
@@ -3949,7 +4240,7 @@ them until tagged releases begin.
 
   **Elements are exempt**, and not as a carve-out: an element is re-specified in full every render — what
   its chain does not name, the deferred reset puts back — so its instance carries nothing and is never
-  claimed. `Div.Class("row").Key(i)` is unchanged, which is the spelling used in its hundreds.
+  claimed. `Div.Class("line").Key(i)` is unchanged, which is the spelling used in its hundreds.
 
   RASK046 found **nine** live instances of the trap while this was being written — in `Rask.Bootstrap`,
   `Rask.Dashboard`, the samples and the benchmarks. `BsToaster` and the toast demos are the clearest:
@@ -4248,7 +4539,7 @@ them until tagged releases begin.
   one:
 
   ```csharp
-  Div.Class("card")[Span["hi"]]                       // reads exactly as before
+  Div.Class("panel")[Span["hi"]]                       // reads exactly as before
   BsButton.Color(BsColor.Primary).OnClick(Save)["Save"]
   ```
 
@@ -4318,7 +4609,7 @@ them until tagged releases begin.
   Form.Model(_m)
       .Validate(CheckoutRules.Check)
       .OnValidSubmit(Save)
-      .Class("vstack gap-3")[ … ]
+      .Class("flex flex-col gap-3")[ … ]
   ```
 
   The submit handlers now receive the model itself instead of a `Delegate` the component had to
@@ -4375,7 +4666,7 @@ them until tagged releases begin.
   BsSelect.Bind(() => _m.Plan).Options(Plans)     // the option IS the value
   BsRadioGroup.Options(AllPlans).Value(_plan)
   BsToast.Id(7).Message("Saved")                   // or .Message("Saved").Id(7)
-  Div.Class("card")[…]                             // nothing required — unchanged
+  Div.Class("panel")[…]                             // nothing required — unchanged
   ```
 
   Three things stop being possible to write, rather than being reported after the fact:
@@ -4935,7 +5226,7 @@ them until tagged releases begin.
   Entries now restore the state the factory would have left — but in two halves, because the reset and
   the `propsChanged` fold want opposite moments. Non-folding props (raw delegates, carriers, `Key`)
   are defaulted when the entry is created; they never call `Track`, so nothing can be disturbed. Folding
-  props cannot be: blanking `Class` before `.Class("card")` runs would make the fold compare against the
+  props cannot be: blanking `Class` before `.Class("panel")` runs would make the fold compare against the
   *default* instead of last render's value, so every constant prop would report a change every frame and
   no entry-built component would ever hit the render cache. Those are instead marked *pending*, each
   setter clears its own bit as it writes, and whatever is still pending when the parent's `Render()`
@@ -7853,7 +8144,7 @@ them until tagged releases begin.
   asked for. A single-entity run is byte-for-byte unchanged.
 - **Bootstrap layout primitives: `BsContainer`, `BsRow`/`BsCol`, `BsStack`.** The typed answer to the page
   shell and the 12-unit responsive grid, so a layout no longer means hand-writing
-  `Div(Class: "container")` / `Div(Class: "row g-4")` / `Div(Class: "d-flex gap-2")`. `BsContainer` takes
+  `Div(Class: "wrap")` / `Div(Class: "line gap-4")` / `Div(Class: "flex gap-2")`. `BsContainer` takes
   `Fluid` and `FluidBelow: Bp` (named for the behaviour — Bootstrap's `.container-md` is really the fluid
   one *below* md, capped from md up). `BsRow` takes `Gutter` (`.g-0`…`.g-5`). `BsCol` takes per-breakpoint
   spans that stack exactly as the class names do — `BsCol(Md: 6, Lg: 4)` → `.col-md-6 .col-lg-4` — plus

@@ -12,7 +12,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | Blazor | Rask |
 |--------|------|
 | `.razor` component (markup + `@code`) | `sealed partial class : Component` with `Render()` returning a tree |
-| `RenderFragment` / Razor markup | A chain — `Div.Class("card")[Span["hi"]]`, children via an indexer |
+| `RenderFragment` / Razor markup | A chain — `Div.Class("panel")[Span["hi"]]`, children via an indexer |
 | `@onclick="Handler"` | `.OnClick(() => ...)` (a plain delegate, set by a chain step) |
 | `[Parameter] public T X { get; set; }` | `public T X { get; set; }` — becomes a chain step (required if non-nullable) or an optional setter |
 | `EventCallback` / `EventCallback<T>` | **No such type.** A plain delegate prop (`Action`, `Action<T>`, `Func<Task>`, `Func<T,Task>`) |

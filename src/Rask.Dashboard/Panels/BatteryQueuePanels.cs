@@ -22,7 +22,7 @@ internal sealed class JobsQueuePanel<TContext>(
 
     public override string Title => "Jobs";
 
-    public override BsIconName Icon => BsIconName.GearWideConnected;
+    public override OpsIconName Icon => OpsIconName.Gear;
 
     public override int MaxAttempts => _options?.MaxAttempts ?? 0;
 
@@ -48,7 +48,7 @@ internal sealed class OutboxQueuePanel<TContext>(
 
     public override string Title => "Outbox";
 
-    public override BsIconName Icon => BsIconName.BoxArrowUpRight;
+    public override OpsIconName Icon => OpsIconName.Outbox;
 
     public override int MaxAttempts => _options?.MaxAttempts ?? 0;
 
@@ -77,7 +77,7 @@ internal sealed class MailQueuePanel<TContext>(
 
     public override string Title => "Mail";
 
-    public override BsIconName Icon => BsIconName.Envelope;
+    public override OpsIconName Icon => OpsIconName.Envelope;
 
     public override int MaxAttempts => _options?.MaxAttempts ?? 0;
 

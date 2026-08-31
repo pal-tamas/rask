@@ -76,7 +76,7 @@ public partial class LiveRenderRoundTripBenchmarks : global::Rask.Core.RaskMarku
             Doctype,
             Html[
                 Body[
-                    Div.Class("container").Id("root")[
+                    Div.Class("wrap").Id("root")[
                         Div.Class("header")[Span["Live Bench"]],
                         Div.Class("body")[rows]
                     ]
@@ -120,7 +120,7 @@ public partial class LiveRenderRoundTripBenchmarks : global::Rask.Core.RaskMarku
         {
             var idx = order[i];
             rows.Add(Div
-                .Class("row")
+                .Class("line")
                 .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
                 Span[$"Item {idx}"]
             ]);
@@ -142,7 +142,7 @@ public sealed partial class RowItem : Component
     public int Index { get; set; }
 
     protected override Component? Render() =>
-        Div.Class("row").Id($"r{Index}")[
+        Div.Class("line").Id($"r{Index}")[
             Span.Class("label")[$"Item {Index}"],
             A.Href($"/item/{Index}").Class("lnk")[$"open {Index}"],
             Button.Type("button").OnClick(() => { })["go"]

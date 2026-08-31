@@ -10,28 +10,28 @@ public sealed partial class FormControlsInputDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        BsRow.Gutter(4)[
-            BsCol.Md(6)[
-                Label.Class("form-label fw-semibold")["Controlled (Value + OnChange)"],
+        Div.Class("grid grid-cols-12 gap-4")[
+            Div.Class("md:col-span-6")[
+                Label.Class($"{Ui.Label} font-semibold")["Controlled (Value + OnChange)"],
                 Input
                     .Value(_controlled)
                     .OnChange(v => _controlled = v)
-                    .Class("form-control mb-2")
+                    .Class($"{Ui.Input} mb-2")
                     .Placeholder("Type, then blur…")
                     .Id("fc-input-controlled"),
-                P.Class("small text-secondary mb-0").Id("fc-input-controlled-out")[
+                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-input-controlled-out")[
                     "Echo: ", Strong[_controlled.Length == 0 ? "(empty)" : _controlled]
                 ]
             ],
-            BsCol.Md(6)[
-                Label.Class("form-label fw-semibold")["Bound (two-way)"],
+            Div.Class("md:col-span-6")[
+                Label.Class($"{Ui.Label} font-semibold")["Bound (two-way)"],
                 Form.Model(_model)[
                     Input.Bind(() => _model.Text)
-                        .Class("form-control mb-2")
+                        .Class($"{Ui.Input} mb-2")
                         .Placeholder("Type…")
                         .Id("fc-input-bound")
                 ],
-                P.Class("small text-secondary mb-0").Id("fc-input-bound-out")[
+                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-input-bound-out")[
                     "Echo: ", Strong[_model.Text.Length == 0 ? "(empty)" : _model.Text]
                 ]
             ]

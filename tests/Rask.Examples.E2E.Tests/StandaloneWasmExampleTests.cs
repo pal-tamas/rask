@@ -48,7 +48,7 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         if (!_shellLoaded)
         {
             await Page.GotoAsync("/index.html");
-            await Expect(Page.Locator("main h1.h2"))
+            await Expect(Page.Locator("main h1"))
                 .ToContainTextAsync("Guides", new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
             _shellLoaded = true;
         }

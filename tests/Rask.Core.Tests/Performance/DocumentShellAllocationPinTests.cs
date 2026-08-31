@@ -98,7 +98,7 @@ public partial class DocumentShellAllocationPinTests : global::Rask.Core.RaskMar
         protected override Component? Render() =>
             Div.Id("counter").Class("counter")[
                 Enumerable.Range(0, 40)
-                    .Select(i => Div.Class("row").Key(i)[Span[i.ToString()], Button["+"]])
+                    .Select(i => Div.Class("line").Key(i)[Span[i.ToString()], Button["+"]])
             ];
     }
 }

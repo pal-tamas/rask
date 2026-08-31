@@ -73,7 +73,7 @@ public interface IQueuePanel : IQueueActions
     string Title { get; }
 
     /// <summary>The icon for the nav entry and the overview tile.</summary>
-    BsIconName Icon { get; }
+    OpsIconName Icon { get; }
 
     /// <summary>
     /// <c>false</c> when this battery isn't part of the app — either not registered, or registered without

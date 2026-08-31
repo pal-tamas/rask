@@ -127,15 +127,7 @@
     -->
     <_RaskExampleValidationUsings>$(_RaskInRepoImplicitUsings)</_RaskExampleValidationUsings>
     <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Sqlite')) OR '$(MSBuildProjectName)' == 'Rask.Example.Playground' OR '$(MSBuildProjectName)' == 'Rask.Example.Site' OR '$(MSBuildProjectName)' == 'Rask.Example.Wasm.Jobs' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">false</_RaskExampleValidationUsings>
-    <!-- The showcase trio (Rask.Example.Shared + the Server/Wasm hosts that reference it) pulls in
-         Rask.Bootstrap; the Auth/EfCore standalone samples don't reference it, so they must not get
-         its global static usings (the namespace wouldn't resolve). Same set as the validation usings. -->
-    <_RaskExampleBootstrapUsings>$(_RaskExampleValidationUsings)</_RaskExampleBootstrapUsings>
-    <!-- Shop is the exception to "same set": `rask new` references Rask.Bootstrap (the shell and the
-         scaffolded pages use Bs* components) but not the validation packages, so it needs one and not
-         the other. -->
-    <_RaskExampleBootstrapUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleBootstrapUsings>
-    <!-- The CQRS demo slice lives in the showcase Shared library; the Shop sample (the committed output
+<!-- The CQRS demo slice lives in the showcase Shared library; the Shop sample (the committed output
          of `rask new`, whose every generated feature handler dispatches through the mediator) is the
          other in-repo example that references Rask.Cqrs. Scope the global `using Rask.Cqrs;` to those. -->
     <_RaskExampleCqrsUsings>false</_RaskExampleCqrsUsings>
@@ -165,8 +157,6 @@
           Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"
           Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
-  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Bootstrap\build\Rask.Bootstrap.props"
-          Condition=" '$(_RaskExampleBootstrapUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Bootstrap\build\Rask.Bootstrap.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Cqrs\build\Rask.Cqrs.props"
           Condition=" '$(_RaskExampleCqrsUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Cqrs\build\Rask.Cqrs.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Data\build\Rask.Data.props"
@@ -181,5 +171,13 @@
           Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Cache\build\Rask.Cache.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Logging\build\Rask.Logging.props"
           Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Logging\build\Rask.Logging.props') "/>
+
+  <!--
+    The Tailwind defaults, for every project in the repo. Unconditional (unlike the battery usings
+    above) because they are only defaults: a project with no Styles/app.css never runs the compiler,
+    so the properties simply go unused.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Tailwind\build\Rask.Tailwind.props"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Tailwind\build\Rask.Tailwind.props') "/>
 
 </Project>

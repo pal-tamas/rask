@@ -30,20 +30,18 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
     // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
     // exact-match only.
-    private static readonly (string Path, string Label, string Icon, string Group, string? MatchPrefix)[] Links =
+    private static readonly (string Path, string Label, IconName Icon, string Group, string? MatchPrefix)[] Links =
     [
         // Paths are type-safe, generator-emitted route URLs (Features.Routes.*) — RouteUrl converts
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
-        (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null)
+        (Features.Routes.TodosPage(), "Todos", IconName.Check2Square, "Apps", null)
         // Many example pages are now folded into their guides as inline live demos: HttpClient+DI /
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
         // APIs (docs/browser-apis.md); Events + Toast messages → Composition (docs/composition.md); the
-        // BsToast element → Bootstrap (docs/bootstrap.md); User & auth → Authentication (docs/authentication.md); User
-        // components → Getting started (docs/getting-started.md); Live ticker → Lifecycle
-        // (docs/lifecycle.md); Master-detail → Composition (docs/composition.md keyed lists). The Data
-        // table stays a working [QueryParam] example at /table (unlisted) — its source is shown in
-        // docs/routing.md's query-param section. See DemoRegistry.
+        // User & auth → Authentication (docs/authentication.md); User components → Getting started
+        // (docs/getting-started.md); Live ticker → Lifecycle (docs/lifecycle.md); Master-detail →
+        // Composition (docs/composition.md keyed lists). See DemoRegistry.
     ];
 
     // Mobile drawer open state (ignored at ≥md, where the responsive offcanvas is static), the
@@ -75,70 +73,64 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     protected override Component? Render() =>
     [
-        BsNavbar
-            .Color(BsColor.Dark)
-            .Theme(BsTheme.Dark)
-            .Sticky(true)
-            .Class(Bs.Join(Border.Bottom, Shadow.Sm, "app-navbar"))[
+        Nav.Class(
+            "app-navbar sticky top-0 z-40 flex items-center gap-3 border-b border-slate-700 "
+            + "bg-slate-900 px-3 py-2 text-slate-100 shadow-sm")[
             Button
                 .Type("button")
-                .Class(Bs.Join("hamburger-btn", Display.None(Bp.Md)))
+                .Class("hamburger-btn md:hidden")
                 .OnClick(() => _drawerOpen = !_drawerOpen)[
-                BsIcon.Name(_drawerOpen ? BsIconName.XLg : BsIconName.List)
+                Icon.Name(_drawerOpen ? IconName.XLg : IconName.List)
             ],
             NavLink
                 .Href(Features.Routes.GuidesIndexPage())
                 .ActiveClass("")
-                .Class(Bs.Join("navbar-brand", Font.Semibold, Display.InlineFlex(), Flex.Align(BsAlign.Center),
-                    Flex.Gap(2)))[
+                .Class("app-brand font-semibold inline-flex items-center gap-2")[
                 RaskLogo.Size(24).GradientId("brandBolt"),
                 Span["Rask"],
-                BsBadge.Pill(true).Class("rask-badge")["showcase"],
-                BsBadge.Color(BsColor.Secondary).Pill(true)[$"v{RaskVersion.Current}"]
+                Span.Class($"{Ui.BadgeSecondary} rask-badge")["showcase"],
+                Span.Class(Ui.BadgeSecondary)[$"v{RaskVersion.Current}"]
             ],
-            Div.Class(Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), Flex.Gap(2), Margin.StartAuto))[
+            Div.Class("flex items-center gap-2 ms-auto")[
                 PathDisplay,
                 // The live playground is a separate WASM sub-app (Roslyn compiles Rask C# in the browser),
                 // deployed only to GitHub Pages alongside this showcase. This layout is shared by the
                 // Server and WASM showcases (and runs locally), neither of which serves a /playground
                 // route — so link to the one place it actually lives (absolute), opened in a new tab.
-                BsLink
+                A
                     .Href("https://pal-tamas.github.io/rask/playground/")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Color(BsColor.Primary)
-                    .Size(BsSize.Sm)[
-                    BsIcon.Name(BsIconName.PlayFill).Class("me-1"), "Playground"],
-                BsLink
+                    .Class(Ui.BtnPrimary)[Icon.Name(IconName.PlayFill), "Playground"],
+                A
                     .Href("https://github.com/pal-tamas/rask")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Color(BsColor.Light)
-                    .Outline(true)
-                    .Size(BsSize.Sm)[
-                    BsIcon.Name(BsIconName.Github).Class("me-1"), "GitHub"],
-                // Light/dark theme toggle — flips data-theme + data-bs-theme via the scoped module.
-                BsButton
-                    .Color(BsColor.Light)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                    .Class(Ui.BtnOutlineLight)[Icon.Name(IconName.Github), "GitHub"],
+                // Light/dark theme toggle — flips data-theme via the scoped module.
+                Button.Type("button").Class(Ui.BtnOutlineLight)
                     .OnClickAsync(ToggleThemeAsync)
                     .Aria(ThemeToggleAria)[
-                    BsIcon.Name(BsIconName.CircleHalf)]
+                    Icon.Name(IconName.CircleHalf)]
             ]
         ],
-        Div.Class(Bs.Join(Display.Flex(), "app-shell"))[
-            BsOffcanvas
-                .Responsive(Bp.Md)
-                .Placement(BsPlacement.Start)
-                .Open(_drawerOpen)
-                .OnClose(() => _drawerOpen = false)
-                .Title("Menu")
-                .Class("side-nav")[
+        Div.Class("flex app-shell")[
+            // Always in the flow from md up; below that it slides over the page, and a backdrop
+            // closes it. The open state was already Rask state — the drawer never needed script.
+            Aside
+                .Class(_drawerOpen
+                    ? "side-nav flex fixed inset-y-0 left-0 z-50 w-72 bg-white p-4 "
+                      + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none dark:bg-slate-900"
+                    : "side-nav hidden w-64 p-4 md:flex")[
                 SidebarBody()
             ],
-            Main.Class(Bs.Join(Flex.Grow(1), Padding.Y(4), Padding.X(3), Padding.X(5, Bp.Md), "page-main"))[
-                Div.Class(Bs.Join(Margin.XAuto, "page-main-inner"))[Outlet]
+            _drawerOpen
+                ? Div
+                    .Class("nav-backdrop fixed inset-0 z-40 bg-black/40 md:hidden")
+                    .OnClick(() => _drawerOpen = false)
+                : null,
+            Main.Class("grow py-4 px-3 md:px-5 page-main")[
+                Div.Class("mx-auto page-main-inner")[Outlet]
             ]
         ]
     ];
@@ -149,12 +141,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
         Div.Class("side-nav-search")[
-            BsInput
+            Input
                 .Value(_filter)
-                .OnChange(v => _filter = v ?? "")
-                .Size(BsSize.Sm)
+                .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…")
-                .Class("side-nav-filter")
+                .Class($"side-nav-filter {Ui.Input}")
         ],
         Div.Class("side-nav-scroll")[BuildSections()]
     ];
@@ -163,7 +154,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // default via OpenGuideGroups), followed by the interactive Examples (the framework/core showcase
     // plus any host-contributed entries, e.g. the WASM PWA examples) and the Bootstrap-component
     // showcase — both demoted below the guides and collapsed until visited.
-    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> Links)> Sections()
+    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> Links)> Sections()
     {
         yield return ("Guides", GuidesNav());
         yield return ("Examples",
@@ -171,9 +162,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     }
 
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
-    private static IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> GuidesNav()
+    private static IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
     {
-        yield return (Features.Routes.GuidesIndexPage(), "All guides", "bi-book", "Overview", null);
+        yield return (Features.Routes.GuidesIndexPage(), "All guides", IconName.Book, "Overview", null);
         foreach (var g in Features.GuideCatalog.All)
         {
             yield return (Features.Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);
@@ -215,7 +206,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
         if (children.Count == 0)
         {
-            children.Add(Div.Class("side-nav-empty text-secondary small")["Nothing matches that filter."]);
+            children.Add(Div.Class("side-nav-empty text-slate-500 dark:text-slate-400 text-sm")["Nothing matches that filter."]);
         }
 
         return children;
@@ -223,37 +214,42 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     private Component GroupBlock(
         string key, string group, bool open,
-        IReadOnlyList<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> items) =>
+        IReadOnlyList<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> items) =>
         Div.Class("nav-group").Key(key)[
             Button
                 .Type("button")
-                .Class(Bs.Join("nav-group-toggle", open ? "open" : null))
+                .Class(open ? "nav-group-toggle open" : "nav-group-toggle")
                 .OnClick(() => ToggleGroup(key))[
-                I.Class(open ? "bi bi-chevron-down nav-group-chevron" : "bi bi-chevron-right nav-group-chevron"),
+                Icon.Name(open ? IconName.ChevronDown : IconName.ChevronRight).Class("nav-group-chevron"),
                 Span.Class("nav-group-label")[group]
             ],
-            BsCollapse.Open(open)[
-                BsNav.Vertical(true).Class("nav-group-items")[
+            !open
+                ? null
+                : Div.Class("nav-group-items flex flex-col")[
+                    // No cast: the chain ends at the children indexer, so it is already a Component
+                    // and Select infers the sequence — which is what the indexer wants.
                     items.Select(i =>
                     {
+                        // The local is what makes string -> RouteUrl reachable: the conversion is
+                        // defined on a string, not on a string?, so a null has to stay a null RouteUrl
+                        // rather than be converted.
                         RouteUrl? match = null;
                         if (i.MatchPrefix is { } mp)
                         {
                             match = mp;
                         }
 
-                        return (Component)BsNavItem
+                        return NavLink
                             .Key(i.Path)
                             .Href(i.Path)
                             .Match(match)
                             .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
                             .Class("side-nav-link")[
-                            I.Class($"bi {i.Icon} me-2"),
+                            Icon.Name(i.Icon).Class("me-2"),
                             Span[i.Label]
                         ];
                     })
                 ]
-            ]
         ];
 
     private void ToggleGroup(string key)
@@ -295,11 +291,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     // Groups consecutive links by their Group label, preserving the array order (the sidebar shows
     // groups in the order their first item appears, exactly as the flat list was authored).
-    private static IEnumerable<(string Group, List<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> Items)>
-        GroupConsecutive(IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> links)
+    private static IEnumerable<(string Group, List<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> Items)>
+        GroupConsecutive(IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> links)
     {
         string? current = null;
-        List<(string Path, string Label, string Icon, string Group, string? MatchPrefix)>? bucket = null;
+        List<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)>? bucket = null;
 
         foreach (var link in links)
         {

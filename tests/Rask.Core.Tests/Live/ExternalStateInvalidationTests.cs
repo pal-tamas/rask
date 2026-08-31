@@ -46,7 +46,7 @@ public partial class ExternalStateInvalidationTests : global::Rask.Core.RaskMark
         var view = new StubComponent(() =>
         {
             built++;
-            return Div.Class("nav")[Span.Class("active")[source.Value]];
+            return Div.Class("menu")[Span.Class("active")[source.Value]];
         });
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();

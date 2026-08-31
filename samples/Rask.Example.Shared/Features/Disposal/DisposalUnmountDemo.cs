@@ -10,24 +10,19 @@ public sealed partial class DisposalUnmountDemo : Component
 
     protected override Component? Render() =>
         Div[
-            BsStack.Gap(2).Class(Margin.Bottom(3))[
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Size(BsSize.Sm)
+            Div.Class("flex gap-2 flex-wrap items-center mb-3")[
+                Button.Type("button").Class(Ui.BtnPrimary)
                     .Id("unmount-hook-mount")
                     .Disabled(_hookMounted)
-                    .OnClick(MountHook)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Start ticker"],
-                BsButton
-                    .Color(BsColor.Secondary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                    .OnClick(MountHook)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Start ticker"],
+                Button.Type("button").Class(Ui.BtnOutlineSecondary)
                     .Id("unmount-hook-unmount")
                     .Disabled(!_hookMounted)
-                    .OnClick(UnmountHook)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Stop ticker"]
+                    .OnClick(UnmountHook)[Icon.Name(IconName.StopCircle).Class("me-1"), "Stop ticker"]
             ],
             _hookMounted
                 ? UnmountTimerProbe.Log(AppendHookLog).InstanceId(_nextHookId)
-                : P.Class("text-secondary fst-italic mb-0")["Ticker not running."],
+                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Ticker not running."],
             DisposalDemoLog.Entries(_hookLog).ListId("unmount-hook-log")
         ];
 

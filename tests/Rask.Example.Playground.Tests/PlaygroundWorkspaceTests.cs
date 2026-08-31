@@ -39,7 +39,7 @@ public sealed class PlaygroundWorkspaceTests
                 private int _count;
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         P[$"Count: {_count}"],
                         Button.OnClick(() => _count++)["Click me"]
                     ];

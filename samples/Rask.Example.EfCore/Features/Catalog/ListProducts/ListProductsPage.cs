@@ -45,50 +45,54 @@ public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext>
 
     protected override Component? Render() =>
     [
-        Div.Class("d-flex justify-content-between align-items-center mb-3")[
+        Div.Class("flex justify-between items-center mb-3")[
             Div[
-                H1.Class("h3 mb-1")["Products"],
-                P.Class("text-secondary mb-0")["EF Core + SQLite CRUD, organised as vertical slices."]
+                H1.Class("text-2xl font-semibold mb-1")["Products"],
+                P.Class("text-slate-500 dark:text-slate-400 mb-0")["EF Core + SQLite CRUD, organised as vertical slices."]
             ],
             NavLink
                 .Href(global::Rask.Example.EfCore.Features.Catalog.CreateProduct.Routes.CreateProductPage())
-                .Class("btn btn-primary")[
-                I.Class("bi bi-plus-lg me-1"), "New product"
+                .Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500")[
+                Span.Class("me-1").Attributes(("aria-hidden", "true"))["+"], "New product"
             ]
         ],
         !_loaded
-            ? Div.Class("text-secondary")[
-                Span.Class("spinner-border spinner-border-sm me-2"), "Loading…"
+            ? Div.Class("text-slate-500 dark:text-slate-400")[
+                Span.Class("inline-block size-5 animate-spin rounded-full border-2 border-current border-r-transparent size-4 me-2"), "Loading…"
             ]
             : _products.Count == 0
-                ? Div.Class("alert alert-info")["No products yet — click \"New product\" to add one."]
-                : Table.Class("table table-striped align-middle bg-white shadow-sm rounded overflow-hidden")[
+                ? Div.Class("rounded-lg px-4 py-3 text-sm bg-sky-50 text-sky-900 dark:bg-sky-950 dark:text-sky-200")["No products yet — click \"New product\" to add one."]
+                : Table.Class("w-full text-left text-sm [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-2 [&_tbody_tr:nth-child(odd)]:bg-slate-50 align-middle bg-white shadow-sm rounded overflow-hidden")[
                     Thead[
                         Tr[
                             Th["#"],
                             Th["Name"],
-                            Th.Class("text-end")["Price"],
-                            Th.Class("text-end")["Stock"],
+                            Th.Class("text-right")["Price"],
+                            Th.Class("text-right")["Stock"],
                             Th[""]
                         ]
                     ],
                     Tbody[
                         _products.Select(p => Tr.Key(p.Id)[
-                            Td.Class("text-muted")[p.Id.ToString(CultureInfo.InvariantCulture)],
-                            Td.Class("fw-semibold")[p.Name.Value],
-                            Td.Class("text-end")[p.Price.ToString()],
-                            Td.Class("text-end")[p.Stock.Value.ToString(CultureInfo.InvariantCulture)],
-                            Td.Class("text-end text-nowrap")[
+                            Td.Class("text-slate-500 dark:text-slate-400")[p.Id.ToString(CultureInfo.InvariantCulture)],
+                            Td.Class("font-semibold")[p.Name.Value],
+                            Td.Class("text-right")[p.Price.ToString()],
+                            Td.Class("text-right")[p.Stock.Value.ToString(CultureInfo.InvariantCulture)],
+                            Td.Class("text-right whitespace-nowrap")[
+                                // Icon-only: without a name a screen reader announces "link" and
+                                // nothing else, and the browser journey has nothing to address it by.
                                 NavLink
                                     .Href($"/products/{p.Id}/edit")
-                                    .Class("btn btn-outline-secondary btn-sm me-1")[
-                                    I.Class("bi bi-pencil")
+                                    .Aria(new Dictionary<string, string?> { ["label"] = $"Edit {p.Name}" })
+                                    .Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-transparent ring-1 text-slate-700 ring-slate-300 hover:bg-slate-50 dark:text-slate-300 dark:ring-slate-600 dark:hover:bg-slate-800 me-1")[
+                                    Span.Attributes(("aria-hidden", "true"))["✎"]
                                 ],
                                 Button
                                     .Type("button")
-                                    .Class("btn btn-outline-danger btn-sm")
+                                    .Aria(new Dictionary<string, string?> { ["label"] = $"Delete {p.Name}" })
+                                    .Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-transparent ring-1 text-red-700 ring-red-300 hover:bg-red-50 dark:text-red-300")
                                     .OnClickAsync(() => DeleteAsync(p.Id))[
-                                    I.Class("bi bi-trash")
+                                    Span.Attributes(("aria-hidden", "true"))["🗑"]
                                 ]
                             ]
                         ])

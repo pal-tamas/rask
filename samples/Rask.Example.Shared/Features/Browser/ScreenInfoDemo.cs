@@ -9,18 +9,14 @@ public sealed partial class ScreenInfoDemo(IScreenInfo screen) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
-                    .Class("mb-2")
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Button.Class($"{Ui.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("screen-read")
                     .OnClickAsync(Read)[
                     "Read screen info"],
-                Div.Class("small text-secondary")["Display: ", Code.Id("screen-value")[_value ?? "(not requested)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("screen-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Display: ", Code.Id("screen-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("screen-status")[_status ?? "(idle)"]]
             ]
         ];
 

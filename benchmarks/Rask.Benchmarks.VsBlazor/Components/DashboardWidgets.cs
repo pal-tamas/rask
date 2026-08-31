@@ -39,19 +39,19 @@ internal static partial class DashboardWidgets
             {
                 _staticSidebar = new List<Component>
                 {
-                    Li.Class("nav-item")[A.Href("/dashboard")["Dashboard"]],
-                    Li.Class("nav-item")[A.Href("/reports")["Reports"]],
-                    Li.Class("nav-item")[A.Href("/users")["Users"]],
-                    Li.Class("nav-item")[A.Href("/settings")["Settings"]],
-                    Li.Class("nav-item")[A.Href("/help")["Help"]]
+                    Li.Class("menu-item")[A.Href("/dashboard")["Dashboard"]],
+                    Li.Class("menu-item")[A.Href("/reports")["Reports"]],
+                    Li.Class("menu-item")[A.Href("/users")["Users"]],
+                    Li.Class("menu-item")[A.Href("/settings")["Settings"]],
+                    Li.Class("menu-item")[A.Href("/help")["Help"]]
                 };
 
                 _staticAlerts = new List<Component>(AlertCount);
                 for (var i = 0; i < AlertCount; i++)
                 {
-                    _staticAlerts.Add(Li.Class("alert").Id($"a{i}")[
-                        Span.Class("alert-sev")[$"Sev{(i % 3) + 1}"],
-                        Span.Class("alert-msg")[$"Alert message {i}"]
+                    _staticAlerts.Add(Li.Class("notice").Id($"a{i}")[
+                        Span.Class("notice-sev")[$"Sev{(i % 3) + 1}"],
+                        Span.Class("notice-msg")[$"Alert message {i}"]
                     ]);
                 }
 
@@ -83,7 +83,7 @@ internal static partial class DashboardWidgets
                         Div.Class("chart-canvas")
                     ],
                     // Widget 3: table summary
-                    Div.Class("widget table-widget").Id("w-table")[
+                    Div.Class("widget sheet-widget").Id("w-table")[
                         Span.Class("widget-title")["Recent orders"],
                         Div.Class("summary-row")[Span["Total"], Span["1,234"]],
                         Div.Class("summary-row")[Span["Pending"], Span["56"]],
@@ -140,7 +140,7 @@ internal static partial class DashboardWidgets
             {
                 var parts = item.Split(':');
                 b.OpenElement(13, "li");
-                b.AddAttribute(14, "class", "nav-item");
+                b.AddAttribute(14, "class", "menu-item");
                 b.OpenElement(15, "a");
                 b.AddAttribute(16, "href", parts[0]);
                 b.AddContent(17, parts[1]);
@@ -184,7 +184,7 @@ internal static partial class DashboardWidgets
 
             // Widget 3: table summary
             b.OpenElement(37, "div");
-            b.AddAttribute(38, "class", "widget table-widget");
+            b.AddAttribute(38, "class", "widget sheet-widget");
             b.AddAttribute(39, "id", "w-table");
             b.OpenElement(40, "span");
             b.AddAttribute(41, "class", "widget-title");
@@ -219,14 +219,14 @@ internal static partial class DashboardWidgets
             for (var i = 0; i < AlertCount; i++)
             {
                 b.OpenElement(57, "li");
-                b.AddAttribute(58, "class", "alert");
+                b.AddAttribute(58, "class", "notice");
                 b.AddAttribute(59, "id", $"a{i}");
                 b.OpenElement(60, "span");
-                b.AddAttribute(61, "class", "alert-sev");
+                b.AddAttribute(61, "class", "notice-sev");
                 b.AddContent(62, $"Sev{(i % 3) + 1}");
                 b.CloseElement();
                 b.OpenElement(63, "span");
-                b.AddAttribute(64, "class", "alert-msg");
+                b.AddAttribute(64, "class", "notice-msg");
                 b.AddContent(65, $"Alert message {i}");
                 b.CloseElement();
                 b.CloseElement();

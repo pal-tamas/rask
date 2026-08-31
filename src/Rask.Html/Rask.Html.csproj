@@ -84,8 +84,6 @@
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <InternalsVisibleTo Include="Rask.Testing"/>
     <InternalsVisibleTo Include="Rask.Testing.Tests"/>
-    <InternalsVisibleTo Include="Rask.Bootstrap"/>
-    <InternalsVisibleTo Include="Rask.Bootstrap.Tests"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Wasm"/>
   </ItemGroup>

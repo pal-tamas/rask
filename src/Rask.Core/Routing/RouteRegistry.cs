@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace Rask.Core.Routing;
 
@@ -44,13 +45,21 @@ public static class RouteRegistry
 
     private static IReadOnlyList<Route>? _treeCache;
 
+    // Subset trees, keyed by the assembly asked about. Small and bounded: one entry per MOUNTED
+    // application, which is one or two in practice. Cleared wherever _treeCache is, so a hot reload
+    // or a Reset() invalidates every view of the table at once rather than leaving a stale subset
+    // behind the fresh whole.
+    private static readonly Dictionary<Assembly, IReadOnlyList<Route>> _onlyCache = new();
+    private static readonly Dictionary<string, IReadOnlyList<Route>> _exceptCache =
+        new(StringComparer.Ordinal);
+
     public static void Add(IEnumerable<RouteRegistration> registrations)
     {
         ArgumentNullException.ThrowIfNull(registrations);
         lock (_lock)
         {
             _manual.AddRange(registrations);
-            _treeCache = null;
+            InvalidateCaches();
         }
     }
 
@@ -90,12 +99,12 @@ public static class RouteRegistry
                 }
 
                 _groups[i] = (groupKey, items);
-                _treeCache = null;
+                InvalidateCaches();
                 return;
             }
 
             _groups.Add((groupKey, items));
-            _treeCache = null;
+            InvalidateCaches();
         }
     }
 
@@ -108,7 +117,99 @@ public static class RouteRegistry
         lock (_lock)
         {
             _defaultFallback = pageType;
-            _treeCache = null;
+            InvalidateCaches();
+        }
+    }
+
+    /// <summary>
+    ///     The route table for a MOUNTED application: only the routes declared by
+    ///     <paramref name="assembly" />.
+    /// </summary>
+    /// <remarks>
+    ///     Registrations are already grouped per assembly — the generated <c>__RaskRoutesRegistry</c>
+    ///     passes its own type as the group key, so that an assembly's routes can be swapped under hot
+    ///     reload without touching another's. That grouping is what makes a mounted application possible:
+    ///     the boundary between the console at <c>/_rask</c> and the app around it is which assembly
+    ///     DECLARED a route, not which path it happens to start with.
+    ///     <para>
+    ///         Direct <see cref="Add" /> calls belong to the host application, not to a mounted one, so
+    ///         they are excluded here and kept by <see cref="BuildTreeExcept(Assembly)" />.
+    ///     </para>
+    ///     <para>
+    ///         The not-found fallback applies per subset: a mounted app that declares no catch-all falls
+    ///         back to the framework's own page rather than inheriting the host application's
+    ///         <c>[NotFound]</c>, which would otherwise render the host's markup inside the mounted app's
+    ///         document.
+    ///     </para>
+    /// </remarks>
+    public static IReadOnlyList<Route> BuildTree(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        lock (_lock)
+        {
+            if (_onlyCache.TryGetValue(assembly, out var cached))
+            {
+                return cached;
+            }
+
+            var tree = BuildFrom(CollectGroups(assembly, only: true));
+            _onlyCache[assembly] = tree;
+            return tree;
+        }
+    }
+
+    /// <summary>
+    ///     The route table for the HOST application: everything except the routes declared by
+    ///     <paramref name="assembly" />.
+    /// </summary>
+    /// <remarks>
+    ///     The other half of <see cref="BuildTree(Assembly)" />. Without it a mounted application's pages
+    ///     stay in the host's table too, so the host's root renders them inside its own document — which
+    ///     is what "mounted" is supposed to stop.
+    /// </remarks>
+    public static IReadOnlyList<Route> BuildTreeExcept(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        return BuildTreeExcept([assembly]);
+    }
+
+    /// <inheritdoc cref="BuildTreeExcept(Assembly)" />
+    /// <remarks>
+    ///     Rebuilt per call rather than captured by the host, because the table changes under hot reload —
+    ///     a tree held across requests would keep serving routes that have since been edited away. The
+    ///     cache is what makes that cheap, and it is cleared wherever the whole-tree cache is.
+    /// </remarks>
+    public static IReadOnlyList<Route> BuildTreeExcept(IReadOnlyList<Assembly> assemblies)
+    {
+        ArgumentNullException.ThrowIfNull(assemblies);
+        if (assemblies.Count == 0)
+        {
+            return BuildTree();
+        }
+
+        // Order-independent so two hosts listing the same mounts in a different order share an entry.
+        var key = string.Join('|', assemblies.Select(a => a.FullName).OrderBy(n => n, StringComparer.Ordinal));
+
+        lock (_lock)
+        {
+            if (_exceptCache.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
+            var all = new List<RouteRegistration>(_manual);
+            foreach (var group in _groups)
+            {
+                var owner = (group.Key as Type)?.Assembly;
+                if (owner is null || !assemblies.Any(a => ReferenceEquals(a, owner)))
+                {
+                    all.AddRange(group.Items);
+                }
+            }
+
+            var tree = BuildFrom(all);
+            _exceptCache[key] = tree;
+            return tree;
         }
     }
 
@@ -135,6 +236,55 @@ public static class RouteRegistry
             _treeCache = byParent[null].Select(Build).ToArray();
             return _treeCache;
         }
+    }
+
+    // Caller holds _lock. The group key is the generated __RaskRoutesRegistry type, so the assembly that
+    // declared a route is recoverable from it. A key that is not a Type belongs to no assembly — a test
+    // registering its own group — and is treated as the host's, which is the safe direction: a mounted
+    // app gets only what it demonstrably declared.
+    private static List<RouteRegistration> CollectGroups(Assembly assembly, bool only)
+    {
+        var all = new List<RouteRegistration>();
+        if (!only)
+        {
+            all.AddRange(_manual);
+        }
+
+        foreach (var group in _groups)
+        {
+            var owner = (group.Key as Type)?.Assembly;
+            if (ReferenceEquals(owner, assembly) == only)
+            {
+                all.AddRange(group.Items);
+            }
+        }
+
+        return all;
+    }
+
+    // Caller holds _lock. Shares BuildTree's shape, including the fallback rule, so a subset behaves
+    // like a table in its own right rather than like a filtered view of somebody else's.
+    private static IReadOnlyList<Route> BuildFrom(List<RouteRegistration> effective)
+    {
+        if (!HasCatchAll(effective) && _defaultFallback is not null)
+        {
+            effective.Add(new RouteRegistration(_defaultFallback, DefaultFallbackTemplate, null));
+        }
+
+        var byParent = effective.ToLookup(r => r.Parent);
+
+        Route Build(RouteRegistration r) =>
+            new(r.PageType, r.Template, byParent[r.PageType].Select(Build).ToArray());
+
+        return byParent[null].Select(Build).ToArray();
+    }
+
+    // Caller holds _lock.
+    private static void InvalidateCaches()
+    {
+        _treeCache = null;
+        _onlyCache.Clear();
+        _exceptCache.Clear();
     }
 
     /// <summary>
@@ -169,7 +319,7 @@ public static class RouteRegistry
             _manual.Clear();
             _groups.Clear();
             _defaultFallback = null;
-            _treeCache = null;
+            InvalidateCaches();
         }
     }
 

@@ -133,16 +133,20 @@ public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJo
         await RefreshAsync().ConfigureAwait(false);
     }
 
+    private const string Action =
+        "inline-flex items-center rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white "
+        + "hover:bg-violet-500";
+
     protected override Component? Render() =>
-        Div.Class("container py-4")[
+        Div.Class("mx-auto w-full max-w-6xl px-4 py-4")[
             H1["Ops"],
-            P.Class("text-muted")[
+            P.Class("text-slate-500 dark:text-slate-400")[
                 "Every pillar below keeps its state in the same SQLite file as Products and Orders. "
                 + "This page polls it once a second."
             ],
-            _message is null ? null : Div.Id("ops-message").Class("alert alert-info")[_message],
+            _message is null ? null : Div.Id("ops-message").Class("rounded-lg px-4 py-3 text-sm bg-sky-50 text-sky-900 dark:bg-sky-950 dark:text-sky-200")[_message],
 
-            Div.Class("row g-3")[
+            Div.Class("grid grid-cols-12 gap-4 gap-3")[
                 Stat("ops-products", "Products", _stats.Products.ToString()),
                 Stat("ops-orders", "Orders", _stats.Orders.ToString()),
                 Stat("ops-outbox-processed", "Outbox processed", $"{_stats.OutboxProcessed}/{_stats.OutboxTotal}"),
@@ -153,17 +157,18 @@ public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJo
                 Stat("ops-snapshots", "Snapshots on disk", _stats.Snapshots.ToString())
             ],
 
-            H2.Class("mt-4 h5")["SQLite pragmas"],
+            H2.Class("mt-4 text-lg font-semibold")["SQLite pragmas"],
             P[
                 "journal_mode = ", Code.Id("ops-journal-mode")[_stats.JournalMode],
                 " · foreign_keys = ", Code.Id("ops-foreign-keys")[_stats.ForeignKeys]
             ],
 
-            H2.Class("mt-4 h5")["Try the pillars"],
-            Div.Class("d-flex gap-2 flex-wrap")[
-                BsButton.Id("ops-enqueue-job").OnClickAsync(EnqueueJobAsync)["Enqueue a job"],
-                BsButton.Id("ops-cache-load").OnClickAsync(LoadCachedAsync)["Load cached value"],
-                BsButton.Id("ops-cache-clear").OnClickAsync(ClearCacheAsync)["Clear cache"]
+            H2.Class("mt-4 text-lg font-semibold")["Try the pillars"],
+            Div.Class("flex gap-2 flex-wrap")[
+                // The ids are the contract the E2E drives this page through; the classes are only styling.
+                Button.Id("ops-enqueue-job").Type("button").Class(Action).OnClickAsync(EnqueueJobAsync)["Enqueue a job"],
+                Button.Id("ops-cache-load").Type("button").Class(Action).OnClickAsync(LoadCachedAsync)["Load cached value"],
+                Button.Id("ops-cache-clear").Type("button").Class(Action).OnClickAsync(ClearCacheAsync)["Clear cache"]
             ],
             _cacheSource is null
                 ? null
@@ -173,10 +178,10 @@ public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJo
         ];
 
     private static Component Stat(string id, string label, string value) =>
-        Div.Class("col-6 col-md-3")[
+        Div.Class("col-span-6 md:col-span-3")[
             Div.Class("border rounded p-3")[
-                Div.Class("text-muted small")[label],
-                Div.Id(id).Class("fs-4")[value]
+                Div.Class("text-slate-500 dark:text-slate-400 text-sm")[label],
+                Div.Id(id).Class("text-xl")[value]
             ]
         ];
 

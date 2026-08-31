@@ -34,12 +34,12 @@ public sealed partial class LoadPage(LoadPageOptions options) : Component
             rows.Add(FootprintRow.Key(i).Index(i));
         }
 
-        return Div.Class("container").Id("root")[
+        return Div.Class("wrap").Id("root")[
             // The first handler in document order — the one the client finds and clicks.
             Div.Class("header")[
                 Button.OnClick(() => _counter++)[$"rows={options.RowCount} counter={_counter}"]
             ],
-            Table.Class("table")[Tbody[rows]]
+            Table.Class("sheet")[Tbody[rows]]
         ];
     }
 }

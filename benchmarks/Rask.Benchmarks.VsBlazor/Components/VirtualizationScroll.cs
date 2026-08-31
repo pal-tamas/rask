@@ -58,7 +58,7 @@ internal static partial class VirtualizationScroll
                     // (Blazor's Virtualize keys rows too). On a scroll the visible window shifts by a
                     // few rows; keyed reconciliation then ships just the entering/leaving rows instead
                     // of re-emitting an id+text change for every slot in the window.
-                    rows.Add(Div.Class("row").Id($"r{item.Index}").Key(item.Index)[
+                    rows.Add(Div.Class("line").Id($"r{item.Index}").Key(item.Index)[
                         Span[$"Item {item.Index}"]
                     ]);
                 }
@@ -89,7 +89,7 @@ internal static partial class VirtualizationScroll
             for (var i = 0; i < Count; i++)
             {
                 b.OpenElement(3, "div");
-                b.AddAttribute(4, "class", "row");
+                b.AddAttribute(4, "class", "line");
                 b.AddAttribute(5, "id", $"r{i}");
                 b.OpenElement(6, "span");
                 // Salt only affects one row's content so the diff scenario produces

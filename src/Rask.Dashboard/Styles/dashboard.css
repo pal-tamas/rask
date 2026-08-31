@@ -1,0 +1,40 @@
+/*
+  The operator console's own stylesheet, compiled by Rask.Tailwind at THIS project's build.
+
+  Tailwind is a compiler: it scans the project it runs in for the class names actually written and emits
+  only those utilities. That is why this lives here rather than being left to the consuming app — the
+  console ships as a compiled assembly, so an app's own Tailwind build cannot see these class names and
+  would emit none of them, leaving the console rendered as unstyled HTML with nothing reporting it.
+
+  The output is embedded and inlined into the document by DashboardLayout, so there is no stylesheet to
+  serve, no static web assets, and nothing for a host to map.
+
+  Preflight is included, and that is safe ONLY because the console is a mounted application with its own
+  document (see RaskMountedApp). While these pages rendered inside the host application's document, this
+  global reset landed on the host's own pages too — for as long as an operator had the console open, with
+  nothing reporting it, because from the app's side one route simply looked wrong. The fix was to stop
+  sharing the document, not to hand-maintain a scoped copy of somebody else's reset.
+*/
+@import "tailwindcss";
+
+/*
+  Dark by default, and not negotiable from outside: this is an operator surface, and the host
+  application's theme has no business deciding what it looks like.
+*/
+@theme {
+  --color-ops-bg: oklch(0.19 0.02 265);
+  --color-ops-panel: oklch(0.24 0.02 265);
+  --color-ops-line: oklch(0.32 0.02 265);
+  --color-ops-ink: oklch(0.93 0.01 265);
+  --color-ops-muted: oklch(0.72 0.02 265);
+  --color-ops-brand: oklch(0.62 0.19 285);
+}
+
+@layer base {
+  /* The console owns the document, so its ground colour belongs on the document. */
+  html,
+  body {
+    background-color: var(--color-ops-bg);
+    color: var(--color-ops-ink);
+  }
+}

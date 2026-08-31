@@ -43,7 +43,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         await Task.Delay(120);
         var html = page.Render();
 
-        Assert.Contains("alert-danger", html);
+        Assert.Contains("bg-red-50", html);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
         // The fetch + retry self-heal lives in HttpFetchDemo (the page just embeds its source).
         // Drive the demo directly through LiveHost so we assert on its rendered RESULT, not the
-        // page's source-code pane (which now contains "alert-danger"/"spinner-border" as literal
+        // page's source-code pane (which now contains "bg-red-50"/"spinner-border" as literal
         // text). Re-rendering the SAME host preserves the demo instance, so the retried fetch's
         // continuation result is observed.
         var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
@@ -79,7 +79,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
             "the retried fetch never rendered its body");
         var html = page.Render();
 
-        Assert.DoesNotContain("alert-danger", html);
+        Assert.DoesNotContain("bg-red-50", html);
         Assert.Contains("the body text", html);
     }
 
@@ -97,12 +97,12 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // attempts then stops.
         var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
         await WaitFor.True(
-            () => page.Render().Contains("alert-danger", StringComparison.Ordinal),
+            () => page.Render().Contains("bg-red-50", StringComparison.Ordinal),
             TimeSpan.FromSeconds(6),
             "the exhausted retry loop never surfaced its error banner");
         var html = page.Render();
 
-        Assert.Contains("alert-danger", html);
+        Assert.Contains("bg-red-50", html);
         // The spinner is gone — the demo no longer hangs on the loading state. Asserting on the
         // demo's rendered result (not the page) keeps the spinner-border check meaningful.
         Assert.DoesNotContain("spinner-border", html);
@@ -119,6 +119,6 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         await Task.Delay(120);
         var html = page.Render();
 
-        Assert.Contains("alert-danger", html);
+        Assert.Contains("bg-red-50", html);
     }
 }

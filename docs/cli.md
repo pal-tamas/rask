@@ -97,7 +97,6 @@ rask new                             # the same wizard
 rask new MyApp                       # everything: a server app with the whole stack wired
 rask new MyApp --auth                # + a cookie login, sessions, and members pages
 rask new MyApp --wasm                # + a browser bundle, published from this same project
-rask new MyApp --bootstrap           # Bs* components instead of plain CSS
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Spa --template wasm         # an installable browser-WASM PWA
@@ -119,7 +118,6 @@ what it can do:
   so an eligible page moves into WebAssembly once it has downloaded
   ([render modes](render-modes.md)). Off by default because every publish then links a WebAssembly
   runtime, which takes minutes; `dotnet run` is unaffected.
-- **styling** — plain CSS by default, `--bootstrap` or `--tailwind` instead.
 
 Languages are **not** on that list, and not on the command line at all: a scaffolded server app ships
 English registered in `Program.cs`, and adding another is a line in the block that is already there.
@@ -144,12 +142,13 @@ Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` soluti
 as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
 existing repository.
 
-**Styling is one axis with three answers, and plain is the default.** With neither flag, the generated
-pages are plain elements against a small stylesheet in the app shell — no CSS framework, nothing to
-learn before your first edit. `--bootstrap` renders them with `Rask.Bootstrap`'s `Bs*` components over
-Bootstrap 5.3, and `--tailwind` styles them with Tailwind CSS, compiled from your own source at build
-time (see [Tailwind](tailwind.md)). Every template takes all three. The two flags are mutually
-exclusive: asking for both is a usage error rather than a silent preference.
+**Styling is not a choice: every project is Tailwind.** Not a battery you reference, either — the
+compiler ships inside the host package, so the generated `.csproj` names no styling package at all and
+the build still compiles `Styles/app.css` into `wwwroot/css/app.css` by scanning the project's own
+source (see [Tailwind](tailwind.md)). There is no npm, no config file, and no property that turns it
+off. `--bootstrap` and `--tailwind` are gone,
+and both are *refused* rather than ignored, because a flag the CLI accepts and then disregards is the
+most expensive kind to discover.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately.
@@ -231,8 +230,6 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
 | `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. |
 | `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
-| `--bootstrap` | Render the generated pages with `Rask.Bootstrap`'s `Bs*` components over Bootstrap 5.3, self-hosted (no CDN). |
-| `--tailwind` | Style the generated pages with Tailwind CSS, compiled from your own source at build time — no npm required. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore` and the migration). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
@@ -275,8 +272,6 @@ default list: the default set *is* the column.
 | localization *(in `Program.cs`, not a flag)* | ✅ | —² | — |
 | `--auth` *(opt-in)* | ✅ | ✅ | — |
 | `--wasm` *(opt-in)* | ✅ | — | — |
-| `--bootstrap` | ✅ | ✅ | — |
-| `--tailwind` | ✅ | ✅ | ✅ |
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
 rather than ignored. `--auth` is left out rather than half-scaffolded: a sign-in flow has to be written

@@ -156,3 +156,8 @@ benchmarks/Rask.Benchmarks.Sqlite/Results/
 src/Rask.Wasm/Browser/main.js
 src/Rask.Wasm/Browser/rask.wasm.js
 src/Rask.Wasm/Browser/rask-sw.js
+
+# Tailwind output. Rask.Tailwind compiles Styles/app.css into wwwroot/css/ at build, so the file in the
+# tree is a build artifact: committing it means a stale stylesheet can be served by a checkout that never
+# ran the build, and every build shows up as a diff.
+**/wwwroot/css/app.css
