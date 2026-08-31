@@ -428,6 +428,25 @@ them until tagged releases begin.
   today. The floor moves instead. Both numbers live in one place (`NodeRequirement`), and a test reads
   `RaskSpaMinimumNode` out of the **shipped** props file and fails if the two ever disagree — a copy
   of a version number is otherwise just a third place for it to be wrong.
+- **Editing an ambient `.d.ts` reaches the build again, and the whole scoped-asset watch list is now
+  tested.** `rask dev` has claimed that scoped assets apply live since long before they did
+  ([#862](https://github.com/pal-tamas/rask/issues/862)). The wiring itself landed with the TypeScript
+  migration — `dotnet watch` collects `@(Compile)`, `@(EmbeddedResource)`, the project file and Razor
+  content, never `@(None)`, so a scoped asset reaches the watcher only through `@(Watch)` — but
+  nothing ever asserted it, which is precisely why the promise could drift that far unnoticed.
+
+  Writing that missing guard found one input still left out: a `.d.ts` is an `Inputs` entry on the
+  scoped-TypeScript compile target and is handed to `tsgo` alongside the `.ts` files, so editing one
+  changes what the build emits — and reached nothing until some *other* file was touched. Ambient
+  declarations are now watched, and the `<Watch>` sits beside the project glob rather than at the end
+  of the group so it captures the app's own declarations and not the packaged `rask-globals.d.ts`,
+  which cannot change under an app.
+
+  The guard evaluates the real targets with MSBuild rather than reading them as text: a
+  `Contains("<Watch Include=")` would pass on a line inside a dead condition, spelled against an empty
+  item group, or cancelled by an exclude — every way this can actually break. Membership is asserted
+  exactly, with decoys under `bin/`, `obj/`, `wwwroot/` and `node_modules/`, so widening a glob fails
+  it too and not only removing one; all four mutations were confirmed to go red.
 - **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
   Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
   file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours
