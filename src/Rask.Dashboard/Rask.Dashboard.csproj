@@ -87,10 +87,23 @@
     <RaskTailwindMinify>true</RaskTailwindMinify>
   </PropertyGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="obj/dashboard.generated.css"
-                      LogicalName="Rask.Dashboard.dashboard.css"
-                      Condition="Exists('obj/dashboard.generated.css')"/>
-  </ItemGroup>
+  <!--
+    Added from a TARGET rather than a static ItemGroup. A static item's Condition is evaluated when the
+    project is EVALUATED, which is before any target runs — so on the first build in a fresh clone the
+    generated stylesheet does not exist yet, the item is silently absent, and the package ships with no
+    stylesheet at all. Nothing fails the build; the console just renders unstyled, and a SECOND build
+    embeds it, which is why every incremental tree looked fine. _RaskTailwindBuild runs at BeforeBuild,
+    so gathering the item between it and PrepareResourceNames sees the file on every build, first included.
+  -->
+  <Target Name="EmbedRaskDashboardStylesheet"
+          AfterTargets="_RaskTailwindBuild"
+          BeforeTargets="PrepareResourceNames">
+    <Error Condition="!Exists('$(RaskTailwindOutput)')"
+           Text="Rask.Dashboard: $(RaskTailwindOutput) was not produced. The console's stylesheet is compiled by _RaskTailwindBuild from $(RaskTailwindInput) and embedded here; shipping without it renders the console unstyled."/>
+    <ItemGroup>
+      <EmbeddedResource Include="$(RaskTailwindOutput)"
+                        LogicalName="Rask.Dashboard.dashboard.css"/>
+    </ItemGroup>
+  </Target>
 
 </Project>
