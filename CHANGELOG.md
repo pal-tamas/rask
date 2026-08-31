@@ -306,6 +306,29 @@ them until tagged releases begin.
   path filter's directory prefixes — a commit touching only the public installer was the one commit that
   ran neither the formatter nor any test.
 
+### Changed
+
+- **The three battery source generators are one analyzer assembly, `Rask.Batteries.Generators`.**
+  `Rask.Cqrs.Generators`, `Rask.Jobs.Generators` and `Rask.Outbox.Generators` were three csproj files,
+  three shipped DLLs and three test projects for what is substantially one thing. The jobs and outbox
+  generators are the same `RegistryGeneratorBase` over a different marker interface, so each assembly
+  compiled its own copy of the base — and with it its own copy of `RASK035`'s descriptor. Two shipped
+  assemblies declaring one diagnostic id is precisely the defect class `RS1019` cannot see, because it
+  does not look across an assembly boundary; it bit `RASK022` before. Seven shared source files are now
+  compiled once instead of being linked into two or three analyzers, and the three `*.Generators.Tests`
+  suites are one, running the same 94 cases.
+
+  Only `Rask.Cqrs` packs the merged analyzer, and that is load-bearing rather than tidy. Analyzers reach
+  a consumer once per package carrying them, so the same generator arriving from two packages emits
+  every registry type twice — `CS0101: already contains a definition for '__RaskJobsRegistry'`, in the
+  consumer's build, from a file they never wrote. `Rask.Jobs` and `Rask.Outbox` both depend on
+  `Rask.Cqrs`, so the analyzer still reaches an app referencing only one of them.
+  `PackageDependencyTests.Exactly_one_package_ships_the_batteries_analyzer` pins the single shipper;
+  moving the payload the other way would not fail a build at all, but dead-letter the first job or
+  outbox event at runtime.
+
+  No generated code changed, and nothing in the public API moved.
+
 ### Removed
 
 - **The `wasm-hosted` template.** `rask new --template wasm-hosted` is now a usage error naming the

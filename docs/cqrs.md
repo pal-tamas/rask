@@ -296,4 +296,4 @@ compile-time closed-generic map, so a WASM app using `Rask.Cqrs` publishes with 
 Handlers are plain classes — unit-test them directly, no dispatcher required. To test wiring, register
 `AddRaskCqrs` into a `ServiceCollection`, build the provider, and dispatch. See
 [`tests/Rask.Cqrs.Tests`](../tests/Rask.Cqrs.Tests) and the generator tests in
-[`tests/Rask.Cqrs.Generators.Tests`](../tests/Rask.Cqrs.Generators.Tests).
+[`tests/Rask.Batteries.Generators.Tests`](../tests/Rask.Batteries.Generators.Tests).

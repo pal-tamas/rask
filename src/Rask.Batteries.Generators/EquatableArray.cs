@@ -7,7 +7,7 @@ namespace Rask.Cqrs.Generators;
 
 // Structural-equality array wrapper used as the incremental-pipeline value type so Collect() stays
 // cache-correct (value equality instead of array reference equality). Mirrors the helper in
-// Rask.Generators; duplicated so Rask.Cqrs.Generators stays self-contained.
+// Rask.Generators; duplicated so Rask.Batteries.Generators stays self-contained.
 internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>
     where T : IEquatable<T>
 {
