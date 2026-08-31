@@ -11,9 +11,9 @@ namespace Rask.Outbox;
 /// background <see cref="OutboxProcessor{TContext}"/> publishes them afterwards.
 /// </summary>
 /// <remarks>
-/// Registered by <see cref="RaskOutboxServiceCollectionExtensions.AddRaskOutbox{TContext}"/>. When the
-/// outbox owns delivery, disable Rask.Data's in-process publisher (<c>AddRaskData(o =&gt;
-/// o.DispatchDomainEventsInProcess = false)</c>) so events aren't delivered twice.
+/// Registered by <see cref="RaskOutboxServiceCollectionExtensions.AddRaskOutbox{TContext}"/>, which also
+/// claims domain-event delivery for the outbox — so Rask.Data's in-process publisher stands down on its
+/// own and events are not delivered twice. Nothing to disable by hand.
 /// </remarks>
 public sealed class OutboxInterceptor(TimeProvider timeProvider) : SaveChangesInterceptor
 {

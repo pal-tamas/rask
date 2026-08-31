@@ -7,9 +7,11 @@ broker, no Redis. Compose an email whose body is a **Rask component rendered to 
 `SendAsync`, and a hosted worker delivers it later over SMTP, **at-least-once**, with exponential-backoff
 retries. It also sends **delayed** email and works with **zero configuration** in development.
 
-```bash
-dotnet add package Rask.Mail
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Mail.Off());
+> ```
 
 ## Why queue email
 

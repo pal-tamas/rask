@@ -70,15 +70,6 @@ builder.Services.AddExampleServices(sp =>
     return new Uri(origin.TrimEnd('/') + "/");
 });
 
-// Match what `rask deploy` allows: it sends SIGTERM and SIGKILLs 20s later, so the app budgets under that.
-// ServicesStopConcurrently is the other half — stopped one at a time (the .NET default) each hosted
-// service's own shutdown grace sums inside this one budget instead of overlapping. See docs/deployment.md.
-builder.Services.Configure<HostOptions>(options =>
-{
-    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
-    options.ServicesStopConcurrently = true;
-});
-
 var app = builder.Build();
 
 // Serve build-time static web assets — wwwroot/** AND package _content/* (e.g. Rask.Bootstrap's

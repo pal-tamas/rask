@@ -8,6 +8,79 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The publish-time prerender pass gets the batteries the boot path applies.** Prerendering returns
+  from `WasmHostBuilder.RunAsync` before `BootAsync`, and the browser batteries are wired inside
+  `BootAsync` — so a WASM app referencing the `Rask` package prerendered against a container that never
+  received them. Every page injecting anything a battery registers threw into the root boundary, each
+  route reported `threw — not written`, and the publish exited 0 having written no pages at all, behind
+  a single warning. The two halves arrived in separate pull requests and live in separate assemblies,
+  so nothing textual connected them and no test in either could see it; `PrerenderBatteryWiringTests`
+  now pins the composition by prerendering a page that needs a battery-registered service.
+
+- **`Rask` — a new batteries-included package, and `RaskApp`, the host wired the way a Rask app nearly
+  always is.**
+
+  ```csharp
+  var app = RaskApp.Create(args);
+
+  app.Configure(c =>
+  {
+      c.Jobs.Off();                                            // this app has no background work
+      c.Mail.Configure(o => o.From = "no-reply@example.com");
+  });
+
+  app.MapEndpoints(e => e.MapPushSubscriptions());
+  app.Run<App>();
+  ```
+
+  **Every battery is on.** Referencing `Rask` is what turns them on — the database, mediator, jobs, mail,
+  cache, outbox, dashboard, durable logs, Web Push, snapshots and continuous backup — and `Program.cs` is
+  where an app says which it does *without*. There is nothing to opt into, and no `AddRaskX` to remember:
+  a `Program.cs` with no `Configure` block is an app with all of them running.
+
+  The database-backed batteries find your `DbContext` themselves, off the `AddDbContextFactory<T>()` call
+  you already wrote — nothing names it twice. To configure a battery, either use the block above or call
+  its own `AddRaskX` directly; the automatic wiring runs last and every `AddRaskX` is idempotent, so a
+  direct call wins and nothing has to be turned off first.
+
+  `RaskApp` also owns the middleware order that was duplicated across four scaffolder emitters and every
+  sample, which makes two silent failures unrepresentable rather than merely documented: endpoints mapped
+  after the catch-all never run (`MapEndpoints` replays them at the only position that works), and
+  `UseAuthentication` after `UseRask` leaves `HttpContext.User` empty on the initial GET and the WebSocket
+  upgrade so every authorized page challenges (RASK024) — now placed correctly, and only when a scheme is
+  actually registered.
+
+  **`Rask.Server` is unchanged and still lean.** An app with no database references it directly and
+  carries no EF Core and no SQLite native bundles; that door is why this is a separate package.
+
+  **One package, server and browser.** `Rask` multi-targets, so the same single `PackageReference`
+  resolves to the ASP.NET host plus every server battery on `net10.0`, and to the WebAssembly host plus
+  the trim-safe ones on `net10.0-browser`. The browser group deliberately carries no EF Core, no SQLite
+  and no Jobs: those need `PublishTrimmed=false` in a browser build, and including them would force every
+  WASM app untrimmed. Measured on the showcase, the browser batteries cost **+8.8 KB brotli (+0.20%)**.
+
+  The install instructions throughout the docs now name only `Rask`; each battery's page shows its
+  off-switch instead of a `dotnet add package` line.
+
+  One consequence worth knowing: because the batteries are on, an app that runs now creates its
+  database, its log store (`logs.db`), its `mail-pickup/` directory and its `snapshots/` directory
+  beside itself. `rask new` gitignores them; turn a battery off if you would rather it did not.
+- **The `spa` template now calls `AddRaskSpaHost()`.** It was scaffolding `app.UseRaskSpa()` with no
+  matching `Add`, so the host shipped without response compression — the largest file in the app, served
+  as `text/javascript`, went out uncompressed — and, once the host defaults moved into the framework,
+  without those either. `Add` and `Use` are now scaffolded as the pair they are.
+- **RASK060 reports a second `AddRask` on the same service collection.** A second call does not add to
+  the first: its options go in with `TryAddSingleton`, which keeps the registration already there, so
+  everything the later call configures is discarded while the call compiles and reads as though it worked.
+
+  The visible casualty is `configureCulture` — the second call builds a fresh `RaskCultureOptions`, runs
+  your callback over it, then loses the registration race, so an app that named its languages ships with
+  none. It is worse than a no-op: `AddRaskCulture` still flips the process-wide `RaskCulture.IsEnabled`, so
+  negotiation turns on over an empty catalog.
+
+  Scoped to two calls in the same method body on the same receiver as written, so a test file that builds
+  one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
+
 - **Build-time prerendering for standalone WASM apps** — `<RaskPrerender>true</RaskPrerender>`.
   Such an app has no server, so every visitor and every crawler receives the boot shell: a spinner
   and the word "Loading", because the real markup does not exist until megabytes of runtime have
@@ -319,6 +392,63 @@ them until tagged releases begin.
 
 
 ### Fixed
+- **Every Rask web host now budgets the shutdown and stops hosted services concurrently.**
+  `HostOptions.ShutdownTimeout` becomes 15s (inside the 20s `rask deploy` allows between SIGTERM and
+  SIGKILL) and `ServicesStopConcurrently` becomes `true` — from `Rask.Server`'s `AddRask`,
+  `Rask.Wasm.Hosting`'s `AddRask`/`AddRaskWasmHost`, and `Rask.Spa.Hosting`'s `AddRaskSpaHost` alike.
+
+  The concurrency is the load-bearing half. Stopped one at a time — .NET's default — each pillar's own
+  shutdown grace *sums* inside the one budget: Litestream's final WAL flush (10s), an in-flight email send
+  (10s), a running job and an outbox message (5s each) add up to 30s, so whichever service stops last gets
+  none of it. Which one that is depends on the order of the `AddRaskX` calls in `Program.cs`, so the
+  symptom is a truncated write that moves when you reorder two unrelated lines. Stopped concurrently they
+  overlap at 10s.
+
+  This was previously a scaffolded `Program.cs` block, which meant it reached apps one at a time — and only
+  the ones generated after the block existed. **Nine of the ten web-host samples in this repo were sitting
+  on .NET's 30s default against a 20s SIGKILL**, and a reader copying from any of them inherited that. It
+  now holds for every app. Configure `HostOptions` after `AddRask` to choose your own.
+- **Every Rask web host persists the Data Protection key ring, so a deploy stops signing everyone out.**
+  When `/data` exists — which is exactly when `rask deploy` has mounted its volume — the ring is written
+  to `/data/keys` and `ApplicationDiscriminator` is pinned to the application name. This applies to the
+  live server host, the WASM bundle host and the SPA host: all three hold auth cookies, and none of them
+  cares which package started the process.
+
+  The default ring lives inside the container and every deploy replaces the container, so everything sealed
+  under the old one silently stops opening: every auth cookie already issued is rejected (all your signed-in
+  users are signed out) and every Rask session-resume record becomes unreadable (reconnecting clients fall
+  back to a full reload). Nothing logs an error, because from the app's side these are payloads it cannot
+  unprotect. Pinning the discriminator is the half that is easy to miss — its default is derived from the
+  content root, which differs between the build image and the runtime image, so a shared ring alone would
+  still derive different keys.
+
+  This was previously sixteen lines of `PersistKeysToFileSystem` wiring in the scaffolded `Program.cs`,
+  which meant only freshly generated apps had it. It now holds for every app, however its host was written.
+  On a plain `dotnet run` there is no `/data`, so Rask declines to choose and ASP.NET's per-user development
+  ring applies exactly as before. Set `Rask:DataProtection:KeyPath` to relocate it, or to `""` to opt out;
+  configuring Data Protection *after* `AddRask` overrides it entirely, since options setups run in
+  registration order.
+- **Registering the outbox now hands it domain-event delivery, instead of asking you to remember to.**
+  `AddRaskOutbox<TContext>()` registers an `IDomainEventDeliveryOwner`, and `DomainEventInterceptor` reads
+  that from the **built container** and stands down. `AddRaskData()` takes no argument, in any call order.
+
+  What this closes was a silent durability bug, not an inconvenience. `AddRaskData` decided whether to
+  register the in-process publisher at the moment it was called, from an option the caller had to set by
+  hand — so an app that forgot `o.DispatchDomainEventsInProcess = false`, or simply wrote the two `Add`
+  calls in the order `AddRaskData` first, got both interceptors. `DomainEventInterceptor` drains and
+  **clears** every entity's events in `SavingChanges`, before `OutboxInterceptor` can copy them: the outbox
+  table stayed permanently empty, delivery quietly stopped being durable, and **nothing failed**, because
+  the handlers still ran in-process. Every test passed. `tests/Rask.Outbox.Tests/OutboxDeliveryHandoverTests.cs`
+  pins both orders and the plain `AddRaskData()`; the first of those fails against the previous behaviour.
+
+  `RaskDataOptions.DispatchDomainEventsInProcess` is now a `bool?` — `null` (the default) is automatic,
+  `true` forces in-process publishing even alongside an outbox, `false` never registers the interceptor.
+  Existing `= false` call sites keep compiling and keep their meaning; they are simply no longer needed, and
+  have been removed from the scaffolder, the Shop sample, the tutorial, and the docs.
+
+  The scaffolder's other ordering claim went with it: `AddRaskOutbox` does **not** have to precede
+  `AddDbContextFactory`. That callback runs when the factory is first resolved, which is after `Build()`,
+  so it observes every registration whenever it was made — now covered by a test rather than a comment.
 - **The browser gate no longer needs PowerShell, and no longer skips itself quietly when it is
   missing.** `scripts/run-e2e-local.sh` installed the Playwright browsers by shelling out to
   `pwsh <path>/playwright.ps1 install chromium`, and skipped that step whenever `pwsh` was absent.

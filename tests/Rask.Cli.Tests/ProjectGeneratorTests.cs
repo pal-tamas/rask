@@ -87,32 +87,23 @@ public sealed class ProjectGeneratorTests
     }
 
     /// <summary>
-    /// The scaffold emits whatever the ladder says, whatever that is — asserted against
-    /// <see cref="ShutdownBudget"/> rather than the literal, because the app's budget and the deploy's
-    /// SIGKILL grace used to be two hardcoded numbers coupled only by a comment, free to drift apart.
+    /// The scaffold no longer writes a <c>HostOptions</c> block, because <c>AddRask</c> applies the budget.
     /// </summary>
+    /// <remarks>
+    /// Scaffolding it was only ever a way of reaching apps one at a time, and it reached only the ones
+    /// generated after the block existed — which is how nine of the ten samples came to be sitting on
+    /// .NET's 30s default against a 20s SIGKILL. This asserts the ABSENCE; that the budget an app actually
+    /// gets still fits the deploy window is <see cref="SamplesShutdownBudgetTests"/>, which resolves the
+    /// options rather than reading source text.
+    /// </remarks>
     [Fact]
-    public void Shutdown_budget_is_scaffolded_from_the_deploy_ladder()
+    public void The_scaffold_no_longer_hand_rolls_the_shutdown_budget()
     {
         var (files, _) = Generate();
+        var program = files["Program.cs"];
 
-        Assert.Contains(
-            FormattableString.Invariant($"ShutdownTimeout = TimeSpan.FromSeconds({ShutdownBudget.HostShutdownSeconds})"),
-            files["Program.cs"],
-            StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// Without this, each hosted service's own shutdown grace (Litestream's WAL flush, an in-flight email
-    /// send, a running job) SUMS inside the one budget instead of overlapping — and whichever service stops
-    /// last gets none of it, decided by the order of AddRaskX calls in Program.cs.
-    /// </summary>
-    [Fact]
-    public void Hosted_services_are_scaffolded_to_stop_concurrently()
-    {
-        var (files, _) = Generate();
-
-        Assert.Contains("ServicesStopConcurrently = true", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("ShutdownTimeout", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("ServicesStopConcurrently", program, StringComparison.Ordinal);
     }
 
     /// <summary>The ladder itself has to be sane — this is what fails if someone edits one rung alone.</summary>
@@ -132,27 +123,23 @@ public sealed class ProjectGeneratorTests
     /// the replacement mints new keys and every auth cookie already issued stops validating, so a deploy
     /// silently signs out every user. The ring has to live on the volume `rask deploy` mounts.
     /// </summary>
+    /// <remarks>
+    /// The scaffold used to carry that fix as sixteen lines of `PersistKeysToFileSystem` wiring, which meant
+    /// only freshly generated apps had it — an app written by hand, or one generated before the block
+    /// existed, silently signed its users out on every deploy with nothing in the logs. `AddRask` does it
+    /// now, so this asserts the ABSENCE: what the scaffold must not do is hand-roll it again. The guarantee
+    /// itself is covered where it now lives, in
+    /// <c>Rask.Server.Tests.Security.DataProtectionKeyRingTests</c>.
+    /// </remarks>
     [Fact]
-    public void Data_protection_keys_outlive_the_container_a_deploy_replaces()
+    public void The_scaffold_no_longer_hand_rolls_the_data_protection_key_ring()
     {
         var (files, _) = Generate();
         var program = files["Program.cs"];
 
-        Assert.Contains("using Microsoft.AspNetCore.DataProtection;", program, StringComparison.Ordinal);
-        Assert.Contains(".PersistKeysToFileSystem(", program, StringComparison.Ordinal);
-
-        // The volume `rask deploy` mounts (DeployCommand mounts {slug}-data at /data), overridable for
-        // hosts that put it elsewhere.
-        Assert.Contains("\"/data/keys\"", program, StringComparison.Ordinal);
-        Assert.Contains("Rask:DataProtection:KeyPath", program, StringComparison.Ordinal);
-
-        // Load-bearing alongside the path: the default discriminator comes from the content root, which
-        // differs between the build and runtime images — so a persisted ring alone still wouldn't validate.
-        Assert.Contains(".SetApplicationName(", program, StringComparison.Ordinal);
-
-        // A plain `dotnet run` has no /data and no override, and must not try to create one at the
-        // filesystem root — the block is skipped entirely there.
-        Assert.Contains("Directory.Exists(\"/data\")", program, StringComparison.Ordinal);
+        Assert.DoesNotContain(".PersistKeysToFileSystem(", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask:DataProtection:KeyPath", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("using Microsoft.AspNetCore.DataProtection;", program, StringComparison.Ordinal);
     }
 
     /// <summary>
