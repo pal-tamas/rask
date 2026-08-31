@@ -22,7 +22,7 @@ namespace Rask.Example.Shop.Features.Ops;
 /// </para>
 /// </remarks>
 [Route("ops")]
-public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJobQueue jobs, PopularProducts popular, IConfiguration config)
+public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJob jobs, PopularProducts popular, IConfiguration config)
     : Component, IDisposable
 {
     private const int MaxTicks = 120; // ~4 minutes of watching, then it stops on its own.

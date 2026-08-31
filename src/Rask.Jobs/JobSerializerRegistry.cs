@@ -6,7 +6,7 @@ namespace Rask.Jobs;
 /// <summary>
 /// Maps a persisted <see cref="Job.Type"/> name back to its CLR type so the
 /// <see cref="JobProcessor{TContext}"/> can deserialize + dispatch it. Populated at module load by the
-/// <c>Rask.Jobs</c> source generator (one registration per <see cref="IJob"/> type it finds), so there is
+/// <c>Rask.Jobs</c> source generator (one registration per <see cref="IBackgroundJob"/> type it finds), so there is
 /// no runtime <c>Type.GetType</c> / assembly scanning.
 /// </summary>
 public static class JobSerializerRegistry
@@ -110,7 +110,7 @@ public static class JobSerializerRegistry
     }
 
     /// <summary>Serializes a job to its stored (type-name, JSON-payload) pair.</summary>
-    public static (string Type, string Payload) Serialize(IJob job)
+    public static (string Type, string Payload) Serialize(IBackgroundJob job)
     {
         ArgumentNullException.ThrowIfNull(job);
         var type = job.GetType();
@@ -119,7 +119,7 @@ public static class JobSerializerRegistry
 
     // Match the name the source generator registers (Roslyn's ToDisplayString is dot-separated even for a
     // nested type) — Type.FullName uses '+' between a nesting type and its nested type, so normalize it,
-    // otherwise a nested IJob would be stored under a name the registry never has and silently dead-letter.
+    // otherwise a nested IBackgroundJob would be stored under a name the registry never has and silently dead-letter.
     internal static string TypeName(Type type) => (type.FullName ?? type.Name).Replace('+', '.');
 
     /// <summary>Rehydrates a stored job as a dispatchable command, or <c>null</c> if its type isn't registered.</summary>

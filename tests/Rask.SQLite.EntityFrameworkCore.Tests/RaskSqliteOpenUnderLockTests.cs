@@ -20,7 +20,7 @@ public sealed class RaskSqliteOpenUnderLockTests : IDisposable
 
         var builder = new DbContextOptionsBuilder<ProbeDbContext>();
         var options = retryEnabled
-            ? builder.UseRaskSqlite(ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30)).Options
+            ? builder.UseRaskSqlite(ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); }).Options
             : builder.UseRaskSqlite(ConnectionString).Options;
 
         // Hold the write lock from an unrelated connection, as a concurrent writer would.
@@ -47,7 +47,7 @@ public sealed class RaskSqliteOpenUnderLockTests : IDisposable
 
         // Exactly what the interceptor runs on every open when configureRetry is supplied: busy_timeout=0
         // followed by the lock-taking journal_mode.
-        var script = SqlitePragmas.BuildScript(new SqlitePragmaOptions { BusyTimeout = TimeSpan.Zero });
+        var script = SqlitePragmas.BuildScript(new SqliteOptions { BusyTimeout = TimeSpan.Zero });
 
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();

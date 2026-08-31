@@ -103,8 +103,14 @@ options type, where it keeps the name it was given.
 
 Every `Add*` takes `Action<TOptions>? configure = null`. A required configure delegate means the
 method cannot express its own default, which means there isn't one — and a package with no working
-default is a package that fails on first use. If a value genuinely has no safe default (a VAPID key
-pair, a connection string), validate it at startup and fail with a sentence naming what to set.
+default is a package that fails on first use.
+
+**`AddRaskWebPush` is the standing exception**, and the reasoning is worth stating because it is the
+line the rule stops at. Sending needs a VAPID key pair, which cannot have a default: a generated one
+would silently break every existing subscription on restart, and an absent one turns every send into a
+runtime failure. Making the delegate required means you cannot forget what the signature will not let
+you omit — a compile error rather than a startup one. The rule holds everywhere a default is
+*possible*; where none is, prefer the compiler over a good error message.
 
 ### 8. Machinery is hidden
 

@@ -16,7 +16,7 @@ builder.Services.AddDbContextFactory<DemoDbContext>(options =>
     options.UseRaskSqlite($"Data Source={dbPath}"));
 
 // The raw ADO.NET counterpart to the EF context above (same database file): AddRaskSqlite registers an
-// IRaskSqliteConnectionFactory whose ExecuteInImmediateTransactionAsync runs each write in a
+// ISqlite whose InImmediateTransactionAsync runs each write in a
 // BEGIN IMMEDIATE transaction, acquiring the write lock through a non-blocking, fair-interval
 // retry — no thread is held while it waits. The second demo card exercises it.
 builder.Services.AddRaskSqlite($"Data Source={dbPath}");

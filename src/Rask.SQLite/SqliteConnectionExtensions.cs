@@ -27,7 +27,7 @@ public static class SqliteConnectionExtensions
     /// <para>
     /// This is a synchronous begin: while it waits for the write lock it blocks the calling thread inside
     /// Microsoft.Data.Sqlite. For a genuinely non-blocking write use
-    /// <see cref="ExecuteInImmediateTransactionAsync{T}"/>, which yields the thread while it waits.
+    /// <see cref="InImmediateTransactionAsync{T}"/>, which yields the thread while it waits.
     /// </para>
     /// </remarks>
     public static SqliteTransaction BeginImmediate(this SqliteConnection connection)
@@ -64,7 +64,7 @@ public static class SqliteConnectionExtensions
     /// surfaced as a <see cref="SqliteException"/>.
     /// </para>
     /// </remarks>
-    public static async Task<T> ExecuteInImmediateTransactionAsync<T>(
+    public static async Task<T> InImmediateTransactionAsync<T>(
         this SqliteConnection connection,
         SqliteBusyRetryOptions retry,
         Func<SqliteConnection, CancellationToken, Task<T>> work,
@@ -141,7 +141,7 @@ public static class SqliteConnectionExtensions
                             "The transaction ended while the work delegate was running, so there was nothing "
                             + "left to commit. Whether the delegate's writes were committed or discarded "
                             + "cannot be told apart, so the transaction was not re-run. Let "
-                            + "ExecuteInImmediateTransactionAsync own the transaction: do not issue COMMIT, "
+                            + "InImmediateTransactionAsync own the transaction: do not issue COMMIT, "
                             + "ROLLBACK or END inside the delegate.",
                             raw.SQLITE_ABORT);
                     }
@@ -180,7 +180,7 @@ public static class SqliteConnectionExtensions
             //
             // Deliberately NOT the caller's token: ExecAsync checks for cancellation before its first
             // attempt, so passing an already-cancelled token here skipped the rollback entirely and put a
-            // mid-transaction handle back in the pool. Only the next ExecuteInImmediateTransactionAsync
+            // mid-transaction handle back in the pool. Only the next InImmediateTransactionAsync
             // lease clears that — a plain query, EF, or the pragma batch on pooled reopen inherits the
             // open transaction instead. Bounded by TeardownBudget rather than the caller's timeout so
             // ignoring the token cannot turn a cancelled write into a multi-second stall on shutdown: a
@@ -234,9 +234,9 @@ public static class SqliteConnectionExtensions
     }
 
     /// <summary>
-    /// The result-less overload of <see cref="ExecuteInImmediateTransactionAsync{T}"/>.
+    /// The result-less overload of <see cref="InImmediateTransactionAsync{T}"/>.
     /// </summary>
-    public static Task ExecuteInImmediateTransactionAsync(
+    public static Task InImmediateTransactionAsync(
         this SqliteConnection connection,
         SqliteBusyRetryOptions retry,
         Func<SqliteConnection, CancellationToken, Task> work,
@@ -244,7 +244,7 @@ public static class SqliteConnectionExtensions
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(work);
-        return connection.ExecuteInImmediateTransactionAsync(
+        return connection.InImmediateTransactionAsync(
             retry,
             async (c, ct) =>
             {

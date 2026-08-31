@@ -21,10 +21,10 @@ public class CqrsDispatchBenchmarks
     }
 
     [Benchmark]
-    public Task<int> Query() => _dispatcher.DispatchAsync(new BenchAdd(2, 3));
+    public Task<int> Query() => _dispatcher.QueryAsync(new BenchAdd(2, 3));
 
     [Benchmark]
-    public Task<int> SendCommand() => _dispatcher.DispatchAsync(new BenchCreate("abcd"));
+    public Task<int> SendCommand() => _dispatcher.SendAsync(new BenchCreate("abcd"));
 
     [Benchmark]
     public Task Publish() => _dispatcher.PublishAsync(new BenchPinged(1));

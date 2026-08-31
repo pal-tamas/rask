@@ -9,7 +9,7 @@ namespace Rask.Mail;
 public static class RaskMailServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the <see cref="IMailQueue"/>, an <see cref="IMailSender"/> (SMTP via MailKit when
+    /// Registers the <see cref="IMail"/>, an <see cref="IMailSender"/> (SMTP via MailKit when
     /// <see cref="MailOptions.Smtp"/> is set, else an <c>.eml</c> pickup directory, else logging), and the
     /// background <see cref="MailProcessor{TContext}"/>. Map the table with <c>modelBuilder.AddRaskMail()</c>
     /// in <c>OnModelCreating</c> and register your context as an <see cref="IDbContextFactory{TContext}"/>.
@@ -31,7 +31,7 @@ public static class RaskMailServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<MailMetrics>();
         services.TryAddSingleton<IMailSender>(sp => CreateSender(sp, options));
-        services.TryAddSingleton<IMailQueue, MailQueue<TContext>>();
+        services.TryAddSingleton<IMail, MailQueue<TContext>>();
 
         // AddHostedService uses TryAddEnumerable, so a repeated call registers only one processor.
         services.AddHostedService<MailProcessor<TContext>>();

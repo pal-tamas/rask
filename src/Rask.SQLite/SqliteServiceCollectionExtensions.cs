@@ -7,7 +7,7 @@ namespace Rask.SQLite;
 public static class SqliteServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers an <see cref="IRaskSqliteConnectionFactory"/> that opens connections for
+    /// Registers an <see cref="ISqlite"/> that opens connections for
     /// <paramref name="connectionString"/> with the production pragmas applied on every
     /// open (overridable via <paramref name="configure"/>). For Entity Framework Core use
     /// <c>UseRaskSqlite</c> on the <c>DbContextOptionsBuilder</c> instead — this is for code that uses
@@ -16,8 +16,7 @@ public static class SqliteServiceCollectionExtensions
     public static IServiceCollection AddRaskSqlite(
         this IServiceCollection services,
         string connectionString,
-        Action<SqlitePragmaOptions>? configure = null,
-        Action<SqliteBusyRetryOptions>? configureRetry = null)
+        Action<SqliteOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrEmpty(connectionString);
@@ -31,18 +30,15 @@ public static class SqliteServiceCollectionExtensions
 
         services.AddSingleton(new RaskSqliteMarker());
 
-        var options = new SqlitePragmaOptions();
+        var options = new SqliteOptions();
         configure?.Invoke(options);
         options.Validate();
-
-        var retry = new SqliteBusyRetryOptions();
-        configureRetry?.Invoke(retry);
-        retry.Validate();
+        options.Retry.Validate();
 
         services.TryAddSingleton(options);
-        services.TryAddSingleton(retry);
-        services.TryAddSingleton<IRaskSqliteConnectionFactory>(
-            new RaskSqliteConnectionFactory(connectionString, options, retry));
+        services.TryAddSingleton(options.Retry);
+        services.TryAddSingleton<ISqlite>(
+            new RaskSqliteConnectionFactory(connectionString, options, options.Retry));
 
         return services;
     }

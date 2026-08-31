@@ -58,7 +58,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 > lines above, then leaves you with the SMTP config and the migration.
 
 Add a migration for the new table before running — `rask db add AddMail && rask db update`
-(or `dotnet ef migrations add AddMail` directly). Then send from anywhere `IMailQueue` is injected:
+(or `dotnet ef migrations add AddMail` directly). Then send from anywhere `IMail` is injected:
 
 ```csharp
 await mail.SendAsync(Email
@@ -84,7 +84,7 @@ Switch to real delivery in production by setting `o.Smtp`. Nothing else changes.
 - **`Email`** — a fluent builder: `To`/`AndTo`/`Cc`/`Bcc`/`ReplyTo`/`From`, `Subject`, `Body(component)` (or
   `Body(html)`), an optional `PlainText` alternative, and `Attach`. `Body(component)` renders the component to
   HTML **immediately** (`Component.ToHtml()`), so the built email holds only strings and bytes.
-- **`IMailQueue`** — writes one `QueuedMail` row (envelope + already-rendered body) through your
+- **`IMail`** — writes one `QueuedMail` row (envelope + already-rendered body) through your
   `IDbContextFactory<TContext>`, defaulting the sender from `MailOptions.From` when the message didn't set one.
   Because the body is rendered at enqueue time, the stored row is self-contained — there's no component to
   reconstruct when it's sent.

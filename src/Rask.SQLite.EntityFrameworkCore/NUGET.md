@@ -42,11 +42,11 @@ o.UseRaskSqlite($"Data Source={dbPath}", p =>
 ## STRICT tables
 
 SQLite is dynamically typed: the text `"lots"` stores happily in an `INTEGER` column and surfaces as a
-cast error much later. Pass `strictTables: true` and tables are created as
+cast error much later. Pass `o => o.StrictTables = true` and tables are created as
 [STRICT tables](https://sqlite.org/stricttables.html), so the store rejects the write instead:
 
 ```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", strictTables: true);
+o.UseRaskSqlite($"Data Source={dbPath}", o => o.StrictTables = true);
 ```
 
 Every column must then declare one of `INT`, `INTEGER`, `REAL`, `TEXT`, `BLOB` or `ANY` — EF Core's
@@ -62,11 +62,11 @@ Pass `configureRetry` (even empty) to register a fair-interval execution strateg
 (not blocking) between attempts:
 
 ```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", configureRetry: _ => { });
+o.UseRaskSqlite($"Data Source={dbPath}", o => o.Retry.Enabled = true);
 ```
 
 The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
-(`ExecuteInImmediateTransactionAsync`); see the docs for when to reach for it.
+(`InImmediateTransactionAsync`); see the docs for when to reach for it.
 
 ## Non-overlapping ranges
 
@@ -76,6 +76,6 @@ The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
 table. Both are inert until an entity declares a rule.
 
 Not using EF Core? Use `Rask.SQLite` directly: `services.AddRaskSqlite(cs)` + inject
-`IRaskSqliteConnectionFactory`.
+`ISqlite`.
 
 Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/sqlite.md>

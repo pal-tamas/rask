@@ -51,7 +51,7 @@ public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navi
     protected override async Task OnPropsChangedAsync()
     {
         _loaded = false;
-        var entity = await dispatcher.DispatchAsync(new GetProductQuery(Id), CancellationToken);
+        var entity = await dispatcher.QueryAsync(new GetProductQuery(Id), CancellationToken);
         _found = entity is not null;
         if (entity is not null)
         {
@@ -68,7 +68,7 @@ public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navi
     {
         try
         {
-            await dispatcher.DispatchAsync(new UpdateProductCommand(Id, form), CancellationToken);
+            await dispatcher.SendAsync(new UpdateProductCommand(Id, form), CancellationToken);
             navigator.NavigateTo(Routes.ProductsPage());
         }
         catch (DbUpdateConcurrencyException)

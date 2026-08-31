@@ -51,7 +51,7 @@ public sealed class Cache(IDistributedCache cache) : ICache
     /// <inheritdoc/>
     [RequiresUnreferencedCode(TrimWarning)]
     [RequiresDynamicCode(TrimWarning)]
-    public async Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory, DistributedCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<T> GetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> factory, DistributedCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(factory);
         var bytes = await cache.GetAsync(key, cancellationToken).ConfigureAwait(false);
@@ -67,7 +67,7 @@ public sealed class Cache(IDistributedCache cache) : ICache
     }
 
     /// <inheritdoc/>
-    public async Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory, JsonTypeInfo<T> typeInfo, DistributedCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<T> GetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> factory, JsonTypeInfo<T> typeInfo, DistributedCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(factory);
         ArgumentNullException.ThrowIfNull(typeInfo);

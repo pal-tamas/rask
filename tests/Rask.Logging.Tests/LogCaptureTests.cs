@@ -17,7 +17,7 @@ public sealed class LogCaptureTests
         harness.Logger("Shop.Checkout").LogInformation("Order {Id} placed", 42);
         await harness.RunUntilStoredAsync(1);
 
-        var page = await harness.Store.QueryAsync(new LogQuery());
+        var page = await harness.Store.SearchAsync(new LogQuery());
         var entry = Assert.Single(page.Entries);
         Assert.Equal(LogLevel.Information, entry.Level);
         Assert.Equal("Shop.Checkout", entry.Category);
@@ -35,7 +35,7 @@ public sealed class LogCaptureTests
         harness.Logger().LogError(new InvalidOperationException("boom"), "Action failed");
         await harness.RunUntilStoredAsync(1);
 
-        var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
         Assert.Equal(LogLevel.Error, entry.Level);
         Assert.Contains("boom", entry.Exception, StringComparison.Ordinal);
         Assert.Contains(nameof(InvalidOperationException), entry.Exception, StringComparison.Ordinal);
@@ -54,7 +54,7 @@ public sealed class LogCaptureTests
 
         await harness.RunUntilStoredAsync(2);
 
-        var messages = (await harness.Store.QueryAsync(new LogQuery())).Entries.Select(e => e.Message);
+        var messages = (await harness.Store.SearchAsync(new LogQuery())).Entries.Select(e => e.Message);
         Assert.Equal(["error", "warning"], messages);
     }
 
@@ -68,7 +68,7 @@ public sealed class LogCaptureTests
 
         await harness.RunUntilStoredAsync(1);
 
-        var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
         Assert.Equal("Quiet.Thing", entry.Category);
     }
 
@@ -88,7 +88,7 @@ public sealed class LogCaptureTests
 
         await harness.RunUntilStoredAsync(1);
 
-        var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
         Assert.Equal("App", entry.Category);
     }
 
@@ -145,7 +145,7 @@ public sealed class LogCaptureTests
         harness.Logger().LogWarning("the last thing that happened");
         await harness.Writer.StopAsync(CancellationToken.None);
 
-        var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
         Assert.Equal("the last thing that happened", entry.Message);
     }
 
@@ -165,7 +165,7 @@ public sealed class LogCaptureTests
         var reopened = new SqliteLogStore(
             $"Data Source={harness.DbPath}", new RaskLoggingOptions(), harness.Clock);
 
-        var entry = Assert.Single((await reopened.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await reopened.SearchAsync(new LogQuery())).Entries);
         Assert.Equal("the thing that broke", entry.Message);
         Assert.Equal(LogLevel.Error, entry.Level);
         Assert.Equal("Shop", entry.Category);
@@ -206,7 +206,7 @@ public sealed class LogCaptureTests
 
         await harness.RunUntilStoredAsync(3);
 
-        var page = await harness.Store.QueryAsync(new LogQuery());
+        var page = await harness.Store.SearchAsync(new LogQuery());
         Assert.Equal(["third", "second", "first"], page.Entries.Select(e => e.Message));
         Assert.Single(page.Entries.Select(e => e.Timestamp).Distinct());
     }

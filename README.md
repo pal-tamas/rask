@@ -104,7 +104,7 @@ trim/AOT-safe.
 | `Rask.Outbox` | [![Rask.Outbox](https://img.shields.io/nuget/v/Rask.Outbox.svg?label=%20)](https://www.nuget.org/packages/Rask.Outbox) | Crash-safe domain events, committed in the same transaction as your data |
 | `Rask.Jobs` | [![Rask.Jobs](https://img.shields.io/nuget/v/Rask.Jobs.svg?label=%20)](https://www.nuget.org/packages/Rask.Jobs) | Durable enqueued / delayed / recurring background work, with retries |
 | `Rask.Mail` | [![Rask.Mail](https://img.shields.io/nuget/v/Rask.Mail.svg?label=%20)](https://www.nuget.org/packages/Rask.Mail) | Durable transactional email over SMTP — bodies are Rask components |
-| `Rask.Cache` | [![Rask.Cache](https://img.shields.io/nuget/v/Rask.Cache.svg?label=%20)](https://www.nuget.org/packages/Rask.Cache) | `IDistributedCache` + a typed `ICache.GetOrCreateAsync`, on the app DB |
+| `Rask.Cache` | [![Rask.Cache](https://img.shields.io/nuget/v/Rask.Cache.svg?label=%20)](https://www.nuget.org/packages/Rask.Cache) | `IDistributedCache` + a typed `ICache.GetOrAddAsync`, on the app DB |
 | `Rask.Logging` | [![Rask.Logging](https://img.shields.io/nuget/v/Rask.Logging.svg?label=%20)](https://www.nuget.org/packages/Rask.Logging) | The application log in a database of its own, so it survives a restart — searchable, with retention |
 | `Rask.Dashboard` | [![Rask.Dashboard](https://img.shields.io/nuget/v/Rask.Dashboard.svg?label=%20)](https://www.nuget.org/packages/Rask.Dashboard) | An operator dashboard at `/_rask`: queue depth, dead letters, one-click retry, the log |
 | **Production SQLite** | | |
@@ -134,18 +134,18 @@ transitively.
 | `Rask.Validation.DataAnnotations`  | any host that hosts your forms                                      | drop `DataAnnotationsValidator` inside a `Form`             |
 | `Rask.Validation.FluentValidation` | any host that hosts your forms                                      | drop `FluentValidationValidator.Validator(myValidator)` inside |
 | `Rask.Bootstrap`                   | any host with your components                                       | link `BootstrapStyles` in `Head`, then chain the `Bs*` components |
-| `Rask.WebPush`                     | any backend (Server app or a WASM PWA's ASP.NET host)              | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
+| `Rask.WebPush`                     | any backend (Server app or a WASM PWA's ASP.NET host)              | `services.AddRaskWebPush(...)` + inject `IWebPush`     |
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
 | `Rask.Cqrs.Client`                 | a WASM app talking to its own server                               | `services.AddRaskCqrsClient()` — the same `IDispatcher`, now remote |
 | `Rask.Cqrs.Server`                 | the ASP.NET host those clients dispatch to                         | `services.AddRaskCqrsServer()` + `app.MapRaskCqrs()`        |
 | `Rask.Data`                        | an EF Core app wanting a DDD base entity + interceptors           | `class X : Entity<Guid>` + `services.AddRaskData()` + `modelBuilder.ApplyRaskConventions()` |
 | `Rask.Outbox`                      | an EF Core app wanting durable domain-event delivery             | `record E(...) : IOutboxEvent` + `services.AddRaskOutbox<Ctx>()` + `modelBuilder.AddRaskOutbox()` |
-| `Rask.Jobs`                        | an EF Core app wanting durable background jobs                    | `record J(...) : IJob` + `ICommandHandler<J>` + `services.AddRaskJobs<Ctx>()` + `modelBuilder.AddRaskJobs()` |
-| `Rask.Mail`                        | an EF Core app wanting durable transactional email                | `services.AddRaskMail<Ctx>(o => o.From = ...)` + `modelBuilder.AddRaskMail()` + inject `IMailQueue` |
+| `Rask.Jobs`                        | an EF Core app wanting durable background jobs                    | `record J(...) : IBackgroundJob` + `ICommandHandler<J>` + `services.AddRaskJobs<Ctx>()` + `modelBuilder.AddRaskJobs()` |
+| `Rask.Mail`                        | an EF Core app wanting durable transactional email                | `services.AddRaskMail<Ctx>(o => o.From = ...)` + `modelBuilder.AddRaskMail()` + inject `IMail` |
 | `Rask.Cache`                       | an EF Core app wanting a database-backed cache                    | `services.AddRaskCache<Ctx>()` + `modelBuilder.AddRaskCache()` + inject `ICache` / `IDistributedCache` |
-| `Rask.Logging`                     | any app that wants its log to survive a restart                   | `services.AddRaskLogging("Data Source=logs.db")` — no `TContext`, no migration; inject `ILogStore` to read it back |
+| `Rask.Logging`                     | any app that wants its log to survive a restart                   | `services.AddRaskLogging("Data Source=logs.db")` — no `TContext`, no migration; inject `ILogs` to read it back |
 | `Rask.Dashboard`                   | operating an app that uses the DB-backed pillars                  | `services.AddRaskDashboard<Ctx>()` + an `AddAuthorization` policy named `RaskDashboardPolicies.Access`, then browse `/_rask` |
-| `Rask.SQLite`                      | any .NET app using SQLite (server, mobile, trimmed/AOT)            | `services.AddRaskSqlite(cs)` + inject `IRaskSqliteConnectionFactory` (incl. non-blocking `ExecuteInImmediateTransactionAsync`) |
+| `Rask.SQLite`                      | any .NET app using SQLite (server, mobile, trimmed/AOT)            | `services.AddRaskSqlite(cs)` + inject `ISqlite` (incl. non-blocking `InImmediateTransactionAsync`) |
 | `Rask.SQLite.EntityFrameworkCore`  | an EF Core app that wants the pragmas (+ opt-in busy retry)        | `o.UseRaskSqlite(cs)` on the `DbContextOptionsBuilder`       |
 | `Rask.SQLite.Litestream`           | server-side SQLite app wanting managed backup                      | `services.AddRaskSqliteLitestream(...)` + `RestoreSqliteFromLitestreamAsync()` |
 | `Rask.SQLite.Snapshots`            | server-side SQLite app wanting scheduled backups                   | `services.AddRaskSqliteSnapshots(...)` (or inject `ISqliteSnapshotter`)       |

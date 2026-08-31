@@ -10,11 +10,11 @@ namespace Rask.SQLite;
 /// <see cref="SqliteBusyRetryOptions.PollInterval"/> — not exponential backoff — awaited between
 /// attempts (so the thread is freed while waiting), giving up after
 /// <see cref="SqliteBusyRetryOptions.Timeout"/>. Registered for you by
-/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?, Action{SqliteBusyRetryOptions}?, bool)"/>
+/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqliteOptions}?)"/>
 /// when you pass <c>configureRetry</c>.
 /// </summary>
 /// <remarks>
-/// Unlike the raw-ADO path (<see cref="SqliteConnectionExtensions.ExecuteInImmediateTransactionAsync{T}"/>),
+/// Unlike the raw-ADO path (<see cref="SqliteConnectionExtensions.InImmediateTransactionAsync{T}"/>),
 /// EF Core issues every command through Microsoft.Data.Sqlite, whose own synchronous busy-retry can block
 /// a thread for up to its command timeout before <c>SQLITE_BUSY</c> reaches this strategy — which is why
 /// <c>UseRaskSqlite</c> lowers that timeout. As with any retrying <see cref="ExecutionStrategy"/>, a

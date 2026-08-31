@@ -88,7 +88,7 @@ After any `modelBuilder.AddRask…` line: `rask db add <Name>` → `rask db upda
 
 ```csharp
 // Dispatch a query or command — one method, result type inferred from the message:
-var view = await dispatcher.DispatchAsync(new GetProducts(), CancellationToken);   // IDispatcher, ctor-injected
+var view = await dispatcher.QueryAsync(new GetProducts(), CancellationToken);   // IDispatcher, ctor-injected
 
 // Type-safe URL for a routed page — never a string path:
 NavLink.Href(Routes.ProductsPage())["Catalog"];       // list page → <Plural>Page
@@ -100,7 +100,7 @@ Authorize[ NewProductButton() ]                      // shown only to signed-in 
 Authorize.Roles(["admin"])[ DeleteProductButton(id) ]
 
 // Cache an expensive read; invalidate on write:
-var products = await cache.GetOrCreateAsync("products", async _ => await LoadAsync(), CancellationToken);
+var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);
 await cache.RemoveAsync("products");
 
 // Enqueue work off the request thread — returns as soon as the row is written:

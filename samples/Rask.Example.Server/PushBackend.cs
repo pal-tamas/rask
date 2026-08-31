@@ -53,7 +53,7 @@ internal static class PushBackend
             return Results.NoContent();
         });
 
-        app.MapPost("/_push/send", async (SendRequest request, IWebPushSender sender, PushSubscriptionStore store, CancellationToken ct) =>
+        app.MapPost("/_push/send", async (SendRequest request, IWebPush sender, PushSubscriptionStore store, CancellationToken ct) =>
         {
             var message = WebPushMessage.Text(
                 string.IsNullOrWhiteSpace(request.Title) ? "Hello from Rask" : request.Title,

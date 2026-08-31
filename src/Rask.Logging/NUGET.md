@@ -35,7 +35,7 @@ builder.Services.AddRaskLogging(connectionString, o =>
 
 ```csharp
 // Read it back from your own code.
-var page = await store.QueryAsync(new LogQuery
+var page = await store.SearchAsync(new LogQuery
 {
     MinimumLevel = LogLevel.Error,
     Search = "checkout",

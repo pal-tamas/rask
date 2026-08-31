@@ -30,7 +30,7 @@ public enum WebPushStatus
 /// <param name="Status">What happened.</param>
 /// <param name="StatusCode">The HTTP status from the push service, when there was one.</param>
 /// <param name="ReasonPhrase">The service's reason phrase, for logging. Do not show it to users.</param>
-// The result of IWebPushSender.SendAsync. The convenience flags map a status to the action the
+// The result of IWebPush.SendAsync. The convenience flags map a status to the action the
 // caller should take, so a typical loop is: if (r.ShouldDelete) store.Remove(sub); else if
 // (r.ShouldRetry) enqueue(sub).
 public sealed record WebPushResult(WebPushStatus Status, int? StatusCode = null, string? ReasonPhrase = null)

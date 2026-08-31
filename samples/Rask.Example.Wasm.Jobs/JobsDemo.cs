@@ -10,7 +10,7 @@ namespace Rask.Example.Wasm.Jobs;
 /// </summary>
 public sealed partial class JobsDemo : Component
 {
-    private readonly IJobQueue _queue;
+    private readonly IJob _queue;
     private readonly IDbContextFactory<AppDbContext> _factory;
     private readonly GreetingFeed _feed;
     private readonly DatabaseReady _ready;
@@ -22,7 +22,7 @@ public sealed partial class JobsDemo : Component
     private List<Greeting> _greetings = [];
 
     public JobsDemo(
-        IJobQueue queue,
+        IJob queue,
         IDbContextFactory<AppDbContext> factory,
         GreetingFeed feed,
         DatabaseReady ready,

@@ -50,7 +50,7 @@ public sealed partial class UpdateOrder(IDispatcher dispatcher, Navigator naviga
     protected override async Task OnPropsChangedAsync()
     {
         _loaded = false;
-        var entity = await dispatcher.DispatchAsync(new GetOrderQuery(Id), CancellationToken);
+        var entity = await dispatcher.QueryAsync(new GetOrderQuery(Id), CancellationToken);
         _found = entity is not null;
         if (entity is not null)
         {
@@ -65,7 +65,7 @@ public sealed partial class UpdateOrder(IDispatcher dispatcher, Navigator naviga
     {
         try
         {
-            await dispatcher.DispatchAsync(new UpdateOrderCommand(Id, form), CancellationToken);
+            await dispatcher.SendAsync(new UpdateOrderCommand(Id, form), CancellationToken);
             navigator.NavigateTo(Routes.OrdersPage());
         }
         catch (Exception)

@@ -30,10 +30,10 @@ Rask.Mail.EmailAttachment.EmailAttachment(string! FileName, string! ContentType,
 Rask.Mail.EmailAttachment.Equals(Rask.Mail.EmailAttachment? other) -> bool
 Rask.Mail.EmailAttachment.FileName.get -> string!
 Rask.Mail.EmailAttachment.FileName.init -> void
-Rask.Mail.IMailQueue
-Rask.Mail.IMailQueue.ScheduleAsync(Rask.Mail.Email! email, System.DateTimeOffset runAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Mail.IMailQueue.ScheduleAsync(Rask.Mail.Email! email, System.TimeSpan delay, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Mail.IMailQueue.SendAsync(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.IMail
+Rask.Mail.IMail.ScheduleAsync(Rask.Mail.Email! email, System.DateTimeOffset runAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.IMail.ScheduleAsync(Rask.Mail.Email! email, System.TimeSpan delay, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.IMail.SendAsync(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mail.IMailSender
 Rask.Mail.IMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mail.LogMailSender

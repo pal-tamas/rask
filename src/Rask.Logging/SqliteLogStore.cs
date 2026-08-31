@@ -7,7 +7,7 @@ using Rask.SQLite;
 namespace Rask.Logging;
 
 /// <summary>
-/// The <see cref="ILogStore"/> implementation: an append-only table in a SQLite file of its own.
+/// The <see cref="ILogs"/> implementation: an append-only table in a SQLite file of its own.
 /// <para>
 /// A file of its own, rather than the application's <c>DbContext</c> the other pillars map onto, for three
 /// reasons. Log lines arrive at machine rates, and routing them through the app's context would put a
@@ -23,7 +23,7 @@ namespace Rask.Logging;
 /// and WAL replication cheap.
 /// </para>
 /// </summary>
-internal sealed class SqliteLogStore : ILogStore
+internal sealed class SqliteLogStore : ILogs
 {
     private const string InsertSql = """
         INSERT INTO RaskLog (Timestamp, Level, Category, EventId, Message, Exception, Scopes)
@@ -63,7 +63,7 @@ internal sealed class SqliteLogStore : ILogStore
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.ExecuteInImmediateTransactionAsync(
+            await connection.InImmediateTransactionAsync(
                 _options.BusyRetry,
                 async (c, token) =>
                 {
@@ -101,7 +101,7 @@ internal sealed class SqliteLogStore : ILogStore
         }
     }
 
-    public async Task<LogPage> QueryAsync(LogQuery query, CancellationToken cancellationToken = default)
+    public async Task<LogPage> SearchAsync(LogQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -242,7 +242,7 @@ internal sealed class SqliteLogStore : ILogStore
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
-            await connection.ExecuteInImmediateTransactionAsync(
+            await connection.InImmediateTransactionAsync(
                 _options.BusyRetry,
                 async (c, token) =>
                 {
@@ -393,7 +393,7 @@ internal sealed class SqliteLogStore : ILogStore
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            var deleted = await connection.ExecuteInImmediateTransactionAsync(
+            var deleted = await connection.InImmediateTransactionAsync(
                 _options.BusyRetry,
                 async (c, token) =>
                 {

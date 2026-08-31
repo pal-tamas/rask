@@ -9,7 +9,7 @@ namespace Rask.WebPush;
 ///     end-to-end, and posts it to the subscription's endpoint. Resolve it from DI after
 ///     <c>AddRaskWebPush</c>.
 /// </summary>
-public interface IWebPushSender
+public interface IWebPush
 {
     /// <summary>
     ///     Sends <paramref name="message" /> to <paramref name="subscription" />.

@@ -10,12 +10,12 @@ namespace Rask.WebPush;
 //       o.Subject   = "mailto:admin@example.com";
 //   });
 //
-// then inject IWebPushSender wherever you deliver notifications.
+// then inject IWebPush wherever you deliver notifications.
 /// <summary>Registers the Web Push sender.</summary>
 public static class WebPushServiceCollectionExtensions
 {
     /// <summary>
-    ///     Registers <see cref="IWebPushSender" /> and its options. Call once at startup, then inject the
+    ///     Registers <see cref="IWebPush" /> and its options. Call once at startup, then inject the
     ///     sender wherever notifications are delivered:
     ///     <code>
     ///     builder.Services.AddRaskWebPush(o =>
@@ -46,7 +46,7 @@ public static class WebPushServiceCollectionExtensions
         services.AddSingleton(options);
         // Typed client: IHttpClientFactory supplies the HttpClient; WebPushOptions + the optional
         // ILogger resolve from DI.
-        services.AddHttpClient<IWebPushSender, WebPushSender>();
+        services.AddHttpClient<IWebPush, WebPushSender>();
         return services;
     }
 }

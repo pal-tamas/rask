@@ -30,7 +30,7 @@ public sealed class SqliteScaffoldTests
         // STRICT is on for a new app: it costs nothing at creation time and is awkward to adopt once
         // there is data, so the scaffold is the one moment to choose it.
         Assert.Contains(
-            ".UseRaskSqlite(connectionString, strictTables: true)",
+            ".UseRaskSqlite(connectionString, o => o.StrictTables = true)",
             files["Program.cs"],
             StringComparison.Ordinal);
         Assert.Contains("Data Source=app.db", files["Program.cs"], StringComparison.Ordinal);

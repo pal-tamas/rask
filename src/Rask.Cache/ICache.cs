@@ -6,7 +6,7 @@ namespace Rask.Cache;
 
 /// <summary>
 /// A typed convenience layer over <see cref="IDistributedCache"/>: store and fetch objects (JSON-serialized) by
-/// key, with a read-through <see cref="GetOrCreateAsync{T}(string, Func{CancellationToken, Task{T}}, DistributedCacheEntryOptions?, CancellationToken)"/>.
+/// key, with a read-through <see cref="GetOrAddAsync{T}(string, Func{CancellationToken, Task{T}}, DistributedCacheEntryOptions?, CancellationToken)"/>.
 /// The reflection-based overloads are the ergonomic default; the <see cref="JsonTypeInfo{T}"/> overloads are
 /// trim-/AOT-safe (supply a source-generated <c>JsonSerializerContext</c>).
 /// </summary>
@@ -35,10 +35,10 @@ public interface ICache
     /// </summary>
     [RequiresUnreferencedCode(Cache.TrimWarning)]
     [RequiresDynamicCode(Cache.TrimWarning)]
-    Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory, DistributedCacheEntryOptions? options = null, CancellationToken cancellationToken = default);
+    Task<T> GetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> factory, DistributedCacheEntryOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>Read-through cache using a source-generated <paramref name="typeInfo"/> (trim-/AOT-safe).</summary>
-    Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory, JsonTypeInfo<T> typeInfo, DistributedCacheEntryOptions? options = null, CancellationToken cancellationToken = default);
+    Task<T> GetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> factory, JsonTypeInfo<T> typeInfo, DistributedCacheEntryOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>Removes the entry for <paramref name="key"/> if present.</summary>
     Task RemoveAsync(string key, CancellationToken cancellationToken = default);

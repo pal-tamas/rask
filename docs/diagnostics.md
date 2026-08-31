@@ -586,7 +586,7 @@ name it once), or mark it a fixture with `Hideable = false` and `Reorderable = f
 ## RASK035
 **Background job or outbox event type cannot be registered** · Warning
 
-A type implementing `IJob` or `IOutboxEvent` was found, but the generated registry can't map its stored
+A type implementing `IBackgroundJob` or `IOutboxEvent` was found, but the generated registry can't map its stored
 name to its CLR type — so it is skipped. Enqueuing it still writes a row; the processor then fails to
 rehydrate it, records `No registered job type '…'`, and retries until `MaxAttempts` before dead-lettering.
 Before this diagnostic existed the type was skipped **silently**, which is exactly what made the failure
@@ -596,7 +596,7 @@ The reasons, all about reconstructing a runtime `Type.FullName` from a name the 
 
 | Shape | Why |
 |-------|-----|
-| **Generic** — `record Reindex<T> : IJob` | A closed generic's `FullName` carries assembly-qualified type arguments, so no static key matches. |
+| **Generic** — `record Reindex<T> : IBackgroundJob` | A closed generic's `FullName` carries assembly-qualified type arguments, so no static key matches. |
 | **Nested in a generic** — `class Outer<T> { record Ev : IOutboxEvent; }` | Naming it would leak `T` into the generated file. |
 | **`file`-local** — `file record Ev : IOutboxEvent;` | Invisible outside its own file, and its `FullName` carries a synthesized `<file>F0__` segment. |
 | **Inaccessible** — `private`/`protected` at any level of its containing chain | The generated registry lives in the same assembly but a different file, so it can't name the type. |
@@ -1157,7 +1157,7 @@ public sealed record RebuildIndex(IComparer<string> Order) : ICommand;
 ```
 
 `[LocalOnly]` on an **interface** marks every message implementing it, which is how `Rask.Jobs`'
-`IJob` and `Rask.Outbox`' `IOutboxEvent` keep whole families of in-process messages out of the wire
+`IBackgroundJob` and `Rask.Outbox`' `IOutboxEvent` keep whole families of in-process messages out of the wire
 vocabulary at once.
 
 > This diagnostic only fires in a project that references a remote transport (`Rask.Cqrs.Client` or

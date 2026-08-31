@@ -3,13 +3,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Mail;
 
 /// <summary>
-/// The default <see cref="IMailQueue"/>: renders the email (already done by the builder) and writes one
+/// The default <see cref="IMail"/>: renders the email (already done by the builder) and writes one
 /// <see cref="QueuedMail"/> row through the app's <see cref="IDbContextFactory{TContext}"/>. The sender is
 /// resolved once, at enqueue time — from the message's own <c>From</c> if set, otherwise
 /// <see cref="MailOptions.From"/> — so the stored row is self-contained.
 /// </summary>
 /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the mail table.</typeparam>
-public sealed class MailQueue<TContext>(IDbContextFactory<TContext> contextFactory, MailOptions options, TimeProvider timeProvider) : IMailQueue
+public sealed class MailQueue<TContext>(IDbContextFactory<TContext> contextFactory, MailOptions options, TimeProvider timeProvider) : IMail
     where TContext : DbContext
 {
     /// <inheritdoc/>

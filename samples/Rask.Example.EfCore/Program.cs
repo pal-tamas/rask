@@ -33,7 +33,7 @@ builder.Services.AddRaskMail<CatalogDbContext>(o =>
     o.PollInterval = TimeSpan.FromSeconds(1);
 });
 
-// A read-through cache on the same SQLite database — GetOrCreateAsync stores each result as a CacheEntry row
+// A read-through cache on the same SQLite database — GetOrAddAsync stores each result as a CacheEntry row
 // and the background CachePurger sweeps expired rows (a short interval keeps the demo tidy).
 builder.Services.AddRaskCache<CatalogDbContext>(o => o.PurgeInterval = TimeSpan.FromSeconds(30));
 

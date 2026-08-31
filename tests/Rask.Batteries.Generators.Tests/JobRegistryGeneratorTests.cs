@@ -21,7 +21,7 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo;
-            public sealed record SendWelcomeEmail(int UserId) : IJob;
+            public sealed record SendWelcomeEmail(int UserId) : IBackgroundJob;
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -44,7 +44,7 @@ public class JobRegistryGeneratorTests
             namespace Demo;
             public static class OrderJobs
             {
-                public sealed record RequestReview(int OrderId) : IJob;
+                public sealed record RequestReview(int OrderId) : IBackgroundJob;
             }
             """);
 
@@ -64,7 +64,7 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo.@event;
-            public sealed record RequestReview(int OrderId) : IJob;
+            public sealed record RequestReview(int OrderId) : IBackgroundJob;
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -83,7 +83,7 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo;
-            public sealed record @class(int Id) : IJob;
+            public sealed record @class(int Id) : IBackgroundJob;
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -104,7 +104,7 @@ public class JobRegistryGeneratorTests
             namespace Demo;
             public class Outer<T>
             {
-                public sealed record RequestReview(int OrderId) : IJob;
+                public sealed record RequestReview(int OrderId) : IBackgroundJob;
             }
             """);
 
@@ -128,7 +128,7 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo;
-            file sealed record RequestReview(int OrderId) : IJob;
+            file sealed record RequestReview(int OrderId) : IBackgroundJob;
             """);
 
         var message = Assert.Single(run.Diagnostics, d => d.Id == "RASK035").GetMessage();
@@ -142,7 +142,7 @@ public class JobRegistryGeneratorTests
     {
         var run = Run("""
             using Rask.Jobs;
-            public sealed record RequestReview(int OrderId) : IJob;
+            public sealed record RequestReview(int OrderId) : IBackgroundJob;
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -161,7 +161,7 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo;
-            file sealed record RequestReview(int OrderId) : IJob;
+            file sealed record RequestReview(int OrderId) : IBackgroundJob;
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -179,7 +179,7 @@ public class JobRegistryGeneratorTests
             namespace Demo;
             public class Outer
             {
-                private sealed record RequestReview(int OrderId) : IJob;
+                private sealed record RequestReview(int OrderId) : IBackgroundJob;
             }
             """);
 
@@ -196,7 +196,7 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo;
-            public abstract record MaintenanceJob : IJob;
+            public abstract record MaintenanceJob : IBackgroundJob;
             public sealed record PurgeCancelled(int Days) : MaintenanceJob;
             """);
 
@@ -215,7 +215,7 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo;
-            public sealed record Reindex<T>(int Id) : IJob;
+            public sealed record Reindex<T>(int Id) : IBackgroundJob;
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -230,8 +230,8 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo;
-            public partial record RequestReview : IJob;
-            public partial record RequestReview : IJob;
+            public partial record RequestReview : IBackgroundJob;
+            public partial record RequestReview : IBackgroundJob;
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -257,8 +257,8 @@ public class JobRegistryGeneratorTests
         var run = Run("""
             using Rask.Jobs;
             namespace Demo;
-            public sealed record Zulu(int Id) : IJob;
-            public sealed record Alpha(int Id) : IJob;
+            public sealed record Zulu(int Id) : IBackgroundJob;
+            public sealed record Alpha(int Id) : IBackgroundJob;
             """);
 
         var source = run.GeneratedSource("__RaskJobsRegistry");

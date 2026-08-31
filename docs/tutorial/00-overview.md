@@ -40,8 +40,8 @@ whole product.
 | 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --auth --bootstrap` |
 | 2 | [Your first feature](02-first-feature.md) | Data · CQRS · SQLite | a `Product` slice · `rask db` |
 | 3 | [A second feature + locking it down](03-orders-and-auth.md) | Auth | an `Order` slice on the same database |
-| 4 | [Background jobs](04-background-jobs.md) | Jobs | an `IJob` + handler |
-| 5 | [Transactional email](05-email.md) | Mail | an email component + `IMailQueue` |
+| 4 | [Background jobs](04-background-jobs.md) | Jobs | an `IBackgroundJob` + handler |
+| 5 | [Transactional email](05-email.md) | Mail | an email component + `IMail` |
 | 6 | [Caching the catalog](06-cache.md) | Cache | a cached read accessor |
 | 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | `IOutboxEvent`s + a handler |
 | 8 | [Production SQLite](08-production-sqlite.md) | SQLite | `UseRaskSqlite()` · snapshots · Litestream |

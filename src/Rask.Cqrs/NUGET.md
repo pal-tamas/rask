@@ -33,7 +33,7 @@ Register once, then dispatch — the response type is inferred:
 builder.Services.AddRaskCqrs();
 
 // ...
-var user = await dispatcher.DispatchAsync(new GetUser(42));   // returns User
+var user = await dispatcher.QueryAsync(new GetUser(42));   // returns User
 ```
 
 `ICommand` / `ICommand<TResult>` dispatch the same way; `INotification` fans out to every handler

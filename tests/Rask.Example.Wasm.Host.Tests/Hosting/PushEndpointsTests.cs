@@ -7,7 +7,7 @@ using Rask.Example.Wasm.Host.Tests.Infrastructure;
 namespace Rask.Example.Wasm.Host.Tests.Hosting;
 
 // The Web Push backend (PushBackend) is wired into the host pipeline alongside the WASM bundle. These
-// exercise the deterministic, offline parts of that wiring — DI resolves IWebPushSender + the store,
+// exercise the deterministic, offline parts of that wiring — DI resolves IWebPush + the store,
 // the endpoints are mapped, and JSON binds. The encryption/VAPID correctness itself is covered by
 // Rask.WebPush.Tests; delivery can't run without a real push service.
 public sealed class PushEndpointsTests

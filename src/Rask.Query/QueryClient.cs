@@ -18,29 +18,20 @@ internal sealed class QueryClient : IQueryClient
         _time = time ?? TimeProvider.System;
     }
 
-    public Query<TResult> Query<TResult>(IQuery<TResult> message, QueryOptions? options = null)
+    public Query<TResult> Query<TResult>(
+        IQuery<TResult> message,
+        QueryOptions? options = null,
+        QueryKey? key = null)
     {
         ArgumentNullException.ThrowIfNull(message);
+
+        // No key given means the message IS the key, compared structurally — which is what lets two
+        // components asking the same thing share one entry and one request.
         return new Query<TResult>(
             this,
-            MessageKey.For(message),
+            key ?? MessageKey.For(message),
             options ?? QueryOptions.Default,
             DispatchFetch(message));
-    }
-
-    public Query<TResult> Query<TResult>(IQuery<TResult> message, QueryKey key, QueryOptions? options = null)
-    {
-        ArgumentNullException.ThrowIfNull(message);
-        return new Query<TResult>(this, key, options ?? QueryOptions.Default, DispatchFetch(message));
-    }
-
-    public Query<TResult> Query<TResult>(
-        string key,
-        Func<CancellationToken, Task<TResult>> fetch,
-        QueryOptions? options = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(key);
-        return Query(QueryKey.Of(key), fetch, options);
     }
 
     public Query<TResult> Query<TResult>(
@@ -105,7 +96,7 @@ internal sealed class QueryClient : IQueryClient
     public async Task MutateAsync(ICommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        await _dispatcher.DispatchAsync(command, cancellationToken).ConfigureAwait(false);
+        await _dispatcher.SendAsync(command, cancellationToken).ConfigureAwait(false);
         InvalidateDeclared(command);
     }
 
@@ -114,7 +105,7 @@ internal sealed class QueryClient : IQueryClient
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var result = await _dispatcher.DispatchAsync(command, cancellationToken).ConfigureAwait(false);
+        var result = await _dispatcher.SendAsync(command, cancellationToken).ConfigureAwait(false);
         InvalidateDeclared(command);
         return result;
     }
@@ -165,13 +156,13 @@ internal sealed class QueryClient : IQueryClient
 
     /// <summary>Dispatches a void command, for a Mutation that owns the surrounding state.</summary>
     internal Task DispatchCommandAsync(ICommand command, CancellationToken cancellationToken) =>
-        _dispatcher.DispatchAsync(command, cancellationToken);
+        _dispatcher.SendAsync(command, cancellationToken);
 
     /// <summary>Dispatches a value-returning command, for a Mutation that owns the surrounding state.</summary>
     internal Task<TResult> DispatchCommandAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken) =>
-        _dispatcher.DispatchAsync(command, cancellationToken);
+        _dispatcher.SendAsync(command, cancellationToken);
 
     /// <summary>
     ///     The cached result for a message, when there is one. Used to snapshot before an optimistic
@@ -196,7 +187,7 @@ internal sealed class QueryClient : IQueryClient
 
     /// <summary>Wraps a message as a fetch, so the entry stores the boxed result uniformly.</summary>
     internal Func<CancellationToken, Task<object?>> DispatchFetch<TResult>(IQuery<TResult> message) =>
-        async ct => await _dispatcher.DispatchAsync(message, ct).ConfigureAwait(false);
+        async ct => await _dispatcher.QueryAsync(message, ct).ConfigureAwait(false);
 
     internal QueryEntry Attach(QueryKey key, Action listener, TimeSpan gcTime)
     {

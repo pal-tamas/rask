@@ -22,7 +22,7 @@ namespace Rask.Cqrs;
 ///     </para>
 ///     <para>
 ///         Applying it to an <b>interface</b> marks every message that implements it, which is how a
-///         family of always-in-process messages opts out at once: <c>Rask.Jobs</c>' <c>IJob</c> and
+///         family of always-in-process messages opts out at once: <c>Rask.Jobs</c>' <c>IBackgroundJob</c> and
 ///         <c>Rask.Outbox</c>' <c>IOutboxEvent</c> both derive from <see cref="ICommand" />, and neither
 ///         a job payload nor an outbox event is ever something a browser sends.
 ///     </para>

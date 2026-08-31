@@ -303,7 +303,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         where TContext : DbContext
     {
         var options = new DbContextOptionsBuilder<TContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}", strictTables: strictTables)
+            .UseRaskSqlite($"Data Source={_dbPath}", o => o.StrictTables = strictTables)
             .Options;
 
         return (TContext)Activator.CreateInstance(typeof(TContext), options)!;

@@ -55,8 +55,8 @@ public sealed class ExternalStoreCacheTests
             return Task.FromResult(new Sample("made", 1));
         }
 
-        Assert.Equal(new Sample("made", 1), await cache.GetOrCreateAsync("k", Factory));
-        Assert.Equal(new Sample("made", 1), await cache.GetOrCreateAsync("k", Factory));
+        Assert.Equal(new Sample("made", 1), await cache.GetOrAddAsync("k", Factory));
+        Assert.Equal(new Sample("made", 1), await cache.GetOrAddAsync("k", Factory));
         Assert.Equal(1, calls);
     }
 

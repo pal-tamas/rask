@@ -26,10 +26,10 @@ Rask.Cqrs.ICommandHandler<TCommand, TResult>.HandleAsync(TCommand command, Syste
 Rask.Cqrs.ICommandHandler<TCommand>
 Rask.Cqrs.ICommandHandler<TCommand>.HandleAsync(TCommand command, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IDispatcher
-Rask.Cqrs.IDispatcher.DispatchAsync(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Cqrs.IDispatcher.DispatchAsync<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
-Rask.Cqrs.IDispatcher.DispatchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IDispatcher.PublishAsync<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IDispatcher.QueryAsync<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IDispatcher.SendAsync(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IDispatcher.SendAsync<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.INotification
 Rask.Cqrs.INotificationHandler<TNotification>
 Rask.Cqrs.INotificationHandler<TNotification>.HandleAsync(TNotification notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!

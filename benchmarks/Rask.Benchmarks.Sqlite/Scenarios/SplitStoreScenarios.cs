@@ -102,7 +102,7 @@ internal sealed class SplitStoreScenario : LoadScenario
     private readonly List<Thread> _churnThreads = [];
 
     private ServiceProvider? _provider;
-    private IRaskSqliteConnectionFactory? _factory;
+    private ISqlite? _factory;
 
     /// <param name="split">
     /// <see langword="true"/> puts the cache and the queue in their own files. <see langword="false"/> is
@@ -153,9 +153,9 @@ internal sealed class SplitStoreScenario : LoadScenario
         // Its own ServiceCollection: AddRaskSqlite is idempotent per collection, so a shared one would
         // silently bind every arm to the first arm's database.
         var services = new ServiceCollection();
-        services.AddRaskSqlite(App.ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30));
+        services.AddRaskSqlite(App.ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); });
         _provider = services.BuildServiceProvider();
-        _factory = _provider.GetRequiredService<IRaskSqliteConnectionFactory>();
+        _factory = _provider.GetRequiredService<ISqlite>();
 
         // Churn starts before the runner's warmup, so the measured window opens onto a system already in
         // motion rather than onto a cold cache table and an empty queue. Each loop is single-threaded, so its
@@ -171,7 +171,7 @@ internal sealed class SplitStoreScenario : LoadScenario
 
     internal override async ValueTask<OpOutcome> ExecuteAsync(int vuser, CancellationToken cancellationToken)
     {
-        await _factory!.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+        await _factory!.InImmediateTransactionAsync(async (connection, ct) =>
         {
             await using var command = connection.CreateCommand();
             command.CommandText = WriteScenarios.Insert;

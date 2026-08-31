@@ -4,7 +4,7 @@ using Rask.Generators.Shared;
 namespace Rask.Jobs.Generators;
 
 /// <summary>
-/// Discovers every <c>Rask.Jobs.IJob</c> type in the compilation and emits a per-assembly
+/// Discovers every <c>Rask.Jobs.IBackgroundJob</c> type in the compilation and emits a per-assembly
 /// <c>[ModuleInitializer]</c> that registers each with <c>JobSerializerRegistry</c> (name → CLR type), so the
 /// job processor rehydrates a stored job with no runtime <c>Type.GetType</c> / reflection.
 /// </summary>
@@ -12,7 +12,7 @@ namespace Rask.Jobs.Generators;
 public sealed class JobRegistryGenerator : RegistryGeneratorBase
 {
     /// <inheritdoc/>
-    protected override string MarkerInterface => "Rask.Jobs.IJob";
+    protected override string MarkerInterface => "Rask.Jobs.IBackgroundJob";
 
     /// <inheritdoc/>
     protected override string GeneratedNamespace => "Rask.Jobs.Generated";

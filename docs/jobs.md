@@ -26,9 +26,9 @@ work, and the worker dispatches to it.
 ## Use
 
 ```csharp
-public sealed record SendWelcomeEmail(string Email, string Name) : IJob;
+public sealed record SendWelcomeEmail(string Email, string Name) : IBackgroundJob;
 
-public sealed class SendWelcomeEmailHandler(IMailQueue mail) : ICommandHandler<SendWelcomeEmail>
+public sealed class SendWelcomeEmailHandler(IMail mail) : ICommandHandler<SendWelcomeEmail>
 {
     public Task HandleAsync(SendWelcomeEmail job, CancellationToken ct) =>
         mail.SendAsync(Email.To(job.Email).Subject("Welcome").Body(new WelcomeEmail(job.Name)), ct);
@@ -55,7 +55,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 ```
 
 Add a migration for the new tables before running — `rask db add AddJobs && rask db update`
-(or `dotnet ef migrations add AddJobs` directly). Then enqueue from anywhere `IJobQueue` is injected:
+(or `dotnet ef migrations add AddJobs` directly). Then enqueue from anywhere `IJob` is injected:
 
 ```csharp
 await jobs.EnqueueAsync(new SendWelcomeEmail(user.Email, user.Name));      // run asap
@@ -64,7 +64,7 @@ await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(2
 
 ## How it works
 
-- **`IJobQueue`** — writes one `Job` row (type name + JSON payload + `RunAt`) through your
+- **`IJob`** — writes one `Job` row (type name + JSON payload + `RunAt`) through your
   `IDbContextFactory<TContext>`.
 - **`JobProcessor<TContext>`** — a hosted `BackgroundService` that polls on `PollInterval` for **due** jobs
   (`RunAt <= now`, oldest first), dispatches each through `IDispatcher` to its `ICommandHandler`, and stamps
@@ -80,7 +80,7 @@ await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(2
   down past the due time). Read the registered schedule back from `JobOptions.RecurringJobs` — join it to the
   `RecurringJobState` row of the same name to show when each one last fired, or call an entry's `Factory()`
   and enqueue the result to run one off-schedule.
-- **The `Rask.Jobs` source generator** registers every `IJob` type (name → CLR type) at module load, so the
+- **The `Rask.Jobs` source generator** registers every `IBackgroundJob` type (name → CLR type) at module load, so the
   processor rehydrates a stored job with no runtime `Type.GetType` or assembly scanning.
 
 ## Shutdown
@@ -131,7 +131,7 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
   job is rehydrated without reflection. Skipped shapes: generic (or nested inside a generic), `file`-local,
   and `private`/`protected` at any level of its containing chain. Each is reported at build time as
   [RASK035](diagnostics.md#rask035), so a job that could never be dispatched fails the build instead of
-  dead-lettering in production. An abstract base carrying `IJob` is skipped silently; its concrete
+  dead-lettering in production. An abstract base carrying `IBackgroundJob` is skipped silently; its concrete
   derivatives register as usual. Nesting inside a plain `static class` is fine, and the usual way to group
   a feature's jobs.
 - **Running more than one instance is safe.** Each processor *leases* the batch it claims, so a job goes to

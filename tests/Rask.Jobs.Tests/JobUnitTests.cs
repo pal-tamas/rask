@@ -81,10 +81,10 @@ public sealed class JobOptionsTests
     }
 }
 
-// A nested IJob: its Type.FullName uses '+', which must still match the generator's dotted registration.
+// A nested IBackgroundJob: its Type.FullName uses '+', which must still match the generator's dotted registration.
 public sealed class Outer
 {
-    public sealed record NestedJob(int N) : IJob;
+    public sealed record NestedJob(int N) : IBackgroundJob;
 }
 
 public sealed class JobSerializerRegistryTests
@@ -92,7 +92,7 @@ public sealed class JobSerializerRegistryTests
     [Fact]
     public void Serialize_then_deserialize_round_trips_a_job()
     {
-        // The Rask.Jobs source generator registered this assembly's IJob types at module load.
+        // The Rask.Jobs source generator registered this assembly's IBackgroundJob types at module load.
         var (type, payload) = JobSerializerRegistry.Serialize(new RecordJob("payload"));
 
         var back = JobSerializerRegistry.Deserialize(type, payload);

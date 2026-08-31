@@ -159,7 +159,7 @@ public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navi
     {
         try
         {
-            await dispatcher.DispatchAsync(new CreateProductCommand(form), CancellationToken);
+            await dispatcher.SendAsync(new CreateProductCommand(form), CancellationToken);
             navigator.NavigateTo(Routes.ProductsPage());
         }
         catch (Exception)
@@ -258,7 +258,7 @@ public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navi
     protected override async Task OnPropsChangedAsync()
     {
         _loaded = false;
-        var entity = await dispatcher.DispatchAsync(new GetProductQuery(Id), CancellationToken);
+        var entity = await dispatcher.QueryAsync(new GetProductQuery(Id), CancellationToken);
         _found = entity is not null;
         if (entity is not null)
         {
@@ -274,7 +274,7 @@ public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navi
     {
         try
         {
-            await dispatcher.DispatchAsync(new UpdateProductCommand(Id, form), CancellationToken);
+            await dispatcher.SendAsync(new UpdateProductCommand(Id, form), CancellationToken);
             navigator.NavigateTo(Routes.ProductsPage());
         }
         catch (Exception)
@@ -362,7 +362,7 @@ public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
 
     private async Task DeleteAsync()
     {
-        await dispatcher.DispatchAsync(new DeleteProductCommand(Id), CancellationToken);
+        await dispatcher.SendAsync(new DeleteProductCommand(Id), CancellationToken);
         if (OnDeleted is not null)
         {
             await OnDeleted();
@@ -409,7 +409,7 @@ public sealed partial class ProductsPage(IDispatcher dispatcher) : Component
 
     private async Task LoadAsync()
     {
-        _items = await dispatcher.DispatchAsync(new ListProductsQuery(), CancellationToken);
+        _items = await dispatcher.QueryAsync(new ListProductsQuery(), CancellationToken);
         _loaded = true;
     }
 
