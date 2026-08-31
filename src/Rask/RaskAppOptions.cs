@@ -1,4 +1,5 @@
 using Rask.Cache;
+using Rask.Core.Browser;
 using Rask.Core.Live;
 using Rask.Jobs;
 using Rask.Logging;
@@ -66,6 +67,21 @@ public sealed class RaskAppOptions
 
     /// <summary>The operator dashboard at <c>/_rask</c>, over every battery's table.</summary>
     public Battery Ops { get; } = new();
+
+    /// <summary>
+    /// An installable PWA: the web app manifest, and the service worker that receives Web Push.
+    /// </summary>
+    /// <remarks>
+    /// On by default, because leaving it off made four APIs that <c>AddRask()</c> always registers —
+    /// <c>IWebPush</c>, <c>INotifications</c>, <c>IBadge</c>, <c>IWakeLock</c> — inject successfully and
+    /// then fail at runtime: the service worker they need is served by <c>AddRaskPwa</c>, which nothing
+    /// called. The parts were registered and the seam was not.
+    /// <para>
+    /// The default manifest is named after the entry assembly, so an app that configures nothing is
+    /// installable. Override any of it, or leave it out entirely with <c>c.Pwa.Off()</c>.
+    /// </para>
+    /// </remarks>
+    public Battery<WebAppManifest> Pwa { get; } = new();
 
     /// <summary>
     /// The languages this app ships. The <b>first</b> is the default a visitor falls back to when nothing

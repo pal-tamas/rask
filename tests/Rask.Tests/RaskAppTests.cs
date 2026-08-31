@@ -63,6 +63,80 @@ public sealed class RaskAppTests
     }
 
     [Fact]
+    public async Task An_app_with_no_configuration_serves_the_service_worker()
+    {
+        // The seam, not the parts. AddRask() registers IWebPush/INotifications/IBadge/IWakeLock
+        // unconditionally, but on a Server host their JS helper is served only by AddRaskPwa -- which
+        // nothing called before the Pwa battery existed. All four injected fine and then failed on a 404,
+        // and a test asserting the REGISTRATIONS would have passed throughout. This one asks the running
+        // server for the file.
+        var app = NewApp().Build<TestApp>();
+        await app.StartAsync();
+
+        try
+        {
+            var response = await GetAsync(app, "/rask-sw.js");
+            Assert.True(
+                response.IsSuccessStatusCode,
+                $"the service worker answered {(int)response.StatusCode}; "
+                + "IWebPush.RegisterServiceWorkerAsync() defaults to this URL, so a failure here is a "
+                + "runtime failure for every push subscription");
+
+            // Status alone would prove nothing: UseRask ends in a catch-all serving the app for any
+            // unmatched path, so an ABSENT worker answers 200 with HTML. The content type is the evidence.
+            Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
+            Assert.Contains("push", await response.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task An_app_with_no_configuration_is_installable()
+    {
+        // Name is `required` on WebAppManifest, so the default cannot be empty -- it is the app's own
+        // name, which makes a freshly created app installable without configuring anything.
+        var app = NewApp().Build<TestApp>();
+        await app.StartAsync();
+
+        try
+        {
+            var response = await GetAsync(app, "/rask/manifest.webmanifest");
+            Assert.True(response.IsSuccessStatusCode, $"the manifest answered {(int)response.StatusCode}");
+
+            var manifest = await response.Content.ReadAsStringAsync();
+            Assert.Contains("\"name\"", manifest, StringComparison.Ordinal);
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Turning_the_pwa_battery_off_stops_serving_the_worker()
+    {
+        // Off means off: the battery is on by default, so the only evidence that `c.Pwa.Off()` does
+        // anything is that the file stops being served.
+        var app = NewApp(a => a.Configure(c => c.Pwa.Off())).Build<TestApp>();
+        await app.StartAsync();
+
+        try
+        {
+            // Not a 404: the catch-all still answers this path with the app itself. What must be gone is
+            // the JavaScript — which is why the previous test checks the content type rather than the code.
+            var response = await GetAsync(app, "/rask-sw.js");
+            Assert.NotEqual("text/javascript", response.Content.Headers.ContentType?.MediaType);
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    [Fact]
     public async Task The_health_endpoint_answers_over_plain_http()
     {
         // It has to short-circuit BEFORE UseHttpsRedirection. `rask deploy` probes it internally over
