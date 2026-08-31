@@ -1,0 +1,18 @@
+#nullable enable
+Rask.Spa.Hosting.RaskSpaEndpointExtensions
+Rask.Spa.Hosting.RaskSpaServiceCollectionExtensions
+Rask.Spa.Hosting.SpaHostingOptions
+Rask.Spa.Hosting.SpaHostingOptions.DevServerUrl.get -> string?
+Rask.Spa.Hosting.SpaHostingOptions.DevServerUrl.set -> void
+Rask.Spa.Hosting.SpaHostingOptions.ExcludeFromFallback.get -> System.Func<Microsoft.AspNetCore.Http.HttpContext!, bool>?
+Rask.Spa.Hosting.SpaHostingOptions.ExcludeFromFallback.set -> void
+Rask.Spa.Hosting.SpaHostingOptions.ImmutablePathPrefixes.get -> System.Collections.Generic.IList<string!>!
+Rask.Spa.Hosting.SpaHostingOptions.IndexFileName.get -> string!
+Rask.Spa.Hosting.SpaHostingOptions.IndexFileName.set -> void
+Rask.Spa.Hosting.SpaHostingOptions.OnPrepareResponse.get -> System.Action<Microsoft.AspNetCore.StaticFiles.StaticFileResponseContext!>?
+Rask.Spa.Hosting.SpaHostingOptions.OnPrepareResponse.set -> void
+Rask.Spa.Hosting.SpaHostingOptions.ServePrecompressed.get -> bool
+Rask.Spa.Hosting.SpaHostingOptions.ServePrecompressed.set -> void
+Rask.Spa.Hosting.SpaHostingOptions.SpaHostingOptions() -> void
+static Rask.Spa.Hosting.RaskSpaEndpointExtensions.UseRaskSpa(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string? distPath = null, string! pathBase = "", System.Action<Rask.Spa.Hosting.SpaHostingOptions!>? configure = null) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Spa.Hosting.RaskSpaServiceCollectionExtensions.AddRaskSpaHost(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

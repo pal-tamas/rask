@@ -1,0 +1,21 @@
+#nullable enable
+Rask.Cqrs.Client.FileBridgeExtensions
+Rask.Cqrs.Client.RaskCqrsClientOptions
+Rask.Cqrs.Client.RaskCqrsClientOptions.BaseAddress.get -> System.Uri?
+Rask.Cqrs.Client.RaskCqrsClientOptions.BaseAddress.set -> void
+Rask.Cqrs.Client.RaskCqrsClientOptions.ChunkedUploadThreshold.get -> long
+Rask.Cqrs.Client.RaskCqrsClientOptions.ChunkedUploadThreshold.set -> void
+Rask.Cqrs.Client.RaskCqrsClientOptions.ConfigureRequestAsync.get -> System.Func<System.Net.Http.HttpRequestMessage!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
+Rask.Cqrs.Client.RaskCqrsClientOptions.ConfigureRequestAsync.set -> void
+Rask.Cqrs.Client.RaskCqrsClientOptions.MaxQueryUrlLength.get -> int
+Rask.Cqrs.Client.RaskCqrsClientOptions.MaxQueryUrlLength.set -> void
+Rask.Cqrs.Client.RaskCqrsClientOptions.RaskCqrsClientOptions() -> void
+Rask.Cqrs.Client.RaskCqrsClientOptions.RoutePrefix.get -> string!
+Rask.Cqrs.Client.RaskCqrsClientOptions.RoutePrefix.set -> void
+Rask.Cqrs.Client.RaskCqrsClientOptions.Timeout.get -> System.TimeSpan
+Rask.Cqrs.Client.RaskCqrsClientOptions.Timeout.set -> void
+Rask.Cqrs.Client.RaskCqrsClientOptions.UploadChunkSize.get -> long
+Rask.Cqrs.Client.RaskCqrsClientOptions.UploadChunkSize.set -> void
+Rask.Cqrs.Client.RaskCqrsClientServiceCollectionExtensions
+static Rask.Cqrs.Client.FileBridgeExtensions.Download(this Rask.Core.Routing.Navigator! navigator, Rask.Cqrs.FileDownload! download) -> void
+static Rask.Cqrs.Client.RaskCqrsClientServiceCollectionExtensions.AddRaskCqrsClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.Client.RaskCqrsClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

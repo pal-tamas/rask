@@ -52,6 +52,16 @@ reflection-adjacent, also:
 dotnet publish samples/Rask.Example.Wasm -c Release   # zero IL trim warnings required
 ```
 
+### The public-API gate
+Anything public that you added, renamed or removed fails this build until it is recorded in
+`src/<Project>/PublicAPI/<tfm>/PublicAPI.Unshipped.txt` — RS0016 for a member that is missing,
+RS0017 for an entry with nothing behind it. The signature the file wants is quoted verbatim in the
+RS0016 message; the IDE's "Add to public API" quick-fix writes it for you.
+
+Do not route around it. The diff in those files **is** the API review — read it as a reviewer would
+before you commit, against the rules in `docs/api-style.md`. A name you would not want to explain in
+a PR comment is a name to change now, while changing it is free.
+
 ## 3. Tests — unit-first; E2E for example changes
 Policy: **unit-test first** for every new feature/bug fix; add E2E **only** when a unit test
 can't reach the path (E2E is heavy). **Any `samples/` change requires an E2E** journey update.

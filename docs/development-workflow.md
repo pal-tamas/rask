@@ -40,6 +40,9 @@ Every change passes this gate before a PR (the `rask-ship` skill):
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
    `EnforceCodeStyleInBuild`), so a plain build enforces it too. See [code-analysis.md](code-analysis.md).
+   The same build runs the **public-API gate**: anything public you added, renamed or removed fails
+   until it is recorded in `src/<Project>/PublicAPI/<tfm>/PublicAPI.Unshipped.txt`. That diff is the
+   API review — read it against [api-style.md](api-style.md) before you commit.
 3. **Tests** — unit-test every feature/fix (`tests/Rask.*.Tests`); add E2E only when a unit test
    can't reach the path. **Every `samples/` change gets an E2E** journey update
    (`tests/Rask.Examples.E2E.Tests`). Inner loop — **build once, then test with `--no-build`** so
