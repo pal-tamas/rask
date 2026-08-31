@@ -1,0 +1,525 @@
+#nullable enable
+Rask.Wasm.Authentication.WasmAuthSignIn
+Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.get -> string!
+Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.init -> void
+Rask.Wasm.Authentication.WasmAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Wasm.Authentication.WasmAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Wasm.Authentication.WasmAuthSignIn.WasmAuthSignIn(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! userProvider, Rask.Core.Routing.Navigator! navigator) -> void
+Rask.Wasm.Browser.BackgroundSync
+Rask.Wasm.Browser.BackgroundSync.BackgroundSync(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.BackgroundSync.GetPendingTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Wasm.Browser.BackgroundSync.GetPeriodicPermissionAsync() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Wasm.Browser.BackgroundSync.GetPeriodicTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Wasm.Browser.BackgroundSync.IsPeriodicSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.BackgroundSync.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.BackgroundSync.OnSyncAsync(System.Func<Rask.Wasm.Browser.BackgroundSyncEvent!, System.Threading.Tasks.Task!>! onSync) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.BackgroundSync.RequestPeriodicSyncAsync(string! tag, System.TimeSpan minInterval) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.BackgroundSync.RequestSyncAsync(string! tag) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.BackgroundSync.UnregisterPeriodicAsync(string! tag) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.BackgroundSyncEvent
+Rask.Wasm.Browser.BackgroundSyncEvent.<Clone>$() -> Rask.Wasm.Browser.BackgroundSyncEvent!
+Rask.Wasm.Browser.BackgroundSyncEvent.BackgroundSyncEvent(string! Tag, bool Periodic) -> void
+Rask.Wasm.Browser.BackgroundSyncEvent.Deconstruct(out string! Tag, out bool Periodic) -> void
+Rask.Wasm.Browser.BackgroundSyncEvent.Equals(Rask.Wasm.Browser.BackgroundSyncEvent? other) -> bool
+Rask.Wasm.Browser.BackgroundSyncEvent.Periodic.get -> bool
+Rask.Wasm.Browser.BackgroundSyncEvent.Periodic.init -> void
+Rask.Wasm.Browser.BackgroundSyncEvent.Tag.get -> string!
+Rask.Wasm.Browser.BackgroundSyncEvent.Tag.init -> void
+Rask.Wasm.Browser.BackgroundSyncInterop
+Rask.Wasm.Browser.Bluetooth
+Rask.Wasm.Browser.Bluetooth.Bluetooth(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.Bluetooth.GetDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.IBluetoothDevice!>!>
+Rask.Wasm.Browser.Bluetooth.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.Bluetooth.RequestDeviceAsync(Rask.Wasm.Browser.BluetoothRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IBluetoothDevice?>
+Rask.Wasm.Browser.BluetoothDeviceInfo
+Rask.Wasm.Browser.BluetoothDeviceInfo.<Clone>$() -> Rask.Wasm.Browser.BluetoothDeviceInfo!
+Rask.Wasm.Browser.BluetoothDeviceInfo.BluetoothDeviceInfo(string! Id, string? Name) -> void
+Rask.Wasm.Browser.BluetoothDeviceInfo.Deconstruct(out string! Id, out string? Name) -> void
+Rask.Wasm.Browser.BluetoothDeviceInfo.Equals(Rask.Wasm.Browser.BluetoothDeviceInfo? other) -> bool
+Rask.Wasm.Browser.BluetoothDeviceInfo.Id.get -> string!
+Rask.Wasm.Browser.BluetoothDeviceInfo.Id.init -> void
+Rask.Wasm.Browser.BluetoothDeviceInfo.Name.get -> string?
+Rask.Wasm.Browser.BluetoothDeviceInfo.Name.init -> void
+Rask.Wasm.Browser.BluetoothFilter
+Rask.Wasm.Browser.BluetoothFilter.<Clone>$() -> Rask.Wasm.Browser.BluetoothFilter!
+Rask.Wasm.Browser.BluetoothFilter.BluetoothFilter(System.Collections.Generic.IReadOnlyList<string!>? Services = null, string? Name = null, string? NamePrefix = null) -> void
+Rask.Wasm.Browser.BluetoothFilter.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>? Services, out string? Name, out string? NamePrefix) -> void
+Rask.Wasm.Browser.BluetoothFilter.Equals(Rask.Wasm.Browser.BluetoothFilter? other) -> bool
+Rask.Wasm.Browser.BluetoothFilter.Name.get -> string?
+Rask.Wasm.Browser.BluetoothFilter.Name.init -> void
+Rask.Wasm.Browser.BluetoothFilter.NamePrefix.get -> string?
+Rask.Wasm.Browser.BluetoothFilter.NamePrefix.init -> void
+Rask.Wasm.Browser.BluetoothFilter.Services.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Rask.Wasm.Browser.BluetoothFilter.Services.init -> void
+Rask.Wasm.Browser.BluetoothInterop
+Rask.Wasm.Browser.BluetoothRequestOptions
+Rask.Wasm.Browser.BluetoothRequestOptions.<Clone>$() -> Rask.Wasm.Browser.BluetoothRequestOptions!
+Rask.Wasm.Browser.BluetoothRequestOptions.AcceptAllDevices.get -> bool
+Rask.Wasm.Browser.BluetoothRequestOptions.AcceptAllDevices.init -> void
+Rask.Wasm.Browser.BluetoothRequestOptions.BluetoothRequestOptions(System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.BluetoothFilter!>? Filters = null, System.Collections.Generic.IReadOnlyList<string!>? OptionalServices = null, bool AcceptAllDevices = false) -> void
+Rask.Wasm.Browser.BluetoothRequestOptions.Deconstruct(out System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.BluetoothFilter!>? Filters, out System.Collections.Generic.IReadOnlyList<string!>? OptionalServices, out bool AcceptAllDevices) -> void
+Rask.Wasm.Browser.BluetoothRequestOptions.Equals(Rask.Wasm.Browser.BluetoothRequestOptions? other) -> bool
+Rask.Wasm.Browser.BluetoothRequestOptions.Filters.get -> System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.BluetoothFilter!>?
+Rask.Wasm.Browser.BluetoothRequestOptions.Filters.init -> void
+Rask.Wasm.Browser.BluetoothRequestOptions.OptionalServices.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Rask.Wasm.Browser.BluetoothRequestOptions.OptionalServices.init -> void
+Rask.Wasm.Browser.EyeDropper
+Rask.Wasm.Browser.EyeDropper.EyeDropper(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.EyeDropper.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.EyeDropper.OpenAsync() -> System.Threading.Tasks.ValueTask<string?>
+Rask.Wasm.Browser.Fullscreen
+Rask.Wasm.Browser.Fullscreen.ExitAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.Fullscreen.Fullscreen(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.Fullscreen.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.Fullscreen.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.Fullscreen.RequestAsync(Rask.Core.ElementRef? element = null) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.Hid
+Rask.Wasm.Browser.Hid.GetDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.IHidDevice!>!>
+Rask.Wasm.Browser.Hid.Hid(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.Hid.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.Hid.RequestDevicesAsync(Rask.Wasm.Browser.HidDeviceFilter![]? filters = null) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.IHidDevice!>!>
+Rask.Wasm.Browser.HidDeviceFilter
+Rask.Wasm.Browser.HidDeviceFilter.<Clone>$() -> Rask.Wasm.Browser.HidDeviceFilter!
+Rask.Wasm.Browser.HidDeviceFilter.Deconstruct(out int? VendorId, out int? ProductId, out int? UsagePage, out int? Usage) -> void
+Rask.Wasm.Browser.HidDeviceFilter.Equals(Rask.Wasm.Browser.HidDeviceFilter? other) -> bool
+Rask.Wasm.Browser.HidDeviceFilter.HidDeviceFilter(int? VendorId = null, int? ProductId = null, int? UsagePage = null, int? Usage = null) -> void
+Rask.Wasm.Browser.HidDeviceFilter.ProductId.get -> int?
+Rask.Wasm.Browser.HidDeviceFilter.ProductId.init -> void
+Rask.Wasm.Browser.HidDeviceFilter.Usage.get -> int?
+Rask.Wasm.Browser.HidDeviceFilter.Usage.init -> void
+Rask.Wasm.Browser.HidDeviceFilter.UsagePage.get -> int?
+Rask.Wasm.Browser.HidDeviceFilter.UsagePage.init -> void
+Rask.Wasm.Browser.HidDeviceFilter.VendorId.get -> int?
+Rask.Wasm.Browser.HidDeviceFilter.VendorId.init -> void
+Rask.Wasm.Browser.HidDeviceInfo
+Rask.Wasm.Browser.HidDeviceInfo.<Clone>$() -> Rask.Wasm.Browser.HidDeviceInfo!
+Rask.Wasm.Browser.HidDeviceInfo.Deconstruct(out int VendorId, out int ProductId, out string? ProductName) -> void
+Rask.Wasm.Browser.HidDeviceInfo.Equals(Rask.Wasm.Browser.HidDeviceInfo? other) -> bool
+Rask.Wasm.Browser.HidDeviceInfo.HidDeviceInfo(int VendorId, int ProductId, string? ProductName) -> void
+Rask.Wasm.Browser.HidDeviceInfo.ProductId.get -> int
+Rask.Wasm.Browser.HidDeviceInfo.ProductId.init -> void
+Rask.Wasm.Browser.HidDeviceInfo.ProductName.get -> string?
+Rask.Wasm.Browser.HidDeviceInfo.ProductName.init -> void
+Rask.Wasm.Browser.HidDeviceInfo.VendorId.get -> int
+Rask.Wasm.Browser.HidDeviceInfo.VendorId.init -> void
+Rask.Wasm.Browser.HidInputReport
+Rask.Wasm.Browser.HidInputReport.<Clone>$() -> Rask.Wasm.Browser.HidInputReport!
+Rask.Wasm.Browser.HidInputReport.Data.get -> byte[]!
+Rask.Wasm.Browser.HidInputReport.Data.init -> void
+Rask.Wasm.Browser.HidInputReport.Deconstruct(out int ReportId, out byte[]! Data) -> void
+Rask.Wasm.Browser.HidInputReport.Equals(Rask.Wasm.Browser.HidInputReport? other) -> bool
+Rask.Wasm.Browser.HidInputReport.HidInputReport(int ReportId, byte[]! Data) -> void
+Rask.Wasm.Browser.HidInputReport.ReportId.get -> int
+Rask.Wasm.Browser.HidInputReport.ReportId.init -> void
+Rask.Wasm.Browser.HidInterop
+Rask.Wasm.Browser.IBackgroundSync
+Rask.Wasm.Browser.IBackgroundSync.GetPendingTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Wasm.Browser.IBackgroundSync.GetPeriodicPermissionAsync() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Wasm.Browser.IBackgroundSync.GetPeriodicTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Wasm.Browser.IBackgroundSync.IsPeriodicSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBackgroundSync.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBackgroundSync.OnSyncAsync(System.Func<Rask.Wasm.Browser.BackgroundSyncEvent!, System.Threading.Tasks.Task!>! onSync) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.IBackgroundSync.RequestPeriodicSyncAsync(string! tag, System.TimeSpan minInterval) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBackgroundSync.RequestSyncAsync(string! tag) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBackgroundSync.UnregisterPeriodicAsync(string! tag) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IBluetooth
+Rask.Wasm.Browser.IBluetooth.GetDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.IBluetoothDevice!>!>
+Rask.Wasm.Browser.IBluetooth.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBluetooth.RequestDeviceAsync(Rask.Wasm.Browser.BluetoothRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IBluetoothDevice?>
+Rask.Wasm.Browser.IBluetoothCharacteristic
+Rask.Wasm.Browser.IBluetoothCharacteristic.ReadAsync() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Wasm.Browser.IBluetoothCharacteristic.WatchAsync(System.Func<byte[]!, System.Threading.Tasks.Task!>! onValue) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.IBluetoothCharacteristic.WriteAsync(byte[]! data, bool withResponse = true) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IBluetoothDevice
+Rask.Wasm.Browser.IBluetoothDevice.ConnectAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IBluetoothDevice.DisconnectAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IBluetoothDevice.GetCharacteristicAsync(string! serviceUuid, string! characteristicUuid) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IBluetoothCharacteristic!>
+Rask.Wasm.Browser.IBluetoothDevice.Info.get -> Rask.Wasm.Browser.BluetoothDeviceInfo!
+Rask.Wasm.Browser.IBluetoothDevice.IsConnectedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IBluetoothDevice.WatchDisconnectAsync(System.Func<System.Threading.Tasks.Task!>! onDisconnect) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.IEyeDropper
+Rask.Wasm.Browser.IEyeDropper.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IEyeDropper.OpenAsync() -> System.Threading.Tasks.ValueTask<string?>
+Rask.Wasm.Browser.IFullscreen
+Rask.Wasm.Browser.IFullscreen.ExitAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IFullscreen.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IFullscreen.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IFullscreen.RequestAsync(Rask.Core.ElementRef? element = null) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IHid
+Rask.Wasm.Browser.IHid.GetDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.IHidDevice!>!>
+Rask.Wasm.Browser.IHid.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IHid.RequestDevicesAsync(Rask.Wasm.Browser.HidDeviceFilter![]? filters = null) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.IHidDevice!>!>
+Rask.Wasm.Browser.IHidDevice
+Rask.Wasm.Browser.IHidDevice.CloseAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IHidDevice.Info.get -> Rask.Wasm.Browser.HidDeviceInfo!
+Rask.Wasm.Browser.IHidDevice.OpenAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IHidDevice.ReceiveFeatureReportAsync(int reportId) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Wasm.Browser.IHidDevice.SendFeatureReportAsync(int reportId, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IHidDevice.SendReportAsync(int reportId, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IHidDevice.WatchInputReportsAsync(System.Func<Rask.Wasm.Browser.HidInputReport!, System.Threading.Tasks.Task!>! onReport, System.Func<System.Threading.Tasks.Task!>? onDisconnect = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.IIdleDetector
+Rask.Wasm.Browser.IIdleDetector.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IIdleDetector.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Wasm.Browser.IIdleDetector.WatchAsync(System.Func<Rask.Wasm.Browser.IdleReading!, System.Threading.Tasks.Task!>! onChange, int thresholdSeconds = 60) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.IInstallPrompt
+Rask.Wasm.Browser.IInstallPrompt.CanInstallAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IInstallPrompt.IsInstalledAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IInstallPrompt.PromptAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.InstallOutcome>
+Rask.Wasm.Browser.IMediaDevices
+Rask.Wasm.Browser.IMediaDevices.EnumerateDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.MediaDeviceInfo!>!>
+Rask.Wasm.Browser.IMediaDevices.GetDisplayMediaAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
+Rask.Wasm.Browser.IMediaDevices.GetUserMediaAsync(Rask.Wasm.Browser.MediaConstraints! constraints) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
+Rask.Wasm.Browser.IMediaDevices.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IMediaStreamHandle
+Rask.Wasm.Browser.IMediaStreamHandle.AttachToAsync(Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IMediaStreamHandle.Id.get -> Rask.Core.Browser.MediaStreamId
+Rask.Wasm.Browser.IMediaStreamHandle.StopAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IPictureInPicture
+Rask.Wasm.Browser.IPictureInPicture.ExitAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IPictureInPicture.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IPictureInPicture.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IPictureInPicture.RequestAsync(Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IScreenOrientation
+Rask.Wasm.Browser.IScreenOrientation.GetAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.OrientationInfo!>
+Rask.Wasm.Browser.IScreenOrientation.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IScreenOrientation.LockAsync(Rask.Wasm.Browser.OrientationLock orientation) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IScreenOrientation.UnlockAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.ISerial
+Rask.Wasm.Browser.ISerial.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.ISerial.RequestPortAsync(Rask.Wasm.Browser.SerialOptions! options, System.Func<byte[]!, System.Threading.Tasks.Task!>! onData, System.Func<System.Threading.Tasks.Task!>? onClosed = null) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.ISerialPort?>
+Rask.Wasm.Browser.ISerialPort
+Rask.Wasm.Browser.ISerialPort.CloseAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.ISerialPort.WriteAsync(byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IShare
+Rask.Wasm.Browser.IShare.CanShareAsync(Rask.Core.Browser.ShareData? data = null) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IShare.ShareAsync(Rask.Core.Browser.ShareData! data) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IUsb
+Rask.Wasm.Browser.IUsb.GetDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.IUsbDevice!>!>
+Rask.Wasm.Browser.IUsb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IUsb.RequestDeviceAsync(Rask.Wasm.Browser.UsbDeviceFilter![]? filters = null, System.Func<System.Threading.Tasks.Task!>? onDisconnect = null) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IUsbDevice?>
+Rask.Wasm.Browser.IUsbDevice
+Rask.Wasm.Browser.IUsbDevice.ClaimInterfaceAsync(int interfaceNumber) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IUsbDevice.CloseAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IUsbDevice.ControlTransferInAsync(Rask.Wasm.Browser.UsbControlTransferParams! setup, int length) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.UsbTransferResult!>
+Rask.Wasm.Browser.IUsbDevice.ControlTransferOutAsync(Rask.Wasm.Browser.UsbControlTransferParams! setup, byte[]! data) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.UsbOutTransferResult!>
+Rask.Wasm.Browser.IUsbDevice.Info.get -> Rask.Wasm.Browser.UsbDeviceInfo!
+Rask.Wasm.Browser.IUsbDevice.OpenAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IUsbDevice.ReleaseInterfaceAsync(int interfaceNumber) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IUsbDevice.SelectConfigurationAsync(int configurationValue) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.IUsbDevice.TransferInAsync(int endpointNumber, int length) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.UsbTransferResult!>
+Rask.Wasm.Browser.IUsbDevice.TransferOutAsync(int endpointNumber, byte[]! data) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.UsbOutTransferResult!>
+Rask.Wasm.Browser.IdleDetectorInterop
+Rask.Wasm.Browser.IdleDetectorService
+Rask.Wasm.Browser.IdleDetectorService.IdleDetectorService(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.IdleDetectorService.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.IdleDetectorService.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Wasm.Browser.IdleDetectorService.WatchAsync(System.Func<Rask.Wasm.Browser.IdleReading!, System.Threading.Tasks.Task!>! onChange, int thresholdSeconds = 60) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Wasm.Browser.IdleReading
+Rask.Wasm.Browser.IdleReading.<Clone>$() -> Rask.Wasm.Browser.IdleReading!
+Rask.Wasm.Browser.IdleReading.Deconstruct(out bool UserIdle, out bool ScreenLocked) -> void
+Rask.Wasm.Browser.IdleReading.Equals(Rask.Wasm.Browser.IdleReading? other) -> bool
+Rask.Wasm.Browser.IdleReading.IdleReading(bool UserIdle, bool ScreenLocked) -> void
+Rask.Wasm.Browser.IdleReading.ScreenLocked.get -> bool
+Rask.Wasm.Browser.IdleReading.ScreenLocked.init -> void
+Rask.Wasm.Browser.IdleReading.UserIdle.get -> bool
+Rask.Wasm.Browser.IdleReading.UserIdle.init -> void
+Rask.Wasm.Browser.InstallOutcome
+Rask.Wasm.Browser.InstallOutcome.Accepted = 0 -> Rask.Wasm.Browser.InstallOutcome
+Rask.Wasm.Browser.InstallOutcome.Dismissed = 1 -> Rask.Wasm.Browser.InstallOutcome
+Rask.Wasm.Browser.InstallOutcome.Unavailable = 2 -> Rask.Wasm.Browser.InstallOutcome
+Rask.Wasm.Browser.InstallPrompt
+Rask.Wasm.Browser.InstallPrompt.CanInstallAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.InstallPrompt.InstallPrompt(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.InstallPrompt.IsInstalledAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.InstallPrompt.PromptAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.InstallOutcome>
+Rask.Wasm.Browser.MediaConstraints
+Rask.Wasm.Browser.MediaConstraints.<Clone>$() -> Rask.Wasm.Browser.MediaConstraints!
+Rask.Wasm.Browser.MediaConstraints.Audio.get -> bool
+Rask.Wasm.Browser.MediaConstraints.Audio.init -> void
+Rask.Wasm.Browser.MediaConstraints.Deconstruct(out bool Video, out bool Audio, out string? FacingMode) -> void
+Rask.Wasm.Browser.MediaConstraints.Equals(Rask.Wasm.Browser.MediaConstraints? other) -> bool
+Rask.Wasm.Browser.MediaConstraints.FacingMode.get -> string?
+Rask.Wasm.Browser.MediaConstraints.FacingMode.init -> void
+Rask.Wasm.Browser.MediaConstraints.MediaConstraints(bool Video = true, bool Audio = false, string? FacingMode = null) -> void
+Rask.Wasm.Browser.MediaConstraints.Video.get -> bool
+Rask.Wasm.Browser.MediaConstraints.Video.init -> void
+Rask.Wasm.Browser.MediaDeviceInfo
+Rask.Wasm.Browser.MediaDeviceInfo.<Clone>$() -> Rask.Wasm.Browser.MediaDeviceInfo!
+Rask.Wasm.Browser.MediaDeviceInfo.Deconstruct(out string! DeviceId, out string! Kind, out string! Label, out string! GroupId) -> void
+Rask.Wasm.Browser.MediaDeviceInfo.DeviceId.get -> string!
+Rask.Wasm.Browser.MediaDeviceInfo.DeviceId.init -> void
+Rask.Wasm.Browser.MediaDeviceInfo.Equals(Rask.Wasm.Browser.MediaDeviceInfo? other) -> bool
+Rask.Wasm.Browser.MediaDeviceInfo.GroupId.get -> string!
+Rask.Wasm.Browser.MediaDeviceInfo.GroupId.init -> void
+Rask.Wasm.Browser.MediaDeviceInfo.Kind.get -> string!
+Rask.Wasm.Browser.MediaDeviceInfo.Kind.init -> void
+Rask.Wasm.Browser.MediaDeviceInfo.Label.get -> string!
+Rask.Wasm.Browser.MediaDeviceInfo.Label.init -> void
+Rask.Wasm.Browser.MediaDeviceInfo.MediaDeviceInfo(string! DeviceId, string! Kind, string! Label, string! GroupId) -> void
+Rask.Wasm.Browser.MediaDevices
+Rask.Wasm.Browser.MediaDevices.EnumerateDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.MediaDeviceInfo!>!>
+Rask.Wasm.Browser.MediaDevices.GetDisplayMediaAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
+Rask.Wasm.Browser.MediaDevices.GetUserMediaAsync(Rask.Wasm.Browser.MediaConstraints! constraints) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
+Rask.Wasm.Browser.MediaDevices.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.MediaDevices.MediaDevices(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.OrientationInfo
+Rask.Wasm.Browser.OrientationInfo.<Clone>$() -> Rask.Wasm.Browser.OrientationInfo!
+Rask.Wasm.Browser.OrientationInfo.Angle.get -> int
+Rask.Wasm.Browser.OrientationInfo.Angle.init -> void
+Rask.Wasm.Browser.OrientationInfo.Deconstruct(out Rask.Wasm.Browser.OrientationType Type, out int Angle) -> void
+Rask.Wasm.Browser.OrientationInfo.Equals(Rask.Wasm.Browser.OrientationInfo? other) -> bool
+Rask.Wasm.Browser.OrientationInfo.OrientationInfo(Rask.Wasm.Browser.OrientationType Type, int Angle) -> void
+Rask.Wasm.Browser.OrientationInfo.Type.get -> Rask.Wasm.Browser.OrientationType
+Rask.Wasm.Browser.OrientationInfo.Type.init -> void
+Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationLock.Any = 0 -> Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationLock.Landscape = 3 -> Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationLock.LandscapePrimary = 6 -> Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationLock.LandscapeSecondary = 7 -> Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationLock.Natural = 1 -> Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationLock.Portrait = 2 -> Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationLock.PortraitPrimary = 4 -> Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationLock.PortraitSecondary = 5 -> Rask.Wasm.Browser.OrientationLock
+Rask.Wasm.Browser.OrientationType
+Rask.Wasm.Browser.OrientationType.LandscapePrimary = 3 -> Rask.Wasm.Browser.OrientationType
+Rask.Wasm.Browser.OrientationType.LandscapeSecondary = 4 -> Rask.Wasm.Browser.OrientationType
+Rask.Wasm.Browser.OrientationType.PortraitPrimary = 1 -> Rask.Wasm.Browser.OrientationType
+Rask.Wasm.Browser.OrientationType.PortraitSecondary = 2 -> Rask.Wasm.Browser.OrientationType
+Rask.Wasm.Browser.OrientationType.Unknown = 0 -> Rask.Wasm.Browser.OrientationType
+Rask.Wasm.Browser.PictureInPicture
+Rask.Wasm.Browser.PictureInPicture.ExitAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.PictureInPicture.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.PictureInPicture.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.PictureInPicture.PictureInPicture(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.PictureInPicture.RequestAsync(Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.RaskWasmBrowserApis
+Rask.Wasm.Browser.ScreenOrientation
+Rask.Wasm.Browser.ScreenOrientation.GetAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.OrientationInfo!>
+Rask.Wasm.Browser.ScreenOrientation.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.ScreenOrientation.LockAsync(Rask.Wasm.Browser.OrientationLock orientation) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.ScreenOrientation.ScreenOrientation(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.ScreenOrientation.UnlockAsync() -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.Serial
+Rask.Wasm.Browser.Serial.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.Serial.RequestPortAsync(Rask.Wasm.Browser.SerialOptions! options, System.Func<byte[]!, System.Threading.Tasks.Task!>! onData, System.Func<System.Threading.Tasks.Task!>? onClosed = null) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.ISerialPort?>
+Rask.Wasm.Browser.Serial.Serial(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.SerialInterop
+Rask.Wasm.Browser.SerialOptions
+Rask.Wasm.Browser.SerialOptions.<Clone>$() -> Rask.Wasm.Browser.SerialOptions!
+Rask.Wasm.Browser.SerialOptions.BaudRate.get -> int
+Rask.Wasm.Browser.SerialOptions.BaudRate.init -> void
+Rask.Wasm.Browser.SerialOptions.BufferSize.get -> int
+Rask.Wasm.Browser.SerialOptions.BufferSize.init -> void
+Rask.Wasm.Browser.SerialOptions.DataBits.get -> int
+Rask.Wasm.Browser.SerialOptions.DataBits.init -> void
+Rask.Wasm.Browser.SerialOptions.Deconstruct(out int BaudRate, out int DataBits, out int StopBits, out string! Parity, out int BufferSize, out string! FlowControl, out System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.SerialPortFilter!>? Filters) -> void
+Rask.Wasm.Browser.SerialOptions.Equals(Rask.Wasm.Browser.SerialOptions? other) -> bool
+Rask.Wasm.Browser.SerialOptions.Filters.get -> System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.SerialPortFilter!>?
+Rask.Wasm.Browser.SerialOptions.Filters.init -> void
+Rask.Wasm.Browser.SerialOptions.FlowControl.get -> string!
+Rask.Wasm.Browser.SerialOptions.FlowControl.init -> void
+Rask.Wasm.Browser.SerialOptions.Parity.get -> string!
+Rask.Wasm.Browser.SerialOptions.Parity.init -> void
+Rask.Wasm.Browser.SerialOptions.SerialOptions(int BaudRate = 9600, int DataBits = 8, int StopBits = 1, string! Parity = "none", int BufferSize = 255, string! FlowControl = "none", System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.SerialPortFilter!>? Filters = null) -> void
+Rask.Wasm.Browser.SerialOptions.StopBits.get -> int
+Rask.Wasm.Browser.SerialOptions.StopBits.init -> void
+Rask.Wasm.Browser.SerialPortFilter
+Rask.Wasm.Browser.SerialPortFilter.<Clone>$() -> Rask.Wasm.Browser.SerialPortFilter!
+Rask.Wasm.Browser.SerialPortFilter.Deconstruct(out int? UsbVendorId, out int? UsbProductId) -> void
+Rask.Wasm.Browser.SerialPortFilter.Equals(Rask.Wasm.Browser.SerialPortFilter? other) -> bool
+Rask.Wasm.Browser.SerialPortFilter.SerialPortFilter(int? UsbVendorId = null, int? UsbProductId = null) -> void
+Rask.Wasm.Browser.SerialPortFilter.UsbProductId.get -> int?
+Rask.Wasm.Browser.SerialPortFilter.UsbProductId.init -> void
+Rask.Wasm.Browser.SerialPortFilter.UsbVendorId.get -> int?
+Rask.Wasm.Browser.SerialPortFilter.UsbVendorId.init -> void
+Rask.Wasm.Browser.Share
+Rask.Wasm.Browser.Share.CanShareAsync(Rask.Core.Browser.ShareData? data = null) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.Share.Share(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.Share.ShareAsync(Rask.Core.Browser.ShareData! data) -> System.Threading.Tasks.ValueTask
+Rask.Wasm.Browser.Usb
+Rask.Wasm.Browser.Usb.GetDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.IUsbDevice!>!>
+Rask.Wasm.Browser.Usb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Wasm.Browser.Usb.RequestDeviceAsync(Rask.Wasm.Browser.UsbDeviceFilter![]? filters = null, System.Func<System.Threading.Tasks.Task!>? onDisconnect = null) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IUsbDevice?>
+Rask.Wasm.Browser.Usb.Usb(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Wasm.Browser.UsbControlTransferParams
+Rask.Wasm.Browser.UsbControlTransferParams.<Clone>$() -> Rask.Wasm.Browser.UsbControlTransferParams!
+Rask.Wasm.Browser.UsbControlTransferParams.Deconstruct(out string! RequestType, out string! Recipient, out int Request, out int Value, out int Index) -> void
+Rask.Wasm.Browser.UsbControlTransferParams.Equals(Rask.Wasm.Browser.UsbControlTransferParams? other) -> bool
+Rask.Wasm.Browser.UsbControlTransferParams.Index.get -> int
+Rask.Wasm.Browser.UsbControlTransferParams.Index.init -> void
+Rask.Wasm.Browser.UsbControlTransferParams.Recipient.get -> string!
+Rask.Wasm.Browser.UsbControlTransferParams.Recipient.init -> void
+Rask.Wasm.Browser.UsbControlTransferParams.Request.get -> int
+Rask.Wasm.Browser.UsbControlTransferParams.Request.init -> void
+Rask.Wasm.Browser.UsbControlTransferParams.RequestType.get -> string!
+Rask.Wasm.Browser.UsbControlTransferParams.RequestType.init -> void
+Rask.Wasm.Browser.UsbControlTransferParams.UsbControlTransferParams(string! RequestType, string! Recipient, int Request, int Value, int Index) -> void
+Rask.Wasm.Browser.UsbControlTransferParams.Value.get -> int
+Rask.Wasm.Browser.UsbControlTransferParams.Value.init -> void
+Rask.Wasm.Browser.UsbDeviceFilter
+Rask.Wasm.Browser.UsbDeviceFilter.<Clone>$() -> Rask.Wasm.Browser.UsbDeviceFilter!
+Rask.Wasm.Browser.UsbDeviceFilter.ClassCode.get -> int?
+Rask.Wasm.Browser.UsbDeviceFilter.ClassCode.init -> void
+Rask.Wasm.Browser.UsbDeviceFilter.Deconstruct(out int? VendorId, out int? ProductId, out int? ClassCode, out int? SubclassCode, out int? ProtocolCode, out string? SerialNumber) -> void
+Rask.Wasm.Browser.UsbDeviceFilter.Equals(Rask.Wasm.Browser.UsbDeviceFilter? other) -> bool
+Rask.Wasm.Browser.UsbDeviceFilter.ProductId.get -> int?
+Rask.Wasm.Browser.UsbDeviceFilter.ProductId.init -> void
+Rask.Wasm.Browser.UsbDeviceFilter.ProtocolCode.get -> int?
+Rask.Wasm.Browser.UsbDeviceFilter.ProtocolCode.init -> void
+Rask.Wasm.Browser.UsbDeviceFilter.SerialNumber.get -> string?
+Rask.Wasm.Browser.UsbDeviceFilter.SerialNumber.init -> void
+Rask.Wasm.Browser.UsbDeviceFilter.SubclassCode.get -> int?
+Rask.Wasm.Browser.UsbDeviceFilter.SubclassCode.init -> void
+Rask.Wasm.Browser.UsbDeviceFilter.UsbDeviceFilter(int? VendorId = null, int? ProductId = null, int? ClassCode = null, int? SubclassCode = null, int? ProtocolCode = null, string? SerialNumber = null) -> void
+Rask.Wasm.Browser.UsbDeviceFilter.VendorId.get -> int?
+Rask.Wasm.Browser.UsbDeviceFilter.VendorId.init -> void
+Rask.Wasm.Browser.UsbDeviceInfo
+Rask.Wasm.Browser.UsbDeviceInfo.<Clone>$() -> Rask.Wasm.Browser.UsbDeviceInfo!
+Rask.Wasm.Browser.UsbDeviceInfo.Deconstruct(out int VendorId, out int ProductId, out string? ManufacturerName, out string? ProductName, out string? SerialNumber) -> void
+Rask.Wasm.Browser.UsbDeviceInfo.Equals(Rask.Wasm.Browser.UsbDeviceInfo? other) -> bool
+Rask.Wasm.Browser.UsbDeviceInfo.ManufacturerName.get -> string?
+Rask.Wasm.Browser.UsbDeviceInfo.ManufacturerName.init -> void
+Rask.Wasm.Browser.UsbDeviceInfo.ProductId.get -> int
+Rask.Wasm.Browser.UsbDeviceInfo.ProductId.init -> void
+Rask.Wasm.Browser.UsbDeviceInfo.ProductName.get -> string?
+Rask.Wasm.Browser.UsbDeviceInfo.ProductName.init -> void
+Rask.Wasm.Browser.UsbDeviceInfo.SerialNumber.get -> string?
+Rask.Wasm.Browser.UsbDeviceInfo.SerialNumber.init -> void
+Rask.Wasm.Browser.UsbDeviceInfo.UsbDeviceInfo(int VendorId, int ProductId, string? ManufacturerName, string? ProductName, string? SerialNumber) -> void
+Rask.Wasm.Browser.UsbDeviceInfo.VendorId.get -> int
+Rask.Wasm.Browser.UsbDeviceInfo.VendorId.init -> void
+Rask.Wasm.Browser.UsbInterop
+Rask.Wasm.Browser.UsbOutTransferResult
+Rask.Wasm.Browser.UsbOutTransferResult.<Clone>$() -> Rask.Wasm.Browser.UsbOutTransferResult!
+Rask.Wasm.Browser.UsbOutTransferResult.BytesWritten.get -> int
+Rask.Wasm.Browser.UsbOutTransferResult.BytesWritten.init -> void
+Rask.Wasm.Browser.UsbOutTransferResult.Deconstruct(out string! Status, out int BytesWritten) -> void
+Rask.Wasm.Browser.UsbOutTransferResult.Equals(Rask.Wasm.Browser.UsbOutTransferResult? other) -> bool
+Rask.Wasm.Browser.UsbOutTransferResult.Status.get -> string!
+Rask.Wasm.Browser.UsbOutTransferResult.Status.init -> void
+Rask.Wasm.Browser.UsbOutTransferResult.UsbOutTransferResult(string! Status, int BytesWritten) -> void
+Rask.Wasm.Browser.UsbTransferResult
+Rask.Wasm.Browser.UsbTransferResult.<Clone>$() -> Rask.Wasm.Browser.UsbTransferResult!
+Rask.Wasm.Browser.UsbTransferResult.Data.get -> byte[]!
+Rask.Wasm.Browser.UsbTransferResult.Data.init -> void
+Rask.Wasm.Browser.UsbTransferResult.Deconstruct(out string! Status, out byte[]! Data) -> void
+Rask.Wasm.Browser.UsbTransferResult.Equals(Rask.Wasm.Browser.UsbTransferResult? other) -> bool
+Rask.Wasm.Browser.UsbTransferResult.Status.get -> string!
+Rask.Wasm.Browser.UsbTransferResult.Status.init -> void
+Rask.Wasm.Browser.UsbTransferResult.UsbTransferResult(string! Status, byte[]! Data) -> void
+Rask.Wasm.RaskWasmBatteryRegistry
+Rask.Wasm.WasmHostBuilder
+Rask.Wasm.WasmHostBuilder.PaintAsync(string? url = null) -> System.Threading.Tasks.Task!
+Rask.Wasm.WasmHostBuilder.PrepareAsync<TApp>() -> System.Threading.Tasks.Task!
+Rask.Wasm.WasmHostBuilder.RunAsync<TApp>() -> System.Threading.Tasks.Task!
+Rask.Wasm.WasmHostBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Wasm.WasmHostBuilder.UseCulture(System.Action<Rask.Core.Globalization.RaskCultureOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!
+Rask.Wasm.WasmHostBuilder.UseManifest(Rask.Core.Browser.WebAppManifest! manifest) -> Rask.Wasm.WasmHostBuilder!
+Rask.Wasm.WasmHostBuilder.UsePwa(Rask.Core.Browser.WebAppManifest! manifest) -> Rask.Wasm.WasmHostBuilder!
+Rask.Wasm.WasmPrerender
+RaskBuilderSettersRask_Wasm
+const Rask.Wasm.WasmPrerender.OutputVariable = "RASK_PRERENDER_OUT" -> string!
+override Rask.Wasm.Browser.BackgroundSyncEvent.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.BackgroundSyncEvent.GetHashCode() -> int
+override Rask.Wasm.Browser.BackgroundSyncEvent.ToString() -> string!
+override Rask.Wasm.Browser.BluetoothDeviceInfo.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.BluetoothDeviceInfo.GetHashCode() -> int
+override Rask.Wasm.Browser.BluetoothDeviceInfo.ToString() -> string!
+override Rask.Wasm.Browser.BluetoothFilter.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.BluetoothFilter.GetHashCode() -> int
+override Rask.Wasm.Browser.BluetoothFilter.ToString() -> string!
+override Rask.Wasm.Browser.BluetoothRequestOptions.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.BluetoothRequestOptions.GetHashCode() -> int
+override Rask.Wasm.Browser.BluetoothRequestOptions.ToString() -> string!
+override Rask.Wasm.Browser.HidDeviceFilter.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.HidDeviceFilter.GetHashCode() -> int
+override Rask.Wasm.Browser.HidDeviceFilter.ToString() -> string!
+override Rask.Wasm.Browser.HidDeviceInfo.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.HidDeviceInfo.GetHashCode() -> int
+override Rask.Wasm.Browser.HidDeviceInfo.ToString() -> string!
+override Rask.Wasm.Browser.HidInputReport.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.HidInputReport.GetHashCode() -> int
+override Rask.Wasm.Browser.HidInputReport.ToString() -> string!
+override Rask.Wasm.Browser.IdleReading.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.IdleReading.GetHashCode() -> int
+override Rask.Wasm.Browser.IdleReading.ToString() -> string!
+override Rask.Wasm.Browser.MediaConstraints.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.MediaConstraints.GetHashCode() -> int
+override Rask.Wasm.Browser.MediaConstraints.ToString() -> string!
+override Rask.Wasm.Browser.MediaDeviceInfo.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.MediaDeviceInfo.GetHashCode() -> int
+override Rask.Wasm.Browser.MediaDeviceInfo.ToString() -> string!
+override Rask.Wasm.Browser.OrientationInfo.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.OrientationInfo.GetHashCode() -> int
+override Rask.Wasm.Browser.OrientationInfo.ToString() -> string!
+override Rask.Wasm.Browser.SerialOptions.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.SerialOptions.GetHashCode() -> int
+override Rask.Wasm.Browser.SerialOptions.ToString() -> string!
+override Rask.Wasm.Browser.SerialPortFilter.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.SerialPortFilter.GetHashCode() -> int
+override Rask.Wasm.Browser.SerialPortFilter.ToString() -> string!
+override Rask.Wasm.Browser.UsbControlTransferParams.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.UsbControlTransferParams.GetHashCode() -> int
+override Rask.Wasm.Browser.UsbControlTransferParams.ToString() -> string!
+override Rask.Wasm.Browser.UsbDeviceFilter.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.UsbDeviceFilter.GetHashCode() -> int
+override Rask.Wasm.Browser.UsbDeviceFilter.ToString() -> string!
+override Rask.Wasm.Browser.UsbDeviceInfo.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.UsbDeviceInfo.GetHashCode() -> int
+override Rask.Wasm.Browser.UsbDeviceInfo.ToString() -> string!
+override Rask.Wasm.Browser.UsbOutTransferResult.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.UsbOutTransferResult.GetHashCode() -> int
+override Rask.Wasm.Browser.UsbOutTransferResult.ToString() -> string!
+override Rask.Wasm.Browser.UsbTransferResult.Equals(object? obj) -> bool
+override Rask.Wasm.Browser.UsbTransferResult.GetHashCode() -> int
+override Rask.Wasm.Browser.UsbTransferResult.ToString() -> string!
+static Rask.Wasm.Browser.BackgroundSyncEvent.operator !=(Rask.Wasm.Browser.BackgroundSyncEvent? left, Rask.Wasm.Browser.BackgroundSyncEvent? right) -> bool
+static Rask.Wasm.Browser.BackgroundSyncEvent.operator ==(Rask.Wasm.Browser.BackgroundSyncEvent? left, Rask.Wasm.Browser.BackgroundSyncEvent? right) -> bool
+static Rask.Wasm.Browser.BackgroundSyncInterop.Fired(bool periodic, string! tag) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.BluetoothDeviceInfo.operator !=(Rask.Wasm.Browser.BluetoothDeviceInfo? left, Rask.Wasm.Browser.BluetoothDeviceInfo? right) -> bool
+static Rask.Wasm.Browser.BluetoothDeviceInfo.operator ==(Rask.Wasm.Browser.BluetoothDeviceInfo? left, Rask.Wasm.Browser.BluetoothDeviceInfo? right) -> bool
+static Rask.Wasm.Browser.BluetoothFilter.operator !=(Rask.Wasm.Browser.BluetoothFilter? left, Rask.Wasm.Browser.BluetoothFilter? right) -> bool
+static Rask.Wasm.Browser.BluetoothFilter.operator ==(Rask.Wasm.Browser.BluetoothFilter? left, Rask.Wasm.Browser.BluetoothFilter? right) -> bool
+static Rask.Wasm.Browser.BluetoothInterop.Disconnected(int deviceId) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.BluetoothInterop.Value(int charId, string! base64) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.BluetoothRequestOptions.operator !=(Rask.Wasm.Browser.BluetoothRequestOptions? left, Rask.Wasm.Browser.BluetoothRequestOptions? right) -> bool
+static Rask.Wasm.Browser.BluetoothRequestOptions.operator ==(Rask.Wasm.Browser.BluetoothRequestOptions? left, Rask.Wasm.Browser.BluetoothRequestOptions? right) -> bool
+static Rask.Wasm.Browser.HidDeviceFilter.operator !=(Rask.Wasm.Browser.HidDeviceFilter? left, Rask.Wasm.Browser.HidDeviceFilter? right) -> bool
+static Rask.Wasm.Browser.HidDeviceFilter.operator ==(Rask.Wasm.Browser.HidDeviceFilter? left, Rask.Wasm.Browser.HidDeviceFilter? right) -> bool
+static Rask.Wasm.Browser.HidDeviceInfo.operator !=(Rask.Wasm.Browser.HidDeviceInfo? left, Rask.Wasm.Browser.HidDeviceInfo? right) -> bool
+static Rask.Wasm.Browser.HidDeviceInfo.operator ==(Rask.Wasm.Browser.HidDeviceInfo? left, Rask.Wasm.Browser.HidDeviceInfo? right) -> bool
+static Rask.Wasm.Browser.HidInputReport.operator !=(Rask.Wasm.Browser.HidInputReport? left, Rask.Wasm.Browser.HidInputReport? right) -> bool
+static Rask.Wasm.Browser.HidInputReport.operator ==(Rask.Wasm.Browser.HidInputReport? left, Rask.Wasm.Browser.HidInputReport? right) -> bool
+static Rask.Wasm.Browser.HidInterop.Disconnected(int deviceId) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.HidInterop.Input(int deviceId, int reportId, string! base64) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.IdleDetectorInterop.Changed(int id, Rask.Wasm.Browser.IdleReading! reading) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.IdleReading.operator !=(Rask.Wasm.Browser.IdleReading? left, Rask.Wasm.Browser.IdleReading? right) -> bool
+static Rask.Wasm.Browser.IdleReading.operator ==(Rask.Wasm.Browser.IdleReading? left, Rask.Wasm.Browser.IdleReading? right) -> bool
+static Rask.Wasm.Browser.MediaConstraints.operator !=(Rask.Wasm.Browser.MediaConstraints? left, Rask.Wasm.Browser.MediaConstraints? right) -> bool
+static Rask.Wasm.Browser.MediaConstraints.operator ==(Rask.Wasm.Browser.MediaConstraints? left, Rask.Wasm.Browser.MediaConstraints? right) -> bool
+static Rask.Wasm.Browser.MediaDeviceInfo.operator !=(Rask.Wasm.Browser.MediaDeviceInfo? left, Rask.Wasm.Browser.MediaDeviceInfo? right) -> bool
+static Rask.Wasm.Browser.MediaDeviceInfo.operator ==(Rask.Wasm.Browser.MediaDeviceInfo? left, Rask.Wasm.Browser.MediaDeviceInfo? right) -> bool
+static Rask.Wasm.Browser.OrientationInfo.operator !=(Rask.Wasm.Browser.OrientationInfo? left, Rask.Wasm.Browser.OrientationInfo? right) -> bool
+static Rask.Wasm.Browser.OrientationInfo.operator ==(Rask.Wasm.Browser.OrientationInfo? left, Rask.Wasm.Browser.OrientationInfo? right) -> bool
+static Rask.Wasm.Browser.RaskWasmBrowserApis.AddWasmBrowserApis(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Wasm.Browser.SerialInterop.Closed(int id) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.SerialInterop.Data(int id, string! base64) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.SerialOptions.operator !=(Rask.Wasm.Browser.SerialOptions? left, Rask.Wasm.Browser.SerialOptions? right) -> bool
+static Rask.Wasm.Browser.SerialOptions.operator ==(Rask.Wasm.Browser.SerialOptions? left, Rask.Wasm.Browser.SerialOptions? right) -> bool
+static Rask.Wasm.Browser.SerialPortFilter.operator !=(Rask.Wasm.Browser.SerialPortFilter? left, Rask.Wasm.Browser.SerialPortFilter? right) -> bool
+static Rask.Wasm.Browser.SerialPortFilter.operator ==(Rask.Wasm.Browser.SerialPortFilter? left, Rask.Wasm.Browser.SerialPortFilter? right) -> bool
+static Rask.Wasm.Browser.UsbControlTransferParams.operator !=(Rask.Wasm.Browser.UsbControlTransferParams? left, Rask.Wasm.Browser.UsbControlTransferParams? right) -> bool
+static Rask.Wasm.Browser.UsbControlTransferParams.operator ==(Rask.Wasm.Browser.UsbControlTransferParams? left, Rask.Wasm.Browser.UsbControlTransferParams? right) -> bool
+static Rask.Wasm.Browser.UsbDeviceFilter.operator !=(Rask.Wasm.Browser.UsbDeviceFilter? left, Rask.Wasm.Browser.UsbDeviceFilter? right) -> bool
+static Rask.Wasm.Browser.UsbDeviceFilter.operator ==(Rask.Wasm.Browser.UsbDeviceFilter? left, Rask.Wasm.Browser.UsbDeviceFilter? right) -> bool
+static Rask.Wasm.Browser.UsbDeviceInfo.operator !=(Rask.Wasm.Browser.UsbDeviceInfo? left, Rask.Wasm.Browser.UsbDeviceInfo? right) -> bool
+static Rask.Wasm.Browser.UsbDeviceInfo.operator ==(Rask.Wasm.Browser.UsbDeviceInfo? left, Rask.Wasm.Browser.UsbDeviceInfo? right) -> bool
+static Rask.Wasm.Browser.UsbInterop.Disconnected(int id) -> System.Threading.Tasks.Task!
+static Rask.Wasm.Browser.UsbOutTransferResult.operator !=(Rask.Wasm.Browser.UsbOutTransferResult? left, Rask.Wasm.Browser.UsbOutTransferResult? right) -> bool
+static Rask.Wasm.Browser.UsbOutTransferResult.operator ==(Rask.Wasm.Browser.UsbOutTransferResult? left, Rask.Wasm.Browser.UsbOutTransferResult? right) -> bool
+static Rask.Wasm.Browser.UsbTransferResult.operator !=(Rask.Wasm.Browser.UsbTransferResult? left, Rask.Wasm.Browser.UsbTransferResult? right) -> bool
+static Rask.Wasm.Browser.UsbTransferResult.operator ==(Rask.Wasm.Browser.UsbTransferResult? left, Rask.Wasm.Browser.UsbTransferResult? right) -> bool
+static Rask.Wasm.RaskWasmBatteryRegistry.Use(System.Action<Rask.Wasm.WasmHostBuilder!, Microsoft.Extensions.DependencyInjection.IServiceCollection!>! wire) -> void
+static Rask.Wasm.WasmHostBuilder.BaseAddress.get -> string!
+static Rask.Wasm.WasmHostBuilder.CreateDefault() -> Rask.Wasm.WasmHostBuilder!
+static Rask.Wasm.WasmHostBuilder.CreateDefault(System.Action<Rask.Core.Live.RaskLiveOptions!>? configureLive) -> Rask.Wasm.WasmHostBuilder!

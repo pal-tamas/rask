@@ -8,6 +8,41 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The public API is governed, and the build enforces it.** Rask's pitch is that you can read a Rask
+  program aloud, and nothing was holding the names to it: the same operation was `DispatchAsync` in
+  `Rask.Cqrs` and `MutateAsync`/`FetchAsync`/`Query` in `Rask.Query`, `ICache` spelled "remember this"
+  as `GetOrCreateAsync`, and two adjacent `Action<T>?` parameters on `AddRaskSqlite` could be swapped
+  without the compiler noticing. There was no written rule to point at in review and no gate that could
+  see a public member appear, change or vanish.
+
+  [`docs/api-style.md`](docs/api-style.md) is now that rule — ten of them, each with the call site in
+  this repo that motivated it. `Microsoft.CodeAnalysis.PublicApiAnalyzers` is the gate: every project
+  under `src/` that ships (plus `Rask.Core` and `Rask.Html`, which are `IsPackable=false` only because
+  they are bundled into the hosts) records its surface in `PublicAPI/<tfm>/PublicAPI.Unshipped.txt`.
+  RS0016 and RS0017 are warnings, the repo builds warnings-as-errors, so an unrecorded public change
+  fails the build and lands as a text diff a reviewer reads as English. `docs/code-analysis.md` had
+  recommended this analyzer since it was written; this adopts it.
+
+  Three things the baseline decided, none of them free choices. The files are **per target framework**
+  because five projects build for `net10.0` and `net10.0-browser`, and one flat file would report every
+  browser-only member as missing on the desktop build — every project uses that layout, including the
+  ones with a single framework today, so gaining a second one yields an empty baseline to fill rather
+  than a gate that contradicts itself. **Generated API is recorded** — 7,208 of the baseline's 20,651
+  members: Rask hand-writes almost none of what a user types, so skipping it would skip
+  `Div.Class("card")` and `HomePage.Url()`, and it cannot be skipped cleanly anyway, since
+  path-scoped `.editorconfig` severity does not reach generator-produced trees. And **RS0026/RS0027
+  are off**: they protect callers of a frozen API from a source-breaking recompile, while Rask is
+  pre-1.0 and breaks deliberately — and since every awaitable ends in a defaulted `CancellationToken`
+  by rule, any interface with overloads trips RS0026 by construction. Revisit both at 1.0.
+
+  The gate is proved by breaking it. `scripts/tests/public-api-gate.test.sh` requires an unrecorded
+  member, a baseline entry with nothing behind it, and a deleted baseline each to fail the build,
+  against a control that requires the clean tree to be green — because a green build is equally
+  consistent with "the surface matches" and "the analyzer never ran", and this repo has shipped
+  gates that passed by not running. The deleted-baseline case is why `RaskVerifyPublicApiBaseline`
+  exists: the `Exists()` conditions that let a new project be added before its surface is written
+  down are also how coverage would silently lapse.
+
 - **The publish-time prerender pass gets the batteries the boot path applies.** Prerendering returns
   from `WasmHostBuilder.RunAsync` before `BootAsync`, and the browser batteries are wired inside
   `BootAsync` — so a WASM app referencing the `Rask` package prerendered against a container that never

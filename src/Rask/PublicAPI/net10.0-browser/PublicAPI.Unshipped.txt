@@ -1,0 +1,15 @@
+#nullable enable
+Rask.Battery
+Rask.Battery.Battery() -> void
+Rask.Battery.Enabled.get -> bool
+Rask.Battery.Off() -> void
+Rask.Battery.On() -> void
+Rask.Battery<TOptions>
+Rask.Battery<TOptions>.Battery() -> void
+Rask.Battery<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Battery<TOptions!>!
+Rask.RaskWasmOptions
+Rask.RaskWasmOptions.Cqrs.get -> Rask.Battery!
+Rask.RaskWasmOptions.Query.get -> Rask.Battery!
+Rask.RaskWasmOptions.RaskWasmOptions() -> void
+Rask.WasmHostBuilderExtensions
+static Rask.WasmHostBuilderExtensions.Configure(this Rask.Wasm.WasmHostBuilder! host, System.Action<Rask.RaskWasmOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!
