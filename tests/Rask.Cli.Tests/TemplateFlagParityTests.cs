@@ -74,28 +74,12 @@ public sealed class TemplateFlagParityTests
     /// The argument that flips <paramref name="flag"/> away from what this template does by default.
     /// </summary>
     /// <remarks>
-    /// Which direction that is depends on the template, which is the whole point of
-    /// <see cref="TemplateInfo.OptInFlags"/>: auth is off everywhere, localization is standard on
-    /// <c>server</c> and opt-in on the browser templates, and everything else is standard wherever it is
-    /// advertised. Localization's opt-in is spelled <c>--culture</c> rather than <c>--localization</c>,
-    /// because naming a language is the thing you actually want to say.
+    /// Auth is off everywhere, so it flips on; everything else a template advertises is standard, so it
+    /// flips off. There is no longer an opt-in direction to disambiguate — localization was the only one,
+    /// and it stopped being a flag with #854, so it is not in this theory's data at all.
     /// </remarks>
-    private static string[] Flip(string templateKey, string flag)
-    {
-        _ = TemplateCatalog.TryGet(templateKey, out var template);
-
-        if (flag == "auth")
-        {
-            return ["--auth"];
-        }
-
-        if (!template.OptInFlags.Contains(flag))
-        {
-            return ["--no-" + flag];
-        }
-
-        return flag == "localization" ? ["--culture", "hu"] : ["--" + flag];
-    }
+    private static string[] Flip(string templateKey, string flag) =>
+        flag == "auth" ? ["--auth"] : ["--no-" + flag];
 
     private static async Task<(int Exit, IReadOnlyDictionary<string, string> Files)> ScaffoldAsync(
         string templateKey, IReadOnlyList<string> extra)

@@ -1,0 +1,11 @@
+#nullable enable
+Rask.Wasm.Hosting.RaskWasmEndpointExtensions
+Rask.Wasm.Hosting.RaskWasmServiceCollectionExtensions
+RaskBuilderSettersRask_Wasm_Hosting
+static Rask.Wasm.Hosting.RaskWasmEndpointExtensions.UseRask(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string? bundlePath = null, string! pathBase = "", bool serveIndexFallback = true) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Wasm.Hosting.RaskWasmEndpointExtensions.UseRask<TApp>(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string? bundlePath = null, string! pathBase = "") -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Wasm.Hosting.RaskWasmEndpointExtensions.UseRaskWasmAssets(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string? bundlePath = null, string! pathBase = "") -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Wasm.Hosting.RaskWasmEndpointExtensions.UseRaskWasmHost(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string? bundlePath = null, string! pathBase = "") -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Wasm.Hosting.RaskWasmEndpointExtensions.UseRaskWasmHost<TApp>(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string? bundlePath = null, string! pathBase = "") -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Wasm.Hosting.RaskWasmServiceCollectionExtensions.AddRask(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Wasm.Hosting.RaskWasmServiceCollectionExtensions.AddRaskWasmHost(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

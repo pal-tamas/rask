@@ -86,6 +86,11 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   `pre-commit` hook that runs the local **format + unit** gate, and the `pre-push` hook that runs the local
   **E2E** gate (see below). Hooks are advisory — bypass any with the git no-verify flag,
   `RASK_SKIP_UNIT=1`, or `RASK_SKIP_E2E=1`.
+
+  `core.hooksPath` is relative, and git resolves it against the **top level of the worktree you are
+  pushing from** — not the main checkout. Most work here happens in `git worktree`s, so this matters:
+  a change to a hook is exercised by its own push, and the copy that runs is the one on the branch
+  under test. If a branch contains no `.githooks/` at all, no hook runs and nothing reports it.
 - **Tests run locally, not in CI.** The unit/integration suite and both E2E suites were moved out of the
   CI pipeline. `.github/workflows/ci.yml` has exactly one job — the deterministic benchmark byte-gates —
   alongside commitlint and GitHub's default CodeQL setup. No workflow in this repo runs `dotnet test`, so

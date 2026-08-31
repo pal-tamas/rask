@@ -1,0 +1,25 @@
+#nullable enable
+Rask.SQLite.Browser.BrowserSqlite
+Rask.SQLite.Browser.BrowserSqliteOptions
+Rask.SQLite.Browser.BrowserSqliteOptions.BrowserSqliteOptions() -> void
+Rask.SQLite.Browser.BrowserSqliteOptions.Name.get -> string!
+Rask.SQLite.Browser.BrowserSqliteOptions.Name.set -> void
+Rask.SQLite.Browser.BrowserSqliteOptions.RequestPersistentStorage.get -> bool
+Rask.SQLite.Browser.BrowserSqliteOptions.RequestPersistentStorage.set -> void
+Rask.SQLite.Browser.BrowserSqliteOptions.Retain.get -> int
+Rask.SQLite.Browser.BrowserSqliteOptions.Retain.set -> void
+Rask.SQLite.Browser.BrowserSqliteOptions.SnapshotInterval.get -> System.TimeSpan
+Rask.SQLite.Browser.BrowserSqliteOptions.SnapshotInterval.set -> void
+Rask.SQLite.Browser.BrowserSqliteOptions.TakeoverPollInterval.get -> System.TimeSpan
+Rask.SQLite.Browser.BrowserSqliteOptions.TakeoverPollInterval.set -> void
+Rask.SQLite.Browser.BrowserSqliteOwnership
+Rask.SQLite.Browser.BrowserSqliteOwnership.Available.get -> System.Threading.Tasks.Task!
+Rask.SQLite.Browser.BrowserSqliteOwnership.BrowserSqliteOwnership() -> void
+Rask.SQLite.Browser.BrowserSqliteOwnership.IsOwner.get -> bool?
+Rask.SQLite.Browser.BrowserSqliteOwnership.Resolved.get -> System.Threading.Tasks.Task<bool>!
+Rask.SQLite.Browser.BrowserSqliteServiceCollectionExtensions
+RaskBuilderSettersRask_SQLite_Browser
+const Rask.SQLite.Browser.BrowserSqlite.DirectoryPath = "/rask" -> string!
+static Rask.SQLite.Browser.BrowserSqlite.ConnectionString(string! name) -> string!
+static Rask.SQLite.Browser.BrowserSqlite.DatabasePath(string! name) -> string!
+static Rask.SQLite.Browser.BrowserSqliteServiceCollectionExtensions.AddRaskBrowserSqlite(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name = "app", System.Action<Rask.SQLite.Browser.BrowserSqliteOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

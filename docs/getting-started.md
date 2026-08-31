@@ -62,9 +62,11 @@ They emit the same starter pages, so the rest of this guide applies whichever yo
 scheduled backups, a durable log store, the [operator dashboard](dashboard.md), an installable
 [PWA](pwa.md) with Web Push, a Dockerfile for [`rask deploy`](cli.md), and the localization machinery —
 wiring, not sample pages. `wasm` takes the PWA and the Dockerfile; the rest need a host to put a
-database in. Localization works on the browser templates too, but you ask for it there — `rask new
-MyApp --template wasm --culture en --culture hu` — because it ships ICU, roughly a megabyte of extra
-download that an app formatting nothing culture-sensitive should not pay by default.
+database in. Languages are configured in `Program.cs` rather than on the command line — a server app
+starts with English registered there, and adding another is a line in the same block. A browser-WASM
+app registers none, because a language there means shipping ICU: roughly a megabyte of extra download
+that an app formatting nothing culture-sensitive should not pay by default. See
+[localization](localization.md).
 
 Two things are left to you: `--auth` scaffolds a working login flow (see
 [authentication](authentication.md)), and `--bootstrap` / `--tailwind` change how the pages are styled.

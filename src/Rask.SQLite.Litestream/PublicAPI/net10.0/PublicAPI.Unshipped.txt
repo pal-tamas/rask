@@ -1,0 +1,106 @@
+#nullable enable
+Rask.SQLite.Litestream.ILitestreamExecutor
+Rask.SQLite.Litestream.ILitestreamExecutor.RunAsync(System.Collections.Generic.IReadOnlyList<string!>! arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.SQLite.Litestream.ISqliteBackupVerifier
+Rask.SQLite.Litestream.ISqliteBackupVerifier.VerifyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.SQLite.Litestream.LitestreamVerificationStatus!>!
+Rask.SQLite.Litestream.LitestreamCommand
+Rask.SQLite.Litestream.LitestreamOptions
+Rask.SQLite.Litestream.LitestreamOptions.ConfigPath.get -> string?
+Rask.SQLite.Litestream.LitestreamOptions.ConfigPath.set -> void
+Rask.SQLite.Litestream.LitestreamOptions.DatabasePath.get -> string?
+Rask.SQLite.Litestream.LitestreamOptions.DatabasePath.set -> void
+Rask.SQLite.Litestream.LitestreamOptions.ExecutablePath.get -> string!
+Rask.SQLite.Litestream.LitestreamOptions.ExecutablePath.set -> void
+Rask.SQLite.Litestream.LitestreamOptions.LitestreamOptions() -> void
+Rask.SQLite.Litestream.LitestreamOptions.ReplicaUrl.get -> string?
+Rask.SQLite.Litestream.LitestreamOptions.ReplicaUrl.set -> void
+Rask.SQLite.Litestream.LitestreamOptions.RestartDelay.get -> System.TimeSpan
+Rask.SQLite.Litestream.LitestreamOptions.RestartDelay.set -> void
+Rask.SQLite.Litestream.LitestreamOptions.RestoreOnStartup.get -> bool
+Rask.SQLite.Litestream.LitestreamOptions.RestoreOnStartup.set -> void
+Rask.SQLite.Litestream.LitestreamOptions.ShutdownGracePeriod.get -> System.TimeSpan
+Rask.SQLite.Litestream.LitestreamOptions.ShutdownGracePeriod.set -> void
+Rask.SQLite.Litestream.LitestreamOptions.Verification.get -> Rask.SQLite.Litestream.LitestreamVerificationOptions!
+Rask.SQLite.Litestream.LitestreamOptions.Verification.set -> void
+Rask.SQLite.Litestream.LitestreamReplicationStatus
+Rask.SQLite.Litestream.LitestreamReplicationStatus.<Clone>$() -> Rask.SQLite.Litestream.LitestreamReplicationStatus!
+Rask.SQLite.Litestream.LitestreamReplicationStatus.Deconstruct(out bool IsReplicating, out System.DateTimeOffset? LastStartedAt, out System.DateTimeOffset? LastExitedAt, out int RestartCount, out int? LastExitCode, out string? LastError) -> void
+Rask.SQLite.Litestream.LitestreamReplicationStatus.Equals(Rask.SQLite.Litestream.LitestreamReplicationStatus? other) -> bool
+Rask.SQLite.Litestream.LitestreamReplicationStatus.IsReplicating.get -> bool
+Rask.SQLite.Litestream.LitestreamReplicationStatus.IsReplicating.init -> void
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LastError.get -> string?
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LastError.init -> void
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LastExitCode.get -> int?
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LastExitCode.init -> void
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LastExitedAt.get -> System.DateTimeOffset?
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LastExitedAt.init -> void
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LastStartedAt.get -> System.DateTimeOffset?
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LastStartedAt.init -> void
+Rask.SQLite.Litestream.LitestreamReplicationStatus.LitestreamReplicationStatus(bool IsReplicating, System.DateTimeOffset? LastStartedAt, System.DateTimeOffset? LastExitedAt, int RestartCount, int? LastExitCode, string? LastError) -> void
+Rask.SQLite.Litestream.LitestreamReplicationStatus.RestartCount.get -> int
+Rask.SQLite.Litestream.LitestreamReplicationStatus.RestartCount.init -> void
+Rask.SQLite.Litestream.LitestreamRestorer
+Rask.SQLite.Litestream.LitestreamRestorer.LitestreamRestorer(Rask.SQLite.Litestream.LitestreamOptions! options, Rask.SQLite.Litestream.ILitestreamExecutor! executor, Microsoft.Extensions.Logging.ILogger<Rask.SQLite.Litestream.LitestreamRestorer!>! logger) -> void
+Rask.SQLite.Litestream.LitestreamRestorer.RestoreAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.SQLite.Litestream.LitestreamServiceCollectionExtensions
+Rask.SQLite.Litestream.LitestreamStartupExtensions
+Rask.SQLite.Litestream.LitestreamStatus
+Rask.SQLite.Litestream.LitestreamStatus.Current.get -> Rask.SQLite.Litestream.LitestreamReplicationStatus!
+Rask.SQLite.Litestream.LitestreamStatus.LitestreamStatus() -> void
+Rask.SQLite.Litestream.LitestreamStatus.Verification.get -> Rask.SQLite.Litestream.LitestreamVerificationStatus?
+Rask.SQLite.Litestream.LitestreamVerificationOptions
+Rask.SQLite.Litestream.LitestreamVerificationOptions.BusyRetry.get -> Rask.SQLite.SqliteBusyRetryOptions!
+Rask.SQLite.Litestream.LitestreamVerificationOptions.BusyRetry.set -> void
+Rask.SQLite.Litestream.LitestreamVerificationOptions.Enabled.get -> bool
+Rask.SQLite.Litestream.LitestreamVerificationOptions.Enabled.set -> void
+Rask.SQLite.Litestream.LitestreamVerificationOptions.Interval.get -> System.TimeSpan
+Rask.SQLite.Litestream.LitestreamVerificationOptions.Interval.set -> void
+Rask.SQLite.Litestream.LitestreamVerificationOptions.LitestreamVerificationOptions() -> void
+Rask.SQLite.Litestream.LitestreamVerificationOptions.PollInterval.get -> System.TimeSpan
+Rask.SQLite.Litestream.LitestreamVerificationOptions.PollInterval.set -> void
+Rask.SQLite.Litestream.LitestreamVerificationOptions.ReplicationGrace.get -> System.TimeSpan
+Rask.SQLite.Litestream.LitestreamVerificationOptions.ReplicationGrace.set -> void
+Rask.SQLite.Litestream.LitestreamVerificationOptions.TempDirectory.get -> string?
+Rask.SQLite.Litestream.LitestreamVerificationOptions.TempDirectory.set -> void
+Rask.SQLite.Litestream.LitestreamVerificationOptions.Timeout.get -> System.TimeSpan
+Rask.SQLite.Litestream.LitestreamVerificationOptions.Timeout.set -> void
+Rask.SQLite.Litestream.LitestreamVerificationOptions.VerifyOnStartup.get -> bool
+Rask.SQLite.Litestream.LitestreamVerificationOptions.VerifyOnStartup.set -> void
+Rask.SQLite.Litestream.LitestreamVerificationOutcome
+Rask.SQLite.Litestream.LitestreamVerificationOutcome.Failed = 2 -> Rask.SQLite.Litestream.LitestreamVerificationOutcome
+Rask.SQLite.Litestream.LitestreamVerificationOutcome.Inconclusive = 1 -> Rask.SQLite.Litestream.LitestreamVerificationOutcome
+Rask.SQLite.Litestream.LitestreamVerificationOutcome.Skipped = 3 -> Rask.SQLite.Litestream.LitestreamVerificationOutcome
+Rask.SQLite.Litestream.LitestreamVerificationOutcome.Verified = 0 -> Rask.SQLite.Litestream.LitestreamVerificationOutcome
+Rask.SQLite.Litestream.LitestreamVerificationStatus
+Rask.SQLite.Litestream.LitestreamVerificationStatus.<Clone>$() -> Rask.SQLite.Litestream.LitestreamVerificationStatus!
+Rask.SQLite.Litestream.LitestreamVerificationStatus.Deconstruct(out Rask.SQLite.Litestream.LitestreamVerificationOutcome Outcome, out System.DateTimeOffset LastAttemptedAt, out System.DateTimeOffset? LastVerifiedAt, out System.TimeSpan? ReplicationLag, out string? LastError) -> void
+Rask.SQLite.Litestream.LitestreamVerificationStatus.Equals(Rask.SQLite.Litestream.LitestreamVerificationStatus? other) -> bool
+Rask.SQLite.Litestream.LitestreamVerificationStatus.LastAttemptedAt.get -> System.DateTimeOffset
+Rask.SQLite.Litestream.LitestreamVerificationStatus.LastAttemptedAt.init -> void
+Rask.SQLite.Litestream.LitestreamVerificationStatus.LastError.get -> string?
+Rask.SQLite.Litestream.LitestreamVerificationStatus.LastError.init -> void
+Rask.SQLite.Litestream.LitestreamVerificationStatus.LastVerifiedAt.get -> System.DateTimeOffset?
+Rask.SQLite.Litestream.LitestreamVerificationStatus.LastVerifiedAt.init -> void
+Rask.SQLite.Litestream.LitestreamVerificationStatus.LitestreamVerificationStatus(Rask.SQLite.Litestream.LitestreamVerificationOutcome Outcome, System.DateTimeOffset LastAttemptedAt, System.DateTimeOffset? LastVerifiedAt, System.TimeSpan? ReplicationLag, string? LastError) -> void
+Rask.SQLite.Litestream.LitestreamVerificationStatus.Outcome.get -> Rask.SQLite.Litestream.LitestreamVerificationOutcome
+Rask.SQLite.Litestream.LitestreamVerificationStatus.Outcome.init -> void
+Rask.SQLite.Litestream.LitestreamVerificationStatus.ReplicationLag.get -> System.TimeSpan?
+Rask.SQLite.Litestream.LitestreamVerificationStatus.ReplicationLag.init -> void
+Rask.SQLite.Litestream.LitestreamVerifier
+Rask.SQLite.Litestream.LitestreamVerifier.LitestreamVerifier(Rask.SQLite.Litestream.LitestreamOptions! options, Rask.SQLite.Litestream.ILitestreamExecutor! executor, Rask.SQLite.Litestream.LitestreamStatus! status, System.TimeProvider! timeProvider, Microsoft.Extensions.Logging.ILogger<Rask.SQLite.Litestream.LitestreamVerifier!>! logger) -> void
+Rask.SQLite.Litestream.LitestreamVerifier.VerifyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.SQLite.Litestream.LitestreamVerificationStatus!>!
+override Rask.SQLite.Litestream.LitestreamReplicationStatus.Equals(object? obj) -> bool
+override Rask.SQLite.Litestream.LitestreamReplicationStatus.GetHashCode() -> int
+override Rask.SQLite.Litestream.LitestreamReplicationStatus.ToString() -> string!
+override Rask.SQLite.Litestream.LitestreamVerificationStatus.Equals(object? obj) -> bool
+override Rask.SQLite.Litestream.LitestreamVerificationStatus.GetHashCode() -> int
+override Rask.SQLite.Litestream.LitestreamVerificationStatus.ToString() -> string!
+static Rask.SQLite.Litestream.LitestreamCommand.Replicate(Rask.SQLite.Litestream.LitestreamOptions! options) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.SQLite.Litestream.LitestreamCommand.Restore(Rask.SQLite.Litestream.LitestreamOptions! options) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.SQLite.Litestream.LitestreamCommand.Restore(Rask.SQLite.Litestream.LitestreamOptions! options, string? outputPath, bool ifReplicaExists) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.SQLite.Litestream.LitestreamReplicationStatus.operator !=(Rask.SQLite.Litestream.LitestreamReplicationStatus? left, Rask.SQLite.Litestream.LitestreamReplicationStatus? right) -> bool
+static Rask.SQLite.Litestream.LitestreamReplicationStatus.operator ==(Rask.SQLite.Litestream.LitestreamReplicationStatus? left, Rask.SQLite.Litestream.LitestreamReplicationStatus? right) -> bool
+static Rask.SQLite.Litestream.LitestreamServiceCollectionExtensions.AddRaskSqliteLitestream(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.SQLite.Litestream.LitestreamOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.SQLite.Litestream.LitestreamStartupExtensions.RestoreSqliteFromLitestreamAsync(this System.IServiceProvider! services, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.SQLite.Litestream.LitestreamVerificationStatus.operator !=(Rask.SQLite.Litestream.LitestreamVerificationStatus? left, Rask.SQLite.Litestream.LitestreamVerificationStatus? right) -> bool
+static Rask.SQLite.Litestream.LitestreamVerificationStatus.operator ==(Rask.SQLite.Litestream.LitestreamVerificationStatus? left, Rask.SQLite.Litestream.LitestreamVerificationStatus? right) -> bool

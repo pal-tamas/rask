@@ -1,0 +1,103 @@
+#nullable enable
+Rask.Jobs.IJob
+Rask.Jobs.IJobQueue
+Rask.Jobs.IJobQueue.EnqueueAsync(Rask.Jobs.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Jobs.IJobQueue.ScheduleAsync(Rask.Jobs.IJob! job, System.DateTimeOffset runAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Jobs.IJobQueue.ScheduleAsync(Rask.Jobs.IJob! job, System.TimeSpan delay, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Jobs.Job
+Rask.Jobs.Job.Attempts.get -> int
+Rask.Jobs.Job.Attempts.set -> void
+Rask.Jobs.Job.ClaimToken.get -> System.Guid?
+Rask.Jobs.Job.ClaimToken.set -> void
+Rask.Jobs.Job.ClaimedUntil.get -> System.DateTime?
+Rask.Jobs.Job.ClaimedUntil.set -> void
+Rask.Jobs.Job.CreatedAt.get -> System.DateTime
+Rask.Jobs.Job.CreatedAt.set -> void
+Rask.Jobs.Job.Error.get -> string?
+Rask.Jobs.Job.Error.set -> void
+Rask.Jobs.Job.Id.get -> long
+Rask.Jobs.Job.Id.set -> void
+Rask.Jobs.Job.Job() -> void
+Rask.Jobs.Job.Payload.get -> string!
+Rask.Jobs.Job.Payload.set -> void
+Rask.Jobs.Job.ProcessedAt.get -> System.DateTime?
+Rask.Jobs.Job.ProcessedAt.set -> void
+Rask.Jobs.Job.RunAt.get -> System.DateTime
+Rask.Jobs.Job.RunAt.set -> void
+Rask.Jobs.Job.Type.get -> string!
+Rask.Jobs.Job.Type.set -> void
+Rask.Jobs.JobConfiguration
+Rask.Jobs.JobConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Jobs.Job!>! entity) -> void
+Rask.Jobs.JobConfiguration.JobConfiguration() -> void
+Rask.Jobs.JobMetrics
+Rask.Jobs.JobMetrics.DeadLettered(string! jobType) -> void
+Rask.Jobs.JobMetrics.Dispose() -> void
+Rask.Jobs.JobMetrics.Failed(string! jobType) -> void
+Rask.Jobs.JobMetrics.Interrupted(string! jobType) -> void
+Rask.Jobs.JobMetrics.JobMetrics(System.Diagnostics.Metrics.IMeterFactory? meterFactory = null) -> void
+Rask.Jobs.JobMetrics.ObserveQueueDepth(int pending, int deadLetters) -> void
+Rask.Jobs.JobMetrics.Processed(string! jobType, double milliseconds) -> void
+Rask.Jobs.JobMetrics.WantsQueueDepth.get -> bool
+Rask.Jobs.JobOptions
+Rask.Jobs.JobOptions.AddRecurring<TJob>(string! name, System.TimeSpan every, System.Func<TJob>! factory) -> Rask.Jobs.JobOptions!
+Rask.Jobs.JobOptions.BaseRetryDelay.get -> System.TimeSpan
+Rask.Jobs.JobOptions.BaseRetryDelay.set -> void
+Rask.Jobs.JobOptions.BatchSize.get -> int
+Rask.Jobs.JobOptions.BatchSize.set -> void
+Rask.Jobs.JobOptions.JobOptions() -> void
+Rask.Jobs.JobOptions.LeaseDuration.get -> System.TimeSpan
+Rask.Jobs.JobOptions.LeaseDuration.set -> void
+Rask.Jobs.JobOptions.MaxAttempts.get -> int
+Rask.Jobs.JobOptions.MaxAttempts.set -> void
+Rask.Jobs.JobOptions.MaxRetryDelay.get -> System.TimeSpan
+Rask.Jobs.JobOptions.MaxRetryDelay.set -> void
+Rask.Jobs.JobOptions.PollInterval.get -> System.TimeSpan
+Rask.Jobs.JobOptions.PollInterval.set -> void
+Rask.Jobs.JobOptions.RecurringJobs.get -> System.Collections.Generic.IReadOnlyList<Rask.Jobs.RecurringJobDefinition!>!
+Rask.Jobs.JobOptions.RetentionPeriod.get -> System.TimeSpan
+Rask.Jobs.JobOptions.RetentionPeriod.set -> void
+Rask.Jobs.JobOptions.ShutdownGracePeriod.get -> System.TimeSpan
+Rask.Jobs.JobOptions.ShutdownGracePeriod.set -> void
+Rask.Jobs.JobProcessor<TContext>
+Rask.Jobs.JobProcessor<TContext>.JobProcessor(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Jobs.JobOptions! options, System.TimeProvider! timeProvider, Rask.Jobs.JobMetrics! metrics, Microsoft.Extensions.Logging.ILogger<Rask.Jobs.JobProcessor<TContext!>!>! logger) -> void
+Rask.Jobs.JobQueue<TContext>
+Rask.Jobs.JobQueue<TContext>.EnqueueAsync(Rask.Jobs.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Jobs.JobQueue<TContext>.JobQueue(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, System.TimeProvider! timeProvider) -> void
+Rask.Jobs.JobQueue<TContext>.ScheduleAsync(Rask.Jobs.IJob! job, System.DateTimeOffset runAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Jobs.JobQueue<TContext>.ScheduleAsync(Rask.Jobs.IJob! job, System.TimeSpan delay, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Jobs.JobSerializerRegistry
+Rask.Jobs.JobsModelBuilderExtensions
+Rask.Jobs.RaskJobsServiceCollectionExtensions
+Rask.Jobs.RecurringJobDefinition
+Rask.Jobs.RecurringJobDefinition.<Clone>$() -> Rask.Jobs.RecurringJobDefinition!
+Rask.Jobs.RecurringJobDefinition.Deconstruct(out string! Name, out System.TimeSpan Interval, out System.Func<Rask.Jobs.IJob!>! Factory) -> void
+Rask.Jobs.RecurringJobDefinition.Equals(Rask.Jobs.RecurringJobDefinition? other) -> bool
+Rask.Jobs.RecurringJobDefinition.Factory.get -> System.Func<Rask.Jobs.IJob!>!
+Rask.Jobs.RecurringJobDefinition.Factory.init -> void
+Rask.Jobs.RecurringJobDefinition.Interval.get -> System.TimeSpan
+Rask.Jobs.RecurringJobDefinition.Interval.init -> void
+Rask.Jobs.RecurringJobDefinition.Name.get -> string!
+Rask.Jobs.RecurringJobDefinition.Name.init -> void
+Rask.Jobs.RecurringJobDefinition.RecurringJobDefinition(string! Name, System.TimeSpan Interval, System.Func<Rask.Jobs.IJob!>! Factory) -> void
+Rask.Jobs.RecurringJobState
+Rask.Jobs.RecurringJobState.LastEnqueuedAt.get -> System.DateTime?
+Rask.Jobs.RecurringJobState.LastEnqueuedAt.set -> void
+Rask.Jobs.RecurringJobState.Name.get -> string!
+Rask.Jobs.RecurringJobState.Name.set -> void
+Rask.Jobs.RecurringJobState.RecurringJobState() -> void
+Rask.Jobs.RecurringJobStateConfiguration
+Rask.Jobs.RecurringJobStateConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Jobs.RecurringJobState!>! entity) -> void
+Rask.Jobs.RecurringJobStateConfiguration.RecurringJobStateConfiguration() -> void
+const Rask.Jobs.JobMetrics.MeterName = "Rask.Jobs" -> string!
+override Rask.Jobs.JobProcessor<TContext>.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+override Rask.Jobs.RecurringJobDefinition.Equals(object? obj) -> bool
+override Rask.Jobs.RecurringJobDefinition.GetHashCode() -> int
+override Rask.Jobs.RecurringJobDefinition.ToString() -> string!
+static Rask.Jobs.JobSerializerRegistry.Deserialize(string! typeName, string! payload) -> Rask.Cqrs.ICommand?
+static Rask.Jobs.JobSerializerRegistry.RegisterJob(string! typeName, System.Type! type) -> void
+static Rask.Jobs.JobSerializerRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<(string! TypeName, System.Type! Type)>! registrations) -> void
+static Rask.Jobs.JobSerializerRegistry.Serialize(Rask.Jobs.IJob! job) -> (string! Type, string! Payload)
+static Rask.Jobs.JobsModelBuilderExtensions.AddRaskJobs(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Jobs.RaskJobsServiceCollectionExtensions.AddRaskJobs<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Jobs.JobOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Jobs.RecurringJobDefinition.operator !=(Rask.Jobs.RecurringJobDefinition? left, Rask.Jobs.RecurringJobDefinition? right) -> bool
+static Rask.Jobs.RecurringJobDefinition.operator ==(Rask.Jobs.RecurringJobDefinition? left, Rask.Jobs.RecurringJobDefinition? right) -> bool
