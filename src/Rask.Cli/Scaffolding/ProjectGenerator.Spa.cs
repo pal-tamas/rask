@@ -125,9 +125,12 @@ internal static partial class ProjectGenerator
                     "npx",
                     framework.Scaffolder(name),
                     $"Scaffolding the {framework.DisplayName} client with {framework.ScaffolderName}…",
-                    "Install Node.js 22.12 or newer — ideally the current LTS — from https://nodejs.org "
-                    + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; "
-                    + "Linux: your distro's nodejs package)."),
+                    // Names the Node LTS line, not the build floor. This message is shown when the
+                    // EXTERNAL scaffolder could not run, and those track the Active LTS and raise their
+                    // own floors on their own schedule — Angular's CLI already refuses below 24.15.0.
+                    // Saying "22.12 or newer" here sent people to install a Node that then failed the
+                    // scaffold at exit 1, after the project directory already existed (#886).
+                    NodeRequirement.ScaffoldHint(framework.ScaffolderName)),
             ],
             Patches = SpaPatches(client, framework, batteries.Tailwind, batteries.Pwa),
         };

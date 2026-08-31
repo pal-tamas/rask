@@ -4,23 +4,27 @@ using Rask.Cli.Templates;
 
 namespace Rask.Cli.Tests;
 
-// `rask new --culture hu`: the flag surface, the implications, and what actually lands on disk.
+// Localization: what a scaffolded app starts with, and what lands on disk.
+//
+// There is no flag surface left to test (#854). The languages an app ships are configured in
+// Program.cs, so `rask new` decides one thing only — whether it writes that registration at all —
+// and the multi-language cases below drive the generator directly, the way an app does when it
+// edits the block.
 public class LocalizationScaffoldTests
 {
+    /// <summary>
+    ///     The batteries an app has once it has added languages to the block `rask new` wrote.
+    /// </summary>
+    /// <remarks>
+    ///     Constructed rather than routed through a flag, because there is no flag: this is the state a
+    ///     Program.cs edit produces. The generator still has to handle more than one language — that is
+    ///     the whole point of the block being editable — so it is still worth testing with two.
+    /// </remarks>
     private static ServerBatteries Batteries(params string[] cultures) =>
-        NewCommand.BatteriesOf(["localization"], cultures: cultures).Normalized();
+        new ServerBatteries { Localization = true, CultureList = string.Join(",", cultures) }.Normalized();
 
     [Fact]
-    public void Naming_a_language_is_asking_for_localization()
-    {
-        var batteries = NewCommand.BatteriesOf([], cultures: ["hu"]).Normalized();
-
-        Assert.True(batteries.Localization);
-        Assert.Equal(["hu"], batteries.Cultures);
-    }
-
-    [Fact]
-    public void Asking_for_localization_without_naming_one_means_english()
+    public void A_localized_template_with_no_languages_named_means_english()
     {
         var batteries = NewCommand.BatteriesOf(["localization"]).Normalized();
 
@@ -31,10 +35,9 @@ public class LocalizationScaffoldTests
     [Fact]
     public void A_bare_new_ships_english_and_the_machinery_to_add_a_second_language()
     {
-        // This used to assert the opposite, on the grounds that shipping a second language is a
-        // commitment a convenience flag shouldn't make. It still is — which is why the default is ONE
-        // language. What comes on by default is the machinery, so adding Hungarian later is a --culture
-        // rather than a refactor of every string in the app.
+        // The default is ONE language, and the machinery to add another. Adding Hungarian is a line in
+        // the block Program.cs already has, rather than a refactor of every string in the app — which
+        // is also why there is no flag for it: the file is where the answer lives.
         var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, []);
 
         Assert.True(batteries.Localization);
@@ -52,50 +55,42 @@ public class LocalizationScaffoldTests
         Assert.NotEqual(Batteries("en", "hu"), Batteries("en", "de"));
     }
 
-    [Fact]
-    public void Every_web_template_advertises_it_now()
-    {
-        // Between #849 and #846 this asserted the opposite for the WASM pair, because they took the flag
-        // and scaffolded nothing — struck off rather than left as a silent no-op. They emit catalogs, the
-        // negotiation and the ICU now, so the flag means the same thing wherever it is listed.
-        foreach (var key in new[] { "server", "wasm" })
-        {
-            Assert.True(TemplateCatalog.TryGet(key, out var template));
-            Assert.Contains("localization", template!.SupportedFlags);
-        }
-    }
-
     /// <summary>
-    /// On the browser templates it is supported but not standard, and the reason is measurable: ICU adds
-    /// roughly a megabyte of brotli to a published bundle (+32% on the showcase). A battery is wiring you
-    /// would otherwise write by hand; a third more download is an opinion about the app.
+    ///     It is not a flag on any template, so it must not be advertised as one.
     /// </summary>
+    /// <remarks>
+    ///     `SupportedFlags` is printed back to the user verbatim when they pass a `--no-` for something a
+    ///     template does not have ("It supports: …"), so leaving `localization` in it would name a flag
+    ///     that no longer exists — the accepted-and-disregarded shape, arriving as documentation.
+    /// </remarks>
     [Fact]
-    public void The_browser_templates_support_it_without_including_it()
-    {
-        Assert.True(TemplateCatalog.TryGet("server", out var server));
-        Assert.Empty(server!.OptInFlags);
-        Assert.True(NewCommand.ToBatteries(server, []).Localization);
-
-        foreach (var key in new[] { "wasm" })
-        {
-            Assert.True(TemplateCatalog.TryGet(key, out var template));
-            Assert.Equal(["localization"], template!.OptInFlags);
-
-            // Supported, so --culture works; not standard, so a bare `rask new` does not pay for it.
-            Assert.False(NewCommand.ToBatteries(template, []).Localization);
-            Assert.True(NewCommand.ToBatteries(template, [], cultures: ["hu"]).Localization);
-        }
-    }
-
-    /// <summary>Nothing may be named opt-in that the template does not support in the first place.</summary>
-    [Fact]
-    public void An_opt_in_battery_is_one_the_template_actually_has()
+    public void It_is_advertised_as_a_flag_on_no_template()
     {
         foreach (var template in TemplateCatalog.All)
         {
-            Assert.All(template.OptInFlags, flag => Assert.Contains(flag, template.SupportedFlags));
+            Assert.DoesNotContain("localization", template.SupportedFlags);
         }
+
+        Assert.DoesNotContain("localization", NewCommand.FeatureFlags);
+        Assert.DoesNotContain("localization", NewCommand.BatteryFlags);
+    }
+
+    /// <summary>
+    ///     The server scaffolds the registration; browser-WASM does not, and the reason is measurable:
+    ///     ICU adds roughly a megabyte of brotli to a published bundle (+32% on the showcase). It is also
+    ///     the one part `Program.cs` cannot switch on by itself, since `RaskGlobalization` is an MSBuild
+    ///     property — which is why the csproj carries it commented rather than absent.
+    /// </summary>
+    [Fact]
+    public void The_server_ships_it_and_browser_wasm_does_not()
+    {
+        Assert.True(TemplateCatalog.TryGet("server", out var server));
+        Assert.True(server!.ShipsLocalization);
+        Assert.True(NewCommand.ToBatteries(server, []).Localization);
+
+        Assert.True(TemplateCatalog.TryGet("wasm", out var wasm));
+        Assert.False(wasm!.ShipsLocalization);
+        Assert.False(NewCommand.ToBatteries(wasm, []).Localization);
     }
 
     [Fact]
@@ -194,7 +189,10 @@ public class LocalizationScaffoldTests
 
         Assert.Equal(1, CountOf(program, "builder.Services.AddRask("));
         Assert.Contains("configureCulture", program, StringComparison.Ordinal);
-        Assert.Contains("\"en\", \"hu\"", program, StringComparison.Ordinal);
+        // One Add per language: this block is where an app adds its second one, so it reads as a list
+        // you extend rather than a loop over an array.
+        Assert.Contains("c.SupportedCultures.Add(\"en\");", program, StringComparison.Ordinal);
+        Assert.Contains("c.SupportedCultures.Add(\"hu\");", program, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -202,7 +200,10 @@ public class LocalizationScaffoldTests
     {
         var program = Program(ProjectGenerator.GenerateServer("/out", "Demo", Batteries("hu", "en"), "1.0.0"));
 
-        Assert.Contains("\"hu\", \"en\"", program, StringComparison.Ordinal);
+        Assert.True(
+            program.IndexOf("Add(\"hu\")", StringComparison.Ordinal)
+            < program.IndexOf("Add(\"en\")", StringComparison.Ordinal),
+            "the first language configured must be emitted first — it is the fallback");
     }
 
     [Fact]
