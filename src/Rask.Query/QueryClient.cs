@@ -18,29 +18,20 @@ internal sealed class QueryClient : IQueryClient
         _time = time ?? TimeProvider.System;
     }
 
-    public Query<TResult> Query<TResult>(IQuery<TResult> message, QueryOptions? options = null)
+    public Query<TResult> Query<TResult>(
+        IQuery<TResult> message,
+        QueryOptions? options = null,
+        QueryKey? key = null)
     {
         ArgumentNullException.ThrowIfNull(message);
+
+        // No key given means the message IS the key, compared structurally — which is what lets two
+        // components asking the same thing share one entry and one request.
         return new Query<TResult>(
             this,
-            MessageKey.For(message),
+            key ?? MessageKey.For(message),
             options ?? QueryOptions.Default,
             DispatchFetch(message));
-    }
-
-    public Query<TResult> Query<TResult>(IQuery<TResult> message, QueryKey key, QueryOptions? options = null)
-    {
-        ArgumentNullException.ThrowIfNull(message);
-        return new Query<TResult>(this, key, options ?? QueryOptions.Default, DispatchFetch(message));
-    }
-
-    public Query<TResult> Query<TResult>(
-        string key,
-        Func<CancellationToken, Task<TResult>> fetch,
-        QueryOptions? options = null)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(key);
-        return Query(QueryKey.Of(key), fetch, options);
     }
 
     public Query<TResult> Query<TResult>(

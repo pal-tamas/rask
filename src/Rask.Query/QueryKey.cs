@@ -55,6 +55,12 @@ public readonly struct QueryKey : IEquatable<QueryKey>
     ///     affect equality — and built from named pairs rather than reflected off an anonymous type,
     ///     because reflection here would warn under the trimmer on a WASM publish.
     /// </remarks>
+    /// <summary>
+    ///     A single-part key from a plain name, so a caller with one string does not have to reach for
+    ///     <see cref="Of" />. Implicit because the two spellings mean exactly the same thing.
+    /// </summary>
+    public static implicit operator QueryKey(string name) => Of(name);
+
     public static QueryKeyFields Fields(params (string Name, object? Value)[] fields) => new(fields);
 
     /// <summary>The parts, in order.</summary>

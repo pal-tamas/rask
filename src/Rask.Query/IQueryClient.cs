@@ -25,27 +25,25 @@ public interface IQueryClient
     /// <remarks>
     ///     Re-point it with <see cref="Rask.Query.Query{TResult}.SetMessage" /> from <c>OnPropsChanged</c> when
     ///     its inputs change, or it will keep showing the result it was created with.
+    ///     <para>
+    ///         Pass <paramref name="key" /> to put the query into a hierarchy that spans message types, so
+    ///         one <see cref="Invalidate(QueryKey, bool)" /> reaches all of them:
+    ///     </para>
+    ///     <example>
+    ///         <code>
+    ///         client.Query(new GetOrders(page), QueryKey.Of("orders", "list", QueryKey.Fields(("page", page))));
+    ///         client.Invalidate(QueryKey.Of("orders"));   // lists and details alike
+    ///         </code>
+    ///     </example>
     /// </remarks>
     /// <typeparam name="TResult">What the query returns.</typeparam>
     /// <param name="message">The query to run and cache.</param>
+    /// <param name="key">
+    ///     The key to cache it under, instead of the one the message derives. Omit it unless the query
+    ///     belongs to a hierarchy.
+    /// </param>
     /// <param name="options">Freshness and lifetime; TanStack's defaults when omitted.</param>
-    Query<TResult> Query<TResult>(IQuery<TResult> message, QueryOptions? options = null);
-
-    /// <summary>
-    ///     The same, under a key you choose — for putting a query into a hierarchy that spans message
-    ///     types, so one <see cref="Invalidate(QueryKey, bool)" /> can reach all of them.
-    /// </summary>
-    /// <example>
-    ///     <code>
-    ///     client.Query(new GetOrders(page), QueryKey.Of("orders", "list", QueryKey.Fields(("page", page))));
-    ///     client.Invalidate(QueryKey.Of("orders"));   // lists and details alike
-    ///     </code>
-    /// </example>
-    /// <typeparam name="TResult">What the query returns.</typeparam>
-    /// <param name="message">The query to run and cache.</param>
-    /// <param name="key">The key to cache it under, instead of the one the message derives.</param>
-    /// <param name="options">Freshness and lifetime; TanStack's defaults when omitted.</param>
-    Query<TResult> Query<TResult>(IQuery<TResult> message, QueryKey key, QueryOptions? options = null);
+    Query<TResult> Query<TResult>(IQuery<TResult> message, QueryOptions? options = null, QueryKey? key = null);
 
     /// <summary>
     ///     The same, for data that does not arrive through CQRS — a third-party HTTP call, a file read.
@@ -54,19 +52,14 @@ public interface IQueryClient
     ///     <paramref name="key" /> is yours to keep unique, which is the one place in this package
     ///     where two different things can collide under one name. Prefer the message form wherever
     ///     there is a message, because there the key cannot drift from what it identifies.
+    ///     <para>
+    ///         A <see cref="string" /> converts to a single-part <see cref="QueryKey" />, so
+    ///         <c>Query("products", Load)</c> and <c>Query(QueryKey.Of("products", page), Load)</c> are the
+    ///         same call.
+    ///     </para>
     /// </remarks>
     /// <typeparam name="TResult">What the function returns.</typeparam>
     /// <param name="key">A name unique to this data within the session.</param>
-    /// <param name="fetch">Runs when the entry is missing or stale.</param>
-    /// <param name="options">Freshness and lifetime; TanStack's defaults when omitted.</param>
-    Query<TResult> Query<TResult>(
-        string key,
-        Func<CancellationToken, Task<TResult>> fetch,
-        QueryOptions? options = null);
-
-    /// <summary>The same, under a multi-part key, so it can share a prefix with everything related to it.</summary>
-    /// <typeparam name="TResult">What the function returns.</typeparam>
-    /// <param name="key">The key to cache it under.</param>
     /// <param name="fetch">Runs when the entry is missing or stale.</param>
     /// <param name="options">Freshness and lifetime; TanStack's defaults when omitted.</param>
     Query<TResult> Query<TResult>(
