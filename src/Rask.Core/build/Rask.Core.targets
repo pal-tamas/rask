@@ -167,6 +167,17 @@
                         Exclude="bin\**;obj\**;node_modules\**;wwwroot\**;Browser\**"/>
 
     <!--
+      Watched HERE rather than beside the other <Watch> at the end of this group, and that placement
+      is load-bearing: it captures the app's own declarations and not the rask-globals.d.ts appended
+      below, which lives in the package and cannot change under an app. Referencing the item rather
+      than repeating the glob is what stops the watched set and the compiled set drifting apart.
+
+      A .d.ts is an Input to the compile target and is handed to tsgo, so editing one changes what
+      the build produces — without this, that edit reaches nothing until some other file is touched.
+    -->
+    <Watch Include="@(_RaskScopedTsTypes)"/>
+
+    <!--
       Rask's own globals (window.DotNet, window.Rask), shipped with the build integration rather
       than left for each app to redeclare. Without it every project calling a [JSInvokable] would
       hand-write the same interface, and they would drift.
