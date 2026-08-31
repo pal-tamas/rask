@@ -7,6 +7,25 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+- **The nine package ids left behind by earlier removals are retired from nuget.org.** `Rask.Native`,
+  `Rask.Templates`, `Rask.Postgres`, `Rask.SqlServer`, `Rask.ObjectStore`, `Rask.Sync`,
+  `Rask.Sync.Client`, `Rask.SQLite.Crdt` and `Rask.SQLite.Crdt.Sync` all belong to work the framework
+  has since dropped — the web-only pivot, the CLI taking over scaffolding, and the provider/CRDT
+  experiments [`roadmap.md`](docs/roadmap.md) already records as things Rask does not do. The projects
+  were gone from the tree, but the packages stayed listed, so a search for "Rask" still surfaced
+  backends that no longer exist and a `Rask.Templates` that `rask new` has not needed since 0.18.0.
+
+  They are **unlisted, not deleted**: nuget.org gives an owner no way to delete a published version,
+  deliberately, so that a pinned `PackageReference` keeps restoring. Anything already depending on one
+  of these ids keeps building; they are simply gone from search and the gallery. Nothing in the
+  supported set depends on them — `Rask.Server` and `Rask.Wasm` bundle `Rask.Core`, `Rask.Html` and the
+  generators into their own packages, and no `rask new` template emits a reference to a retired id.
+
+  The stale `.nupkg` assets were also removed from the 22 GitHub releases carrying them (v0.1.1 through
+  v0.20.0) — `Rask.Native` and `Rask.Templates` were attached to releases as recently as v0.20.0.
+  `Rask.Chrome` and `Rask.Client` needed nothing: they were never published.
+
 ### Added
 - **The public API is governed, and the build enforces it.** Rask's pitch is that you can read a Rask
   program aloud, and nothing was holding the names to it: the same operation was `DispatchAsync` in
