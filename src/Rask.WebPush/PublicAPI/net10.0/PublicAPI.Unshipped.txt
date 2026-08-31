@@ -1,0 +1,108 @@
+#nullable enable
+Rask.WebPush.IWebPush
+Rask.WebPush.IWebPush.SendAsync(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+Rask.WebPush.PushSubscription
+Rask.WebPush.PushSubscription.<Clone>$() -> Rask.WebPush.PushSubscription!
+Rask.WebPush.PushSubscription.Auth.get -> string!
+Rask.WebPush.PushSubscription.Auth.init -> void
+Rask.WebPush.PushSubscription.Deconstruct(out string! Endpoint, out string! P256dh, out string! Auth) -> void
+Rask.WebPush.PushSubscription.Endpoint.get -> string!
+Rask.WebPush.PushSubscription.Endpoint.init -> void
+Rask.WebPush.PushSubscription.Equals(Rask.WebPush.PushSubscription? other) -> bool
+Rask.WebPush.PushSubscription.P256dh.get -> string!
+Rask.WebPush.PushSubscription.P256dh.init -> void
+Rask.WebPush.PushSubscription.PushSubscription(string! Endpoint, string! P256dh, string! Auth) -> void
+Rask.WebPush.PushUrgency
+Rask.WebPush.PushUrgency.High = 3 -> Rask.WebPush.PushUrgency
+Rask.WebPush.PushUrgency.Low = 1 -> Rask.WebPush.PushUrgency
+Rask.WebPush.PushUrgency.Normal = 2 -> Rask.WebPush.PushUrgency
+Rask.WebPush.PushUrgency.VeryLow = 0 -> Rask.WebPush.PushUrgency
+Rask.WebPush.VapidKeys
+Rask.WebPush.VapidKeys.<Clone>$() -> Rask.WebPush.VapidKeys!
+Rask.WebPush.VapidKeys.Deconstruct(out string! PublicKey, out string! PrivateKey) -> void
+Rask.WebPush.VapidKeys.Equals(Rask.WebPush.VapidKeys? other) -> bool
+Rask.WebPush.VapidKeys.PrivateKey.get -> string!
+Rask.WebPush.VapidKeys.PrivateKey.init -> void
+Rask.WebPush.VapidKeys.PublicKey.get -> string!
+Rask.WebPush.VapidKeys.PublicKey.init -> void
+Rask.WebPush.VapidKeys.VapidKeys(string! PublicKey, string! PrivateKey) -> void
+Rask.WebPush.WebPushMessage
+Rask.WebPush.WebPushMessage.<Clone>$() -> Rask.WebPush.WebPushMessage!
+Rask.WebPush.WebPushMessage.Badge.get -> string?
+Rask.WebPush.WebPushMessage.Badge.init -> void
+Rask.WebPush.WebPushMessage.Body.get -> string?
+Rask.WebPush.WebPushMessage.Body.init -> void
+Rask.WebPush.WebPushMessage.Equals(Rask.WebPush.WebPushMessage? other) -> bool
+Rask.WebPush.WebPushMessage.Icon.get -> string?
+Rask.WebPush.WebPushMessage.Icon.init -> void
+Rask.WebPush.WebPushMessage.RawPayload.get -> string?
+Rask.WebPush.WebPushMessage.RawPayload.init -> void
+Rask.WebPush.WebPushMessage.Tag.get -> string?
+Rask.WebPush.WebPushMessage.Tag.init -> void
+Rask.WebPush.WebPushMessage.Title.get -> string?
+Rask.WebPush.WebPushMessage.Title.init -> void
+Rask.WebPush.WebPushMessage.Topic.get -> string?
+Rask.WebPush.WebPushMessage.Topic.init -> void
+Rask.WebPush.WebPushMessage.Ttl.get -> System.TimeSpan
+Rask.WebPush.WebPushMessage.Ttl.init -> void
+Rask.WebPush.WebPushMessage.Urgency.get -> Rask.WebPush.PushUrgency
+Rask.WebPush.WebPushMessage.Urgency.init -> void
+Rask.WebPush.WebPushMessage.Url.get -> string?
+Rask.WebPush.WebPushMessage.Url.init -> void
+Rask.WebPush.WebPushMessage.WebPushMessage() -> void
+Rask.WebPush.WebPushOptions
+Rask.WebPush.WebPushOptions.DefaultTtl.get -> System.TimeSpan
+Rask.WebPush.WebPushOptions.DefaultTtl.set -> void
+Rask.WebPush.WebPushOptions.Subject.get -> string?
+Rask.WebPush.WebPushOptions.Subject.set -> void
+Rask.WebPush.WebPushOptions.Validate() -> void
+Rask.WebPush.WebPushOptions.VapidKeys.get -> Rask.WebPush.VapidKeys?
+Rask.WebPush.WebPushOptions.VapidKeys.set -> void
+Rask.WebPush.WebPushOptions.WebPushOptions() -> void
+Rask.WebPush.WebPushResult
+Rask.WebPush.WebPushResult.<Clone>$() -> Rask.WebPush.WebPushResult!
+Rask.WebPush.WebPushResult.Deconstruct(out Rask.WebPush.WebPushStatus Status, out int? StatusCode, out string? ReasonPhrase) -> void
+Rask.WebPush.WebPushResult.Equals(Rask.WebPush.WebPushResult? other) -> bool
+Rask.WebPush.WebPushResult.IsSuccess.get -> bool
+Rask.WebPush.WebPushResult.ReasonPhrase.get -> string?
+Rask.WebPush.WebPushResult.ReasonPhrase.init -> void
+Rask.WebPush.WebPushResult.ShouldDelete.get -> bool
+Rask.WebPush.WebPushResult.ShouldRetry.get -> bool
+Rask.WebPush.WebPushResult.Status.get -> Rask.WebPush.WebPushStatus
+Rask.WebPush.WebPushResult.Status.init -> void
+Rask.WebPush.WebPushResult.StatusCode.get -> int?
+Rask.WebPush.WebPushResult.StatusCode.init -> void
+Rask.WebPush.WebPushResult.WebPushResult(Rask.WebPush.WebPushStatus Status, int? StatusCode = null, string? ReasonPhrase = null) -> void
+Rask.WebPush.WebPushSender
+Rask.WebPush.WebPushSender.SendAsync(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+Rask.WebPush.WebPushSender.WebPushSender(System.Net.Http.HttpClient! http, Rask.WebPush.WebPushOptions! options, Microsoft.Extensions.Logging.ILogger<Rask.WebPush.WebPushSender!>? logger = null) -> void
+Rask.WebPush.WebPushServiceCollectionExtensions
+Rask.WebPush.WebPushStatus
+Rask.WebPush.WebPushStatus.Expired = 1 -> Rask.WebPush.WebPushStatus
+Rask.WebPush.WebPushStatus.PermanentFailure = 3 -> Rask.WebPush.WebPushStatus
+Rask.WebPush.WebPushStatus.Success = 0 -> Rask.WebPush.WebPushStatus
+Rask.WebPush.WebPushStatus.TransientFailure = 2 -> Rask.WebPush.WebPushStatus
+override Rask.WebPush.PushSubscription.Equals(object? obj) -> bool
+override Rask.WebPush.PushSubscription.GetHashCode() -> int
+override Rask.WebPush.PushSubscription.ToString() -> string!
+override Rask.WebPush.VapidKeys.Equals(object? obj) -> bool
+override Rask.WebPush.VapidKeys.GetHashCode() -> int
+override Rask.WebPush.VapidKeys.ToString() -> string!
+override Rask.WebPush.WebPushMessage.Equals(object? obj) -> bool
+override Rask.WebPush.WebPushMessage.GetHashCode() -> int
+override Rask.WebPush.WebPushMessage.ToString() -> string!
+override Rask.WebPush.WebPushResult.Equals(object? obj) -> bool
+override Rask.WebPush.WebPushResult.GetHashCode() -> int
+override Rask.WebPush.WebPushResult.ToString() -> string!
+static Rask.WebPush.PushSubscription.operator !=(Rask.WebPush.PushSubscription? left, Rask.WebPush.PushSubscription? right) -> bool
+static Rask.WebPush.PushSubscription.operator ==(Rask.WebPush.PushSubscription? left, Rask.WebPush.PushSubscription? right) -> bool
+static Rask.WebPush.VapidKeys.Generate() -> Rask.WebPush.VapidKeys!
+static Rask.WebPush.VapidKeys.operator !=(Rask.WebPush.VapidKeys? left, Rask.WebPush.VapidKeys? right) -> bool
+static Rask.WebPush.VapidKeys.operator ==(Rask.WebPush.VapidKeys? left, Rask.WebPush.VapidKeys? right) -> bool
+static Rask.WebPush.WebPushMessage.Raw(string! json) -> Rask.WebPush.WebPushMessage!
+static Rask.WebPush.WebPushMessage.Text(string! title, string? body = null, string? url = null) -> Rask.WebPush.WebPushMessage!
+static Rask.WebPush.WebPushMessage.operator !=(Rask.WebPush.WebPushMessage? left, Rask.WebPush.WebPushMessage? right) -> bool
+static Rask.WebPush.WebPushMessage.operator ==(Rask.WebPush.WebPushMessage? left, Rask.WebPush.WebPushMessage? right) -> bool
+static Rask.WebPush.WebPushResult.operator !=(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
+static Rask.WebPush.WebPushResult.operator ==(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
+static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

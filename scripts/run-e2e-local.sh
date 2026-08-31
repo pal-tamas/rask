@@ -51,9 +51,13 @@ cd "$root"
 # Skipped under CI purely so this can never be the thing that breaks an automated run. Nothing in
 # .github/workflows runs the browser E2E today — release.yml only packs, ci.yml runs the benchmark
 # gates — so this is insurance against a future parallel path, not protection of a known one.
+# Sourced unconditionally, though only the REFUSAL below is skipped under CI: the contention hint on a
+# failing suite at the end of this script needs rask_other_heavy_builds either way, and a helper that
+# exists only on one branch of an `if` is a "command not found" waiting for the first CI run.
+# shellcheck source=lib/e2e-concurrency.sh
+. "$root/scripts/lib/e2e-concurrency.sh"
+
 if [ -z "${CI:-}" ]; then
-  # shellcheck source=lib/e2e-concurrency.sh
-  . "$root/scripts/lib/e2e-concurrency.sh"
   others="$(rask_other_e2e_runs | tr '\n' ' ')"
 
   if [ -n "${others// /}" ]; then
@@ -235,9 +239,45 @@ if [ -n "${RASK_E2E_FILTER:-}" ]; then
 else
   echo "==> Browser journey E2E (Rask.Examples.E2E.Tests)"
 fi
+# Not bare, and `set -e` is why this needs saying: this used to be the script's last statement, so a
+# red suite propagated dotnet's exit code with no layer above it — unlike the build step, which is
+# explained. That is where #850's cost actually sits. The suite is timing-sensitive; under a competing
+# build it fails in ways indistinguishable from real bugs, and the hours go on treating a load flake
+# as a defect. Naming the suspicion at the moment of failure is the cheapest thing that attacks that,
+# and it adds a line rather than making a decision, so it has no false-positive cost.
+set +e
 dotnet test tests/Rask.Examples.E2E.Tests/bin/Release/net10.0/Rask.Examples.E2E.Tests.dll \
   --filter "$e2e_filter" \
   --logger "console;verbosity=normal"
+e2e_status=$?
+set -e
+
+if [ "$e2e_status" -ne 0 ]; then
+  # Sampled AFTER the failure rather than during it. A competing build lasts minutes, so it is very
+  # likely still there; a sampler running alongside the suite would be more machinery and would itself
+  # be load the gate does not need.
+  competing="$(rask_other_heavy_builds | tr '\n' ' ')"
+
+  if [ -n "${competing// /}" ]; then
+    {
+      echo
+      echo "run-e2e-local: a heavy build was running on this machine during this suite."
+      for pid in $competing; do
+        elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
+        cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
+        [ -n "$elapsed" ] && echo "               pid $pid, running for ${elapsed}: $cmd"
+      done
+      echo
+      echo "            These journeys and the WebSocket tests are timing-sensitive, and contention"
+      echo "            reads as a plausible failure with nothing in the log pointing back at it."
+      echo "            RE-RUN THIS SUITE ALONE before investigating the failure above — it may be"
+      echo "            real, and this line does not claim otherwise. It only says the run was not"
+      echo "            clean enough to conclude that it is."
+    } >&2
+  fi
+
+  exit "$e2e_status"
+fi
 
 echo
 if [ -n "${RASK_E2E_FILTER:-}" ]; then

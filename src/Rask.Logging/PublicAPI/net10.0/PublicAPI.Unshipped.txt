@@ -1,0 +1,136 @@
+#nullable enable
+Rask.Logging.ILogs
+Rask.Logging.ILogs.AppendAsync(System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>! records, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Logging.ILogs.CategoriesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+Rask.Logging.ILogs.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Logging.ILogs.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Rask.Logging.ILogs.PurgeAsync(System.TimeSpan retention, int maxRows, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Logging.ILogs.SearchAsync(Rask.Logging.LogQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Logging.LogPage!>!
+Rask.Logging.LogMetrics
+Rask.Logging.LogMetrics.Dispose() -> void
+Rask.Logging.LogMetrics.Dropped(int count = 1) -> void
+Rask.Logging.LogMetrics.LogMetrics(System.Diagnostics.Metrics.IMeterFactory? meterFactory = null) -> void
+Rask.Logging.LogMetrics.ObserveStored(long stored) -> void
+Rask.Logging.LogMetrics.Purged(int count) -> void
+Rask.Logging.LogMetrics.WantsStoredCount.get -> bool
+Rask.Logging.LogMetrics.Written(int count) -> void
+Rask.Logging.LogPage
+Rask.Logging.LogPage.<Clone>$() -> Rask.Logging.LogPage!
+Rask.Logging.LogPage.Deconstruct(out System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>! Entries, out long TotalCount, out int Page, out int PageSize) -> void
+Rask.Logging.LogPage.Entries.get -> System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>!
+Rask.Logging.LogPage.Entries.init -> void
+Rask.Logging.LogPage.Equals(Rask.Logging.LogPage? other) -> bool
+Rask.Logging.LogPage.LogPage(System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>! Entries, long TotalCount, int Page, int PageSize) -> void
+Rask.Logging.LogPage.Page.get -> int
+Rask.Logging.LogPage.Page.init -> void
+Rask.Logging.LogPage.PageCount.get -> int
+Rask.Logging.LogPage.PageSize.get -> int
+Rask.Logging.LogPage.PageSize.init -> void
+Rask.Logging.LogPage.TotalCount.get -> long
+Rask.Logging.LogPage.TotalCount.init -> void
+Rask.Logging.LogQuery
+Rask.Logging.LogQuery.<Clone>$() -> Rask.Logging.LogQuery!
+Rask.Logging.LogQuery.Category.get -> string?
+Rask.Logging.LogQuery.Category.init -> void
+Rask.Logging.LogQuery.Equals(Rask.Logging.LogQuery? other) -> bool
+Rask.Logging.LogQuery.From.get -> System.DateTimeOffset?
+Rask.Logging.LogQuery.From.init -> void
+Rask.Logging.LogQuery.LogQuery() -> void
+Rask.Logging.LogQuery.MinimumLevel.get -> Microsoft.Extensions.Logging.LogLevel?
+Rask.Logging.LogQuery.MinimumLevel.init -> void
+Rask.Logging.LogQuery.Page.get -> int
+Rask.Logging.LogQuery.Page.init -> void
+Rask.Logging.LogQuery.PageSize.get -> int
+Rask.Logging.LogQuery.PageSize.init -> void
+Rask.Logging.LogQuery.ScopeKey.get -> string?
+Rask.Logging.LogQuery.ScopeKey.init -> void
+Rask.Logging.LogQuery.ScopeValue.get -> string?
+Rask.Logging.LogQuery.ScopeValue.init -> void
+Rask.Logging.LogQuery.Search.get -> string?
+Rask.Logging.LogQuery.Search.init -> void
+Rask.Logging.LogQuery.To.get -> System.DateTimeOffset?
+Rask.Logging.LogQuery.To.init -> void
+Rask.Logging.LogRecord
+Rask.Logging.LogRecord.<Clone>$() -> Rask.Logging.LogRecord!
+Rask.Logging.LogRecord.Category.get -> string!
+Rask.Logging.LogRecord.Category.init -> void
+Rask.Logging.LogRecord.Deconstruct(out long Id, out System.DateTimeOffset Timestamp, out Microsoft.Extensions.Logging.LogLevel Level, out string! Category, out int EventId, out string! Message, out string? Exception, out System.Collections.Generic.IReadOnlyList<Rask.Logging.LogScopeValue>? Scopes) -> void
+Rask.Logging.LogRecord.Equals(Rask.Logging.LogRecord? other) -> bool
+Rask.Logging.LogRecord.EventId.get -> int
+Rask.Logging.LogRecord.EventId.init -> void
+Rask.Logging.LogRecord.Exception.get -> string?
+Rask.Logging.LogRecord.Exception.init -> void
+Rask.Logging.LogRecord.Id.get -> long
+Rask.Logging.LogRecord.Id.init -> void
+Rask.Logging.LogRecord.Level.get -> Microsoft.Extensions.Logging.LogLevel
+Rask.Logging.LogRecord.Level.init -> void
+Rask.Logging.LogRecord.LogRecord(long Id, System.DateTimeOffset Timestamp, Microsoft.Extensions.Logging.LogLevel Level, string! Category, int EventId, string! Message, string? Exception, System.Collections.Generic.IReadOnlyList<Rask.Logging.LogScopeValue>? Scopes = null) -> void
+Rask.Logging.LogRecord.Message.get -> string!
+Rask.Logging.LogRecord.Message.init -> void
+Rask.Logging.LogRecord.Scopes.get -> System.Collections.Generic.IReadOnlyList<Rask.Logging.LogScopeValue>?
+Rask.Logging.LogRecord.Scopes.init -> void
+Rask.Logging.LogRecord.Timestamp.get -> System.DateTimeOffset
+Rask.Logging.LogRecord.Timestamp.init -> void
+Rask.Logging.LogScopeValue
+Rask.Logging.LogScopeValue.Deconstruct(out string! Key, out string! Value) -> void
+Rask.Logging.LogScopeValue.Equals(Rask.Logging.LogScopeValue other) -> bool
+Rask.Logging.LogScopeValue.Key.get -> string!
+Rask.Logging.LogScopeValue.Key.init -> void
+Rask.Logging.LogScopeValue.LogScopeValue() -> void
+Rask.Logging.LogScopeValue.LogScopeValue(string! Key, string! Value) -> void
+Rask.Logging.LogScopeValue.Value.get -> string!
+Rask.Logging.LogScopeValue.Value.init -> void
+Rask.Logging.RaskLoggingOptions
+Rask.Logging.RaskLoggingOptions.BatchSize.get -> int
+Rask.Logging.RaskLoggingOptions.BatchSize.set -> void
+Rask.Logging.RaskLoggingOptions.BusyRetry.get -> Rask.SQLite.SqliteBusyRetryOptions!
+Rask.Logging.RaskLoggingOptions.BusyRetry.set -> void
+Rask.Logging.RaskLoggingOptions.CaptureScopes.get -> bool
+Rask.Logging.RaskLoggingOptions.CaptureScopes.set -> void
+Rask.Logging.RaskLoggingOptions.ExcludedCategories.get -> System.Collections.Generic.IList<string!>!
+Rask.Logging.RaskLoggingOptions.FlushInterval.get -> System.TimeSpan
+Rask.Logging.RaskLoggingOptions.FlushInterval.set -> void
+Rask.Logging.RaskLoggingOptions.MaxRows.get -> int
+Rask.Logging.RaskLoggingOptions.MaxRows.set -> void
+Rask.Logging.RaskLoggingOptions.MaxScopeValueLength.get -> int
+Rask.Logging.RaskLoggingOptions.MaxScopeValueLength.set -> void
+Rask.Logging.RaskLoggingOptions.MaxScopeValues.get -> int
+Rask.Logging.RaskLoggingOptions.MaxScopeValues.set -> void
+Rask.Logging.RaskLoggingOptions.MinimumLevel.get -> Microsoft.Extensions.Logging.LogLevel
+Rask.Logging.RaskLoggingOptions.MinimumLevel.set -> void
+Rask.Logging.RaskLoggingOptions.Pragmas.get -> Rask.SQLite.SqliteOptions!
+Rask.Logging.RaskLoggingOptions.Pragmas.set -> void
+Rask.Logging.RaskLoggingOptions.PurgeInterval.get -> System.TimeSpan
+Rask.Logging.RaskLoggingOptions.PurgeInterval.set -> void
+Rask.Logging.RaskLoggingOptions.QueueCapacity.get -> int
+Rask.Logging.RaskLoggingOptions.QueueCapacity.set -> void
+Rask.Logging.RaskLoggingOptions.RaskLoggingOptions() -> void
+Rask.Logging.RaskLoggingOptions.Retention.get -> System.TimeSpan
+Rask.Logging.RaskLoggingOptions.Retention.set -> void
+Rask.Logging.RaskLoggingOptions.ShutdownDrainTimeout.get -> System.TimeSpan
+Rask.Logging.RaskLoggingOptions.ShutdownDrainTimeout.set -> void
+Rask.Logging.RaskLoggingServiceCollectionExtensions
+const Rask.Logging.LogMetrics.MeterName = "Rask.Logging" -> string!
+const Rask.Logging.LogScopeValue.MessageKey = "Scope" -> string!
+override Rask.Logging.LogPage.Equals(object? obj) -> bool
+override Rask.Logging.LogPage.GetHashCode() -> int
+override Rask.Logging.LogPage.ToString() -> string!
+override Rask.Logging.LogQuery.Equals(object? obj) -> bool
+override Rask.Logging.LogQuery.GetHashCode() -> int
+override Rask.Logging.LogQuery.ToString() -> string!
+override Rask.Logging.LogRecord.Equals(object? obj) -> bool
+override Rask.Logging.LogRecord.GetHashCode() -> int
+override Rask.Logging.LogRecord.ToString() -> string!
+override Rask.Logging.LogScopeValue.GetHashCode() -> int
+static Rask.Logging.LogPage.Empty(int page, int pageSize) -> Rask.Logging.LogPage!
+static Rask.Logging.LogPage.operator !=(Rask.Logging.LogPage? left, Rask.Logging.LogPage? right) -> bool
+static Rask.Logging.LogPage.operator ==(Rask.Logging.LogPage? left, Rask.Logging.LogPage? right) -> bool
+static Rask.Logging.LogQuery.operator !=(Rask.Logging.LogQuery? left, Rask.Logging.LogQuery? right) -> bool
+static Rask.Logging.LogQuery.operator ==(Rask.Logging.LogQuery? left, Rask.Logging.LogQuery? right) -> bool
+static Rask.Logging.LogRecord.operator !=(Rask.Logging.LogRecord? left, Rask.Logging.LogRecord? right) -> bool
+static Rask.Logging.LogRecord.operator ==(Rask.Logging.LogRecord? left, Rask.Logging.LogRecord? right) -> bool
+static Rask.Logging.LogScopeValue.operator !=(Rask.Logging.LogScopeValue left, Rask.Logging.LogScopeValue right) -> bool
+static Rask.Logging.LogScopeValue.operator ==(Rask.Logging.LogScopeValue left, Rask.Logging.LogScopeValue right) -> bool
+static Rask.Logging.RaskLoggingServiceCollectionExtensions.AddRaskLogging(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, System.Action<Rask.Logging.RaskLoggingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+~override Rask.Logging.LogScopeValue.Equals(object obj) -> bool
+~override Rask.Logging.LogScopeValue.ToString() -> string

@@ -31,7 +31,7 @@ public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navi
     {
         try
         {
-            await dispatcher.DispatchAsync(new CreateProductCommand(form), CancellationToken);
+            await dispatcher.SendAsync(new CreateProductCommand(form), CancellationToken);
             navigator.NavigateTo(Routes.ProductsPage());
         }
         catch (Exception)

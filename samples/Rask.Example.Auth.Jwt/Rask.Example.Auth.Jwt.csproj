@@ -36,11 +36,4 @@
   </Target>
 
 
-  <!-- In-repo consumers import these by hand: a ProjectReference carries no build props, so referencing
-       Rask.Tailwind alone would compile nothing and produce no stylesheet, silently. -->
-  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.props"
-          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.props')"/>
-  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets"
-          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets')"/>
-
 </Project>

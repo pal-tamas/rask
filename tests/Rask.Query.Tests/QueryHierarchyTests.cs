@@ -63,8 +63,8 @@ public class QueryHierarchyTests
         // The thing a flat key could not express: one call refreshing a list and a detail that are
         // different message types, because the app said they belong together.
         var (client, dispatcher) = NewClient();
-        using var list = client.Query(new GetOrders(1), QueryKey.Of("orders", "list"));
-        using var detail = client.Query(new GetProfile("ada"), QueryKey.Of("orders", "detail", 5));
+        using var list = client.Query(new GetOrders(1), key: QueryKey.Of("orders", "list"));
+        using var detail = client.Query(new GetProfile("ada"), key: QueryKey.Of("orders", "detail", 5));
         await SettleAsync(list);
         await SettleAsync(detail);
 
@@ -80,8 +80,8 @@ public class QueryHierarchyTests
     public async Task Exact_invalidation_touches_one_entry()
     {
         var (client, dispatcher) = NewClient();
-        using var list = client.Query(new GetOrders(1), QueryKey.Of("orders", "list"));
-        using var detail = client.Query(new GetProfile("ada"), QueryKey.Of("orders", "detail", 5));
+        using var list = client.Query(new GetOrders(1), key: QueryKey.Of("orders", "list"));
+        using var detail = client.Query(new GetProfile("ada"), key: QueryKey.Of("orders", "detail", 5));
         await SettleAsync(list);
         await SettleAsync(detail);
 
@@ -100,7 +100,7 @@ public class QueryHierarchyTests
         // each other — which is what lets both live in one cache.
         var (client, dispatcher) = NewClient();
         using var derived = client.Query(new GetOrders(1));
-        using var written = client.Query(new GetOrders(1), QueryKey.Of("GetOrders"));
+        using var written = client.Query(new GetOrders(1), key: QueryKey.Of("GetOrders"));
         await SettleAsync(derived);
         await SettleAsync(written);
 
@@ -116,7 +116,7 @@ public class QueryHierarchyTests
     public async Task A_command_can_declare_a_prefix_instead_of_a_type()
     {
         var (client, dispatcher) = NewClient();
-        using var list = client.Query(new GetOrders(1), QueryKey.Of("orders", "list"));
+        using var list = client.Query(new GetOrders(1), key: QueryKey.Of("orders", "list"));
         await SettleAsync(list);
 
         var before = dispatcher.QueryCount;
@@ -133,7 +133,7 @@ public class QueryHierarchyTests
         // of the two declarations — which looks exactly like a missing invalidation.
         var (client, dispatcher) = NewClient();
         using var byType = client.Query(new GetProfile("ada"));
-        using var byPrefix = client.Query(new GetOrders(1), QueryKey.Of("orders", "list"));
+        using var byPrefix = client.Query(new GetOrders(1), key: QueryKey.Of("orders", "list"));
         await SettleAsync(byType);
         await SettleAsync(byPrefix);
 
@@ -149,8 +149,8 @@ public class QueryHierarchyTests
     public async Task A_predicate_covers_what_a_prefix_cannot_say()
     {
         var (client, dispatcher) = NewClient();
-        using var shallow = client.Query(new GetOrders(1), QueryKey.Of("orders"));
-        using var deep = client.Query(new GetProfile("ada"), QueryKey.Of("orders", "detail", 5));
+        using var shallow = client.Query(new GetOrders(1), key: QueryKey.Of("orders"));
+        using var deep = client.Query(new GetProfile("ada"), key: QueryKey.Of("orders", "detail", 5));
         await SettleAsync(shallow);
         await SettleAsync(deep);
 

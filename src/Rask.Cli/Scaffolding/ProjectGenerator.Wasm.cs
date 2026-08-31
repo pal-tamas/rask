@@ -59,7 +59,7 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker, cultures.Length > 0))
         {
-            Packages = ["Rask.Wasm", "Rask.Tailwind"],
+            Packages = ["Rask.Wasm"],
         };
     }
 
@@ -74,10 +74,13 @@ internal static partial class ProjectGenerator
     internal const string AspNetCoreFrameworkVersion = "10.0.11";
 
     /// <summary>
-    /// The WebAssembly SDK <c>&lt;PropertyGroup&gt;</c> — byte-identical for the standalone <c>wasm</c>
-    /// template and the <c>wasm-hosted</c> client project apart from the one globalization line, which
-    /// follows whether the app names a language. Shared so the two csproj builders (<c>WasmCsproj</c> and
-    /// <c>WasmHostedClientCsproj</c>) cannot drift.
+    /// The WebAssembly SDK <c>&lt;PropertyGroup&gt;</c> for the standalone <c>wasm</c> template, with the
+    /// one globalization line following whether the app names a language.
+    ///
+    /// <para>
+    /// Factored out when a second csproj builder shared it — <c>wasm-hosted</c>'s client, removed in
+    /// #877 — and kept because the shape is still worth naming once.
+    /// </para>
     /// </summary>
     internal static string WasmSdkPropertyGroup(bool localization) =>
         WasmSdkPropertyGroupTemplate.Replace("@@GLOBALIZATION@@", localization
@@ -143,8 +146,6 @@ internal static partial class ProjectGenerator
 
     private static string WasmCsproj(bool auth, string version, bool localization)
     {
-        var stylingRef =
-            $"\n    <PackageReference Include=\"Rask.Tailwind\" Version=\"{version}\"/>";
         var authRefs = auth
             ? $"""
 
@@ -158,7 +159,7 @@ internal static partial class ProjectGenerator
         {WasmSdkPropertyGroup(localization)}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>{stylingRef}{authRefs}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{authRefs}
           </ItemGroup>
 
         </Project>
@@ -429,7 +430,7 @@ internal static partial class ProjectGenerator
     private const string WasmNginxConf =
         """
         server {
-            # 8080, not 80, so this image matches the server and wasm-hosted templates — `rask deploy`
+            # 8080, not 80, so this image matches the server template — `rask deploy`
             # points the proxy and its readiness probe at one container port for every template.
             listen 8080;
             root /usr/share/nginx/html;

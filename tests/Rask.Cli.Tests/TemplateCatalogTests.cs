@@ -7,7 +7,6 @@ public sealed class TemplateCatalogTests
     [Theory]
     [InlineData("server")]
     [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
     public void Resolves_each_known_template_by_key(string key)
     {
         Assert.True(TemplateCatalog.TryGet(key, out var template));
@@ -67,11 +66,13 @@ public sealed class TemplateCatalogTests
     ///     Android)", wrote an ASP.NET host, and signed off with "Created Field (Rask server app)". Nothing
     ///     threw, so nothing caught it. Assert the absence, because the presence is what shipped.
     /// </remarks>
-    [Fact]
-    public void The_native_template_is_gone()
+    [Theory]
+    [InlineData("native")]
+    [InlineData("wasm-hosted")]
+    public void A_removed_template_is_gone(string key)
     {
-        Assert.False(TemplateCatalog.TryGet("native", out _));
-        Assert.DoesNotContain("native", TemplateCatalog.Keys, StringComparer.OrdinalIgnoreCase);
+        Assert.False(TemplateCatalog.TryGet(key, out _));
+        Assert.DoesNotContain(key, TemplateCatalog.Keys, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]

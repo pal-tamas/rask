@@ -9,29 +9,30 @@ internal sealed record TemplateInfo(
     string Key,
     string DisplayName,
     IReadOnlySet<string> SupportedFlags,
-    IReadOnlySet<string>? OptIn = null)
+    bool ShipsLocalization = false)
 {
-    private static readonly IReadOnlySet<string> NoneOptIn = new HashSet<string>(StringComparer.Ordinal);
-
     /// <summary>
-    /// Batteries this template supports but does <em>not</em> switch on by default — the exceptions to
-    /// "everything the template supports".
+    ///     Whether this template scaffolds the language registration in <c>Program.cs</c>.
     /// </summary>
     /// <remarks>
-    /// There is one, and it earns the exception by costing something the user can measure: localization on
-    /// a browser-WASM template needs ICU in the bundle, which is about a megabyte of extra download
-    /// (+32% on the showcase, measured brotli-to-brotli on a published trimmed build). A battery is
-    /// wiring you would otherwise write by hand; a third more download for a feature most apps never use
-    /// is an opinion about the app, and the two things are exactly what auth and styling are separated
-    /// for. The framework's own <c>RaskGlobalization</c> default says the same thing.
-    ///
-    /// <para>
-    /// Supported, so the flag still does real work — this is not the <c>--template native</c> shape where
-    /// a flag is accepted and disregarded. On these templates <c>--culture &lt;tag&gt;</c> is what turns
-    /// it on, and <c>--no-localization</c> is refused as already-true rather than accepted.
-    /// </para>
+    ///     <para>
+    ///         Not a flag, and deliberately so (#854). The languages an app ships are configured in
+    ///         <c>Program.cs</c> — a new project starts with English, and adding a second one is a line in
+    ///         the <c>AddRask(configureCulture: ...)</c> call it already has. There is nothing for a
+    ///         command line to decide, so <c>--culture</c> and <c>--no-localization</c> are gone rather
+    ///         than kept as flags that restate what the file already says.
+    ///     </para>
+    ///     <para>
+    ///         It stays off on browser-WASM because that is the one place naming a language is not free:
+    ///         the browser needs ICU to resolve a culture at all, which is about a megabyte of extra
+    ///         download (+32% on the showcase, measured brotli-to-brotli on a published trimmed build).
+    ///         That is an opinion about the app rather than wiring, and it is also the one part
+    ///         <c>Program.cs</c> cannot switch on by itself — <c>RaskGlobalization</c> is an MSBuild
+    ///         property, scaffolded commented into the csproj with the reason beside it. On the server
+    ///         the runtime carries ICU regardless, so it costs nothing and is standard.
+    ///     </para>
     /// </remarks>
-    public IReadOnlySet<string> OptInFlags { get; } = OptIn ?? NoneOptIn;
+    public bool ShipsLocalization { get; } = ShipsLocalization;
 }
 
 /// <summary>
@@ -54,19 +55,15 @@ internal static class TemplateCatalog
     ///     every template that lists it.
     ///     </para>
     /// </remarks>
-    private static readonly string[] WebFlags = ["auth", "pwa", "docker", "localization"];
+    private static readonly string[] WebFlags = ["auth", "pwa", "docker"];
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a
-    /// database <em>in</em> — the server template, and the wasm-hosted template's <c>.Server</c> project.
+    /// database <em>in</em> — the server template, and the front-end templates' ASP.NET host.
     /// A pure browser-WASM SPA has no server to run them on.
     /// </summary>
     private static readonly string[] DatabaseFlags =
         ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "ops"];
-
-    /// <summary>The browser templates ship localization, but only when asked — see <see cref="TemplateInfo.OptInFlags"/>.</summary>
-    private static readonly IReadOnlySet<string> LocalizationIsOptIn =
-        new HashSet<string>(["localization"], StringComparer.Ordinal);
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
@@ -76,23 +73,14 @@ internal static class TemplateCatalog
         new("server", "Rask Server app",
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags, "push", "wasm"],
-                StringComparer.Ordinal)),
-        new("wasm", "Rask browser-WASM SPA",
-            new HashSet<string>(WebFlags, StringComparer.Ordinal),
-            LocalizationIsOptIn),
-        // Same batteries as server, minus --push: Web Push needs the subscribe endpoints AND a service
-        // worker that posts to them, and in this template those live in two different projects. It is a
-        // real feature rather than a wiring gap, so it is left out rather than half-scaffolded.
-        //
-        // --cqrs means more here than on the server template: this is the one template with a server half
-        // to dispatch TO, so it wires remote dispatch across both projects rather than only registering the
-        // mediator. On 'wasm' there is no host in the solution, so the flag would name a destination that
-        // isn't there.
-        new("wasm-hosted", "Rask WASM + ASP.NET host",
-            new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags],
                 StringComparer.Ordinal),
-            LocalizationIsOptIn),
+            // The server runtime carries ICU regardless, so scaffolding the registration costs nothing.
+            ShipsLocalization: true),
+        // ShipsLocalization stays false here: naming a language in the browser means shipping ICU, which
+        // is roughly a megabyte, and it is the one part Program.cs cannot turn on by itself. The csproj
+        // carries <RaskGlobalization> commented with the reason beside it.
+        new("wasm", "Rask browser-WASM SPA",
+            new HashSet<string>(WebFlags, StringComparer.Ordinal)),
         // The TypeScript front-end templates, one per framework: a client on an ASP.NET host, talking to
         // it over generated TypeScript. CQRS is listed but never optional here — the wire IS the template,
         // so the generator forces it on and --no-cqrs is refused rather than silently ignored.

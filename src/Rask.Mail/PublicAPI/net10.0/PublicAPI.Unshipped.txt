@@ -1,0 +1,183 @@
+#nullable enable
+Rask.Mail.Email
+Rask.Mail.Email.AndTo(string! address, string? name = null) -> Rask.Mail.Email!
+Rask.Mail.Email.Attach(string! fileName, string! contentType, byte[]! content) -> Rask.Mail.Email!
+Rask.Mail.Email.Bcc(string! address, string? name = null) -> Rask.Mail.Email!
+Rask.Mail.Email.Body(Rask.Core.Component! component) -> Rask.Mail.Email!
+Rask.Mail.Email.Body(string! html) -> Rask.Mail.Email!
+Rask.Mail.Email.Cc(string! address, string? name = null) -> Rask.Mail.Email!
+Rask.Mail.Email.From(string! address, string? name = null) -> Rask.Mail.Email!
+Rask.Mail.Email.PlainText(string! text) -> Rask.Mail.Email!
+Rask.Mail.Email.ReplyTo(string! address, string? name = null) -> Rask.Mail.Email!
+Rask.Mail.Email.Subject(string! subject) -> Rask.Mail.Email!
+Rask.Mail.EmailAddress
+Rask.Mail.EmailAddress.<Clone>$() -> Rask.Mail.EmailAddress!
+Rask.Mail.EmailAddress.Address.get -> string!
+Rask.Mail.EmailAddress.Address.init -> void
+Rask.Mail.EmailAddress.Deconstruct(out string! Address, out string? Name) -> void
+Rask.Mail.EmailAddress.EmailAddress(string! Address, string? Name = null) -> void
+Rask.Mail.EmailAddress.Equals(Rask.Mail.EmailAddress? other) -> bool
+Rask.Mail.EmailAddress.Name.get -> string?
+Rask.Mail.EmailAddress.Name.init -> void
+Rask.Mail.EmailAttachment
+Rask.Mail.EmailAttachment.<Clone>$() -> Rask.Mail.EmailAttachment!
+Rask.Mail.EmailAttachment.Content.get -> byte[]!
+Rask.Mail.EmailAttachment.Content.init -> void
+Rask.Mail.EmailAttachment.ContentType.get -> string!
+Rask.Mail.EmailAttachment.ContentType.init -> void
+Rask.Mail.EmailAttachment.Deconstruct(out string! FileName, out string! ContentType, out byte[]! Content) -> void
+Rask.Mail.EmailAttachment.EmailAttachment(string! FileName, string! ContentType, byte[]! Content) -> void
+Rask.Mail.EmailAttachment.Equals(Rask.Mail.EmailAttachment? other) -> bool
+Rask.Mail.EmailAttachment.FileName.get -> string!
+Rask.Mail.EmailAttachment.FileName.init -> void
+Rask.Mail.IMail
+Rask.Mail.IMail.ScheduleAsync(Rask.Mail.Email! email, System.DateTimeOffset runAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.IMail.ScheduleAsync(Rask.Mail.Email! email, System.TimeSpan delay, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.IMail.SendAsync(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.IMailSender
+Rask.Mail.IMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.LogMailSender
+Rask.Mail.LogMailSender.LogMailSender(Microsoft.Extensions.Logging.ILogger<Rask.Mail.LogMailSender!>! logger) -> void
+Rask.Mail.LogMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.MailKitMailSender
+Rask.Mail.MailKitMailSender.MailKitMailSender(Rask.Mail.MailOptions! options) -> void
+Rask.Mail.MailKitMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.MailMetrics
+Rask.Mail.MailMetrics.DeadLettered() -> void
+Rask.Mail.MailMetrics.Dispose() -> void
+Rask.Mail.MailMetrics.Failed() -> void
+Rask.Mail.MailMetrics.Interrupted() -> void
+Rask.Mail.MailMetrics.MailMetrics(System.Diagnostics.Metrics.IMeterFactory? meterFactory = null) -> void
+Rask.Mail.MailMetrics.ObserveQueueDepth(int pending, int deadLetters) -> void
+Rask.Mail.MailMetrics.Sent(double milliseconds) -> void
+Rask.Mail.MailMetrics.WantsQueueDepth.get -> bool
+Rask.Mail.MailModelBuilderExtensions
+Rask.Mail.MailOptions
+Rask.Mail.MailOptions.BaseRetryDelay.get -> System.TimeSpan
+Rask.Mail.MailOptions.BaseRetryDelay.set -> void
+Rask.Mail.MailOptions.BatchSize.get -> int
+Rask.Mail.MailOptions.BatchSize.set -> void
+Rask.Mail.MailOptions.From.get -> string!
+Rask.Mail.MailOptions.From.set -> void
+Rask.Mail.MailOptions.FromName.get -> string?
+Rask.Mail.MailOptions.FromName.set -> void
+Rask.Mail.MailOptions.LeaseDuration.get -> System.TimeSpan
+Rask.Mail.MailOptions.LeaseDuration.set -> void
+Rask.Mail.MailOptions.MailOptions() -> void
+Rask.Mail.MailOptions.MaxAttempts.get -> int
+Rask.Mail.MailOptions.MaxAttempts.set -> void
+Rask.Mail.MailOptions.MaxRetryDelay.get -> System.TimeSpan
+Rask.Mail.MailOptions.MaxRetryDelay.set -> void
+Rask.Mail.MailOptions.PickupDirectory.get -> string?
+Rask.Mail.MailOptions.PickupDirectory.set -> void
+Rask.Mail.MailOptions.PollInterval.get -> System.TimeSpan
+Rask.Mail.MailOptions.PollInterval.set -> void
+Rask.Mail.MailOptions.RetentionPeriod.get -> System.TimeSpan
+Rask.Mail.MailOptions.RetentionPeriod.set -> void
+Rask.Mail.MailOptions.ShutdownGracePeriod.get -> System.TimeSpan
+Rask.Mail.MailOptions.ShutdownGracePeriod.set -> void
+Rask.Mail.MailOptions.Smtp.get -> Rask.Mail.SmtpOptions?
+Rask.Mail.MailOptions.Smtp.set -> void
+Rask.Mail.MailProcessor<TContext>
+Rask.Mail.MailProcessor<TContext>.MailProcessor(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Mail.MailOptions! options, System.TimeProvider! timeProvider, Rask.Mail.MailMetrics! metrics, Microsoft.Extensions.Logging.ILogger<Rask.Mail.MailProcessor<TContext!>!>! logger) -> void
+Rask.Mail.MailQueue<TContext>
+Rask.Mail.MailQueue<TContext>.MailQueue(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Rask.Mail.MailOptions! options, System.TimeProvider! timeProvider) -> void
+Rask.Mail.MailQueue<TContext>.ScheduleAsync(Rask.Mail.Email! email, System.DateTimeOffset runAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.MailQueue<TContext>.ScheduleAsync(Rask.Mail.Email! email, System.TimeSpan delay, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.MailQueue<TContext>.SendAsync(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.OutgoingMail
+Rask.Mail.OutgoingMail.Attachments.get -> System.Collections.Generic.IReadOnlyList<Rask.Mail.EmailAttachment!>!
+Rask.Mail.OutgoingMail.Attachments.init -> void
+Rask.Mail.OutgoingMail.Bcc.get -> System.Collections.Generic.IReadOnlyList<Rask.Mail.EmailAddress!>!
+Rask.Mail.OutgoingMail.Bcc.init -> void
+Rask.Mail.OutgoingMail.Cc.get -> System.Collections.Generic.IReadOnlyList<Rask.Mail.EmailAddress!>!
+Rask.Mail.OutgoingMail.Cc.init -> void
+Rask.Mail.OutgoingMail.From.get -> Rask.Mail.EmailAddress!
+Rask.Mail.OutgoingMail.From.init -> void
+Rask.Mail.OutgoingMail.HtmlBody.get -> string?
+Rask.Mail.OutgoingMail.HtmlBody.init -> void
+Rask.Mail.OutgoingMail.OutgoingMail() -> void
+Rask.Mail.OutgoingMail.ReplyTo.get -> Rask.Mail.EmailAddress?
+Rask.Mail.OutgoingMail.ReplyTo.init -> void
+Rask.Mail.OutgoingMail.Subject.get -> string!
+Rask.Mail.OutgoingMail.Subject.init -> void
+Rask.Mail.OutgoingMail.TextBody.get -> string?
+Rask.Mail.OutgoingMail.TextBody.init -> void
+Rask.Mail.OutgoingMail.To.get -> System.Collections.Generic.IReadOnlyList<Rask.Mail.EmailAddress!>!
+Rask.Mail.OutgoingMail.To.init -> void
+Rask.Mail.PickupDirectoryMailSender
+Rask.Mail.PickupDirectoryMailSender.PickupDirectoryMailSender(Rask.Mail.MailOptions! options) -> void
+Rask.Mail.PickupDirectoryMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.QueuedMail
+Rask.Mail.QueuedMail.Attachments.get -> string?
+Rask.Mail.QueuedMail.Attachments.set -> void
+Rask.Mail.QueuedMail.Attempts.get -> int
+Rask.Mail.QueuedMail.Attempts.set -> void
+Rask.Mail.QueuedMail.Bcc.get -> string?
+Rask.Mail.QueuedMail.Bcc.set -> void
+Rask.Mail.QueuedMail.Cc.get -> string?
+Rask.Mail.QueuedMail.Cc.set -> void
+Rask.Mail.QueuedMail.ClaimToken.get -> System.Guid?
+Rask.Mail.QueuedMail.ClaimToken.set -> void
+Rask.Mail.QueuedMail.ClaimedUntil.get -> System.DateTime?
+Rask.Mail.QueuedMail.ClaimedUntil.set -> void
+Rask.Mail.QueuedMail.CreatedAt.get -> System.DateTime
+Rask.Mail.QueuedMail.CreatedAt.set -> void
+Rask.Mail.QueuedMail.Error.get -> string?
+Rask.Mail.QueuedMail.Error.set -> void
+Rask.Mail.QueuedMail.From.get -> string!
+Rask.Mail.QueuedMail.From.set -> void
+Rask.Mail.QueuedMail.HtmlBody.get -> string?
+Rask.Mail.QueuedMail.HtmlBody.set -> void
+Rask.Mail.QueuedMail.Id.get -> long
+Rask.Mail.QueuedMail.Id.set -> void
+Rask.Mail.QueuedMail.ProcessedAt.get -> System.DateTime?
+Rask.Mail.QueuedMail.ProcessedAt.set -> void
+Rask.Mail.QueuedMail.QueuedMail() -> void
+Rask.Mail.QueuedMail.ReplyTo.get -> string?
+Rask.Mail.QueuedMail.ReplyTo.set -> void
+Rask.Mail.QueuedMail.RunAt.get -> System.DateTime
+Rask.Mail.QueuedMail.RunAt.set -> void
+Rask.Mail.QueuedMail.Subject.get -> string!
+Rask.Mail.QueuedMail.Subject.set -> void
+Rask.Mail.QueuedMail.TextBody.get -> string?
+Rask.Mail.QueuedMail.TextBody.set -> void
+Rask.Mail.QueuedMail.To.get -> string!
+Rask.Mail.QueuedMail.To.set -> void
+Rask.Mail.QueuedMailConfiguration
+Rask.Mail.QueuedMailConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Mail.QueuedMail!>! entity) -> void
+Rask.Mail.QueuedMailConfiguration.QueuedMailConfiguration() -> void
+Rask.Mail.RaskMailServiceCollectionExtensions
+Rask.Mail.SmtpOptions
+Rask.Mail.SmtpOptions.Host.get -> string!
+Rask.Mail.SmtpOptions.Host.set -> void
+Rask.Mail.SmtpOptions.Password.get -> string?
+Rask.Mail.SmtpOptions.Password.set -> void
+Rask.Mail.SmtpOptions.Port.get -> int
+Rask.Mail.SmtpOptions.Port.set -> void
+Rask.Mail.SmtpOptions.Security.get -> Rask.Mail.SmtpSecurity
+Rask.Mail.SmtpOptions.Security.set -> void
+Rask.Mail.SmtpOptions.SmtpOptions() -> void
+Rask.Mail.SmtpOptions.User.get -> string?
+Rask.Mail.SmtpOptions.User.set -> void
+Rask.Mail.SmtpSecurity
+Rask.Mail.SmtpSecurity.Auto = 0 -> Rask.Mail.SmtpSecurity
+Rask.Mail.SmtpSecurity.None = 3 -> Rask.Mail.SmtpSecurity
+Rask.Mail.SmtpSecurity.SslOnConnect = 2 -> Rask.Mail.SmtpSecurity
+Rask.Mail.SmtpSecurity.StartTls = 1 -> Rask.Mail.SmtpSecurity
+RaskBuilderSettersRask_Mail
+const Rask.Mail.MailMetrics.MeterName = "Rask.Mail" -> string!
+override Rask.Mail.EmailAddress.Equals(object? obj) -> bool
+override Rask.Mail.EmailAddress.GetHashCode() -> int
+override Rask.Mail.EmailAddress.ToString() -> string!
+override Rask.Mail.EmailAttachment.Equals(object? obj) -> bool
+override Rask.Mail.EmailAttachment.GetHashCode() -> int
+override Rask.Mail.EmailAttachment.ToString() -> string!
+override Rask.Mail.MailProcessor<TContext>.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static Rask.Mail.Email.To(string! address, string? name = null) -> Rask.Mail.Email!
+static Rask.Mail.EmailAddress.operator !=(Rask.Mail.EmailAddress? left, Rask.Mail.EmailAddress? right) -> bool
+static Rask.Mail.EmailAddress.operator ==(Rask.Mail.EmailAddress? left, Rask.Mail.EmailAddress? right) -> bool
+static Rask.Mail.EmailAttachment.operator !=(Rask.Mail.EmailAttachment? left, Rask.Mail.EmailAttachment? right) -> bool
+static Rask.Mail.EmailAttachment.operator ==(Rask.Mail.EmailAttachment? left, Rask.Mail.EmailAttachment? right) -> bool
+static Rask.Mail.MailModelBuilderExtensions.AddRaskMail(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Mail.RaskMailServiceCollectionExtensions.AddRaskMail<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Mail.MailOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

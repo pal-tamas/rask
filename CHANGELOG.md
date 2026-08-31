@@ -7,6 +7,833 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+- **The nine package ids left behind by earlier removals are retired from nuget.org.** `Rask.Native`,
+  `Rask.Templates`, `Rask.Postgres`, `Rask.SqlServer`, `Rask.ObjectStore`, `Rask.Sync`,
+  `Rask.Sync.Client`, `Rask.SQLite.Crdt` and `Rask.SQLite.Crdt.Sync` all belong to work the framework
+  has since dropped — the web-only pivot, the CLI taking over scaffolding, and the provider/CRDT
+  experiments [`roadmap.md`](docs/roadmap.md) already records as things Rask does not do. The projects
+  were gone from the tree, but the packages stayed listed, so a search for "Rask" still surfaced
+  backends that no longer exist and a `Rask.Templates` that `rask new` has not needed since 0.18.0.
+
+  They are **unlisted, not deleted**: nuget.org gives an owner no way to delete a published version,
+  deliberately, so that a pinned `PackageReference` keeps restoring. Anything already depending on one
+  of these ids keeps building; they are simply gone from search and the gallery. Nothing in the
+  supported set depends on them — `Rask.Server` and `Rask.Wasm` bundle `Rask.Core`, `Rask.Html` and the
+  generators into their own packages, and no `rask new` template emits a reference to a retired id.
+
+  The stale `.nupkg` assets were also removed from the 22 GitHub releases carrying them (v0.1.1 through
+  v0.20.0) — `Rask.Native` and `Rask.Templates` were attached to releases as recently as v0.20.0.
+  `Rask.Chrome` and `Rask.Client` needed nothing: they were never published.
+### Changed
+
+- **BREAKING: the pillar interfaces are named for what they are, not how they are built.** Every name
+  below was decided against the rule it now obeys ([`docs/api-style.md`](docs/api-style.md)): a short
+  noun with the mechanism left out, and the verb .NET already uses.
+
+  | Was | Is |
+  |---|---|
+  | `IMailQueue` | `IMail` |
+  | `IJobQueue` | `IJob` — and the job marker `IJob` became `IBackgroundJob` |
+  | `ILogStore` / `.QueryAsync` | `ILogs` / `.SearchAsync` |
+  | `IRaskSqliteConnectionFactory` | `ISqlite` |
+  | `.ExecuteInImmediateTransactionAsync` | `.InImmediateTransactionAsync` |
+  | `IWebPushSender` | `IWebPush` |
+  | `ICache.GetOrCreateAsync` | `ICache.GetOrAddAsync` |
+  | `IDispatcher.DispatchAsync` | `.QueryAsync` for a query, `.SendAsync` for a command |
+  | `SqlitePragmaOptions` | `SqliteOptions`, with `Retry` nested and `StrictTables` on it |
+
+  That a mail is queued is true and is a fact the caller never acts on — a queue that became a direct
+  SMTP write would leave every call site correct and every name a lie. `GetOrAddAsync` rather than
+  something more conversational because `ConcurrentDictionary` and `IMemoryCache` already have a word
+  for this operation, and a synonym reads better exactly once while costing every reader a translation
+  step forever. `SearchAsync` is the exception that proves it: `QueryAsync(LogQuery query)` said "query"
+  three times, so the borrowed word had stopped carrying information.
+
+  **`IDispatcher`, `IQueryClient` and `ICache` keep their names** — they name a role rather than a
+  mechanism, which is where the rule stops. `IDispatcher`'s one verb did three jobs, told apart only by
+  the parameter type; it is now `QueryAsync` to ask for data, `SendAsync` to tell the system to do
+  something, `PublishAsync` to announce that something happened. `SendAsync` was already this
+  codebase's word for it — `IRemoteDispatch.SendAsync` predates the change and is untouched.
+
+  **Jobs took the largest change and not the obvious one.** Naming the queue `IJob` meant the message
+  marker had to move, because `IJob` was already what your records implement. So a job is now
+  `record SendReceipt(Guid Id) : IBackgroundJob`, enqueued through `IJob`.
+
+- **BREAKING: two `Query` overloads instead of four, and one SQLite options delegate instead of two.**
+  `IQueryClient` had four members called `Query<TResult>`, told apart only by parameter shape; the
+  explicit key is now an optional parameter and the two ad-hoc forms merged behind an implicit
+  `string` → `QueryKey` conversion. Nothing was lost. Parameter *order* mattered more than count: the
+  obvious ordering broke 86 call sites that pass options positionally, so the rare parameter goes last.
+
+  `AddRaskSqlite` and `UseRaskSqlite` took two adjacent `Action<T>?` delegates, which cannot be told
+  apart at a call site and compile when swapped, and `UseRaskSqlite` ended in a bare `bool`. One
+  `Action<SqliteOptions>?` now carries all of it. The invisible coupling is the real fix: passing
+  `configureRetry` — even as an empty `_ => { }` — used to set `BusyTimeout` to zero. That coupling is
+  load-bearing (the async strategy owns the waiting, so SQLite's native busy handler must be off) but it
+  was inferred from whether a delegate existed. It is now `o.Retry.Enabled`.
+
+### Fixed
+
+- **A batteries-included app registered four browser APIs and then could not reach them.** `AddRask()`
+  registers `IWebPush`, `INotifications`, `IBadge` and `IWakeLock` unconditionally, but on a Server host
+  the JavaScript they need is served by `AddRaskPwa` — which nothing called. `RaskAppOptions` had a
+  battery for every other capability and none for this one. All four injected successfully and failed at
+  runtime.
+
+  There is now a **`Pwa` battery, on by default**, with a manifest named after the entry assembly so an
+  app that configures nothing is installable; `c.Pwa.Off()` declines it. `WebAppManifest`'s properties
+  moved from `init` to `set` so the battery can configure it like every other (source-compatible —
+  existing object initializers still compile).
+
+  The failure was worse than a 404. `UseRask` ends in a catch-all serving the app for any unmatched
+  path, so a missing service worker answered **200 with HTML** — `RegisterServiceWorkerAsync()` received
+  a document where it expected JavaScript. That also made the first version of the test a false green:
+  it asserted only the status code, which passes either way. The tests now assert the content type and
+  body, and are proved by disabling the wiring and watching them go red.
+
+### Added
+- **The public API is governed, and the build enforces it.** Rask's pitch is that you can read a Rask
+  program aloud, and nothing was holding the names to it: the same operation was `DispatchAsync` in
+  `Rask.Cqrs` and `MutateAsync`/`FetchAsync`/`Query` in `Rask.Query`. `ICache.GetOrCreateAsync` named
+  two operations, one of them a lie on a hit. Two adjacent `Action<T>?` parameters on `AddRaskSqlite`
+  could be swapped without the compiler noticing. There was no written rule to point at in review, and
+  no gate that could see a public member appear, change or vanish.
+
+  [`docs/api-style.md`](docs/api-style.md) is now that rule — ten of them, each with the call site in
+  this repo that motivated it. `Microsoft.CodeAnalysis.PublicApiAnalyzers` is the gate: every project
+  under `src/` that ships (plus `Rask.Core` and `Rask.Html`, which are `IsPackable=false` only because
+  they are bundled into the hosts) records its surface in `PublicAPI/<tfm>/PublicAPI.Unshipped.txt`.
+  RS0016 and RS0017 are warnings, the repo builds warnings-as-errors, so an unrecorded public change
+  fails the build and lands as a text diff a reviewer reads as English. `docs/code-analysis.md` had
+  recommended this analyzer since it was written; this adopts it.
+
+  Three things the baseline decided, none of them free choices. The files are **per target framework**
+  because five projects build for `net10.0` and `net10.0-browser`, and one flat file would report every
+  browser-only member as missing on the desktop build — every project uses that layout, including the
+  ones with a single framework today, so gaining a second one yields an empty baseline to fill rather
+  than a gate that contradicts itself. **Generated API is recorded** — 7,208 of the baseline's 20,651
+  members: Rask hand-writes almost none of what a user types, so skipping it would skip
+  `Div.Class("panel")` and `HomePage.Url()`, and it cannot be skipped cleanly anyway, since
+  path-scoped `.editorconfig` severity does not reach generator-produced trees. And **RS0026/RS0027
+  are off**: they protect callers of a frozen API from a source-breaking recompile, while Rask is
+  pre-1.0 and breaks deliberately — and since every awaitable ends in a defaulted `CancellationToken`
+  by rule, any interface with overloads trips RS0026 by construction. Revisit both at 1.0.
+
+  The gate is proved by breaking it. `scripts/tests/public-api-gate.test.sh` requires an unrecorded
+  member, a baseline entry with nothing behind it, and a deleted baseline each to fail the build,
+  against a control that requires the clean tree to be green — because a green build is equally
+  consistent with "the surface matches" and "the analyzer never ran", and this repo has shipped
+  gates that passed by not running. The deleted-baseline case is why `RaskVerifyPublicApiBaseline`
+  exists: the `Exists()` conditions that let a new project be added before its surface is written
+  down are also how coverage would silently lapse.
+
+- **A release now unlists the versions it supersedes, so the gallery shows what you would install.** A
+  nightly cadence puts hundreds of `-alpha` versions on nuget.org between releases — `Rask.Server` had
+  reached **478 versions, only 23 of them stable** — and none of them is a version anyone would pick.
+  `release.yml` gained a final step running `scripts/unlist-old-versions.sh`, which unlists every older
+  version of each package it just pushed: previous stables and nightly prereleases alike.
+
+  **Unlisted, not deleted.** nuget.org gives an owner no way to delete a published version, by design,
+  so an unlisted one still restores by exact reference and a pinned `PackageReference` keeps building.
+  It leaves search and the gallery, not the feed.
+
+  Two limits are deliberate. The step is `continue-on-error` and every path in the script exits 0 — the
+  packages are already pushed when it runs, and a tidy-up must never red a released tag. And it spends
+  a budget of ~240 calls then stops, because nuget.org rate-limits unlisting to roughly 250 before a
+  403 whose retry-after runs to tens of minutes; the remainder is picked up by the next release, which
+  supersedes it anyway. `NUGET_API_KEY` needs the **Unlist** scope, which is separate from Push — with
+  a push-only key the step no-ops with a warning rather than failing.
+
+  Package ids are derived from the `.nupkg` files just packed rather than hardcoded, so a package added
+  to `release.yml` is covered without touching the script — the gap that left `Rask.Templates`
+  published for four releases after 0.18.0 discontinued it.
+
+  Selection is real semver (`scripts/lib/unlist_select.py`), table-tested in
+  `scripts/tests/unlist-old-versions.test.sh`. Two rules there are load-bearing and were both written
+  after the test caught them: nothing **newer** than the released version is touched, and a
+  **prerelease never retires a stable** — by semver `0.21.0` is older than `0.21.1-alpha.0.1`, so
+  without that rule tagging a prerelease would unlist the current release.
+
+  Candidates come from the **registration** index (`scripts/lib/listed_versions.py`), not the obvious
+  `v3-flatcontainer/<id>/index.json`. Flat-container reports every version ever pushed, unlisted ones
+  included — `rask.native` has all 209 versions unlisted and flat-container still returns all 209 — so
+  selecting from it would spend the whole quota budget re-unlisting finished work and never reach the
+  backlog. Only registration carries `listed` per version, and an absent `listed` field means listed.
+
+### Added
+- **The publish-time prerender pass gets the batteries the boot path applies.** Prerendering returns
+  from `WasmHostBuilder.RunAsync` before `BootAsync`, and the browser batteries are wired inside
+  `BootAsync` — so a WASM app referencing the `Rask` package prerendered against a container that never
+  received them. Every page injecting anything a battery registers threw into the root boundary, each
+  route reported `threw — not written`, and the publish exited 0 having written no pages at all, behind
+  a single warning. The two halves arrived in separate pull requests and live in separate assemblies,
+  so nothing textual connected them and no test in either could see it; `PrerenderBatteryWiringTests`
+  now pins the composition by prerendering a page that needs a battery-registered service.
+
+- **`Rask` — a new batteries-included package, and `RaskApp`, the host wired the way a Rask app nearly
+  always is.**
+
+  ```csharp
+  var app = RaskApp.Create(args);
+
+  app.Configure(c =>
+  {
+      c.Jobs.Off();                                            // this app has no background work
+      c.Mail.Configure(o => o.From = "no-reply@example.com");
+  });
+
+  app.MapEndpoints(e => e.MapPushSubscriptions());
+  app.Run<App>();
+  ```
+
+  **Every battery is on.** Referencing `Rask` is what turns them on — the database, mediator, jobs, mail,
+  cache, outbox, dashboard, durable logs, Web Push, snapshots and continuous backup — and `Program.cs` is
+  where an app says which it does *without*. There is nothing to opt into, and no `AddRaskX` to remember:
+  a `Program.cs` with no `Configure` block is an app with all of them running.
+
+  The database-backed batteries find your `DbContext` themselves, off the `AddDbContextFactory<T>()` call
+  you already wrote — nothing names it twice. To configure a battery, either use the block above or call
+  its own `AddRaskX` directly; the automatic wiring runs last and every `AddRaskX` is idempotent, so a
+  direct call wins and nothing has to be turned off first.
+
+  `RaskApp` also owns the middleware order that was duplicated across four scaffolder emitters and every
+  sample, which makes two silent failures unrepresentable rather than merely documented: endpoints mapped
+  after the catch-all never run (`MapEndpoints` replays them at the only position that works), and
+  `UseAuthentication` after `UseRask` leaves `HttpContext.User` empty on the initial GET and the WebSocket
+  upgrade so every authorized page challenges (RASK024) — now placed correctly, and only when a scheme is
+  actually registered.
+
+  **`Rask.Server` is unchanged and still lean.** An app with no database references it directly and
+  carries no EF Core and no SQLite native bundles; that door is why this is a separate package.
+
+  **One package, server and browser.** `Rask` multi-targets, so the same single `PackageReference`
+  resolves to the ASP.NET host plus every server battery on `net10.0`, and to the WebAssembly host plus
+  the trim-safe ones on `net10.0-browser`. The browser group deliberately carries no EF Core, no SQLite
+  and no Jobs: those need `PublishTrimmed=false` in a browser build, and including them would force every
+  WASM app untrimmed. Measured on the showcase, the browser batteries cost **+8.8 KB brotli (+0.20%)**.
+
+  The install instructions throughout the docs now name only `Rask`; each battery's page shows its
+  off-switch instead of a `dotnet add package` line.
+
+  One consequence worth knowing: because the batteries are on, an app that runs now creates its
+  database, its log store (`logs.db`), its `mail-pickup/` directory and its `snapshots/` directory
+  beside itself. `rask new` gitignores them; turn a battery off if you would rather it did not.
+- **The `spa` template now calls `AddRaskSpaHost()`.** It was scaffolding `app.UseRaskSpa()` with no
+  matching `Add`, so the host shipped without response compression — the largest file in the app, served
+  as `text/javascript`, went out uncompressed — and, once the host defaults moved into the framework,
+  without those either. `Add` and `Use` are now scaffolded as the pair they are.
+- **RASK060 reports a second `AddRask` on the same service collection.** A second call does not add to
+  the first: its options go in with `TryAddSingleton`, which keeps the registration already there, so
+  everything the later call configures is discarded while the call compiles and reads as though it worked.
+
+  The visible casualty is `configureCulture` — the second call builds a fresh `RaskCultureOptions`, runs
+  your callback over it, then loses the registration race, so an app that named its languages ships with
+  none. It is worse than a no-op: `AddRaskCulture` still flips the process-wide `RaskCulture.IsEnabled`, so
+  negotiation turns on over an empty catalog.
+
+  Scoped to two calls in the same method body on the same receiver as written, so a test file that builds
+  one `ServiceCollection` per case — or a method configuring two side by side — is left alone.
+
+- **Build-time prerendering for standalone WASM apps** — `<RaskPrerender>true</RaskPrerender>`.
+  Such an app has no server, so every visitor and every crawler receives the boot shell: a spinner
+  and the word "Loading", because the real markup does not exist until megabytes of runtime have
+  downloaded. The publish now renders each route to real HTML and writes it beside the bundle as a
+  directory per route (`/about` → `about/index.html`), so a static host serves it at the URL the app
+  routes to with no rewrite rule. Pages go through the same root boundary and the same wave loop a
+  server's first response uses, each in its own DI scope, so a page whose `OnMountAsync` loads
+  build-time data writes **the data** rather than its placeholder. Build is untouched; this is
+  publish-only, like the bundle.
+
+  **A route that throws, or does not settle inside the budget, is deliberately not written.** Both
+  still return perfectly ordinary HTML — an error document, and the placeholder that was on screen
+  when the budget ran out — so writing either would publish it under the route's own name with
+  nothing at build time saying so, and a baked spinner is worse than no prerender because it *looks*
+  prerendered. Parameterised and catch-all routes are skipped and **named in the log, even when the
+  list is empty**: a pass that quietly covered a site's static half would read exactly like one that
+  covered all of it. A pass that writes no pages at all raises a build warning, asked of the output
+  rather than the exit code.
+
+  Driven from the app's own `Program.cs`: a browser-wasm assembly cannot execute on the desktop, so
+  the app's sources compile a second time for `net10.0` into a companion under `obj/` carrying the
+  app's own project and package references, and `WasmHostBuilder.RunAsync` prerenders instead of
+  booting when `RASK_PRERENDER_OUT` is set — so the real entry point drives the pass and there is no
+  second place to keep service registrations in sync. The engine is public for direct use:
+  `RaskPrerender.PlanRoutes()` and `RaskPrerender.RenderDocumentAsync(...)`, the latter taking no
+  route on purpose, because the caller is what holds the route table. See
+  [`docs/prerendering.md`](docs/prerendering.md).
+
+- **`rask new --wasm` scaffolds remote CQRS dispatch, which nothing had done since the `wasm-hosted`
+  template was removed** ([#868](https://github.com/pal-tamas/rask/issues/868)). A `--wasm` app is
+  exactly what wants it: the browser rung moves an eligible page into WebAssembly, and `RASK054` steers
+  authors towards reaching data through a CQRS message *precisely because* those already cross the wire
+  — but they only cross it when the transports are wired. Left in-process, a page that looks eligible
+  either fails in the browser or answers from nowhere.
+
+  The one-project build made this simpler in one way and harder in another. Simpler, because one set of
+  sources compiles into both halves, so the message records are shared by construction and there is no
+  Shared project to put them in. Harder, because the same collapse removes the natural place to keep the
+  two transports **apart** — one project means one reference list, and `Rask.Cqrs.Client` in the server
+  would ship endpoint-calling code into the process that answers those endpoints, which is the
+  arrangement those two packages were split up to prevent. Two new seams on the browser companion and
+  one folder convention restore it:
+
+  - **`RaskBrowserPackageReference`** — a reference the bundle gets and the server does not.
+  - **`RaskBrowserStartup`** — names a type whose `Configure(IServiceCollection)` the generated entry
+    point calls **before** the app runs. The browser half has no `Program.cs` of its own (that file is
+    the server's, and the companion excludes it), so without this there was nowhere to register
+    anything at all.
+  - **`Browser/` is the mirror of `Server/`**, and the server is what excludes it. A browser-only
+    reference reaches the companion alone, so a file using one has to sit somewhere the server does not
+    compile — without this the reference seam had no possible user, and the scaffolded app failed to
+    build in the half missing the package. The two folder names are now how a file says which half it
+    belongs to; everything else still compiles into both from one copy.
+
+  `MapRaskCqrs()` is mapped after `UseRouting` and before `UseRask`, whose catch-all would otherwise
+  answer those endpoints. **Without `--auth` the scaffold sets `RequireAuthenticatedUser = false` and
+  says why**: the default is on and right for an app with a sign-in, but an app with no authentication
+  to require would answer 401 to every message, and that failure reads as broken transport rather than
+  as the secure default working.
+
+  All three are general rather than CQRS-specific, and `RaskBrowserPackageReference` is the one the
+  feed-coverage guard could not see — it is not a `PackageReference`, so it never reached `ScaffoldResult.Packages`, the exact shape
+  where a missing package means no build case can *exist* rather than one that fails.
+- **The bundled chunks are registered as static web assets, so `app.MapStaticAssets()` serves them.**
+  The bundle is written into `wwwroot` *after* the SDK has globbed it at evaluation, so nothing it
+  discovered knew the files existed: a published app returned the page's own HTML for both the chunk
+  and `manifest.json`, and the client reported `Unexpected token '<'` with nothing mounted. Adding
+  `app.UseStaticFiles()` hid it, which is why the first browser runs looked fine. The build now
+  contributes the output through `DefineStaticWebAssets`/`DefineStaticWebAssetEndpoints` in the
+  computed **build** pass — the assets are `AssetKind=All`, so they reach the publish manifest
+  without being registered twice — and the generated directory is excluded from the `wwwroot` glob so
+  there is exactly one registration path on the first build and the tenth.
+
+  A publish that produces no endpoint for the bundle now **fails** with `RASKISLAND003`. The guard
+  reads the endpoints manifest rather than looking for the files, because the files were present and
+  correct the whole time the feature was broken — a file-existence check would have passed throughout.
+
+- **A `.tsx` or Lit file can now be an ordinary Rask component.** Derive from `ReactComponent` or
+  `LitComponent`, drop the front-end file beside it the way `Counter.js` already sits beside
+  `Counter.cs`, and place it anywhere the chain goes — a leaf inside a card, a subtree, or the whole
+  of a `[Route]` page's `Render()`. There is deliberately no separate "page" concept: "React owns this
+  route" is the case where the component happens to be the page root, so replaceability is a property
+  of the *component* rather than of the route, and it composes at every level of the tree. New
+  `Rask.External` package; see
+  [docs/external-components.md](docs/external-components.md).
+
+  **The base class is the declaration.** It states the runtime in the one place that cannot disagree
+  with what actually mounts, which is also what lets a Lit component pair with `./Name.ts` by
+  convention — a Lit file is ordinary TypeScript and no extension distinguishes it, so a marker
+  attribute would have meant naming the runtime twice with nothing keeping the two in step. The cost
+  is the single-inheritance slot: a component already extending `BsBlock` cannot also be a
+  `ReactComponent`. That is the deliberate trade rather than an oversight — chrome in Rask comes from
+  the chain, not from inheritance, so the answer is `BsCard[ Chart.Series(points) ]`.
+
+  It also lets the type system replace an analyzer. `ExternalComponent` seals `Render()`, so writing
+  one is CS0239 from the compiler itself, with no analyzer needed; a rule the type system can state
+  does not need an analyzer to notice it. Override `Module` with a *constant* string to point
+  somewhere convention cannot reach — the bundler reads it at build time, so anything computed is
+  **RASK059**.
+
+  **The props types cross back into TypeScript.** The generator emits an interface per component —
+  `ChartProps`, with any record it is composed of declared alongside it — so the `.tsx` imports the
+  shape rather than restating it. Renaming a C# property then stops the front end compiling instead
+  of arriving as `undefined` in a browser. Nullability survives (`heading: string | null`, still
+  required, because the writer emits the key with a JSON null and "never set" differs from "set to
+  nothing"), a callback is an optional function returning `void` (there is no promise on that side to
+  await), and a route parameter is an ordinary typed prop like any other.
+
+  **And `dotnet build` checks it.** Each front-end file is type-checked against the props its C#
+  declares, so the guarantee holds by default rather than for whoever remembers to run `tsc` —
+  `error TS2339: Property 'level' does not exist on type 'DialProps'` fails the build that generated
+  the type. Roughly 0.2s; `RaskExternalTypeCheck=false` opts out. A component importing nothing from
+  npm is checked with nothing installed, which is what keeps the no-npm path covered; a project with
+  a `package.json` it has not installed is skipped with a message, because there is no weaker mode
+  that works — TypeScript's no-resolve mode stops resolving the generated props too, so the contract
+  error never fires and correct and incorrect code fail identically.
+
+  **Vite is the only bundler, and the project needs Node.** An esbuild path with no npm was designed
+  and rejected: esbuild can do the whole job, but two bundlers means two failure modes and "why does
+  it work in project A but not B" for the life of the feature — and the no-npm audience was narrower
+  than it looked, since a real Lit component imports `lit` from npm. Rask itself stays npm-free;
+  needing React from npm is inherent to asking for a React component.
+
+  **Both hosts are verified in a browser.** The same byte-identical `.tsx` mounts, takes its C# props
+  and round-trips a typed callback on the Server host over the WebSocket and on WASM through a
+  `[JSExport]` call into the tab's own runtime — server state and React's local state advancing
+  together, which is what shows the adapter reconciles rather than remounts.
+
+  **C# owns the props.** They are declared as ordinary properties, so the chain, the required-prop
+  rule and every existing analyzer apply unchanged, and they are serialized by generated
+  `Utf8JsonWriter` code rather than by reflection — which is what lets them survive trimming and
+  AOT. The prop vocabulary is the one the CQRS codecs already use; `WireShape` and the TypeScript
+  emitter moved to `Rask.Generators.Shared` so there is one answer to "what does this C# type look
+  like on the wire", not two that drift.
+
+  **Callbacks re-enter C# over the channel every DOM handler already uses** — the open WebSocket on
+  the Server host, a direct `[JSExport]` call into this tab's runtime on WASM. Such a component never opens
+  a channel of its own, so a callback inherits sequence stamping, the queue-while-reconnecting and
+  the auth suppression window for free, and the `.tsx` is byte-identical on both hosts. A callback
+  prop also makes its page interactive under the auto render ladder, exactly as `data-rask-on-click`
+  does — a component whose callback could never fire would otherwise render, load its chunk and mount
+  looking finished, then do nothing on the first click. One with no callbacks still costs a
+  page nothing: it mounts from its own script tag and the page stays a plain document.
+
+  **The live diff treats the subtree as opaque**, because React reconciles those nodes on its
+  own schedule and two writers on one subtree does not throw — it corrupts on the next parent
+  re-render. `Component` gains `OpaqueSubtree`; the flag rides `RenderFrame` so the differ skips by
+  `SubtreeLength`, and is written into the HTML as `data-rask-opaque` so the client morph refuses to
+  descend. Both are needed: the diff and the full-HTML fallback are separate paths to the same DOM,
+  and the morph is the one that bites: inside the boundary the live DOM and the server's HTML
+  genuinely disagree — the framework has replaced what was rendered, and the slot templates were
+  lifted out at mount — so a positional walk would trim every mounted node.
+
+  What crosses the boundary is props, and only props. A changed prop travels as a single attribute op
+  and the client routes it to the adapter's `update`, so an update is a reconcile and never a
+  remount — the component keeps its scroll position, its focus, its open dropdown and its half-typed
+  field. Callbacks keep their identity across updates for the same reason: React compares props by
+  identity, so a fresh closure per render would invalidate every `useCallback` and `memo` keyed on it.
+
+  React and Lit ship first, and Preact rides the React adapter unchanged — a Preact project aliases
+  `react` to `preact/compat`, which is the same aliasing the TypeScript SPA lane already relies on.
+  The client runtime imports no framework at all: each built chunk default-exports its own
+  adapter, three functions wide, so further runtimes are additive.
+
+  `dotnet build` writes one entry module per component and hands Vite a generated config that builds a
+  chunk each plus the manifest the runtime resolves names through. **Node runs only when a project has
+  a `package.json`** — that single probe is the gate, so an app with none of them, and one whose components are
+  all `.razor`, never learns this package has a build step.
+
+  **Slots.** One can wrap Rask-rendered content, so replacing a component mid-tree does not
+  strand its descendants: `Panel[ ExternalSlot.Named("footer")[…], Table.Rows(_rows) ]`. The server
+  renders each slot into an inert `<template data-rask-slot="…">` — so Rask-owned nodes cannot flash
+  between first paint and mount — and the client lifts it into a fragment the adapter places. React
+  adopts into an empty ref'd container it never renders children into; Lit needs no trick, because a
+  custom element projects light-DOM children through `<slot>` natively. Slot content is placed once,
+  at mount: making it live needs updates addressed by marker rather than by DOM path, since the diff
+  addresses nodes positionally and an adapter has moved them by then.
+
+  New diagnostics RASK056–RASK059. These moved three times before landing: RASK051/052 turned out to
+  be taken by translations despite `CLAUDE.md` listing them free, then #865 took RASK054, then #871
+  took RASK055 — each after a grep at branch time said otherwise. Three assemblies allocate in this
+  space and RS1019 only checks one compilation, so a merge from main invalidates every id a branch
+  holds.
+- **`curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh` installs Rask on a machine with nothing
+  on it.** Installing used to be one line — `dotnet tool install -g Rask.Cli` — which only works on a
+  box that already has the .NET 10 SDK, and installs the tool and nothing else. The CLI shells out to
+  more than that, and each missing piece was discovered by failure: `rask db` needs `dotnet-ef`, every
+  browser-wasm build needs the `wasm-tools` workload (**nothing checked for it** — it surfaced as a raw
+  MSBuild error, warned about only in prose in the README), and `rask new --template react|vue|…` needs
+  Node ≥ 22.12.
+
+  `rask.sh` and its Windows twin `rask.ps1` install the SDK, the tool, `dotnet-ef`, the workload and
+  Node LTS, then run `rask doctor`. Everything lands under `$HOME`: no `sudo`, no distro package
+  manager, nothing written outside the home directory, and an SDK already on the box is detected and
+  left alone. Docker is deliberately **detected and reported, never installed** — putting a container
+  runtime on someone's workstation is not a call an installer gets to make, and only `rask deploy`
+  needs it. Node is verified against the SHA-256 nodejs.org publishes before it is unpacked, the same
+  shape `Rask.Tailwind.Tasks` already uses for the Tailwind binary.
+
+  Re-running upgrades: the script installs or updates as appropriate and rewrites its `PATH` block
+  rather than appending a second copy. `--dry-run` is exact rather than approximate — every mutating
+  call goes through one wrapper that prints instead of running, and a gate case asserts that a
+  `--dry-run` on a bare container leaves the filesystem byte-identical. `--version`, `--prerelease` and
+  a `--no-*` for each dependency are documented in the new [installation guide](docs/installation.md);
+  an unknown flag exits 2, because an installer that shrugs off a misspelled `--no-node` installs the
+  thing you opted out of.
+
+  On `curl | sh`: a dropped connection can leave `sh` executing half a script — the reason
+  `HostBootstrap.cs` downloads `get.docker.com` to a file before running it. `rask.sh` closes that
+  structurally instead of dropping the pipe: every statement is inside a function and the file's last
+  line is the only thing that calls one, so a short read defines some functions and runs nothing. The
+  test asserts it empirically, by running prefixes of the real file and requiring that none reaches
+  `main`.
+
+  Two things it found on the way, which had no coverage before: Microsoft's `dotnet-install.sh` is a
+  **bash** script, so invoking it with `sh` works on macOS (where `/bin/sh` is bash in POSIX mode) and
+  dies on Debian with a syntax error from a file the user never asked for; and `dotnet-install.sh`
+  unpacks a tarball without installing the native libraries the runtime links against, so on a slim
+  image the SDK installs and then cannot run — now diagnosed by name, with the `libicu` line for each
+  distro, instead of failing three steps later.
+
+  Also fixed: `rask.sh`/`rask.ps1` sit at the repo root, which matched none of the `.githooks/pre-commit`
+  path filter's directory prefixes — a commit touching only the public installer was the one commit that
+  ran neither the formatter nor any test.
+
+### Changed
+
+- **The three battery source generators are one analyzer assembly, `Rask.Batteries.Generators`.**
+  `Rask.Cqrs.Generators`, `Rask.Jobs.Generators` and `Rask.Outbox.Generators` were three csproj files,
+  three shipped DLLs and three test projects for what is substantially one thing. The jobs and outbox
+  generators are the same `RegistryGeneratorBase` over a different marker interface, so each assembly
+  compiled its own copy of the base — and with it its own copy of `RASK035`'s descriptor. Two shipped
+  assemblies declaring one diagnostic id is precisely the defect class `RS1019` cannot see, because it
+  does not look across an assembly boundary; it bit `RASK022` before. Seven shared source files are now
+  compiled once instead of being linked into two or three analyzers, and the three `*.Generators.Tests`
+  suites are one, running the same 94 cases.
+
+  Only `Rask.Cqrs` packs the merged analyzer, and that is load-bearing rather than tidy. Analyzers reach
+  a consumer once per package carrying them, so the same generator arriving from two packages emits
+  every registry type twice — `CS0101: already contains a definition for '__RaskJobsRegistry'`, in the
+  consumer's build, from a file they never wrote. `Rask.Jobs` and `Rask.Outbox` both depend on
+  `Rask.Cqrs`, so the analyzer still reaches an app referencing only one of them.
+  `PackageDependencyTests.Exactly_one_package_ships_the_batteries_analyzer` pins the single shipper;
+  moving the payload the other way would not fail a build at all, but dead-letter the first job or
+  outbox event at runtime.
+
+  No generated code changed, and nothing in the public API moved.
+
+### Removed
+
+- **`--culture` and `--no-localization`. Languages are configured in `Program.cs`, and only there.**
+  ([#854](https://github.com/pal-tamas/rask/issues/854)) A scaffolded server app already registers
+  English in an `AddRask(configureCulture: ...)` block, and adding a second language is a line in that
+  block. A flag could only restate at scaffold time what the file goes on being the truth about — and
+  the file is the half that stays correct.
+
+  Both are refused by name rather than ignored. `--culture` took a *value*, which makes ignoring it
+  worse than usual: the tag would be swallowed as a stray argument and the app scaffolded in English
+  while the command line said Hungarian, with nothing reporting it.
+
+  The generated block is now one `c.SupportedCultures.Add("en");` per language rather than a `foreach`
+  over an array. It is the place an app adds its second language, so it has to read as a list you
+  extend rather than a loop to understand first — and at one language the loop was only noise.
+
+  **`TemplateInfo.OptInFlags` goes with it.** Localization was its only member, so what remained was
+  four call sites and an unreachable error message; `ShipsLocalization` says the one thing that is
+  actually per-template. `localization` also leaves `SupportedFlags`, which is printed back to users
+  verbatim ("It supports: auth, docker, pwa") — leaving it there would have advertised a flag that no
+  longer exists.
+
+  Browser-WASM still scaffolds no language registration, and the reason is unchanged: culture data is
+  roughly a megabyte on the wire, and it is the one part `Program.cs` cannot switch on by itself, since
+  `RaskGlobalization` is an MSBuild property. That property is scaffolded **commented out** with the
+  reason beside it, so shipping a language there stays two deliberate edits.
+- **The `wasm-hosted` template.** `rask new --template wasm-hosted` is now a usage error naming the
+  templates that remain. Two are left, and they answer the only question that was ever an author's:
+  **does this app have a backend?** — `server` or `wasm`.
+
+  It scaffolded a Client/Server/Shared trio, which is the hand-written version of what the one-project
+  build now does automatically — except a hosted-WASM app is useless until its bundle lands, while
+  `rask new --wasm` is useful on first paint and degrades to the server when the bundle never arrives.
+  Pre-1.0, so it is removed rather than deprecated.
+
+  **Existing solutions of that shape keep working.** Only the scaffolding is gone: `rask dev` still
+  resolves the `.Server` host, `rask deploy` still ships it, and the operator dashboard still mounts
+  there. That detection is generic — this repo's own `Rask.Example.Wasm.Host` sample has the shape.
+
+  **One capability lost its only scaffold:** remote CQRS dispatch (`Rask.Cqrs.Client` /
+  `Rask.Cqrs.Server`) was wired by this template and by nothing else. The packages were unchanged and an
+  app could still wire them by hand — but nothing generated the arrangement, and a `--wasm` app whose
+  pages move to the browser is exactly what wants it. `rask new --wasm` now scaffolds it again
+  ([#868](https://github.com/pal-tamas/rask/issues/868)); see the entry under **Added** above.
+
+### Fixed
+- **A gate that does not run now says so, and a red run under contention says that too.** Two reports
+  about the same failure mode — a gate whose silence is indistinguishable from success
+  ([#845](https://github.com/pal-tamas/rask/issues/845),
+  [#850](https://github.com/pal-tamas/rask/issues/850)).
+
+  The four path-filtered `pre-push` gates — CLI build, watch hot-reload, deploy, install — took a bare
+  `:` branch when nothing in a push matched their paths, printing **nothing at all**. Each now prints
+  one `… SKIPPED — nothing in this push matches the … paths.` line. And one filter was wrong:
+  `src/Rask.Core/build/` was not in `watch_paths`, so a change to `Rask.Core.targets` — the file that
+  *builds* `@(Watch)`, and therefore decides what `dotnet watch` can see at all — did not select the
+  hot-reload gate. The one hot-reload change the hot-reload filter could not catch was a change to the
+  watch list itself.
+
+  **#845's stated mechanism turned out not to be the cause, and is recorded as such.** It reported
+  that a push from a worktree runs the *main checkout's* hooks, because `core.hooksPath` is relative.
+  It does not: git resolves that path against the pushing worktree's own top level. Verified on git
+  2.50.1 in a throwaway repo, pushing from a linked worktree whose `.githooks/pre-push` differed from
+  the main checkout's, from the worktree root and from a subdirectory — the worktree's copy ran both
+  times. So a hook change *is* exercised by the push that introduces it. One real caveat did come out
+  of it: a branch containing no `.githooks/` runs **no hook at all**, with no fallback and no message.
+  `CONTRIBUTING.md` and `docs/development-workflow.md` now state the resolved behaviour instead of
+  leaving it to inference.
+
+  For #850, contention is now *named at the moment of failure* rather than guarded against in advance,
+  which is where the cost actually sits: a timing-sensitive suite that goes red under a competing
+  build reads as a real bug for hours. `run-e2e-local.sh`'s test run was the script's last statement
+  under `set -e`, so a red suite propagated an exit code with no explanation layer — unlike its own
+  build step. Both it and `run-unit-local.sh` now check for a competing heavy build (`dotnet
+  build`/`test`/`publish`/`msbuild`/`pack`, ignoring MSBuild worker nodes so one build is not reported
+  as eight) and add a line asking for a re-run alone before investigating. `pre-commit` warns when a
+  browser gate is live and **never refuses** — every commit runs that hook, and a blocked commit is
+  worse than a slow one.
+
+  Also fixed: the concurrency guard's own refusal was classified as `unknown`, so the hook printed
+  "look for a failing assertion, a timeout, or a host that exited early" — about a suite that never
+  started — directly beneath the guard's correct "wait for the run above to finish". There is now a
+  `busy` kind saying nothing ran. It sits below `code`: a real `error CS` still wins, because if
+  something got far enough to fail compiling then something did run.
+- **`rask doctor` reports all seven dependencies the CLI shells out to, and two of them by version.**
+  It probed three ([#883](https://github.com/pal-tamas/rask/issues/883)). The `wasm-tools` workload,
+  Node, npm, `git` and `ssh` were each discovered by failure instead — the workload worst of all,
+  since nothing checked for it anywhere and a missing one surfaces as `NETSDK1147`, which reads like a
+  broken machine rather than a missing install.
+
+  Two probes needed more than presence. A .NET 9 box showed a **green** `dotnet sdk` row and then
+  failed at the first build, because the row printed whatever string the tool returned and read
+  nothing into it. And `ssh -V` writes its banner to **stderr**, leaving stdout empty — so the shared
+  capture helper, which reads stdout only, reported a perfectly good `ssh` as missing; it has its own
+  probe now. Every new row is a warning, never a failure: `dotnet` remains the one dependency fatal to
+  everything.
+
+  The test double had to change first. It answered every `CaptureAsync` with one fixed result, and all
+  six tools are asked `--version` — so no test could tell them apart, and a probe wired to the wrong
+  executable would have passed. It now dispatches on the executable, and each probe is asserted with
+  exactly one tool broken and the rest healthy.
+
+- **The Node version Rask asks for is the one that can actually scaffold.**
+  ([#886](https://github.com/pal-tamas/rask/issues/886)) There are two numbers here and they had been
+  conflated. `RaskSpaMinimumNode` (22.12.0) is the floor an **already-scaffolded** app builds on,
+  enforced as RASKSPA005, and it is unchanged — raising it would break projects that build fine today.
+  What `rask new` needs is higher, because scaffolding a front-end template shells out to somebody
+  else's current CLI: `create-vite@latest` and `@angular/cli@latest` track the Active LTS and raise
+  their own floors whenever they like. Angular's already refuses below `^22.22.3 || ^24.15.0 ||
+  >=26.0.0`.
+
+  So a machine on 24.14.0 installed cleanly, built everything, and then failed `rask new --template
+  angular` at exit 1 — *after* the project directory existed — having been told 22.12 was enough. The
+  CLI now names the LTS line (24 "Krypton"), `rask doctor` warns when Node is below it, and the
+  installers' `RASK_INSTALL_NODE_MIN` rises to 24.15.0 so a box with an older Node is upgraded rather
+  than left unable to use what was just installed.
+
+  The external scaffolders are deliberately **not pinned**: pinning would freeze every generated
+  project on a scaffolder that ages out, and these templates are meant to be whatever those tools ship
+  today. The floor moves instead. Both numbers live in one place (`NodeRequirement`), and a test reads
+  `RaskSpaMinimumNode` out of the **shipped** props file and fails if the two ever disagree — a copy
+  of a version number is otherwise just a third place for it to be wrong.
+- **Editing an ambient `.d.ts` reaches the build again, and the whole scoped-asset watch list is now
+  tested.** `rask dev` has claimed that scoped assets apply live since long before they did
+  ([#862](https://github.com/pal-tamas/rask/issues/862)). The wiring itself landed with the TypeScript
+  migration — `dotnet watch` collects `@(Compile)`, `@(EmbeddedResource)`, the project file and Razor
+  content, never `@(None)`, so a scoped asset reaches the watcher only through `@(Watch)` — but
+  nothing ever asserted it, which is precisely why the promise could drift that far unnoticed.
+
+  Writing that missing guard found one input still left out: a `.d.ts` is an `Inputs` entry on the
+  scoped-TypeScript compile target and is handed to `tsgo` alongside the `.ts` files, so editing one
+  changes what the build emits — and reached nothing until some *other* file was touched. Ambient
+  declarations are now watched, and the `<Watch>` sits beside the project glob rather than at the end
+  of the group so it captures the app's own declarations and not the packaged `rask-globals.d.ts`,
+  which cannot change under an app.
+
+  The guard evaluates the real targets with MSBuild rather than reading them as text: a
+  `Contains("<Watch Include=")` would pass on a line inside a dead condition, spelled against an empty
+  item group, or cancelled by an exclude — every way this can actually break. Membership is asserted
+  exactly, with decoys under `bin/`, `obj/`, `wwwroot/` and `node_modules/`, so widening a glob fails
+  it too and not only removing one; all four mutations were confirmed to go red.
+- **A WASM app has never shipped full ICU, and the property meant to request it was misspelled.**
+  ([#853](https://github.com/pal-tamas/rask/issues/853)) `Rask.Wasm.targets` set
+  `WasmIncludeFullIcu`; the SDK's property is `WasmIncludeFullIcuData`. MSBuild has no
+  unknown-property diagnostic, so it set a name nothing consumed — silently, for as long as the
+  feature existed. Evaluated on the showcase: `WasmIncludeFullIcu` was `true` and
+  `WasmIncludeFullIcuData` empty.
+
+  The spelling is corrected and pinned by a test that reads the **SDK's own targets** rather than
+  restating the name, so a constant here cannot become a second place for the same typo. Mutation-
+  checked: reverting to the old spelling fails it.
+
+  **Correcting it does not, on its own, ship full ICU** — measured, not assumed. Publishing the WASM
+  showcase with the property `true` and `false` gives *byte-identical* output: three shards, no
+  `icudt.dat`, 4,444,863 brotli bytes either way. The property is honoured in
+  `_GetWasmGenerateAppBundleDependencies`, part of the `WasmAppBuilder` bundle path; a Rask app
+  publishes through `Microsoft.NET.Sdk.WebAssembly`, whose static-web-assets pipeline never runs that
+  target and has no ICU handling of its own.
+
+  So the limitation the property was added to close is **still open**, and is now documented instead of
+  being described as fixed. The runtime loads one shard, chosen at boot from `navigator.languages[0]` —
+  the *visitor's browser*, not the languages the app ships. An `en`+`hu` app opened in an English
+  browser gets `icudt_EFIGS.dat`, which has no Hungarian, and with `PredefinedCulturesOnly=false`
+  `hu-HU` resolves, does not throw, and formats dates in English. It was invisible to the obvious
+  check, because testing Hungarian in a Hungarian browser loads `icudt_no_CJK.dat` and is correct.
+
+  The published size figures are unchanged and were never wrong — re-measured at +3.90 MB raw /
+  +1.06 MB brotli (+33%) against the documented +3.92 / +1.05 (+32%). They were always the cost of the
+  shards; only the claim about what that bought was wrong.
+- **The prose caught up with the removal of the `wasm-hosted` template.**
+  ([#897](https://github.com/pal-tamas/rask/issues/897),
+  [#898](https://github.com/pal-tamas/rask/issues/898)) #877 swept the generator and the catalog; the
+  documentation and the comments around them were left describing a template that no longer exists.
+
+  Two pages actively misled. `docs/deployment.md` kept a runnable `docker build` block and said "the
+  Dockerfile installs the `wasm-tools` workload" — for a Dockerfile nothing writes any more; it now says
+  plainly that the shape is recognised but not scaffolded, that its Dockerfile is yours, and points
+  anyone starting today at `--wasm` on a server app. `docs/authentication-cookie.md` told the reader the
+  generating template was gone and then documented a `MyApp.Server`/`MyApp.Client` layout with no way to
+  produce one; it now names the two samples that *are* that arrangement as the working copy.
+
+  `ProjectGenerator`'s class remark listed `.WasmHosted.cs` among the files to read — the map a reader
+  uses to find a template's emitter, pointing at a deleted file. The rest were comments naming the
+  template as current in `TemplateCatalog`, `ProjectGenerator.{Batteries,Shared,Spa,Wasm}`,
+  `ScaffoldResult`, `ProjectContext` and `NewCommand`.
+
+  Deliberately left alone: `DevTarget` and `DevCommand`, and the host-side remarks in `Rask.Server` /
+  `Rask.Wasm.Hosting` / `Rask.Dashboard`. Those describe a client-plus-host *shape* that still exists —
+  the detection is what keeps solutions built on the old template working — rather than a template.
+
+  Also corrected in `llms.txt`, both about CQRS rather than templates: `file.AsRemote()` has no
+  remaining reference in `src/` (a message declares a `RaskFile` directly), and chunked upload is no
+  longer "not implemented" — it shipped in #764, with the client's unused 409-resume path now tracked as
+  [#895](https://github.com/pal-tamas/rask/issues/895).
+- **`RaskCqrsClientOptions.Timeout` now applies on the path a browser client actually takes.**
+  ([#893](https://github.com/pal-tamas/rask/issues/893)) `ResolveHttpClient` set `HttpClient.Timeout`
+  only when it *constructed* the client itself. A same-origin WASM app takes the other branch — it
+  reuses the container's `HttpClient`, whose `BaseAddress` is the page origin, which is exactly what
+  `AddRaskCqrsClient()` is documented as needing no configuration for. So the option was accepted and
+  then disregarded on the default path: this repository's most expensive bug class.
+
+  The timeout is applied **per request** now, through a `CancellationTokenSource` linked to the
+  caller's token, which is also what the option's own summary has always promised ("applies per
+  attempt"). Setting it on the shared client instead would be wrong twice over — the client belongs to
+  the app, and `HttpClient.Timeout` throws once a request has been started on it. It is scoped to the
+  send rather than the whole dispatch, so a chunked upload of many requests is not aborted mid-transfer
+  by a budget meant for one.
+
+  The test asserts **elapsed time**, not just the exception, and that half is load-bearing: without it
+  the test still passes against the bug after ~100 s, on `HttpClient`'s own default timeout. Verified
+  by reverting the fix — it went green in 1 m 40 s instead of milliseconds, which is a test passing for
+  the wrong reason.
+- **A dropped upload chunk resumes instead of failing the whole dispatch.**
+  ([#895](https://github.com/pal-tamas/rask/issues/895)) The server has always echoed
+  `X-Rask-Upload-Offset` and answered **409** on a mismatch — 409 rather than 400 precisely so the
+  offset it holds can ride along — and the client read neither, throwing on any non-2xx chunk. So a
+  single lost chunk failed an upload the protocol was built to recover, and the affordance cost server
+  code and a documented status code while delivering nothing.
+
+  The client now restarts from the offset the server reports, in either direction: less than it sent (a
+  chunk was lost) or more (a retry it thought had failed did land). The stream is **re-opened** rather
+  than sought, because that is the one thing guaranteed to work on every host — a `RaskFile` reads in
+  slices through `Blob.slice` in the browser and a `FileStream` on the server — and a non-seekable
+  stream is advanced by read-and-discard.
+
+  Bounded twice, so it cannot spin: three attempts per file, and the reported offset must **change** —
+  a server repeatedly naming the offset the client is already at is a disagreement retrying cannot
+  settle, so it surfaces as a `RemoteDispatchException` carrying 409 rather than looping until a budget
+  runs out. Resume is in-session only; a browser's `File` handle dies with the page, which
+  `docs/cqrs.md` now states along with `ChunkedUploadThreshold` being load-bearing for browser memory
+  rather than a tuning knob.
+- **`docs/forms.md` says what a bind costs, and how to make it cheaper in a hot component.**
+  ([#803](https://github.com/pal-tamas/rask/issues/803)) `Bind(() => …)` takes an
+  `Expression<Func<T>>`, and the compiler builds that tree at the call site on **every render** —
+  resolving a member token on the bound property's declaring type, at a cost that scales with how many
+  members that type has. Binding a property declared on the component costs **5011 B/render** against
+  **3041 B** for the same bind on a plain model, and nothing at the call site suggests the two differ.
+
+  Documented rather than fixed, because the fix is not available: measured and recorded on the issue,
+  a Roslyn interceptor cannot help — an interceptor must keep the intercepted method's signature
+  (CS9144) and the lambda is converted to a tree when the call is *bound*, before interception applies
+  — and adding a `Func<T>` overload does not help either, because C# prefers the `Expression` one.
+
+  What does work is at the call site: **hoist the expression into a field** so it is built once.
+  That converges the two shapes at 2721 B (plain model) and 2753 B (component property) — hoisting
+  does not merely help the expensive case, it erases the difference. `AllocHoistedMarkupHostProbe`
+  pins the second number, so the advice cannot drift away from what the framework does.
+
+  The cost is also not what the issue's title said: it is not `Component` deriving `RaskMarkup`.
+  Inherited members are free — a locally-declared `RaskMarkup` subclass binds at 312 B — and the
+  charge is the ~433 chain entries the generator *injects* into each markup host, which makes the
+  property's declaring type large.
+- **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
+  Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
+  file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours
+  with `NU5118`, and the package shipped a 163-byte import shim in place of the 3.7 KB props. Every
+  `RaskExternal*` property the targets stand on — the output directory, the public base path, the
+  enable switch — was simply absent for anyone consuming the package, while the `.targets` that reads
+  them shipped intact.
+
+  No gate in the repo could see it. In-repo builds import the real file straight off disk via
+  `Directory.Build.props`, so the build, the unit suite and every E2E run pass either way; only
+  `dotnet pack` notices, and only `nightly`/`release` pack. `Rask.External` was added to
+  `nightly.yml` in the same change that introduced it, so its first pack ever was after merge.
+  `Rask.Bootstrap` hit this first and solved it; the fix is the same one-line
+  `StaticWebAssetsDisableProjectBuildPropsFileGeneration`, plus the two guarded `Import`s our file
+  must now carry in the generated one's place — without them a consumer gets no URL for
+  `rask-external.js` and every external component fails to mount.
+
+  Two packaging contracts now pin it: a Razor-SDK project that hand-writes `build/<PackageId>.props`
+  must disable the generated one, and a project that disables it must import the static-web-asset
+  props it replaced. Both were proved by failing them.
+
+- **Targets that invoke a generated MSBuild task now wait for the reference that produces it.**
+  `main` went red at #871: `pages` and `nightly` both failed with MSB4062 — the
+  `ResolveTypeScriptToolTask` "could not be loaded" from
+  `src/Rask.Core/build/Rask.TypeScript.Tasks.dll` — and each took a downstream job with it, so the
+  docs site stopped deploying and no nightly prerelease was published
+  ([#878](https://github.com/pal-tamas/rask/issues/878)).
+
+  The `UsingTask` registration was not the problem; the build-order edge was. `Rask.Wasm ->
+  Rask.Core -> Rask.TypeScript.Tasks` is honoured at `ResolveProjectReferences`, but the three
+  bundle targets in `Rask.Wasm.csproj` and the two in `Rask.Server.csproj` run at
+  `BeforeTargets="PrepareForBuild"` — the first target in `CoreBuild`, long before references
+  resolve. So they invoked a task whose assembly the edge had not produced yet. They now state
+  `DependsOnTargets="ResolveProjectReferences"`, which is the dependency they always had.
+
+  The DLL is generated and gitignored, so this only ever reproduced on a tree that had never built —
+  and the failed build left the DLL behind, so re-running the identical command passed. Solution
+  builds order the task project ahead of its consumers, so every local gate was green. `ci.yml` was
+  green too, but *not* because it never reached the bug: it builds `Rask.Benchmarks`, which
+  references `Rask.Server` and so ran a broken call site on every clean-tree run. It won the race —
+  MSBuild happened to schedule `Rask.Core` (and through it the task project) ahead of `Rask.Server`
+  within the same reference batch. That is scheduling luck under a parallel build, not immunity, and
+  it is why the same commit could be green on `ci` and red on `pages`.
+
+  Fixing only the five sites would have left the rest of the pattern standing, so the invariant is
+  now enforced over all of it by
+  `PackagingContractTests.Every_generated_task_call_site_waits_for_the_reference_that_produces_it`.
+  It derives the guarded task names from the `UsingTask` declarations that load a `*.Tasks.dll` from
+  their own directory — the four generated task assemblies (`Rask.TypeScript.Tasks`,
+  `Rask.Tailwind.Tasks`, `Rask.Wasm.Tasks`, `Rask.Spa.Tasks`) — and scans the whole repository, since
+  a hand-written list of either names or directories rots. That widening earned its keep immediately:
+  it found three further call sites outside `src/`, in the `Rask.Core.Tests`, `Rask.Wasm.Tests` and
+  `Rask.Examples.E2E.Tests` fixture bundlers.
+
+  It also found a live one. `_RaskTailwindResolve` invokes `ResolveTailwindCliTask` from the equally
+  generated `Rask.Tailwind.Tasks.dll`, and its only caller runs at `BeforeTargets="BeforeBuild"` —
+  ahead of `CoreBuild`, so ahead of reference resolution. It has never bitten because nothing in-repo
+  imports `Rask.Tailwind.targets`; it would have, the first time anything did. All twelve call sites
+  now state the dependency, whether it is load-bearing there or merely true, because an exemption for
+  the ones a caller happens to order safely makes the invariant depend on a fact about a different
+  target. The guard was verified by failing it in both directions.
+
+- **`RenderModes.ServerInteractivity` did nothing.** The property was read nowhere outside its own
+  validation, so turning it off with `Wasm` on was accepted and silently ignored — pages still opened
+  WebSockets — and turning it off with `Wasm` off threw, telling you to turn it back on. It lied either
+  way.
+
+  It now means what it says: **no page ever gets a live session.** Every page is served as a document,
+  and the WebSocket endpoint answers `404` as though it were not there. That is stronger than
+  `RenderModes.Static`, which is detected per page and biased towards keeping a connection; this is
+  declared, so nothing is detected and nothing can bias.
+
+  Both combinations now work rather than one throwing: with `Wasm` off it is plain server-side
+  rendering — a content site, which used to be refused — and with `Wasm` on it is static HTML that
+  hands over to WebAssembly with no socket ever opened.
+
+  A page that renders a handler in this mode has nothing to answer it. That is reported through the
+  `Rask.Ssr` diagnostic rather than prevented by refusing to start, which had made "serve only content"
+  unreachable.
+- **A render could hand its async work to a different render, and then serve a placeholder for it.**
+  `QuiescenceScope.Current` consulted the thread-static slot before the flow's `AsyncLocal`. A pool
+  thread keeps whatever scope `Begin` set on it — only a `Dispose` that happens to run on that same
+  thread clears it — so a thread can carry another render's **live** scope. When a render's later wave
+  resumed on such a thread, the work it started was tracked against a stranger, its own wave loop saw
+  nothing pending, and the page went out with a placeholder for data it never waited for.
+
+  It answers `200` while doing it, so nothing reports a fault. In tests it surfaced as an intermittent
+  failure that passed every time in isolation; in production it is the SSR path failing silently.
+
+  The flow now wins over the thread. Nothing needed the other order: the one path that loses the
+  `AsyncLocal` — `LifecycleSyncContext`'s suppressed `Task.Run` — restores the captured scope with
+  `Enter`, which sets both slots. `LiveRenderContext` already resolved this way; `QuiescenceScope` had
+  diverged from it.
+
+  Supersedes the earlier fix for the same symptom, which skipped *disposed* foreign scopes. That was
+  necessary and not sufficient — it covered the dead case, this covers the live one.
+
+
+### Fixed
 ### Added
 - **The children indexer accepts a projection of chains, and literals mixed with one.** A chain that
   ends at a STEP is typed `Build<T>`, and the implicit conversion that makes it a component does not
@@ -148,8 +975,33 @@ them until tagged releases begin.
   go red, naming the file, the line and both tokens.
 
 ### Changed
-- **BREAKING: `rask new` has no styling axis — Tailwind is built in.** It is a battery like any other:
-  always referenced, always wired, so every scaffolded project is Tailwind and there is nothing to choose.
+- **BREAKING: Tailwind ships inside the host packages, and `Rask.Tailwind` is no longer published.**
+  "Built in" now means built *in*: `src/RaskTailwindBuildPack.targets` packs the Tailwind props,
+  targets and engine-resolution task into `Rask.Server` and `Rask.Wasm`, each of which imports them
+  from its own `build/<PackageId>.{props,targets}` — the arrangement `Rask.Core`'s scoped-CSS
+  integration already used. A scaffolded `.csproj` names no styling package at all, and an existing app
+  gets Tailwind on its next host upgrade with nothing to edit.
+
+  `Rask.Tailwind` is `IsPackable=false` and both CI workflows stop packing it. That is not tidiness:
+  an app referencing both a host package and `Rask.Tailwind` would import the same targets twice and
+  run the compiler twice over one output file — which is why `Rask.Core` and `Rask.Html` are
+  unpackable too.
+
+- **BREAKING: `RaskTailwindBuild` is removed — the Tailwind build has no off switch.** Every page of a
+  Rask app is written in utilities, so a build that quietly produced no CSS would serve unstyled HTML:
+  a failure nobody notices until a user does, and one no test of the C# can see. The property is gone
+  from `Rask.Tailwind.props`, out of the gate in `Rask.Tailwind.targets`, and out of the three resolver
+  errors that used to offer it as the way out — those now name the way *through* (install Node, seed
+  the per-user cache, unset `RaskTailwindOffline`), which between the standalone and npm engines is
+  always available on every platform.
+
+  What remains in the gate is a design-time-build check and `Exists($(RaskTailwindInput))`. The second
+  is what lets the targets be imported into every project in a solution — a class library with no
+  stylesheet has nothing to compile — and is not a switch: a project that HAS a stylesheet cannot
+  decline to compile it.
+
+- **BREAKING: `rask new` has no styling axis — Tailwind is built in.** Every scaffolded project is
+  Tailwind and there is nothing to choose.
   `--bootstrap` and `--tailwind` are removed and both are **refused** rather than ignored, because a flag
   the CLI accepts and then disregards is this repository's most expensive bug class. The wizard no longer
   asks a Styling question — one keypress shorter — and `rask new`'s summary drops a row that would read the

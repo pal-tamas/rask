@@ -31,7 +31,7 @@ public sealed partial class CreateOrder(IDispatcher dispatcher, Navigator naviga
     {
         try
         {
-            await dispatcher.DispatchAsync(new CreateOrderCommand(form), CancellationToken);
+            await dispatcher.SendAsync(new CreateOrderCommand(form), CancellationToken);
             navigator.NavigateTo(Routes.OrdersPage());
         }
         catch (Exception)

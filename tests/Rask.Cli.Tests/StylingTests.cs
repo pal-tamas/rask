@@ -47,12 +47,18 @@ public sealed class StylingTests
         Assert.Contains("rounded-xl", home, StringComparison.Ordinal);
     }
 
+    // Built in means built IN: the Tailwind compiler ships inside the host package, so a scaffolded
+    // project references it nowhere and still compiles a stylesheet on its first build. Asserted as an
+    // absence on both surfaces a reference could appear on -- the summary list `rask new` prints, and
+    // the csproj it writes -- because a stray reference is not inert here: it would import the same
+    // targets a second time and run the Tailwind compiler twice over one output file.
     [Fact]
-    public void The_project_takes_the_Tailwind_package()
+    public void Nothing_references_a_Tailwind_package_because_it_is_in_the_host()
     {
-        var packages = ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), "1.2.3").Packages;
+        var result = ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), "1.2.3");
 
-        Assert.Contains("Rask.Tailwind", packages);
+        Assert.Equal(["Rask.Server"], result.Packages);
+        Assert.DoesNotContain("Rask.Tailwind", Generate()["App.csproj"], StringComparison.Ordinal);
     }
 
     // The axis is gone, so nothing in a generated project should still name the package that was one of

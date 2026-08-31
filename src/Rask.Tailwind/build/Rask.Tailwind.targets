@@ -23,11 +23,18 @@
     >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindOutput)'))</_RaskTailwindOutput>
 
     <!--
-      Whether any of this happens. Design-time builds are excluded: an IDE reloading the project must
-      never download a binary or shell out to a compiler.
+      Whether any of this happens. Two conditions, and neither is a switch.
+
+      Design-time builds are excluded: an IDE reloading the project must never download a binary or
+      shell out to a compiler.
+
+      The input stylesheet must exist. This file is imported by every Rask host package, so it is
+      evaluated in projects that have no UI at all — a class library, a test project, the static-file
+      half of a hosted WASM app. Those have nothing to compile, and compiling nothing is correct for
+      them. A project that DOES have a stylesheet has no way to skip it.
     -->
     <_RaskTailwindDoBuild
-      Condition="'$(RaskTailwindBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_RaskTailwindInput)')"
+      Condition="'$(DesignTimeBuild)' != 'true' AND Exists('$(_RaskTailwindInput)')"
     >true</_RaskTailwindDoBuild>
   </PropertyGroup>
 
@@ -56,7 +63,18 @@
     Resolving the engine is separate from running it so the download happens once per build at most,
     and so a failure to resolve reports as itself rather than as a failed Exec.
   -->
-  <Target Name="_RaskTailwindResolve" Condition="'$(_RaskTailwindDoBuild)' == 'true'">
+  <!--
+    DependsOnTargets="ResolveProjectReferences" for the same reason as _RaskResolveTsgo in
+    Rask.Core.targets, except here it is load-bearing rather than defensive: _RaskTailwindBuild, the
+    only caller, runs at BeforeTargets="BeforeBuild", which is ahead of CoreBuild and so ahead of the
+    reference resolution that produces Rask.Tailwind.Tasks.dll in this folder. Nothing in-repo imports
+    this file today — Directory.Build.targets imports only Rask.Core.targets — so a clean-tree build
+    has never reached it. The day one does, this is #878 again, in a package where the first symptom
+    would be MSB4062 in a consumer's Tailwind build.
+  -->
+  <Target Name="_RaskTailwindResolve"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(_RaskTailwindDoBuild)' == 'true'">
     <ResolveTailwindCliTask Version="$(RaskTailwindVersion)"
                             CacheRoot="$(RaskTailwindCacheRoot)"
                             Engine="$(RaskTailwindEngine)"

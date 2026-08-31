@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <NoWarn>$(NoWarn);RS2008</NoWarn>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The wire model and its emitters are internal: they are an implementation detail of the
+         generated code, not an API. The tests assert the TypeScript an emitter produces, which is
+         cheaper and far more legible than round-tripping it through a full generator run. -->
+    <InternalsVisibleTo Include="Rask.Batteries.Generators.Tests"/>
+  </ItemGroup>
+
+  <!--
+    One analyzer assembly for the opt-in batteries: the CQRS dispatch/codec generators plus the jobs
+    and outbox registry generators.
+
+    They were three assemblies (Rask.Cqrs.Generators, Rask.Jobs.Generators, Rask.Outbox.Generators)
+    because an analyzer has to be self-contained — it cannot reference another analyzer without
+    shipping it, and a type reaching a consumer through two packages is emitted twice. The cost was
+    paid in duplicated source: the jobs and outbox generators are the same RegistryGeneratorBase over
+    a different marker interface, so each assembly compiled its own copy of the base AND its own copy
+    of RASK035's descriptor. Two shipped assemblies declaring one diagnostic id is the defect class
+    that RS1019 cannot see across an assembly boundary (it bit RASK022 before).
+
+    Merging is only safe because all three had the same delivery point: Rask.Jobs and Rask.Outbox both
+    take a package dependency on Rask.Cqrs, so one DLL packed into Rask.Cqrs alone reaches every
+    consumer transitively — and reaches it exactly ONCE, however many of the three you reference.
+    The component/routes generator (Rask.Generators) deliberately stays out: it ships in the host
+    packages (Rask.Server / Rask.Wasm), and folding it in here would make every Rask app depend on
+    the opt-in Rask.Cqrs.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Generators.Shared\RegistryGeneratorBase.cs" Link="Shared\RegistryGeneratorBase.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\SymbolRegistration.cs" Link="Shared\SymbolRegistration.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\SymbolLocation.cs" Link="Shared\SymbolLocation.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\DiagnosticHelp.cs" Link="Shared\DiagnosticHelp.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\IsExternalInit.cs" Link="Shared\IsExternalInit.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WireShape.cs" Link="Shared\WireShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\TypeScriptEmitter.cs" Link="Shared\TypeScriptEmitter.cs"/>
+  </ItemGroup>
+
+</Project>

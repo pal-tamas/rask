@@ -161,32 +161,36 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// rather than the web one. A compile is the only thing that proves the catalog reached the generator
     /// and that <c>&lt;RaskGlobalization&gt;</c> did not upset the rest of the build (#846).
     /// </remarks>
-    [SkippableTheory]
-    [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
-    public async Task Generated_localized_wasm_project_builds(string templateKey)
+    [SkippableFact]
+    public async Task Generated_localized_wasm_project_builds()
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
-        var hosted = templateKey == "wasm-hosted";
-        var name = hosted ? "WHLocE2E" : "WLocE2E";
+        const string name = "WLocE2E";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
         var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
         var projectDir = Path.Combine(temp, name);
         try
         {
-            _ = TemplateCatalog.TryGet(templateKey, out var template);
+            _ = TemplateCatalog.TryGet("wasm", out var template);
 
             // Two languages rather than one, because a single neutral catalog would not exercise the
             // fallback the second one is there to prove (RASK052 on a key it does not carry).
-            var batteries = NewCommand.ToBatteries(template, [], cultures: ["en", "hu"]);
-            Assert.True(batteries.Localization, "--culture did not turn localization on for " + templateKey);
+            //
+            // Constructed rather than flagged: there is no --culture any more (#854), and a browser app
+            // that wants a second language adds it in Program.cs and uncomments RaskGlobalization. This
+            // is the state that produces, and it still has to BUILD.
+            var batteries = new ServerBatteries
+            {
+                Localization = true,
+                CultureList = "en,hu",
+                Docker = NewCommand.ToBatteries(template, []).Docker,
+            }.Normalized();
+            Assert.True(batteries.Localization, "the localized wasm shape was not constructed");
 
-            var result = hosted
-                ? ProjectGenerator.GenerateWasmHosted(projectDir, name, batteries, version)
-                : ProjectGenerator.GenerateWasm(
-                    projectDir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version, batteries);
+            var result = ProjectGenerator.GenerateWasm(
+                projectDir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version, batteries);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -197,14 +201,12 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            var target = hosted
-                ? Path.Combine(projectDir, name + ".Client", name + ".Client.csproj")
-                : Path.Combine(projectDir, name + ".csproj");
+            var target = Path.Combine(projectDir, name + ".csproj");
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{target}\" -warnaserror -m:1");
             Assert.True(
                 exit == 0,
-                $"[{templateKey}] a localized WASM project failed to build.{CliBuildE2E.Diagnostics(output)}");
+                $"a localized WASM project failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {
@@ -259,58 +261,6 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    [SkippableTheory]
-    [MemberData(nameof(WasmBuildAffectingCombinations))]
-    public async Task Generated_wasm_hosted_solution_builds(bool auth, bool pwa)
-    {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
-
-        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-
-        var name = $"HE2E{(auth ? "A" : "")}{(pwa ? "P" : "")}";
-        if (name == "HE2E")
-        {
-            name = "HE2ENone";
-        }
-
-        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
-        var projectDir = Path.Combine(temp, name);
-        try
-        {
-            var result = ProjectGenerator.GenerateWasmHosted(
-                projectDir, name, new ServerBatteries { Auth = auth, Pwa = pwa }, version);
-
-            var fs = new SystemFileSystem();
-            foreach (var file in result.Files)
-            {
-                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-                fs.WriteAllText(file.Path, file.Content);
-            }
-
-            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
-
-            // Build the Server project, not the .sln.
-            //
-            // The Server references both the Client and the Shared library, so all three still compile and
-            // the WASM bundle is still baked — but building the solution put the Client in the restore graph
-            // *twice*: once as a solution entry, and once as the Server's cross-TFM ProjectReference
-            // (ReferenceOutputAssembly=false, SkipGetTargetFrameworkProperties=true, so its TFM is never
-            // negotiated). Those two graph entries race on the Client's obj/ restore artefacts and fail with
-            // "The file '…project.assets.json' already exists".
-            //
-            // `-m:1` doesn't help — it caps MSBuild nodes, not NuGet's own parallelism — and neither does
-            // splitting restore from build, because both entries are present within the single restore.
-            // Dropping the duplicate entry is what removes the racing writer. The .sln's own shape stays
-            // covered by ProjectGeneratorTests.
-            var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
-            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"[auth={auth},pwa={pwa}] generated wasm-hosted solution failed to build.{CliBuildE2E.Diagnostics(output)}");
-        }
-        finally
-        {
-            CliBuildE2E.TryDeleteDirectory(temp);
-        }
-    }
 
 
     /// <summary>
@@ -472,57 +422,6 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    /// <summary>
-    /// <c>wasm-hosted --cqrs</c>: the browser client dispatching to its own host. Only a real compile proves
-    /// this one, because the claim is about what the two halves each see — the Client compiles the message
-    /// and <c>Rask.Cqrs.Client</c>, the Server compiles the same message plus its handler and
-    /// <c>Rask.Cqrs.Server</c>, and the wire codecs are source-generated in both from that shared record. A
-    /// unit test over the emitted strings cannot tell whether any of that lines up.
-    /// </summary>
-    /// <remarks>
-    /// Both auth states are built because the registration genuinely differs: with <c>--auth</c> the endpoint
-    /// keeps its secure default, and without it the template must turn <c>RequireAuthenticatedUser</c> off or
-    /// every message it ships would answer 401. <c>--pwa</c> is left out of the matrix — it adds a manifest
-    /// and an icon, and touches nothing remote dispatch depends on.
-    /// </remarks>
-    [SkippableTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Generated_wasm_hosted_cqrs_solution_builds(bool auth)
-    {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
-
-        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-
-        var name = auth ? "CQE2EAuth" : "CQE2E";
-
-        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
-        var projectDir = Path.Combine(temp, name);
-        try
-        {
-            var result = ProjectGenerator.GenerateWasmHosted(
-                projectDir, name, new ServerBatteries { Auth = auth, Cqrs = true }, version);
-
-            var fs = new SystemFileSystem();
-            foreach (var file in result.Files)
-            {
-                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-                fs.WriteAllText(file.Path, file.Content);
-            }
-
-            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
-
-            // The Server, for the reason the sibling test explains: building the .sln puts the Client in the
-            // restore graph twice and the two entries race on its obj/. The Server pulls all three anyway.
-            var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
-            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"[auth={auth}] generated wasm-hosted --cqrs solution failed to build.{CliBuildE2E.Diagnostics(output)}");
-        }
-        finally
-        {
-            CliBuildE2E.TryDeleteDirectory(temp);
-        }
-    }
 
 
     /// <summary>
@@ -565,59 +464,6 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    /// <summary>
-    /// The default set on the <b>wasm-hosted</b> template: the same pillars, but composed into the
-    /// <c>.Server</c> host of a three-project solution whose UI runs in the browser.
-    /// <para>
-    /// This is the composition nothing else covers, and the one where the two hosts meet. The generated
-    /// <c>Program.cs</c> references <c>Rask.Wasm.Hosting</c> and <c>Rask.Server</c> at once, and both
-    /// packages declare an <c>AddRask</c> and a <c>UseRask&lt;TApp&gt;</c>; a bare call to either binds to
-    /// whichever wins overload resolution rather than whichever was meant, and for <c>AddRask</c> that is
-    /// silent — the WASM host's takes no optional parameters and so wins the tie-break, leaving an app
-    /// that starts with no live runtime and fails on its first request. Only a real compile of a real
-    /// generated solution proves the emitted spellings still bind to the hosts they name.
-    /// </para>
-    /// </summary>
-    [SkippableFact]
-    public async Task Generated_default_wasm_hosted_solution_builds()
-    {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
-
-        const string name = "AllBatteriesHostedE2E";
-        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-
-        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
-        var projectDir = Path.Combine(temp, name);
-        try
-        {
-            // Push is the one battery this template does not carry (its subscribe endpoints and the
-            // service worker that posts to them live in two different projects), and NewCommand clears
-            // it for exactly this path — mirrored here so the test builds what `rask new` would write.
-            _ = TemplateCatalog.TryGet("wasm-hosted", out var hosted);
-            var batteries = NewCommand.ToBatteries(hosted, [], auth: true);
-            var result = ProjectGenerator.GenerateWasmHosted(projectDir, name, batteries, version);
-
-            var fs = new SystemFileSystem();
-            foreach (var file in result.Files)
-            {
-                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-                fs.WriteAllText(file.Path, file.Content);
-            }
-
-            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
-
-            // The Server project rather than the solution — see Generated_wasm_hosted_solution_builds for
-            // why the solution puts the Client into the restore graph twice.
-            var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
-            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -warnaserror -m:1");
-            Assert.True(exit == 0,
-                $"a default wasm-hosted solution failed to build.{CliBuildE2E.Diagnostics(output)}");
-        }
-        finally
-        {
-            CliBuildE2E.TryDeleteDirectory(temp);
-        }
-    }
 
     /// <summary>
     /// Scoped CSS, proven from the far side of a <c>dotnet pack</c> — the only place it can be proven.

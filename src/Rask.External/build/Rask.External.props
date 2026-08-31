@@ -1,0 +1,73 @@
+<Project>
+
+  <!-- The Static Web Assets SDK normally auto-generates this build/$(PackageId).props to import the
+       static-web-asset wiring. We provide it ourselves (StaticWebAssetsDisableProjectBuildPropsFileGeneration
+       in the csproj) so the same file can ALSO carry the RaskExternal* knobs below — the SDK-documented
+       extension point. These imports must stay, or NuGet consumers won't get wwwroot/rask-external.js on
+       a URL and every island fails to mount. They are guarded by Exists() because Directory.Build.props
+       imports THIS file in-repo (for the knobs), where the sibling SDK props live only in the packed
+       layout, not on disk. Same shape as Rask.Bootstrap. -->
+  <Import Project="$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssets.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssets.props')"/>
+  <Import Project="$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssetEndpoints.props')"/>
+
+  <!--
+    Consumer-facing knobs for the island bundle. Override any of these in your project, or with -p:.
+
+    Everything here is inert until the project actually HAS an island. That is the Node-free
+    guarantee: a Rask app with no front-end file beside a component, and an app whose islands are all
+    .razor, never probes for node, never runs npm, and never learns this package has a build step.
+  -->
+  <PropertyGroup>
+    <!--
+      Master switch. False skips the install, the bundle and the node probe entirely — the app still
+      compiles, the islands still render their host elements, and the client runtime reports the
+      missing chunk rather than the page failing.
+
+      The repo's own unit gate passes false, so a machine with no node can still build a solution that
+      contains islands. Same shape as RaskSpaBuild and RaskWasmDevBundle.
+    -->
+    <RaskExternalBuild Condition="'$(RaskExternalBuild)' == ''">true</RaskExternalBuild>
+
+    <!--
+      Where the built chunks land. Under wwwroot on purpose: the SDK already publishes wwwroot, so the
+      bundle reaches a deployed app with no publish target of its own — the gap that made the WASM
+      host's baked absolute path fail inside a container.
+    -->
+    <RaskExternalOutputDir Condition="'$(RaskExternalOutputDir)' == ''">wwwroot/_rask/external</RaskExternalOutputDir>
+
+    <!--
+      ...but kept OUT of the wwwroot glob that runs at evaluation. The SDK discovers static web assets
+      from @(Content) matched against wwwroot/**, and @(Content) is globbed before the bundler has
+      written anything — so on a clean tree the chunks are absent from the endpoints manifest that
+      MapStaticAssets serves from, and on the NEXT build they are present, discovered, and then
+      registered a second time by _RaskExternalStaticWebAssets below, which trips the SDK's duplicate
+      guard. Excluding here leaves exactly one registration path on every build (#884).
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(RaskExternalOutputDir)/**</DefaultItemExcludes>
+
+    <!-- The URL prefix those files are served from. Must match RaskExternalOutputDir's position under
+         wwwroot, and is what the generated manifest prefixes every chunk with. -->
+    <RaskExternalPublicBase Condition="'$(RaskExternalPublicBase)' == ''">/_rask/external/</RaskExternalPublicBase>
+
+    <!--
+      `npm ci` where it can run: reproducible, faster, and it fails loudly when package-lock.json has
+      drifted rather than quietly rewriting it. It needs the lockfile, which a project that has never
+      installed does not have — so the targets pick between these two by looking for it, rather than
+      shelling `npm ci || npm install`, which prints a wall of npm errors on every first build and
+      reads exactly like a failure.
+    -->
+    <RaskExternalInstallCommand Condition="'$(RaskExternalInstallCommand)' == ''">npm ci</RaskExternalInstallCommand>
+    <RaskExternalFirstInstallCommand Condition="'$(RaskExternalFirstInstallCommand)' == ''">npm install</RaskExternalFirstInstallCommand>
+
+    <!-- Vite is invoked directly with the generated config rather than through a package.json script,
+         so the project does not have to carry a script whose name Rask would then depend on. -->
+    <RaskExternalBuildCommand Condition="'$(RaskExternalBuildCommand)' == ''">npx --no-install vite build --config</RaskExternalBuildCommand>
+
+    <!-- Vite's own floor. The probe reports anything older rather than letting vite fail with an
+         engines error nobody reads. -->
+    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">20.19.0</RaskExternalMinimumNode>
+  </PropertyGroup>
+
+</Project>

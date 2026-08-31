@@ -5,7 +5,7 @@ public sealed class SqlitePragmasTests
     [Fact]
     public void BuildScript_emits_the_production_defaults()
     {
-        var script = SqlitePragmas.BuildScript(new SqlitePragmaOptions());
+        var script = SqlitePragmas.BuildScript(new SqliteOptions());
 
         Assert.Contains("PRAGMA foreign_keys=ON;", script);
         Assert.Contains("PRAGMA journal_mode=WAL;", script);
@@ -25,7 +25,7 @@ public sealed class SqlitePragmasTests
     [Fact]
     public void BuildScript_honors_hardening_overrides()
     {
-        var options = new SqlitePragmaOptions
+        var options = new SqliteOptions
         {
             TrustedSchema = true,
             CellSizeCheck = false,
@@ -42,22 +42,22 @@ public sealed class SqlitePragmasTests
     [Fact]
     public void A_negative_analysis_limit_is_rejected()
     {
-        var options = new SqlitePragmaOptions { AnalysisLimit = -1 };
+        var options = new SqliteOptions { AnalysisLimit = -1 };
         var ex = Assert.Throws<InvalidOperationException>(options.Validate);
-        Assert.Contains(nameof(SqlitePragmaOptions.AnalysisLimit), ex.Message, StringComparison.Ordinal);
+        Assert.Contains(nameof(SqliteOptions.AnalysisLimit), ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void BuildScript_omits_temp_store_by_default()
     {
-        var script = SqlitePragmas.BuildScript(new SqlitePragmaOptions());
+        var script = SqlitePragmas.BuildScript(new SqliteOptions());
         Assert.DoesNotContain("temp_store", script, StringComparison.Ordinal);
     }
 
     [Fact]
     public void BuildScript_skips_null_pragmas()
     {
-        var options = new SqlitePragmaOptions { JournalMode = null, BusyTimeout = null };
+        var options = new SqliteOptions { JournalMode = null, BusyTimeout = null };
         var script = SqlitePragmas.BuildScript(options);
 
         Assert.DoesNotContain("journal_mode", script, StringComparison.Ordinal);
@@ -68,7 +68,7 @@ public sealed class SqlitePragmasTests
     [Fact]
     public void BuildScript_returns_empty_when_everything_disabled()
     {
-        var options = new SqlitePragmaOptions
+        var options = new SqliteOptions
         {
             JournalMode = null,
             Synchronous = null,
@@ -89,7 +89,7 @@ public sealed class SqlitePragmasTests
     [Fact]
     public void BuildScript_honors_overrides()
     {
-        var options = new SqlitePragmaOptions
+        var options = new SqliteOptions
         {
             ForeignKeys = false,
             JournalMode = SqliteJournalMode.Delete,
@@ -108,7 +108,7 @@ public sealed class SqlitePragmasTests
     [Fact]
     public void BuildScript_rounds_busy_timeout_to_milliseconds()
     {
-        var options = new SqlitePragmaOptions { BusyTimeout = TimeSpan.FromMilliseconds(2500) };
+        var options = new SqliteOptions { BusyTimeout = TimeSpan.FromMilliseconds(2500) };
         Assert.Contains("PRAGMA busy_timeout=2500;", SqlitePragmas.BuildScript(options));
     }
 
@@ -117,7 +117,7 @@ public sealed class SqlitePragmasTests
     {
         // busy_timeout must be set before the lock-taking journal_mode=WAL switch, or a concurrent
         // WAL init on a fresh database can hit SQLITE_BUSY with no wait.
-        var script = SqlitePragmas.BuildScript(new SqlitePragmaOptions());
+        var script = SqlitePragmas.BuildScript(new SqliteOptions());
         Assert.True(
             script.IndexOf("busy_timeout", StringComparison.Ordinal) < script.IndexOf("journal_mode", StringComparison.Ordinal));
     }

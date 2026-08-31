@@ -120,18 +120,6 @@ public sealed class ServerBatteriesTests
         Assert.False(batteries.Localization);
     }
 
-    [Fact]
-    public void Wasm_hosted_gets_everything_but_push()
-    {
-        // Web Push needs the subscribe endpoints AND a service worker that posts to them, and here those
-        // live in two different projects.
-        _ = TemplateCatalog.TryGet("wasm-hosted", out var hosted);
-        var batteries = NewCommand.ToBatteries(hosted, []);
-
-        Assert.True(batteries.Data);
-        Assert.True(batteries.Ops);
-        Assert.False(batteries.Push);
-    }
 
     public static TheoryData<string> EveryDbBattery =>
         ["jobs", "mail", "cache", "outbox", "snapshots", "ops"];
@@ -198,7 +186,10 @@ public sealed class ServerBatteriesTests
     [Fact]
     public void Turning_localization_off_clears_the_language_list()
     {
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, ["localization"]);
+        // Reduced() still has to hold, even though no command line can reach it any more: the language
+        // list belongs to localization, so a shape carrying one with the feature off is incoherent and
+        // would scaffold catalogs nothing registers.
+        var batteries = new ServerBatteries { Localization = false, CultureList = "en,hu" }.Reduced();
 
         Assert.False(batteries.Localization);
         Assert.Empty(batteries.Cultures);

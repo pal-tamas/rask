@@ -59,7 +59,7 @@ internal sealed class CountingDispatcher : IDispatcher
 
     public void Release() => _gate?.TrySetResult();
 
-    public async Task<TResult> DispatchAsync<TResult>(
+    public async Task<TResult> QueryAsync<TResult>(
         IQuery<TResult> query,
         CancellationToken cancellationToken = default)
     {
@@ -87,13 +87,13 @@ internal sealed class CountingDispatcher : IDispatcher
         return (TResult)(object)Result;
     }
 
-    public Task DispatchAsync(ICommand command, CancellationToken cancellationToken = default)
+    public Task SendAsync(ICommand command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
         return ThrowOnCommand is { } error ? Task.FromException(error) : Task.CompletedTask;
     }
 
-    public Task<TResult> DispatchAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+    public Task<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
         return ThrowOnCommand is { } error

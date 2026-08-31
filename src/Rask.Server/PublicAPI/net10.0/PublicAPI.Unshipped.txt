@@ -1,0 +1,107 @@
+#nullable enable
+Rask.Server.Authentication.SessionUserProvider
+Rask.Server.Authentication.SessionUserProvider.Changed -> System.Action?
+Rask.Server.Authentication.SessionUserProvider.Clear() -> void
+Rask.Server.Authentication.SessionUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
+Rask.Server.Authentication.SessionUserProvider.SessionUserProvider() -> void
+Rask.Server.Authentication.SessionUserProvider.Set(System.Security.Claims.ClaimsPrincipal! user) -> void
+Rask.Server.Diagnostics.RaskHealthCheckExtensions
+Rask.Server.Diagnostics.RaskLiveHealthCheck
+Rask.Server.Diagnostics.RaskLiveHealthCheck.CheckHealthAsync(Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult>!
+Rask.Server.Diagnostics.RaskLiveHealthCheck.RaskLiveHealthCheck(Rask.Server.LiveSessionStore! store) -> void
+Rask.Server.Diagnostics.RaskMetrics
+Rask.Server.Diagnostics.RaskMetrics.Dispose() -> void
+Rask.Server.Diagnostics.RaskMetrics.FrameRejected(string! reason) -> void
+Rask.Server.Diagnostics.RaskMetrics.HandlerDispatched() -> void
+Rask.Server.Diagnostics.RaskMetrics.HandlerFaulted() -> void
+Rask.Server.Diagnostics.RaskMetrics.HandlerTimedOut() -> void
+Rask.Server.Diagnostics.RaskMetrics.RaskMetrics(System.Diagnostics.Metrics.IMeterFactory? meterFactory = null) -> void
+Rask.Server.Diagnostics.RaskMetrics.RecordHandlerDuration(double milliseconds) -> void
+Rask.Server.Diagnostics.RaskMetrics.RecordPayloadBytes(long bytes) -> void
+Rask.Server.Diagnostics.RaskMetrics.RecordRenderDuration(double milliseconds) -> void
+Rask.Server.Diagnostics.RaskMetrics.ResumeRejected(string! reason) -> void
+Rask.Server.Diagnostics.RaskMetrics.SessionCreated() -> void
+Rask.Server.Diagnostics.RaskMetrics.SessionEvicted() -> void
+Rask.Server.Diagnostics.RaskMetrics.SessionRejected() -> void
+Rask.Server.Diagnostics.RaskMetrics.SessionResumed() -> void
+Rask.Server.Diagnostics.RaskMetrics.SessionsAbandonedAtDrain(int count) -> void
+Rask.Server.Diagnostics.RaskMetrics.TrackActiveSessions(System.Func<int>! readCount) -> void
+Rask.Server.Diagnostics.RaskMetrics.TrackConnectedSessions(System.Func<int>! readCount) -> void
+Rask.Server.Diagnostics.RaskMetrics.TrackPendingHandlers(System.Func<int>! readCount) -> void
+Rask.Server.Diagnostics.RaskReadinessHealthCheck
+Rask.Server.Diagnostics.RaskReadinessHealthCheck.CheckHealthAsync(Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult>!
+Rask.Server.Diagnostics.RaskTelemetry
+Rask.Server.Files.RaskUploadOptions
+Rask.Server.Files.RaskUploadOptions.MaxBytesPerSession.get -> long
+Rask.Server.Files.RaskUploadOptions.MaxBytesPerSession.set -> void
+Rask.Server.Files.RaskUploadOptions.MaxFileSize.get -> long
+Rask.Server.Files.RaskUploadOptions.MaxFileSize.set -> void
+Rask.Server.Files.RaskUploadOptions.MaxFilesPerRequest.get -> int
+Rask.Server.Files.RaskUploadOptions.MaxFilesPerRequest.set -> void
+Rask.Server.Files.RaskUploadOptions.RaskUploadOptions() -> void
+Rask.Server.LiveSessionStore
+Rask.Server.LiveSessionStore.AtCapacity.get -> bool
+Rask.Server.LiveSessionStore.BroadcastAsync(System.ReadOnlyMemory<byte> payload) -> System.Threading.Tasks.Task!
+Rask.Server.LiveSessionStore.ConnectedCount.get -> int
+Rask.Server.LiveSessionStore.Count.get -> int
+Rask.Server.LiveSessionStore.DiffMode.get -> Rask.Core.Live.LiveDiffMode
+Rask.Server.LiveSessionStore.DiffMode.init -> void
+Rask.Server.LiveSessionStore.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Rask.Server.LiveSessionStore.LiveSessionStore(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Microsoft.Extensions.Hosting.IHostApplicationLifetime? lifetime = null, Rask.Server.Diagnostics.RaskMetrics? metrics = null) -> void
+Rask.Server.LiveSessionStore.MaxSessions.get -> int
+Rask.Server.LiveSessionStore.MaxSessions.set -> void
+Rask.Server.LiveSessionStore.PendingHandlerCount.get -> int
+Rask.Server.LiveSessionStore.RerenderAllAsync() -> System.Threading.Tasks.Task!
+Rask.Server.RaskEndpointExtensions
+Rask.Server.RaskPwaExtensions
+Rask.Server.RaskRenderModes
+Rask.Server.RaskRenderModes.QuiescenceTimeout.get -> System.TimeSpan
+Rask.Server.RaskRenderModes.QuiescenceTimeout.set -> void
+Rask.Server.RaskRenderModes.RaskRenderModes() -> void
+Rask.Server.RaskRenderModes.ServerInteractivity.get -> bool
+Rask.Server.RaskRenderModes.ServerInteractivity.set -> void
+Rask.Server.RaskRenderModes.Static.get -> bool
+Rask.Server.RaskRenderModes.Static.set -> void
+Rask.Server.RaskRenderModes.Streaming.get -> bool
+Rask.Server.RaskRenderModes.Streaming.set -> void
+Rask.Server.RaskRenderModes.Wasm.get -> bool
+Rask.Server.RaskRenderModes.Wasm.set -> void
+Rask.Server.RaskRenderModes.WasmBundle.get -> string!
+Rask.Server.RaskRenderModes.WasmBundle.set -> void
+Rask.Server.RaskServerOptions
+Rask.Server.RaskServerOptions.HandlerTimeout.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.HandlerTimeout.set -> void
+Rask.Server.RaskServerOptions.IdleSocketTimeout.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.IdleSocketTimeout.set -> void
+Rask.Server.RaskServerOptions.MaxInboundFrameBytes.get -> int
+Rask.Server.RaskServerOptions.MaxInboundFrameBytes.set -> void
+Rask.Server.RaskServerOptions.MaxInboundFramesPerSecond.get -> int
+Rask.Server.RaskServerOptions.MaxInboundFramesPerSecond.set -> void
+Rask.Server.RaskServerOptions.MaxPendingHandlerBytes.get -> long
+Rask.Server.RaskServerOptions.MaxPendingHandlerBytes.set -> void
+Rask.Server.RaskServerOptions.MaxPendingHandlers.get -> int
+Rask.Server.RaskServerOptions.MaxPendingHandlers.set -> void
+Rask.Server.RaskServerOptions.RaskServerOptions() -> void
+Rask.Server.RaskServerOptions.RenderModes.get -> Rask.Server.RaskRenderModes!
+Rask.Server.RaskServerOptions.ResumeTokenLifetime.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.ResumeTokenLifetime.set -> void
+Rask.Server.RaskServerOptions.SendTimeout.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.SendTimeout.set -> void
+Rask.Server.RaskServerOptions.SessionGracePeriod.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.SessionGracePeriod.set -> void
+Rask.Server.RaskServerOptions.SessionResume.get -> bool
+Rask.Server.RaskServerOptions.SessionResume.set -> void
+Rask.Server.RaskServerOptions.ShutdownDrainTimeout.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.ShutdownDrainTimeout.set -> void
+Rask.Server.RaskServerOptions.UnconnectedSessionGracePeriod.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.UnconnectedSessionGracePeriod.set -> void
+RaskBuilderSettersRask_Server
+const Rask.Server.Diagnostics.RaskTelemetry.ActivitySourceName = "Rask.Server" -> string!
+const Rask.Server.Diagnostics.RaskTelemetry.MeterName = "Rask.Server" -> string!
+static Rask.Server.Diagnostics.RaskHealthCheckExtensions.AddRaskLiveSessions(this Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder! builder, string! name = "rask_live_sessions", Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? failureStatus = null, System.Collections.Generic.IEnumerable<string!>? tags = null) -> Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder!
+static Rask.Server.RaskEndpointExtensions.AddRask(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Live.RaskLiveOptions!>? configure = null, System.Action<Rask.Server.RaskServerOptions!>? configureServer = null, System.Action<Rask.Core.Globalization.RaskCultureOptions!>? configureCulture = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Server.RaskEndpointExtensions.AddRaskServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Live.RaskLiveOptions!>? configure = null, System.Action<Rask.Server.RaskServerOptions!>? configureServer = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Server.RaskEndpointExtensions.UseRask<TApp>(this Microsoft.AspNetCore.Builder.WebApplication! app, string! pattern = "/{**path}", string! pathBase = "") -> Microsoft.AspNetCore.Builder.WebApplication!
+static Rask.Server.RaskEndpointExtensions.UseRask<TApp>(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string! pattern = "/{**path}", string! pathBase = "") -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Server.RaskEndpointExtensions.UseRaskServer<TApp>(this Microsoft.AspNetCore.Builder.WebApplication! app, string! pattern = "/{**path}", string! pathBase = "") -> Microsoft.AspNetCore.Builder.WebApplication!
+static Rask.Server.RaskPwaExtensions.AddRaskPwa(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Rask.Core.Browser.WebAppManifest! manifest) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

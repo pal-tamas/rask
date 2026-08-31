@@ -1,0 +1,49 @@
+#nullable enable
+Rask.Battery
+Rask.Battery.Battery() -> void
+Rask.Battery.Enabled.get -> bool
+Rask.Battery.Off() -> void
+Rask.Battery.On() -> void
+Rask.Battery<TOptions>
+Rask.Battery<TOptions>.Battery() -> void
+Rask.Battery<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Battery<TOptions!>!
+Rask.RaskApp
+Rask.RaskApp.Build<TApp>(string! pathBase = "") -> Microsoft.AspNetCore.Builder.WebApplication!
+Rask.RaskApp.Configuration.get -> Microsoft.Extensions.Configuration.IConfiguration!
+Rask.RaskApp.Configure(System.Action<Rask.RaskAppOptions!>! configure) -> Rask.RaskApp!
+Rask.RaskApp.Environment.get -> Microsoft.AspNetCore.Hosting.IWebHostEnvironment!
+Rask.RaskApp.MapEndpoints(System.Action<Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!>! map) -> Rask.RaskApp!
+Rask.RaskApp.Run<TApp>(string! pathBase = "") -> void
+Rask.RaskApp.RunAsync<TApp>(string! pathBase = "") -> System.Threading.Tasks.Task!
+Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.RaskAppOptions
+Rask.RaskAppOptions.BehindProxy.get -> bool
+Rask.RaskAppOptions.BehindProxy.set -> void
+Rask.RaskAppOptions.Cache.get -> Rask.Battery<Rask.Cache.CacheOptions!>!
+Rask.RaskAppOptions.ConnectionString.get -> string?
+Rask.RaskAppOptions.ConnectionString.set -> void
+Rask.RaskAppOptions.Cqrs.get -> Rask.Battery!
+Rask.RaskAppOptions.Cultures.get -> System.Collections.Generic.IList<string!>!
+Rask.RaskAppOptions.Data.get -> Rask.Battery!
+Rask.RaskAppOptions.ErrorPath.get -> string!
+Rask.RaskAppOptions.ErrorPath.set -> void
+Rask.RaskAppOptions.HealthPath.get -> string!
+Rask.RaskAppOptions.HealthPath.set -> void
+Rask.RaskAppOptions.Jobs.get -> Rask.Battery<Rask.Jobs.JobOptions!>!
+Rask.RaskAppOptions.Live.get -> System.Action<Rask.Core.Live.RaskLiveOptions!>?
+Rask.RaskAppOptions.Live.set -> void
+Rask.RaskAppOptions.Logs.get -> Rask.Battery<Rask.Logging.RaskLoggingOptions!>!
+Rask.RaskAppOptions.Mail.get -> Rask.Battery<Rask.Mail.MailOptions!>!
+Rask.RaskAppOptions.Ops.get -> Rask.Battery!
+Rask.RaskAppOptions.Outbox.get -> Rask.Battery<Rask.Outbox.OutboxOptions!>!
+Rask.RaskAppOptions.Push.get -> Rask.Battery<Rask.WebPush.WebPushOptions!>!
+Rask.RaskAppOptions.Pwa.get -> Rask.Battery<Rask.Core.Browser.WebAppManifest!>!
+Rask.RaskAppOptions.RaskAppOptions() -> void
+Rask.RaskAppOptions.RunBeforeDatabaseOpensAsync.get -> System.Func<System.IServiceProvider!, System.Threading.Tasks.Task!>?
+Rask.RaskAppOptions.RunBeforeDatabaseOpensAsync.set -> void
+Rask.RaskAppOptions.Server.get -> System.Action<Rask.Server.RaskServerOptions!>?
+Rask.RaskAppOptions.Server.set -> void
+Rask.RaskAppOptions.Snapshots.get -> Rask.Battery<Rask.SQLite.Snapshots.SqliteSnapshotOptions!>!
+Rask.RaskAppOptions.Wasm.get -> bool
+Rask.RaskAppOptions.Wasm.set -> void
+static Rask.RaskApp.Create(string![]! args, System.Action<Microsoft.AspNetCore.Builder.WebApplicationBuilder!>? configure = null) -> Rask.RaskApp!

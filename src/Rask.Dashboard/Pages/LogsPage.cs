@@ -33,7 +33,7 @@ public sealed partial class LogsPage(
     Navigator navigator,
     IServiceProvider services) : PollingPanel, IDisposable
 {
-    private readonly ILogStore? _store = services.GetService<ILogStore>();
+    private readonly ILogs? _store = services.GetService<ILogs>();
 
     private bool _subscribed;
     private LogPage _history = LogPage.Empty(1, 1);
@@ -102,7 +102,7 @@ public sealed partial class LogsPage(
         }
 
         var query = BuildQuery(Level, Category, Query, Page, options.PageSize);
-        _history = await _store!.QueryAsync(query, cancellationToken).ConfigureAwait(false);
+        _history = await _store!.SearchAsync(query, cancellationToken).ConfigureAwait(false);
         _storedCategories = await _store.CategoriesAsync(cancellationToken).ConfigureAwait(false);
 
         // Total plus the ids on screen: a new entry changes the total, and paging changes the ids.

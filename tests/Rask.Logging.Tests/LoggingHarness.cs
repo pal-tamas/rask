@@ -48,7 +48,7 @@ public sealed class LoggingHarness : IAsyncDisposable
 
     public FakeTimeProvider Clock { get; }
 
-    public ILogStore Store => _provider.GetRequiredService<ILogStore>();
+    public ILogs Store => _provider.GetRequiredService<ILogs>();
 
     public ILoggerFactory LoggerFactory => _provider.GetRequiredService<ILoggerFactory>();
 

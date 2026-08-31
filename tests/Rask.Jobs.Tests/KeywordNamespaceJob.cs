@@ -9,9 +9,9 @@ namespace Rask.Jobs.Tests.@event;
 // Deserialize returned null, the processor recorded "No registered job type", and the job burned an
 // attempt on every poll until it hit MaxAttempts.
 //
-// The generator registers this assembly's IJob types at module load, so these tests exercise the real
+// The generator registers this assembly's IBackgroundJob types at module load, so these tests exercise the real
 // generated registry, not a stand-in.
-public sealed record KeywordJob(string Value) : IJob;
+public sealed record KeywordJob(string Value) : IBackgroundJob;
 
 public sealed class KeywordJobHandler(Recorder recorder) : ICommandHandler<KeywordJob>
 {

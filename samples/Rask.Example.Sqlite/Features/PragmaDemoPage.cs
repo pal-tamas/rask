@@ -16,7 +16,7 @@ namespace Rask.Example.Sqlite.Features;
 [Route("/")]
 public sealed partial class PragmaDemoPage(
     IDbContextFactory<DemoDbContext> dbContextFactory,
-    IRaskSqliteConnectionFactory connectionFactory) : Component
+    ISqlite connectionFactory) : Component
 {
     private const int Workers = 25;
 
@@ -35,7 +35,7 @@ public sealed partial class PragmaDemoPage(
     // thread while it waits for the write lock (a fair-interval busy handler).
     private const string ImmediateSnippet =
         """
-        await connectionFactory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+        await connectionFactory.InImmediateTransactionAsync(async (connection, ct) =>
         {
             await using var cmd = connection.CreateCommand();
             cmd.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
@@ -134,7 +134,7 @@ public sealed partial class PragmaDemoPage(
         {
             try
             {
-                await connectionFactory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+                await connectionFactory.InImmediateTransactionAsync(async (connection, ct) =>
                 {
                     await using var command = connection.CreateCommand();
                     command.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
@@ -146,7 +146,7 @@ public sealed partial class PragmaDemoPage(
             catch (SqliteException)
             {
                 // With the fair-interval retry this should not happen within the timeout — but if the lock
-                // never frees, ExecuteInImmediateTransactionAsync surfaces SQLITE_BUSY here.
+                // never frees, InImmediateTransactionAsync surfaces SQLITE_BUSY here.
                 return false;
             }
         });
@@ -330,7 +330,7 @@ public sealed partial class PragmaDemoPage(
                         H2.Class("text-lg font-semibold")["Concurrent IMMEDIATE writers (non-blocking)"],
                         P.Class("text-slate-500 dark:text-slate-400")[
                             $"Fire {Workers.ToString(CultureInfo.InvariantCulture)} writers through ",
-                            Code["ExecuteInImmediateTransactionAsync"],
+                            Code["InImmediateTransactionAsync"],
                             ". Each takes the write lock with ", Code["BEGIN IMMEDIATE"],
                             " and, when it's contended, polls every 1 ms — yielding the thread while it waits, ",
                             "a fair-interval busy handler — so every writer commits with no thread blocked."

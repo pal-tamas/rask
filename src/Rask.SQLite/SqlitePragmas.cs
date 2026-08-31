@@ -6,9 +6,9 @@ using Microsoft.Data.Sqlite;
 namespace Rask.SQLite;
 
 /// <summary>
-/// Turns a <see cref="SqlitePragmaOptions"/> into the <c>PRAGMA …;</c> batch and runs it on an open
+/// Turns a <see cref="SqliteOptions"/> into the <c>PRAGMA …;</c> batch and runs it on an open
 /// connection. This is the single source of truth shared by the raw-ADO factory
-/// (<see cref="IRaskSqliteConnectionFactory"/>) and the Entity Framework Core interceptor in the
+/// (<see cref="ISqlite"/>) and the Entity Framework Core interceptor in the
 /// <c>Rask.SQLite.EntityFrameworkCore</c> package.
 /// </summary>
 public static class SqlitePragmas
@@ -17,7 +17,7 @@ public static class SqlitePragmas
     /// Builds the semicolon-separated <c>PRAGMA</c> statements for <paramref name="options"/>. Any
     /// option left <see langword="null"/> is skipped. Returns an empty string when nothing is set.
     /// </summary>
-    public static string BuildScript(SqlitePragmaOptions options)
+    public static string BuildScript(SqliteOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -87,7 +87,7 @@ public static class SqlitePragmas
     }
 
     /// <summary>Executes <see cref="BuildScript"/> against an already-open <paramref name="connection"/>.</summary>
-    public static void Apply(SqliteConnection connection, SqlitePragmaOptions options)
+    public static void Apply(SqliteConnection connection, SqliteOptions options)
     {
         ArgumentNullException.ThrowIfNull(connection);
 
@@ -105,7 +105,7 @@ public static class SqlitePragmas
     /// <summary>Asynchronously executes <see cref="BuildScript"/> against an open <paramref name="connection"/>.</summary>
     public static async Task ApplyAsync(
         SqliteConnection connection,
-        SqlitePragmaOptions options,
+        SqliteOptions options,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -137,7 +137,7 @@ public static class SqlitePragmas
     /// </para>
     /// <para>
     /// It is cheap and self-limiting: it analyses only what looks stale, bounded by
-    /// <see cref="SqlitePragmaOptions.AnalysisLimit"/>, and does nothing at all when nothing has changed.
+    /// <see cref="SqliteOptions.AnalysisLimit"/>, and does nothing at all when nothing has changed.
     /// Failures are swallowed — this is an optimisation, and a connection being torn down (or a database
     /// momentarily locked by another writer) must not surface an error from it.
     /// </para>

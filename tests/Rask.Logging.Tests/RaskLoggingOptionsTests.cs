@@ -62,7 +62,7 @@ public sealed class RaskLoggingOptionsTests
         services.AddRaskLogging("Data Source=unused.db");
 
         Assert.Single(services, d => d.ServiceType == typeof(ILoggerProvider));
-        Assert.Single(services, d => d.ServiceType == typeof(ILogStore));
+        Assert.Single(services, d => d.ServiceType == typeof(ILogs));
     }
 
     [Fact]

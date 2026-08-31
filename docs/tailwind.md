@@ -10,19 +10,18 @@ cd Shop
 rask dev
 ```
 
-That is the whole setup. Styling is
-[one axis with three answers](cli.md#rask-new--scaffold-a-project): plain CSS by default,
-every project, with no flag to pass and nothing to turn on. Asking
-for two of them is a usage error rather than a silent preference.
+That is the whole setup — and there was no step you skipped. Styling is
+[not a choice `rask new` offers](cli.md#rask-new--scaffold-a-project): every project is a Tailwind
+project, with no flag to pass, nothing to turn on, and nothing to turn off.
 
-It works on every template. On `wasm` and `wasm-hosted` the stylesheet belongs to the **browser**
+It works on every template. On `wasm` the stylesheet belongs to the **browser**
 project — Tailwind scans the tree it runs in, and the components whose classes it is looking for are
 the client's. The compiler is a build-time tool with no runtime assembly, so it adds nothing to what
 the browser downloads.
 
-## What the flag actually adds
+## What a new project starts with
 
-Three things, and you can add them by hand to any existing project:
+Two files and a link — the whole of it, and all of it already there:
 
 1. **`Styles/app.css`** — the stylesheet Tailwind compiles:
 
@@ -36,7 +35,10 @@ Three things, and you can add them by hand to any existing project:
    One import, because in v4 that is genuinely all there is: no config file, no `content` array, no
    `tailwind.config.js`. Tailwind v4 detects its own sources.
 
-2. **A `Rask.Tailwind` package reference.** It is a build-only package — no runtime assembly, nothing
+2. **Nothing in the `.csproj`.** There is no Tailwind package to add: the compiler, its MSBuild
+   targets and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm`, the way scoped
+   CSS does. Referencing a host is what puts Tailwind in your build, so an existing app picks it up on
+   its next upgrade with nothing to edit. It is build-only either way — no runtime assembly, nothing
    in your dependency graph, nothing shipped with the app.
 
 3. **A `<link>` in the app shell** to what the build wrote:
@@ -46,7 +48,7 @@ Three things, and you can add them by hand to any existing project:
    Link.Rel("stylesheet").Href("/css/app.css")
    ```
 
-   Nothing framework-specific. Rask.Tailwind writes `wwwroot/css/app.css` before the app compiles, and
+   Nothing framework-specific. The build writes `wwwroot/css/app.css` before the app compiles, and
    every host already serves `wwwroot`.
 
 ## Your C# is the source it scans
@@ -92,11 +94,15 @@ The fallback is a real `npm install` into the project, not `npx`: `npx --package
 
 ## Knobs
 
-Every one of these is an MSBuild property: set it in the `.csproj`, or pass `-p:Name=value`.
+Every one of these is an MSBuild property: set it in the `.csproj`, or pass `-p:Name=value`. They
+change *how* the stylesheet is built, never *whether* — **there is no off switch**, and that is
+deliberate. Every page of a Rask app is written in utilities, so a build that quietly produced no CSS
+would serve unstyled HTML: a failure nobody notices until a user does, and one no test of your C# can
+see. What decides whether the compiler runs is simply whether the project has a `Styles/app.css` to
+compile, which is what lets a class library in the same solution ignore all of this.
 
 | Property | Default | What it does |
 |---|---|---|
-| `RaskTailwindBuild` | `true` | The master switch. `false` skips everything — no resolution, no download, no CSS. The app still compiles and runs; it just has no generated stylesheet. |
 | `RaskTailwindVersion` | `4.3.3` | The Tailwind version. **Pinned, never floating** — a compiler is not a library, and a different version emits different CSS, so a build that quietly picked up a new one would change how your pages look with nothing in the diff. Bump it deliberately. |
 | `RaskTailwindEngine` | `auto` | `standalone` or `npm` to force one. On Windows on ARM, `npm` gets you a native engine instead of the x64 binary under emulation. |
 | `RaskTailwindInput` | `Styles/app.css` | Your stylesheet — the one with `@import "tailwindcss"`. |
@@ -111,15 +117,19 @@ IDE reloading a project must never download a binary or shell out to a compiler.
 
 ## When something goes wrong
 
-Every failure names the way out, and the way out is always available:
+Every failure names the way out, and the way out is always available — it is a way *through*, never a
+way to skip the stylesheet:
 
 - **No standalone binary for this platform, and no Node.js.** The error names your OS and
-  architecture, gives the install line for it (`brew install node`, `winget install
-  OpenJS.NodeJS.LTS`, your distro's `nodejs` package), and points at `RaskTailwindBuild=false` — which
-  builds the app without the stylesheet rather than blocking you.
+  architecture and gives the install line for it (`brew install node`, `winget install
+  OpenJS.NodeJS.LTS`, your distro's `nodejs` package). Between the two engines no platform is
+  unsupported, so installing Node is always an available answer — and it is the answer, because there
+  is no build of a Rask app without its stylesheet.
 - **`RaskTailwindEngine=standalone` on a platform with no binary.** Refused rather than silently
   falling back, because you asked for the binary specifically.
-- **Offline, with nothing cached.** The error prints the download URL and the exact path to put it at.
+- **Offline, with nothing cached.** The error prints the download URL and the exact path to put it
+  at. The cache is per user rather than per project, so seeding it once serves every build on the
+  machine — which is how a hermetic or air-gapped build is set up.
 - **The download failed.** Not fatal on its own — a machine that cannot reach GitHub releases can often
   still reach a registry mirror, so the build says so and tries npm.
 

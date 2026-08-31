@@ -83,7 +83,10 @@
     <_RaskNodeFixture Include="JSInterop\*Fixture.ts"/>
   </ItemGroup>
 
-  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" Inputs="@(_RaskNodeFixture)"
+  <!-- DependsOnTargets: inert at AfterTargets="Build", stated so the generated-task ordering
+       invariant holds without an exemption (#878). -->
+  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
+          Inputs="@(_RaskNodeFixture)"
           Outputs="@(_RaskNodeFixture->'$(OutDir)node-fixtures/%(Filename).mjs')">
     <ResolveTypeScriptToolTask Tool="esbuild"
                                Version="$(RaskEsbuildVersion)"

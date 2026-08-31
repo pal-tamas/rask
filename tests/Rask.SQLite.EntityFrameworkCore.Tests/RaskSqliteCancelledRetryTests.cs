@@ -18,7 +18,7 @@ public sealed class RaskSqliteCancelledRetryTests : IDisposable
         // A budget far longer than the test: the retry can only be ended by the cancellation, never by
         // running out of time. Any SQLITE_BUSY here therefore did NOT exhaust the budget.
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite(ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromMinutes(5))
+            .UseRaskSqlite(ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromMinutes(5); })
             .Options;
 
         await using var context = new ProbeDbContext(options);

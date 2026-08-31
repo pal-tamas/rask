@@ -72,6 +72,21 @@ internal sealed partial class AllocHoistedBoundEntryProbe : Component
     protected override Component? Render() => Div[Input.Bind(_bind).Id("name")];
 }
 
+// The expensive shape, hoisted. This is the pair that matters: AllocBoundToMarkupHostProbe pays 5011 B
+// and this pays what a hoisted PLAIN model pays, so hoisting does not merely help the bad case — it
+// ERASES the difference between the two. docs/forms.md tells people to reach for this in a hot
+// component, so the number it quotes is pinned here rather than left to drift (#803).
+internal sealed partial class AllocHoistedMarkupHostProbe : Component
+{
+    internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
+
+    private readonly System.Linq.Expressions.Expression<Func<string>> _bind;
+
+    public AllocHoistedMarkupHostProbe() => _bind = () => Model.Name;
+
+    protected override Component? Render() => Div[Input.Bind(_bind).Id("name")];
+}
+
 // The SAME bind against a property declared on a type that derives RaskMarkup. This is not a contrived
 // shape: `Component : RaskMarkup`, so `Input.Bind(() => Draft)` — binding a component's own property,
 // which the guides do — lands here, and so does binding any model that happens to be a component. The
@@ -350,6 +365,31 @@ public class BuilderEntryAllocationPinTests
 
         // 5011 B/render measured 2026-08-24; pinned at 5300 B.
         AssertCosts(cost, 5300);
+    }
+
+    /// <summary>
+    ///     Hoisting the expression erases the markup-host penalty entirely.
+    /// </summary>
+    /// <remarks>
+    ///     The pair this exists for: the same bind costs 5011 B built at the call site and this hoisted,
+    ///     which is what a hoisted PLAIN model costs too (2721 B) — so the expensive shape and the
+    ///     representative one CONVERGE once the tree stops being rebuilt per render. That is the whole
+    ///     advice in <c>docs/forms.md</c>, and a documented number with no test behind it is one that
+    ///     drifts (#803).
+    ///     <para>
+    ///         Also the measurement that says where the remaining cost is: what is left after the tree
+    ///         goes is the binding machinery — <c>FieldIdentifier</c>, validator registration, owner
+    ///         tracking — shared with the plain-model case and not addressed by hoisting.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void Hoisting_the_expression_erases_the_markup_host_penalty()
+    {
+        var cost = Measure(static () => new AllocHoistedMarkupHostProbe());
+
+        // 2753 B/render measured 2026-08-31; pinned at 3000 B. Against 5011 B unhoisted, and within
+        // noise of the 2721 B a hoisted plain model costs.
+        AssertCosts(cost, 3000);
     }
 
     private static void AssertCosts(long actual, long ceiling) =>

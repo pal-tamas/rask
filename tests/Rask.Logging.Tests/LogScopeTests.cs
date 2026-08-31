@@ -24,7 +24,7 @@ public sealed class LogScopeTests
         logger.LogInformation("outside");
         await harness.RunUntilStoredAsync(2);
 
-        var page = await harness.Store.QueryAsync(new LogQuery());
+        var page = await harness.Store.SearchAsync(new LogQuery());
         var inside = page.Entries.Single(e => e.Message == "inside");
         var outside = page.Entries.Single(e => e.Message == "outside");
 
@@ -49,7 +49,7 @@ public sealed class LogScopeTests
 
         await harness.RunUntilStoredAsync(1);
 
-        var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
         Assert.NotNull(entry.Scopes);
         Assert.Equal("r1", entry.Scopes!.Single(s => s.Key == "RequestId").Value);
         Assert.Equal("u9", entry.Scopes.Single(s => s.Key == "UserId").Value);
@@ -68,7 +68,7 @@ public sealed class LogScopeTests
 
         await harness.RunUntilStoredAsync(1);
 
-        var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
         Assert.NotNull(entry.Scopes);
         Assert.Equal("r2", entry.Scopes!.Single(s => s.Key == "RequestId").Value);
         Assert.Equal("u7", entry.Scopes.Single(s => s.Key == "UserId").Value);
@@ -93,18 +93,18 @@ public sealed class LogScopeTests
 
         await harness.RunUntilStoredAsync(3);
 
-        var mine = await harness.Store.QueryAsync(new LogQuery { ScopeKey = "RequestId", ScopeValue = "r2" });
+        var mine = await harness.Store.SearchAsync(new LogQuery { ScopeKey = "RequestId", ScopeValue = "r2" });
         var entry = Assert.Single(mine.Entries);
         Assert.Equal("work for r2", entry.Message);
 
         // Key alone finds every entry that carried it, which is the "which entries are request-scoped at
         // all?" question.
-        var anyRequest = await harness.Store.QueryAsync(new LogQuery { ScopeKey = "RequestId" });
+        var anyRequest = await harness.Store.SearchAsync(new LogQuery { ScopeKey = "RequestId" });
         Assert.Equal(3, anyRequest.Entries.Count);
 
         // A value that belongs to a different key must not match. This is why the filter uses
         // json_extract rather than a LIKE over the raw column.
-        var wrongKey = await harness.Store.QueryAsync(new LogQuery { ScopeKey = "UserId", ScopeValue = "r2" });
+        var wrongKey = await harness.Store.SearchAsync(new LogQuery { ScopeKey = "UserId", ScopeValue = "r2" });
         Assert.Empty(wrongKey.Entries);
     }
 
@@ -121,7 +121,7 @@ public sealed class LogScopeTests
 
         await harness.RunUntilStoredAsync(1);
 
-        var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
         Assert.Null(entry.Scopes);
     }
 
@@ -144,7 +144,7 @@ public sealed class LogScopeTests
 
         await harness.RunUntilStoredAsync(1);
 
-        var entry = Assert.Single((await harness.Store.QueryAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
         Assert.NotNull(entry.Scopes);
         Assert.Equal(2, entry.Scopes!.Count);                 // the third scope is dropped
         Assert.All(entry.Scopes, s => Assert.Equal(4, s.Value.Length)); // each value truncated
@@ -189,7 +189,7 @@ public sealed class LogScopeTests
                 [new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Information, "New.Category", 0, "after upgrade", null,
                     [new LogScopeValue("RequestId", "r9")])]);
 
-            var page = await store.QueryAsync(new LogQuery());
+            var page = await store.SearchAsync(new LogQuery());
             Assert.Equal(2, page.Entries.Count);
 
             // The old row survives with no scopes, and the new one round-trips its own.

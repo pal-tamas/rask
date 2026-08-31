@@ -62,7 +62,7 @@ internal static class PushBackend
 
         // Deliver a notification to every stored subscription, evicting any the push service reports
         // as gone (ShouldDelete). Returns a per-subscription summary.
-        app.MapPost("/_push/send", async (SendRequest request, IWebPushSender sender, PushSubscriptionStore store, CancellationToken ct) =>
+        app.MapPost("/_push/send", async (SendRequest request, IWebPush sender, PushSubscriptionStore store, CancellationToken ct) =>
         {
             var message = WebPushMessage.Text(
                 string.IsNullOrWhiteSpace(request.Title) ? "Hello from Rask" : request.Title,

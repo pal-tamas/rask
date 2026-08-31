@@ -446,50 +446,26 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             return RenderInitialRoot();
         }
 
-        using var quiescence = QuiescenceScope.Begin();
-        var html = RenderRootWave(publishOnly: false);
-
-        var deadline = DateTime.UtcNow + budget;
-        var waves = 0;
-        while (quiescence.TrySnapshotPending(out var batch))
-        {
+        // The waves themselves are host-agnostic and live in Core, so a build-time prerender of an app
+        // with no server at all runs the same loop. What is server-specific is the two arguments below.
+        var result = await QuiescentRender.RunAsync(
+            RenderRootWave,
+            budget,
             // Work blocked on JavaScript cannot finish here, so waiting for it only burns the
             // budget. A JS call made during a render queues onto a frame, and during the GET there
             // is no client to send that frame to — the awaiting task completes once the socket is
             // up, never before. A hook that reads browser storage to restore a session is exactly
             // this shape, and it is idiomatic enough to appear in the framework's own auth sample.
             //
-            // Stopping here costs nothing that waiting would have bought: the same page is already
+            // Stopping there costs nothing that waiting would have bought: the same page is already
             // marked interactive by the interop itself, so it keeps its session and finishes over
             // the socket precisely as it did before any of this existed.
-            if (JsInvokes.HasPending)
-            {
-                break;
-            }
+            isBlocked: () => JsInvokes.HasPending).ConfigureAwait(false);
 
-            var remaining = deadline - DateTime.UtcNow;
-            if (remaining <= TimeSpan.Zero || waves >= MaxQuiescenceWaves)
-            {
-                quiescence.MarkTimedOut();
-                break;
-            }
+        var html = result.Html;
 
-            try
-            {
-                await Task.WhenAll(batch).WaitAsync(remaining).ConfigureAwait(false);
-            }
-            catch (TimeoutException)
-            {
-                quiescence.MarkTimedOut();
-                break;
-            }
-
-            html = RenderRootWave(publishOnly: true);
-            waves++;
-        }
-
-        LastRenderTimedOut = quiescence.TimedOut;
-        if (quiescence.TimedOut)
+        LastRenderTimedOut = result.TimedOut;
+        if (result.TimedOut)
         {
             // The page is going out with work still in flight, so it MUST keep a live session:
             // served as a plain document it would sit on its placeholder for ever, with nothing
@@ -534,11 +510,6 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         _renderCache?.Snapshot(); // promote GET frames to the diff baseline
         SeedInitialHtml(html);
     }
-
-    // Bounds a pathological render whose every wave keeps starting new work. Mirrors the coalescing
-    // loop's budget: past this the page is promoted to interactive and the live session finishes
-    // the job, rather than the response growing without limit.
-    private const int MaxQuiescenceWaves = 16;
 
     /// <summary>
     ///     Whether the last render fell back to the framework's error page rather than the app.

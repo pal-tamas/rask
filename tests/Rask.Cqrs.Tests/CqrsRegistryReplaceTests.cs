@@ -47,14 +47,14 @@ public sealed class CqrsRegistryReplaceTests
         var log = new List<string>();
         var key = new object();
         CqrsRegistry.ReplaceRequests(key, [(typeof(Kept), Records(log, "kept")), (typeof(Removed), Records(log, "removed"))]);
-        await Dispatcher().DispatchAsync(new Removed(1));
+        await Dispatcher().SendAsync(new Removed(1));
         Assert.Equal(["removed"], log);
 
         CqrsRegistry.ReplaceRequests(key, [(typeof(Kept), Records(log, "kept"))]);
 
-        await Dispatcher().DispatchAsync(new Kept(1));
+        await Dispatcher().SendAsync(new Kept(1));
         Assert.Equal(["removed", "kept"], log);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Dispatcher().DispatchAsync(new Removed(1)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Dispatcher().SendAsync(new Removed(1)));
     }
 
     [Fact]
@@ -87,10 +87,10 @@ public sealed class CqrsRegistryReplaceTests
 
         CqrsRegistry.ReplaceRequests(mine, []);
 
-        await Dispatcher().DispatchAsync(new OtherGroupKept(1));
+        await Dispatcher().SendAsync(new OtherGroupKept(1));
         Assert.Equal(["theirs"], log);
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Dispatcher().DispatchAsync(new OtherGroupRemoved(1)));
+            () => Dispatcher().SendAsync(new OtherGroupRemoved(1)));
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class CqrsRegistryReplaceTests
         CqrsRegistry.ReplaceRequests(key, []);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Dispatcher().DispatchAsync(new Orphaned(1)));
+            () => Dispatcher().SendAsync(new Orphaned(1)));
 
         Assert.Contains(nameof(Orphaned), exception.Message, StringComparison.Ordinal);
     }

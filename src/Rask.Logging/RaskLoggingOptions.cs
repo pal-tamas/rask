@@ -94,7 +94,7 @@ public sealed class RaskLoggingOptions
     /// <c>Rask.SQLite</c> applies to the application database — WAL matters here in particular, since it is
     /// what lets a dashboard read the store while the writer is flushing.
     /// </summary>
-    public SqlitePragmaOptions Pragmas { get; set; } = new();
+    public SqliteOptions Pragmas { get; set; } = new();
 
     /// <summary>
     /// The non-blocking busy-retry used when the write lock is contended (a reader checkpointing, a second
@@ -191,7 +191,7 @@ public sealed class RaskLoggingOptions
         ArgumentNullException.ThrowIfNull(Pragmas);
         ArgumentNullException.ThrowIfNull(BusyRetry);
 
-        // SqlitePragmaOptions.Validate() is internal to Rask.SQLite, but BuildScript throws on the same bad
+        // SqliteOptions.Validate() is internal to Rask.SQLite, but BuildScript throws on the same bad
         // values — so building the script here buys the identical fail-fast without reaching for internals.
         SqlitePragmas.BuildScript(Pragmas);
     }

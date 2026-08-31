@@ -6,8 +6,8 @@ namespace Rask.Jobs.Tests;
 // every test here drives its own group key. That is the point of the group key: a contributor can only
 // ever replace its own set.
 //
-// The stand-in types are plain ICommands rather than IJobs on purpose. The generator registers every IJob
-// in the compilation, so an IJob here would sit in the *generated* group as well and could never be
+// The stand-in types are plain ICommands rather than IJob on purpose. The generator registers every IBackgroundJob
+// in the compilation, so an IBackgroundJob here would sit in the *generated* group as well and could never be
 // dropped by replacing a test-owned one. Deserialize only needs an ICommand to hand back.
 public sealed class JobSerializerRegistryReplaceTests
 {

@@ -31,7 +31,6 @@ Start a new app with the **`--pwa`** option:
 
 ```bash
 rask new MyApp --template wasm                # standalone browser-WASM PWA (full offline)
-rask new MyApp --template wasm-hosted         # WASM PWA + ASP.NET host (full offline)
 rask new MyApp                                # installable + push-capable Server app (not offline)
 rask new MyApp --template react               # installable + push-capable TypeScript SPA (not offline)
 ```
@@ -303,10 +302,10 @@ builder.Services.AddRaskWebPush(o =>
 ```
 
 Hand the **same** `VapidKeys.PublicKey` to the client's `IWebPush.SubscribeAsync`. Store the
-`PushSubscription` your client posts up, then deliver a notification with `IWebPushSender`:
+`PushSubscription` your client posts up, then deliver a notification with `IWebPush`:
 
 ```csharp
-public sealed class Notifier(IWebPushSender sender, ISubscriptionStore store)
+public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
 {
     public async Task PingAsync()
     {

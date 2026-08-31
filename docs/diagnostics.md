@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK056)
+# Rask diagnostics (RASK001–RASK060)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -68,7 +68,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
 | RASK032 | — | *Retired* — native chrome cannot sit inside an HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
-| RASK034 | — | *retired* — the data grid it guarded shipped in `Rask.Bootstrap`, which is gone |
+| RASK034 | — | *Retired* — the `BsDataGrid` it analysed went with `Rask.Bootstrap` |
 | [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
 | [RASK036](#rask036) | Warning | A builder-entry host must be `partial` |
 | [RASK037](#rask037) | Warning | `using` alias is hidden by a builder entry |
@@ -90,7 +90,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 | [RASK054](#rask054) | Info | Page cannot run in the browser |
 | [RASK055](#rask055) | Error | Scoped JavaScript is no longer supported |
-| [RASK056](#rask056) | Warning | `AddRask` is called twice on the same service collection |
+| [RASK056](#rask056) | Error | External component must be partial |
+| [RASK057](#rask057) | Error | External component prop has no wire encoding |
+| [RASK058](#rask058) | Error | External component name collision |
+| [RASK059](#rask059) | Error | Module override must be a constant string |
+| [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
 
 ---
 
@@ -318,12 +322,9 @@ and emits untrusted structural diffs on insert/remove/move — and for a compone
 decides which instance is reused, so the row's own state follows the slot rather than the item
 (see [RASK046](#rask046)).
 
-All three chain spellings are recognised — `Li[…]`, `Li.Class("c")[…]`, and a chain that ends at a
-STEP rather than at the children indexer (`Badge.Label(x)`). The chain went unreported until #704, when
-the only surface this checked was a factory call: the check matched a method named after the component,
-and a chain has none. The step-ending spelling followed later: it is typed `Build<T>`, a struct, so the
-"is this a component?" test saw nothing — and it only became reachable in a list when the children
-indexer learned to take a projection of chains.
+Both chain spellings are recognised — `Li[…]` and `Li.Class("c")[…]`. The chain went unreported until
+#704, when the only surface this checked was a factory call: the check matched a method named after the
+component, and a chain has none.
 
 ```csharp
 // ✗ items.Select(i => Li[ i.Name ])
@@ -551,16 +552,10 @@ A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
 dynamic or external target, use `RouteUrl.External("…")`, or suppress with `#pragma warning disable RASK033`
 / `.editorconfig` (`dotnet_diagnostic.RASK033.severity = none`).
 
-## RASK034
-*Retired.* It reported a `BsDataGrid` column with no `Field`, which the column chooser addresses columns
-by — so a column without one could never be hidden or reordered and just sat pinned. `Rask.Bootstrap` is
-gone and with it `BsDataGrid`, so the mistake it caught can no longer be written. The id is retired, not
-reused.
-
 ## RASK035
 **Background job or outbox event type cannot be registered** · Warning
 
-A type implementing `IJob` or `IOutboxEvent` was found, but the generated registry can't map its stored
+A type implementing `IBackgroundJob` or `IOutboxEvent` was found, but the generated registry can't map its stored
 name to its CLR type — so it is skipped. Enqueuing it still writes a row; the processor then fails to
 rehydrate it, records `No registered job type '…'`, and retries until `MaxAttempts` before dead-lettering.
 Before this diagnostic existed the type was skipped **silently**, which is exactly what made the failure
@@ -570,7 +565,7 @@ The reasons, all about reconstructing a runtime `Type.FullName` from a name the 
 
 | Shape | Why |
 |-------|-----|
-| **Generic** — `record Reindex<T> : IJob` | A closed generic's `FullName` carries assembly-qualified type arguments, so no static key matches. |
+| **Generic** — `record Reindex<T> : IBackgroundJob` | A closed generic's `FullName` carries assembly-qualified type arguments, so no static key matches. |
 | **Nested in a generic** — `class Outer<T> { record Ev : IOutboxEvent; }` | Naming it would leak `T` into the generated file. |
 | **`file`-local** — `file record Ev : IOutboxEvent;` | Invisible outside its own file, and its `FullName` carries a synthesized `<file>F0__` segment. |
 | **Inaccessible** — `private`/`protected` at any level of its containing chain | The generated registry lives in the same assembly but a different file, so it can't name the type. |
@@ -720,7 +715,7 @@ initializer is right there. A property from a **referenced assembly** cannot be:
 compiles into the constructor and leaves no trace in metadata, so `string Title` and
 `string Title = ""` are the same symbol from outside. The owning assembly therefore publishes the
 answer — the factory generator emits one
-`[assembly: RaskRequiredProperties("Your.Package.Icon", "Name")]` per component with such a
+`[assembly: RaskRequiredProperties("Rask.Bootstrap.BsIcon", "Name")]` per component with such a
 property — and this analyzer reads it back. A library built by an older Rask, or by no Rask at all,
 publishes nothing, and its properties are then counted only when they carry the language's `required`
 modifier, which metadata does preserve.
@@ -1131,7 +1126,7 @@ public sealed record RebuildIndex(IComparer<string> Order) : ICommand;
 ```
 
 `[LocalOnly]` on an **interface** marks every message implementing it, which is how `Rask.Jobs`'
-`IJob` and `Rask.Outbox`' `IOutboxEvent` keep whole families of in-process messages out of the wire
+`IBackgroundJob` and `Rask.Outbox`' `IOutboxEvent` keep whole families of in-process messages out of the wire
 vocabulary at once.
 
 > This diagnostic only fires in a project that references a remote transport (`Rask.Cqrs.Client` or
@@ -1218,6 +1213,82 @@ else's file and is left alone.
 > your `Head`, exactly as before.
 
 ## RASK056
+
+**External component must be partial** · Error
+
+A `ReactComponent` or `LitComponent` is completed by a second part of the class: its name, its module
+and its props writer. Without `partial` there is nowhere to put any of it.
+
+```csharp
+// ✗ RASK056 — nothing can be generated into it
+public sealed class Chart : ReactComponent { }
+
+// ✓
+public sealed partial class Chart : ReactComponent { }
+```
+
+Reported here, against the declaration, rather than left to the compiler: what it would otherwise
+produce is three "does not implement inherited abstract member" errors naming `ComponentName`,
+`Module` and `WriteProps`, none of which the author wrote or should have to know about.
+
+## RASK057
+
+**External component prop has no wire encoding** · Error
+
+Props are serialized to JSON by generated code rather than by reflection — which is what lets them
+survive trimming and AOT — so a shape the generator cannot express has to be reported now rather than
+arriving as `null` in the browser.
+
+The supported set is the same wire vocabulary [RASK053](#rask053) documents, plus callbacks as
+`Action`, `Action<T>`, `Func<Task>` and `Func<T, Task>`.
+
+```csharp
+// ✗ RASK057 — an interface names no single concrete type
+public IFilter? Filter { get; set; }
+
+// ✓ a concrete type has one shape
+public TextFilter? Filter { get; set; }
+```
+
+A property that is not meant to reach the browser at all — an injected service, a computed helper —
+should say so with `[SkipFactory]`, which keeps it out of the props entirely.
+
+## RASK058
+
+**External component name collision** · Error
+
+The client runtime resolves a module by the component's simple type name, so two sharing one name
+would resolve to whichever registered last — silently, and potentially differently between builds.
+
+```csharp
+// ✗ RASK058 — both are "Chart" to the browser
+namespace Sales    { public sealed partial class Chart : ReactComponent { } }
+namespace Support  { public sealed partial class Chart : ReactComponent { } }
+```
+
+Rename one, or give it an explicit module by overriding `Module`.
+
+## RASK059
+
+**Module override must be a constant string** · Error
+
+The bundler needs the module specifier at *build* time, to generate the entry that pairs the component
+with its adapter — long before any of this code runs. So the override has to be a literal the
+generator can read straight out of the syntax.
+
+```csharp
+// ✗ RASK059 — the build cannot evaluate this
+protected override string Module => $"./widgets/{Name}.ts";
+
+// ✓
+protected override string Module => "@acme/charts/Chart";
+```
+
+Anything computed would leave the browser resolving a name the bundle never built — markup pointing at
+a chunk that does not exist, with nothing failing until someone loads the page.
+
+## RASK060
+
 **`AddRask` is called twice on the same service collection** · Warning
 
 A second `AddRask` does not add to the first. Its options are registered with `TryAddSingleton`, which

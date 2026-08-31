@@ -123,7 +123,7 @@ public sealed class LogWriterResilienceTests
         Assert.Equal("pending at shutdown", Assert.Single(store.Appended).Message);
     }
 
-    private static LogWriter Build(ILogStore store, out LogChannel channel, RaskLoggingOptions options)
+    private static LogWriter Build(ILogs store, out LogChannel channel, RaskLoggingOptions options)
     {
         var metrics = new LogMetrics();
         channel = new LogChannel(options, metrics);
@@ -154,7 +154,7 @@ public sealed class LogWriterResilienceTests
     }
 
     /// <summary>A store that can be told to fail, to hang, or to work.</summary>
-    private sealed class FaultyLogStore : ILogStore
+    private sealed class FaultyLogStore : ILogs
     {
         private readonly Lock _gate = new();
         private readonly List<LogRecord> _appended = [];
@@ -193,7 +193,7 @@ public sealed class LogWriterResilienceTests
             }
         }
 
-        public Task<LogPage> QueryAsync(LogQuery query, CancellationToken cancellationToken = default) =>
+        public Task<LogPage> SearchAsync(LogQuery query, CancellationToken cancellationToken = default) =>
             Task.FromResult(LogPage.Empty(1, 50));
 
         public Task<IReadOnlyList<string>> CategoriesAsync(CancellationToken cancellationToken = default) =>

@@ -6,7 +6,7 @@ namespace Rask.Benchmarks.Sqlite.Db;
 /// One arm's private database file. Every arm gets its own path, which is what gives it its own
 /// Microsoft.Data.Sqlite connection pool (the pool is keyed by connection string) — so an arm can never
 /// inherit another's pooled connections, nor the <c>busy_timeout=0</c> that
-/// <c>ExecuteInImmediateTransactionAsync</c> leaves on a hand-built connection it has used.
+/// <c>InImmediateTransactionAsync</c> leaves on a hand-built connection it has used.
 /// </summary>
 internal sealed class LoadDb(string label)
 {

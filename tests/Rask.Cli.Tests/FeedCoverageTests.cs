@@ -32,17 +32,14 @@ public sealed class FeedCoverageTests
     private const string Version = "9.9.9";
 
     /// <summary>
-    ///     Every styling option, on every template that has one. Styling is the axis that decides which
-    ///     package the project references, so covering it is the point.
+    ///     Every template, in its only configuration. This used to loop the styling axis, which was the
+    ///     thing that decided which package a project referenced; there is no axis now, and Tailwind is
+    ///     not a package a project references at all — it ships inside the host package, so it is
+    ///     deliberately absent from the feed.
     /// </summary>
-    /// <remarks>
-    ///     Parameterised by template key only, with the stylings looped inside: <c>Styling</c> is internal,
-    ///     and a public xUnit theory parameter cannot expose it (CS0051).
-    /// </remarks>
     [Theory]
     [InlineData("server")]
     [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
     public void Every_package_a_template_references_can_be_restored_from_the_local_feed(string template)
     {
         var batteries = new ServerBatteries();
@@ -51,7 +48,6 @@ public sealed class FeedCoverageTests
         {
             "wasm" => ProjectGenerator.GenerateWasm(
                 Root, "App", auth: false, pwa: false, docker: false, Version, batteries),
-            "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
             _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
         };
 
@@ -104,9 +100,6 @@ public sealed class FeedCoverageTests
 
         AssertFeedCovers(
             ProjectGenerator.GenerateServer(Root, "App", batteries, Version), "the server template with every battery");
-        AssertFeedCovers(
-            ProjectGenerator.GenerateWasmHosted(Root, "App", batteries with { Push = false }, Version),
-            "the wasm-hosted template with every battery");
     }
 
     /// <summary>Every front-end template, since each contributes the same host-side packages.</summary>
@@ -119,6 +112,25 @@ public sealed class FeedCoverageTests
                 ProjectGenerator.GenerateSpa(Root, "App", framework, new ServerBatteries(), Version),
                 $"the {framework.Key} template");
         }
+    }
+
+    [Fact]
+    public void Browser_only_packages_are_in_the_local_feed_too()
+    {
+        // RaskBrowserPackageReference is NOT a PackageReference, so it never reaches
+        // ScaffoldResult.Packages and AssertFeedCovers cannot see it. That makes the coverage guard
+        // blind to exactly the references the one-project build adds for the bundle — the class of gap
+        // where a missing package means no build case can exist rather than one that fails.
+        //
+        // Asserted by name because there is only one today. A second would be the moment to make the
+        // generator report them instead.
+        var feed = new HashSet<string>(CliBuildE2E.FeedPackages, StringComparer.Ordinal);
+
+        Assert.True(
+            feed.Contains("Rask.Cqrs.Client"),
+            "Rask.Cqrs.Client is declared as a browser-only reference by `rask new --wasm --cqrs`, but "
+            + "CliBuildE2E.FeedPackages does not pack it — so the browser companion could not restore "
+            + "and no build gate covering it can exist.");
     }
 
     private static void AssertFeedCovers(ScaffoldResult result, string what)

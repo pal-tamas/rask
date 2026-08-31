@@ -1,0 +1,44 @@
+#nullable enable
+Rask.SQLite.Snapshots.DirectorySnapshotStore
+Rask.SQLite.Snapshots.DirectorySnapshotStore.DirectorySnapshotStore(string! directory, string! searchPattern = "*.db") -> void
+Rask.SQLite.Snapshots.DirectorySnapshotStore.ListAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.SQLite.Snapshots.SqliteSnapshotInfo!>!>!
+Rask.SQLite.Snapshots.DirectorySnapshotStore.PruneAsync(int retain, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.SQLite.Snapshots.DirectorySnapshotStore.SaveAsync(string! sourceFilePath, string! snapshotName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.SQLite.Snapshots.ISqliteSnapshotStore
+Rask.SQLite.Snapshots.ISqliteSnapshotStore.ListAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.SQLite.Snapshots.SqliteSnapshotInfo!>!>!
+Rask.SQLite.Snapshots.ISqliteSnapshotStore.PruneAsync(int retain, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.SQLite.Snapshots.ISqliteSnapshotStore.SaveAsync(string! sourceFilePath, string! snapshotName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.SQLite.Snapshots.ISqliteSnapshotter
+Rask.SQLite.Snapshots.ISqliteSnapshotter.SnapshotAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Rask.SQLite.Snapshots.SqliteSnapshotInfo
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.<Clone>$() -> Rask.SQLite.Snapshots.SqliteSnapshotInfo!
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.CreatedAt.get -> System.DateTime
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.CreatedAt.init -> void
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.Deconstruct(out string! Name, out long SizeBytes, out System.DateTime CreatedAt) -> void
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.Equals(Rask.SQLite.Snapshots.SqliteSnapshotInfo? other) -> bool
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.Name.get -> string!
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.Name.init -> void
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.SizeBytes.get -> long
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.SizeBytes.init -> void
+Rask.SQLite.Snapshots.SqliteSnapshotInfo.SqliteSnapshotInfo(string! Name, long SizeBytes, System.DateTime CreatedAt) -> void
+Rask.SQLite.Snapshots.SqliteSnapshotOptions
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.BusyTimeout.get -> System.TimeSpan
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.BusyTimeout.set -> void
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.DatabasePath.get -> string?
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.DatabasePath.set -> void
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.DestinationDirectory.get -> string?
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.DestinationDirectory.set -> void
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.Interval.get -> System.TimeSpan
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.Interval.set -> void
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.Retain.get -> int
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.Retain.set -> void
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.SnapshotOnStartup.get -> bool
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.SnapshotOnStartup.set -> void
+Rask.SQLite.Snapshots.SqliteSnapshotOptions.SqliteSnapshotOptions() -> void
+Rask.SQLite.Snapshots.SqliteSnapshotsServiceCollectionExtensions
+override Rask.SQLite.Snapshots.SqliteSnapshotInfo.Equals(object? obj) -> bool
+override Rask.SQLite.Snapshots.SqliteSnapshotInfo.GetHashCode() -> int
+override Rask.SQLite.Snapshots.SqliteSnapshotInfo.ToString() -> string!
+static Rask.SQLite.Snapshots.SqliteSnapshotInfo.operator !=(Rask.SQLite.Snapshots.SqliteSnapshotInfo? left, Rask.SQLite.Snapshots.SqliteSnapshotInfo? right) -> bool
+static Rask.SQLite.Snapshots.SqliteSnapshotInfo.operator ==(Rask.SQLite.Snapshots.SqliteSnapshotInfo? left, Rask.SQLite.Snapshots.SqliteSnapshotInfo? right) -> bool
+static Rask.SQLite.Snapshots.SqliteSnapshotsServiceCollectionExtensions.AddRaskSqliteSnapshots(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.SQLite.Snapshots.SqliteSnapshotOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

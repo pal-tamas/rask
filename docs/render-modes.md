@@ -29,10 +29,24 @@ builder.Services.AddRask(configureServer: o =>
 Defaults are today's behaviour exactly: server-interactive, no static pages, no streaming, no browser
 runtime. An app that configures nothing notices nothing.
 
-**Turning `ServerInteractivity` off** means a page is served as HTML and becomes interactive only
-once the browser bundle boots — no WebSocket is ever opened. That is the offline-first and
-edge-hosted arrangement, and it requires `Wasm`, because otherwise a page with a handler would have
-no way to answer it at all.
+**Turning `ServerInteractivity` off** is a declaration, not a preference: **no page ever gets a live
+session.** Every page is served as a document — no session, no socket, no runtime script — and the
+WebSocket endpoint answers `404` as though it were not there.
+
+That is stronger than `Static`, which is *detected* per page and deliberately biased towards keeping
+a connection. Here nothing is detected, so nothing can bias: an app that serves only content gets
+only content, even on a page that renders a button.
+
+Both combinations are useful, and both are allowed:
+
+| | |
+|---|---|
+| `ServerInteractivity = false`, `Wasm = false` | Plain server-side rendering. A content site. |
+| `ServerInteractivity = false`, `Wasm = true` | Static HTML that hands over to WebAssembly, with no socket ever opened — the offline-first, edge-hosted arrangement. |
+
+The cost is real and is **reported rather than prevented**: a page that renders a handler has nothing
+to answer it, and says so through the `Rask.Ssr` diagnostic. Refusing to start was the wrong response
+to that, because it made "serve only content" unreachable.
 
 **A combination that cannot serve a working page throws when the host is built**, naming what is off
 and what to do. A contradiction is a configuration mistake, and a host that refuses to start is far
@@ -99,7 +113,35 @@ So a page that cannot run in the browser goes under `Server/`, and
 [RASK054](diagnostics.md#rask054) tells you which those are. Anything else compiles into both halves
 from one copy, which is what keeps them from drifting.
 
+**`Browser/` is the mirror, and the server is what excludes it.** Code there is compiled into the
+bundle only — which makes it the one place a file may use a browser-only package reference (below),
+since that package is absent from the server by design:
+
+| Folder | Compiled into |
+|---|---|
+| `Server/**` | the server only |
+| `Browser/**` | the bundle only |
+| everything else | both halves, from one copy |
+
+Neither folder exists until you make one, and neither means anything without `RaskBrowserRung` — one
+project has one source glob, and these two names are how a file says which half it belongs to.
+
 Set `<RaskBrowserRootComponent>` if your root component is not `{RootNamespace}.App`.
+
+Two more properties exist for the half that has no `Program.cs` of its own:
+
+| Property | What it does |
+|---|---|
+| `RaskBrowserStartup` | Names a type whose `Configure(IServiceCollection)` the generated entry point calls **before** the app runs. Registrations arriving after the first render would be worse than none. |
+| `RaskBrowserPackageReference` | A reference the bundle gets and the server does not — for the pairs where each half must not carry the other's. Use it from `Browser/`. |
+
+Both exist because one project means one reference list and one entry point, and some things belong to
+exactly one half.
+
+> **A page that reaches data still has to reach it from the browser.** [RASK054](diagnostics.md#rask054)
+> points you at a query or a CQRS message because those already cross the wire — but they only cross it
+> when the transport is wired. Left in-process, a message dispatched from the browser answers from
+> nowhere. `rask new --wasm` wires it for you; see [remote dispatch](cqrs.md#remote-dispatch--a-client-and-a-server-raskcqrsclient--raskcqrsserver).
 
 > **Publish the bundle with `WasmFingerprintAssets=false`.** The WebAssembly SDK otherwise
 > content-hashes the framework files and maps them through an import map it writes into the bundle's
@@ -366,3 +408,4 @@ Only same-site paths are accepted; anything else throws.
 - [Lifecycle](lifecycle.md) — when `OnMountAsync` runs and what the initial render waits for.
 - [Routing](routing.md) — `[NotFound]`, `Navigator`, and route-driven redirects.
 - [Deployment](deployment.md) and [Scaling](scaling.md) — caching and session accounting in production.
+- [CQRS](cqrs.md) — remote dispatch, which is how a page that has moved to the browser reaches its data.

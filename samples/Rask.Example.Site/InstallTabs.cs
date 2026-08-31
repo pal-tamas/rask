@@ -10,6 +10,16 @@ public sealed partial class InstallTabs : Component
 
     private int _active; // 0 = Server, 1 = WASM
 
+    /// <summary>
+    /// The install command, spelled once. It is the same string in the README, NUGET.md, docs/cli.md,
+    /// docs/getting-started.md, docs/installation.md, the tutorial and llms.txt, and
+    /// <c>scripts/tests/install-script.test.sh</c> fails the build if any of them drifts — a wrong URL
+    /// on the landing page is a broken front door that nothing else would catch.
+    /// </summary>
+    private const string InstallCommand = "curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh";
+
+    private const string WindowsInstallCommand = "irm https://pal-tamas.github.io/rask/rask.ps1 | iex";
+
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class("mx-auto max-w-2xl")[
@@ -19,12 +29,17 @@ public sealed partial class InstallTabs : Component
                 .Aria(new Dictionary<string, string?> { ["label"] = "Project template" })[
                 Tab(0), Tab(1)
             ],
-            // .term is a TEST contract: SiteExampleTests reads the rendered command out of it, and a
-            // locator that resolves to nothing fails by timing out rather than by naming what moved.
+            // .term and .install-foot are TEST contracts: SiteExampleTests reads the rendered command and
+            // the Windows one-liner out of them, and a locator that resolves to nothing fails by timing
+            // out rather than by naming what moved.
             Div.Class("term overflow-x-auto rounded-2xl border border-line bg-panel-2 p-5 text-left")[
                 Terminal()
             ],
-            P.Class("mt-4 text-center text-xs text-slate-500 dark:text-slate-400")[
+            P.Class("install-foot mt-4 text-center text-xs text-slate-500 dark:text-slate-400")[
+                "Nothing preinstalled — it adds the .NET 10 SDK too, under ", Code["$HOME"],
+                ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
+            ],
+            P.Class("install-foot mt-4 text-center text-xs text-slate-500 dark:text-slate-400")[
                 "Add ", Code["--auth"], " for a cookie/JWT starter · full path in the ",
                 A
                     .Class("text-accent-ink no-underline hover:underline")
@@ -52,13 +67,13 @@ public sealed partial class InstallTabs : Component
     {
         1 => Pre.Class("font-mono text-xs leading-relaxed text-ink-soft")[Code[
             Span.Class("text-slate-500 dark:text-slate-400")["# standalone browser-WASM SPA, installable and offline\n"],
-            Line("$", " dotnet tool install -g Rask.Cli"),
+            Line("$", " " + InstallCommand),
             Line("$", " rask new MyApp --template wasm"),
             Span.Class("select-none text-accent-ink")["$"], " cd MyApp && rask dev"
         ]],
         _ => Pre.Class("font-mono text-xs leading-relaxed text-ink-soft")[Code[
             Span.Class("text-slate-500 dark:text-slate-400")["# ASP.NET live-server app, batteries included\n"],
-            Line("$", " dotnet tool install -g Rask.Cli"),
+            Line("$", " " + InstallCommand),
             Line("$", " rask new MyApp"),
             Span.Class("select-none text-accent-ink")["$"], " cd MyApp && rask dev"
         ]]

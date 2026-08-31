@@ -48,7 +48,7 @@ public sealed class NotificationCompositionTests
         var handler = new CountingHandler();
         var dispatcher = Dispatcher(handler);
 
-        var total = await dispatcher.DispatchAsync(new IncrementLocalCounter(5));
+        var total = await dispatcher.SendAsync(new IncrementLocalCounter(5));
 
         Assert.True(total >= 5, "the local handler did not run");
         Assert.Equal(0, handler.Requests);

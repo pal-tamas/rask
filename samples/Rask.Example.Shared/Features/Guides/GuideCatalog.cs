@@ -21,6 +21,8 @@ public static class GuideCatalog
         // ---- Start here ----
         new("one-person-framework", "The One Person Framework",
             "The doctrine: one dev, one codebase, one server, a whole product.", IconName.PersonWorkspace, "Start here"),
+        new("installation", "Installing Rask", "One line to the CLI and everything it needs — options, upgrade, uninstall.",
+            IconName.BoxArrowInDown, "Start here"),
         new("getting-started", "Getting started", "Scaffold a project and build your first component.",
             IconName.RocketTakeoff, "Start here"),
         new("best-practices", "Best practices", "Production patterns for state, forms, security, and perf.",
@@ -69,6 +71,9 @@ public static class GuideCatalog
             IconName.Shuffle, "One Person Framework"),
         new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.",
             IconName.FiletypeTsx, "One Person Framework"),
+        new("external-components", "External components",
+            "A .tsx or Lit file as an ordinary Rask component, with props owned by C#.",
+            IconName.BoxSeam, "One Person Framework"),
         new("tailwind", "Tailwind CSS", "Tailwind v4 compiled by dotnet build — no npm, no config file.",
             IconName.Wind, "One Person Framework"),
         new("query", "Rask.Query", "The dispatcher wrapped in a cache: dedup, staleness, invalidation.",
@@ -157,7 +162,7 @@ public static class GuideCatalog
             IconName.Globe, "Mobile & devices"),
         new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.",
             IconName.Phone, "Mobile & devices"),
-        new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPushSender, delivery results.",
+        new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPush, delivery results.",
             IconName.Send, "Mobile & devices"),
 
         // ---- Browser API reference ----
@@ -222,10 +227,14 @@ public static class GuideCatalog
             IconName.Tools, "Advanced"),
         new("aot", "AOT compilation", "Ahead-of-time compile for WASM, and trim-safety.",
             IconName.Cpu, "Advanced"),
+        new("prerendering", "Prerendering", "Render a standalone WASM app's pages to HTML at publish.",
+            IconName.FileEarmarkCode, "Advanced"),
         new("playground", "Live playground", "The in-browser Roslyn playground.",
             IconName.Easel, "Advanced"),
         new("code-analysis", "Code analysis", "The analyzers and warnings-as-errors adoption.",
             IconName.Search, "Advanced"),
+        new("api-style", "Public API style", "How every public name is chosen, and the gate that records the surface.",
+            IconName.CardText, "Advanced"),
         new("diagnostics", "Diagnostics", "Every RASK0xx descriptor, its trigger, and the fix.",
             IconName.ExclamationDiamond, "Advanced"),
 

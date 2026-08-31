@@ -23,6 +23,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 
 | Guide | What it covers |
 |-------|----------------|
+| [Installing Rask](installation.md) | The one-line installer — what it puts where, every option, upgrading, uninstalling, and the manual path if you would rather not run a script from the internet. |
 | [Getting started](getting-started.md) | Prerequisites, scaffold an app, a tour of the generated files, your first component, interactivity, routing, and troubleshooting. |
 | [The `rask` CLI](cli.md) | The `Rask.Cli` .NET tool — the whole lifecycle: `rask new` (scaffold), `rask db` (migrations), `rask dev` (hot-reload run), `rask deploy` (bare box → live HTTPS site), `rask info`. |
 | [Live playground](playground.md) | Write Rask C# in the browser with IntelliSense, as-you-type diagnostics, and a gallery of examples, then see it compile & render live (Roslyn in WebAssembly) — how it works, the entry-point convention, and its limitations. |
@@ -36,6 +37,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Capability matrix](browser-capabilities.md) | Where each of the 50 APIs works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (`IWebPush`), `rask new MyApp --template wasm`. |
 | [AOT compilation](aot.md) | Opt-in full WASM AOT (`-p:RaskWasmAot=true`): the reflection-free binding registry, registering custom `IParsable` types, `InvokeAsync<T>` under AOT, and the continuous analyzer gate. |
+| [Prerendering](prerendering.md) | Render a standalone WASM app's pages to real HTML at publish (`<RaskPrerender>true</RaskPrerender>`), so a crawler gets the page instead of the boot spinner: what is written, which routes are skipped and why, and why a route that throws is deliberately left out. |
 | [Forms & validation](forms.md) | Two-way binding, `Form<T>`/`EditContext`, inline / DataAnnotations / FluentValidation / async validators, radio & checkbox groups. |
 | [Render modes](render-modes.md) | How a Server page reaches the browser: waiting for async data before the first byte, serving a page that needs nothing live as a cacheable document, setting a status or redirecting on load, and moving an eligible page into WebAssembly — published from the same project. |
 | [Lifecycle](lifecycle.md) | `OnMount` / `OnPropsChanged` / `OnRendered` / `OnUnmount`, async-hook rules, cancellation, common gotchas. |
@@ -59,13 +61,14 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, plus Litestream backup. |
 | [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
 | [TypeScript front ends](spa.md) | A TypeScript SPA with a typed connection to your C#: `rask new --template react`, TypeScript generated from the message records, TanStack Query, and `UseRaskSpa()` (standalone `Rask.Spa.Hosting`). React, Preact, Vue, Angular, Solid, Svelte or Lit — the framework is yours, the language is not. |
-| [Tailwind CSS](tailwind.md) | Every project, no flag: Tailwind v4 compiled by `dotnet build` with no npm, no config file and no `node_modules` — it scans your C# string literals for class names. The standalone binary where one exists, npm where it doesn't, so no platform is left out. |
+| [External components](external-components.md) | A `.tsx` or Lit file as an *ordinary Rask component*: derive from `ReactComponent` or `LitComponent`, drop the front-end file beside it, and place it anywhere the chain goes — a leaf, a subtree, or a whole route. Props are declared in C# and serialized without reflection, callbacks re-enter C# over the channel every DOM handler already uses, and the live diff treats the subtree as opaque because its own renderer owns it. |
+| [Tailwind CSS](tailwind.md) | Every project, no flag and no package: Tailwind v4 ships inside the host package and is compiled by `dotnet build` with no npm, no config file and no `node_modules` — it scans your C# string literals for class names. The standalone binary where one exists, npm where it doesn't, so no platform is left out. |
 | [Rask.Query](query.md) | The dispatcher wrapped in a cache for Rask components (standalone `Rask.Query`): request dedup, staleness, background refetch, and TanStack-shaped keys matched by prefix — the same model the JavaScript side gets from TanStack Query itself. |
-| [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJobQueue` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
-| [Transactional email](mail.md) | Durable email queued on the app's own database via `AddRaskMail<Ctx>()` + `IMailQueue` (standalone `Rask.Mail`) — delivered off the request thread over SMTP with backoff; bodies are Rask components. |
-| [Cache](cache.md) | A developer-facing cache on the app's own database via `AddRaskCache<Ctx>()` (standalone `Rask.Cache`) — standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
+| [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJob` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
+| [Transactional email](mail.md) | Durable email queued on the app's own database via `AddRaskMail<Ctx>()` + `IMail` (standalone `Rask.Mail`) — delivered off the request thread over SMTP with backoff; bodies are Rask components. |
+| [Cache](cache.md) | A developer-facing cache on the app's own database via `AddRaskCache<Ctx>()` (standalone `Rask.Cache`) — standard `IDistributedCache` plus a typed `ICache` with `GetOrAddAsync`, absolute/sliding expiry. |
 | [Outbox](outbox.md) | Durable, crash-safe domain-event delivery via `AddRaskOutbox<Ctx>()` (standalone `Rask.Outbox`) — events committed in the same transaction as your data, delivered post-commit with retries. |
-| [Web Push](webpush.md) | Server-sent Web Push from your backend via `AddRaskWebPush(...)` + `IWebPushSender` (standalone `Rask.WebPush`) — VAPID + aes128gcm, zero deps; pairs with the client `IWebPush`. |
+| [Web Push](webpush.md) | Server-sent Web Push from your backend via `AddRaskWebPush(...)` + `IWebPush` (standalone `Rask.WebPush`) — VAPID + aes128gcm, zero deps; pairs with the client `IWebPush`. |
 | [Secrets](secrets.md) | Where an app's passwords and API keys live, how they reach the server, and what Rask deliberately doesn't do with them. |
 | [Dashboard](dashboard.md) | A built-in operator dashboard at `/_rask` via `AddRaskDashboard<Ctx>()` (standalone `Rask.Dashboard`) — queue depth and dead letters for the outbox/jobs/mail, cache contents, a live log tail (plus searchable history with `Rask.Logging`), SQLite pragmas; fail-closed behind an authorization policy. |
 | [Logging](logging.md) | A durable log store via `AddRaskLogging(...)` (standalone `Rask.Logging`) — the `ILogger` pipeline kept in a SQLite file of its own, buffered off the request thread, with retention by age and row count and a searchable view in the dashboard. |
@@ -80,6 +83,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 |-----------|----------------|
 | [Diagnostics (RASK001–042)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
+| [Public API style](api-style.md) | How every public name is chosen, and the gate that records the surface. |
 
 ## Contributing
 

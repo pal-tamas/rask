@@ -301,7 +301,6 @@ The three web templates take an opt-in `--docker` flag that drops a production-r
 ```bash
 rask new MyApp                                   # Kestrel app → aspnet:10.0 runtime image
 rask new MyApp --template wasm                   # static WASM bundle → nginx:alpine
-rask new MyApp --template wasm-hosted            # WASM client + host → aspnet:10.0 runtime image
 ```
 
 Without `--docker` no container files are emitted.
@@ -339,18 +338,21 @@ If you do add a cache in front, respect the `Vary` the app sends. It carries `Co
 "anonymous" is itself a function of the cookie — and, on a localized app, `Accept-Language` too.
 Dropping either from the key lets a cache serve one visitor's page to another.
 
-## WASM-hosted app (`--template wasm-hosted`)
+## A client-plus-host solution
 
-Three projects in one solution: `MyApp.Client` (the browser-WASM SPA), `MyApp.Server` (the ASP.NET host
-that serves it), and `MyApp.Shared` (a class library both reference). The Dockerfile installs the
-`wasm-tools` workload (needed to publish the browser client the Server host bakes in), builds the
-projects, and runs **`MyApp.Server`** on the aspnet runtime image — same port/TLS story as the server app.
+**No template scaffolds this shape, and none has since the `wasm-hosted` template was removed.** What
+`rask dev` and `rask deploy` still do is *recognise* it, so a solution built on that template — or by
+hand — keeps working. Three projects in one solution: `MyApp.Client` (the browser-WASM SPA),
+`MyApp.Server` (the ASP.NET host that serves it), and `MyApp.Shared` (a class library both reference).
 
-```bash
-docker build -t myapp .
-docker run --rm -p 8080:8080 myapp
-# open http://localhost:8080  — /api/weatherforecast demonstrates the client↔host round trip
-```
+There is **no scaffolded Dockerfile for it**, because there is no scaffold. If you maintain such a
+solution you own its Dockerfile; it needs the `wasm-tools` workload installed before publishing (the
+Server host bakes in the browser client), and it runs `MyApp.Server` on the aspnet runtime image —
+same port and TLS story as the server app above.
+
+**If you are starting today, you want `--wasm` on a server app instead** ([render
+modes](render-modes.md)): one authored project, both halves, and `dotnet publish` emits the browser
+bundle into `wwwroot` from the same sources. That path *is* scaffolded, Dockerfile included.
 
 ## Standalone WASM SPA (`--template wasm`)
 
@@ -367,7 +369,7 @@ docker run --rm -p 8080:8080 myapp
 The `nginx.conf` does four things that matter for a Rask WASM bundle:
 
 - **Listens on `8080`, and serves `/health`** — the same container port and readiness endpoint as the
-  server and wasm-hosted templates, so [`rask deploy`](cli.md#rask-deploy--ship-to-a-single-host-over-ssh)
+  server template and a client-plus-host solution, so [`rask deploy`](cli.md#rask-deploy--ship-to-a-single-host-over-ssh)
   can health-gate and proxy a static bundle exactly like any other Rask app.
 - **SPA fallback** — `try_files $uri $uri/ /index.html;` so client-side routes resolve.
 - **`application/wasm` MIME** — the browser refuses to streaming-compile the Mono runtime `.wasm`

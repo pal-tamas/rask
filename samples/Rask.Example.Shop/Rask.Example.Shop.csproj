@@ -22,7 +22,10 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
-    <!-- Build-only: an MSBuild task and a CLI run, not an assembly. -->
+    <!-- Build-order edge only. The Tailwind wiring itself arrives from Directory.Build.{props,targets}
+         (and, for a scaffolded app, from inside the host package) — this reference exists so that
+         Rask.Tailwind.Tasks.dll is on disk before the UsingTask that loads it runs. Build-only: an
+         MSBuild task and a CLI run, not an assembly. -->
     <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
@@ -44,17 +47,14 @@
   <!--
     Analyzers do NOT flow transitively through an in-repo ProjectReference — only the packed
     analyzers/dotnet/cs path reaches a NuGet consumer. Omitting one of these compiles cleanly and then
-    fails at RUNTIME: an unregistered job or outbox event fails to deserialize and dead-letters. All
-    four are load-bearing.
+    fails at RUNTIME: an unregistered job or outbox event fails to deserialize and dead-letters. Both
+    are load-bearing — Rask.Batteries.Generators carries the CQRS, jobs and outbox generators that
+    were three separate references here.
   -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\src\Rask.Jobs.Generators\Rask.Jobs.Generators.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\src\Rask.Outbox.Generators\Rask.Outbox.Generators.csproj"
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
@@ -66,11 +66,5 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
   </ItemGroup>
 
-  <!-- In-repo consumers import these by hand: a ProjectReference carries no build props, so referencing
-       Rask.Tailwind alone would compile nothing and produce no stylesheet, silently. -->
-  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.props"
-          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.props')"/>
-  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets"
-          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets')"/>
 
 </Project>

@@ -17,7 +17,7 @@ public sealed class PopularProducts(ICache cache)
 
     /// <summary>Returns the cached value, computing and storing it on a miss.</summary>
     public Task<string> GetAsync(CancellationToken cancellationToken = default) =>
-        cache.GetOrCreateAsync(
+        cache.GetOrAddAsync(
             Key,
             async ct =>
             {

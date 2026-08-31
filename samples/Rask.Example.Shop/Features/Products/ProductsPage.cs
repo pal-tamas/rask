@@ -35,7 +35,7 @@ public sealed partial class ProductsPage(IDispatcher dispatcher) : Component
 
     private async Task LoadAsync()
     {
-        _items = await dispatcher.DispatchAsync(new ListProductsQuery(_showDeleted), CancellationToken);
+        _items = await dispatcher.QueryAsync(new ListProductsQuery(_showDeleted), CancellationToken);
         _loaded = true;
     }
     private async Task ToggleDeletedAsync()

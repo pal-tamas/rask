@@ -18,7 +18,7 @@ public sealed class RaskSqliteIntegrationTests : IDisposable
         var services = new ServiceCollection();
         services.AddRaskSqlite($"Data Source={_dbPath}");
         await using var provider = services.BuildServiceProvider();
-        var factory = provider.GetRequiredService<IRaskSqliteConnectionFactory>();
+        var factory = provider.GetRequiredService<ISqlite>();
 
         await using var connection = await factory.CreateOpenAsync();
 

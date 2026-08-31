@@ -2,30 +2,24 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <!-- No code of its own: the package IS the props/targets pair plus the task assembly. -->
+    <!-- No code of its own: this project IS the props/targets pair plus the task assembly. -->
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
 
-    <PackageId>Rask.Tailwind</PackageId>
-    <Title>Rask — Tailwind CSS for .NET</Title>
-    <Description>Tailwind CSS on any Rask host, with no npm required. The build compiles your stylesheet with Tailwind's standalone binary — scanning your C# for the classes you actually wrote, arbitrary values included — and falls back to npm on the platforms Tailwind publishes no binary for, so nothing is unsupported. The version is pinned rather than floating, the download is verified against its published checksum and cached once per user, and `-p:RaskTailwindBuild=false` skips the whole thing. Depends on nothing else in Rask.</Description>
-
     <!--
-      Build-only: the package is a props/targets pair plus the MSBuild task that resolves the compiler.
-      There is no runtime assembly, so there is nothing to reference and no dependency to inherit — which
-      is what lets this sit on a Server host, a WASM host, or a plain ASP.NET app equally.
+      NOT a package. Tailwind is built into the host packages: src\RaskTailwindBuildPack.targets packs
+      the props, the targets and the task assembly below into Rask.Server and Rask.Wasm, and each of
+      those imports them from its own build/<PackageId>.{props,targets}.
+
+      Publishing this as a package as well would be actively harmful, not merely redundant: an app that
+      referenced both would import the same targets twice and run the Tailwind compiler twice over one
+      output file. Rask.Core and Rask.Html are IsPackable=false for the same reason. Guarded by
+      PackageDependencyTests.
+
+      What is left here is a build-order shim: this project exists so that Rask.Tailwind.Tasks has
+      somewhere to drop its assembly (build/, below) and so the files have one home to be packed FROM.
     -->
+    <IsPackable>false</IsPackable>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-
-    <!-- It is only ever a build-time dependency: nothing at runtime references it, and it must not flow
-         transitively to whoever consumes the app. -->
-    <DevelopmentDependency>true</DevelopmentDependency>
-
-    <!--
-      No symbol package. The repo turns IncludeSymbols on for everything, and for a package with no
-      assembly the resulting .snupkg has nothing in it at all — which NuGet refuses as NU5017, AFTER
-      writing a perfectly good .nupkg. The failure names the main package and looks like it, which is
-      most of why it took a while to see.
-    -->
     <IncludeSymbols>false</IncludeSymbols>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
@@ -33,27 +27,13 @@
   <ItemGroup>
     <!--
       Build-order-only edge to the task project, which drops Rask.Tailwind.Tasks.dll into build/ here
-      (CopyTaskAssemblyToRaskTailwindBuild) for <UsingTask> to load and for the build\** Pack glob to
-      collect. Same arrangement as Rask.Wasm/Rask.Wasm.Tasks and Rask.Spa.Hosting/Rask.Spa.Tasks.
+      (CopyTaskAssemblyToRaskTailwindBuild) for <UsingTask> to load and for RaskTailwindBuildPack to
+      pack into the host packages. Same arrangement as Rask.Wasm/Rask.Wasm.Tasks and
+      Rask.Spa.Hosting/Rask.Spa.Tasks.
     -->
     <ProjectReference Include="..\Rask.Tailwind.Tasks\Rask.Tailwind.Tasks.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <!--
-      Rask.Tailwind.Tasks.dll is named explicitly and excluded from the glob: a glob is expanded at
-      project EVALUATION, before the ProjectReference that produces this DLL has built, so on a tree
-      where it is not already on disk the pack SUCCEEDS and ships a package whose <UsingTask> points
-      at a file that is not in it. A literal Include needs the file only when the item is copied, so
-      it is collected — and a genuinely missing one is NU5019 rather than a silent omission (#852).
-
-      This package is build-only (IncludeBuildOutput=false), so the task assembly is very nearly all
-      it ships: without it the package is inert, and nothing about the build says so.
-    -->
-    <None Include="build\**" Exclude="build\Rask.Tailwind.Tasks.dll" Pack="true" PackagePath="build\"/>
-    <None Include="build\Rask.Tailwind.Tasks.dll" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
 </Project>

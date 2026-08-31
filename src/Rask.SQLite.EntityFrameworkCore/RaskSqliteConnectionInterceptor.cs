@@ -6,8 +6,8 @@ namespace Rask.SQLite;
 
 /// <summary>
 /// An Entity Framework Core connection interceptor that applies the configured
-/// <see cref="SqlitePragmaOptions"/> every time a SQLite connection is opened. Registered for you by
-/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?, Action{SqliteBusyRetryOptions}?, bool)"/>.
+/// <see cref="SqliteOptions"/> every time a SQLite connection is opened. Registered for you by
+/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqliteOptions}?)"/>.
 /// </summary>
 /// <remarks>
 /// The per-connection pragmas (<c>foreign_keys</c>, <c>busy_timeout</c>, <c>synchronous</c>, …) do not
@@ -20,10 +20,10 @@ namespace Rask.SQLite;
 /// </remarks>
 public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
 {
-    private readonly SqlitePragmaOptions _options;
+    private readonly SqliteOptions _options;
 
     /// <summary>Creates an interceptor that applies <paramref name="options"/> on each connection open.</summary>
-    public RaskSqliteConnectionInterceptor(SqlitePragmaOptions options)
+    public RaskSqliteConnectionInterceptor(SqliteOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _options = options;
@@ -46,7 +46,7 @@ public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
     /// <remarks>
     /// This is the moment SQLite's own guidance names for it, and the connection is still open here —
     /// by <c>ConnectionClosed</c> it is not. It is best-effort and bounded by
-    /// <see cref="SqlitePragmaOptions.AnalysisLimit"/>; a pooled connection reaches this on every return
+    /// <see cref="SqliteOptions.AnalysisLimit"/>; a pooled connection reaches this on every return
     /// to the pool, and analyses nothing when nothing has changed.
     /// </remarks>
     public override InterceptionResult ConnectionClosing(

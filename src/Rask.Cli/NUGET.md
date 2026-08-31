@@ -8,6 +8,14 @@ a single host over SSH — all with short, Rask-aware commands.
 ## Install
 
 ```bash
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
+```
+
+That adds the .NET 10 SDK, this tool, and the dependencies it shells out to (`dotnet-ef`, the
+`wasm-tools` workload, Node for the SPA templates) — all under `$HOME`, no `sudo`. Already have the
+.NET 10 SDK and want only the tool:
+
+```bash
 dotnet tool install -g Rask.Cli
 ```
 
@@ -38,7 +46,7 @@ rask info
 
 | Command | What it does |
 |---|---|
-| `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted`) with **every battery the template supports** — database, CQRS, jobs, mail, cache, outbox, snapshots, logs, the operator dashboard, PWA, Web Push, Docker, localization. `--auth` and the styling flags are the only things it asks you; `--no-<battery>` leaves one out. On the browser-WASM templates localization is the one opt-in (`--culture <tag>`), because it ships ICU — about a megabyte of extra download. Every template is generated directly — no `dotnet new` needed. |
+| `rask new <name>` | Create a project from a Rask template (`--template server\|wasm`) with **every battery the template supports** — database, CQRS, jobs, mail, cache, outbox, snapshots, logs, the operator dashboard, PWA, Web Push, Docker, localization. `--auth` and the styling flags are the only things it asks you; `--no-<battery>` leaves one out. On the browser-WASM templates localization is the one opt-in (`--culture <tag>`), because it ships ICU — about a megabyte of extra download. Every template is generated directly — no `dotnet new` needed. |
 | `rask db <add\|remove\|list\|update\|drop>` | Manage EF Core migrations — a friendly `dotnet ef` wrapper that finds the project and installs `dotnet-ef` on demand. |
 | `rask deploy` | Build and run the app on a single host over SSH (`docker -H ssh://…`). Sets a bare box up first (Docker, a non-root deploy login, firewall, SSH hardening) after asking. `--domain` fronts it with auto-HTTPS Caddy; deploys are zero-downtime and multiple apps share one box. `--github-actions` writes a workflow that deploys on push. |
 | `rask dev` | Run the app with C# Hot Reload (`dotnet watch run`). Finds the project itself, restarts on edits hot reload can't apply, `--open` for a browser. `--once` for a plain run. Args after `--` reach the app. |

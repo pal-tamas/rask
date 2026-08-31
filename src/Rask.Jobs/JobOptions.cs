@@ -168,7 +168,7 @@ public sealed class JobOptions
     /// </summary>
     /// <typeparam name="TJob">The job to enqueue on each tick.</typeparam>
     public JobOptions AddRecurring<TJob>(string name, TimeSpan every, Func<TJob> factory)
-        where TJob : IJob
+        where TJob : IBackgroundJob
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(factory);
@@ -191,4 +191,4 @@ public sealed class JobOptions
 /// <param name="Name">The durable name, matching the <see cref="RecurringJobState.Name"/> that tracks its last run.</param>
 /// <param name="Interval">How often the processor enqueues a fresh instance.</param>
 /// <param name="Factory">Builds the job to enqueue on each tick. Call it to run one off-schedule.</param>
-public sealed record RecurringJobDefinition(string Name, TimeSpan Interval, Func<IJob> Factory);
+public sealed record RecurringJobDefinition(string Name, TimeSpan Interval, Func<IBackgroundJob> Factory);

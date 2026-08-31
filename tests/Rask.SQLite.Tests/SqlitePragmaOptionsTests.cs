@@ -7,7 +7,7 @@ public sealed class SqlitePragmaOptionsTests
     [Fact]
     public void Defaults_match_the_production_pragma_set()
     {
-        var options = new SqlitePragmaOptions();
+        var options = new SqliteOptions();
 
         Assert.Equal(SqliteJournalMode.Wal, options.JournalMode);
         Assert.Equal(SqliteSynchronous.Normal, options.Synchronous);
@@ -22,35 +22,35 @@ public sealed class SqlitePragmaOptionsTests
     [Fact]
     public void Validate_rejects_negative_busy_timeout()
     {
-        var options = new SqlitePragmaOptions { BusyTimeout = TimeSpan.FromSeconds(-1) };
+        var options = new SqliteOptions { BusyTimeout = TimeSpan.FromSeconds(-1) };
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
     [Fact]
     public void Validate_rejects_busy_timeout_over_int_max_milliseconds()
     {
-        var options = new SqlitePragmaOptions { BusyTimeout = TimeSpan.FromDays(30) };
+        var options = new SqliteOptions { BusyTimeout = TimeSpan.FromDays(30) };
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
     [Fact]
     public void Validate_rejects_negative_mmap_size()
     {
-        var options = new SqlitePragmaOptions { MmapSize = -1 };
+        var options = new SqliteOptions { MmapSize = -1 };
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
     [Fact]
     public void Validate_rejects_negative_journal_size_limit()
     {
-        var options = new SqlitePragmaOptions { JournalSizeLimit = -1 };
+        var options = new SqliteOptions { JournalSizeLimit = -1 };
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
     [Fact]
     public void Validate_accepts_all_pragmas_disabled()
     {
-        var options = new SqlitePragmaOptions
+        var options = new SqliteOptions
         {
             JournalMode = null,
             Synchronous = null,
@@ -66,9 +66,9 @@ public sealed class SqlitePragmaOptionsTests
     }
 
     // Validate is internal (it runs inside the DI/EF entry points); exercise it directly via reflection.
-    private static void Validate(SqlitePragmaOptions options)
+    private static void Validate(SqliteOptions options)
     {
-        var method = typeof(SqlitePragmaOptions).GetMethod("Validate", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var method = typeof(SqliteOptions).GetMethod("Validate", BindingFlags.Instance | BindingFlags.NonPublic)!;
         try
         {
             method.Invoke(options, null);

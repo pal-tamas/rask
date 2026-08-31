@@ -14,7 +14,7 @@ internal static partial class ProjectGenerator
     ///     <c>{name}.Client</c> scaffolded by the framework's own tool and then overlaid.
     /// </summary>
     /// <remarks>
-    ///     Two projects, not three. The wasm-hosted template needs a <c>.Shared</c> because both halves are
+    ///     Two projects, not three. A C#-on-both-halves solution needs a <c>.Shared</c> because both halves are
     ///     C# and must compile the same record; here the client's half of every contract is generated
     ///     TypeScript, so the messages live in the Server and there is nothing for a third project to hold.
     /// </remarks>
@@ -97,7 +97,7 @@ internal static partial class ProjectGenerator
 
         if (batteries.Data)
         {
-            files.Add(($"{NameToken}.Server/Features/Shared/AppDbContext.cs", WasmHostedServerDbContext(batteries)));
+            files.Add(($"{NameToken}.Server/Features/Shared/AppDbContext.cs", ServerProjectDbContext(batteries)));
         }
 
         if (batteries.Docker)
@@ -121,9 +121,12 @@ internal static partial class ProjectGenerator
                     "npx",
                     framework.Scaffolder(name),
                     $"Scaffolding the {framework.DisplayName} client with {framework.ScaffolderName}…",
-                    "Install Node.js 22.12 or newer — ideally the current LTS — from https://nodejs.org "
-                    + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; "
-                    + "Linux: your distro's nodejs package)."),
+                    // Names the Node LTS line, not the build floor. This message is shown when the
+                    // EXTERNAL scaffolder could not run, and those track the Active LTS and raise their
+                    // own floors on their own schedule — Angular's CLI already refuses below 24.15.0.
+                    // Saying "22.12 or newer" here sent people to install a Node that then failed the
+                    // scaffold at exit 1, after the project directory already existed (#886).
+                    NodeRequirement.ScaffoldHint(framework.ScaffolderName)),
             ],
             Patches = SpaPatches(client, framework, tailwind: true, batteries.Pwa),
         };
@@ -734,7 +737,7 @@ internal static partial class ProjectGenerator
         var sb = new StringBuilder();
         if (batteries.Data)
         {
-            // AppDbContext. It lands in the .Server project's own namespace, the way the wasm-hosted
+            // AppDbContext. It lands in the .Server project's own namespace, the way a client-plus-host
             // template's does, because that is the only project in the solution with a disk to put a
             // database on.
             sb.Append($"using {NameToken}.Server.Features.Shared;\n");
@@ -1034,6 +1037,19 @@ internal static partial class ProjectGenerator
 
         return steps.ToString();
     }
+
+    /// <summary>
+    ///     The app's <c>DbContext</c>, re-homed into the <c>.Server</c> project's namespace.
+    /// </summary>
+    /// <remarks>
+    ///     Every template that splits a client from an ASP.NET host needs this, which is why it sits
+    ///     beside the front-end generators rather than with any one of them.
+    /// </remarks>
+    private static string ServerProjectDbContext(ServerBatteries batteries) =>
+        AppDbContextCs(batteries).Replace(
+            $"namespace {NameToken}.Features.Shared;",
+            $"namespace {NameToken}.Server.Features.Shared;",
+            StringComparison.Ordinal);
 }
 
 /// <summary>

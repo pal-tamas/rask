@@ -77,7 +77,7 @@ soon as the row is written, so the request finishes immediately; a background pr
 at-least-once.
 
 ```csharp
-public sealed record SendOrderReceipt(Guid OrderId) : IJob;
+public sealed record SendOrderReceipt(Guid OrderId) : IBackgroundJob;
 ```
 ```csharp
 builder.Services.AddRaskJobs<ProductsDbContext>(o => { /* … */ });   // needs AddRaskCqrs()
@@ -101,13 +101,13 @@ modelBuilder.AddRaskMail();                                          // then: ra
 
 ## Cache an expensive query
 
-One registration + one table, then wrap the read in `GetOrCreateAsync` and invalidate on write.
+One registration + one table, then wrap the read in `GetOrAddAsync` and invalidate on write.
 
 ```csharp
 builder.Services.AddRaskCache<ProductsDbContext>();
 modelBuilder.AddRaskCache();                                         // then: rask db add AddCache && rask db update
 
-var products = await cache.GetOrCreateAsync("products", async _ => await LoadAsync(), CancellationToken);
+var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);
 await cache.RemoveAsync("products");                                 // when the catalog changes
 ```
 

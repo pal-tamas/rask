@@ -48,8 +48,9 @@ them.
 builder.Services.AddRaskCqrs();
 ```
 
-Inject `IDispatcher` and call `DispatchAsync` — one method for both queries and commands, with the
-result type inferred from the message. Notifications go through `PublishAsync` on the same `IDispatcher`.
+Inject `IDispatcher` and say which of the three things you are doing: `QueryAsync` asks for data,
+`SendAsync` tells the system to do something, `PublishAsync` announces that something happened. The
+result type is inferred from the message, so you never state it.
 
 ```csharp
 public sealed partial class CounterView(IDispatcher dispatcher) : Component
@@ -57,12 +58,12 @@ public sealed partial class CounterView(IDispatcher dispatcher) : Component
     private CounterState _view = new(0, []);
 
     protected override async Task OnMountAsync() =>
-        _view = await dispatcher.DispatchAsync(new GetCounterState(), CancellationToken);
+        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
 
     private async Task IncrementAsync()
     {
-        await dispatcher.DispatchAsync(new IncrementCounter(1), CancellationToken); // ICommand<int>
-        _view = await dispatcher.DispatchAsync(new GetCounterState(), CancellationToken);
+        await dispatcher.SendAsync(new IncrementCounter(1), CancellationToken); // ICommand<int>
+        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
     }
 }
 ```
@@ -121,16 +122,16 @@ watch the pipeline log build up.
 
 ## Remote dispatch — a client and a server (`Rask.Cqrs.Client` / `Rask.Cqrs.Server`)
 
-A WASM-hosted app reaches its server through the **same `IDispatcher` call** it already makes
-in-process. There is no `HttpClient` at the call site, no `/api/*` endpoint to write, and nothing on a
-message marks it as remote — you write a record and a handler exactly as above, and *where the project
-sits* decides where it runs.
+A page running in the browser reaches its server through the **same `IDispatcher` call** it already
+makes in-process. There is no `HttpClient` at the call site, no `/api/*` endpoint to write, and nothing
+on a message marks it as remote — you write a record and a handler exactly as above, and *where the
+handler lives* decides where it runs.
 
-One package and one line per project. Neither half references the other, so a browser bundle cannot
-compile the endpoint code and the server never carries the browser transport:
+One package and one line per half. Neither references the other, so a browser bundle cannot compile the
+endpoint code and the server never carries the browser transport:
 
 ```csharp
-// The client (a WASM app). Every message it dispatches goes to the server.
+// The browser half. Every message it dispatches goes to the server.
 host.Services.AddRaskCqrsClient();
 
 // The server.
@@ -139,9 +140,32 @@ builder.Services.AddRaskCqrsServer();
 app.MapRaskCqrs();
 ```
 
-Put the message records in a project both halves reference, and the handlers in the server project only
-— which is what keeps a connection string, a table name or a pricing rule out of a download anybody can
-read. `rask new --template wasm-hosted` scaffolds exactly this shape.
+**`rask new --wasm` scaffolds all of it.** The [one-project build](render-modes.md) compiles one set of
+sources into both halves, so the message records are shared by construction — there is no Shared project
+to put them in any more. What is left is keeping the two transports apart, which the csproj says in one
+line each:
+
+```xml
+<!-- The bundle gets this one; the server must not. It is the half that CALLS the endpoints the
+     server answers, and a plain PackageReference would ship it into the process answering them. -->
+<RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="..."/>
+
+<!-- The bundle has no Program.cs of its own — that file is the server's, and the companion excludes
+     it — so this names the type whose Configure(IServiceCollection) runs before the app does. -->
+<RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>
+```
+
+That startup type lives under `Browser/`, which is the only place it can: a browser-only reference is
+absent from the server by design, so a file using it has to be somewhere the server does not compile.
+`Browser/` is the mirror of `Server/` — see [render modes](render-modes.md#one-project).
+
+Keep your handlers under `Server/`, which the browser half does not compile. That is what keeps a
+connection string, a table name or a pricing rule out of a download anybody can read.
+
+> **Without `--auth`, the scaffold sets `RequireAuthenticatedUser = false` and says why.** The default is
+> on, and that is right for an app that has a sign-in — but an app with no authentication to require
+> would answer 401 to every message, and the failure reads as broken transport rather than as the secure
+> default working. Add a cookie or JWT scheme and delete the argument.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a
@@ -176,7 +200,7 @@ Failure to *arrive* is the one thing remote dispatch adds to the in-process call
 ### `[LocalOnly]`
 
 Keeps a message off the wire entirely, and on an **interface** covers a whole family. This matters more
-than it looks: `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
+than it looks: `IBackgroundJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
 outbox event in the app would become an internet-reachable endpoint.
 
 It is also **how a client keeps a message in-process.** "A client is a pure client" is not a figure of
@@ -201,11 +225,11 @@ file a user picked is passed straight to the handler, with nothing to convert an
 ```csharp
 public sealed record AttachReceipt(int OrderId, RaskFile File) : ICommand;
 
-// The call site. Identical on a server-rendered app and a WASM-hosted one.
-await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked));
+// The call site. Identical whether this page is server-rendered or running in the browser.
+await dispatcher.SendAsync(new AttachReceipt(orderId, picked));
 
 // Download: the file the handler returned, saved by the browser.
-navigator.Download(await dispatcher.DispatchAsync(new ExportOrders(year)));
+navigator.Download(await dispatcher.QueryAsync(new ExportOrders(year)));
 ```
 
 The handler receives a `RaskFile` too, and reads it exactly as it would in-process:
@@ -223,10 +247,25 @@ public sealed class AttachReceiptHandler : ICommandHandler<AttachReceipt>
 
 Where the message runs in-process the handler simply gets the picked file. Where it travels, the
 generated codec carries the bytes and hands the handler a `RaskFile` over what arrived — so the *host*
-changes and the code does not. Neither direction buffers: every host reads a `RaskFile` in bounded
-slices (the browser ones through `Blob.slice`), and a download is streamed back headers-first.
+changes and the code does not. Every host reads a `RaskFile` in bounded slices (the browser ones
+through `Blob.slice`), and a download is streamed back headers-first.
 
 Bounded by the server's `MaxUploadBytes` and `MaxFileCount`.
+
+**`ChunkedUploadThreshold` is load-bearing in the browser, not a tuning knob.** `fetch` has no request
+streaming, so a browser reads a whole request body into memory before sending it — a single-shot
+multipart upload of a 500 MB file costs 500 MB *in the tab*. Above the threshold the file goes up in
+bounded pieces first and the message follows carrying only the session id, which is what keeps the
+request small as well as the read. Raising it raises the browser's peak memory by the same amount.
+
+**A dropped chunk resumes.** Every chunk response echoes `X-Rask-Upload-Offset`, and a chunk that does
+not follow on from what the server holds is answered `409` carrying the offset it *does* hold — 409
+rather than 400 because the request is well-formed, it is just out of step. The client restarts from
+that offset, bounded by a small retry count per file, so one lost chunk does not fail an upload that
+the protocol can recover.
+
+The limit is **in-session**: a browser's `File` handle dies with the page, so resuming across a reload
+is not possible and the upload starts again.
 
 ### Wire codecs, and RASK053
 
@@ -273,4 +312,4 @@ compile-time closed-generic map, so a WASM app using `Rask.Cqrs` publishes with 
 Handlers are plain classes — unit-test them directly, no dispatcher required. To test wiring, register
 `AddRaskCqrs` into a `ServiceCollection`, build the provider, and dispatch. See
 [`tests/Rask.Cqrs.Tests`](../tests/Rask.Cqrs.Tests) and the generator tests in
-[`tests/Rask.Cqrs.Generators.Tests`](../tests/Rask.Cqrs.Generators.Tests).
+[`tests/Rask.Batteries.Generators.Tests`](../tests/Rask.Batteries.Generators.Tests).

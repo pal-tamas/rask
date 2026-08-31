@@ -87,13 +87,6 @@
     <RaskTailwindMinify>true</RaskTailwindMinify>
   </PropertyGroup>
 
-  <!-- In-repo the package's build/ folder is not imported for us, exactly as for Rask.Core's build
-       integration — a ProjectReference carries no build props. -->
-  <Import Project="..\Rask.Tailwind\build\Rask.Tailwind.props"
-          Condition="Exists('..\Rask.Tailwind\build\Rask.Tailwind.props')"/>
-  <Import Project="..\Rask.Tailwind\build\Rask.Tailwind.targets"
-          Condition="Exists('..\Rask.Tailwind\build\Rask.Tailwind.targets')"/>
-
   <ItemGroup>
     <EmbeddedResource Include="obj/dashboard.generated.css"
                       LogicalName="Rask.Dashboard.dashboard.css"

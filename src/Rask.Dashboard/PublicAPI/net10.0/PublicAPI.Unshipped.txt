@@ -1,0 +1,394 @@
+#nullable enable
+Rask.Dashboard.DashboardSecurityState
+Rask.Dashboard.DashboardSecurityState.DashboardSecurityState() -> void
+Rask.Dashboard.DashboardSecurityState.FallbackIsOpen.get -> bool
+Rask.Dashboard.DashboardSecurityState.IsUnsecured.get -> bool
+Rask.Dashboard.DashboardSecurityState.UsingFallbackPolicy.get -> bool
+Rask.Dashboard.Logging.DashboardLogBuffer
+Rask.Dashboard.Logging.DashboardLogBuffer.Categories() -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Dashboard.Logging.DashboardLogBuffer.Changed -> System.Action?
+Rask.Dashboard.Logging.DashboardLogBuffer.Clear() -> void
+Rask.Dashboard.Logging.DashboardLogBuffer.DashboardLogBuffer(Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
+Rask.Dashboard.Logging.DashboardLogBuffer.IsEnabled(Microsoft.Extensions.Logging.LogLevel level) -> bool
+Rask.Dashboard.Logging.DashboardLogBuffer.Snapshot(Microsoft.Extensions.Logging.LogLevel? minimumLevel = null, string? category = null) -> System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Logging.DashboardLogEntry!>!
+Rask.Dashboard.Logging.DashboardLogEntry
+Rask.Dashboard.Logging.DashboardLogEntry.<Clone>$() -> Rask.Dashboard.Logging.DashboardLogEntry!
+Rask.Dashboard.Logging.DashboardLogEntry.Category.get -> string!
+Rask.Dashboard.Logging.DashboardLogEntry.Category.init -> void
+Rask.Dashboard.Logging.DashboardLogEntry.DashboardLogEntry(long Sequence, System.DateTimeOffset Timestamp, Microsoft.Extensions.Logging.LogLevel Level, string! Category, string! Message, string? Exception) -> void
+Rask.Dashboard.Logging.DashboardLogEntry.Deconstruct(out long Sequence, out System.DateTimeOffset Timestamp, out Microsoft.Extensions.Logging.LogLevel Level, out string! Category, out string! Message, out string? Exception) -> void
+Rask.Dashboard.Logging.DashboardLogEntry.Equals(Rask.Dashboard.Logging.DashboardLogEntry? other) -> bool
+Rask.Dashboard.Logging.DashboardLogEntry.Exception.get -> string?
+Rask.Dashboard.Logging.DashboardLogEntry.Exception.init -> void
+Rask.Dashboard.Logging.DashboardLogEntry.Level.get -> Microsoft.Extensions.Logging.LogLevel
+Rask.Dashboard.Logging.DashboardLogEntry.Level.init -> void
+Rask.Dashboard.Logging.DashboardLogEntry.Message.get -> string!
+Rask.Dashboard.Logging.DashboardLogEntry.Message.init -> void
+Rask.Dashboard.Logging.DashboardLogEntry.Sequence.get -> long
+Rask.Dashboard.Logging.DashboardLogEntry.Sequence.init -> void
+Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.get -> System.DateTimeOffset
+Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.init -> void
+Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Archive = 6 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Clock = 4 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Database = 2 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Envelope = 3 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Gear = 8 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Outbox = 7 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Overview = 0 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Queue = 1 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Retry = 5 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.ShieldOk = 11 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.ShieldWarning = 12 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Storage = 9 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Warning = 10 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.Pages.CachePage
+Rask.Dashboard.Pages.CachePage.CachePage(Rask.Dashboard.Panels.ICachePanelReader! cache, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
+Rask.Dashboard.Pages.CachePage.Search.get -> string?
+Rask.Dashboard.Pages.CachePage.Search.set -> void
+Rask.Dashboard.Pages.DashboardLayout
+Rask.Dashboard.Pages.DashboardLayout.DashboardLayout(System.Collections.Generic.IEnumerable<Rask.Dashboard.Panels.IQueuePanel!>! queues, Rask.Core.Routing.RouteState! route, Rask.Dashboard.DashboardSecurityState! security) -> void
+Rask.Dashboard.Pages.LogsPage
+Rask.Dashboard.Pages.LogsPage.Category.get -> string?
+Rask.Dashboard.Pages.LogsPage.Category.set -> void
+Rask.Dashboard.Pages.LogsPage.Dispose() -> void
+Rask.Dashboard.Pages.LogsPage.Level.get -> string?
+Rask.Dashboard.Pages.LogsPage.Level.set -> void
+Rask.Dashboard.Pages.LogsPage.LogsPage(Rask.Dashboard.Logging.DashboardLogBuffer! buffer, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider, Rask.Core.Routing.Navigator! navigator, System.IServiceProvider! services) -> void
+Rask.Dashboard.Pages.LogsPage.Page.get -> int?
+Rask.Dashboard.Pages.LogsPage.Page.set -> void
+Rask.Dashboard.Pages.LogsPage.Query.get -> string?
+Rask.Dashboard.Pages.LogsPage.Query.set -> void
+Rask.Dashboard.Pages.LogsPage.View.get -> string?
+Rask.Dashboard.Pages.LogsPage.View.set -> void
+Rask.Dashboard.Pages.NotFoundPage
+Rask.Dashboard.Pages.NotFoundPage.NotFoundPage() -> void
+Rask.Dashboard.Pages.OverviewPage
+Rask.Dashboard.Pages.OverviewPage.OverviewPage(System.Collections.Generic.IEnumerable<Rask.Dashboard.Panels.IQueuePanel!>! queues, Rask.Dashboard.RaskDashboardOptions! options) -> void
+Rask.Dashboard.Pages.PollingPanel
+Rask.Dashboard.Pages.PollingPanel.IsLoading.get -> bool
+Rask.Dashboard.Pages.PollingPanel.IsParked.get -> bool
+Rask.Dashboard.Pages.PollingPanel.LoadError.get -> string?
+Rask.Dashboard.Pages.PollingPanel.PollingPanel() -> void
+Rask.Dashboard.Pages.PollingPanel.ResumeAsync() -> System.Threading.Tasks.Task!
+Rask.Dashboard.Pages.QueuePage
+Rask.Dashboard.Pages.QueuePage.Queue.get -> string!
+Rask.Dashboard.Pages.QueuePage.Queue.set -> void
+Rask.Dashboard.Pages.QueuePage.QueuePage(System.Collections.Generic.IEnumerable<Rask.Dashboard.Panels.IQueuePanel!>! queues, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
+Rask.Dashboard.Pages.QueuePage.Show.get -> string?
+Rask.Dashboard.Pages.QueuePage.Show.set -> void
+Rask.Dashboard.Pages.Routes
+Rask.Dashboard.Pages.SystemPage
+Rask.Dashboard.Pages.SystemPage.SystemPage(Rask.Dashboard.Panels.ISystemPanelReader! system, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
+Rask.Dashboard.Pages.__RaskNav_CachePage
+Rask.Dashboard.Pages.__RaskNav_CachePage.extension(Rask.Dashboard.Pages.CachePage!)
+Rask.Dashboard.Pages.__RaskNav_DashboardLayout
+Rask.Dashboard.Pages.__RaskNav_DashboardLayout.extension(Rask.Dashboard.Pages.DashboardLayout!)
+Rask.Dashboard.Pages.__RaskNav_LogsPage
+Rask.Dashboard.Pages.__RaskNav_LogsPage.extension(Rask.Dashboard.Pages.LogsPage!)
+Rask.Dashboard.Pages.__RaskNav_OverviewPage
+Rask.Dashboard.Pages.__RaskNav_OverviewPage.extension(Rask.Dashboard.Pages.OverviewPage!)
+Rask.Dashboard.Pages.__RaskNav_QueuePage
+Rask.Dashboard.Pages.__RaskNav_QueuePage.extension(Rask.Dashboard.Pages.QueuePage!)
+Rask.Dashboard.Pages.__RaskNav_SystemPage
+Rask.Dashboard.Pages.__RaskNav_SystemPage.extension(Rask.Dashboard.Pages.SystemPage!)
+Rask.Dashboard.Panels.BackupReplicationInfo
+Rask.Dashboard.Panels.BackupReplicationInfo.<Clone>$() -> Rask.Dashboard.Panels.BackupReplicationInfo!
+Rask.Dashboard.Panels.BackupReplicationInfo.BackupReplicationInfo(bool IsReplicating, System.DateTimeOffset? LastStartedAt, int RestartCount, string? LastError) -> void
+Rask.Dashboard.Panels.BackupReplicationInfo.Deconstruct(out bool IsReplicating, out System.DateTimeOffset? LastStartedAt, out int RestartCount, out string? LastError) -> void
+Rask.Dashboard.Panels.BackupReplicationInfo.Equals(Rask.Dashboard.Panels.BackupReplicationInfo? other) -> bool
+Rask.Dashboard.Panels.BackupReplicationInfo.IsReplicating.get -> bool
+Rask.Dashboard.Panels.BackupReplicationInfo.IsReplicating.init -> void
+Rask.Dashboard.Panels.BackupReplicationInfo.LastError.get -> string?
+Rask.Dashboard.Panels.BackupReplicationInfo.LastError.init -> void
+Rask.Dashboard.Panels.BackupReplicationInfo.LastStartedAt.get -> System.DateTimeOffset?
+Rask.Dashboard.Panels.BackupReplicationInfo.LastStartedAt.init -> void
+Rask.Dashboard.Panels.BackupReplicationInfo.RestartCount.get -> int
+Rask.Dashboard.Panels.BackupReplicationInfo.RestartCount.init -> void
+Rask.Dashboard.Panels.BackupSnapshotInfo
+Rask.Dashboard.Panels.BackupSnapshotInfo.<Clone>$() -> Rask.Dashboard.Panels.BackupSnapshotInfo!
+Rask.Dashboard.Panels.BackupSnapshotInfo.BackupSnapshotInfo(string! Name, long SizeBytes, System.DateTime CreatedAt) -> void
+Rask.Dashboard.Panels.BackupSnapshotInfo.CreatedAt.get -> System.DateTime
+Rask.Dashboard.Panels.BackupSnapshotInfo.CreatedAt.init -> void
+Rask.Dashboard.Panels.BackupSnapshotInfo.Deconstruct(out string! Name, out long SizeBytes, out System.DateTime CreatedAt) -> void
+Rask.Dashboard.Panels.BackupSnapshotInfo.Equals(Rask.Dashboard.Panels.BackupSnapshotInfo? other) -> bool
+Rask.Dashboard.Panels.BackupSnapshotInfo.Name.get -> string!
+Rask.Dashboard.Panels.BackupSnapshotInfo.Name.init -> void
+Rask.Dashboard.Panels.BackupSnapshotInfo.SizeBytes.get -> long
+Rask.Dashboard.Panels.BackupSnapshotInfo.SizeBytes.init -> void
+Rask.Dashboard.Panels.BackupVerificationInfo
+Rask.Dashboard.Panels.BackupVerificationInfo.<Clone>$() -> Rask.Dashboard.Panels.BackupVerificationInfo!
+Rask.Dashboard.Panels.BackupVerificationInfo.BackupVerificationInfo(string! Outcome, Rask.Dashboard.Panels.BackupVerificationLevel Level, System.DateTimeOffset? LastVerifiedAt, string? LastError) -> void
+Rask.Dashboard.Panels.BackupVerificationInfo.Deconstruct(out string! Outcome, out Rask.Dashboard.Panels.BackupVerificationLevel Level, out System.DateTimeOffset? LastVerifiedAt, out string? LastError) -> void
+Rask.Dashboard.Panels.BackupVerificationInfo.Equals(Rask.Dashboard.Panels.BackupVerificationInfo? other) -> bool
+Rask.Dashboard.Panels.BackupVerificationInfo.LastError.get -> string?
+Rask.Dashboard.Panels.BackupVerificationInfo.LastError.init -> void
+Rask.Dashboard.Panels.BackupVerificationInfo.LastVerifiedAt.get -> System.DateTimeOffset?
+Rask.Dashboard.Panels.BackupVerificationInfo.LastVerifiedAt.init -> void
+Rask.Dashboard.Panels.BackupVerificationInfo.Level.get -> Rask.Dashboard.Panels.BackupVerificationLevel
+Rask.Dashboard.Panels.BackupVerificationInfo.Level.init -> void
+Rask.Dashboard.Panels.BackupVerificationInfo.Outcome.get -> string!
+Rask.Dashboard.Panels.BackupVerificationInfo.Outcome.init -> void
+Rask.Dashboard.Panels.BackupVerificationLevel
+Rask.Dashboard.Panels.BackupVerificationLevel.Broken = 2 -> Rask.Dashboard.Panels.BackupVerificationLevel
+Rask.Dashboard.Panels.BackupVerificationLevel.Unknown = 1 -> Rask.Dashboard.Panels.BackupVerificationLevel
+Rask.Dashboard.Panels.BackupVerificationLevel.Verified = 0 -> Rask.Dashboard.Panels.BackupVerificationLevel
+Rask.Dashboard.Panels.CacheKeyRow
+Rask.Dashboard.Panels.CacheKeyRow.<Clone>$() -> Rask.Dashboard.Panels.CacheKeyRow!
+Rask.Dashboard.Panels.CacheKeyRow.Bytes.get -> int
+Rask.Dashboard.Panels.CacheKeyRow.Bytes.init -> void
+Rask.Dashboard.Panels.CacheKeyRow.CacheKeyRow(string! Key, int Bytes, System.DateTime CreatedAt, System.DateTime ExpiresAt, double? SlidingSeconds) -> void
+Rask.Dashboard.Panels.CacheKeyRow.CreatedAt.get -> System.DateTime
+Rask.Dashboard.Panels.CacheKeyRow.CreatedAt.init -> void
+Rask.Dashboard.Panels.CacheKeyRow.Deconstruct(out string! Key, out int Bytes, out System.DateTime CreatedAt, out System.DateTime ExpiresAt, out double? SlidingSeconds) -> void
+Rask.Dashboard.Panels.CacheKeyRow.Equals(Rask.Dashboard.Panels.CacheKeyRow? other) -> bool
+Rask.Dashboard.Panels.CacheKeyRow.ExpiresAt.get -> System.DateTime
+Rask.Dashboard.Panels.CacheKeyRow.ExpiresAt.init -> void
+Rask.Dashboard.Panels.CacheKeyRow.Key.get -> string!
+Rask.Dashboard.Panels.CacheKeyRow.Key.init -> void
+Rask.Dashboard.Panels.CacheKeyRow.SlidingSeconds.get -> double?
+Rask.Dashboard.Panels.CacheKeyRow.SlidingSeconds.init -> void
+Rask.Dashboard.Panels.CacheStats
+Rask.Dashboard.Panels.CacheStats.Bytes.get -> long
+Rask.Dashboard.Panels.CacheStats.Bytes.init -> void
+Rask.Dashboard.Panels.CacheStats.CacheStats() -> void
+Rask.Dashboard.Panels.CacheStats.CacheStats(int Entries, long Bytes, int Expired) -> void
+Rask.Dashboard.Panels.CacheStats.Deconstruct(out int Entries, out long Bytes, out int Expired) -> void
+Rask.Dashboard.Panels.CacheStats.Entries.get -> int
+Rask.Dashboard.Panels.CacheStats.Entries.init -> void
+Rask.Dashboard.Panels.CacheStats.Equals(Rask.Dashboard.Panels.CacheStats other) -> bool
+Rask.Dashboard.Panels.CacheStats.Expired.get -> int
+Rask.Dashboard.Panels.CacheStats.Expired.init -> void
+Rask.Dashboard.Panels.DatabaseInfo
+Rask.Dashboard.Panels.DatabaseInfo.<Clone>$() -> Rask.Dashboard.Panels.DatabaseInfo!
+Rask.Dashboard.Panels.DatabaseInfo.DatabaseInfo(string! Provider, string? JournalMode, bool? ForeignKeys, long? SizeBytes) -> void
+Rask.Dashboard.Panels.DatabaseInfo.Deconstruct(out string! Provider, out string? JournalMode, out bool? ForeignKeys, out long? SizeBytes) -> void
+Rask.Dashboard.Panels.DatabaseInfo.Equals(Rask.Dashboard.Panels.DatabaseInfo? other) -> bool
+Rask.Dashboard.Panels.DatabaseInfo.ForeignKeys.get -> bool?
+Rask.Dashboard.Panels.DatabaseInfo.ForeignKeys.init -> void
+Rask.Dashboard.Panels.DatabaseInfo.JournalMode.get -> string?
+Rask.Dashboard.Panels.DatabaseInfo.JournalMode.init -> void
+Rask.Dashboard.Panels.DatabaseInfo.Provider.get -> string!
+Rask.Dashboard.Panels.DatabaseInfo.Provider.init -> void
+Rask.Dashboard.Panels.DatabaseInfo.SizeBytes.get -> long?
+Rask.Dashboard.Panels.DatabaseInfo.SizeBytes.init -> void
+Rask.Dashboard.Panels.ICachePanelReader
+Rask.Dashboard.Panels.ICachePanelReader.EvictAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.ICachePanelReader.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.ICachePanelReader.IsAvailable.get -> bool
+Rask.Dashboard.Panels.ICachePanelReader.PageAsync(string? search, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.CacheKeyRow!>! Rows, int Total)>!
+Rask.Dashboard.Panels.ICachePanelReader.StatsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.CacheStats>!
+Rask.Dashboard.Panels.IDashboardBackupProbe
+Rask.Dashboard.Panels.IDashboardBackupProbe.ReplicationAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupReplicationInfo?>!
+Rask.Dashboard.Panels.IDashboardBackupProbe.SnapshotsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.BackupSnapshotInfo!>!>!
+Rask.Dashboard.Panels.IDashboardBackupProbe.VerificationAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupVerificationInfo?>!
+Rask.Dashboard.Panels.IQueueActions
+Rask.Dashboard.Panels.IQueueActions.DeleteAsync(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.IQueueActions.PurgeProcessedAsync(System.TimeSpan olderThan, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.IQueueActions.RetryAllAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.IQueueActions.RetryAsync(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.IQueuePanel
+Rask.Dashboard.Panels.IQueuePanel.CountsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.QueueCounts>!
+Rask.Dashboard.Panels.IQueuePanel.Icon.get -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.Panels.IQueuePanel.IsAvailable.get -> bool
+Rask.Dashboard.Panels.IQueuePanel.MaxAttempts.get -> int
+Rask.Dashboard.Panels.IQueuePanel.PageAsync(Rask.Dashboard.Panels.QueueFilter filter, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.QueueRow!>! Rows, int Total)>!
+Rask.Dashboard.Panels.IQueuePanel.Slug.get -> string!
+Rask.Dashboard.Panels.IQueuePanel.Title.get -> string!
+Rask.Dashboard.Panels.ISystemPanelReader
+Rask.Dashboard.Panels.ISystemPanelReader.DatabaseAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.DatabaseInfo!>!
+Rask.Dashboard.Panels.ISystemPanelReader.HasBackupProbe.get -> bool
+Rask.Dashboard.Panels.ISystemPanelReader.RecurringJobsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.RecurringJobRow!>!>!
+Rask.Dashboard.Panels.ISystemPanelReader.ReplicationAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupReplicationInfo?>!
+Rask.Dashboard.Panels.ISystemPanelReader.SnapshotsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.BackupSnapshotInfo!>!>!
+Rask.Dashboard.Panels.ISystemPanelReader.VerificationAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupVerificationInfo?>!
+Rask.Dashboard.Panels.QueueCounts
+Rask.Dashboard.Panels.QueueCounts.Deconstruct(out int Due, out int Delayed, out int Failed, out int Processed) -> void
+Rask.Dashboard.Panels.QueueCounts.Delayed.get -> int
+Rask.Dashboard.Panels.QueueCounts.Delayed.init -> void
+Rask.Dashboard.Panels.QueueCounts.Due.get -> int
+Rask.Dashboard.Panels.QueueCounts.Due.init -> void
+Rask.Dashboard.Panels.QueueCounts.Equals(Rask.Dashboard.Panels.QueueCounts other) -> bool
+Rask.Dashboard.Panels.QueueCounts.Failed.get -> int
+Rask.Dashboard.Panels.QueueCounts.Failed.init -> void
+Rask.Dashboard.Panels.QueueCounts.Outstanding.get -> int
+Rask.Dashboard.Panels.QueueCounts.Processed.get -> int
+Rask.Dashboard.Panels.QueueCounts.Processed.init -> void
+Rask.Dashboard.Panels.QueueCounts.QueueCounts() -> void
+Rask.Dashboard.Panels.QueueCounts.QueueCounts(int Due, int Delayed, int Failed, int Processed) -> void
+Rask.Dashboard.Panels.QueueFilter
+Rask.Dashboard.Panels.QueueFilter.Delayed = 2 -> Rask.Dashboard.Panels.QueueFilter
+Rask.Dashboard.Panels.QueueFilter.Due = 1 -> Rask.Dashboard.Panels.QueueFilter
+Rask.Dashboard.Panels.QueueFilter.Failed = 3 -> Rask.Dashboard.Panels.QueueFilter
+Rask.Dashboard.Panels.QueueFilter.Outstanding = 0 -> Rask.Dashboard.Panels.QueueFilter
+Rask.Dashboard.Panels.QueueFilter.Processed = 4 -> Rask.Dashboard.Panels.QueueFilter
+Rask.Dashboard.Panels.QueueRow
+Rask.Dashboard.Panels.QueueRow.<Clone>$() -> Rask.Dashboard.Panels.QueueRow!
+Rask.Dashboard.Panels.QueueRow.Attempts.get -> int
+Rask.Dashboard.Panels.QueueRow.Attempts.init -> void
+Rask.Dashboard.Panels.QueueRow.CreatedAt.get -> System.DateTime
+Rask.Dashboard.Panels.QueueRow.CreatedAt.init -> void
+Rask.Dashboard.Panels.QueueRow.Deconstruct(out long Id, out string! Type, out string! Summary, out System.DateTime CreatedAt, out System.DateTime RunAt, out System.DateTime? ProcessedAt, out int Attempts, out string? Error, out string! Payload) -> void
+Rask.Dashboard.Panels.QueueRow.Equals(Rask.Dashboard.Panels.QueueRow? other) -> bool
+Rask.Dashboard.Panels.QueueRow.Error.get -> string?
+Rask.Dashboard.Panels.QueueRow.Error.init -> void
+Rask.Dashboard.Panels.QueueRow.Id.get -> long
+Rask.Dashboard.Panels.QueueRow.Id.init -> void
+Rask.Dashboard.Panels.QueueRow.Payload.get -> string!
+Rask.Dashboard.Panels.QueueRow.Payload.init -> void
+Rask.Dashboard.Panels.QueueRow.ProcessedAt.get -> System.DateTime?
+Rask.Dashboard.Panels.QueueRow.ProcessedAt.init -> void
+Rask.Dashboard.Panels.QueueRow.QueueRow(long Id, string! Type, string! Summary, System.DateTime CreatedAt, System.DateTime RunAt, System.DateTime? ProcessedAt, int Attempts, string? Error, string! Payload) -> void
+Rask.Dashboard.Panels.QueueRow.RunAt.get -> System.DateTime
+Rask.Dashboard.Panels.QueueRow.RunAt.init -> void
+Rask.Dashboard.Panels.QueueRow.Summary.get -> string!
+Rask.Dashboard.Panels.QueueRow.Summary.init -> void
+Rask.Dashboard.Panels.QueueRow.Type.get -> string!
+Rask.Dashboard.Panels.QueueRow.Type.init -> void
+Rask.Dashboard.Panels.RecurringJobRow
+Rask.Dashboard.Panels.RecurringJobRow.<Clone>$() -> Rask.Dashboard.Panels.RecurringJobRow!
+Rask.Dashboard.Panels.RecurringJobRow.Deconstruct(out string! Name, out System.TimeSpan Interval, out System.DateTime? LastEnqueuedAt) -> void
+Rask.Dashboard.Panels.RecurringJobRow.Equals(Rask.Dashboard.Panels.RecurringJobRow? other) -> bool
+Rask.Dashboard.Panels.RecurringJobRow.Interval.get -> System.TimeSpan
+Rask.Dashboard.Panels.RecurringJobRow.Interval.init -> void
+Rask.Dashboard.Panels.RecurringJobRow.LastEnqueuedAt.get -> System.DateTime?
+Rask.Dashboard.Panels.RecurringJobRow.LastEnqueuedAt.init -> void
+Rask.Dashboard.Panels.RecurringJobRow.Name.get -> string!
+Rask.Dashboard.Panels.RecurringJobRow.Name.init -> void
+Rask.Dashboard.Panels.RecurringJobRow.RecurringJobRow(string! Name, System.TimeSpan Interval, System.DateTime? LastEnqueuedAt) -> void
+Rask.Dashboard.RaskDashboardActions
+Rask.Dashboard.RaskDashboardActions.All = Rask.Dashboard.RaskDashboardActions.Safe | Rask.Dashboard.RaskDashboardActions.Destructive -> Rask.Dashboard.RaskDashboardActions
+Rask.Dashboard.RaskDashboardActions.Destructive = 2 -> Rask.Dashboard.RaskDashboardActions
+Rask.Dashboard.RaskDashboardActions.None = 0 -> Rask.Dashboard.RaskDashboardActions
+Rask.Dashboard.RaskDashboardActions.Safe = 1 -> Rask.Dashboard.RaskDashboardActions
+Rask.Dashboard.RaskDashboardOptions
+Rask.Dashboard.RaskDashboardOptions.Actions.get -> Rask.Dashboard.RaskDashboardActions
+Rask.Dashboard.RaskDashboardOptions.Actions.set -> void
+Rask.Dashboard.RaskDashboardOptions.AllowAnonymousAccess.get -> bool
+Rask.Dashboard.RaskDashboardOptions.AllowAnonymousAccess.set -> void
+Rask.Dashboard.RaskDashboardOptions.CaptureLogs.get -> bool
+Rask.Dashboard.RaskDashboardOptions.CaptureLogs.set -> void
+Rask.Dashboard.RaskDashboardOptions.LogBufferSize.get -> int
+Rask.Dashboard.RaskDashboardOptions.LogBufferSize.set -> void
+Rask.Dashboard.RaskDashboardOptions.LogMinimumLevel.get -> Microsoft.Extensions.Logging.LogLevel
+Rask.Dashboard.RaskDashboardOptions.LogMinimumLevel.set -> void
+Rask.Dashboard.RaskDashboardOptions.MaxPollDuration.get -> System.TimeSpan
+Rask.Dashboard.RaskDashboardOptions.MaxPollDuration.set -> void
+Rask.Dashboard.RaskDashboardOptions.PageSize.get -> int
+Rask.Dashboard.RaskDashboardOptions.PageSize.set -> void
+Rask.Dashboard.RaskDashboardOptions.RaskDashboardOptions() -> void
+Rask.Dashboard.RaskDashboardOptions.RefreshInterval.get -> System.TimeSpan
+Rask.Dashboard.RaskDashboardOptions.RefreshInterval.set -> void
+Rask.Dashboard.RaskDashboardPolicies
+Rask.Dashboard.RaskDashboardServiceCollectionExtensions
+Rask.Dashboard.RaskDashboardShell
+Rask.Dashboard.RaskDashboardShell.RaskDashboardShell() -> void
+RaskBuilderSettersRask_Dashboard
+RaskEntriesRask_Dashboard
+abstract Rask.Dashboard.Pages.PollingPanel.LoadAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<object?>!
+abstract Rask.Dashboard.Pages.PollingPanel.Options.get -> Rask.Dashboard.RaskDashboardOptions!
+const Rask.Dashboard.RaskDashboardPolicies.Access = "RaskDashboard" -> string!
+override Rask.Dashboard.Logging.DashboardLogEntry.Equals(object? obj) -> bool
+override Rask.Dashboard.Logging.DashboardLogEntry.GetHashCode() -> int
+override Rask.Dashboard.Logging.DashboardLogEntry.ToString() -> string!
+override Rask.Dashboard.Pages.PollingPanel.OnMountAsync() -> System.Threading.Tasks.Task!
+override Rask.Dashboard.Panels.BackupReplicationInfo.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.BackupReplicationInfo.GetHashCode() -> int
+override Rask.Dashboard.Panels.BackupReplicationInfo.ToString() -> string!
+override Rask.Dashboard.Panels.BackupSnapshotInfo.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.BackupSnapshotInfo.GetHashCode() -> int
+override Rask.Dashboard.Panels.BackupSnapshotInfo.ToString() -> string!
+override Rask.Dashboard.Panels.BackupVerificationInfo.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.BackupVerificationInfo.GetHashCode() -> int
+override Rask.Dashboard.Panels.BackupVerificationInfo.ToString() -> string!
+override Rask.Dashboard.Panels.CacheKeyRow.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.CacheKeyRow.GetHashCode() -> int
+override Rask.Dashboard.Panels.CacheKeyRow.ToString() -> string!
+override Rask.Dashboard.Panels.CacheStats.GetHashCode() -> int
+override Rask.Dashboard.Panels.DatabaseInfo.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.DatabaseInfo.GetHashCode() -> int
+override Rask.Dashboard.Panels.DatabaseInfo.ToString() -> string!
+override Rask.Dashboard.Panels.QueueCounts.GetHashCode() -> int
+override Rask.Dashboard.Panels.QueueRow.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.QueueRow.GetHashCode() -> int
+override Rask.Dashboard.Panels.QueueRow.ToString() -> string!
+override Rask.Dashboard.Panels.RecurringJobRow.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.RecurringJobRow.GetHashCode() -> int
+override Rask.Dashboard.Panels.RecurringJobRow.ToString() -> string!
+static Rask.Dashboard.Logging.DashboardLogEntry.operator !=(Rask.Dashboard.Logging.DashboardLogEntry? left, Rask.Dashboard.Logging.DashboardLogEntry? right) -> bool
+static Rask.Dashboard.Logging.DashboardLogEntry.operator ==(Rask.Dashboard.Logging.DashboardLogEntry? left, Rask.Dashboard.Logging.DashboardLogEntry? right) -> bool
+static Rask.Dashboard.Pages.Routes.CachePage(string? Search = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.Routes.DashboardLayout() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.Routes.LogsPage(string? View = null, string? Level = null, string? Category = null, string? Query = null, int? Page = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.Routes.OverviewPage() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.Routes.QueuePage(string! Queue, string? Show = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.Routes.SystemPage() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_CachePage.Go(string? Search = null, bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_CachePage.Url(string? Search = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_CachePage.extension(Rask.Dashboard.Pages.CachePage!).Go(string? Search = null, bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_CachePage.extension(Rask.Dashboard.Pages.CachePage!).Url(string? Search = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_DashboardLayout.Go(bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_DashboardLayout.Url() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_DashboardLayout.extension(Rask.Dashboard.Pages.DashboardLayout!).Go(bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_DashboardLayout.extension(Rask.Dashboard.Pages.DashboardLayout!).Url() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_LogsPage.Go(string? View = null, string? Level = null, string? Category = null, string? Query = null, int? Page = null, bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_LogsPage.Url(string? View = null, string? Level = null, string? Category = null, string? Query = null, int? Page = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_LogsPage.extension(Rask.Dashboard.Pages.LogsPage!).Go(string? View = null, string? Level = null, string? Category = null, string? Query = null, int? Page = null, bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_LogsPage.extension(Rask.Dashboard.Pages.LogsPage!).Url(string? View = null, string? Level = null, string? Category = null, string? Query = null, int? Page = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_OverviewPage.Go(bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_OverviewPage.Url() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_OverviewPage.extension(Rask.Dashboard.Pages.OverviewPage!).Go(bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_OverviewPage.extension(Rask.Dashboard.Pages.OverviewPage!).Url() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_QueuePage.Go(string! Queue, string? Show = null, bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_QueuePage.Url(string! Queue, string? Show = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_QueuePage.extension(Rask.Dashboard.Pages.QueuePage!).Go(string! Queue, string? Show = null, bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_QueuePage.extension(Rask.Dashboard.Pages.QueuePage!).Url(string! Queue, string? Show = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_SystemPage.Go(bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_SystemPage.Url() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_SystemPage.extension(Rask.Dashboard.Pages.SystemPage!).Go(bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_SystemPage.extension(Rask.Dashboard.Pages.SystemPage!).Url() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Panels.BackupReplicationInfo.operator !=(Rask.Dashboard.Panels.BackupReplicationInfo? left, Rask.Dashboard.Panels.BackupReplicationInfo? right) -> bool
+static Rask.Dashboard.Panels.BackupReplicationInfo.operator ==(Rask.Dashboard.Panels.BackupReplicationInfo? left, Rask.Dashboard.Panels.BackupReplicationInfo? right) -> bool
+static Rask.Dashboard.Panels.BackupSnapshotInfo.operator !=(Rask.Dashboard.Panels.BackupSnapshotInfo? left, Rask.Dashboard.Panels.BackupSnapshotInfo? right) -> bool
+static Rask.Dashboard.Panels.BackupSnapshotInfo.operator ==(Rask.Dashboard.Panels.BackupSnapshotInfo? left, Rask.Dashboard.Panels.BackupSnapshotInfo? right) -> bool
+static Rask.Dashboard.Panels.BackupVerificationInfo.operator !=(Rask.Dashboard.Panels.BackupVerificationInfo? left, Rask.Dashboard.Panels.BackupVerificationInfo? right) -> bool
+static Rask.Dashboard.Panels.BackupVerificationInfo.operator ==(Rask.Dashboard.Panels.BackupVerificationInfo? left, Rask.Dashboard.Panels.BackupVerificationInfo? right) -> bool
+static Rask.Dashboard.Panels.CacheKeyRow.operator !=(Rask.Dashboard.Panels.CacheKeyRow? left, Rask.Dashboard.Panels.CacheKeyRow? right) -> bool
+static Rask.Dashboard.Panels.CacheKeyRow.operator ==(Rask.Dashboard.Panels.CacheKeyRow? left, Rask.Dashboard.Panels.CacheKeyRow? right) -> bool
+static Rask.Dashboard.Panels.CacheStats.operator !=(Rask.Dashboard.Panels.CacheStats left, Rask.Dashboard.Panels.CacheStats right) -> bool
+static Rask.Dashboard.Panels.CacheStats.operator ==(Rask.Dashboard.Panels.CacheStats left, Rask.Dashboard.Panels.CacheStats right) -> bool
+static Rask.Dashboard.Panels.DatabaseInfo.operator !=(Rask.Dashboard.Panels.DatabaseInfo? left, Rask.Dashboard.Panels.DatabaseInfo? right) -> bool
+static Rask.Dashboard.Panels.DatabaseInfo.operator ==(Rask.Dashboard.Panels.DatabaseInfo? left, Rask.Dashboard.Panels.DatabaseInfo? right) -> bool
+static Rask.Dashboard.Panels.QueueCounts.operator !=(Rask.Dashboard.Panels.QueueCounts left, Rask.Dashboard.Panels.QueueCounts right) -> bool
+static Rask.Dashboard.Panels.QueueCounts.operator ==(Rask.Dashboard.Panels.QueueCounts left, Rask.Dashboard.Panels.QueueCounts right) -> bool
+static Rask.Dashboard.Panels.QueueRow.operator !=(Rask.Dashboard.Panels.QueueRow? left, Rask.Dashboard.Panels.QueueRow? right) -> bool
+static Rask.Dashboard.Panels.QueueRow.operator ==(Rask.Dashboard.Panels.QueueRow? left, Rask.Dashboard.Panels.QueueRow? right) -> bool
+static Rask.Dashboard.Panels.RecurringJobRow.operator !=(Rask.Dashboard.Panels.RecurringJobRow? left, Rask.Dashboard.Panels.RecurringJobRow? right) -> bool
+static Rask.Dashboard.Panels.RecurringJobRow.operator ==(Rask.Dashboard.Panels.RecurringJobRow? left, Rask.Dashboard.Panels.RecurringJobRow? right) -> bool
+static Rask.Dashboard.RaskDashboardServiceCollectionExtensions.AddRaskDashboard<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Dashboard.RaskDashboardOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static RaskBuilderSettersRask_Dashboard.Category(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
+static RaskBuilderSettersRask_Dashboard.Level(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
+static RaskBuilderSettersRask_Dashboard.Page(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, int? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
+static RaskBuilderSettersRask_Dashboard.Query(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
+static RaskBuilderSettersRask_Dashboard.Queue(this Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!> __b, string! value) -> Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!>
+static RaskBuilderSettersRask_Dashboard.Search(this Rask.Core.Build<Rask.Dashboard.Pages.CachePage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.CachePage!>
+static RaskBuilderSettersRask_Dashboard.Show(this Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!>
+static RaskBuilderSettersRask_Dashboard.View(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
+static RaskBuilderSettersRask_Dashboard.__RaskResetEager_Rask_Dashboard_Pages_CachePage(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskResetEager_Rask_Dashboard_Pages_LogsPage(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskResetEager_Rask_Dashboard_Pages_QueuePage(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskResetPending_Rask_Dashboard_Pages_CachePage(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskResetPending_Rask_Dashboard_Pages_LogsPage(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskResetPending_Rask_Dashboard_Pages_QueuePage(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskEntriesRask_Dashboard.CachePage.get -> Rask.Core.Build<Rask.Dashboard.Pages.CachePage!>
+static RaskEntriesRask_Dashboard.DashboardLayout.get -> Rask.Core.Build<Rask.Dashboard.Pages.DashboardLayout!>
+static RaskEntriesRask_Dashboard.LogsPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
+static RaskEntriesRask_Dashboard.NotFoundPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.NotFoundPage!>
+static RaskEntriesRask_Dashboard.OverviewPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.OverviewPage!>
+static RaskEntriesRask_Dashboard.QueuePage.get -> Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!>
+static RaskEntriesRask_Dashboard.RaskDashboardShell.get -> Rask.Core.Build<Rask.Dashboard.RaskDashboardShell!>
+static RaskEntriesRask_Dashboard.SystemPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.SystemPage!>
+~override Rask.Dashboard.Panels.CacheStats.Equals(object obj) -> bool
+~override Rask.Dashboard.Panels.CacheStats.ToString() -> string
+~override Rask.Dashboard.Panels.QueueCounts.Equals(object obj) -> bool
+~override Rask.Dashboard.Panels.QueueCounts.ToString() -> string

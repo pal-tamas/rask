@@ -166,80 +166,86 @@ public sealed record ManifestIcon(
 /// </summary>
 public sealed record WebAppManifest
 {
+    // Settable rather than init-only, so the Pwa battery can hand this to a configure delegate
+    // (c.Pwa.Configure(m => m.Name = "Shop")) the way every other battery configures its options.
+    // Records with init-only members cannot be mutated by an Action<T>, and a `with` expression at
+    // that call site would have been a concept to learn for no gain. init -> set is source-compatible:
+    // every existing object initializer still compiles.
+
     /// <summary>Full app name shown on the install prompt / splash screen.</summary>
     [JsonPropertyName("name")]
-    public required string Name { get; init; }
+    public required string Name { get; set; }
 
     /// <summary>Short name shown under the home-screen icon.</summary>
     [JsonPropertyName("short_name")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? ShortName { get; init; }
+    public string? ShortName { get; set; }
 
     /// <summary>Optional description.</summary>
     [JsonPropertyName("description")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Description { get; init; }
+    public string? Description { get; set; }
 
     /// <summary>Where the app opens when launched (default <c>"."</c> — the app root).</summary>
     [JsonPropertyName("start_url")]
-    public string StartUrl { get; init; } = ".";
+    public string StartUrl { get; set; } = ".";
 
     /// <summary>Navigation scope the installed app controls (default <c>"."</c>).</summary>
     [JsonPropertyName("scope")]
-    public string Scope { get; init; } = ".";
+    public string Scope { get; set; } = ".";
 
     /// <summary>Display mode (default <see cref="DisplayMode.Standalone" />).</summary>
     [JsonPropertyName("display")]
-    public DisplayMode Display { get; init; } = DisplayMode.Standalone;
+    public DisplayMode Display { get; set; } = DisplayMode.Standalone;
 
     /// <summary>Theme color (also emitted as <c>&lt;meta name="theme-color"&gt;</c>).</summary>
     [JsonPropertyName("theme_color")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? ThemeColor { get; init; }
+    public string? ThemeColor { get; set; }
 
     /// <summary>Background color of the splash screen.</summary>
     [JsonPropertyName("background_color")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? BackgroundColor { get; init; }
+    public string? BackgroundColor { get; set; }
 
     /// <summary>Home-screen / install icons. At least one ~192px and one ~512px icon is recommended.</summary>
     [JsonPropertyName("icons")]
-    public IReadOnlyList<ManifestIcon> Icons { get; init; } = [];
+    public IReadOnlyList<ManifestIcon> Icons { get; set; } = [];
 
     /// <summary>App category hints for stores/launchers, e.g. <c>["productivity", "utilities"]</c>.</summary>
     [JsonPropertyName("categories")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<string>? Categories { get; init; }
+    public IReadOnlyList<string>? Categories { get; set; }
 
     /// <summary>Preferred orientation when installed (unset = no preference).</summary>
     [JsonPropertyName("orientation")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ManifestOrientation? Orientation { get; init; }
+    public ManifestOrientation? Orientation { get; set; }
 
     /// <summary>Ordered fallback display modes tried before <see cref="Display" /> (e.g. window-controls-overlay).</summary>
     [JsonPropertyName("display_override")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<DisplayOverrideMode>? DisplayOverride { get; init; }
+    public IReadOnlyList<DisplayOverrideMode>? DisplayOverride { get; set; }
 
     /// <summary>Home-screen / jump-list shortcuts into specific app sections.</summary>
     [JsonPropertyName("shortcuts")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<ManifestShortcut>? Shortcuts { get; init; }
+    public IReadOnlyList<ManifestShortcut>? Shortcuts { get; set; }
 
     /// <summary>Screenshots shown in the richer install / app-store UI.</summary>
     [JsonPropertyName("screenshots")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<ManifestScreenshot>? Screenshots { get; init; }
+    public IReadOnlyList<ManifestScreenshot>? Screenshots { get; set; }
 
     /// <summary>Registers the app as an OS share target (receive shared title/text/url).</summary>
     [JsonPropertyName("share_target")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ShareTarget? ShareTarget { get; init; }
+    public ShareTarget? ShareTarget { get; set; }
 
     /// <summary>File-type associations so the OS can launch the app to open matching files.</summary>
     [JsonPropertyName("file_handlers")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<FileHandler>? FileHandlers { get; init; }
+    public IReadOnlyList<FileHandler>? FileHandlers { get; set; }
 
     /// <summary>Serializes this manifest to its JSON form (omitting unset members).</summary>
     /// <remarks>

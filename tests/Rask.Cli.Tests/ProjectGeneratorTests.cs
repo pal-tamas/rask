@@ -45,9 +45,10 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(WithHygiene(AlwaysPresent).Order(), files.Keys.Order());
 
-        // Just the framework. Plain CSS is the default, so no styling package is pulled in by not
-        // choosing one — Bootstrap and Tailwind are both opinions, and neither is what you get for free.
-        Assert.Equal(["Rask.Server", "Rask.Tailwind"], result.Packages);
+        // Just the framework -- and the framework is all a styled app needs. Tailwind is built INTO
+        // Rask.Server (RaskTailwindBuildPack), so a scaffolded csproj names no styling package at all:
+        // naming one would import the same targets a second time and run the compiler twice.
+        Assert.Equal(["Rask.Server"], result.Packages);
         // No opt-in artifacts leak in.
         Assert.DoesNotContain("Features/Auth/CredentialStore.cs", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
@@ -273,17 +274,16 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Csproj_pins_every_package_to_the_supplied_version()
     {
-        // Bootstrap explicitly, so the pin is still checked on a styling package rather than only on the
-        // framework — the version has to be stamped on every reference the template emits, not most.
+        // With --cqrs, so the pin is checked on an opt-in package rather than only on the framework —
+        // the version has to be stamped on every reference the template emits, not most.
         var (files, _) = Generate(cqrs: true);
         var csproj = files["App.csproj"];
 
         Assert.Contains("<PackageReference Include=\"Rask.Server\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
-        Assert.Contains("<PackageReference Include=\"Rask.Tailwind\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"Rask.Cqrs\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
 
-        var tailwind = Generate().Files["App.csproj"];
-        Assert.Contains("<PackageReference Include=\"Rask.Tailwind\" Version=\"9.9.9\"/>", tailwind, StringComparison.Ordinal);
+        // And nothing pins a Tailwind package, because there is no Tailwind package to pin.
+        Assert.DoesNotContain("Rask.Tailwind", Generate().Files["App.csproj"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -419,10 +419,12 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("Rask.Server", result.Packages);
         Assert.Equal(cqrs, result.Packages.Contains("Rask.Cqrs"));
 
-        // Tailwind is built in, so it is present whatever else was asked for. This assertion has now been
-        // all three things in turn -- Bootstrap always present, then neither present, now Tailwind always
-        // present -- which is exactly why it is asserted on every combination rather than assumed.
-        Assert.Contains("Rask.Tailwind", result.Packages);
+        // Tailwind is built in, so no combination REFERENCES it and every combination still gets it --
+        // it rides inside Rask.Server. This assertion has now been all four things in turn: Bootstrap
+        // always present, then neither present, then Tailwind always referenced, now Tailwind never
+        // referenced because it is not a reference any more. Which is exactly why it is asserted on
+        // every combination rather than assumed.
+        Assert.DoesNotContain("Rask.Tailwind", result.Packages);
         Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
 
         Assert.Equal(auth, files.ContainsKey("Features/Auth/CredentialStore.cs"));
@@ -484,7 +486,7 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(WithHygiene(WasmAlwaysPresent).Order(), files.Keys.Order());
 
-        Assert.Equal(["Rask.Wasm", "Rask.Tailwind"], result.Packages);
+        Assert.Equal(["Rask.Wasm"], result.Packages);
         Assert.Contains("Microsoft.NET.Sdk.WebAssembly", files["App.csproj"], StringComparison.Ordinal);
         // A standalone SPA never carries the auth/pwa/docker opt-ins by default.
         Assert.DoesNotContain("Features/Auth/Auth.cs", files.Keys);
@@ -533,24 +535,6 @@ public sealed class ProjectGeneratorTests
             "AddRaskQuery", Index(without)["Program.cs"], StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_hosted_client_gets_the_query_cache_with_its_remote_dispatcher()
-    {
-        var result = ProjectGenerator.GenerateWasmHosted(
-            Root, "App", new ServerBatteries { Cqrs = true }, Version);
-        var files = Index(result);
-
-        // Asserted on the csproj rather than on ScaffoldResult.Packages: that list is the summary the
-        // CLI prints, and for this template it names the three framework packages only — Rask.Cqrs.Client
-        // is absent from it too. The csproj is what restore reads.
-        //
-        // The client half, where every dispatch is a network round trip — so a component that refetches
-        // on each render pays for it over the wire.
-        Assert.Contains(
-            "<PackageReference Include=\"Rask.Query\"", files["App.Client/App.Client.csproj"], StringComparison.Ordinal);
-        Assert.Contains("host.Services.AddRaskQuery();", files["App.Client/Program.cs"], StringComparison.Ordinal);
-    }
-
     // The browser template compiles its own stylesheet like every other host. It was the one worth
     // spelling out while styling was a choice, because the WASM SDK publishes wwwroot as it finds it and a
     // stylesheet written after the publish would simply not be there.
@@ -561,9 +545,11 @@ public sealed class ProjectGeneratorTests
             Root, "App", auth: false, pwa: false, docker: false, Version, new ServerBatteries());
         var files = Index(result);
 
-        Assert.Equal(["Rask.Wasm", "Rask.Tailwind"], result.Packages);
+        Assert.Equal(["Rask.Wasm"], result.Packages);
         Assert.Contains("@import \"tailwindcss\";", files["Styles/app.css"], StringComparison.Ordinal);
-        Assert.Contains("Rask.Tailwind", files["App.csproj"], StringComparison.Ordinal);
+
+        // The csproj names Rask.Wasm and nothing else for styling: the Tailwind build ships inside it.
+        Assert.DoesNotContain("Rask.Tailwind", files["App.csproj"], StringComparison.Ordinal);
 
         // The head has to point at what the build writes, or the stylesheet is compiled and never served.
         Assert.Contains("/css/app.css", files["Features/Shared/App.cs"], StringComparison.Ordinal);
@@ -617,7 +603,7 @@ public sealed class ProjectGeneratorTests
 
         // Plain is what you get by not choosing, here as everywhere else — so the base package set is
         // Rask.Wasm alone. Bootstrap and Tailwind are covered by their own case below.
-        Assert.Equal(["Rask.Wasm", "Rask.Tailwind"], result.Packages);
+        Assert.Equal(["Rask.Wasm"], result.Packages);
         Assert.Equal(auth, files.ContainsKey("Features/Auth/Auth.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));

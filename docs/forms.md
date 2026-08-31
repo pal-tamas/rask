@@ -171,6 +171,66 @@ dropdown from an API) surfaces its loading state on its own — no manual `State
 
 <!-- demo:binding-afterbind-async -->
 
+### What a bind costs, and the one case worth changing
+
+`Bind(() => …)` takes an `Expression<Func<T>>`, and **the C# compiler builds that tree at the call
+site on every render**. Building it resolves a member token on the bound property's *declaring type*,
+and that cost scales with how many members the type has:
+
+| what you bind | B/render |
+| --- | --- |
+| `Input.Value(…)` — controlled, no bind at all | 1216 |
+| `Input.Bind(() => Model.Name)` — a plain model | 3041 |
+| `Input.Bind(() => Draft)` — a property on the **component** | 5011 |
+
+The third row is the surprise, and it is invisible at the call site: the two spellings look equally
+cheap. A component is a markup host, so the generator injects the chain entries into it — around 430
+members — and binding a property *declared there* pays for resolving a token on a type that large.
+Binding the same value on a plain model does not.
+
+**For nearly every app this does not matter.** A form re-renders on interaction, not in a loop; a few
+kilobytes per render is well under the noise. Reach for the fix below only when a bound control is in
+something genuinely hot — a virtualized grid, a control that re-renders on every keystroke of a large
+document.
+
+**The fix is at the call site: hoist the expression into a field**, so it is built once instead of
+per render.
+
+```csharp
+using System.Linq.Expressions;
+
+public sealed partial class Editor : Component
+{
+    private readonly Model _model = new();
+
+    // Built once, in the constructor, rather than on every render.
+    private readonly Expression<Func<string>> _name;
+
+    public Editor() => _name = () => _model.Name;
+
+    protected override Component Render() => Input.Bind(_name);
+}
+```
+
+The two rows converge once the tree stops being rebuilt: **2721 B/render** hoisted against a plain
+model, **2753 B** hoisted against a property on the component — so hoisting does not merely help the
+expensive shape, it erases the difference. What remains is the binding machinery (`FieldIdentifier`,
+validator registration, owner tracking), which is shared with the plain-model case.
+
+Every number on this page is pinned by `BuilderEntryAllocationPinTests`, so none of them can drift
+without a test going red.
+
+The other move is simply **to bind a plain model rather than a property on the component**
+(`() => _model.Name`, not `() => Draft`), which is what most code does already and costs 3041 B rather
+than 5011 B without any ceremony.
+
+> Why not fix this in the framework? Measured and ruled out in
+> [#803](https://github.com/pal-tamas/rask/issues/803): a Roslyn interceptor cannot help — an
+> interceptor must keep the intercepted method's signature (CS9144), and the lambda is converted to an
+> expression tree when the call is *bound*, before interception applies. Adding a `Func<T>` overload
+> does not help either, because C# prefers the `Expression` one. What remains is making the injected
+> chain entries inheritable instead, which is a change to how every markup host is generated.
+
 ---
 
 ## 2. `Form<TModel>` and the `EditContext`

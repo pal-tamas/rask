@@ -8,7 +8,7 @@ internal static partial class ProjectGenerator
     /// Emits the database registration and every DB-backed battery into a generated <c>Program.cs</c>.
     /// </summary>
     /// <remarks>
-    /// Shared by the <c>server</c> template and the <c>wasm-hosted</c> template's <c>.Server</c> host. Both
+    /// Shared by the <c>server</c> template and the front-end templates' ASP.NET host. Both
     /// wire the same <c>AppDbContext</c> through the same <c>AddRaskX</c> calls in the same load-bearing
     /// order — the outbox before the context factory, so its interceptor is in the container when the
     /// factory resolves <c>ISaveChangesInterceptor</c> — so the blocks live here once rather than in two
@@ -36,7 +36,7 @@ internal static partial class ProjectGenerator
                 builder.Services.AddRaskData();
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-                    .UseRaskSqlite(connectionString, strictTables: true)
+                    .UseRaskSqlite(connectionString, o => o.StrictTables = true)
                     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
                 // Continuous backup. Litestream streams the write-ahead log to object storage, which is what
@@ -80,7 +80,7 @@ internal static partial class ProjectGenerator
         if (batteries.Jobs)
         {
             Block(sb, """
-                // Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJobQueue;
+                // Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJob;
                 // a hosted worker polls, runs each job through its Rask.Cqrs handler, and retries with backoff.
                 // Schedule recurring work here: o.AddRecurring<PurgeJob>("purge", TimeSpan.FromHours(1), () => new());
                 builder.Services.AddRaskJobs<AppDbContext>();
@@ -106,7 +106,7 @@ internal static partial class ProjectGenerator
         {
             Block(sb, """
                 // A cache on the app's own database: the standard IDistributedCache (so ASP.NET session/output
-                // caching just works) plus a typed ICache with GetOrCreateAsync and absolute/sliding expiry. A
+                // caching just works) plus a typed ICache with GetOrAddAsync and absolute/sliding expiry. A
                 // background purger sweeps expired rows.
                 builder.Services.AddRaskCache<AppDbContext>();
                 """);

@@ -11,6 +11,7 @@
 # Bypass for docs-only or emergency pushes:  git push --no-verify
 # Per-gate bypass: RASK_SKIP_E2E=1 (browser) · RASK_SKIP_CLI_BUILD_E2E=1 (CLI build)
 #                  RASK_SKIP_WATCH_E2E=1 (hot reload, both halves) · RASK_SKIP_DEPLOY_E2E=1 (deploy)
+#                  RASK_SKIP_INSTALL_E2E=1 (the public installer, on a bare container)
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
@@ -93,7 +94,7 @@ elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
     "The code the CLI writes doesn't compile." \
     "A scaffolded project built, but a gate assertion failed — read the failure above."
 elif ! git diff --name-only origin/main...HEAD | grep -E "$generator_paths" >/dev/null; then
-  : # nothing in this push can change what the generators emit
+  echo "pre-push: CLI build gate SKIPPED — nothing in this push matches the generator paths."
 else
   echo "pre-push: this push touches the generators or the packages they emit — running the CLI build gate."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_CLI_BUILD_E2E=1."
@@ -110,14 +111,18 @@ fi
 # src/Rask.Core/Resources/ is in scope as a whole. The client branch used to live entirely in each
 # host's own file, so naming those two was enough; both hosts now IMPORT the indicator, the morph and
 # the diff codec from there, and an edit to any of them changes what an edit does to a running app.
-watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing|Resources)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.ts|src/Rask\.Wasm/(HotReload/|Resources/rask\.wasm\.ts|Browser/main\.ts)|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs|tests/Rask\.Examples\.E2E\.Tests/WasmWatchHotReloadTests\.cs)'
+# src/Rask.Core/build/ is in scope because Rask.Core.targets is where @(Watch) is BUILT: `dotnet watch`
+# collects @(Compile), @(EmbeddedResource), the project file and Razor content and never @(None), so a
+# scoped asset reaches the watcher only through the items that file adds. A change to the watch list
+# itself was the one hot-reload change this filter did not select (found while fixing #862).
+watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing|Resources|build)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.ts|src/Rask\.Wasm/(HotReload/|Resources/rask\.wasm\.ts|Browser/main\.ts)|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs|tests/Rask\.Examples\.E2E\.Tests/WasmWatchHotReloadTests\.cs)'
 
 if [ "${RASK_SKIP_WATCH_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_WATCH_E2E=1 set — skipping the watch hot-reload gate."
 elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
   echo "pre-push: no origin/main to diff against — skipping the watch hot-reload gate."
 elif ! git diff --name-only origin/main...HEAD | grep -E "$watch_paths" >/dev/null; then
-  : # nothing in this push can change the hot-reload loop
+  echo "pre-push: watch hot-reload gate SKIPPED — nothing in this push matches the hot-reload paths."
 else
   echo "pre-push: this push touches the hot-reload loop — running the watch gate."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_WATCH_E2E=1."
@@ -145,7 +150,7 @@ if [ "${RASK_SKIP_DEPLOY_E2E:-}" = "1" ]; then
 elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
   echo "pre-push: no origin/main to diff against — skipping the deploy gate."
 elif ! git diff --name-only origin/main...HEAD | grep -E "$deploy_paths" >/dev/null; then
-  : # nothing in this push touches the deploy path
+  echo "pre-push: deploy gate SKIPPED — nothing in this push matches the deploy paths."
 else
   echo "pre-push: this push changes the deploy path — running the deploy gate against a container host."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_DEPLOY_E2E=1."
@@ -153,4 +158,25 @@ else
   run_gate "deploy gate" scripts/run-deploy-e2e-local.sh \
     "The deploy path doesn't compile." \
     "Fix it, or bypass with RASK_SKIP_DEPLOY_E2E=1."
+fi
+
+# The install gate downloads a .NET SDK into a container per case, so like the others it is path-gated:
+# it runs when this push changes the public installer or the gate itself. scripts/tests/install-script.test.sh
+# already runs on every commit and covers the logic; this one covers the thing that test structurally
+# cannot — that a box with no .NET, no Node and no tools ends up with a working `rask`.
+install_paths='^(rask\.sh|rask\.ps1|scripts/run-install-e2e-local\.sh)$'
+
+if [ "${RASK_SKIP_INSTALL_E2E:-}" = "1" ]; then
+  echo "pre-push: RASK_SKIP_INSTALL_E2E=1 set — skipping the install gate."
+elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
+  echo "pre-push: no origin/main to diff against — skipping the install gate."
+elif ! git diff --name-only origin/main...HEAD | grep -E "$install_paths" >/dev/null; then
+  echo "pre-push: install gate SKIPPED — nothing in this push matches the installer paths."
+else
+  echo "pre-push: this push changes the public installer — running it on a bare container."
+  echo "          bypass with 'git push --no-verify' or RASK_SKIP_INSTALL_E2E=1."
+
+  run_gate "install gate" scripts/run-install-e2e-local.sh \
+    "The installer is broken." \
+    "curl | sh no longer produces a working rask — read the failing case above."
 fi

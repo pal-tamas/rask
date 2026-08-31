@@ -1544,6 +1544,13 @@ import "../../Rask.Core/Resources/rask-events.js";
         else queue.push(msg);
     }
 
+    // Rask.External is a separate, opt-in module, so it cannot see `send` in this scope — but it must
+    // not open a channel of its own either. Going through this one is what gets an external
+    // component's callback the same guarantees every DOM handler already has: sequence stamping, the
+    // queue-while-reconnecting, and the suppression window during an auth redirect.
+    globalThis.__raskHost = globalThis.__raskHost || {};
+    globalThis.__raskHost.send = send;
+
     function redeemAuthTicket(auth: { ticket?: string; url?: string }): void {
         suppressEvents = true;
         // The imminent socket close + reconnect is an auth step — show "Authenticating…" up front

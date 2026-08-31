@@ -20,10 +20,14 @@ standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test e
 only when unreachable); E2E for every `samples/` change — **tests run locally, not in CI**: `dotnet
 format` + unit via `scripts/run-unit-local.sh` (enforced by `.githooks/pre-commit`), browser E2E via
 `scripts/run-e2e-local.sh` (enforced by `.githooks/pre-push`); benchmark every framework-code change;
+the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
+`scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);
 **user-facing change → update a sample + docs/README/NUGET.md/llms.txt/template AGENTS.md**; keep
 everything up to date; CHANGELOG `[Unreleased]` per notable change; Conventional Commits
 (commitlint); no `Co-Authored-By`/`Generated-with`. Build is warnings-as-errors + analyzers
-(`Directory.Build.props`; see `docs/code-analysis.md`). Releases: tag→`release.yml`; nightly
+(`Directory.Build.props`; see `docs/code-analysis.md`). **Every public name obeys
+`docs/api-style.md`**; the build records the surface in `src/*/PublicAPI/<tfm>/`, so an unrecorded
+public member is a build error (RS0016/RS0017). Releases: tag→`release.yml`; nightly
 prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, template `AGENTS.md`,
 `docs/ai-agents.md`. Full detail: `docs/development-workflow.md`. Ask only when truly blocked.
 
@@ -36,6 +40,11 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
+- `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
+  `partial` class from `ReactComponent`/`LitComponent` (the base class IS the declaration — no attribute), front-end
+  file paired by filename like scoped JS. Props declared in C#, serialized reflection-free; callbacks re-enter C#
+  over the existing handler channel AND escalate the page to interactive. Its subtree is a **diff boundary**
+  (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/external-components.md`.
 - `samples/` — showcase apps. `tests/` — sibling `*.Tests` per project + `Rask.Examples.E2E.Tests` (Playwright). `benchmarks/`.
 
 ## Commands
@@ -82,11 +91,15 @@ dotnet run --project samples/Rask.Example.Server
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–056, RASK030/032/034/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–059, RASK030/032/034/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–056 are documented in `docs/diagnostics.md`
-  (RASK030/032/034/042/047/048/049/050 are retired and not to be recycled; RASK057 is next).
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–060 are documented in `docs/diagnostics.md`
+  (RASK030/032/034/042/047/048/049/050 are retired and never recycled; the next free id is RASK061). **Grep `src/`
+  for the id before you claim it, AND again before you merge** — three assemblies allocate in this space and
+  RS1019 only checks one compilation, so this line goes stale silently. This has now bitten four times on one
+  branch: #865 took RASK054, #871 took RASK055, and #864 took RASK056–059 out from under #880's own RASK056,
+  caught only at merge. Treat a merge from main as invalidating every id you hold.

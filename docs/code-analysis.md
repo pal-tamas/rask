@@ -6,6 +6,15 @@ analyzers (CAxxxx) and code-style (IDExxxx, severities from `.editorconfig`) run
 `AnalysisLevel` is left at the SDK default because the repo builds clean there; raising it is a
 deliberate, per-PR cleanup (see below).
 
+## Adopted: the public-API gate
+
+**Microsoft.CodeAnalysis.PublicApiAnalyzers** is on for every shipped package (plus `Rask.Core` and
+`Rask.Html`), wired in `Directory.Build.targets`. It tracks the public surface in a checked-in
+`PublicAPI/<tfm>/PublicAPI.{Shipped,Unshipped}.txt` pair, so RS0016/RS0017 turn an unrecorded
+public-surface change into a build failure and a reviewable text diff.
+
+The rules that surface has to obey are in **[Public API style](api-style.md)**.
+
 ## Recommended additional analyzers
 
 Adopt these for a published, perf-sensitive framework with source generators. Add via central
@@ -17,7 +26,6 @@ package management (`Directory.Packages.props`) + a `PackageReference … Privat
 | **Roslynator.Analyzers** | Broad, high-signal C# rules + refactorings. Best single add. |
 | **Meziantou.Analyzer** | Correctness/perf rules the SDK misses (culture, async, allocations). |
 | **SonarAnalyzer.CSharp** | Bug & code-smell detection, cognitive-complexity. |
-| **Microsoft.CodeAnalysis.PublicApiAnalyzers** | Track the public API surface of the NuGets (`PublicAPI.Shipped/Unshipped.txt`) so breaking changes are caught — pairs with SemVer/MinVer. |
 | **Microsoft.CodeAnalysis.BannedApiAnalyzers** | Enforce "use standard libs / safe defaults": ban `DateTime.Now`, culture-less `ToString`, etc. (directly addresses the CA1305 class of findings). |
 | **Microsoft.CodeAnalysis.Analyzers** (RS rules) | Author-correctness for the `Rask.Generators` projects specifically. |
 

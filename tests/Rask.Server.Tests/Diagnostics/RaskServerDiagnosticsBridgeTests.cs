@@ -7,7 +7,7 @@ namespace Rask.Server.Tests.Diagnostics;
 
 // Exercises the bridge's per-event Emit directly rather than installing it as the process-global
 // RaskDiagnostics.Sink, so these tests never race host-based tests that drive the same global seam.
-[Collection(RaskDiagnosticsSinkCollection.Name)]
+[Collection("DiagnosticsSink")]
 public class RaskServerDiagnosticsBridgeTests
 {
     // RaskLogLevel is internal, so it can't be a public test-method parameter — pass its numeric

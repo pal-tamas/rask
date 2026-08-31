@@ -46,8 +46,8 @@ jobs:
       - name: Pack Rask.Spa.Hosting
         run: dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release --no-build -o ./artifacts
 
-      - name: Pack Rask.Tailwind
-        run: dotnet pack src/Rask.Tailwind/Rask.Tailwind.csproj -c Release --no-build -o ./artifacts
+      - name: Pack Rask.External
+        run: dotnet pack src/Rask.External/Rask.External.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Validation.DataAnnotations
         run: dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts
@@ -130,3 +130,17 @@ jobs:
             ./artifacts/*.nupkg \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes
+
+      # The released version is the only one that stays listed: previous stables and every nightly
+      # prerelease are unlisted, so the gallery shows what you would actually install. Unlisting is not
+      # deletion -- nuget.org has no delete for owners, and a pinned PackageReference still restores.
+      #
+      # Runs last, and cannot fail the release: the packages are already pushed, and nuget.org rate-limits
+      # unlisting to roughly 250 calls before a 403 with a retry-after in tens of minutes. The script
+      # spends one budget and stops; whatever is left is picked up by the next release, which supersedes
+      # it anyway. NUGET_API_KEY needs the *Unlist* scope -- a push-only key no-ops with a warning.
+      - name: Unlist superseded versions
+        continue-on-error: true
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: scripts/unlist-old-versions.sh "${GITHUB_REF_NAME}" ./artifacts

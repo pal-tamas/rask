@@ -15,7 +15,7 @@ Create `Features/Shared/SendOrderReceipt.cs` — a job record and its handler:
 ```csharp
 namespace Shop.Features.Shared;
 
-public sealed record SendOrderReceipt : IJob;
+public sealed record SendOrderReceipt : IBackgroundJob;
 
 public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 {
@@ -27,11 +27,11 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 }
 ```
 
-A job is just a record marked `IJob` plus an `ICommandHandler<T>` — the same handler shape the CRUD slices
+A job is just a record marked `IBackgroundJob` plus an `ICommandHandler<T>` — the same handler shape the CRUD slices
 use. Give the job the data it needs by adding a parameter:
 
 ```csharp
-public sealed record SendOrderReceipt(Guid OrderId) : IJob;
+public sealed record SendOrderReceipt(Guid OrderId) : IBackgroundJob;
 ```
 
 Fill in the handler with whatever the work is (we'll make it send an email in the next chapter):
@@ -90,13 +90,13 @@ rask db update
 
 ## 3. Enqueue from your code
 
-Inject `IJobQueue` into the generated `CreateOrderCommandHandler` in `Features/Orders/CreateOrder.cs` and
+Inject `IJob` into the generated `CreateOrderCommandHandler` in `Features/Orders/CreateOrder.cs` and
 enqueue right after the order is saved:
 
 ```csharp
 public sealed class CreateOrderCommandHandler(
     IDbContextFactory<AppDbContext> dbContextFactory,
-    IJobQueue jobs) : ICommandHandler<CreateOrderCommand, Guid>
+    IJob jobs) : ICommandHandler<CreateOrderCommand, Guid>
 {
     public async Task<Guid> HandleAsync(CreateOrderCommand command, CancellationToken cancellationToken)
     {

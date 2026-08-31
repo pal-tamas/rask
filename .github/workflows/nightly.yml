@@ -102,9 +102,9 @@ jobs:
           dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Tailwind/Rask.Tailwind.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.External/Rask.External.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Query/Rask.Query.csproj -c Release -o ./artifacts

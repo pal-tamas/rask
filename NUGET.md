@@ -30,12 +30,13 @@ public sealed class Counter : Component
 
 ## Install
 
-> **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
-> (`dotnet workload install wasm-tools`) for the WASM templates.
+> **Prerequisites: none.** The installer below adds whatever is missing — the **.NET 10 SDK**, the
+> `wasm-tools` workload the WASM templates need, Node for the SPA templates — all under `$HOME`, no
+> `sudo`. Already have the .NET 10 SDK? `dotnet tool install -g Rask.Cli` is the whole story.
 
 ```bash
-dotnet tool install -g Rask.Cli          # the rask CLI — scaffold, migrate, run, deploy
-rask new MyApp                            # batteries included; or: --template wasm | wasm-hosted
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh   # the rask CLI — scaffold, migrate, run, deploy
+rask new MyApp                            # batteries included; or: --template wasm, or --wasm
 rask dev                                  # run with hot reload — the first migration is already applied
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
 ```
@@ -48,8 +49,13 @@ dotnet add package Rask.Server            # the lean host on its own: server-ren
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
 dotnet add package Rask.Spa.Hosting       # host a built TypeScript SPA on ASP.NET
-dotnet add package Rask.Tailwind          # Tailwind CSS on any host, no npm required
+dotnet add package Rask.External           # a .tsx or Lit component as a Rask component (needs Node)
 ```
+
+Tailwind is not on that list because it is not a package: the compiler ships inside `Rask` /
+`Rask.Server` / `Rask.Wasm`, so any of them puts it in your build. Add a `Styles/app.css` holding
+`@import "tailwindcss";`, link `/css/app.css` from your shell, and `dotnet build` compiles it — no
+npm, no config file, nothing to switch on.
 
 With `Rask`, that is the whole of `Program.cs` — every battery is on, and the file says only what this
 app does *without*:

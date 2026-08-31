@@ -8,7 +8,7 @@ namespace Rask.Jobs;
 public static class RaskJobsServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the <see cref="IJobQueue"/> and the background <see cref="JobProcessor{TContext}"/>. Map the
+    /// Registers the <see cref="IJob"/> and the background <see cref="JobProcessor{TContext}"/>. Map the
     /// tables with <c>modelBuilder.AddRaskJobs()</c> in <c>OnModelCreating</c>, register your context as an
     /// <see cref="IDbContextFactory{TContext}"/>, and add <c>AddRaskCqrs()</c> (jobs dispatch to their
     /// <c>ICommandHandler</c> through it). Idempotent.
@@ -26,7 +26,7 @@ public static class RaskJobsServiceCollectionExtensions
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<JobMetrics>();
-        services.TryAddSingleton<IJobQueue, JobQueue<TContext>>();
+        services.TryAddSingleton<IJob, JobQueue<TContext>>();
 
         // AddHostedService uses TryAddEnumerable, so a repeated call registers only one processor.
         services.AddHostedService<JobProcessor<TContext>>();

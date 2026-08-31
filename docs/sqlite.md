@@ -39,7 +39,7 @@ dotnet add package Rask.SQLite
 ```csharp
 builder.Services.AddRaskSqlite($"Data Source={dbPath}");
 
-// inject IRaskSqliteConnectionFactory, then:
+// inject ISqlite, then:
 await using var connection = await factory.CreateOpenAsync(ct);   // pragmas already applied
 ```
 
@@ -120,7 +120,7 @@ rejected at the source instead. EF Core has no support for them, so Rask supplie
 generator:
 
 ```csharp
-o.UseRaskSqlite(connectionString, strictTables: true);
+o.UseRaskSqlite(connectionString, o => o.StrictTables = true);
 ```
 
 ```sql
@@ -183,13 +183,13 @@ change it; nothing in Rask has to ask for the mode. What `Rask.SQLite` adds is t
 
 ### Raw ADO.NET — genuinely non-blocking
 
-`ExecuteInImmediateTransactionAsync` runs your work inside a `BEGIN IMMEDIATE` transaction and
+`InImmediateTransactionAsync` runs your work inside a `BEGIN IMMEDIATE` transaction and
 acquires the write lock through the raw `sqlite3` handle with the native busy handler off — so the
 only waiting is an `await Task.Delay` at the fair interval, which **frees the thread** rather than
 blocking it inside native code. It commits when your callback returns and rolls back if it throws:
 
 ```csharp
-await factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+await factory.InImmediateTransactionAsync(async (connection, ct) =>
 {
     await using var cmd = connection.CreateCommand();
     cmd.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
@@ -202,9 +202,8 @@ Tune the retry when registering (defaults: 5 s timeout, 1 ms interval):
 
 ```csharp
 builder.Services.AddRaskSqlite($"Data Source={dbPath}",
-    configureRetry: r =>
-    {
-        r.Timeout = TimeSpan.FromSeconds(10);
+    o => { o.Retry.Enabled = true; {
+        o.Retry.Timeout = TimeSpan.FromSeconds(10; });
         r.PollInterval = TimeSpan.FromMilliseconds(1);
     });
 ```
@@ -213,7 +212,7 @@ For a transaction you drive yourself, `connection.BeginImmediate()` gives you a 
 that took the write lock up front. It spells out at the call site what `BeginTransaction()` already does
 by default — the value is that it says so, and cannot quietly become deferred if someone passes an
 isolation level later. Its wait blocks the thread inside Microsoft.Data.Sqlite, so use
-`ExecuteInImmediateTransactionAsync` when you want the non-blocking retry.
+`InImmediateTransactionAsync` when you want the non-blocking retry.
 
 Because the lock is taken through the pooled native handle, the path is defensive about connection
 reuse: it clears a leaked transaction before **every** `BEGIN IMMEDIATE` attempt, and never hands a
@@ -249,7 +248,7 @@ Pass `configureRetry` (even empty) to register a fair-interval execution strateg
 and queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED`:
 
 ```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", configureRetry: _ => { });
+o.UseRaskSqlite($"Data Source={dbPath}", o => o.Retry.Enabled = true);
 ```
 
 Enabling it turns SQLite's native busy handler off (`busy_timeout=0`) and lowers
@@ -291,11 +290,11 @@ One `INSERT` per operation, all four write paths against one WAL database.
 
 | VUs | path | ops/s | p50 | p99 | **max** |
 |----:|------|------:|----:|----:|--------:|
-| 1 | `ExecuteInImmediateTransactionAsync` | 74,145 | 0.01 ms | 0.02 ms | 30 ms |
+| 1 | `InImmediateTransactionAsync` | 74,145 | 0.01 ms | 0.02 ms | 30 ms |
 | 1 | `BEGIN IMMEDIATE` + `busy_timeout` | 93,800 | 0.01 ms | 0.02 ms | 32 ms |
-| 32 | `ExecuteInImmediateTransactionAsync` | 68,958 | 0.01 ms | 16 ms | **174 ms** |
+| 32 | `InImmediateTransactionAsync` | 68,958 | 0.01 ms | 16 ms | **174 ms** |
 | 32 | `BEGIN IMMEDIATE` + `busy_timeout` | 18,186 | 0.03 ms | 0.05 ms | **15,937 ms** |
-| 128 | `ExecuteInImmediateTransactionAsync` | 43,441 | 0.01 ms | 68 ms | **408 ms** |
+| 128 | `InImmediateTransactionAsync` | 43,441 | 0.01 ms | 68 ms | **408 ms** |
 | 128 | `BEGIN IMMEDIATE` + `busy_timeout` | 16,772 | 0.03 ms | 0.68 ms | **15,837 ms** |
 
 Two honest results here, and neither is "the new thing wins everywhere":

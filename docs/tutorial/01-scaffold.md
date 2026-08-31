@@ -24,8 +24,8 @@ The two flags are the two things `rask new` doesn't decide for you, because they
 
 - **`--auth`** adds a working cookie-authentication flow — a `/login` page, a sign-out action, a protected
   members area, and the services in `Program.cs` to back them. ([authentication](../authentication.md).)
-- The pages are styled with **Tailwind**, which every project gets — it is a battery, not a choice, so
-  there is no flag and nothing to turn on.
+- The pages are styled with **Tailwind**, which every project gets — the compiler ships inside the host
+  package, so there is no flag, no package to add, and nothing to turn on or off.
 
 These are **scaffold-time** choices — they wire into `Program.cs` and the `DbContext` as the project is
 created, so you pick them up front rather than bolting them on later.
@@ -38,9 +38,10 @@ Open `Program.cs` and skim it. It's long — a dozen commented registrations —
 *why* each one sits where it does, and a few of those orderings are load-bearing rather than stylistic. We
 come back to the sharpest one in [Chapter 7](07-outbox-events.md).
 
-> **Other hosts.** `--template wasm` and `--template wasm-hosted` build the same components as a
-> browser-WebAssembly SPA instead. Everything in this tutorial works on all three; we use `server` because
-> it runs with no extra tooling. See [the CLI guide](../cli.md) for the full template matrix.
+> **Other hosts.** `--template wasm` builds the same components as a browser-WebAssembly SPA instead,
+> and `rask new Shop --wasm` keeps the server and publishes a browser bundle beside it from this one
+> project. Everything in this tutorial works either way; we use `server` because it runs with no extra
+> tooling. See [the CLI guide](../cli.md) for the full template matrix.
 
 ## Run it
 

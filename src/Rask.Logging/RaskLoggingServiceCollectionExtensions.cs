@@ -16,7 +16,7 @@ public static class RaskLoggingServiceCollectionExtensions
     /// </code>
     /// <para>
     /// Takes a connection string rather than a <c>TContext</c> like the other database-backed pillars: the
-    /// store deliberately owns its own file. See <see cref="ILogStore"/> for why, and remember that the
+    /// store deliberately owns its own file. See <see cref="ILogs"/> for why, and remember that the
     /// file is <b>not</b> covered by <c>rask db backup</c> or Litestream.
     /// </para>
     /// <para>
@@ -41,7 +41,7 @@ public static class RaskLoggingServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<LogMetrics>();
         services.TryAddSingleton<LogChannel>();
-        services.TryAddSingleton<ILogStore>(sp => new SqliteLogStore(
+        services.TryAddSingleton<ILogs>(sp => new SqliteLogStore(
             connectionString,
             sp.GetRequiredService<RaskLoggingOptions>(),
             sp.GetRequiredService<TimeProvider>()));

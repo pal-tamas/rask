@@ -10,7 +10,7 @@ public sealed class LogQueryTests
     {
         await using var harness = await SeededAsync();
 
-        var page = await harness.Store.QueryAsync(new LogQuery { MinimumLevel = LogLevel.Warning });
+        var page = await harness.Store.SearchAsync(new LogQuery { MinimumLevel = LogLevel.Warning });
 
         Assert.All(page.Entries, e => Assert.True(e.Level >= LogLevel.Warning));
         Assert.Equal(page.Entries.Count, page.TotalCount);
@@ -21,7 +21,7 @@ public sealed class LogQueryTests
     {
         await using var harness = await SeededAsync();
 
-        var page = await harness.Store.QueryAsync(new LogQuery { Category = "checkout" });
+        var page = await harness.Store.SearchAsync(new LogQuery { Category = "checkout" });
 
         Assert.NotEmpty(page.Entries);
         Assert.All(page.Entries, e => Assert.Contains("Checkout", e.Category, StringComparison.Ordinal));
@@ -35,7 +35,7 @@ public sealed class LogQueryTests
         harness.Logger().LogError(new InvalidOperationException("needle in the trace"), "opaque message");
         await harness.RunUntilStoredAsync(2);
 
-        var page = await harness.Store.QueryAsync(new LogQuery { Search = "needle" });
+        var page = await harness.Store.SearchAsync(new LogQuery { Search = "needle" });
 
         var entry = Assert.Single(page.Entries);
         Assert.Equal("opaque message", entry.Message);
@@ -53,9 +53,9 @@ public sealed class LogQueryTests
         harness.Logger().LogInformation("everything is fine");
         await harness.RunUntilStoredAsync(2);
 
-        Assert.Single((await harness.Store.QueryAsync(new LogQuery { Search = "100%" })).Entries);
-        Assert.Empty((await harness.Store.QueryAsync(new LogQuery { Search = "%fine%" })).Entries);
-        Assert.Empty((await harness.Store.QueryAsync(new LogQuery { Search = "ever_thing" })).Entries);
+        Assert.Single((await harness.Store.SearchAsync(new LogQuery { Search = "100%" })).Entries);
+        Assert.Empty((await harness.Store.SearchAsync(new LogQuery { Search = "%fine%" })).Entries);
+        Assert.Empty((await harness.Store.SearchAsync(new LogQuery { Search = "ever_thing" })).Entries);
     }
 
     [Fact]
@@ -69,10 +69,10 @@ public sealed class LogQueryTests
         harness.Logger().LogInformation("late");
         await harness.RunUntilStoredAsync(2);
 
-        var recent = await harness.Store.QueryAsync(new LogQuery { From = start.AddHours(1) });
+        var recent = await harness.Store.SearchAsync(new LogQuery { From = start.AddHours(1) });
         Assert.Equal("late", Assert.Single(recent.Entries).Message);
 
-        var old = await harness.Store.QueryAsync(new LogQuery { To = start.AddHours(1) });
+        var old = await harness.Store.SearchAsync(new LogQuery { To = start.AddHours(1) });
         Assert.Equal("early", Assert.Single(old.Entries).Message);
     }
 
@@ -88,12 +88,12 @@ public sealed class LogQueryTests
 
         await harness.RunUntilStoredAsync(10);
 
-        var first = await harness.Store.QueryAsync(new LogQuery { PageSize = 4 });
+        var first = await harness.Store.SearchAsync(new LogQuery { PageSize = 4 });
         Assert.Equal(10, first.TotalCount);
         Assert.Equal(3, first.PageCount);
         Assert.Equal(["entry 9", "entry 8", "entry 7", "entry 6"], first.Entries.Select(e => e.Message));
 
-        var last = await harness.Store.QueryAsync(new LogQuery { PageSize = 4, Page = 3 });
+        var last = await harness.Store.SearchAsync(new LogQuery { PageSize = 4, Page = 3 });
         Assert.Equal(["entry 1", "entry 0"], last.Entries.Select(e => e.Message));
     }
 
@@ -102,7 +102,7 @@ public sealed class LogQueryTests
     {
         await using var harness = await SeededAsync();
 
-        var page = await harness.Store.QueryAsync(new LogQuery { Search = "no such text anywhere" });
+        var page = await harness.Store.SearchAsync(new LogQuery { Search = "no such text anywhere" });
 
         Assert.Empty(page.Entries);
         Assert.Equal(0, page.TotalCount);
@@ -136,7 +136,7 @@ public sealed class LogQueryTests
     {
         await using var harness = new LoggingHarness();
 
-        var page = await harness.Store.QueryAsync(new LogQuery());
+        var page = await harness.Store.SearchAsync(new LogQuery());
 
         Assert.Empty(page.Entries);
         Assert.Equal(0, await harness.Store.CountAsync());

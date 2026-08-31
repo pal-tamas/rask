@@ -77,8 +77,7 @@ public sealed class NewCommandTests
 
     [Theory]
     [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
-    public async Task The_browser_templates_scaffold_their_stylesheet(string template)
+    public async Task The_browser_template_scaffolds_its_stylesheet(string template)
     {
         var (_, fs, _, command) = Build();
 
@@ -88,7 +87,7 @@ public sealed class NewCommandTests
         // generators collapsed styling to a bool and scaffolded plain CSS while reporting success.
         Assert.Equal(0, exit);
 
-        var stylesheet = template == "wasm" ? "/proj/Spa/Styles/app.css" : "/proj/Spa/Spa.Client/Styles/app.css";
+        const string stylesheet = "/proj/Spa/Styles/app.css";
         Assert.True(fs.FileExists(stylesheet), $"[{template}] scaffolded no {stylesheet}.");
     }
 
@@ -169,38 +168,7 @@ public sealed class NewCommandTests
         Assert.Contains("already exists", console.ErrorText, StringComparison.Ordinal);
         Assert.Empty(runner.Invocations);
     }
-    [Fact]
-    public async Task WasmHosted_template_is_generated_directly_without_dotnet_new()
-    {
-        var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["HostedApp", "--template", "wasm-hosted", "--auth"], CancellationToken.None);
-
-        Assert.Equal(0, exit);
-        Assert.Empty(console.ErrorText);
-        // A three-project solution is written directly under ./HostedApp.
-        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.slnx"));
-        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Client/HostedApp.Client.csproj"));
-        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/HostedApp.Server.csproj"));
-        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Shared/HostedApp.Shared.csproj"));
-        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/Features/Auth/CredentialStore.cs")); // --auth
-        // It restores the solution, and never shells to `dotnet new` / installs Rask.Templates.
-        Assert.Contains(runner.Invocations, i => i.Arguments is ["restore", "/proj/HostedApp/HostedApp.slnx"]);
-        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
-    }
-
-    [Fact]
-    public async Task WasmHosted_generation_refuses_to_overwrite_an_existing_solution()
-    {
-        var (console, fs, runner, command) = Build();
-        fs.Seed("/proj/HostedApp/HostedApp.slnx", "solution");
-
-        var exit = await command.ExecuteAsync(["HostedApp", "--template", "wasm-hosted"], CancellationToken.None);
-
-        Assert.Equal(1, exit);
-        Assert.Contains("already exists", console.ErrorText, StringComparison.Ordinal);
-        Assert.Empty(runner.Invocations);
-    }
 
     [Fact]
     public async Task Missing_name_fails_without_running_dotnet()
@@ -293,7 +261,7 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, react, preact, vue, angular, solid, svelte, lit.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -306,7 +274,9 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("nothing to change for: --no-cqrs", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("It supports: auth, docker, localization, pwa.", console.ErrorText, StringComparison.Ordinal);
+        // localization is no longer listed, because it is no longer a flag (#854). Listing it here would
+        // name something the user cannot then pass.
+        Assert.Contains("It supports: auth, docker, pwa.", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -633,17 +603,30 @@ public sealed class NewCommandTests
         Assert.Contains("--all-batteries is gone", console.ErrorText, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task Naming_a_culture_while_turning_localization_off_is_a_usage_error()
+    /// <summary>
+    ///     The language flags are gone (#854), and refused by name rather than quietly ignored.
+    /// </summary>
+    /// <remarks>
+    ///     <c>--culture</c> took a VALUE, which is what makes ignoring it worse than usual: the tag would
+    ///     be swallowed as a stray argument and the app scaffolded in English while the command line said
+    ///     Hungarian. Nothing would report it. The message names Program.cs, because "where do I put my
+    ///     languages now" is the only question a reader of this error has.
+    /// </remarks>
+    [Theory]
+    [InlineData("--culture", "hu")]
+    [InlineData("--culture=hu", null)]
+    [InlineData("--no-localization", null)]
+    [InlineData("--localization", null)]
+    public async Task The_language_flags_are_refused_and_say_where_languages_live(string flag, string? value)
     {
         var (console, _, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(
-            ["MyApp", "--culture", "hu", "--no-localization"], CancellationToken.None);
+        string[] args = value is null ? ["MyApp", flag] : ["MyApp", flag, value];
+        var exit = await command.ExecuteAsync(args, CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("--no-localization", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Program.cs", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -651,17 +634,19 @@ public sealed class NewCommandTests
     /// through to the default arm, wrote an ASP.NET server project and exited 0. TemplateCatalogTests pins
     /// the catalog entry's absence; this pins the end-to-end refusal, which is what a user would have hit.
     /// </summary>
-    [Fact]
-    public async Task The_removed_template_is_a_usage_error_and_scaffolds_nothing()
+    [Theory]
+    [InlineData("native")]
+    [InlineData("wasm-hosted")]
+    public async Task The_removed_template_is_a_usage_error_and_scaffolds_nothing(string removed)
     {
         var (console, fs, _, command) = Build();
 
-        var exit = await command.ExecuteAsync(["Field", "--template", "native"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["Field", "--template", removed], CancellationToken.None);
 
         Assert.Equal(2, exit);
         // It names the templates that do exist.
         Assert.Contains("server", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("wasm-hosted", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("wasm", console.ErrorText, StringComparison.Ordinal);
         // Nothing was written: the bug wrote a whole Server project before signing off.
         Assert.False(fs.FileExists("/proj/Field/Field.csproj"));
     }

@@ -11,10 +11,13 @@ a consistent copy of a live database — and it never gets in the way of the too
 ## Install
 
 ```bash
-dotnet tool install -g Rask.Cli
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
 ```
 
-That puts a `rask` command on your `PATH`. Update it later with `dotnet tool update -g Rask.Cli`.
+That puts a `rask` command on your `PATH`, along with the .NET 10 SDK and the dependencies the CLI
+shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 SDK,
+`dotnet tool install -g Rask.Cli` installs just the tool, and `dotnet tool update -g Rask.Cli`
+upgrades it. Options, install locations and uninstall: [Installing Rask](installation.md).
 
 > `rask` is a thin, Rask-aware layer over the .NET SDK: it owns scaffolding end to end (`rask new`,
 > and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
@@ -97,7 +100,6 @@ rask new MyApp --wasm                # + a browser bundle, published from this s
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Spa --template wasm         # an installable browser-WASM PWA
-rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
 ```
@@ -117,10 +119,9 @@ what it can do:
   ([render modes](render-modes.md)). Off by default because every publish then links a WebAssembly
   runtime, which takes minutes; `dotnet run` is unaffected.
 
-On the browser-WASM templates there is a third, for the same reason: `--culture <tag>` adds
-localization, which is supported there but not standard, because naming a language means shipping ICU
-and that is about a megabyte of extra download. See
-[which template supports which flag](#which-template-supports-which-flag) below.
+Languages are **not** on that list, and not on the command line at all: a scaffolded server app ships
+English registered in `Program.cs`, and adding another is a line in the block that is already there.
+See [localization](localization.md).
 
 Everything else has a `--no-` to leave it out: `--no-jobs`, `--no-push`, `--no-ops`, and so on. There is
 no `--minimal`; taking three things out reads as three flags, and you can see from the command line
@@ -141,17 +142,16 @@ Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` soluti
 as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
 existing repository.
 
-**Styling is not a choice: every project is Tailwind.** It is a battery like any other — always
-referenced, always wired — so the generated pages are Tailwind utilities and the build compiles
-`Styles/app.css` into `wwwroot/css/app.css` by scanning the project's own source (see
-[Tailwind](tailwind.md)). There is no npm and no config file. `--bootstrap` and `--tailwind` are gone,
+**Styling is not a choice: every project is Tailwind.** Not a battery you reference, either — the
+compiler ships inside the host package, so the generated `.csproj` names no styling package at all and
+the build still compiles `Styles/app.css` into `wwwroot/css/app.css` by scanning the project's own
+source (see [Tailwind](tailwind.md)). There is no npm, no config file, and no property that turns it
+off. `--bootstrap` and `--tailwind` are gone,
 and both are *refused* rather than ignored, because a flag the CLI accepts and then disregards is the
 most expensive kind to discover.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
-restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
-(the browser-WASM SPA), `MyApp.Server` (the ASP.NET host you run and deploy), and `MyApp.Shared` (a class
-library both reference).
+restore` so the output builds immediately.
 
 The front-end templates — `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit` — are the
 ones that do **not** write their own client. Each runs the framework's own scaffolder
@@ -215,7 +215,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
+| `--template`, `-t` | `server` (default), `wasm`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
 | `--auth` | Scaffold a cookie login/session (web templates). **Off by default**, like `--wasm`. |
 | `--wasm` | Also publish a browser bundle from this project (server template), so an eligible page moves into WebAssembly once it has downloaded — see [render modes](render-modes.md). Publish takes minutes longer; `dotnet run` is unaffected. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
@@ -229,9 +229,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
 | `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. |
-| `--no-localization` | Leave out the `Resources/Strings.<culture>.json` catalogs and the `AddRask(configureCulture:)` registration that negotiates a visitor's language. Can't be combined with `--culture`. On the WASM templates localization is opt-in rather than standard, so there is nothing to turn off and this is refused — pass `--culture` to turn it *on*. |
 | `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
-| `--culture` | A language to translate the UI into, repeatable — `--culture en --culture hu`. The first is the default a visitor falls back to. Without it you get `en`. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore` and the migration). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
@@ -264,35 +262,32 @@ useful than a page designed to reveal nothing.
 A template gets every battery in its column, and nothing outside it. Nobody maintains a per-template
 default list: the default set *is* the column.
 
-| Battery | `server` | `wasm` | `wasm-hosted` | front-end |
-| --- | :-: | :-: | :-: | :-: |
-| database, CQRS | ✅ | — | ✅ | ✅¹ |
-| jobs, mail, cache, outbox, snapshots, logs, ops | ✅ | — | ✅ | ✅ |
-| PWA | ✅ | ✅ | ✅ | ✅ |
-| Web Push | ✅ | — | — | ✅ |
-| Docker | ✅ | ✅ | ✅ | ✅ |
-| localization | ✅ | opt-in² | opt-in² | — |
-| `--auth` *(opt-in)* | ✅ | ✅ | ✅ | — |
-| `--wasm` *(opt-in)* | ✅ | — | — | — |
-| Tailwind | ✅ | ✅ | ✅ | ✅ |
+| Battery | `server` | `wasm` | front-end |
+| --- | :-: | :-: | :-: |
+| database, CQRS | ✅ | — | ✅¹ |
+| jobs, mail, cache, outbox, snapshots, logs, ops | ✅ | — | ✅ |
+| PWA | ✅ | ✅ | ✅ |
+| Web Push | ✅ | — | ✅ |
+| Docker | ✅ | ✅ | ✅ |
+| localization *(in `Program.cs`, not a flag)* | ✅ | —² | — |
+| `--auth` *(opt-in)* | ✅ | ✅ | — |
+| `--wasm` *(opt-in)* | ✅ | — | — |
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
 rather than ignored. `--auth` is left out rather than half-scaffolded: a sign-in flow has to be written
 in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
 scaffolded there — see [TypeScript front ends](spa.md#installable-and-push-capable).
 
-² Localization works on the browser templates, but is not part of what a bare `rask new` gives you
-there. Naming a language means shipping ICU, and ICU is roughly **a megabyte of extra download** — on
-the WASM showcase, a published trimmed bundle goes from 3.28 MB to 4.33 MB brotli (+32%). A battery is
-wiring you would otherwise write by hand; a third more download for a feature most apps never use is an
-opinion about your app, which is the same line auth and styling sit on. So `--culture hu` turns it on
-and pays for it knowingly:
+² Languages are configured in `Program.cs`, never on the command line — there is no `--culture` and no
+`--no-localization`. On `server` a scaffolded app already registers English there, because ICU is in
+the runtime regardless and it costs nothing.
 
-```console
-$ rask new Shop --template wasm --culture en --culture hu
-```
-
-On the `server` template ICU is already in the runtime, so it costs nothing and comes as standard.
+A browser-WASM app scaffolds no registration, because there it is not free: culture data is roughly **a
+megabyte of extra download** — on the WASM showcase a published trimmed bundle goes from 3.28 MB to
+4.33 MB brotli (+32%). It is also the one part `Program.cs` cannot switch on by itself, since
+`RaskGlobalization` is an MSBuild property. It is scaffolded **commented out** with the reason beside
+it, so shipping a language there is two deliberate edits: uncomment the property, add the languages.
+See [localization](localization.md#wasm-and-icu).
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
 combination that is then rejected. On the command line, turning off something a template never had is a
@@ -300,11 +295,11 @@ usage error that names both halves:
 
 ```console
 $ rask new X --template wasm --no-data
-Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker, localization, pwa.
+Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker, pwa.
 ```
 
 The database-backed batteries need an ASP.NET host to put a database in, which the `server` template is
-and the `wasm-hosted` template's `.Server` project is too — a pure browser-WASM SPA has neither.
+and the `.Server` project of a client-plus-host solution is too — a pure browser-WASM SPA has neither.
 
 Turning one off takes its dependents with it, so you never end up with a registration naming a
 `DbContext` that isn't there:
@@ -315,18 +310,6 @@ rask new Shop --no-cqrs     # …and no database either — every feature dispat
 rask new Shop --no-pwa      # …and no Web Push, which subscribes through the service worker
 rask new Shop --no-logs     # …and nothing else: the log store owns a database of its own
 ```
-
-On `wasm-hosted` the batteries land in the `.Server` project and the client keeps calling the host over
-its API, exactly as it already does for auth. The [operator dashboard](dashboard.md) mounts there too —
-server-rendered at `/_rask`, with the WASM client still serving every other route:
-
-```bash
-rask new Shop --template wasm-hosted             # SPA in the browser, dashboard on the host
-```
-
-Web Push is the one battery `wasm-hosted` does not take. It needs the subscribe endpoints and a service
-worker that posts to them, and in this template those live in two different projects — a real feature
-rather than a wiring gap, so it is left out rather than half-scaffolded.
 
 The generated `Program.cs` composes them in an order that is load-bearing rather than stylistic — the
 outbox registered before the `DbContext` factory (so its interceptor joins the `SaveChanges` pipeline),
@@ -371,7 +354,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, react, preact, vue, angular, solid, svelte, lit.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 
@@ -409,7 +392,7 @@ rask dev -- --my-app-flag            # everything after -- goes to the app
 `rask dev` runs `dotnet watch run`, so editing a component's `Render()` (or a scoped `.css` / `.ts`) and
 saving re-renders the open page live — see [what hot-reloads](#what-hot-reloads) below.
 
-It finds the project for you: in a **wasm-hosted** solution it picks the `.Server` host (the client is
+It finds the project for you: in a **client-plus-host** solution it picks the `.Server` host (the client is
 built into it).
 
 In a **react** solution it runs **two** processes: `dotnet watch` for the host, and the bundler's own
@@ -468,7 +451,7 @@ One thing it does not cover:
 - **A rude edit is not announced.** `dotnet watch` restarts the process, so nothing in Rask observes the
   edit; what you see is the app coming back and the page reloading.
 
-**WASM is covered** — a wasm-hosted app hot-reloads under `rask dev` like a Server one. To make that
+**WASM is covered** — a client-plus-host app hot-reloads under `rask dev` like a Server one. To make that
 possible the host serves the client's *build* output for the session rather than its published bundle:
 the published bundle is trimmed, and trimming disables the runtime's metadata-update support outright,
 so no applied edit could ever reach the page. It also drops the nested `dotnet publish` from the inner
@@ -731,6 +714,16 @@ through, having already done some of the work.
   ok    rask                0.20.1
   ok    dotnet sdk          10.0.302
   ok    dotnet-ef           installed
+  warn  wasm-tools          not installed
+                            Every browser-WASM build needs it — `rask new --wasm`, the wasm
+                            template, and `dotnet publish` of either. Fix: dotnet workload
+                            install wasm-tools
+  warn  node                v24.14.0 (below the 24 LTS line)
+                            Existing apps build on it, but `rask new` on a front-end template
+                            may not: create-vite and the Angular CLI raise their own floors.
+  ok    npm                 11.19.0
+  ok    git                 git version 2.50.1
+  ok    ssh                 OpenSSH_9.8p1, LibreSSL 3.3.6
   warn  docker              not found
                             Only `rask deploy` needs it — https://docs.docker.com/get-docker/
   ok    project             /src/Shop
@@ -739,9 +732,25 @@ through, having already done some of the work.
                             Until it parses, its remembered settings are silently ignored.
 ```
 
+**All seven things the CLI shells out to, not three.** It used to probe `dotnet`, `dotnet-ef` and
+Docker; the `wasm-tools` workload, Node, npm, `git` and `ssh` were each discovered by failure instead
+([#883](https://github.com/pal-tamas/rask/issues/883)). The workload was the worst of them: nothing
+checked for it anywhere, and a missing one surfaces as `NETSDK1147`, which reads like a broken machine
+rather than a missing install.
+
+**Two of them compare a version, rather than echoing one.** A .NET 9 box used to show a green
+`dotnet sdk` row and then fail at the first build, because the row printed whatever string the tool
+returned. Node is measured against the current Active LTS line — not against `RaskSpaMinimumNode`,
+which is the lower bar an *already-scaffolded* app builds on. The gap between the two is real: `rask
+new --template angular` shells out to `@angular/cli@latest`, which refuses below `^22.22.3 ||
+^24.15.0 || >=26.0.0`, so a Node that builds every existing project can still fail to scaffold a new
+one — after the project directory exists
+([#886](https://github.com/pal-tamas/rask/issues/886)).
+
 **Warnings aren't failures.** Docker missing is fatal to `rask deploy` and irrelevant to everyone else,
 so only a genuinely broken thing sets the exit code (`1`); a machine that can start every command exits
-`0`.
+`0`. Every row added above is a warning for the same reason — `dotnet` is the one dependency fatal to
+everything, because every command shells out to it.
 
 **It is read-only.** It reports; it never installs or fixes. A doctor that quietly installed the tooling
 it found missing would be doing the thing you ran it to avoid.
