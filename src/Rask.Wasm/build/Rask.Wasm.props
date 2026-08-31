@@ -14,4 +14,14 @@
          an app's own components by injection into their partials, the tags' types by the entry. -->
     <!-- Routing helpers (Router/Outlet/Route<T>) come from the generator in Rask.Core.Routing.Components. -->
   </ItemGroup>
+
+  <!--
+    The Tailwind defaults (pinned version, input sheet, output path, engine, cache root). Packed
+    alongside this file by src\RaskTailwindBuildPack.targets. Props rather than targets because these
+    are the knobs a consuming project overrides, and an override in the .csproj has to win — which it
+    only does if the defaults are conditioned and imported first.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Tailwind.props"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Tailwind.props') "/>
+
 </Project>

@@ -21,17 +21,17 @@ internal static class CliBuildE2E
 {
     /// <summary>
     /// Every packable Rask package a generated project, feature, job, email, or later-chapter pillar can
-    /// reference, packed once into a shared feed. <c>Rask.Core</c> is deliberately absent — it is
-    /// <c>IsPackable=false</c> and ships bundled inside <c>Rask.Server</c>/<c>Rask.Wasm</c>'s <c>lib/</c>, so
-    /// packing it would produce nothing to restore.
+    /// reference, packed once into a shared feed. <c>Rask.Core</c> and <c>Rask.Tailwind</c> are
+    /// deliberately absent — both are <c>IsPackable=false</c> and ship bundled inside
+    /// <c>Rask.Server</c>/<c>Rask.Wasm</c> (Core in <c>lib/</c>, Tailwind in <c>build/</c>), so packing
+    /// them would produce nothing to restore. <c>Rask.Bootstrap</c> is absent because it no longer
+    /// exists; it outlived the project by one list, and this gate is opt-in, so nothing said so.
     /// </summary>
     internal static readonly string[] FeedPackages =
     [
         "Rask.Server",                      // server template
         "Rask.Wasm",                        // wasm + wasm-hosted templates, and the --wasm companion project
         "Rask.Wasm.Hosting",                // wasm-hosted template
-        "Rask.Bootstrap",                   // every template with --bootstrap
-        "Rask.Tailwind",                    // every template with --tailwind (build-only; no runtime assembly)
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Query",                       // wired by default wherever --cqrs is
         "Rask.Cqrs.Client",                 // wasm-hosted --cqrs: the browser half of remote dispatch

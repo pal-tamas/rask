@@ -141,10 +141,11 @@ Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` soluti
 as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
 existing repository.
 
-**Styling is not a choice: every project is Tailwind.** It is a battery like any other — always
-referenced, always wired — so the generated pages are Tailwind utilities and the build compiles
-`Styles/app.css` into `wwwroot/css/app.css` by scanning the project's own source (see
-[Tailwind](tailwind.md)). There is no npm and no config file. `--bootstrap` and `--tailwind` are gone,
+**Styling is not a choice: every project is Tailwind.** Not a battery you reference, either — the
+compiler ships inside the host package, so the generated `.csproj` names no styling package at all and
+the build still compiles `Styles/app.css` into `wwwroot/css/app.css` by scanning the project's own
+source (see [Tailwind](tailwind.md)). There is no npm, no config file, and no property that turns it
+off. `--bootstrap` and `--tailwind` are gone,
 and both are *refused* rather than ignored, because a flag the CLI accepts and then disregards is the
 most expensive kind to discover.
 

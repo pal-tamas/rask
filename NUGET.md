@@ -48,8 +48,12 @@ dotnet add package Rask.Server            # the lean host on its own: server-ren
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
 dotnet add package Rask.Spa.Hosting       # host a built TypeScript SPA on ASP.NET
-dotnet add package Rask.Tailwind          # Tailwind CSS on any host, no npm required
 ```
+
+Tailwind is not on that list because it is not a package: the compiler ships inside `Rask` /
+`Rask.Server` / `Rask.Wasm`, so any of them puts it in your build. Add a `Styles/app.css` holding
+`@import "tailwindcss";`, link `/css/app.css` from your shell, and `dotnet build` compiles it — no
+npm, no config file, nothing to switch on.
 
 With `Rask`, that is the whole of `Program.cs` — every battery is on, and the file says only what this
 app does *without*:

@@ -24,8 +24,8 @@ The two flags are the two things `rask new` doesn't decide for you, because they
 
 - **`--auth`** adds a working cookie-authentication flow — a `/login` page, a sign-out action, a protected
   members area, and the services in `Program.cs` to back them. ([authentication](../authentication.md).)
-- The pages are styled with **Tailwind**, which every project gets — it is a battery, not a choice, so
-  there is no flag and nothing to turn on.
+- The pages are styled with **Tailwind**, which every project gets — the compiler ships inside the host
+  package, so there is no flag, no package to add, and nothing to turn on or off.
 
 These are **scaffold-time** choices — they wire into `Program.cs` and the `DbContext` as the project is
 created, so you pick them up front rather than bolting them on later.

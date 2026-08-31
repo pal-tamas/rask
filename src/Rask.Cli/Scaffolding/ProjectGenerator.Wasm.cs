@@ -59,7 +59,7 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker, cultures.Length > 0))
         {
-            Packages = ["Rask.Wasm", "Rask.Tailwind"],
+            Packages = ["Rask.Wasm"],
         };
     }
 
@@ -143,8 +143,6 @@ internal static partial class ProjectGenerator
 
     private static string WasmCsproj(bool auth, string version, bool localization)
     {
-        var stylingRef =
-            $"\n    <PackageReference Include=\"Rask.Tailwind\" Version=\"{version}\"/>";
         var authRefs = auth
             ? $"""
 
@@ -158,7 +156,7 @@ internal static partial class ProjectGenerator
         {WasmSdkPropertyGroup(localization)}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>{stylingRef}{authRefs}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{authRefs}
           </ItemGroup>
 
         </Project>

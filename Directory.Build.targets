@@ -25,6 +25,15 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets') "/>
 
+  <!--
+    Tailwind, on the same terms as Rask.Core: unconditional here, gating itself on whether the project
+    has a Styles/app.css to compile. This is the in-repo half of what src\RaskTailwindBuildPack.targets
+    ships to consumers inside Rask.Server and Rask.Wasm — the samples get it here so that no sample has
+    to hand-wire what a scaffolded app never wires at all.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Tailwind\build\Rask.Tailwind.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Tailwind\build\Rask.Tailwind.targets') "/>
+
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets') "/>
 

@@ -111,8 +111,33 @@ them until tagged releases begin.
   wrong glyph still renders.
 
 ### Changed
-- **BREAKING: `rask new` has no styling axis — Tailwind is built in.** It is a battery like any other:
-  always referenced, always wired, so every scaffolded project is Tailwind and there is nothing to choose.
+- **BREAKING: Tailwind ships inside the host packages, and `Rask.Tailwind` is no longer published.**
+  "Built in" now means built *in*: `src/RaskTailwindBuildPack.targets` packs the Tailwind props,
+  targets and engine-resolution task into `Rask.Server` and `Rask.Wasm`, each of which imports them
+  from its own `build/<PackageId>.{props,targets}` — the arrangement `Rask.Core`'s scoped-CSS
+  integration already used. A scaffolded `.csproj` names no styling package at all, and an existing app
+  gets Tailwind on its next host upgrade with nothing to edit.
+
+  `Rask.Tailwind` is `IsPackable=false` and both CI workflows stop packing it. That is not tidiness:
+  an app referencing both a host package and `Rask.Tailwind` would import the same targets twice and
+  run the compiler twice over one output file — which is why `Rask.Core` and `Rask.Html` are
+  unpackable too.
+
+- **BREAKING: `RaskTailwindBuild` is removed — the Tailwind build has no off switch.** Every page of a
+  Rask app is written in utilities, so a build that quietly produced no CSS would serve unstyled HTML:
+  a failure nobody notices until a user does, and one no test of the C# can see. The property is gone
+  from `Rask.Tailwind.props`, out of the gate in `Rask.Tailwind.targets`, and out of the three resolver
+  errors that used to offer it as the way out — those now name the way *through* (install Node, seed
+  the per-user cache, unset `RaskTailwindOffline`), which between the standalone and npm engines is
+  always available on every platform.
+
+  What remains in the gate is a design-time-build check and `Exists($(RaskTailwindInput))`. The second
+  is what lets the targets be imported into every project in a solution — a class library with no
+  stylesheet has nothing to compile — and is not a switch: a project that HAS a stylesheet cannot
+  decline to compile it.
+
+- **BREAKING: `rask new` has no styling axis — Tailwind is built in.** Every scaffolded project is
+  Tailwind and there is nothing to choose.
   `--bootstrap` and `--tailwind` are removed and both are **refused** rather than ignored, because a flag
   the CLI accepts and then disregards is this repository's most expensive bug class. The wizard no longer
   asks a Styling question — one keypress shorter — and `rask new`'s summary drops a row that would read the

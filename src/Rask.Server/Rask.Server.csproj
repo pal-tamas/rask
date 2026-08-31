@@ -175,5 +175,6 @@
   <Import Project="..\RaskAnalyzerPack.targets"/>
   <!-- Rask.Core's build integration packed to build/, imported by build/Rask.Server.targets. -->
   <Import Project="..\RaskCoreBuildPack.targets"/>
+  <Import Project="..\RaskTailwindBuildPack.targets"/>
 
 </Project>

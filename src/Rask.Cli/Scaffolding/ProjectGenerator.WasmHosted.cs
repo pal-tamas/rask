@@ -99,7 +99,7 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(scaffoldFiles, WasmHostedNextSteps(name, docker))
         {
-            Packages = ["Rask.Wasm", "Rask.Tailwind", "Rask.Wasm.Hosting"],
+            Packages = ["Rask.Wasm", "Rask.Wasm.Hosting"],
             // No root csproj — restore (and the overwrite guard) target the solution, which pulls all three.
             RestoreTarget = $"{name}.slnx",
         };
@@ -497,10 +497,6 @@ internal static partial class ProjectGenerator
     // Shared project (and never the --auth JSInterop/Authorization refs — hosted auth is cookie-based).
     private static string WasmHostedClientCsproj(string version, bool cqrs, bool localization)
     {
-        // Build-only, so it adds nothing to what the browser downloads: the package is a props/targets
-        // pair plus the MSBuild task that resolves the Tailwind compiler.
-        var tailwindRef = $"\n    <PackageReference Include=\"Rask.Tailwind\" Version=\"{version}\"/>";
-
         // The client half only. It has no idea an endpoint exists — it turns a dispatch into a request.
         // Rask.Query rides along with it: a cache over the dispatcher is not a separate decision from
         // having a dispatcher, and over a network transport it is the difference between one request and
@@ -516,7 +512,7 @@ internal static partial class ProjectGenerator
         {WasmSdkPropertyGroup(localization)}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>{tailwindRef}{cqrsRef}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{cqrsRef}
             <ProjectReference Include="..\Company.RaskServer.Shared\Company.RaskServer.Shared.csproj"/>
           </ItemGroup>
 
@@ -533,12 +529,12 @@ internal static partial class ProjectGenerator
     private static List<string> WasmHostedServerPackages(ServerBatteries batteries)
     {
         // Ops is cleared here and handled below so the two packages it implies are added together and in
-        // one place. Tailwind is dropped rather than never added: this half is a static-file host that
-        // renders no components, so a stylesheet compiled by scanning IT would be almost empty -- the
-        // classes Tailwind is looking for are in the .Client, which takes the reference instead.
+        // one place. Nothing has to drop Tailwind any more: it ships inside Rask.Server and Rask.Wasm,
+        // and this half references neither -- it is a static-file host that renders no components, and
+        // Rask.Wasm.Hosting deliberately carries no Tailwind payload. The classes Tailwind looks for
+        // are in the .Client, which is a Rask.Wasm app and so compiles them.
         var packages = ServerPackages(batteries with { Ops = false });
         packages.Remove("Rask.Server");
-        packages.Remove("Rask.Tailwind");
         packages.Insert(0, "Rask.Wasm.Hosting");
 
         if (batteries.Cqrs)

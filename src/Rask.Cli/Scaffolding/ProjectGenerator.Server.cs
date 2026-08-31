@@ -77,7 +77,9 @@ internal static partial class ProjectGenerator
     // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
     private static List<string> ServerPackages(ServerBatteries batteries)
     {
-        var packages = new List<string> { "Rask.Server", "Rask.Tailwind" };
+        // No Rask.Tailwind here: the Tailwind build ships INSIDE Rask.Server (RaskTailwindBuildPack),
+        // so a scaffolded csproj naming it would be a second copy of the same targets, imported twice.
+        var packages = new List<string> { "Rask.Server" };
 
         if (batteries.Cqrs)
         {

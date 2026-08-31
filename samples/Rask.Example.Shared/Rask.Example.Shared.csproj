@@ -12,8 +12,10 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>
-    <!-- Tailwind, compiled at this project's build. Build-only: an MSBuild task and a CLI run, not
-         an assembly, so the showcase's payload is unchanged. -->
+    <!-- Build-order edge only. The Tailwind wiring itself arrives from Directory.Build.{props,targets}
+         (and, for a scaffolded app, from inside the host package) — this reference exists so that
+         Rask.Tailwind.Tasks.dll is on disk before the UsingTask that loads it runs. Build-only: an
+         MSBuild task and a CLI run, not an assembly, so the payload is unchanged. -->
     <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
@@ -77,11 +79,5 @@
            Text="Duplicate embedded-source leaf name(s) under Features/ or Shared/. EmbeddedSource resolves by bare filename (raksrc/{leaf}), so every embedded .cs/.ts/.css must have a unique file name across the project. Rename the collision." />
   </Target>
 
-  <!-- In-repo consumers import these by hand: a ProjectReference carries no build props, so
-       referencing Rask.Tailwind alone would compile nothing and produce no stylesheet, silently. -->
-  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.props"
-          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.props')"/>
-  <Import Project="..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets"
-          Condition="Exists('..\..\src\Rask.Tailwind\build\Rask.Tailwind.targets')"/>
 
 </Project>

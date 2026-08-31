@@ -354,7 +354,7 @@ rask new Shop --template react
 ```
 
 The client already has Node, a bundler and a dev server with HMR, so routing its CSS through MSBuild
-— which is what [`Rask.Tailwind`](tailwind.md) does on a C# host — would be strictly worse. The
+— which is what [the C# hosts do](tailwind.md) — would be strictly worse. The
 scaffolded stylesheet **replaces** create-vite's starter CSS rather than sitting beside it, because
 leaving it in would fight Tailwind's own reset.
 

@@ -169,26 +169,44 @@ public sealed class PackagingContractTests
     {
         // Where the literal has to be depends on who packs this project's build folder.
         //
-        // Most projects pack their own. Rask.Core does not — it is IsPackable=false and its build
-        // integration is packed INTO every host package by src/RaskCoreBuildPack.targets. A pack item
-        // in Rask.Core.csproj would pack nothing, and satisfying this guard that way would be the same
-        // false signal Rask_Core_does_not_pretend_to_pack_its_own_build_integration exists to forbid.
-        // The guarantee is unchanged either way: some literal Include names the DLL, so it is
-        // collected when the item is copied rather than when the project is evaluated.
+        // Most projects pack their own. Rask.Core and Rask.Tailwind do not — both are IsPackable=false
+        // and their build integration is packed INTO every host package by a src/Rask*BuildPack.targets
+        // file. A pack item in their own csproj would pack nothing, and satisfying this guard that way
+        // would be the same false signal Rask_Core_does_not_pretend_to_pack_its_own_build_integration
+        // exists to forbid. The guarantee is unchanged either way: some literal Include names the DLL,
+        // so it is collected when the item is copied rather than when the project is evaluated.
+        //
+        // The build pack is FOUND rather than named. Hand-naming RaskCoreBuildPack.targets here is what
+        // made this test fail the day a second pack appeared — it asked the wrong file whether the DLL
+        // was listed, and would equally have passed a third pack that listed nothing at all.
         var unpackable = File.ReadAllText(Path.Combine(_repoRoot, "src", package, $"{package}.csproj"))
             .Contains("<IsPackable>false</IsPackable>", StringComparison.Ordinal);
 
-        var owner = unpackable ? "RaskCoreBuildPack.targets" : $"{package}.csproj";
-        var ownerPath = unpackable
-            ? Path.Combine(_repoRoot, "src", "RaskCoreBuildPack.targets")
-            : Path.Combine(_repoRoot, "src", package, $"{package}.csproj");
+        // Not just ANY build pack: the one that packs THIS project's build folder. Accepting a literal
+        // from any pack would pass a DLL listed beside the wrong package's targets, which ships exactly
+        // the broken package this test exists to catch.
+        var owners = unpackable
+            ? Directory.GetFiles(Path.Combine(_repoRoot, "src"), "Rask*BuildPack.targets")
+                .Where(path => XDocument.Load(path).Descendants("None").Any(e =>
+                    (e.Attribute("Include")?.Value ?? string.Empty)
+                        .Contains($@"{package}\build\", StringComparison.Ordinal)))
+                .OrderBy(path => path, StringComparer.Ordinal).ToArray()
+            : [Path.Combine(_repoRoot, "src", package, $"{package}.csproj")];
 
-        var packItems = XDocument.Load(ownerPath).Descendants("None")
+        Assert.True(
+            owners.Length > 0,
+            $"{package} is IsPackable=false, so a src/Rask*BuildPack.targets has to pack its build/ "
+            + $"folder into the host packages — none names {package}\\build\\, so build/{dll} and the "
+            + "targets that loads it ship nowhere.");
+
+        var owner = string.Join(" or ", owners.Select(Path.GetFileName));
+
+        var packItems = owners.SelectMany(path => XDocument.Load(path).Descendants("None"))
             .Where(e => (e.Attribute("Include")?.Value ?? string.Empty)
                 .Contains(@"build\", StringComparison.Ordinal))
             .ToArray();
 
-        var literal = packItems.SingleOrDefault(e =>
+        var literal = packItems.FirstOrDefault(e =>
             (e.Attribute("Include")?.Value ?? string.Empty).EndsWith($@"build\{dll}", StringComparison.Ordinal));
 
         Assert.True(
