@@ -104,6 +104,13 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   (by semver `0.21.0` is older than `0.21.1-alpha.0.1`, so without that rule a prerelease tag would
   unlist the current release).
 
+  Candidates come from [`scripts/lib/listed_versions.py`](../scripts/lib/listed_versions.py), which reads
+  the **registration** index, not the obvious `v3-flatcontainer/<id>/index.json`. Flat-container reports
+  every version ever pushed, unlisted ones included — `rask.native` has all 209 of its versions unlisted
+  and flat-container still returns all 209 — so selecting from it would spend the entire quota budget
+  re-unlisting finished work and never reach the rest of the backlog. Only the registration index carries
+  `listed` per version, and a missing `listed` field means listed.
+
 ## CI
 
 - `ci.yml` — the deterministic benchmark byte-gates. **Tests do not run in CI** — the unit/integration

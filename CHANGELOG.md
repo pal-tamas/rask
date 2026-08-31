@@ -35,6 +35,12 @@ them until tagged releases begin.
   **prerelease never retires a stable** — by semver `0.21.0` is older than `0.21.1-alpha.0.1`, so
   without that rule tagging a prerelease would unlist the current release.
 
+  Candidates come from the **registration** index (`scripts/lib/listed_versions.py`), not the obvious
+  `v3-flatcontainer/<id>/index.json`. Flat-container reports every version ever pushed, unlisted ones
+  included — `rask.native` has all 209 versions unlisted and flat-container still returns all 209 — so
+  selecting from it would spend the whole quota budget re-unlisting finished work and never reach the
+  backlog. Only registration carries `listed` per version, and an absent `listed` field means listed.
+
 ### Added
 - **The publish-time prerender pass gets the batteries the boot path applies.** Prerendering returns
   from `WasmHostBuilder.RunAsync` before `BootAsync`, and the browser batteries are wired inside

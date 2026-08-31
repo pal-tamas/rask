@@ -68,13 +68,10 @@ quota_hit=0
 for id in "${ids[@]}"; do
   [ "$quota_hit" -eq 1 ] && break
 
-  index="$(curl -sf "https://api.nuget.org/v3-flatcontainer/$(echo "$id" | tr '[:upper:]' '[:lower:]')/index.json")" || {
-    echo "  $id: not on nuget.org yet; skipping."
-    continue
-  }
-
-  olds="$(printf '%s' "$index" \
-    | python3 -c "import sys,json;[print(v) for v in json.load(sys.stdin)['versions']]" \
+  # Candidates come from the versions still LISTED, not from the flat-container index. Flat-container
+  # reports every version ever pushed, unlisted ones included, so using it would spend the whole quota
+  # budget re-unlisting what is already done and never reach the rest. See lib/listed_versions.py.
+  olds="$(python3 "$here/lib/listed_versions.py" "$id" \
     | python3 "$here/lib/unlist_select.py" "$version")"
 
   [ -z "$olds" ] && { echo "  $id: nothing older."; continue; }
