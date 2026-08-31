@@ -268,6 +268,8 @@ public static class GuideCatalog
             "bi-easel", "Advanced"),
         new("code-analysis", "Code analysis", "The analyzers and warnings-as-errors adoption.",
             "bi-search", "Advanced"),
+        new("api-style", "Public API style", "How every public name is chosen, and the gate that records the surface.",
+            "bi-card-text", "Advanced"),
         new("diagnostics", "Diagnostics", "Every RASK0xx descriptor, its trigger, and the fix.",
             "bi-exclamation-diamond", "Advanced"),
 

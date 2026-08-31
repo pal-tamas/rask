@@ -1,0 +1,71 @@
+#nullable enable
+Rask.SQLite.IRaskSqliteConnectionFactory
+Rask.SQLite.IRaskSqliteConnectionFactory.Create() -> Microsoft.Data.Sqlite.SqliteConnection!
+Rask.SQLite.IRaskSqliteConnectionFactory.CreateOpen() -> Microsoft.Data.Sqlite.SqliteConnection!
+Rask.SQLite.IRaskSqliteConnectionFactory.CreateOpenAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Data.Sqlite.SqliteConnection!>!
+Rask.SQLite.IRaskSqliteConnectionFactory.ExecuteInImmediateTransactionAsync(System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.SQLite.IRaskSqliteConnectionFactory.ExecuteInImmediateTransactionAsync<T>(System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! work, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
+Rask.SQLite.SqliteBusyRetryOptions
+Rask.SQLite.SqliteBusyRetryOptions.PollInterval.get -> System.TimeSpan
+Rask.SQLite.SqliteBusyRetryOptions.PollInterval.set -> void
+Rask.SQLite.SqliteBusyRetryOptions.SqliteBusyRetryOptions() -> void
+Rask.SQLite.SqliteBusyRetryOptions.Timeout.get -> System.TimeSpan
+Rask.SQLite.SqliteBusyRetryOptions.Timeout.set -> void
+Rask.SQLite.SqliteCollations
+Rask.SQLite.SqliteConnectionExtensions
+Rask.SQLite.SqliteJournalMode
+Rask.SQLite.SqliteJournalMode.Delete = 0 -> Rask.SQLite.SqliteJournalMode
+Rask.SQLite.SqliteJournalMode.Memory = 3 -> Rask.SQLite.SqliteJournalMode
+Rask.SQLite.SqliteJournalMode.Off = 5 -> Rask.SQLite.SqliteJournalMode
+Rask.SQLite.SqliteJournalMode.Persist = 2 -> Rask.SQLite.SqliteJournalMode
+Rask.SQLite.SqliteJournalMode.Truncate = 1 -> Rask.SQLite.SqliteJournalMode
+Rask.SQLite.SqliteJournalMode.Wal = 4 -> Rask.SQLite.SqliteJournalMode
+Rask.SQLite.SqlitePragmaOptions
+Rask.SQLite.SqlitePragmaOptions.AnalysisLimit.get -> int?
+Rask.SQLite.SqlitePragmaOptions.AnalysisLimit.set -> void
+Rask.SQLite.SqlitePragmaOptions.BusyTimeout.get -> System.TimeSpan?
+Rask.SQLite.SqlitePragmaOptions.BusyTimeout.set -> void
+Rask.SQLite.SqlitePragmaOptions.CacheSize.get -> int?
+Rask.SQLite.SqlitePragmaOptions.CacheSize.set -> void
+Rask.SQLite.SqlitePragmaOptions.CellSizeCheck.get -> bool?
+Rask.SQLite.SqlitePragmaOptions.CellSizeCheck.set -> void
+Rask.SQLite.SqlitePragmaOptions.ForeignKeys.get -> bool?
+Rask.SQLite.SqlitePragmaOptions.ForeignKeys.set -> void
+Rask.SQLite.SqlitePragmaOptions.JournalMode.get -> Rask.SQLite.SqliteJournalMode?
+Rask.SQLite.SqlitePragmaOptions.JournalMode.set -> void
+Rask.SQLite.SqlitePragmaOptions.JournalSizeLimit.get -> long?
+Rask.SQLite.SqlitePragmaOptions.JournalSizeLimit.set -> void
+Rask.SQLite.SqlitePragmaOptions.MmapSize.get -> long?
+Rask.SQLite.SqlitePragmaOptions.MmapSize.set -> void
+Rask.SQLite.SqlitePragmaOptions.SqlitePragmaOptions() -> void
+Rask.SQLite.SqlitePragmaOptions.Synchronous.get -> Rask.SQLite.SqliteSynchronous?
+Rask.SQLite.SqlitePragmaOptions.Synchronous.set -> void
+Rask.SQLite.SqlitePragmaOptions.TempStore.get -> Rask.SQLite.SqliteTempStore?
+Rask.SQLite.SqlitePragmaOptions.TempStore.set -> void
+Rask.SQLite.SqlitePragmaOptions.TrustedSchema.get -> bool?
+Rask.SQLite.SqlitePragmaOptions.TrustedSchema.set -> void
+Rask.SQLite.SqlitePragmas
+Rask.SQLite.SqliteServiceCollectionExtensions
+Rask.SQLite.SqliteStrictTypes
+Rask.SQLite.SqliteSynchronous
+Rask.SQLite.SqliteSynchronous.Extra = 3 -> Rask.SQLite.SqliteSynchronous
+Rask.SQLite.SqliteSynchronous.Full = 2 -> Rask.SQLite.SqliteSynchronous
+Rask.SQLite.SqliteSynchronous.Normal = 1 -> Rask.SQLite.SqliteSynchronous
+Rask.SQLite.SqliteSynchronous.Off = 0 -> Rask.SQLite.SqliteSynchronous
+Rask.SQLite.SqliteTempStore
+Rask.SQLite.SqliteTempStore.Default = 0 -> Rask.SQLite.SqliteTempStore
+Rask.SQLite.SqliteTempStore.File = 1 -> Rask.SQLite.SqliteTempStore
+Rask.SQLite.SqliteTempStore.Memory = 2 -> Rask.SQLite.SqliteTempStore
+const Rask.SQLite.SqliteCollations.Decimal = "EF_DECIMAL" -> string!
+static Rask.SQLite.SqliteCollations.Apply(Microsoft.Data.Sqlite.SqliteConnection! connection) -> void
+static Rask.SQLite.SqliteConnectionExtensions.BeginImmediate(this Microsoft.Data.Sqlite.SqliteConnection! connection) -> Microsoft.Data.Sqlite.SqliteTransaction!
+static Rask.SQLite.SqliteConnectionExtensions.ExecuteInImmediateTransactionAsync(this Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteBusyRetryOptions! retry, System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.SQLite.SqliteConnectionExtensions.ExecuteInImmediateTransactionAsync<T>(this Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteBusyRetryOptions! retry, System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! work, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
+static Rask.SQLite.SqlitePragmas.Apply(Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqlitePragmaOptions! options) -> void
+static Rask.SQLite.SqlitePragmas.ApplyAsync(Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqlitePragmaOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.SQLite.SqlitePragmas.BuildScript(Rask.SQLite.SqlitePragmaOptions! options) -> string!
+static Rask.SQLite.SqlitePragmas.Optimize(Microsoft.Data.Sqlite.SqliteConnection! connection) -> void
+static Rask.SQLite.SqliteServiceCollectionExtensions.AddRaskSqlite(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, System.Action<Rask.SQLite.SqlitePragmaOptions!>? configure = null, System.Action<Rask.SQLite.SqliteBusyRetryOptions!>? configureRetry = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.SQLite.SqliteStrictTypes.Describe(string! table, string! column, string? columnType) -> string!
+static Rask.SQLite.SqliteStrictTypes.IsAllowed(string? columnType) -> bool
+static readonly Rask.SQLite.SqliteStrictTypes.Allowed -> System.Collections.Generic.IReadOnlySet<string!>!

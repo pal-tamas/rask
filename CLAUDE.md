@@ -25,7 +25,9 @@ the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by 
 **user-facing change → update a sample + docs/README/NUGET.md/llms.txt/template AGENTS.md**; keep
 everything up to date; CHANGELOG `[Unreleased]` per notable change; Conventional Commits
 (commitlint); no `Co-Authored-By`/`Generated-with`. Build is warnings-as-errors + analyzers
-(`Directory.Build.props`; see `docs/code-analysis.md`). Releases: tag→`release.yml`; nightly
+(`Directory.Build.props`; see `docs/code-analysis.md`). **Every public name obeys
+`docs/api-style.md`**; the build records the surface in `src/*/PublicAPI/<tfm>/`, so an unrecorded
+public member is a build error (RS0016/RS0017). Releases: tag→`release.yml`; nightly
 prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, template `AGENTS.md`,
 `docs/ai-agents.md`. Full detail: `docs/development-workflow.md`. Ask only when truly blocked.
 
