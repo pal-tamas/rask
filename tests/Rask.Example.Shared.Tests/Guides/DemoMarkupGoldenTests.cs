@@ -63,20 +63,6 @@ public sealed class DemoMarkupGoldenTests
         "(<svg[^>]*class=\"[^\"]*ticker-chart-svg[^\"]*\"[^>]*>).*?</svg>",
         RegexOptions.Compiled | RegexOptions.Singleline);
 
-    // The one legitimate exception to "moving parts never live in a class attribute": a calendar day cell
-    // (BsDatePicker/BsDateTimePicker) tags itself with which day is *today* (bs-cal-today), which days spill
-    // in from an adjacent month (bs-cal-muted), which is selected/cursored (active / bs-cal-focus), and which
-    // fall outside a min/max window (disabled). All of those key off DateTime.Today — correctly, that IS how
-    // the component styles state — so a raw snapshot of them goes stale a day after it was last regenerated.
-    // Canonicalize every day cell to its stable base class: the golden then asserts the calendar's STRUCTURE
-    // (a fixed 6×7 grid of cells) date-independently, and the per-cell state has its own tests in
-    // Rask.Bootstrap.Tests. Scoped to elements carrying bs-cal-cell, so a generic active/disabled elsewhere
-    // is untouched.
-    private static readonly HashSet<string> CalendarCellDateState = new(StringComparer.Ordinal)
-    {
-        "bs-cal-today", "bs-cal-muted", "bs-cal-focus", "active", "disabled",
-    };
-
     [Fact]
     public void EveryDemo_RendersToItsGoldenMarkupSkeleton()
     {
@@ -201,12 +187,6 @@ public sealed class DemoMarkupGoldenTests
                 var tokens = cls.Groups["v"].Value
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .ToList();
-
-                // Drop the calendar's date-driven state so the snapshot doesn't drift with the wall clock.
-                if (tokens.Contains("bs-cal-cell"))
-                {
-                    tokens.RemoveAll(CalendarCellDateState.Contains);
-                }
 
                 foreach (var token in tokens.OrderBy(t => t, StringComparer.Ordinal))
                 {

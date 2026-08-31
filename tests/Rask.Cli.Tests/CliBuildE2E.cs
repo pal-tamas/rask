@@ -30,8 +30,7 @@ internal static class CliBuildE2E
         "Rask.Server",                      // server template
         "Rask.Wasm",                        // wasm + wasm-hosted templates, and the --wasm companion project
         "Rask.Wasm.Hosting",                // wasm-hosted template
-        "Rask.Bootstrap",                   // every template with --bootstrap
-        "Rask.Tailwind",                    // every template with --tailwind (build-only; no runtime assembly)
+        "Rask.Tailwind",                    // every template: styling is Tailwind, built in (build-only)
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Query",                       // wired by default wherever --cqrs is
         "Rask.Cqrs.Client",                 // wasm-hosted --cqrs: the browser half of remote dispatch
