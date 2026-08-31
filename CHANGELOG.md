@@ -572,6 +572,27 @@ them until tagged releases begin.
   runs out. Resume is in-session only; a browser's `File` handle dies with the page, which
   `docs/cqrs.md` now states along with `ChunkedUploadThreshold` being load-bearing for browser memory
   rather than a tuning knob.
+- **`docs/forms.md` says what a bind costs, and how to make it cheaper in a hot component.**
+  ([#803](https://github.com/pal-tamas/rask/issues/803)) `Bind(() => …)` takes an
+  `Expression<Func<T>>`, and the compiler builds that tree at the call site on **every render** —
+  resolving a member token on the bound property's declaring type, at a cost that scales with how many
+  members that type has. Binding a property declared on the component costs **5011 B/render** against
+  **3041 B** for the same bind on a plain model, and nothing at the call site suggests the two differ.
+
+  Documented rather than fixed, because the fix is not available: measured and recorded on the issue,
+  a Roslyn interceptor cannot help — an interceptor must keep the intercepted method's signature
+  (CS9144) and the lambda is converted to a tree when the call is *bound*, before interception applies
+  — and adding a `Func<T>` overload does not help either, because C# prefers the `Expression` one.
+
+  What does work is at the call site: **hoist the expression into a field** so it is built once.
+  That converges the two shapes at 2721 B (plain model) and 2753 B (component property) — hoisting
+  does not merely help the expensive case, it erases the difference. `AllocHoistedMarkupHostProbe`
+  pins the second number, so the advice cannot drift away from what the framework does.
+
+  The cost is also not what the issue's title said: it is not `Component` deriving `RaskMarkup`.
+  Inherited members are free — a locally-declared `RaskMarkup` subclass binds at 312 B — and the
+  charge is the ~433 chain entries the generator *injects* into each markup host, which makes the
+  property's declaring type large.
 - **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
   Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
   file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours
