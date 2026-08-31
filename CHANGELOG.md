@@ -74,6 +74,16 @@ them until tagged releases begin.
   was inferred from whether a delegate existed. It is now `o.Retry.Enabled`.
 
 ### Fixed
+- **The ops console shipped with no stylesheet on the first build in a fresh clone.** `Rask.Dashboard`
+  compiles its Tailwind stylesheet into `obj/` and embeds it, but the `EmbeddedResource` item was
+  declared in a static `ItemGroup` guarded by `Condition="Exists(...)"` — and a static item's condition
+  is evaluated when the project is *evaluated*, before any target runs. On a tree that had never built
+  the package the file did not exist yet, the item was silently absent, and the console rendered as
+  unstyled HTML with nothing failing. A second build embedded it, which is why every incremental tree
+  looked fine and the eight `DashboardStylesheetTests` only failed on a clean checkout — the shape
+  `nightly.yml` and `release.yml` both build. The item is now gathered in a target between
+  `_RaskTailwindBuild` and `PrepareResourceNames`, and a missing output is an error rather than a
+  silent omission. Proved by negative control: 8/8 fail on a first build without the fix, 8/8 pass with it.
 
 - **A batteries-included app registered four browser APIs and then could not reach them.** `AddRask()`
   registers `IWebPush`, `INotifications`, `IBadge` and `IWakeLock` unconditionally, but on a Server host
