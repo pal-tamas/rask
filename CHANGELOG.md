@@ -109,6 +109,41 @@ them until tagged releases begin.
   route on purpose, because the caller is what holds the route table. See
   [`docs/prerendering.md`](docs/prerendering.md).
 
+- **`rask new --wasm` scaffolds remote CQRS dispatch, which nothing had done since the `wasm-hosted`
+  template was removed** ([#868](https://github.com/pal-tamas/rask/issues/868)). A `--wasm` app is
+  exactly what wants it: the browser rung moves an eligible page into WebAssembly, and `RASK054` steers
+  authors towards reaching data through a CQRS message *precisely because* those already cross the wire
+  — but they only cross it when the transports are wired. Left in-process, a page that looks eligible
+  either fails in the browser or answers from nowhere.
+
+  The one-project build made this simpler in one way and harder in another. Simpler, because one set of
+  sources compiles into both halves, so the message records are shared by construction and there is no
+  Shared project to put them in. Harder, because the same collapse removes the natural place to keep the
+  two transports **apart** — one project means one reference list, and `Rask.Cqrs.Client` in the server
+  would ship endpoint-calling code into the process that answers those endpoints, which is the
+  arrangement those two packages were split up to prevent. Two new seams on the browser companion and
+  one folder convention restore it:
+
+  - **`RaskBrowserPackageReference`** — a reference the bundle gets and the server does not.
+  - **`RaskBrowserStartup`** — names a type whose `Configure(IServiceCollection)` the generated entry
+    point calls **before** the app runs. The browser half has no `Program.cs` of its own (that file is
+    the server's, and the companion excludes it), so without this there was nowhere to register
+    anything at all.
+  - **`Browser/` is the mirror of `Server/`**, and the server is what excludes it. A browser-only
+    reference reaches the companion alone, so a file using one has to sit somewhere the server does not
+    compile — without this the reference seam had no possible user, and the scaffolded app failed to
+    build in the half missing the package. The two folder names are now how a file says which half it
+    belongs to; everything else still compiles into both from one copy.
+
+  `MapRaskCqrs()` is mapped after `UseRouting` and before `UseRask`, whose catch-all would otherwise
+  answer those endpoints. **Without `--auth` the scaffold sets `RequireAuthenticatedUser = false` and
+  says why**: the default is on and right for an app with a sign-in, but an app with no authentication
+  to require would answer 401 to every message, and that failure reads as broken transport rather than
+  as the secure default working.
+
+  All three are general rather than CQRS-specific, and `RaskBrowserPackageReference` is the one the
+  feed-coverage guard could not see — it is not a `PackageReference`, so it never reached `ScaffoldResult.Packages`, the exact shape
+  where a missing package means no build case can *exist* rather than one that fails.
 - **The bundled chunks are registered as static web assets, so `app.MapStaticAssets()` serves them.**
   The bundle is written into `wwwroot` *after* the SDK has globbed it at evaluation, so nothing it
   discovered knew the files existed: a published app returned the page's own HTML for both the chunk
@@ -287,10 +322,10 @@ them until tagged releases begin.
   there. That detection is generic — this repo's own `Rask.Example.Wasm.Host` sample has the shape.
 
   **One capability lost its only scaffold:** remote CQRS dispatch (`Rask.Cqrs.Client` /
-  `Rask.Cqrs.Server`) was wired by this template and by nothing else. The packages are unchanged and an
-  app can still wire them by hand — but nothing generates the arrangement, and a `--wasm` app whose
-  pages move to the browser is exactly what wants it. Wiring it into the one-project build is follow-up
-  work, tracked in [#868](https://github.com/pal-tamas/rask/issues/868).
+  `Rask.Cqrs.Server`) was wired by this template and by nothing else. The packages were unchanged and an
+  app could still wire them by hand — but nothing generated the arrangement, and a `--wasm` app whose
+  pages move to the browser is exactly what wants it. `rask new --wasm` now scaffolds it again
+  ([#868](https://github.com/pal-tamas/rask/issues/868)); see the entry under **Added** above.
 
 ### Fixed
 - **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
