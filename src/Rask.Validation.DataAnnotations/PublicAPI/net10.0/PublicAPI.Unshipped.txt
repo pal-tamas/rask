@@ -1,0 +1,6 @@
+#nullable enable
+Rask.Validation.DataAnnotations.DataAnnotationsValidator
+Rask.Validation.DataAnnotations.DataAnnotationsValidator.DataAnnotationsValidator() -> void
+RaskBuilderSettersRask_Validation_DataAnnotations
+RaskEntriesRask_Validation_DataAnnotations
+static RaskEntriesRask_Validation_DataAnnotations.DataAnnotationsValidator.get -> Rask.Core.Build<Rask.Validation.DataAnnotations.DataAnnotationsValidator!>

@@ -86,3 +86,4 @@ This file helps AI coding assistants build apps with Rask. Start with the repo-r
 - [Development workflow](docs/development-workflow.md): the format → warnings-as-errors → tests →
   benchmarks → docs → review → PR gate, CI, nightly, analyzers.
 - [Code analysis](docs/code-analysis.md): analyzers and adoption.
+- [Public API style](docs/api-style.md): the naming rules every public member obeys, and the PublicAPI.txt gate that enforces them.

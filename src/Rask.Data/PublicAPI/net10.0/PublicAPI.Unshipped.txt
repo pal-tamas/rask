@@ -1,0 +1,88 @@
+#nullable enable
+Rask.Data.AuditingInterceptor
+Rask.Data.AuditingInterceptor.AuditingInterceptor(System.TimeProvider! timeProvider) -> void
+Rask.Data.BulkInsertExtensions
+Rask.Data.BulkInsertOptions
+Rask.Data.BulkInsertOptions.BatchSize.get -> int
+Rask.Data.BulkInsertOptions.BatchSize.set -> void
+Rask.Data.BulkInsertOptions.BulkInsertOptions() -> void
+Rask.Data.BulkInsertOptions.SingleTransaction.get -> bool
+Rask.Data.BulkInsertOptions.SingleTransaction.set -> void
+Rask.Data.BulkInsertOptions.SkipChangeTracking.get -> bool
+Rask.Data.BulkInsertOptions.SkipChangeTracking.set -> void
+Rask.Data.DomainEventInterceptor
+Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Data.RaskDataOptions! options, System.Collections.Generic.IEnumerable<Rask.Data.IDomainEventDeliveryOwner!>! deliveryOwners) -> void
+Rask.Data.Entity<TId>
+Rask.Data.Entity<TId>.ClearDomainEvents() -> void
+Rask.Data.Entity<TId>.CreatedAt.get -> System.DateTime
+Rask.Data.Entity<TId>.CreatedAt.set -> void
+Rask.Data.Entity<TId>.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.INotification!>!
+Rask.Data.Entity<TId>.Entity() -> void
+Rask.Data.Entity<TId>.Id.get -> TId
+Rask.Data.Entity<TId>.Id.set -> void
+Rask.Data.Entity<TId>.Raise(Rask.Cqrs.INotification! domainEvent) -> void
+Rask.Data.Entity<TId>.UpdatedAt.get -> System.DateTime
+Rask.Data.Entity<TId>.UpdatedAt.set -> void
+Rask.Data.IDomainEventDeliveryOwner
+Rask.Data.IDomainEventDeliveryOwner.Name.get -> string!
+Rask.Data.IHasDomainEvents
+Rask.Data.IHasDomainEvents.ClearDomainEvents() -> void
+Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.INotification!>!
+Rask.Data.ISoftDeletable
+Rask.Data.ISoftDeletable.DeletedAt.get -> System.DateTime?
+Rask.Data.ITimestamped
+Rask.Data.ITimestamped.CreatedAt.get -> System.DateTime
+Rask.Data.ITimestamped.UpdatedAt.get -> System.DateTime
+Rask.Data.IVersioned
+Rask.Data.IVersioned.Version.get -> int
+Rask.Data.ModelBuilderExtensions
+Rask.Data.RangeExclusionBuilderExtensions
+Rask.Data.RangeExclusionSpec
+Rask.Data.RangeExclusionSpec.<Clone>$() -> Rask.Data.RangeExclusionSpec!
+Rask.Data.RangeExclusionSpec.Deconstruct(out string! Lo, out string! Hi, out System.Collections.Generic.IReadOnlyList<string!>! PartitionBy, out bool IgnoreSoftDeleted) -> void
+Rask.Data.RangeExclusionSpec.Equals(Rask.Data.RangeExclusionSpec? other) -> bool
+Rask.Data.RangeExclusionSpec.Hi.get -> string!
+Rask.Data.RangeExclusionSpec.Hi.init -> void
+Rask.Data.RangeExclusionSpec.IgnoreSoftDeleted.get -> bool
+Rask.Data.RangeExclusionSpec.IgnoreSoftDeleted.init -> void
+Rask.Data.RangeExclusionSpec.Lo.get -> string!
+Rask.Data.RangeExclusionSpec.Lo.init -> void
+Rask.Data.RangeExclusionSpec.PartitionBy.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Data.RangeExclusionSpec.PartitionBy.init -> void
+Rask.Data.RangeExclusionSpec.RangeExclusionSpec(string! Lo, string! Hi, System.Collections.Generic.IReadOnlyList<string!>! PartitionBy, bool IgnoreSoftDeleted = false) -> void
+Rask.Data.RangeExclusionSpec.Serialize() -> string!
+Rask.Data.RangeOverlapException
+Rask.Data.RangeOverlapException.RangeOverlapException() -> void
+Rask.Data.RangeOverlapException.RangeOverlapException(string! message) -> void
+Rask.Data.RangeOverlapException.RangeOverlapException(string! message, System.Exception? innerException) -> void
+Rask.Data.RangeOverlapException.Table.get -> string!
+Rask.Data.RaskDataOptions
+Rask.Data.RaskDataOptions.DispatchDomainEventsInProcess.get -> bool?
+Rask.Data.RaskDataOptions.DispatchDomainEventsInProcess.set -> void
+Rask.Data.RaskDataOptions.RaskDataOptions() -> void
+Rask.Data.RaskDataServiceCollectionExtensions
+Rask.Data.SoftDeleteInterceptor
+Rask.Data.SoftDeleteInterceptor.SoftDeleteInterceptor(System.TimeProvider! timeProvider) -> void
+const Rask.Data.RangeExclusionSpec.AnnotationName = "Rask:RangeExclusion" -> string!
+override Rask.Data.AuditingInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
+override Rask.Data.AuditingInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
+override Rask.Data.DomainEventInterceptor.SaveChangesFailed(Microsoft.EntityFrameworkCore.Diagnostics.DbContextErrorEventData! eventData) -> void
+override Rask.Data.DomainEventInterceptor.SaveChangesFailedAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextErrorEventData! eventData, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+override Rask.Data.DomainEventInterceptor.SavedChanges(Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesCompletedEventData! eventData, int result) -> int
+override Rask.Data.DomainEventInterceptor.SavedChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesCompletedEventData! eventData, int result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<int>
+override Rask.Data.DomainEventInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
+override Rask.Data.DomainEventInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
+override Rask.Data.RangeExclusionSpec.Equals(object? obj) -> bool
+override Rask.Data.RangeExclusionSpec.GetHashCode() -> int
+override Rask.Data.RangeExclusionSpec.ToString() -> string!
+override Rask.Data.SoftDeleteInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
+override Rask.Data.SoftDeleteInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
+static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbContext! context, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbSet<TEntity!>! set, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.RangeExclusionBuilderExtensions.HasNonOverlappingRange<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! lo, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! hi, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>? partitionBy = null, bool? ignoreSoftDeleted = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.RangeExclusionSpec.TryParse(object? value, out Rask.Data.RangeExclusionSpec! spec) -> bool
+static Rask.Data.RangeExclusionSpec.operator !=(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
+static Rask.Data.RangeExclusionSpec.operator ==(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
+static Rask.Data.RangeOverlapException.ForTable(string! table, System.Exception? innerException = null) -> Rask.Data.RangeOverlapException!
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Data.RaskDataOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
