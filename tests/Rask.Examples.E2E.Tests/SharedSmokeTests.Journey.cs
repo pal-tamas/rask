@@ -62,7 +62,9 @@ public abstract partial class SharedSmokeTests
         // Theme toggle: the navbar toggle flips BOTH data-theme and data-bs-theme on <html> together (the
         // raw-token layer + the Bootstrap bridge stay in lockstep). Toggle, assert the flip, then toggle
         // back so the rest of the journey runs at the original theme.
-        var themeToggle = Page.Locator("nav button:has(.bi-circle-half)").First;
+        // By accessible name, not by icon: the showcase's glyphs are aria-hidden spans now, and an
+        // icon class is a styling detail that a restyle is entitled to change.
+        var themeToggle = Page.Locator("nav button[aria-label='Toggle light / dark theme']").First;
         var themeBefore = await Page.EvaluateAsync<string>(
             "() => document.documentElement.getAttribute('data-bs-theme') || ''");
         await themeToggle.ClickAsync();
@@ -1651,7 +1653,7 @@ public abstract partial class SharedSmokeTests
 
         // Todos: full CRUD + URL-driven dialog. Add, edit, toggle, delete.
         await SideAsync("Todos", "Todos");
-        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(2,
+        await Expect(Page.Locator(".todo-list .todo-item")).ToHaveCountAsync(2,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
@@ -1691,17 +1693,17 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("button:has-text('Add')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
-        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(3,
+        await Expect(Page.Locator(".todo-list .todo-item")).ToHaveCountAsync(3,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
         // Toggle the first item's checkbox → completed class.
-        var firstTitle = await Page.Locator(".list-group-item .todo-title").First.InnerTextAsync();
-        await Page.Locator(".list-group-item").First.Locator("input[type='checkbox']").CheckAsync();
+        var firstTitle = await Page.Locator(".todo-item .todo-title").First.InnerTextAsync();
+        await Page.Locator(".todo-item").First.Locator("input[type='checkbox']").CheckAsync();
         await Expect(Page.Locator(".todo-title.completed", new PageLocatorOptions { HasTextString = firstTitle }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
         // Delete one row.
-        var rowsBefore = await Page.Locator(".list-group .list-group-item").CountAsync();
-        await Page.Locator(".list-group-item button:has(i.bi-trash)").First.ClickAsync();
-        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(rowsBefore - 1,
+        var rowsBefore = await Page.Locator(".todo-list .todo-item").CountAsync();
+        await Page.Locator(".todo-item button[aria-label='Delete todo']").First.ClickAsync();
+        await Expect(Page.Locator(".todo-list .todo-item")).ToHaveCountAsync(rowsBefore - 1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
         // Page-source CodeSample card is present.
         await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(

@@ -34,7 +34,10 @@ public sealed partial class InstallTabs : Component
             Div.Class("term overflow-x-auto rounded-2xl border border-line bg-panel-2 p-5 text-left")[
                 Terminal()
             ],
-            P.Class("mt-4 text-center text-xs text-muted")[
+            // .install-foot is a TEST contract, like .term above: SiteExampleTests reads the Windows
+            // install line out of it. The utilities carry the styling; the class name carries the
+            // locator, and dropping it while restyling is how this went red the first time.
+            P.Class("install-foot mt-4 text-center text-xs text-muted")[
                 "Nothing preinstalled — it adds the .NET 10 SDK too, under ", Code["$HOME"],
                 ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
             ],

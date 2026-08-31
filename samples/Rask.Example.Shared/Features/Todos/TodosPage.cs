@@ -9,6 +9,15 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class TodosPage : Component
 {
+    // Icon-only buttons need their name here: Icon renders aria-hidden, so without these a screen
+    // reader announces two unlabelled buttons per row. They double as the E2E locators, which used to
+    // reach for the Bootstrap icon class that no longer exists.
+    private static readonly IReadOnlyDictionary<string, string?> EditAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Edit todo" };
+
+    private static readonly IReadOnlyDictionary<string, string?> DeleteAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Delete todo" };
+
     private readonly Navigator _nav;
     private readonly RouteState _route;
     private readonly TodoForm _form = new();
@@ -102,10 +111,13 @@ public sealed partial class TodosPage : Component
             ],
             _todos.Count == 0
                 ? Div.Class("text-slate-500 dark:text-slate-400 text-sm")["No todos yet — click \"New todo\" to add one."]
-                : Ul.Class("divide-y divide-slate-200 rounded-lg ring-1 ring-slate-200 dark:divide-slate-700 dark:ring-slate-700")[
+                // todo-list / todo-item are TEST contracts, like todo-title below: the journey counts
+                // rows through them. They used to be Bootstrap's list-group classes, which vanished
+                // with the package and took the locators with them.
+                : Ul.Class("todo-list divide-y divide-slate-200 rounded-lg ring-1 ring-slate-200 dark:divide-slate-700 dark:ring-slate-700")[
                     _todos.Select(item => Li
                         .Key(item.Id)
-                        .Class("flex items-center gap-2 px-3 py-2")[
+                        .Class("todo-item flex items-center gap-2 px-3 py-2")[
                         // Input derives type="checkbox" from the bool it is given — there is no
                         // separate checkbox control to reach for.
                         Input
@@ -114,11 +126,17 @@ public sealed partial class TodosPage : Component
                             .Id($"todo-done-{item.Id}")
                             .Class("size-4"),
                         Span.Class(item.Completed ? "todo-title completed" : "todo-title")[item.Title],
+                        // Icon-only, so the glyph is the whole label — and Icon is aria-hidden, which
+                        // leaves these two buttons announced as "button" and nothing else. The name
+                        // has to come from the button itself.
                         Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                            .Aria(EditAria)
                             .OnClick(() => OpenEdit(item))[
                             Icon.Name(IconName.Pencil)
                         ],
-                        Button.Type("button").Class(Ui.BtnOutlineDanger).OnClick(() => Delete(item))[
+                        Button.Type("button").Class(Ui.BtnOutlineDanger)
+                            .Aria(DeleteAria)
+                            .OnClick(() => Delete(item))[
                             Icon.Name(IconName.Trash)
                         ]
                     ])
