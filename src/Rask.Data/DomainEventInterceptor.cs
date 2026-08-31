@@ -10,21 +10,52 @@ namespace Rask.Data;
 /// Publishes each entity's <see cref="IHasDomainEvents.DomainEvents"/> in-process <b>after</b> the change
 /// commits, through <c>Rask.Cqrs</c>' <see cref="IDispatcher.PublishAsync{TNotification}"/>. Events are
 /// resolved by their runtime type, so a stored <see cref="INotificationHandler{TNotification}"/> reacts with
-/// no extra wiring. Handlers run in a fresh DI scope. Not wired when a transactional outbox owns delivery —
-/// see <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>.
+/// no extra wiring. Handlers run in a fresh DI scope. Stands down automatically when a transactional
+/// outbox owns delivery — see <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>.
 /// </summary>
 /// <remarks>
 /// Events are drained off the tracked entities in <c>SavingChanges</c> (before a delete detaches its
 /// entity) and published in <c>SavedChanges</c> (after the change commits). A failed save discards them, so a
 /// rolled-back change never fires its events.
 /// </remarks>
-public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : SaveChangesInterceptor
+public sealed class DomainEventInterceptor : SaveChangesInterceptor
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly IServiceScopeFactory _scopeFactory;
+
+    // Resolved once, when the container builds this singleton — which is the whole point. Registration
+    // order in Program.cs cannot reach it, so AddRaskData before or after AddRaskOutbox behaves the same.
+    private readonly bool _standDown;
 
     // Events collected pre-save, keyed by the context whose SaveChanges is in flight (a context runs one
     // save at a time, so a per-context slot is safe; the weak table never keeps a context alive).
     private readonly ConditionalWeakTable<DbContext, List<INotification>> _pending = new();
+
+    /// <summary>
+    /// Creates the interceptor, deciding from the built container whether anything else already owns
+    /// domain-event delivery.
+    /// </summary>
+    /// <param name="scopeFactory">Used to run each handler in a fresh scope.</param>
+    /// <param name="options">
+    /// Rask.Data's options. <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/> overrides the
+    /// automatic answer in both directions when it is not <c>null</c>.
+    /// </param>
+    /// <param name="deliveryOwners">
+    /// Everything that has claimed ownership of delivery (<c>Rask.Outbox</c> registers one). A non-empty
+    /// sequence makes this interceptor a no-op, so it cannot drain events the outbox has not copied yet.
+    /// </param>
+    public DomainEventInterceptor(
+        IServiceScopeFactory scopeFactory,
+        RaskDataOptions options,
+        IEnumerable<IDomainEventDeliveryOwner> deliveryOwners)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(deliveryOwners);
+
+        _scopeFactory = scopeFactory;
+        _standDown = options.DispatchDomainEventsInProcess is { } dispatch
+            ? !dispatch
+            : deliveryOwners.Any();
+    }
 
     /// <inheritdoc/>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -68,7 +99,11 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
 
     private void Collect(DbContext? context)
     {
-        if (context is null)
+        // The only guard that matters, and it has to be here rather than at the publish step: collecting
+        // is what CLEARS the events off the entities. An outbox copies them in its own interceptor, so
+        // draining them here would empty the outbox rather than merely double-deliver. Nothing is
+        // collected, so nothing is pending, so the publish path is a no-op too.
+        if (_standDown || context is null)
         {
             return;
         }

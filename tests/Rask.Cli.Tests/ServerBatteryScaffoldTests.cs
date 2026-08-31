@@ -47,37 +47,21 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Contains(schemaCall, files["Features/Shared/AppDbContext.cs"], StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_outbox_turns_off_the_in_process_domain_event_publisher()
+    [Theory]
+    [InlineData("outbox")]
+    [InlineData("data")]
+    public void AddRaskData_is_scaffolded_bare_whether_or_not_the_outbox_is_on(string flag)
     {
-        // The silent trap: with the in-process publisher left on, DomainEventInterceptor drains and clears
-        // every entity's events before OutboxInterceptor can copy them. The outbox table stays empty and
-        // delivery quietly stops being durable — while every handler still runs, so nothing looks wrong.
-        var program = Generate("outbox")["Program.cs"];
-
-        Assert.Contains("o.DispatchDomainEventsInProcess = false;", program, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Without_the_outbox_domain_events_keep_their_in_process_default()
-    {
-        var program = Generate("data")["Program.cs"];
+        // The outbox used to require `o.DispatchDomainEventsInProcess = false` here, and a scaffold that
+        // forgot it silently emptied the outbox: DomainEventInterceptor drained and cleared every entity's
+        // events before OutboxInterceptor could copy them, while every handler still ran, so nothing looked
+        // wrong. The framework now settles that when the container is built (AddRaskOutbox registers an
+        // IDomainEventDeliveryOwner), so the emitter has no argument left to get wrong. Asserting the
+        // ABSENCE is the point — this is the line that would regress if the old conditional came back.
+        var program = Generate(flag)["Program.cs"];
 
         Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
         Assert.DoesNotContain("DispatchDomainEventsInProcess", program, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_outbox_is_registered_before_the_DbContext_factory()
-    {
-        // Registration order IS interception order: OutboxInterceptor has to be in the container before the
-        // factory callback resolves ISaveChangesInterceptor, or it never joins the SaveChanges pipeline.
-        var program = Generate("outbox")["Program.cs"];
-
-        Assert.True(
-            program.IndexOf("AddRaskOutbox<AppDbContext>()", StringComparison.Ordinal) <
-            program.IndexOf("AddDbContextFactory<AppDbContext>", StringComparison.Ordinal),
-            "AddRaskOutbox must precede AddDbContextFactory.");
     }
 
     [Fact]

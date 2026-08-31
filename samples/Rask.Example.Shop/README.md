@@ -62,12 +62,8 @@ Configuration (all optional — the defaults keep it self-contained):
 | `WebPush:PublicKey` / `:PrivateKey` | unset | Web Push stays off until a VAPID pair is configured. |
 | `Litestream:ReplicaUrl` | unset | Continuous off-box backup stays off until set. |
 
-## Two traps this sample is wired to avoid
+## A trap this sample is wired to avoid
 
-- **The outbox needs the in-process publisher off.** `AddRaskData(o => o.DispatchDomainEventsInProcess = false)`
-  is not a preference. With it on, `DomainEventInterceptor` drains and clears every entity's events before
-  `OutboxInterceptor` can copy them — the outbox table stays empty, delivery quietly stops being durable, and
-  nothing fails, because the handlers still run.
 - **The pillars' tables must exist before the app starts.** Their processors are hosted services, and a
   faulted `BackgroundService` stops the host by default. Starting against a database missing one of those
   tables doesn't produce a friendly error; the app exits.

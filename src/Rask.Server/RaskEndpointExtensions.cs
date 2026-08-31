@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +39,7 @@ using Rask.Core.Messaging;
 using Rask.Core.Rendering;
 using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
+using Rask.Hosting.Shared;
 using Rask.Html.Components;
 using Rask.Server.Authentication;
 using Rask.Server.Diagnostics;
@@ -178,18 +180,46 @@ public static partial class RaskEndpointExtensions
         // Protection (WebApplication.CreateBuilder does; a hand-rolled host might not) AND resume is on —
         // absent either, a reconnect to an unknown session falls back to the reload it did before rather
         // than failing the host at startup. Note this is what makes a persisted key ring load-bearing: with
-        // the default per-container ring, a record sealed before a redeploy cannot be opened after it.
+        // the default per-container ring, a record sealed before a redeploy cannot be opened after it —
+        // which is what RaskDataProtectionSetup below is for.
         var resumeEnabled = serverOptions.SessionResume;
         var resumeLifetime = serverOptions.ResumeTokenLifetime;
-        if (resumeEnabled)
-        {
-            // Ask for Data Protection rather than assuming it. WebApplication.CreateBuilder does NOT
-            // register it — it arrives only because something else pulled it in (antiforgery, cookie auth,
-            // session), which an app with none of those does not have. The call is idempotent and
-            // additive, exactly as ASP.NET's own components use it: an app that configures the key ring
-            // itself (the PersistKeysToFileSystem `rask new` scaffolds) is configuring this same instance.
-            services.AddDataProtection();
-        }
+
+        // Ask for Data Protection rather than assuming it. WebApplication.CreateBuilder does NOT register
+        // it — it arrives only because something else pulled it in (antiforgery, cookie auth, session),
+        // which an app with none of those does not have. The call is idempotent and additive, exactly as
+        // ASP.NET's own components use it: an app that configures the key ring itself is configuring this
+        // same instance.
+        //
+        // UNCONDITIONAL, and it has to come FIRST. AddDataProtection registers ASP.NET's own
+        // DataProtectionOptionsSetup, which writes ApplicationDiscriminator without checking whether
+        // anything already set it. Left until later — by a resume-less app whose AddAuthentication pulls
+        // Data Protection in below this line — that setup lands after ours and quietly reverts the
+        // discriminator to the content-root default, so the ring persists but two containers still derive
+        // different keys from it. Registering here puts ASP.NET's setup ahead of ours, and its TryAdd makes
+        // every later AddDataProtection a no-op for the ordering.
+        services.AddDataProtection();
+
+        // Put the key ring somewhere that outlives the container, when the host has such a place. Registered
+        // unconditionally and AFTER AddDataProtection: it is inert on a host that never protects anything,
+        // it overrides ASP.NET's discovered default, and an app configuring its own ring after AddRask still
+        // wins, because options setups run in registration order. See RaskDataProtectionSetup for why an
+        // ephemeral ring signs every user out on redeploy without logging anything.
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>());
+
+        // Stop the hosted services CONCURRENTLY, inside a budget that fits under the deploy's SIGKILL.
+        // Sequentially — .NET's default — each pillar's shutdown grace sums to 30s against a window that
+        // closes at 20s, so whichever one stops last is killed mid-write, decided by the order of the
+        // AddRaskX calls above. See RaskShutdownDefaults; override by configuring HostOptions after AddRask.
+        //
+        // Rask.Wasm.Hosting and Rask.Spa.Hosting register the same pair from the same source-linked types,
+        // because their hosts face the same two failures. A wasm-hosted app with the dashboard on calls
+        // both and gets one setup per assembly — they compute identical values, so it is idempotent.
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>());
 
         services.TryAddSingleton(sp =>
         {

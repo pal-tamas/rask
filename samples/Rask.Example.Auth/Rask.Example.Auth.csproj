@@ -9,7 +9,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <!-- The batteries-included package: the host plus every battery, all of them on. This sample uses
+         none of them, which is the point — an app says what it does WITHOUT, and this one says nothing. -->
+    <ProjectReference Include="..\..\src\Rask\Rask.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

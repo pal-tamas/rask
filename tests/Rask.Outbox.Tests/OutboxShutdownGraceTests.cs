@@ -128,7 +128,7 @@ public sealed class OutboxShutdownGraceTests : IDisposable
         services.AddLogging();
         services.AddSingleton(gate);
         services.AddRaskCqrs();
-        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+        services.AddRaskData();
         services.AddRaskOutbox<OutboxDbContext>(o =>
         {
             o.PollInterval = TimeSpan.FromMilliseconds(20);

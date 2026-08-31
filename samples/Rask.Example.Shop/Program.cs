@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -63,38 +62,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Finish shutting down before the container runtime loses patience. `rask deploy` sends SIGTERM and
-// SIGKILLs 20s later, so a budget under that is what lets in-flight requests drain, live sessions close
-// cleanly, and a SQLite WAL checkpoint / Litestream flush complete instead of being killed mid-write.
-//
-// ServicesStopConcurrently matters as much as the number: stopped one at a time (the .NET default) each
-// hosted service's own shutdown grace — Litestream's WAL flush, an in-flight email send, a running job —
-// SUMS inside this one budget, and whichever stops last gets none of it, decided by the order of your
-// AddRaskX calls. Stopped together they overlap instead.
-builder.Services.Configure<HostOptions>(options =>
-{
-    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
-    options.ServicesStopConcurrently = true;
-});
-
-// Data-protection keys sign the auth cookie (and anything else the app protects). The default key
-// ring is written inside the container, and every deploy replaces the container — so without this
-// a redeploy mints a fresh ring and every cookie already issued stops validating: all your
-// signed-in users are silently signed out. `rask deploy` mounts a volume at /data, so persisting
-// the ring there makes it outlive the container the same way the database does. SetApplicationName
-// matters as much as the path: the default discriminator is derived from the content root, which
-// differs between the build and runtime images. Set Rask:DataProtection:KeyPath to override the
-// location; when neither it nor /data exists (a plain `dotnet run`), this is skipped and ASP.NET's
-// per-user development key ring applies.
-var keyRingPath = builder.Configuration["Rask:DataProtection:KeyPath"]
-                  ?? (Directory.Exists("/data") ? "/data/keys" : null);
-if (keyRingPath is not null)
-{
-    builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(Directory.CreateDirectory(keyRingPath))
-        .SetApplicationName(builder.Environment.ApplicationName);
-}
-
 // CQRS mediator: one call registers every IQueryHandler/ICommandHandler/INotificationHandler in
 // this assembly (source-generated, reflection-free — trim/AOT-safe). Inject IDispatcher to send
 // messages; add pipeline behaviors with o.AddOpenBehavior(...). See docs/cqrs.md.
@@ -106,19 +73,14 @@ builder.Services.AddRaskCqrs();
 // `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
 // `rask generate feature X …` adds its DbSet to AppDbContext (it attaches to the app's context);
 // `rask db add <Name>` / `rask db update` create and apply the migration.
-builder.Services.AddRaskData(o =>
-{
-    // The outbox owns delivery, so the in-process publisher stays off. Leaving it on is a
-    // silent trap: DomainEventInterceptor drains and clears every entity's events before
-    // OutboxInterceptor can copy them, so the outbox table stays empty and delivery quietly
-    // stops being durable — and nothing fails, because the handlers still run in-process.
-    o.DispatchDomainEventsInProcess = false;
-});
+// Domain events go wherever delivery is owned: AddRaskOutbox below claims them, and this call needs
+// no argument to match. The handover is resolved when the container is built, so the two calls work
+// in either order.
+builder.Services.AddRaskData();
 var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
 // Transactional outbox: a domain event marked IOutboxEvent is written to the outbox table in
 // the SAME transaction as the change that raised it, then relayed at-least-once by a
-// background processor. Registered before the DbContext factory so its interceptor is in the
-// container when the factory resolves ISaveChangesInterceptor.
+// background processor. Registering it is also what hands it domain-event delivery.
 builder.Services.AddRaskOutbox<AppDbContext>();
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
     .UseRaskSqlite(connectionString)

@@ -11,9 +11,11 @@ and works in any .NET app, not just Rask.
 > CQRS is the natural way to structure those slices: each slice owns its query/command and handler.
 > Reach for it when that structure earns its keep — a small app is fine calling services directly.
 
-```bash
-dotnet add package Rask.Cqrs
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Cqrs.Off());
+> ```
 
 ## The four message shapes
 

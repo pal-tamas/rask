@@ -24,8 +24,8 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 
 It is a drop-in for `UseSqlite` that also installs the pragma interceptor — one word, and every background
 processor (jobs, mail, outbox) and every page shares a connection that won't spuriously fail under load.
-Retrofitting an existing app is the same one-word change plus
-`dotnet add package Rask.SQLite.EntityFrameworkCore`.
+Retrofitting an existing app is the same one-word change — the package is already there, since `Rask`
+brings it.
 
 See [production SQLite](../sqlite.md) for the full pragma table, the load-test numbers, and the
 non-blocking write-retry story.

@@ -99,24 +99,29 @@ Plus the DI — `AddRaskOutbox<AppDbContext>()`, and the one line below that peo
 If losing an event on a crash is acceptable, plain in-process domain events need no outbox at all —
 `AddRaskData()` alone dispatches them.
 
-## 2. The one line that matters
+## 2. One line, and nothing to remember
 
 Look at what the generator wrote into `Program.cs`:
 
 ```csharp
-builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);   // ← not AddRaskData()
+builder.Services.AddRaskData();
 builder.Services.AddRaskOutbox<AppDbContext>();
 ```
 
-That `false` is not a preference. With the in-process publisher left on, `DomainEventInterceptor` drains and
-**clears** every entity's events during `SaveChanges`, before `OutboxInterceptor` can copy them. The outbox
-table stays empty, delivery quietly stops being durable — and **nothing fails**, because the handlers still
-run in-process. Every test passes. You find out when a crash loses an order confirmation.
+Registering the outbox is what hands it delivery. `AddRaskData()` needs no argument to match, and the two
+calls work in either order — the handover is settled when the container is built, not when either line runs.
 
-The registration order matters for the same reason: `AddRaskOutbox` comes **before**
-`AddDbContextFactory`, so its interceptor is in the container when the factory resolves
-`ISaveChangesInterceptor`. Your factory call already has
-`.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())` from Chapter 2.
+That is worth a sentence, because the alternative is a bug you would never see. `DomainEventInterceptor`
+drains and **clears** every entity's events during `SaveChanges`. Were it still running alongside the outbox,
+it would empty them before `OutboxInterceptor` could copy them: the outbox table stays empty, delivery quietly
+stops being durable, and **nothing fails**, because the handlers still run in-process. Every test passes. You
+find out when a crash loses an order confirmation. A framework that makes you opt out of that by hand is
+asking you to remember something on pain of silent data loss, so Rask decides it for you.
+
+Your factory call already has `.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())` from Chapter 2,
+which is what puts both interceptors in the `SaveChanges` pipeline. Where `AddDbContextFactory` sits relative
+to these two lines does not matter: that callback runs when the factory is first resolved, by which point the
+container holds every registration.
 
 Then create the table:
 

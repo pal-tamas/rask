@@ -10,9 +10,11 @@ through EF Core interceptors and a one-line model convention, so no feature has 
 It is the foundation the [tutorial](tutorial/02-first-feature.md) builds its slices on — its
 `--soft-delete` / `--concurrency` / `--events` flags, packaged for direct use.
 
-```bash
-dotnet add package Rask.Data
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Data.Off());
+> ```
 
 ## The base entity
 
@@ -78,6 +80,15 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 - **`DomainEventInterceptor`** — after the change commits, publishes each entity's `DomainEvents`
   through `IDispatcher.PublishAsync` (in a fresh scope) and clears them. Any
   `INotificationHandler<T>` registered by `AddRaskCqrs()` reacts automatically.
+
+  It **stands down on its own** when something else owns delivery — [`Rask.Outbox`](outbox.md) claims it by
+  registering an `IDomainEventDeliveryOwner`. The handover is resolved when the container is built, not when
+  either `Add` call runs, so `AddRaskData()` needs no argument and the two calls work in either order.
+  That matters more than it looks: this interceptor *drains and clears* the events in `SavingChanges`, so
+  running it alongside an outbox would empty each entity before `OutboxInterceptor` could copy it — the
+  outbox table stays empty and delivery silently stops being durable, while every handler still runs and
+  nothing reports an error. `RaskDataOptions.DispatchDomainEventsInProcess` (a `bool?`, default `null` =
+  automatic) overrides the decision in both directions.
 
 ## Optimistic concurrency
 

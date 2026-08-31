@@ -8,6 +8,9 @@ using Rask.Wasm;
 namespace Rask.Wasm.Tests.Hosting;
 
 // Where a prerendered page lands, and why prerendering has to be asked for rather than inferred.
+// Serialised because PrerenderingIsOffUnlessItIsAskedFor asserts a process-wide environment variable
+// is unset, and PrerenderBatteryWiringTests sets it.
+[Collection("RaskPrerenderEnvironment")]
 public class WasmPrerenderTests
 {
     [Fact]

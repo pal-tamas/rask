@@ -8,9 +8,11 @@ registers a standard **`ILoggerProvider`**, so it captures exactly what every ot
 through a bounded channel that never blocks the caller, and writes them in batches on a background service.
 Retention is enforced by **age** and by **row count**.
 
-```bash
-dotnet add package Rask.Logging
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Logs.Off());
+> ```
 
 ## Why a log store at all
 
