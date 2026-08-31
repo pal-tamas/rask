@@ -308,6 +308,30 @@ them until tagged releases begin.
 
 ### Removed
 
+- **`--culture` and `--no-localization`. Languages are configured in `Program.cs`, and only there.**
+  ([#854](https://github.com/pal-tamas/rask/issues/854)) A scaffolded server app already registers
+  English in an `AddRask(configureCulture: ...)` block, and adding a second language is a line in that
+  block. A flag could only restate at scaffold time what the file goes on being the truth about — and
+  the file is the half that stays correct.
+
+  Both are refused by name rather than ignored. `--culture` took a *value*, which makes ignoring it
+  worse than usual: the tag would be swallowed as a stray argument and the app scaffolded in English
+  while the command line said Hungarian, with nothing reporting it.
+
+  The generated block is now one `c.SupportedCultures.Add("en");` per language rather than a `foreach`
+  over an array. It is the place an app adds its second language, so it has to read as a list you
+  extend rather than a loop to understand first — and at one language the loop was only noise.
+
+  **`TemplateInfo.OptInFlags` goes with it.** Localization was its only member, so what remained was
+  four call sites and an unreachable error message; `ShipsLocalization` says the one thing that is
+  actually per-template. `localization` also leaves `SupportedFlags`, which is printed back to users
+  verbatim ("It supports: auth, docker, pwa") — leaving it there would have advertised a flag that no
+  longer exists.
+
+  Browser-WASM still scaffolds no language registration, and the reason is unchanged: culture data is
+  roughly a megabyte on the wire, and it is the one part `Program.cs` cannot switch on by itself, since
+  `RaskGlobalization` is an MSBuild property. That property is scaffolded **commented out** with the
+  reason beside it, so shipping a language there stays two deliberate edits.
 - **The `wasm-hosted` template.** `rask new --template wasm-hosted` is now a usage error naming the
   templates that remain. Two are left, and they answer the only question that was ever an author's:
   **does this app have a backend?** — `server` or `wasm`.
