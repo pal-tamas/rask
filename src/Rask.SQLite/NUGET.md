@@ -56,7 +56,7 @@ await factory.InImmediateTransactionAsync(async (connection, ct) =>
 });
 ```
 
-Tune it with `AddRaskSqlite(cs, configureRetry: r => …)` (defaults: 5 s timeout, 1 ms interval).
+Tune it with `AddRaskSqlite(cs, o => { o.Retry.Enabled = true; …; })` (defaults: 5 s timeout, 1 ms interval).
 
 Your callback **runs at least once, not exactly once**: SQLite can roll a transaction back on its own
 when a contended `COMMIT` is answered with `SQLITE_BUSY`, and the whole transaction is then re-run

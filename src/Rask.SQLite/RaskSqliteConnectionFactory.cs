@@ -12,12 +12,12 @@ namespace Rask.SQLite;
 internal sealed class RaskSqliteConnectionFactory : ISqlite
 {
     private readonly string _connectionString;
-    private readonly SqlitePragmaOptions _options;
+    private readonly SqliteOptions _options;
     private readonly SqliteBusyRetryOptions _retry;
 
     public RaskSqliteConnectionFactory(
         string connectionString,
-        SqlitePragmaOptions options,
+        SqliteOptions options,
         SqliteBusyRetryOptions retry)
     {
         ArgumentException.ThrowIfNullOrEmpty(connectionString);

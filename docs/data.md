@@ -183,7 +183,7 @@ Two more rules follow from how it works:
 - **An ambient transaction still owns the commit.** Called inside your own `BeginTransaction`, the load joins
   it and commits nothing itself, so it composes with surrounding work.
 
-Under a retrying execution strategy (`UseRaskSqlite(..., configureRetry: _ => { })`), a `SingleTransaction`
+Under a retrying execution strategy (`UseRaskSqlite(..., o => o.Retry.Enabled = true)`), a `SingleTransaction`
 load is one retryable unit and a lazy sequence is buffered so the retry can re-enumerate it; the default
 per-batch mode lets EF retry each batch on its own, which is both cheaper and free of replay.
 
@@ -240,7 +240,7 @@ Three things worth knowing:
 
 Requires `UseRaskSqlite(...)`, which registers the generator and the exception translation. Both are inert
 until an entity declares a rule, and the rule composes with
-[`strictTables: true`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
+[`o => o.StrictTables = true`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
 `STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
 
 ## Notes

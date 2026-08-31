@@ -153,7 +153,7 @@ internal sealed class SplitStoreScenario : LoadScenario
         // Its own ServiceCollection: AddRaskSqlite is idempotent per collection, so a shared one would
         // silently bind every arm to the first arm's database.
         var services = new ServiceCollection();
-        services.AddRaskSqlite(App.ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30));
+        services.AddRaskSqlite(App.ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); });
         _provider = services.BuildServiceProvider();
         _factory = _provider.GetRequiredService<ISqlite>();
 

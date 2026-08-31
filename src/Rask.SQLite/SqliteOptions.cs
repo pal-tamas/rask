@@ -64,8 +64,28 @@ public enum SqliteTempStore
 /// rest are <b>per connection</b> and so must be re-applied on every open, which is exactly what the
 /// interceptor and factory do (pooled connections are reused, and a reused connection is a fresh open).
 /// </remarks>
-public sealed class SqlitePragmaOptions
+public sealed class SqliteOptions
 {
+    /// <summary>
+    /// Retrying contended writes. Off unless <see cref="SqliteBusyRetryOptions.Enabled"/> is set.
+    /// </summary>
+    /// <remarks>
+    /// Nested rather than a second <c>Action&lt;T&gt;</c> parameter: two adjacent option delegates cannot
+    /// be told apart at a call site, and swapping them compiles.
+    /// </remarks>
+    public SqliteBusyRetryOptions Retry { get; } = new();
+
+    /// <summary>
+    /// Whether migrations emit <c>STRICT</c> tables, so a column's declared type is enforced by SQLite
+    /// rather than merely suggested. Off by default.
+    /// </summary>
+    /// <remarks>
+    /// Applies to the Entity Framework Core path (<c>UseRaskSqlite</c>), where it selects the migrations
+    /// SQL generator. It was a trailing <c>bool</c> parameter, which read as an unnamed <c>true</c> at
+    /// the call site.
+    /// </remarks>
+    public bool StrictTables { get; set; }
+
     /// <summary><c>journal_mode</c>. Defaults to <see cref="SqliteJournalMode.Wal"/>.</summary>
     public SqliteJournalMode? JournalMode { get; set; } = SqliteJournalMode.Wal;
 

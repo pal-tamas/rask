@@ -62,7 +62,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
         var services = new ServiceCollection();
         services.AddRaskSqlite(
             "Data Source=test.db",
-            configureRetry: r => r.Timeout = TimeSpan.FromSeconds(12));
+            o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(12); });
 
         using var provider = services.BuildServiceProvider();
         Assert.Equal(TimeSpan.FromSeconds(12), provider.GetRequiredService<SqliteBusyRetryOptions>().Timeout);
@@ -75,6 +75,6 @@ public sealed class SqliteServiceCollectionExtensionsTests
         Assert.Throws<InvalidOperationException>(() =>
             services.AddRaskSqlite(
                 "Data Source=test.db",
-                configureRetry: r => r.PollInterval = TimeSpan.Zero));
+                o => { o.Retry.Enabled = true; o.Retry.PollInterval = TimeSpan.Zero; }));
     }
 }

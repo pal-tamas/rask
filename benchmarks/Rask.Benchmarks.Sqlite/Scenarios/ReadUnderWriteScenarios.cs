@@ -62,8 +62,12 @@ internal sealed class ReadUnderWriteScenario : LoadScenario
         var services = new ServiceCollection();
         services.AddRaskSqlite(
             _db.ConnectionString,
-            configure: o => o.JournalMode = _journalMode == "WAL" ? SqliteJournalMode.Wal : SqliteJournalMode.Delete,
-            configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30));
+            o =>
+            {
+                o.JournalMode = _journalMode == "WAL" ? SqliteJournalMode.Wal : SqliteJournalMode.Delete;
+                o.Retry.Enabled = true;
+                o.Retry.Timeout = TimeSpan.FromSeconds(30);
+            });
         _provider = services.BuildServiceProvider();
         _factory = _provider.GetRequiredService<ISqlite>();
 

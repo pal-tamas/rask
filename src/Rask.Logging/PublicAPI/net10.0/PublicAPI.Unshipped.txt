@@ -98,7 +98,7 @@ Rask.Logging.RaskLoggingOptions.MaxScopeValues.get -> int
 Rask.Logging.RaskLoggingOptions.MaxScopeValues.set -> void
 Rask.Logging.RaskLoggingOptions.MinimumLevel.get -> Microsoft.Extensions.Logging.LogLevel
 Rask.Logging.RaskLoggingOptions.MinimumLevel.set -> void
-Rask.Logging.RaskLoggingOptions.Pragmas.get -> Rask.SQLite.SqlitePragmaOptions!
+Rask.Logging.RaskLoggingOptions.Pragmas.get -> Rask.SQLite.SqliteOptions!
 Rask.Logging.RaskLoggingOptions.Pragmas.set -> void
 Rask.Logging.RaskLoggingOptions.PurgeInterval.get -> System.TimeSpan
 Rask.Logging.RaskLoggingOptions.PurgeInterval.set -> void

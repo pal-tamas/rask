@@ -42,7 +42,7 @@ public class SqliteDecimalOrderingBenchmarks
 
         _connection = new SqliteConnection($"Data Source={_dbPath}");
         _connection.Open();
-        SqlitePragmas.Apply(_connection, new SqlitePragmaOptions());
+        SqlitePragmas.Apply(_connection, new SqliteOptions());
         SqliteCollations.Apply(_connection);
 
         Execute("CREATE TABLE prices (text_amount TEXT NOT NULL, minor_units INTEGER NOT NULL)");

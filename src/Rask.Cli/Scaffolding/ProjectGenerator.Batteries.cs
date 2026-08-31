@@ -36,7 +36,7 @@ internal static partial class ProjectGenerator
                 builder.Services.AddRaskData();
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-                    .UseRaskSqlite(connectionString, strictTables: true)
+                    .UseRaskSqlite(connectionString, o => o.StrictTables = true)
                     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
                 // Continuous backup. Litestream streams the write-ahead log to object storage, which is what

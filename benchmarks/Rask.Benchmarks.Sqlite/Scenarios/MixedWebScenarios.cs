@@ -88,7 +88,7 @@ internal sealed class MixedRawScenario : MixedScenario
     {
         CreateAndSeed();
         var services = new ServiceCollection();
-        services.AddRaskSqlite(Db.ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30));
+        services.AddRaskSqlite(Db.ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); });
         _provider = services.BuildServiceProvider();
         _factory = _provider.GetRequiredService<ISqlite>();
 
@@ -182,7 +182,7 @@ internal sealed class MixedEfScenario() : MixedScenario("mixed-ef")
     {
         CreateAndSeed();
         _options = new DbContextOptionsBuilder<PostsDbContext>()
-            .UseRaskSqlite(Db.ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(30))
+            .UseRaskSqlite(Db.ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); })
             .Options;
 
 

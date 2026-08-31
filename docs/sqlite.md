@@ -120,7 +120,7 @@ rejected at the source instead. EF Core has no support for them, so Rask supplie
 generator:
 
 ```csharp
-o.UseRaskSqlite(connectionString, strictTables: true);
+o.UseRaskSqlite(connectionString, o => o.StrictTables = true);
 ```
 
 ```sql
@@ -202,9 +202,8 @@ Tune the retry when registering (defaults: 5 s timeout, 1 ms interval):
 
 ```csharp
 builder.Services.AddRaskSqlite($"Data Source={dbPath}",
-    configureRetry: r =>
-    {
-        r.Timeout = TimeSpan.FromSeconds(10);
+    o => { o.Retry.Enabled = true; {
+        o.Retry.Timeout = TimeSpan.FromSeconds(10; });
         r.PollInterval = TimeSpan.FromMilliseconds(1);
     });
 ```
@@ -249,7 +248,7 @@ Pass `configureRetry` (even empty) to register a fair-interval execution strateg
 and queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED`:
 
 ```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", configureRetry: _ => { });
+o.UseRaskSqlite($"Data Source={dbPath}", o => o.Retry.Enabled = true);
 ```
 
 Enabling it turns SQLite's native busy handler off (`busy_timeout=0`) and lowers
