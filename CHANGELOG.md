@@ -62,6 +62,40 @@ them until tagged releases begin.
   exists: the `Exists()` conditions that let a new project be added before its surface is written
   down are also how coverage would silently lapse.
 
+- **A release now unlists the versions it supersedes, so the gallery shows what you would install.** A
+  nightly cadence puts hundreds of `-alpha` versions on nuget.org between releases — `Rask.Server` had
+  reached **478 versions, only 23 of them stable** — and none of them is a version anyone would pick.
+  `release.yml` gained a final step running `scripts/unlist-old-versions.sh`, which unlists every older
+  version of each package it just pushed: previous stables and nightly prereleases alike.
+
+  **Unlisted, not deleted.** nuget.org gives an owner no way to delete a published version, by design,
+  so an unlisted one still restores by exact reference and a pinned `PackageReference` keeps building.
+  It leaves search and the gallery, not the feed.
+
+  Two limits are deliberate. The step is `continue-on-error` and every path in the script exits 0 — the
+  packages are already pushed when it runs, and a tidy-up must never red a released tag. And it spends
+  a budget of ~240 calls then stops, because nuget.org rate-limits unlisting to roughly 250 before a
+  403 whose retry-after runs to tens of minutes; the remainder is picked up by the next release, which
+  supersedes it anyway. `NUGET_API_KEY` needs the **Unlist** scope, which is separate from Push — with
+  a push-only key the step no-ops with a warning rather than failing.
+
+  Package ids are derived from the `.nupkg` files just packed rather than hardcoded, so a package added
+  to `release.yml` is covered without touching the script — the gap that left `Rask.Templates`
+  published for four releases after 0.18.0 discontinued it.
+
+  Selection is real semver (`scripts/lib/unlist_select.py`), table-tested in
+  `scripts/tests/unlist-old-versions.test.sh`. Two rules there are load-bearing and were both written
+  after the test caught them: nothing **newer** than the released version is touched, and a
+  **prerelease never retires a stable** — by semver `0.21.0` is older than `0.21.1-alpha.0.1`, so
+  without that rule tagging a prerelease would unlist the current release.
+
+  Candidates come from the **registration** index (`scripts/lib/listed_versions.py`), not the obvious
+  `v3-flatcontainer/<id>/index.json`. Flat-container reports every version ever pushed, unlisted ones
+  included — `rask.native` has all 209 versions unlisted and flat-container still returns all 209 — so
+  selecting from it would spend the whole quota budget re-unlisting finished work and never reach the
+  backlog. Only registration carries `listed` per version, and an absent `listed` field means listed.
+
+### Added
 - **The publish-time prerender pass gets the batteries the boot path applies.** Prerendering returns
   from `WasmHostBuilder.RunAsync` before `BootAsync`, and the browser batteries are wired inside
   `BootAsync` — so a WASM app referencing the `Rask` package prerendered against a container that never
