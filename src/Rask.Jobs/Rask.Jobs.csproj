@@ -35,9 +35,13 @@
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
   </ItemGroup>
 
-  <!-- The registration source generator is referenced as an analyzer (no runtime assembly reference). -->
+  <!--
+    The registration source generator is referenced as an analyzer (no runtime assembly reference).
+    In-repo only: analyzers do not flow through a ProjectReference, so this is what makes the job
+    registry generate for projects that reference Rask.Jobs from the source tree.
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\Rask.Jobs.Generators\Rask.Jobs.Generators.csproj"
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
@@ -47,10 +51,11 @@
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
-  <!-- Pack the source generator into analyzers/dotnet/cs/ so NuGet consumers run it. -->
-  <ItemGroup>
-    <None Include="..\Rask.Jobs.Generators\bin\$(Configuration)\netstandard2.0\Rask.Jobs.Generators.dll"
-          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
-  </ItemGroup>
+  <!--
+    This package deliberately does NOT pack the generator. The job registry generator shares an
+    assembly with the CQRS and outbox ones, and Rask.Cqrs — which this package depends on — is the one
+    place that ships it, so it arrives here transitively. Packing a second copy would put the same
+    generator on a consumer's analyzer path twice and emit every registry type twice.
+  -->
 
 </Project>
