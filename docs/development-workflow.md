@@ -82,6 +82,37 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   release (the `cut-release` skill). Run the local E2E gate (`scripts/run-e2e-local.sh`) before tagging.
 - **Nightly:** every push to `main` runs `nightly.yml` — unit gate, then packs the MinVer
   prerelease versions and publishes them to nuget.org (prerelease) and GitHub Packages.
+- **The released version is the only one left listed.** After publishing, `release.yml` runs
+  [`scripts/unlist-old-versions.sh`](../scripts/unlist-old-versions.sh), which unlists every older
+  version of each package it just pushed — previous stables and the nightly prereleases alike. A
+  nightly cadence puts hundreds of `-alpha` versions on the gallery between releases (`Rask.Server`
+  reached 478 versions, only 23 of them stable), and a version list nobody would install is noise on
+  every package page.
+
+  **Unlisting is not deletion.** nuget.org gives an owner no way to delete a published version, by
+  design, so an unlisted version still restores by exact reference and a pinned `PackageReference`
+  keeps building — it is removed from search and the gallery, not from the feed.
+
+  Two deliberate limits. The step is `continue-on-error` and every path in the script exits 0: the
+  packages are already pushed by the time it runs, and a tidy-up must never red a released tag. And it
+  spends a budget of ~240 calls then stops, because nuget.org rate-limits unlisting to roughly 250
+  before a 403 whose retry-after runs to tens of minutes — the remainder is picked up by the next
+  release, which supersedes it anyway. The key in `NUGET_API_KEY` needs the **Unlist** scope; a
+  push-only key makes the step a no-op with a warning.
+
+  Which versions are superseded is decided by
+  [`scripts/lib/unlist_select.py`](../scripts/lib/unlist_select.py) under real semver ordering, table-
+  tested in `scripts/tests/unlist-old-versions.test.sh`. Two rules there are load-bearing: nothing
+  **newer** than the released version is ever touched, and a **prerelease never retires a stable**
+  (by semver `0.21.0` is older than `0.21.1-alpha.0.1`, so without that rule a prerelease tag would
+  unlist the current release).
+
+  Candidates come from [`scripts/lib/listed_versions.py`](../scripts/lib/listed_versions.py), which reads
+  the **registration** index, not the obvious `v3-flatcontainer/<id>/index.json`. Flat-container reports
+  every version ever pushed, unlisted ones included — `rask.native` has all 209 of its versions unlisted
+  and flat-container still returns all 209 — so selecting from it would spend the entire quota budget
+  re-unlisting finished work and never reach the rest of the backlog. Only the registration index carries
+  `listed` per version, and a missing `listed` field means listed.
 
 ## CI
 
