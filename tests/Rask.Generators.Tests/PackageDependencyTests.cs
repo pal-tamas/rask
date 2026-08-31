@@ -208,6 +208,40 @@ public class PackageDependencyTests
         Assert.True(packsBuild, "Rask.csproj does not pack build\\** — the props would never reach a consumer");
     }
 
+    [Fact]
+    public void Exactly_one_package_ships_the_batteries_analyzer()
+    {
+        // Rask.Batteries.Generators holds the CQRS, jobs and outbox generators in ONE assembly, so unlike
+        // the days of three separate analyzer DLLs it must be packed from exactly one package. Analyzers
+        // reach a consumer once per package that carries them, and the same generator on the analyzer path
+        // twice emits every registry type twice: CS0101 "already contains a definition for
+        // '__RaskJobsRegistry'" in the CONSUMER's build, from a file they never wrote. Verified against
+        // real packages — an app referencing Rask.Cqrs + Rask.Jobs + Rask.Outbox builds clean with one
+        // copy and fails with six errors the moment a second package ships it.
+        //
+        // Rask.Cqrs is the one that ships it because Rask.Jobs and Rask.Outbox both depend on it, so the
+        // analyzer still reaches an app that references only one of them. Moving the payload to either of
+        // those would leave the other's consumers with no generator at all — which does NOT fail the
+        // build: it compiles clean and dead-letters the first job or outbox event at runtime.
+        const string analyzerDll = "Rask.Batteries.Generators.dll";
+
+        var shippers = SourceProjects()
+            .Where(p => IsPackable(p.Value))
+            .Where(p => XDocument.Load(p.Value)
+                .Descendants("None")
+                .Any(n =>
+                    (n.Attribute("Include")?.Value ?? "").EndsWith(analyzerDll, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(n.Attribute("Pack")?.Value, "true", StringComparison.OrdinalIgnoreCase)))
+            .Select(p => p.Key)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            shippers is ["Rask.Cqrs"],
+            $"{analyzerDll} must be packed by Rask.Cqrs and nothing else, but is packed by: "
+            + (shippers.Count == 0 ? "(nothing)" : string.Join(", ", shippers)));
+    }
+
     private static Dictionary<string, string> SourceProjects() =>
         Directory
             .GetFiles(Path.Combine(RepoRoot(), "src"), "*.csproj", SearchOption.AllDirectories)
@@ -235,7 +269,7 @@ public class PackageDependencyTests
         //
         // Scoped to lib/ deliberately. A DLL packed to analyzers/dotnet/cs is loaded by the compiler, never
         // referenced by user code, so it has no API surface a consumer's IDE could show docs for — the
-        // generator packages (Rask.Cqrs.Generators, Rask.Jobs.Generators, Rask.Outbox.Generators) ship
+        // generator packages (Rask.Generators, Rask.Batteries.Generators) ship
         // without an .xml on purpose, and demanding one there would be noise, not a guard.
         var offenders = new List<string>();
 
