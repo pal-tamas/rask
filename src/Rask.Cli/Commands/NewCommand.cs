@@ -275,7 +275,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(
                         dir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version, batteries),
-                    "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(dir, name, batteries, version),
                     _ => ProjectGenerator.GenerateServer(dir, name, batteries, version),
                 };
             },

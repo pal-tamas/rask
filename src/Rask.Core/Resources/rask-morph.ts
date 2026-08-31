@@ -559,6 +559,23 @@ export function morph(fromNode: Node, toNode: Node): void {
             }
         }
     }
+    // This subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.External).
+    // Attributes above still sync, which is exactly how a changed `props` reaches the adapter; the
+    // children never do. Pairing them would let a full-document morph (scoped-CSS delivery, reconnect,
+    // any untrusted structural op) delete DOM that renderer owns and is about to reuse.
+    //
+    // The two sides genuinely disagree here, permanently and by design, which is why this cannot be
+    // softened into a smarter walk. `from` holds whatever the framework rendered; `to` holds the
+    // server's idea of it — an empty element, or one still carrying the <template data-rask-slot>
+    // children the client lifted out and deleted at mount. A positional walk would trim every mounted
+    // node, and re-inserting the templates would hand the adapter its slot content a second time.
+    //
+    // Distinct from data-rask-managed, which skips a node as a sibling; this one keeps the node and
+    // stops at its border.
+    if (from.hasAttribute && (from.hasAttribute("data-rask-opaque") || to.hasAttribute("data-rask-opaque"))) {
+        return;
+    }
+
     // Reconciling the live <head>: before pairing children, tag anything a third-party library injected
     // (see the note above _raskHeadObserver) as data-rask-managed so the skip below preserves it. The
     // observer is installed lazily on the first head morph — library injections happen after boot.

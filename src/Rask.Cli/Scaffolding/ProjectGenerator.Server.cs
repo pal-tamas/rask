@@ -248,7 +248,7 @@ internal static partial class ProjectGenerator
             // Configured on the EXISTING AddRask call rather than a second one. A second
             // AddRask(configureCulture: ...) compiles and reads correctly, but the options are
             // registered with TryAddSingleton, so the first (empty) registration wins and the app
-            // silently ships with no languages at all. RASK056 now reports that in the reader's own
+            // silently ships with no languages at all. RASK060 now reports that in the reader's own
             // code; this comment is why the scaffold never emits it in the first place.
             var languages = string.Join(", ", batteries.Cultures.Select(c => $"\"{c}\""));
             // Configured on the SAME call for the same reason the cultures are: the options are

@@ -16,7 +16,7 @@ namespace Rask.Server.Tests.Endpoints;
 //
 // Serialised: RaskDiagnostics.Sink is process-global, and two tests swapping it concurrently lose it
 // entirely — an empty collection rather than a slow one.
-[Collection(RaskDiagnosticsSinkCollection.Name)]
+[Collection("DiagnosticsSink")]
 public class StaticPageAuditTests
 {
     [Fact]

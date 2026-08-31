@@ -72,7 +72,10 @@
     <_RaskNodeFixture Include="Live\*Fixture.ts"/>
   </ItemGroup>
 
-  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" Inputs="@(_RaskNodeFixture);@(_RaskNodeFixtureDependency)"
+  <!-- DependsOnTargets: see PackagingContractTests.Every_generated_task_call_site_waits_for_the_reference_that_produces_it.
+       Inert at AfterTargets="Build", stated so the invariant holds without an exemption (#878). -->
+  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
+          Inputs="@(_RaskNodeFixture);@(_RaskNodeFixtureDependency)"
           Outputs="@(_RaskNodeFixture->'$(OutDir)node-fixtures/%(Filename).mjs')">
     <ResolveTypeScriptToolTask Tool="esbuild"
                                Version="$(RaskEsbuildVersion)"

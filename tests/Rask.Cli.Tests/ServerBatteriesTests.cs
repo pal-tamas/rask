@@ -120,18 +120,6 @@ public sealed class ServerBatteriesTests
         Assert.False(batteries.Localization);
     }
 
-    [Fact]
-    public void Wasm_hosted_gets_everything_but_push()
-    {
-        // Web Push needs the subscribe endpoints AND a service worker that posts to them, and here those
-        // live in two different projects.
-        _ = TemplateCatalog.TryGet("wasm-hosted", out var hosted);
-        var batteries = NewCommand.ToBatteries(hosted, []);
-
-        Assert.True(batteries.Data);
-        Assert.True(batteries.Ops);
-        Assert.False(batteries.Push);
-    }
 
     public static TheoryData<string> EveryDbBattery =>
         ["jobs", "mail", "cache", "outbox", "snapshots", "ops"];

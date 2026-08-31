@@ -46,3 +46,26 @@ interface Window {
      */
     Rask: Record<string, Record<string, (...args: never[]) => unknown> | undefined>;
 }
+
+/**
+ * The dispatch bridge a separately-loaded Rask package reaches the running host through.
+ *
+ * Distinct from `rask-host.ts`'s `setHost`, and both are needed. That one is an INTRA-BUNDLE
+ * contract: a shared module imports `send` and the bundler resolves it. `Rask.External` is a
+ * separately published package the browser fetches from its own URL as its own module graph, so it
+ * has no import path to that binding at all — a global is the only seam that crosses.
+ *
+ * On `globalThis` rather than `interface Window` because that is where the hosts install it, and a
+ * `Window` member would not satisfy `globalThis.__raskHost` for the type checker.
+ */
+interface RaskHostBridge {
+    /**
+     * Ships an event payload to .NET — over the WebSocket on the Server host, through a `[JSExport]`
+     * call on WASM. Optional because it is installed at boot: a package that loads first can see the
+     * object before the host has filled it in, and calling too early is a real event going nowhere
+     * rather than something to type away.
+     */
+    send?(payload: unknown): void;
+}
+
+declare var __raskHost: RaskHostBridge | undefined;

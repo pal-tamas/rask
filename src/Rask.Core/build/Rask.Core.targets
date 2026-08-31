@@ -211,7 +211,15 @@
   <UsingTask TaskName="Rask.TypeScript.Tasks.ResolveTypeScriptToolTask"
              AssemblyFile="$(MSBuildThisFileDirectory)Rask.TypeScript.Tasks.dll"/>
 
+  <!--
+    DependsOnTargets="ResolveProjectReferences" is inert here today and deliberately kept anyway.
+    _RaskCompileScopedTs, the only caller, hangs off CoreCompile, by which point references have long
+    resolved. But the DLL this task lives in is produced BY that reference edge in-repo, so the day
+    someone moves the scoped-TS compile earlier this would fail with MSB4062 and no hint why (#878).
+    Stating the dependency makes the ordering a fact of the target rather than of its caller.
+  -->
   <Target Name="_RaskResolveTsgo"
+          DependsOnTargets="ResolveProjectReferences"
           Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' ">
     <ResolveTypeScriptToolTask Tool="tsgo"
                                Version="$(RaskTsgoVersion)"

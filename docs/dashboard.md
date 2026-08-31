@@ -23,9 +23,9 @@ builder.Services.AddAuthorization(o =>
 ## Where it can run
 
 The dashboard is server-rendered and reads your database directly, so it lives wherever your ASP.NET host
-does — the `server` template, and the `wasm-hosted` template's `.Server` project.
+does — the `server` template, and the `.Server` project of a client-plus-host solution.
 
-On `wasm-hosted` the host normally runs no components at all: it serves a WASM bundle and an API. Mounting
+In that shape the host normally runs no components at all: it serves a WASM bundle and an API. Mounting
 the dashboard gives it exactly one server-rendered route chain, scoped so the client keeps everything else:
 
 ```csharp
@@ -38,7 +38,7 @@ app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");   // the dashboard, se
 app.UseRaskWasmHost();                                      // the SPA, everywhere else
 ```
 
-`rask new --template wasm-hosted` writes all of it, including the database the panels read.
+`rask new --ops` writes all of it on a server app, including the database the panels read.
 
 Two details are worth knowing if you assemble this by hand. The calls are spelled `AddRaskServer` /
 `AddRaskWasmHost` rather than `AddRask` because **both** packages declare an `AddRask` on

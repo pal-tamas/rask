@@ -1,15 +1,17 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Xunit;
 
-namespace Rask.Core.Tests.Live;
+namespace Rask.TestSupport;
 
 /// <summary>
-///     Runs one of the <c>Live/*Fixture.ts</c> harnesses in a Node subprocess and returns the single
-///     JSON line it prints.
+///     Runs one of a test project's <c>*Fixture.ts</c> harnesses in a Node subprocess and returns the
+///     single JSON line it prints.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Each fixture drives a real framework module — the morph, the diff codec — against a stub
+///         Each fixture drives a real shipped module — the morph, the diff codec, the external-component
+///         client runtime — against a stub
 ///         DOM, in states a browser only reaches through genuine user interaction. The module arrives
 ///         by <c>import</c>, and MSBuild bundles the fixture into <c>node-fixtures/</c> beside this
 ///         assembly during the build, so a fixture that no longer compiles fails the build rather
@@ -24,7 +26,7 @@ namespace Rask.Core.Tests.Live;
 ///         <c>export</c>s.
 ///     </para>
 /// </remarks>
-internal static class NodeFixture
+public static class NodeFixture
 {
     /// <summary>
     ///     Runs <paramref name="name" /> and parses its JSON line, or returns <c>null</c> when Node is
@@ -47,8 +49,8 @@ internal static class NodeFixture
         var script = Path.Combine(AppContext.BaseDirectory, "node-fixtures", name + ".mjs");
         Assert.True(
             File.Exists(script),
-            $"'{script}' is missing. It is bundled from Live/{name}.ts by _RaskBundleNodeFixtures — "
-            + "build Rask.Core.Tests.");
+            $"'{script}' is missing. It is bundled from {name}.ts by the _RaskBundleNodeFixtures target — "
+            + "build the test project first.");
 
         var psi = new ProcessStartInfo(node, $"\"{script}\"")
         {

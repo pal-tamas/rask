@@ -79,6 +79,14 @@ jobs:
           cp -r "$LANDING"/. "$SITE"/                 # marketing landing app at the root
           cp -r "$DOCS" "$SITE/docs"
           cp -r "$PLAYGROUND" "$SITE/playground"
+          # The installers every doc advertises: https://<site>/rask.sh and /rask.ps1. They live at
+          # the repo root as the single source of truth and are published from there rather than
+          # duplicated into the landing app's wwwroot, so there is exactly one copy to review, test
+          # and keep in step with the docs. scripts/tests/install-script.test.sh asserts these two
+          # lines exist — without them every documented install command 404s while the rest of the
+          # suite stays green.
+          cp rask.sh "$SITE/rask.sh"
+          cp rask.ps1 "$SITE/rask.ps1"
           # GitHub Pages serves /404.html for any unknown path; boot the docs SPA (its <base href> is
           # /<repo>/docs/, so it client-routes correctly) as the deep-link fallback — the landing page
           # itself is a single route, so it needs none.

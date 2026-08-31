@@ -149,6 +149,10 @@
        automatically from the package's build/ folder. -->
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Spa.Hosting\build\Rask.Spa.Hosting.props"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Spa.Hosting\build\Rask.Spa.Hosting.props') "/>
+  <!-- Same reasoning: knobs only. The island targets gate their own work on the project having a
+       package.json, so this is inert in every project that has no front-end file. -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.External\build\Rask.External.props"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.External\build\Rask.External.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props"
           Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"

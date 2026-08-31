@@ -256,23 +256,33 @@ public sealed class PackagingContractTests
     public void A_generated_task_assembly_is_registered_unconditionally(string package, string dll)
     {
         var targets = Path.Combine(_repoRoot, "src", package, "build", $"{package}.targets");
-        var declaration = XDocument.Load(targets).Descendants("UsingTask")
-            .SingleOrDefault(e => (e.Attribute("AssemblyFile")?.Value ?? string.Empty)
-                .EndsWith(dll, StringComparison.Ordinal));
 
-        Assert.True(declaration is not null, $"build/{package}.targets no longer declares a UsingTask for {dll}.");
+        // Every declaration, not one: an assembly may expose several tasks, and the rule is about each
+        // registration rather than about there being exactly one. Asserting a single element instead
+        // made adding a second task to an existing assembly fail with "Sequence contains more than one
+        // matching element", which says nothing about the contract being checked.
+        var declarations = XDocument.Load(targets).Descendants("UsingTask")
+            .Where(e => (e.Attribute("AssemblyFile")?.Value ?? string.Empty)
+                .EndsWith(dll, StringComparison.Ordinal))
+            .ToList();
 
-        // A condition on a PROPERTY is fine — $(RaskWasm) is known at evaluation and says nothing about
-        // what is on disk. What must not appear is a test of the DLL itself.
-        var condition = declaration!.Attribute("Condition")?.Value ?? string.Empty;
+        Assert.True(declarations.Count > 0, $"build/{package}.targets no longer declares a UsingTask for {dll}.");
 
-        Assert.False(
-            condition.Contains("Exists(", StringComparison.Ordinal),
-            $"build/{package}.targets gates its UsingTask for {dll} on the file existing. That is "
-            + "evaluated before the build-order edge that produces the DLL, so on a clean checkout the "
-            + "task is never registered and the first project to use it fails with MSB4036 — while any "
-            + "tree that has already built passes, which is what makes it invisible locally. Register "
-            + "it unconditionally; an AssemblyFile UsingTask loads lazily.");
+        foreach (var declaration in declarations)
+        {
+            // A condition on a PROPERTY is fine — $(RaskWasm) is known at evaluation and says nothing
+            // about what is on disk. What must not appear is a test of the DLL itself.
+            var condition = declaration.Attribute("Condition")?.Value ?? string.Empty;
+            var task = declaration.Attribute("TaskName")?.Value ?? "(unnamed)";
+
+            Assert.False(
+                condition.Contains("Exists(", StringComparison.Ordinal),
+                $"build/{package}.targets gates its UsingTask for {task} ({dll}) on the file existing. "
+                + "That is evaluated before the build-order edge that produces the DLL, so on a clean "
+                + "checkout the task is never registered and the first project to use it fails with "
+                + "MSB4036 — while any tree that has already built passes, which is what makes it "
+                + "invisible locally. Register it unconditionally; an AssemblyFile UsingTask loads lazily.");
+        }
     }
 
     [Fact]
@@ -436,6 +446,235 @@ public sealed class PackagingContractTests
                 $"{assembly}.dll is packed into analyzers/dotnet/cs/ by every host package, but "
                 + "_RaskDeduplicateAnalyzers in Rask.Core.targets does not name it — an app referencing "
                 + "two host packages will load it twice and fail to compile with CS0101.");
+        }
+    }
+
+    /// <summary>
+    ///     Every target that invokes a task loaded from a generated <c>*.Tasks.dll</c> must first wait for
+    ///     the project references that produce it.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Four packages register an MSBuild task from an assembly sitting next to their own
+    ///         <c>.targets</c>: <c>Rask.TypeScript.Tasks.dll</c>, <c>Rask.Tailwind.Tasks.dll</c>,
+    ///         <c>Rask.Wasm.Tasks.dll</c>, <c>Rask.Spa.Tasks.dll</c>. Every one is gitignored and
+    ///         generated — copied there by a <c>CopyTaskAssemblyTo...</c> target on a
+    ///         <c>ReferenceOutputAssembly="false"</c> project reference, an edge honoured at
+    ///         <c>ResolveProjectReferences</c>. A target that runs before that edge — anything hanging off
+    ///         <c>PrepareForBuild</c> or <c>BeforeBuild</c>, both ahead of <c>CoreBuild</c> — invokes a task
+    ///         whose assembly nothing has produced yet and dies with <c>MSB4062</c> naming a file the author
+    ///         has never heard of.
+    ///     </para>
+    ///     <para>
+    ///         Not hypothetical: it took <c>main</c> red for <c>pages</c> and <c>nightly</c>, and with them
+    ///         the docs deploy and the nightly prerelease (#878). It hid because the DLL is generated — a
+    ///         tree that has already built has it on disk, and the <i>failed</i> build leaves it behind, so
+    ///         re-running the identical command passes. Solution builds order the task project first, so
+    ///         every local gate was green; only a single-project <c>dotnet publish</c> from a clean tree
+    ///         could see it.
+    ///     </para>
+    ///     <para>
+    ///         The guarded task names are <i>derived</i> from the <c>UsingTask</c> declarations rather than
+    ///         listed, and the scan covers the whole repository rather than <c>src/</c>, because both of
+    ///         those shortcuts rot — a fifth task package, or a bundle target added to a sample, would sit
+    ///         outside a hand-written list and the guard would stay green while the build broke. The
+    ///         requirement is satisfied by <c>ResolveProjectReferences</c> or by <c>ResolveReferences</c>,
+    ///         which depends on it; <c>_RaskBakeScopedStaticWebAssets</c> already used the latter.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void Every_generated_task_call_site_waits_for_the_reference_that_produces_it()
+    {
+        var buildFiles = EnumerateBuildFiles().ToList();
+
+        // Task names come from the UsingTask declarations that load an assembly sitting next to the
+        // .targets file — the shape every generated task DLL in this repo uses.
+        var guarded = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var doc in buildFiles.Select(TryLoad).OfType<XDocument>())
+        {
+            foreach (var usingTask in doc.Descendants().Where(e => e.Name.LocalName == "UsingTask"))
+            {
+                var assemblyFile = usingTask.Attribute("AssemblyFile")?.Value ?? string.Empty;
+                var taskName = usingTask.Attribute("TaskName")?.Value ?? string.Empty;
+
+                if (assemblyFile.Contains("MSBuildThisFileDirectory", StringComparison.Ordinal)
+                    && assemblyFile.EndsWith(".Tasks.dll", StringComparison.Ordinal)
+                    && taskName.Length > 0)
+                {
+                    // <UsingTask TaskName="Ns.Sub.TheTask"/> is invoked in a target as <TheTask/>.
+                    guarded.Add(taskName[(taskName.LastIndexOf('.') + 1)..]);
+                }
+            }
+        }
+
+        Assert.True(guarded.Count >= 4, $"expected at least 4 generated task DLLs, found {guarded.Count}");
+
+        var callSites = 0;
+
+        foreach (var file in buildFiles)
+        {
+            if (TryLoad(file) is not { } doc)
+            {
+                continue;
+            }
+
+            foreach (var target in doc.Descendants().Where(e => e.Name.LocalName == "Target"))
+            {
+                var invoked = target.Descendants()
+                    .Select(e => e.Name.LocalName)
+                    .Where(guarded.Contains)
+                    .ToList();
+
+                if (invoked.Count == 0)
+                {
+                    continue;
+                }
+
+                callSites++;
+
+                var name = target.Attribute("Name")?.Value ?? "(unnamed)";
+                var dependsOn = target.Attribute("DependsOnTargets")?.Value ?? string.Empty;
+
+                Assert.True(
+                    dependsOn.Contains("ResolveProjectReferences", StringComparison.Ordinal)
+                    || dependsOn.Contains("ResolveReferences", StringComparison.Ordinal),
+                    $"{Path.GetFileName(file)}: target '{name}' invokes {invoked[0]} without waiting for "
+                    + "ResolveProjectReferences (or ResolveReferences, which depends on it). That task's "
+                    + "assembly is a generated *.Tasks.dll produced by exactly that reference edge, so on a "
+                    + "tree that has not built before the build dies with MSB4062 naming a file nobody "
+                    + "wrote (#878).");
+            }
+        }
+
+        // A rule that matches nothing passes vacuously, so the floor is the count as it stands. If this
+        // trips, ask why the number moved before lowering it — a scan that has stopped finding files
+        // looks exactly like a codebase that has stopped needing the guard.
+        Assert.True(callSites >= 12, $"expected at least 12 generated-task call sites, found {callSites}");
+    }
+
+    /// <summary>Every MSBuild file in the repo that is ours, skipping build output and nested worktrees.</summary>
+    [Fact]
+    public void Razor_SDK_packages_that_ship_their_own_build_props_disable_the_generated_one()
+    {
+        // The Static Web Assets SDK auto-generates build/<PackageId>.props to import its wiring. A
+        // project that ALSO hand-writes that file has two producers for one package path: the SDK's
+        // is packed first and the hand-written one is dropped with NU5118, so the package ships a
+        // ~160-byte import shim where the real props should be. Every consumer-facing property the
+        // .targets stands on silently vanishes.
+        //
+        // Nothing else in the repo can see this. In-repo builds import the real file straight off
+        // disk via Directory.Build.props, so build, unit and E2E all pass; only `dotnet pack`
+        // notices, and only the nightly/release workflows pack. Rask.Bootstrap hit it first,
+        // Rask.External repeated it. Hence a contract, not a comment.
+        var offenders = new List<string>();
+
+        foreach (var csproj in Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories))
+        {
+            var doc = TryLoad(csproj);
+            if (doc?.Root is null)
+                continue;
+
+            var sdk = doc.Root.Attribute("Sdk")?.Value;
+            if (sdk is null || !sdk.Contains("Razor", StringComparison.Ordinal))
+                continue;
+
+            var dir = Path.GetDirectoryName(csproj)!;
+            var packageId = doc.Root.Descendants("PackageId").FirstOrDefault()?.Value
+                            ?? Path.GetFileNameWithoutExtension(csproj);
+
+            // Only a project that hand-writes the file has a collision to avoid.
+            if (!File.Exists(Path.Combine(dir, "build", $"{packageId}.props")))
+                continue;
+
+            var disabled = doc.Root
+                .Descendants("StaticWebAssetsDisableProjectBuildPropsFileGeneration")
+                .Any(e => string.Equals(e.Value.Trim(), "true", StringComparison.OrdinalIgnoreCase));
+
+            if (!disabled)
+                offenders.Add($"{packageId} hand-writes build/{packageId}.props but does not set "
+                              + "StaticWebAssetsDisableProjectBuildPropsFileGeneration, so pack drops it "
+                              + "for the SDK-generated shim (NU5118).");
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
+    public void Hand_written_build_props_import_the_static_web_asset_wiring_they_replaced()
+    {
+        // Disabling the generated props means taking over its job. The SDK still packs
+        // build/Microsoft.AspNetCore.StaticWebAssets*.props, but nothing imports them unless our file
+        // does - and without them a consumer gets no URL for the package's wwwroot assets, so every
+        // island fails to mount with a 404 that points nowhere near this file.
+        string[] required =
+        [
+            "Microsoft.AspNetCore.StaticWebAssets.props",
+            "Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+        ];
+
+        var offenders = new List<string>();
+
+        foreach (var csproj in Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories))
+        {
+            var doc = TryLoad(csproj);
+            if (doc?.Root is null)
+                continue;
+
+            var disabled = doc.Root
+                .Descendants("StaticWebAssetsDisableProjectBuildPropsFileGeneration")
+                .Any(e => string.Equals(e.Value.Trim(), "true", StringComparison.OrdinalIgnoreCase));
+
+            if (!disabled)
+                continue;
+
+            var dir = Path.GetDirectoryName(csproj)!;
+            var packageId = doc.Root.Descendants("PackageId").FirstOrDefault()?.Value
+                            ?? Path.GetFileNameWithoutExtension(csproj);
+            var props = Path.Combine(dir, "build", $"{packageId}.props");
+
+            if (!File.Exists(props))
+            {
+                offenders.Add($"{packageId} disables the generated build props but ships no build/{packageId}.props to replace it.");
+                continue;
+            }
+
+            var text = File.ReadAllText(props);
+
+            foreach (var import in required)
+            {
+                if (!text.Contains(import, StringComparison.Ordinal))
+                    offenders.Add($"{packageId}: build/{packageId}.props does not import {import}, so consumers get no static web assets.");
+            }
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    private static IEnumerable<string> EnumerateBuildFiles()
+    {
+        string[] skip = ["obj", "bin", "node_modules", ".git", ".claude", "artifacts"];
+
+        return Directory
+            .EnumerateFiles(_repoRoot, "*", SearchOption.AllDirectories)
+            .Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)
+                        || f.EndsWith(".targets", StringComparison.Ordinal)
+                        || f.EndsWith(".props", StringComparison.Ordinal))
+            .Where(f => !Path.GetRelativePath(_repoRoot, f)
+                .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .Any(segment => skip.Contains(segment, StringComparer.Ordinal)))
+            .OrderBy(f => f, StringComparer.Ordinal);
+    }
+
+    private static XDocument? TryLoad(string file)
+    {
+        try
+        {
+            return XDocument.Load(file);
+        }
+        catch (System.Xml.XmlException)
+        {
+            return null;   // not every MSBuild-shaped file in the tree is ours to parse
         }
     }
 }

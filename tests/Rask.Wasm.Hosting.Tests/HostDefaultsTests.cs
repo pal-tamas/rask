@@ -121,12 +121,12 @@ public class HostDefaultsTests : IDisposable
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
         services.AddSingleton<IHostEnvironment>(new TestEnvironment());
 
-        // The double call is the subject of the test, so RASK056 — which reports exactly this shape, and
+        // The double call is the subject of the test, so RASK060 — which reports exactly this shape, and
         // did report it here — is suppressed for the two lines that mean to do it.
-#pragma warning disable RASK056
+#pragma warning disable RASK060
         services.AddRask();
         services.AddRask();
-#pragma warning restore RASK056
+#pragma warning restore RASK060
 
         Assert.Single(
             services,

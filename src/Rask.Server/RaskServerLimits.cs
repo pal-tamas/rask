@@ -34,6 +34,16 @@ internal sealed class RaskServerLimits
     public bool StaticPages { get; init; }
 
     /// <summary>
+    ///     Whether any page may become live over a WebSocket. See
+    ///     <see cref="RaskRenderModes.ServerInteractivity" />.
+    /// </summary>
+    /// <remarks>
+    ///     Off means every page is a document and the socket endpoint is unreachable — not "prefer
+    ///     static", which is <see cref="StaticPages" />.
+    /// </remarks>
+    public bool ServerInteractivity { get; init; } = true;
+
+    /// <summary>
     ///     Root-relative URL of the browser bundle's boot module, or <c>null</c> when the browser rung
     ///     is off. See <see cref="RaskRenderModes.Wasm" />.
     /// </summary>
@@ -74,6 +84,7 @@ internal sealed class RaskServerLimits
         UnconnectedSessionGracePeriod = o.UnconnectedSessionGracePeriod,
         InitialRenderQuiescenceTimeout = o.RenderModes.QuiescenceTimeout,
         StaticPages = o.RenderModes.Static,
+        ServerInteractivity = o.RenderModes.ServerInteractivity,
         WasmBundleUrl = o.RenderModes.Wasm ? o.RenderModes.WasmBundle : null,
         IdleSocketTimeout = o.IdleSocketTimeout,
         HandlerTimeout = o.HandlerTimeout,

@@ -286,6 +286,33 @@ public sealed class LiveRenderContext : IDisposable
         component.CaptureHandlerRun(_root);
 
     /// <summary>
+    ///     Registers a handler whose slot belongs to <paramref name="owner" /> rather than to the
+    ///     component currently being serialized.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         For a component that writes its own handler references into its markup instead of
+    ///         letting the serializer emit <c>data-rask-on-*</c> — an external component's callback
+    ///         props (see <c>Rask.External</c>). Those are numbered against the component that
+    ///         DECLARED them, so two of them under one parent cannot renumber each other, which is
+    ///         what the client's function-identity cache depends on.
+    ///     </para>
+    ///     <para>
+    ///         It has to go through here rather than through <c>owner.RegisterHandler(handler)</c>,
+    ///         and the difference is not cosmetic: that overload treats its receiver as the render
+    ///         ROOT, so calling it on the owner puts the handler in the OWNER's map and restarts the
+    ///         id sequence at zero. The dispatcher only ever looks in the root's map, so the callback
+    ///         resolves to nothing and silently never fires — while its id collides with whatever the
+    ///         root numbered first.
+    ///     </para>
+    /// </remarks>
+    internal string RegisterHandlerFor(Component owner, Delegate handler)
+    {
+        _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
+        return _root.RegisterHandler(handler, owner);
+    }
+
+    /// <summary>
     ///     Record that something in this render needs a live connection. Forwarded to the handle,
     ///     which outlives the walk; see <c>IRenderHandle.ReportRequiresLiveSession</c>.
     /// </summary>

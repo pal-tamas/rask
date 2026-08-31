@@ -85,7 +85,7 @@
     Format is iife, not esm: the runtime is delivered by a plain `<script src>` that Rask writes into
     the shell, and a module script would defer past the first frame.
   -->
-  <Target Name="_RaskBundleClientJs" BeforeTargets="PrepareForBuild"
+  <Target Name="_RaskBundleClientJs" BeforeTargets="PrepareForBuild" DependsOnTargets="ResolveProjectReferences"
           Inputs="@(_RaskServerClientTs)"
           Outputs="$(IntermediateOutputPath)rask.js">
     <ResolveTypeScriptToolTask Tool="esbuild"
@@ -120,7 +120,7 @@
     Format is iife, not esm: the worker is registered classically, and an ES-module worker would need
     `{type:"module"}` at every registration site — including ones in consumers' own code.
   -->
-  <Target Name="_RaskBundleServiceWorker" BeforeTargets="PrepareForBuild"
+  <Target Name="_RaskBundleServiceWorker" BeforeTargets="PrepareForBuild" DependsOnTargets="ResolveProjectReferences"
           Inputs="@(_RaskServerSwTs)"
           Outputs="$(IntermediateOutputPath)rask-sw.js">
     <ResolveTypeScriptToolTask Tool="esbuild"

@@ -43,7 +43,7 @@ updates over a WebSocket, or fully client-side on WebAssembly as an installable 
 An empty folder to a live, HTTPS, database-backed product, by one person in one sitting:
 
 ```bash
-dotnet tool install -g Rask.Cli
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh   # the CLI, and everything it shells out to
 
 rask new Shop --auth                                      # scaffold: the whole stack + a cookie login
 # …write a Products slice — docs/tutorial/02-first-feature.md has the code
@@ -55,8 +55,11 @@ rask deploy --host root@box --domain shop.example.com      # ship it: bare box �
 Every step is a first-party command, and every stateful pillar it touches — auth, jobs, mail, cache,
 events — rides the app's own SQLite database. Run `rask` with no arguments for a wizard.
 
-> **Prerequisites:** the .NET 10 SDK (`dotnet --version` ≥ `10.0`) and the `wasm-tools` workload for
-> anything that builds a browser bundle — the WASM templates, and `--wasm` on a server app.
+> **Prerequisites: none.** The installer adds whatever is missing — the .NET 10 SDK, the
+> `wasm-tools` workload that browser bundles need, Node for the SPA templates — all under `$HOME`,
+> no `sudo`. On Windows: `irm https://pal-tamas.github.io/rask/rask.ps1 | iex`. Already have the
+> .NET 10 SDK and want only the tool? `dotnet tool install -g Rask.Cli`. Options, install locations
+> and uninstall: [docs/installation.md](docs/installation.md).
 
 Want the pages to run in the browser too? `rask new Shop --wasm` publishes a WebAssembly bundle from
 that same project, and a page that can run client-side moves there once it has downloaded — no second
@@ -68,6 +71,14 @@ front end's TypeScript generated from your C# message records on every build —
 `await rask.dispatch(getOrder({ id }))` is typed, and renaming a property breaks the build rather
 than the wire. The client is a **TypeScript** SPA — React, Preact, Vue, Angular, Solid, Svelte or Lit, but not JavaScript, since
 every guarantee here is one a compiler makes. See [docs/spa.md](docs/spa.md). (Needs Node.js.)
+
+Want React *inside* a Rask app rather than instead of one? Derive a component from `ReactComponent`
+and drop a `Chart.tsx` beside it — it becomes an ordinary component you place anywhere the chain goes,
+a leaf in a card or a whole route. Props are declared in C# and checked in both directions, callbacks
+re-enter C# over the channel every handler already uses, and the live diff leaves the subtree alone
+because its own renderer owns it. `LitComponent` pairs with a `.ts` the same way. Rename a C# property
+and the front end stops compiling. Needs Node, because your React does. See
+[docs/external-components.md](docs/external-components.md).
 
 ## Packages
 
@@ -81,6 +92,7 @@ trim/AOT-safe.
 | `Rask.Wasm` | [![Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm) | Browser-WebAssembly host — the same components client-side, installable as an offline PWA |
 | `Rask.Wasm.Hosting` | [![Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Wasm.Hosting) | Serves a published WASM bundle from an ASP.NET host |
 | `Rask.Spa.Hosting` | [![Rask.Spa.Hosting](https://img.shields.io/nuget/v/Rask.Spa.Hosting.svg?label=%20)](https://www.nuget.org/packages/Rask.Spa.Hosting) | Serves a built TypeScript SPA, and generates its TypeScript from your C# contracts |
+| `Rask.External` | [![Rask.External](https://img.shields.io/nuget/v/Rask.External.svg?label=%20)](https://www.nuget.org/packages/Rask.External) | A `.tsx` or Lit file as an ordinary Rask component, with props owned by C# (needs Node) |
 | `Rask.Cli` | [![Rask.Cli](https://img.shields.io/nuget/v/Rask.Cli.svg?label=%20)](https://www.nuget.org/packages/Rask.Cli) | `new` · `dev` · `db` · `deploy` · `info` · `doctor` — the whole lifecycle, one tool |
 | `Rask.Testing` | [![Rask.Testing](https://img.shields.io/nuget/v/Rask.Testing.svg?label=%20)](https://www.nuget.org/packages/Rask.Testing) | Render a component in a unit test and assert on its HTML |
 | **Vertical-slice back end** | | |
@@ -146,7 +158,7 @@ transitively.
 | | |
 |---|---|
 | **[The .NET One Person Framework](docs/one-person-framework.md)** | The doctrine, the batteries, and why one server beats a rented stack |
-| **[Getting started](docs/getting-started.md)** · **[Tutorial: zero to deploy](docs/tutorial/00-overview.md)** | The UI end to end; then a whole product, one pillar per chapter |
+| **[Installing Rask](docs/installation.md)** · **[Getting started](docs/getting-started.md)** · **[Tutorial: zero to deploy](docs/tutorial/00-overview.md)** | The one-line installer; the UI end to end; then a whole product, one pillar per chapter |
 | **[Building components](docs/building-components.md)** · **[Elements & the DSL](docs/elements.md)** | How markup is written: naming a component and chaining onto it, and what the IDE offers at each step |
 | **[Composition](docs/composition.md)** · **[Lifecycle](docs/lifecycle.md)** · **[Routing](docs/routing.md)** · **[Forms](docs/forms.md)** | Context, callbacks, children; mount/update/dispose; URLs and the form pipeline |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup |

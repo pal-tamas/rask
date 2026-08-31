@@ -80,19 +80,6 @@ internal static class TemplateCatalog
         new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>(WebFlags, StringComparer.Ordinal),
             LocalizationIsOptIn),
-        // Same batteries as server, minus --push: Web Push needs the subscribe endpoints AND a service
-        // worker that posts to them, and in this template those live in two different projects. It is a
-        // real feature rather than a wiring gap, so it is left out rather than half-scaffolded.
-        //
-        // --cqrs means more here than on the server template: this is the one template with a server half
-        // to dispatch TO, so it wires remote dispatch across both projects rather than only registering the
-        // mediator. On 'wasm' there is no host in the solution, so the flag would name a destination that
-        // isn't there.
-        new("wasm-hosted", "Rask WASM + ASP.NET host",
-            new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags],
-                StringComparer.Ordinal),
-            LocalizationIsOptIn),
         // The TypeScript front-end templates, one per framework: a client on an ASP.NET host, talking to
         // it over generated TypeScript. CQRS is listed but never optional here — the wire IS the template,
         // so the generator forces it on and --no-cqrs is refused rather than silently ignored.

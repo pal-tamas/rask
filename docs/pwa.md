@@ -31,7 +31,6 @@ Start a new app with the **`--pwa`** option:
 
 ```bash
 rask new MyApp --template wasm                # standalone browser-WASM PWA (full offline)
-rask new MyApp --template wasm-hosted         # WASM PWA + ASP.NET host (full offline)
 rask new MyApp                                # installable + push-capable Server app (not offline)
 rask new MyApp --template react               # installable + push-capable TypeScript SPA (not offline)
 ```

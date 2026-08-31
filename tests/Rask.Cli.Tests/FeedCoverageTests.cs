@@ -32,17 +32,14 @@ public sealed class FeedCoverageTests
     private const string Version = "9.9.9";
 
     /// <summary>
-    ///     Every styling option, on every template that has one. Styling is the axis that decides which
-    ///     package the project references, so covering it is the point.
+    ///     Every template, in its only configuration. This used to loop the styling axis, which was the
+    ///     thing that decided which package a project referenced; there is no axis now, and Tailwind is
+    ///     not a package a project references at all — it ships inside the host package, so it is
+    ///     deliberately absent from the feed.
     /// </summary>
-    /// <remarks>
-    ///     Parameterised by template key only, with the stylings looped inside: <c>Styling</c> is internal,
-    ///     and a public xUnit theory parameter cannot expose it (CS0051).
-    /// </remarks>
     [Theory]
     [InlineData("server")]
     [InlineData("wasm")]
-    [InlineData("wasm-hosted")]
     public void Every_package_a_template_references_can_be_restored_from_the_local_feed(string template)
     {
         var batteries = new ServerBatteries();
@@ -51,7 +48,6 @@ public sealed class FeedCoverageTests
         {
             "wasm" => ProjectGenerator.GenerateWasm(
                 Root, "App", auth: false, pwa: false, docker: false, Version, batteries),
-            "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
             _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
         };
 
@@ -104,9 +100,6 @@ public sealed class FeedCoverageTests
 
         AssertFeedCovers(
             ProjectGenerator.GenerateServer(Root, "App", batteries, Version), "the server template with every battery");
-        AssertFeedCovers(
-            ProjectGenerator.GenerateWasmHosted(Root, "App", batteries with { Push = false }, Version),
-            "the wasm-hosted template with every battery");
     }
 
     /// <summary>Every front-end template, since each contributes the same host-side packages.</summary>

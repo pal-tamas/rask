@@ -7,7 +7,7 @@ using Rask.Generators.Analyzers;
 namespace Rask.Generators.Tests;
 
 /// <summary>
-///     RASK056 — a second <c>AddRask</c> on the same service collection discards its own options.
+///     RASK060 — a second <c>AddRask</c> on the same service collection discards its own options.
 /// </summary>
 /// <remarks>
 ///     The real <c>Rask.Server.AddRask</c> symbol is referenced via <c>BuildReferences()</c>, so the
@@ -46,7 +46,7 @@ public class DuplicateAddRaskAnalyzerTests
             builder.Services.AddRask(configureCulture: c => c.SupportedCultures.Add("hu"));
             """)));
 
-        Assert.Equal("RASK056", d.Id);
+        Assert.Equal("RASK060", d.Id);
         Assert.Contains("builder.Services", d.GetMessage(), StringComparison.Ordinal);
     }
 
@@ -154,6 +154,6 @@ public class DuplicateAddRaskAnalyzerTests
 
         var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(new DuplicateAddRaskAnalyzer());
         var all = await compilation.WithAnalyzers(analyzers).GetAnalyzerDiagnosticsAsync();
-        return all.Where(d => d.Id == "RASK056").ToImmutableArray();
+        return all.Where(d => d.Id == "RASK060").ToImmutableArray();
     }
 }

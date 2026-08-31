@@ -26,17 +26,14 @@ public class RenderModesTests
     }
 
     [Fact]
-    public void NoInteractivityAtAll_Throws()
+    public void NoInteractivityAtAll_IsPlainServerSideRendering()
     {
-        // A click would reach neither a server session nor a browser runtime.
+        // This used to throw, and the message told you to turn interactivity back on — the opposite of
+        // what an app serving only content is asking for. A page with a handler having nothing to
+        // answer it is a cost to REPORT, not a reason to refuse to start.
         var modes = new RaskRenderModes { ServerInteractivity = false };
 
-        var ex = Assert.Throws<InvalidOperationException>(modes.Validate);
-
-        // The message has to say what to do, not just what is wrong: this is read by someone whose
-        // app would not start.
-        Assert.Contains("no", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Turn one of them on", ex.Message);
+        Assert.Null(Record.Exception(modes.Validate));
     }
 
     [Fact]
@@ -68,10 +65,15 @@ public class RenderModesTests
     public void AHostConfiguredWithAContradiction_DoesNotStart()
     {
         // The end-to-end half: validation runs when the host is built, not merely when someone calls
-        // Validate by hand.
+        // Validate by hand. Turning the browser rung on with nowhere to fetch the bundle from is the
+        // contradiction now — no page could ever move into it, and nothing at runtime would say so.
         var ex = Record.Exception(() =>
             RaskTestHost.Create<RenderModesApp>(
-                configureServer: o => o.RenderModes.ServerInteractivity = false));
+                configureServer: o =>
+                {
+                    o.RenderModes.Wasm = true;
+                    o.RenderModes.WasmBundle = "  ";
+                }));
 
         Assert.IsType<InvalidOperationException>(ex);
     }

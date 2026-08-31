@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Rask.Generators.Analyzers;
 
-// RASK056 — warn when the same service collection is handed to AddRask twice. The second call builds a
+// RASK060 — warn when the same service collection is handed to AddRask twice. The second call builds a
 // fresh RaskCultureOptions, runs the caller's configureCulture over it, and then registers it with
 // TryAddSingleton — which keeps the FIRST registration. So the languages named in the second call are
 // discarded while the call itself compiles and reads correctly, and the app ships with no supported
@@ -29,7 +29,7 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
         ImmutableHashSet.Create(StringComparer.Ordinal, "Rask.Server", "Rask.Wasm.Hosting");
 
     private static readonly DiagnosticDescriptor Rask056 = new(
-        "RASK056",
+        "RASK060",
         "AddRask is called twice on the same service collection",
         "'{0}' is passed to AddRask more than once — the two calls do not merge, and which one wins "
         + "depends on the option; pass every option to a single AddRask call",
@@ -44,7 +44,7 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
         + "on over the empty catalog. The live and server options are plain singletons, so for those the "
         + "LAST call wins. Nothing fails either way: the call compiles and every service resolves. Pass "
         + "every option to one AddRask call instead.",
-        helpLinkUri: DiagnosticHelp.Link("RASK056"));
+        helpLinkUri: DiagnosticHelp.Link("RASK060"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(Rask056);

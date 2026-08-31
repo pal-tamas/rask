@@ -97,7 +97,7 @@ internal static partial class ProjectGenerator
 
         if (batteries.Data)
         {
-            files.Add(($"{NameToken}.Server/Features/Shared/AppDbContext.cs", WasmHostedServerDbContext(batteries)));
+            files.Add(($"{NameToken}.Server/Features/Shared/AppDbContext.cs", ServerProjectDbContext(batteries)));
         }
 
         if (batteries.Docker)
@@ -1034,6 +1034,19 @@ internal static partial class ProjectGenerator
 
         return steps.ToString();
     }
+
+    /// <summary>
+    ///     The app's <c>DbContext</c>, re-homed into the <c>.Server</c> project's namespace.
+    /// </summary>
+    /// <remarks>
+    ///     Every template that splits a client from an ASP.NET host needs this, which is why it sits
+    ///     beside the front-end generators rather than with any one of them.
+    /// </remarks>
+    private static string ServerProjectDbContext(ServerBatteries batteries) =>
+        AppDbContextCs(batteries).Replace(
+            $"namespace {NameToken}.Features.Shared;",
+            $"namespace {NameToken}.Server.Features.Shared;",
+            StringComparison.Ordinal);
 }
 
 /// <summary>

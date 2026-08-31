@@ -14,7 +14,7 @@ That is the whole setup — and there was no step you skipped. Styling is
 [not a choice `rask new` offers](cli.md#rask-new--scaffold-a-project): every project is a Tailwind
 project, with no flag to pass, nothing to turn on, and nothing to turn off.
 
-It works on every template. On `wasm` and `wasm-hosted` the stylesheet belongs to the **browser**
+It works on every template. On `wasm` the stylesheet belongs to the **browser**
 project — Tailwind scans the tree it runs in, and the components whose classes it is looking for are
 the client's. The compiler is a build-time tool with no runtime assembly, so it adds nothing to what
 the browser downloads.
