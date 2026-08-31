@@ -180,6 +180,7 @@ public static partial class DemoRegistry
             ["master-detail"] = () => CodeSample.Files(["MasterDetailDemo.cs"]).Result(MasterDetailDemo),
             ["drag-drop-sortable"] = () => CodeSample.Files(["DragDropSortableDemo.cs"]).Result(DragDropSortableDemo),
             ["drag-drop-kanban"] = () => CodeSample.Files(["DragDropKanbanDemo.cs"]).Result(DragDropKanbanDemo),
+            ["toaster"] = () => CodeSample.Files(["ToasterDemo.cs"]).Result(ToasterDemo),
             ["boom-handler"] = () => CodeSample.Files(["BoomHandlerDemo.cs"]).Result(BoomHandlerDemo),
             ["boom-render"] = () => CodeSample.Files(["BoomRenderDemo.cs"]).Result(BoomRenderDemo),
             ["boom-nested"] = () => CodeSample.Files(["BoomNestedDemo.cs"]).Result(BoomNestedDemo),

@@ -118,15 +118,21 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             // Always in the flow from md up; below that it slides over the page, and a backdrop
             // closes it. The open state was already Rask state — the drawer never needed script.
             Aside
+                // No overflow-y here: .side-nav is a non-scrolling flex column (global.css) whose
+                // INNER list scrolls, so the filter header stays pinned. md:flex rather than md:block
+                // for the same reason — the column has to be a flex container at desktop too.
                 .Class(_drawerOpen
-                    ? "side-nav fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto bg-white p-4 "
+                    ? "side-nav fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white p-4 "
                       + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none dark:bg-slate-900"
-                    : "side-nav hidden w-64 overflow-y-auto p-4 md:block")[
+                    : "side-nav hidden w-64 flex-col p-4 md:flex")[
                 SidebarBody()
             ],
             _drawerOpen
+                // drawer-backdrop is a TEST contract, like hamburger-btn on the toggle: the journey
+                // dismisses the drawer through it. Named for what it is rather than offcanvas-backdrop,
+                // which was Bootstrap's word for it and is no longer anybody's.
                 ? Div
-                    .Class("fixed inset-0 z-40 bg-black/40 md:hidden")
+                    .Class("drawer-backdrop fixed inset-0 z-40 bg-black/40 md:hidden")
                     .OnClick(() => _drawerOpen = false)
                 : null,
             Main.Class("grow py-4 px-3 md:px-5 page-main")[
@@ -141,9 +147,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
         Div.Class("side-nav-search")[
+            // OnInput, not OnChange: this is a live filter, and OnChange is the DOM `change` event —
+            // it fires when the field is committed (blur), so the list would only narrow after you
+            // clicked away. BsInput used to hide this by wiring its own handler to OnInputAsync; the
+            // raw element does not, and swapping one for the other quietly moved the event.
             Input
                 .Value(_filter)
-                .OnChange(v => _filter = v ?? "")
+                .OnInput(v => _filter = v)
                 .Placeholder("Filter guides & examples…")
                 .Class($"side-nav-filter {Ui.Input}")
         ],
@@ -220,7 +230,10 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Type("button")
                 .Class(open ? "nav-group-toggle open" : "nav-group-toggle")
                 .OnClick(() => ToggleGroup(key))[
-                I.Class(open ? "bi bi-chevron-down nav-group-chevron" : "bi bi-chevron-right nav-group-chevron"),
+                // Same reason as the master-detail expander: an empty <i class="bi ..."> has no
+                // size now that no icon font is loaded, so it drew nothing at all here.
+                Icon.Name(open ? IconName.ChevronDown : IconName.ChevronRight)
+                    .Class("nav-group-chevron"),
                 Span.Class("nav-group-label")[group]
             ],
             !open

@@ -243,18 +243,32 @@ button, a, [role="button"] {
 
 /* The sidebar is a responsive offcanvas (offcanvas-md): a slide-in drawer below md, a fixed-width
    static column at >=md. */
+/* The sidebar is a non-scrolling flex column: a pinned filter header over a single scrolling list.
+   The filter is a real flex header (not position:sticky) because a sticky child of a flex container
+   does not stick in Safari — it would scroll away with the list. This is bulletproof across browsers.
+
+   Applied to .side-nav itself. It used to target .side-nav .offcanvas-body, the wrapper BsOffcanvas
+   rendered; there is no such element now, so the rule matched nothing and the aside scrolled as one
+   block — taking the filter with it, which is the exact behaviour the flex column exists to prevent.
+
+   Bounded to the viewport below the navbar so the inner list scrolls inside itself rather than
+   stretching the page. The drawer form (position:fixed inset-y-0) is already full height.
+
+   Display is deliberately NOT set here. The aside carries `hidden ... md:flex` utilities, and this
+   file is linked after the compiled Tailwind, so a `display: flex` at equal specificity would win at
+   every width and the mobile drawer would never hide. The utilities own display and direction; this
+   rule owns only what they cannot express.
+   */
 .side-nav {
-    --bs-offcanvas-width: min(82vw, 320px);
+    overflow: hidden;
 }
 
-/* The body is a non-scrolling flex column: a pinned filter header over a single scrolling list. The
-   filter is a real flex header (not position:sticky) because a sticky child of a flex container does
-   not stick in Safari — it would scroll away with the list. This is bulletproof across browsers. */
-.side-nav .offcanvas-body {
-    display: flex;
-    flex-direction: column;
-    padding: 1rem 0.75rem;
-    overflow: hidden;
+@media (min-width: 768px) {
+    .side-nav {
+        position: sticky;
+        top: var(--nav-h);
+        height: calc(100vh - var(--nav-h));
+    }
 }
 
 /* Pinned filter header — a fixed-height flex item over the scrolling list, with a hairline divider so

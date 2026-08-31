@@ -213,9 +213,11 @@ internal sealed partial class OpsTab : Component
     protected override Component? Render() =>
         NavLink
             .Href(Href)
+            // Same ops-nav-link contract the header nav carries: a tab IS a nav link here, and the
+            // journeys select Live/History through it.
             .Class(Active == true
-                ? "flex items-center gap-2 rounded-md bg-ops-panel px-3 py-1.5 text-sm font-medium text-ops-ink no-underline"
-                : "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-ops-muted no-underline hover:bg-ops-panel hover:text-ops-ink")[
+                ? "ops-nav-link flex items-center gap-2 rounded-md bg-ops-panel px-3 py-1.5 text-sm font-medium text-ops-ink no-underline"
+                : "ops-nav-link flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-ops-muted no-underline hover:bg-ops-panel hover:text-ops-ink")[
             Span[Label],
             Count is null
                 ? null

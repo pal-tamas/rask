@@ -12,6 +12,13 @@ namespace Rask.Example.Shared.Features;
 // pieces of state: the expanded set, the outer sort, and a per-order inner sort.
 public sealed partial class MasterDetailDemo : Component
 {
+    // The expander is icon-only and Icon renders aria-hidden, so the button needs its own name.
+    private static readonly IReadOnlyDictionary<string, string?> ExpandAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Expand order" };
+
+    private static readonly IReadOnlyDictionary<string, string?> CollapseAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Collapse order" };
+
     private static readonly Order[] _orders = BuildOrders();
 
     // (id, header, sortable) — the expander column has no label and no sort.
@@ -68,11 +75,16 @@ public sealed partial class MasterDetailDemo : Component
 
             rows.Add(Tr.Key(order.Id).Class("md-row")[
                 Td.Style("width:44px;")[
+                    // A real glyph, not an empty <i class="bi ...">: with no icon font behind it that
+                    // element has no size, and a p-0 button whose only child is zero-sized collapses
+                    // to 0x0 -- present in the DOM, impossible to click, and reported as "not visible".
                     Button
-                        .Class("btn btn-sm btn-link p-0 text-decoration-none")
+                        .Class("px-1.5 py-1 leading-none text-slate-500 hover:text-slate-900 "
+                            + "dark:hover:text-slate-100")
                         .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
+                        .Aria(open ? CollapseAria : ExpandAria)
                         .OnClick(() => Toggle(order.Id))[
-                        I.Class(open ? "bi bi-chevron-down" : "bi bi-chevron-right")
+                        Icon.Name(open ? IconName.ChevronDown : IconName.ChevronRight)
                     ]
                 ],
                 Td.Class("fw-semibold")[order.Customer],

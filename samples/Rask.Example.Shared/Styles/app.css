@@ -3,3 +3,47 @@
   is where every utility name in the demos lives, as C# string literals.
 */
 @import "tailwindcss";
+
+/*
+  The showcase's brand palette. These were served from _content/Rask.Bootstrap/tokens.css until that
+  package was deleted, at which point every var(--accent) / var(--ink) / var(--line) in global.css
+  resolved to nothing and the showcase lost its colours with no error anywhere.
+
+  Declared as Tailwind theme tokens rather than plain custom properties so the utilities (bg-panel-2,
+  text-accent-ink, border-line) and the hand-written cascade in global.css read the SAME values.
+  Kept verbatim in step with samples/Rask.Example.Site/Styles/app.css, which is canonical.
+*/
+@theme {
+  --color-ground: oklch(0.15 0.02 285);
+  --color-panel: oklch(0.19 0.02 285);
+  --color-panel-2: oklch(0.23 0.02 285);
+  --color-line: oklch(0.62 0.19 292 / 14%);
+  --color-grid: oklch(0.62 0.19 292 / 5%);
+  --color-ink: oklch(0.94 0.01 285);
+  --color-ink-soft: oklch(0.84 0.02 285);
+  --color-muted: oklch(0.68 0.02 285);
+  --color-accent: oklch(0.62 0.19 292);
+  --color-accent-2: oklch(0.55 0.22 292);
+  --color-accent-ink: oklch(0.80 0.12 292);
+}
+
+/*
+  The raw names global.css and GuideChrome.css were written against, aliased onto the theme tokens
+  above. Aliases rather than a second set of literals: two hand-synced copies of a palette drift, and
+  the drift shows up as a slightly-wrong colour that nobody files a bug about.
+*/
+@layer base {
+  :root {
+    --ground: var(--color-ground);
+    --panel: var(--color-panel);
+    --panel-2: var(--color-panel-2);
+    --line: var(--color-line);
+    --grid: var(--color-grid);
+    --ink: var(--color-ink);
+    --ink-soft: var(--color-ink-soft);
+    --muted: var(--color-muted);
+    --accent: var(--color-accent);
+    --accent-2: var(--color-accent-2);
+    --accent-ink: var(--color-accent-ink);
+  }
+}

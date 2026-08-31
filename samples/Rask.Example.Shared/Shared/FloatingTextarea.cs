@@ -17,7 +17,7 @@ public sealed partial class FloatingTextarea<TProp> : Component
         return Div.Class("form-floating mb-3")[
             Textarea.Bind(Bind).Id(id).Placeholder(label).Class("form-control").Style("height: 6rem"),
             Label.For(id)[label],
-            ValidationMessage.Template(msgs => Div.Class("invalid-feedback d-block")[msgs[0]]).For(Bind)
+            ValidationMessage.Template(msgs => Div.Class("invalid-feedback text-sm text-red-600 dark:text-red-400")[msgs[0]]).For(Bind)
         ];
     }
 }

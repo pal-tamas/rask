@@ -404,6 +404,48 @@ them until tagged releases begin.
   `Retry`, `Archive`, `Outbox`, `Gear`, `Storage`, `Warning`) carry the same meanings.
 
 ### Fixed
+- **The showcase was serving no Tailwind at all.** `App.cs` linked `/css/app.css`, but the sheet is
+  compiled into `Rask.Example.Shared` — a class library, whose `wwwroot` publishes under
+  `_content/Rask.Example.Shared/`. The link 404'd on both hosts and every page rendered as unstyled
+  HTML. Nothing caught it because the assertions around it read text and DOM structure, which are
+  identical with and without a stylesheet; the first test to disagree was one that measured a
+  responsive layout. This is precisely the failure mode the Tailwind docs describe, arrived at from
+  the other direction.
+
+- **The showcase's brand palette resolved to nothing.** `global.css` documented that the violet,
+  dark-first tokens "now live in `_content/Rask.Bootstrap/tokens.css`" — a file deleted with the
+  package — so `--accent`, `--ink`, `--line` and `--panel-2` were undefined and every `var(--rask-*)`
+  built on them fell back to nothing. The palette is now a Tailwind `@theme` in the showcase's own
+  `Styles/app.css`, kept in step with the marketing site's (which is canonical), with the raw names
+  aliased onto it so the hand-written cascade keeps resolving.
+
+- **The sidebar filter stopped filtering as you typed.** It moved from `BsInput` to the raw `Input`
+  element and kept `.OnChange`, which is the DOM `change` event — it fires when the field is committed,
+  not per keystroke, so the list only narrowed after clicking away. `BsInput` had been wiring its
+  handler to `OnInputAsync` internally, so swapping the control silently moved the event. It is
+  `.OnInput` now, which the docs name as the hook for live search.
+
+- **The sidebar's pinned filter scrolled away with the list.** The flex-column rule targeted
+  `.side-nav .offcanvas-body`, the wrapper `BsOffcanvas` used to render; with no such element the rule
+  matched nothing and the whole aside scrolled as one block — the exact behaviour the column was built
+  to prevent. Retargeted to `.side-nav`, with display left to the utilities so the mobile drawer still
+  hides.
+
+- **The Todos dialog had one way out.** Its comment described a sibling backdrop that was never
+  rendered, and the native `<dialog open>` that replaced `BsModal` is non-modal — so it has no focus
+  trap and no Escape-to-dismiss either. The backdrop now exists and dismisses on click.
+
+- **The master-detail expander could not be clicked.** Its only child was `<i class="bi bi-chevron-*">`,
+  which has no size now that no icon font is loaded, and a `p-0` button around a zero-sized child is
+  itself 0×0 — present in the DOM, unclickable, and reported by a browser as "not visible". It renders
+  a real glyph, and it and the todo row's icon-only buttons now carry accessible names, which they had
+  been missing entirely.
+
+- **The toaster demo came back.** `IToaster` and `ToastOutlet` live in the framework and survived; only
+  the `Bs*` chrome they were drawn with went, so by the rule the rest of the sweep followed — subject
+  deleted, chrome converted — the demo should have been rewritten rather than dropped. Its guide
+  section had been left with the sentence that introduces it and no demo after it.
+
 - **A resumed console session came back as the host application.** The WebSocket endpoint is mapped once
   per host rather than once per root, so it captured whichever root the first `UseRask` supplied — and that
   is what session *resume* rebuilds with. A console session resuming after a restart or an eviction would

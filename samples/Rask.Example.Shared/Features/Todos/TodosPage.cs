@@ -178,17 +178,29 @@ public sealed partial class TodoFormDialog : Component
     // Template is required, so it is the chain's opening step: a validation message with no way to
     // render itself is not a thing the type system lets you ask for.
     private static Component FieldError(IReadOnlyList<string> errors) =>
-        Div.Class("text-sm text-red-600 dark:text-red-400")[errors.Select(e => Div.Key(e)[e])];
+        // invalid-feedback is the showcase's one validation-error contract (the Floating* wrappers
+        // use it too). It carries no styling of its own any more -- the utilities beside it do.
+        Div.Class("invalid-feedback text-sm text-red-600 dark:text-red-400")[
+            errors.Select(e => Div.Key(e)[e])];
 
     protected override Component? Render() =>
         // The native <dialog>. BsModal supplied a focus trap, Escape-to-dismiss and a backdrop; a
-        // <dialog> rendered with the `open` attribute is NON-modal, so it gets the backdrop from a
-        // sibling overlay here and loses the focus trap. That is a real reduction, and the honest one:
-        // the trap needs showModal(), which needs JS, and this page exists to show a routed CRUD flow
-        // rather than to reimplement a dialog.
+        // <dialog> rendered with the `open` attribute is NON-modal, so it gets the backdrop from the
+        // sibling overlay below and loses the focus trap. That is a real reduction, and the honest
+        // one: the trap needs showModal(), which needs JS, and this page exists to show a routed CRUD
+        // flow rather than to reimplement a dialog.
+        [
+        // The backdrop. Dismisses on click, which is the only way out besides Cancel now that Escape
+        // is gone with the modal-ness — without it the dialog was a trap with one exit. app-dialog /
+        // dialog-backdrop are TEST contracts: the journey opens the dialog and cancels through them.
+        !Open
+            ? null
+            : Div
+                .Class("dialog-backdrop fixed inset-0 z-40 bg-black/40")
+                .OnClick(OnCancel),
         Dialog.Open(Open).Class(
-            "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-white p-5 shadow-xl "
-            + "dark:bg-slate-800")[
+            "app-dialog fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-white p-5 "
+            + "shadow-xl dark:bg-slate-800")[
             H2.Class("mb-3 text-lg font-semibold")[IsAdding ? "Add todo" : "Edit todo"],
             Form.Model(Model).OnValidSubmit(OnSave).Class("flex flex-col gap-3")[
                 DataAnnotationsValidator,
@@ -203,6 +215,7 @@ public sealed partial class TodoFormDialog : Component
                     ]
                 ]
             ]
+        ]
         ];
 }
 

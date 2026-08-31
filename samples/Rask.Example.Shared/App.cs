@@ -48,9 +48,15 @@ public partial class App : Component
         // Tailwind, compiled from Styles/app.css at this project's build. It replaced a three-sheet
         // stack — Bootstrap, the design tokens, then global.css overriding both — where the cascade
         // ORDER was what decided the outcome and a comment was the only thing keeping it right.
+        //
+        // Under _content/, NOT at the app root: this is a class LIBRARY, so its wwwroot is published
+        // as static web assets under _content/<PackageId>/ and there is no /css/app.css to serve. The
+        // hosts (Server, Wasm) each publish their own wwwroot at the root, which is why global.css
+        // below is a bare path and this one is not. Linking the root path 404s and the whole showcase
+        // renders as unstyled HTML — which no assertion over text or DOM structure can see.
         Link
             .Rel("stylesheet")
-            .Href(LiveOptions.PathBase + "/css/app.css"),
+            .Href(LiveOptions.PathBase + "/_content/Rask.Example.Shared/css/app.css"),
         // Brand palette + global cascade. Plain wwwroot stylesheet (not a scoped {Component}.css)
         // because every rule targets :root or shell tags — things this component never stamps a
         // scope id on. Linked after Tailwind so app CSS can override it.

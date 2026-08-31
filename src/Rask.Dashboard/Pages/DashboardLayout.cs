@@ -117,9 +117,12 @@ public sealed partial class DashboardLayout(
         NavLink
             .Key(label)
             .Href(url)
+            // ops-nav-link is a TEST contract, carried on both branches so it survives the active
+            // state: ShopExampleTests locates the console's nav by it. The utilities beside it are
+            // styling and free to change; this one name is not.
             .Class(IsActive(url.Path, exact)
-                ? "flex items-center gap-1.5 rounded-md bg-ops-panel px-3 py-1.5 text-sm font-medium text-ops-ink no-underline"
-                : "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-ops-muted no-underline hover:bg-ops-panel hover:text-ops-ink")[
+                ? "ops-nav-link flex items-center gap-1.5 rounded-md bg-ops-panel px-3 py-1.5 text-sm font-medium text-ops-ink no-underline"
+                : "ops-nav-link flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-ops-muted no-underline hover:bg-ops-panel hover:text-ops-ink")[
             OpsIcon.Name(icon).Class("size-4 shrink-0"),
             Span[label]
         ];

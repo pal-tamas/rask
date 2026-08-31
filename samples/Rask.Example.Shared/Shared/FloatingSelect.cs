@@ -20,7 +20,7 @@ public sealed partial class FloatingSelect<TProp> : Component
             // form-select (not form-control); the caller's <option>s flow in as Children.
             Select.Bind(Bind).Id(id).Class("form-select")[Children ?? Array.Empty<Component>()],
             Label.For(id)[label],
-            ValidationMessage.Template(msgs => Div.Class("invalid-feedback d-block")[msgs[0]]).For(Bind)
+            ValidationMessage.Template(msgs => Div.Class("invalid-feedback text-sm text-red-600 dark:text-red-400")[msgs[0]]).For(Bind)
         ];
     }
 }

@@ -114,7 +114,7 @@ div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-violet-600 .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-violet-500 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-amber-500 .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-amber-400 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .dark:hover:bg-slate-800 .dark:ring-slate-600 .dark:text-slate-300 .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-slate-50 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-slate-300 .rounded-md .text-slate-700 .text-sm .transition
-div .bg-slate-100 .dark:bg-slate-800 .dark:text-slate-200 .mb-0 .px-4 .py-2 .py-3 .rounded-lg .text-slate-800 .text-sm
+div .alert .alert-secondary .bg-slate-100 .dark:bg-slate-800 .dark:text-slate-200 .mb-0 .px-4 .py-2 .py-3 .rounded-lg .text-slate-800 .text-sm
 
 === auth-user-gate ===
 div .bg-white .border-0 .dark:bg-slate-800 .dark:ring-slate-700 .mb-4 .ring-1 .ring-slate-200 .rounded-xl .sample-card .shadow-sm .shadow-sm
@@ -165,7 +165,7 @@ div .bg-white .border-0 .dark:bg-slate-800 .dark:ring-slate-700 .h-full .ring-1 
 div .p-5
 div .flex .flex-wrap .items-baseline .items-center .justify-between .mb-3
 h3 .h6 .mb-0 .small .text-secondary .text-uppercase
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 div .gap-4 .grid .grid-cols-12 .text-center
 div .col-span-6
 div .fs-3 .fw-bold
@@ -1515,9 +1515,9 @@ div .p-5
 h6 .fw-semibold .mb-1
 p .small .text-secondary
 div .flex .flex-wrap .gap-2 .items-center
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 div .md:col-span-4
 div .bg-white .dark:bg-slate-800 .dark:ring-slate-700 .h-100 .ring-1 .ring-slate-200 .rounded-xl .shadow-sm
 div .p-5
@@ -1831,7 +1831,7 @@ div .col
 div .dd-column .h-100
 div .align-items-center .d-flex .dd-column-header .justify-content-between
 span .fw-semibold
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 div .dd-column-body
 div .card .dd-card
 div .align-items-center .d-flex .gap-2 .p-2 .p-5
@@ -1849,7 +1849,7 @@ div .col
 div .dd-column .h-100
 div .align-items-center .d-flex .dd-column-header .justify-content-between
 span .fw-semibold
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 div .dd-column-body
 div .card .dd-card
 div .align-items-center .d-flex .gap-2 .p-2 .p-5
@@ -1859,7 +1859,7 @@ div .col
 div .dd-column .h-100
 div .align-items-center .d-flex .dd-column-header .justify-content-between
 span .fw-semibold
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 div .dd-column-body
 div .card .dd-card
 div .align-items-center .d-flex .gap-2 .p-2 .p-5
@@ -2646,25 +2646,25 @@ td
 td .font-monospace .small
 td .font-monospace .small
 td .text-end
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 tr
 td
 td .font-monospace .small
 td .font-monospace .small
 td .text-end
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 tr
 td
 td .font-monospace .small
 td .font-monospace .small
 td .text-end
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 tr
 td
 td .font-monospace .small
 td .font-monospace .small
 td .text-end
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 
 === keyed-lists-reorder ===
 div .bg-white .border-0 .dark:bg-slate-800 .dark:ring-slate-700 .mb-4 .ring-1 .ring-slate-200 .rounded-xl .sample-card .shadow-sm .shadow-sm
@@ -2697,23 +2697,23 @@ button .bg-transparent .dark:text-red-300 .disabled:cursor-default .disabled:opa
 span .inline-block .leading-none .me-1
 ul .list-group
 li .align-items-center .d-flex .gap-3 .list-group-item
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 span .fw-semibold
 input .form-control .form-control-sm .kl-note
 li .align-items-center .d-flex .gap-3 .list-group-item
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 span .fw-semibold
 input .form-control .form-control-sm .kl-note
 li .align-items-center .d-flex .gap-3 .list-group-item
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 span .fw-semibold
 input .form-control .form-control-sm .kl-note
 li .align-items-center .d-flex .gap-3 .list-group-item
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 span .fw-semibold
 input .form-control .form-control-sm .kl-note
 li .align-items-center .d-flex .gap-3 .list-group-item
-span .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
+span .badge .bg-slate-100 .dark:bg-slate-700 .dark:text-slate-200 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-slate-700 .text-xs
 span .fw-semibold
 input .form-control .form-control-sm .kl-note
 
@@ -2760,7 +2760,7 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .items-center .mb-3
-span .bg-violet-100 .dark:bg-violet-900 .dark:text-violet-200 .font-medium .fs-6 .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-violet-800 .text-xs
+span .badge .bg-violet-100 .dark:bg-violet-900 .dark:text-violet-200 .font-medium .fs-6 .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-violet-800 .text-xs
 button .bg-violet-600 .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-violet-500 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 span .inline-block .leading-none .me-1
 h3 .h6 .small .text-secondary .text-uppercase
@@ -2920,8 +2920,8 @@ i .bi .bi-chevron-expand .opacity-50 .small .text-secondary
 tbody
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -2930,8 +2930,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -2940,8 +2940,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -2950,8 +2950,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -2960,8 +2960,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -2970,8 +2970,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -2980,8 +2980,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -2990,8 +2990,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -3000,8 +3000,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -3010,8 +3010,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -3020,8 +3020,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -3030,8 +3030,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -3040,8 +3040,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -3050,8 +3050,8 @@ td .text-secondary
 td
 tr .md-row
 td
-button .btn .btn-link .btn-sm .p-0 .text-decoration-none
-i .bi .bi-chevron-right
+button .dark:hover:text-slate-100 .hover:text-slate-900 .leading-none .px-1.5 .py-1 .text-slate-500
+span .inline-block .leading-none
 td .fw-semibold
 td .small .text-secondary
 td
@@ -3711,6 +3711,30 @@ div .sample-result-body
 p .mb-2
 hr
 p .mb-0
+
+=== toaster ===
+div .bg-white .border-0 .dark:bg-slate-800 .dark:ring-slate-700 .mb-4 .ring-1 .ring-slate-200 .rounded-xl .sample-card .shadow-sm .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+span .inline-block .leading-none .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .flex .flex-wrap .gap-2
+button .bg-sky-600 .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-sky-500 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
+button .bg-emerald-600 .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-emerald-500 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
+button .bg-amber-500 .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-amber-400 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
+button .bg-red-600 .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-red-500 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
+div .flex .flex-col .gap-2 .mt-3
 
 === validation-async ===
 div .bg-white .border-0 .dark:bg-slate-800 .dark:ring-slate-700 .mb-4 .ring-1 .ring-slate-200 .rounded-xl .sample-card .shadow-sm .shadow-sm

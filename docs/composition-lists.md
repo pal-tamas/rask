@@ -109,9 +109,10 @@ ToastOutlet.Template((messages, dismiss) =>
 so each message is delivered to exactly one outlet and never reappears on a later render. Set
 `AutoDismissAfter` to have each message clear itself after a delay — a one-shot timer per message that
 runs the same dismiss path, so any `Template` auto-dismisses even when its element has no timer of its own.
-A toast outlet is a fixed container of messages that auto-hide after
-5 s by default (set `AutoHideMs: null` to keep them sticky); mount a single `BsToaster()` in your layout
-instead of writing a `Template`. Queue one, show once (this demo auto-dismisses after 5 s):
+
+Queue one, show once (this demo auto-dismisses after 5 s):
+
+<!-- demo:toaster -->
 
 ## Drag and drop
 

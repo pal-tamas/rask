@@ -77,25 +77,32 @@ public static class Ui
     public const string CardHeader =
         "border-b border-slate-200 px-5 py-3 font-medium dark:border-slate-700";
 
-    private const string AlertBase = "rounded-lg px-4 py-3 text-sm";
+    // `alert`, and the `alert-<tone>` on each variant below, are TEST contracts rather than styling
+    // classes — nothing defines rules for either. The journeys locate alerts through them: any alert
+    // by `.alert`, a success banner by `.alert-success`. BsAlert's own markup used to provide both for
+    // free; the utilities beside them carry the actual appearance.
+    private const string AlertBase = "alert rounded-lg px-4 py-3 text-sm";
 
-    public const string AlertPrimary = AlertBase + " bg-violet-50 text-violet-900 dark:bg-violet-950 dark:text-violet-200";
+    public const string AlertPrimary = AlertBase + " alert-primary bg-violet-50 text-violet-900 dark:bg-violet-950 dark:text-violet-200";
 
-    public const string AlertSecondary = AlertBase + " bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
+    public const string AlertSecondary = AlertBase + " alert-secondary bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
 
-    public const string AlertSuccess = AlertBase + " bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200";
+    public const string AlertSuccess = AlertBase + " alert-success bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200";
 
-    public const string AlertDanger = AlertBase + " bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200";
+    public const string AlertDanger = AlertBase + " alert-danger bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200";
 
-    public const string AlertWarning = AlertBase + " bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200";
+    public const string AlertWarning = AlertBase + " alert-warning bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200";
 
-    public const string AlertInfo = AlertBase + " bg-sky-50 text-sky-900 dark:bg-sky-950 dark:text-sky-200";
+    public const string AlertInfo = AlertBase + " alert-info bg-sky-50 text-sky-900 dark:bg-sky-950 dark:text-sky-200";
 
-    public const string AlertLight = AlertBase + " bg-white text-slate-800 ring-1 ring-slate-200";
+    public const string AlertLight = AlertBase + " alert-light bg-white text-slate-800 ring-1 ring-slate-200";
 
-    public const string AlertDark = AlertBase + " bg-slate-900 text-white";
+    public const string AlertDark = AlertBase + " alert-dark bg-slate-900 text-white";
 
-    private const string BadgeBase = "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium";
+    // `badge` is a TEST contract on every variant, for the same reason `alert` is above: nothing
+    // styles it, and the journeys read render counters and status chips through it.
+    private const string BadgeBase =
+        "badge inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium";
 
     public const string BadgePrimary = BadgeBase + " bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200";
 
