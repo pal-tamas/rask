@@ -46,6 +46,31 @@ fi
 
 root="$(git rev-parse --show-toplevel)"
 
+# WARNS, never refuses (#850). Every commit runs this hook, and nothing stops one landing in the middle
+# of someone's browser suite — that is the common shape of the contention, and the shape #847's guard
+# does not cover, because a pre-commit gate is not a browser gate. A refusal here would be a worse tax
+# than the flake: a blocked commit costs more than a slow one, and the person committing is usually not
+# the person who can decide to wait. So this only tells you what you are about to walk into.
+if [ -z "${CI:-}" ] && [ -f "$root/scripts/lib/e2e-concurrency.sh" ]; then
+  # shellcheck source=../scripts/lib/e2e-concurrency.sh
+  . "$root/scripts/lib/e2e-concurrency.sh"
+  live_gates="$(rask_other_e2e_runs | tr '\n' ' ')"
+
+  if [ -n "${live_gates// /}" ]; then
+    echo "pre-commit: HEADS UP — a browser E2E gate is running on this machine right now." >&2
+    for pid in $live_gates; do
+      elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
+      cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
+      [ -n "$elapsed" ] && echo "            pid $pid, running for ${elapsed}: $cmd" >&2
+    done
+    echo "            This gate builds and tests the whole solution, so it will compete with that" >&2
+    echo "            suite and may make it fail for reasons that have nothing to do with either" >&2
+    echo "            change. Not refusing — a blocked commit is worse than a slow one — but if that" >&2
+    echo "            run goes red, this is the first thing to suspect." >&2
+    echo >&2
+  fi
+fi
+
 echo "pre-commit: running the local format + unit gate (staged code changes detected)."
 echo "            build -> dotnet format --verify-no-changes -> tests. bypass with"
 echo "            'git commit --no-verify' or RASK_SKIP_UNIT=1."

@@ -57,4 +57,67 @@
           StandardErrorImportance="low" />
   </Target>
 
+  <!--
+    The public-API gate (docs/api-style.md).
+
+    Microsoft.CodeAnalysis.PublicApiAnalyzers tracks every public member in a checked-in
+    PublicAPI.Shipped.txt / PublicAPI.Unshipped.txt pair. RS0016 (a public member missing from the
+    files) and RS0017 (a file entry with no member behind it) are compiler warnings, so the repo's
+    TreatWarningsAsErrors turns them into build failures — which is the point: a public-surface change
+    cannot land without showing up as a reviewable diff in the same PR.
+
+    Placed here rather than in Directory.Build.props because it keys off $(IsPackable), and a project
+    sets that in its own body — after the .props are imported, before the .targets are.
+  -->
+  <PropertyGroup>
+    <!--
+      src/ only. A sample and a test project are applications, not surfaces anyone consumes, and they
+      leave IsPackable at its default — so without this they are tracked too, and `rask new`'s own
+      output starts failing a gate about the framework's API.
+    -->
+    <_RaskInSrc>false</_RaskInSrc>
+    <_RaskInSrc Condition=" $(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)src')) ">true</_RaskInSrc>
+
+    <RaskPublicApiTracked Condition=" '$(RaskPublicApiTracked)' == '' AND '$(_RaskInSrc)' == 'true' AND '$(IsPackable)' != 'false' ">true</RaskPublicApiTracked>
+    <!--
+      Rask.Core and Rask.Html are IsPackable=false, but only because they are bundled into every host
+      package rather than shipped on their own. Their public surface is the one every component author
+      writes against, so it is tracked like any other.
+    -->
+    <RaskPublicApiTracked Condition=" '$(_RaskInSrc)' == 'true' AND ('$(MSBuildProjectName)' == 'Rask.Core' OR '$(MSBuildProjectName)' == 'Rask.Html') ">true</RaskPublicApiTracked>
+    <!--
+      Build-time tooling: Roslyn generators, their code fixes, and MSBuild tasks. Their public types
+      exist because the compiler and MSBuild have to construct them by name — nobody writes code
+      against them, so a diff in that surface tells a reviewer nothing.
+    -->
+    <RaskPublicApiTracked Condition=" $(MSBuildProjectName.EndsWith('.Generators')) OR $(MSBuildProjectName.EndsWith('.Tasks')) OR '$(MSBuildProjectName)' == 'Rask.Generators.CodeFixes' ">false</RaskPublicApiTracked>
+    <RaskPublicApiTracked Condition=" '$(RaskPublicApiTracked)' == '' ">false</RaskPublicApiTracked>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(RaskPublicApiTracked)' == 'true' ">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"/>
+    <!--
+      Per target framework, uniformly — including the projects that have only one today.
+      Rask.Core, Rask.Html, Rask.Wasm, Rask.SQLite.Browser and Rask build for net10.0 and
+      net10.0-browser, and their surfaces genuinely differ, so one flat file per project would
+      report every browser-only member as missing on the desktop build and vice versa. Keeping the
+      layout the same everywhere means a project that gains a second framework later gets a new
+      empty baseline to fill in, rather than a gate that quietly starts contradicting itself.
+    -->
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Shipped.txt" Condition=" Exists('$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Shipped.txt') "/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt" Condition=" Exists('$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt') "/>
+  </ItemGroup>
+
+  <!--
+    The Exists() conditions above are what let a project be added before its baseline is written. They
+    are also how this gate would come to pass by not running: delete the two files, or add a framework
+    and forget them, and the analyzer has nothing to compare against, reports nothing, and the build is
+    green. Say so out loud instead.
+  -->
+  <Target Name="RaskVerifyPublicApiBaseline" BeforeTargets="CoreCompile"
+          Condition=" '$(RaskPublicApiTracked)' == 'true' AND '$(TargetFramework)' != '' ">
+    <Error Condition=" !Exists('$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt') "
+           Text="$(MSBuildProjectName) is covered by the public-API gate but has no baseline for $(TargetFramework). Create PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt (first line '#nullable enable') and PublicAPI.Shipped.txt (empty), then build: every public member is reported as RS0016 with the exact line to record. See docs/api-style.md. To exempt this project instead, set &lt;RaskPublicApiTracked&gt;false&lt;/RaskPublicApiTracked&gt; in its .csproj and say why." />
+  </Target>
+
 </Project>

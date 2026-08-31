@@ -291,19 +291,28 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <PredefinedCulturesOnly>false</PredefinedCulturesOnly>
     <!--
-      FULL ICU, not the SDK's default shard.
+      Asks for FULL ICU. Read the next paragraph before believing it works.
 
-      The WebAssembly SDK ships a reduced ICU file covering EFIGS — English, French, Italian, German,
-      Spanish — and nothing else. That default is a trap for exactly this feature: an app that turned
-      globalization ON to support Hungarian gets a runtime where hu-HU RESOLVES, does not throw, and
-      formats dates in English. Every check passes and the output is quietly wrong, which is the
-      failure mode this whole subsystem exists to prevent.
+      This is spelled correctly as of #853 — it was `WasmIncludeFullIcu` before, and the SDK's property
+      is `WasmIncludeFullIcuData`. MSBuild has no unknown-property diagnostic, so the misspelling set a
+      name nobody read, silently, for as long as it existed. FullIcuPropertyNameTests pins the spelling
+      against the SDK's own targets so it cannot drift back.
 
-      Measured rather than assumed: with the shard, the showcase's culture table rendered 3/14/2026 for
-      both en-US and hu-HU. An app that only ever needs EFIGS can set
-      <WasmIncludeFullIcu>false</WasmIncludeFullIcu> back and save the difference.
+      It still does not change what a Rask app publishes, and that is MEASURED, not assumed: publishing
+      the WASM showcase with this true and false gives byte-identical output, three ICU shards either
+      way. The property is honoured in _GetWasmGenerateAppBundleDependencies (BrowserWasmApp.targets),
+      which belongs to the WasmAppBuilder bundle path; a Rask app publishes through
+      Microsoft.NET.Sdk.WebAssembly, whose static-web-assets pipeline never runs that target and has no
+      ICU handling of its own. Kept correctly spelled rather than removed, because it IS the right
+      request — nothing on this path grants it.
+
+      So the shard is still chosen at boot from navigator.languages[0], by the VISITOR'S BROWSER rather
+      than by the languages the app ships: an en+hu app opened in an English browser loads EFIGS, which
+      has no Hungarian, and with PredefinedCulturesOnly=false above hu-HU RESOLVES, does not throw, and
+      formats dates in English. That limitation is live and documented in docs/localization.md; #853
+      carries the options for closing it, each with a size trade-off.
     -->
-    <WasmIncludeFullIcu Condition=" '$(WasmIncludeFullIcu)' == '' ">true</WasmIncludeFullIcu>
+    <WasmIncludeFullIcuData Condition=" '$(WasmIncludeFullIcuData)' == '' ">true</WasmIncludeFullIcuData>
   </PropertyGroup>
 
   <!--

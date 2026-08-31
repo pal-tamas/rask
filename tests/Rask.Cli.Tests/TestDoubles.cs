@@ -173,6 +173,20 @@ internal sealed class FakeProcessRunner : IProcessRunner
     /// <summary>Per-invocation capture result by argument list — for flows that read varied command output.</summary>
     public Func<IReadOnlyList<string>, ProcessResult>? CaptureHandler { get; set; }
 
+    /// <summary>
+    ///     Per-invocation capture result by EXECUTABLE and argument list. Takes precedence over
+    ///     <see cref="CaptureHandler" />.
+    /// </summary>
+    /// <remarks>
+    ///     `rask doctor` probes dotnet, node, npm, git, ssh and docker, and every one of them is
+    ///     `--version`. Keyed on arguments alone a handler cannot tell them apart, so every doctor test
+    ///     was really asserting that all six tools report the same string — which is why a probe could
+    ///     have been wired to the wrong executable and stayed green. Throwing a
+    ///     <see cref="System.ComponentModel.Win32Exception" /> from here is how a test says "this one is
+    ///     not on PATH", since that is what the real runner does.
+    /// </remarks>
+    public Func<string, IReadOnlyList<string>, ProcessResult>? CaptureByExecutable { get; set; }
+
     public IReadOnlyList<ProcessInvocation> Invocations => _invocations.ToArray();
 
     public ProcessInvocation? LastRun => Invocations.LastOrDefault(i => !i.Captured);
@@ -226,6 +240,12 @@ internal sealed class FakeProcessRunner : IProcessRunner
     {
         var args = arguments.ToArray();
         _invocations.Enqueue(new ProcessInvocation(fileName, args, Captured: true));
+
+        if (CaptureByExecutable is not null)
+        {
+            return Task.FromResult(CaptureByExecutable(fileName, args));
+        }
+
         return Task.FromResult(CaptureHandler?.Invoke(args) ?? CaptureResult);
     }
 }
