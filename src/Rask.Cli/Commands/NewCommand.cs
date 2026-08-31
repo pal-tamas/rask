@@ -22,7 +22,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// <summary>Every template-scoped flag <c>rask new</c> understands — the batteries plus <c>auth</c>.</summary>
     internal static readonly string[] FeatureFlags =
     [
-        "auth", "wasm", "pwa", "cqrs", "data", "docker", "localization",
+        "auth", "wasm", "pwa", "cqrs", "data", "docker",
         "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops",
     ];
 
@@ -65,10 +65,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         "rask new Shop",
         "rask new Shop --auth --bootstrap",
         "rask new Shop --wasm",
-        "rask new Shop --culture en --culture hu",
         "rask new Shop --template wasm",
         "rask new Blog --no-push --no-ops",
-        "rask new Tiny --no-data --no-docker --no-pwa --no-localization",
+        "rask new Tiny --no-data --no-docker --no-pwa",
     ];
 
     public override ArgumentSchema? OptionSchema => CreateSchema();
@@ -79,7 +78,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
-            .MultiOption("culture", valueHint: "tag", description: "A language to translate the UI into, repeatable (default: en). A BCP 47 tag — 'en', 'hu', 'pt-BR'. Implies --localization.")
             .Flag("auth", description: "Add cookie authentication (login + members pages). Off by default, like --wasm.")
             .Flag("wasm", description: "Also publish a browser bundle from this project, so an eligible page moves into WebAssembly once it has downloaded. Publish takes minutes longer; `dotnet run` is unaffected.")
             .Flag("bootstrap", description: "Render pages with Rask.Bootstrap's Bs* components over Bootstrap 5.3.")
@@ -95,7 +93,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("no-snapshots", description: "Leave out scheduled point-in-time SQLite backups.")
             .Flag("no-logs", description: "Leave out the durable log store (it keeps a database of its own).")
             .Flag("no-ops", description: "Leave out the operator dashboard at /_rask.")
-            .Flag("no-localization", description: "Leave out the string catalogs, language negotiation, and the switcher.")
             .Flag("no-docker", description: "Leave out the Dockerfile and .dockerignore.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use). Also skips the first migration.")
             .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
@@ -203,17 +200,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 $"Template '{template.Key}' has nothing to change for: {rejected}. It supports: {supported}.");
         }
 
-        // A --no- for something this template already leaves out would be accepted and change nothing —
-        // the same accepted-and-disregarded shape as the flags above, just arriving from the other side.
-        var alreadyOff = off.Where(template.OptInFlags.Contains).ToArray();
-        if (alreadyOff.Length > 0)
-        {
-            return Fail(
-                $"Template '{template.Key}' already leaves out {string.Join(", ", alreadyOff.Select(f => "--" + OffFlag(f)))}: "
-                + "it is opt-in here rather than standard, because the ICU it needs adds about a megabyte "
-                + "to the bundle. Pass --culture <tag> to turn it on.");
-        }
-
         // The generated TypeScript contracts ARE the mediator's wire on these templates, so there is no
         // project left without it. Refused rather than ignored, for the same reason --tailwind is below:
         // a flag the CLI accepts and then disregards is the most expensive kind to discover.
@@ -232,38 +218,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail("--bootstrap and --tailwind are alternatives; pass one, or neither for plain CSS.");
         }
 
-        var cultures = parsed.MultiOption("culture");
-        if (cultures.Count > 0 && !template.SupportedFlags.Contains("localization"))
-        {
-            return Fail($"Template '{template.Key}' does not support --culture.");
-        }
-
-        foreach (var tag in cultures)
-        {
-            if (!IsKnownCulture(tag))
-            {
-                return Fail(
-                    $"'{tag}' isn't a language tag this machine knows. Pass a BCP 47 tag like 'en', 'hu' or 'pt-BR'.");
-            }
-        }
-
-        // Rejected rather than quietly deduped: a repeated tag means the command line does not say what
-        // its author thought it said, and scaffolding two identical catalogs would hide that.
-        var duplicate = cultures
-            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault(g => g.Count() > 1);
-        if (duplicate is not null)
-        {
-            return Fail($"--culture {duplicate.Key} was given more than once.");
-        }
-
-        // Naming languages and then switching translation off is two halves of opposite commands. Honouring
-        // the --no- half would scaffold no catalog for a language the user named on their own command line.
-        if (cultures.Count > 0 && off.Contains("localization"))
-        {
-            return Fail("--culture names a language to translate into, so it can't be combined with --no-localization.");
-        }
-
         // Plain CSS is the default: it is the one answer that assumes nothing about what you are building.
         // Bootstrap and Tailwind are both opinions, and neither should be what you get by not choosing.
         // The pair is rejected above, so this order never has to arbitrate.
@@ -271,7 +225,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             : parsed.HasFlag("bootstrap") ? Styling.Bootstrap
             : Styling.Plain;
 
-        var batteries = ToBatteries(template, off, styling, cultures, auth, wasm);
+        var batteries = ToBatteries(template, off, styling, auth, wasm);
 
         // Every template is generated directly by the CLI; the key here is one the catalog knows
         // (validated by TemplateCatalog.TryGet).
@@ -328,14 +282,16 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                     + "Pass --no-<battery> to leave one out, e.g. --no-push.";
             }
 
-            // Ahead of the general case, which would say "on by default now" — true on the templates that
-            // include it as standard, and a lie on the browser ones where it is opt-in.
-            if (name.Equals("localization", StringComparison.Ordinal))
+            // Ahead of the general case, which would say "on by default now" and send the reader looking
+            // for a --no- that no longer exists either.
+            if (name.Equals("localization", StringComparison.Ordinal)
+                || name.Equals("no-localization", StringComparison.Ordinal)
+                || name.Equals("culture", StringComparison.Ordinal))
             {
-                return "--localization is gone. It is included by default on the templates that ship it as "
-                    + "standard, where --no-localization leaves it out; on the browser-WASM templates it is "
-                    + "opt-in because ICU adds about a megabyte to the bundle. Either way --culture <tag> "
-                    + "is how you name a language.";
+                return $"--{name} is gone: the languages an app ships are configured in Program.cs, not on "
+                    + "this command line. A new project starts with English, and adding a language is a "
+                    + "line in the AddRask(configureCulture: ...) call it already has — see "
+                    + "docs/localization.md.";
             }
 
             if (Array.IndexOf(BatteryFlags, name) >= 0)
@@ -346,33 +302,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         return null;
-    }
-
-    /// <summary>Whether this machine knows <paramref name="tag"/> as a culture.</summary>
-    /// <remarks>
-    /// <c>GetCultureInfo</c>, not <c>new CultureInfo(...)</c>: the constructor accepts arbitrary
-    /// well-formed junk when <c>PredefinedCulturesOnly</c> is off, so it would let a typo through to a
-    /// scaffolded catalog nobody ever sees translated.
-    /// </remarks>
-    private static bool IsKnownCulture(string tag)
-    {
-        if (string.IsNullOrWhiteSpace(tag))
-        {
-            return false;
-        }
-
-        try
-        {
-            return System.Globalization.CultureInfo.GetCultureInfo(tag.Trim()).Name.Length > 0;
-        }
-        catch (System.Globalization.CultureNotFoundException)
-        {
-            return false;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
     }
 
     /// <summary>
@@ -414,13 +343,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// </remarks>
     internal static ServerBatteries BatteriesOf(
         IReadOnlyCollection<string> on,
-        Styling styling = Styling.Plain,
-        IReadOnlyList<string>? cultures = null) =>
+        Styling styling = Styling.Plain) =>
         new()
         {
             Styling = styling,
             Localization = on.Contains("localization"),
-            CultureList = cultures is { Count: > 0 } ? string.Join(",", cultures) : "",
             Auth = on.Contains("auth"),
             Wasm = on.Contains("wasm"),
             Pwa = on.Contains("pwa"),
@@ -441,14 +368,13 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         TemplateInfo template,
         IReadOnlyCollection<string> off,
         Styling styling = Styling.Plain,
-        IReadOnlyList<string>? cultures = null,
         bool auth = false,
         bool wasm = false)
     {
+        // Every battery a template supports is on unless it was turned off. There is no longer an
+        // opt-in exception: localization was the only one, and it is not a flag any more (#854).
         bool On(string battery) =>
-            template.SupportedFlags.Contains(battery)
-            && !template.OptInFlags.Contains(battery)
-            && !off.Contains(battery);
+            template.SupportedFlags.Contains(battery) && !off.Contains(battery);
 
         return new ServerBatteries
         {
@@ -456,14 +382,10 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Auth = auth,
             // Like auth: asked for by name, and only honoured by a template that can host it.
             Wasm = wasm && template.SupportedFlags.Contains("wasm"),
-            // Set here rather than left to Normalized(), because Reduced() runs first and clears the
-            // culture list of anything whose localization is off — so an opt-in template's --culture would
-            // be thrown away before the up-cascade ever saw it.
-            Localization = On("localization")
-                || (template.SupportedFlags.Contains("localization") && cultures is { Count: > 0 }),
-            // Joined rather than kept as a list: ServerBatteries is a record, and a collection property
-            // would quietly turn its value equality into reference equality.
-            CultureList = cultures is { Count: > 0 } ? string.Join(",", cultures) : "",
+            // Not a flag any more (#854): the languages an app ships are configured in Program.cs, so
+            // this is only "does this template scaffold the registration at all". CultureList stays empty
+            // here — Normalized() fills in "en", the default a scaffolded app starts from and edits.
+            Localization = template.ShipsLocalization,
             Pwa = On("pwa"),
             Cqrs = On("cqrs"),
             Data = On("data"),
@@ -571,12 +493,13 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // you don't want?", and unticking an entry becomes the --no-<battery> that says so. A battery this
         // template supports but leaves out is offered UNticked, so the list still shows everything on
         // offer and the checklist stays the one place that says what you are getting.
+        // Every offered battery is standard now: localization was the one exception, and it left the
+        // command line entirely with #854.
         var offered = BatteryFlags.Where(template.SupportedFlags.Contains).ToArray();
-        var standard = offered.Where(f => !template.OptInFlags.Contains(f)).ToArray();
+        var standard = offered;
 
         // A command line that already answered this — either way round — is not re-asked.
-        var batteriesGiven = BatteryFlags.Any(f => parsed.HasFlag(OffFlag(f)))
-            || parsed.MultiOption("culture").Count > 0;
+        var batteriesGiven = BatteryFlags.Any(f => parsed.HasFlag(OffFlag(f)));
         if (!batteriesGiven && offered.Length > 0)
         {
             var kept = prompt.MultiSelect(
@@ -587,15 +510,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 selected: standard);
 
             filled.AddRange(standard.Except(kept).Select(f => "--" + OffFlag(f)));
-
-            // An opt-in battery has no --no- to emit, so ticking it has to add the flag that turns it on.
-            // Localization's is the language it would translate into, and English is the shape an app
-            // grows a second one into.
-            if (kept.Contains("localization") && !standard.Contains("localization"))
-            {
-                filled.Add("--culture");
-                filled.Add("en");
-            }
         }
 
         WriteWizardSummary(filled, template);
@@ -617,7 +531,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             ["cqrs"] = "the source-generated mediator every feature dispatches through",
             ["data"] = "a SQLite database and an AppDbContext your features map through",
             ["docker"] = "a production Dockerfile and .dockerignore",
-            ["localization"] = "string catalogs, a negotiated language, and a switcher",
             ["jobs"] = "durable background jobs on the app's own database",
             ["mail"] = "transactional email, queued and sent off the request thread",
             ["cache"] = "a database-backed ICache and IDistributedCache",

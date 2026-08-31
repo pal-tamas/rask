@@ -1,0 +1,23 @@
+#nullable enable
+Rask.Cqrs.Server.RaskCqrsEndpointExtensions
+Rask.Cqrs.Server.RaskCqrsServerOptions
+Rask.Cqrs.Server.RaskCqrsServerOptions.IncludeExceptionDetail.get -> bool
+Rask.Cqrs.Server.RaskCqrsServerOptions.IncludeExceptionDetail.set -> void
+Rask.Cqrs.Server.RaskCqrsServerOptions.MaxFileCount.get -> int
+Rask.Cqrs.Server.RaskCqrsServerOptions.MaxFileCount.set -> void
+Rask.Cqrs.Server.RaskCqrsServerOptions.MaxRequestBytes.get -> long
+Rask.Cqrs.Server.RaskCqrsServerOptions.MaxRequestBytes.set -> void
+Rask.Cqrs.Server.RaskCqrsServerOptions.MaxUploadBytes.get -> long
+Rask.Cqrs.Server.RaskCqrsServerOptions.MaxUploadBytes.set -> void
+Rask.Cqrs.Server.RaskCqrsServerOptions.MaxUploadChunkBytes.get -> long
+Rask.Cqrs.Server.RaskCqrsServerOptions.MaxUploadChunkBytes.set -> void
+Rask.Cqrs.Server.RaskCqrsServerOptions.RaskCqrsServerOptions() -> void
+Rask.Cqrs.Server.RaskCqrsServerOptions.RequireAuthenticatedUser.get -> bool
+Rask.Cqrs.Server.RaskCqrsServerOptions.RequireAuthenticatedUser.set -> void
+Rask.Cqrs.Server.RaskCqrsServerOptions.RoutePrefix.get -> string!
+Rask.Cqrs.Server.RaskCqrsServerOptions.RoutePrefix.set -> void
+Rask.Cqrs.Server.RaskCqrsServerOptions.UploadSessionLifetime.get -> System.TimeSpan
+Rask.Cqrs.Server.RaskCqrsServerOptions.UploadSessionLifetime.set -> void
+Rask.Cqrs.Server.RaskCqrsServerServiceCollectionExtensions
+static Rask.Cqrs.Server.RaskCqrsEndpointExtensions.MapRaskCqrs(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
+static Rask.Cqrs.Server.RaskCqrsServerServiceCollectionExtensions.AddRaskCqrsServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.Server.RaskCqrsServerOptions!>? configure = null, System.Action<Rask.Cqrs.CqrsOptions!>? configureCqrs = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

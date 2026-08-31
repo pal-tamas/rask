@@ -19,6 +19,11 @@ afterward keeps the tag on a real `main` commit (don't tag a local commit you co
 - Run the **`rask-ship`** gate once more (format → warnings-as-errors → tests).
 - Decide the SemVer bump from the `[Unreleased]` changes (breaking→major, feature→minor, fix→patch).
   Pre-1.0, a new feature is still a minor bump (e.g. 0.8.0 → 0.9.0).
+- **Leave `PublicAPI.Shipped.txt` empty.** The public-API baselines
+  (`src/*/PublicAPI/<tfm>/`, see `docs/api-style.md`) stay entirely in `PublicAPI.Unshipped.txt`
+  until 1.0. Promoting them is a claim that the surface is frozen, which pre-1.0 Rask does not make —
+  and it would turn every deliberate rename into a shipped-API removal to argue with. At 1.0, promote
+  unshipped → shipped in the release PR, once.
 
 ## 2. Promote the CHANGELOG on a release branch
 In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (keep its

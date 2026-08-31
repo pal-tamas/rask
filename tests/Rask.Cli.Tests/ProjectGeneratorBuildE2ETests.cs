@@ -177,8 +177,17 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             // Two languages rather than one, because a single neutral catalog would not exercise the
             // fallback the second one is there to prove (RASK052 on a key it does not carry).
-            var batteries = NewCommand.ToBatteries(template, [], cultures: ["en", "hu"]);
-            Assert.True(batteries.Localization, "--culture did not turn localization on for wasm");
+            //
+            // Constructed rather than flagged: there is no --culture any more (#854), and a browser app
+            // that wants a second language adds it in Program.cs and uncomments RaskGlobalization. This
+            // is the state that produces, and it still has to BUILD.
+            var batteries = new ServerBatteries
+            {
+                Localization = true,
+                CultureList = "en,hu",
+                Docker = NewCommand.ToBatteries(template, []).Docker,
+            }.Normalized();
+            Assert.True(batteries.Localization, "the localized wasm shape was not constructed");
 
             var result = ProjectGenerator.GenerateWasm(
                 projectDir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version, batteries);

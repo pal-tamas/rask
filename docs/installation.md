@@ -26,7 +26,7 @@ whole story — the script exists for the case where you don't.
 | **Always** | **`Rask.Cli`** as a global tool | the `rask` command itself | updated instead of installed |
 | **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | left alone |
 | **Always** | **`wasm-tools` workload** | every `net10.0-browser` build — the WASM templates, and `--wasm` on a server app | left alone |
-| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | `rask new --template react\|vue\|svelte\|solid\|lit\|preact\|angular`, and `rask dev`'s client dev server | left alone if `node --version` is ≥ 22.12 |
+| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | `rask new --template react\|vue\|svelte\|solid\|lit\|preact\|angular`, and `rask dev`'s client dev server | left alone if `node --version` is ≥ 24.15 (the Active LTS line the scaffolders track) |
 | **Never** | Docker | `rask deploy`, `rask db backup --remote` | detected and reported only |
 
 Docker is deliberately not installed. Putting a container runtime on someone's workstation is a big,
@@ -78,7 +78,7 @@ Every path is overridable from the environment, on both scripts:
 | `RASK_INSTALL_DOTNET_ROOT` | `$DOTNET_ROOT`, else `~/.dotnet` | `%USERPROFILE%\.dotnet` |
 | `RASK_INSTALL_PREFIX` | `~/.local/share/rask` | `%LOCALAPPDATA%\rask` |
 | `RASK_INSTALL_DOTNET_CHANNEL` | `10.0` | `10.0` |
-| `RASK_INSTALL_NODE_MIN` | `22.12.0` | `22.12.0` |
+| `RASK_INSTALL_NODE_MIN` | `24.15.0` | `24.15.0` |
 | `RASK_INSTALL_PACKAGE` | `Rask.Cli` | `Rask.Cli` |
 
 ## Upgrading
@@ -168,7 +168,7 @@ dotnet tool install -g Rask.Cli
 # 3. what your project needs
 dotnet tool install -g dotnet-ef       # rask db
 dotnet workload install wasm-tools     # browser-wasm builds
-# 4. Node 22.12+ — https://nodejs.org   (SPA templates only)
+# 4. Node 24 LTS — https://nodejs.org   (SPA templates only)
 ```
 
 `rask doctor` reports what it finds either way.
