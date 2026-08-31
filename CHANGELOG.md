@@ -293,6 +293,34 @@ them until tagged releases begin.
   work, tracked in [#868](https://github.com/pal-tamas/rask/issues/868).
 
 ### Fixed
+- **A WASM app has never shipped full ICU, and the property meant to request it was misspelled.**
+  ([#853](https://github.com/pal-tamas/rask/issues/853)) `Rask.Wasm.targets` set
+  `WasmIncludeFullIcu`; the SDK's property is `WasmIncludeFullIcuData`. MSBuild has no
+  unknown-property diagnostic, so it set a name nothing consumed — silently, for as long as the
+  feature existed. Evaluated on the showcase: `WasmIncludeFullIcu` was `true` and
+  `WasmIncludeFullIcuData` empty.
+
+  The spelling is corrected and pinned by a test that reads the **SDK's own targets** rather than
+  restating the name, so a constant here cannot become a second place for the same typo. Mutation-
+  checked: reverting to the old spelling fails it.
+
+  **Correcting it does not, on its own, ship full ICU** — measured, not assumed. Publishing the WASM
+  showcase with the property `true` and `false` gives *byte-identical* output: three shards, no
+  `icudt.dat`, 4,444,863 brotli bytes either way. The property is honoured in
+  `_GetWasmGenerateAppBundleDependencies`, part of the `WasmAppBuilder` bundle path; a Rask app
+  publishes through `Microsoft.NET.Sdk.WebAssembly`, whose static-web-assets pipeline never runs that
+  target and has no ICU handling of its own.
+
+  So the limitation the property was added to close is **still open**, and is now documented instead of
+  being described as fixed. The runtime loads one shard, chosen at boot from `navigator.languages[0]` —
+  the *visitor's browser*, not the languages the app ships. An `en`+`hu` app opened in an English
+  browser gets `icudt_EFIGS.dat`, which has no Hungarian, and with `PredefinedCulturesOnly=false`
+  `hu-HU` resolves, does not throw, and formats dates in English. It was invisible to the obvious
+  check, because testing Hungarian in a Hungarian browser loads `icudt_no_CJK.dat` and is correct.
+
+  The published size figures are unchanged and were never wrong — re-measured at +3.90 MB raw /
+  +1.06 MB brotli (+33%) against the documented +3.92 / +1.05 (+32%). They were always the cost of the
+  shards; only the claim about what that bought was wrong.
 - **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
   Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
   file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours
