@@ -6,9 +6,11 @@
 app's own database — no message broker, no Redis. It's the durable counterpart to `Rask.Data`'s in-process
 publisher, and what [tutorial chapter 7](tutorial/07-outbox-events.md) wires up.
 
-```bash
-dotnet add package Rask.Outbox
-```
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Outbox.Off());
+> ```
 
 ## Why an outbox
 
@@ -28,7 +30,7 @@ public sealed record OrderPlaced(Guid Id) : IOutboxEvent;   // raised on your En
 
 // Program.cs
 builder.Services.AddRaskCqrs();
-builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false); // the outbox owns delivery
+builder.Services.AddRaskData();   // AddRaskOutbox below takes delivery of the domain events
 builder.Services.AddRaskOutbox<AppDbContext>(o =>
 {
     o.PollInterval = TimeSpan.FromSeconds(5);
@@ -109,8 +111,9 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
   order, but because delivery is **at-least-once** with retries, a message that fails and is retried can land
   after later ones. Make handlers **idempotent** and don't rely on strict cross-message ordering.
 - **In-process vs. durable.** `--events` (in-process) is fast and simple; `--outbox` is durable and
-  crash-safe. Use the outbox when losing an event on a crash is unacceptable; keep the in-process publisher
-  disabled when the outbox is on, so events aren't delivered twice.
+  crash-safe. Use the outbox when losing an event on a crash is unacceptable. Turning it on is the whole
+  switch: `AddRaskOutbox` claims delivery, the in-process publisher stands down, and events are not
+  delivered twice.
 - **Outbox vs. jobs.** The outbox delivers events *derived from a transaction* (atomic with the data change);
   [`Rask.Jobs`](jobs.md) runs work you *explicitly enqueue*. Reach for the outbox when an event must commit
   with its change; reach for jobs when you're scheduling work.

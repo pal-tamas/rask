@@ -100,9 +100,33 @@ page — so there's nothing to delete before you start building.
 Before writing code, here's what's in the project and why. The `server` template is small on purpose (the
 WASM templates differ mainly in `Program.cs`):
 
-- **`Program.cs`** — the host setup. `builder.Services.AddRask()` registers the framework,
-  `app.UseRask<App>()` mounts your root component (`App`) as the whole site, and a `/health` endpoint is
-  wired for deployment probes. Your own services go here too.
+- **`Program.cs`** — the host setup, and mostly notable for what is *not* in it:
+
+  ```csharp
+  var app = RaskApp.Create(args);
+  app.Run<App>();
+  ```
+
+  `RaskApp.Create` builds the host and turns on **every battery** — the database, mediator, background
+  jobs, transactional email, cache, outbox, operator dashboard, durable logs, Web Push, snapshots and
+  continuous backup. `app.Run<App>()` mounts your root component as the whole site and applies the
+  middleware order: forwarded headers, the health endpoint, HSTS and HTTPS redirection, static assets,
+  authentication, your own endpoints, then Rask's catch-all.
+
+  Your own services go here too, on `app.Services`. What an app writes in this file is the *exceptions* —
+  the batteries it does without, and anything configured differently:
+
+  ```csharp
+  app.Configure(c =>
+  {
+      c.Jobs.Off();                                            // this app has no background work
+      c.Mail.Configure(o => o.From = "no-reply@example.com");
+  });
+  ```
+
+  Nothing has to be turned off in order to configure it: you can also call a battery's own `AddRaskX`
+  directly and yours wins. And to map your own endpoints, use `app.MapEndpoints(e => …)` — Rask's
+  catch-all serves the app for anything unmatched, so an endpoint mapped after it would never be reached.
 
 - **`App.cs`** — two things live here. First, the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.

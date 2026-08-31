@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK059)
+# Rask diagnostics (RASK001–RASK060)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -94,6 +94,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK057](#rask057) | Error | External component prop has no wire encoding |
 | [RASK058](#rask058) | Error | External component name collision |
 | [RASK059](#rask059) | Error | Module override must be a constant string |
+| [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
 
 ---
 
@@ -1316,3 +1317,32 @@ protected override string Module => "@acme/charts/Chart";
 
 Anything computed would leave the browser resolving a name the bundle never built — markup pointing at
 a chunk that does not exist, with nothing failing until someone loads the page.
+
+## RASK060
+
+**`AddRask` is called twice on the same service collection** · Warning
+
+A second `AddRask` does not add to the first. Its options are registered with `TryAddSingleton`, which
+keeps the registration already there — so everything the later call configures is discarded, while the
+call itself compiles and reads exactly as though it worked.
+
+The visible casualty is `configureCulture`. The second call builds a fresh `RaskCultureOptions`, runs
+your callback over it, and then loses the registration race, so an app that named its languages ships
+with **none**. It is worse than a plain no-op: `AddRaskCulture` still flips the process-wide
+`RaskCulture.IsEnabled`, so culture negotiation turns on over an empty catalog.
+
+```csharp
+// ✗ builder.Services.AddRask();
+//   builder.Services.AddRask(configureCulture: c => c.SupportedCultures.Add("hu"));   // silently dropped
+
+// ✓ builder.Services.AddRask(configureCulture: c =>
+//   {
+//       c.SupportedCultures.Add("en");   // the first entry is the default
+//       c.SupportedCultures.Add("hu");
+//   });
+```
+
+**Fix:** pass every option to a single `AddRask` call. The warning fires only for two calls **in the
+same method body on the same receiver as written**, so a test file that builds one `ServiceCollection`
+per case — or a method configuring two collections side by side — is left alone. See
+[configuration](configuration.md) and [localization](localization.md).

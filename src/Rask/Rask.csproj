@@ -1,0 +1,104 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      One package, both halves. A .nupkg is a folder per target framework plus a dependency list per
+      target framework, so a `net10.0` project restores the server group and a `net10.0-browser` project
+      restores the browser one — and the end user writes the same single PackageReference either way. The
+      conditional ProjectReferences below become those groups in the generated nuspec.
+
+      Rask.Core and Rask.Wasm already multi-target exactly like this, so the shape is the repo's, not new.
+    -->
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask</RootNamespace>
+
+    <PackageId>Rask</PackageId>
+    <Title>Rask — batteries included</Title>
+    <Description>The one reference a Rask application needs, server or browser. On net10.0 it brings the ASP.NET host plus every battery — database, mediator, background jobs, transactional email, cache, outbox, operator dashboard, durable logs, Web Push, and SQLite snapshots and continuous backup — with RaskApp.Create(args) as the entry point. On net10.0-browser it brings the WebAssembly host, the source-generated mediator, the query cache and remote dispatch. Everything referenced is wired and on; app.Configure(c =&gt; c.Jobs.Off()) is how an app does without one. Reference Rask.Server for a lean host with no database.</Description>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!-- build/Rask.props roots this assembly for the trimmer; without it the browser half is trimmed out
+       of the bundle entirely and the batteries silently do nothing. A `build\**` glob has NO discovery
+       pass behind it, so it can pack silently missing with exit 0 (#852) — PackagedBuildPropsTests reads
+       the built .nupkg back to prove the file is really in there. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+  <!--
+    Shared by both halves: the on/off switch itself is pure and has no host in it.
+  -->
+  <ItemGroup>
+    <!-- PrivateAssets="all": Rask.Core is IsPackable=false and ships transitively inside the host
+         packages' lib/, so listing it as a nuspec dependency would name a package on no feed. The same
+         arrangement Rask.Dashboard and Rask.Mail use, guarded by PackageDependencyTests. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!--
+    THE SERVER HALF. Declaring the batteries in one place rather than in every scaffolded csproj is what
+    makes "batteries included" a property of the package instead of a property of whatever `rask new`
+    happened to write — it stays true for an app somebody assembled by hand.
+
+    Not PrivateAssets: a consumer must see these, since referencing Rask IS referencing all of them.
+  -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+    <ProjectReference Include="..\Rask.Server\Rask.Server.csproj"/>
+
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
+    <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
+
+    <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj"/>
+    <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
+    <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj"/>
+    <ProjectReference Include="..\Rask.Outbox\Rask.Outbox.csproj"/>
+
+    <ProjectReference Include="..\Rask.Dashboard\Rask.Dashboard.csproj"/>
+    <ProjectReference Include="..\Rask.Logging\Rask.Logging.csproj"/>
+    <ProjectReference Include="..\Rask.WebPush\Rask.WebPush.csproj"/>
+
+    <!-- The browser rung: `c.Wasm = true` publishes a bundle from this same project and serves it. -->
+    <ProjectReference Include="..\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
+
+    <ProjectReference Include="..\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>
+    <ProjectReference Include="..\Rask.SQLite.Litestream\Rask.SQLite.Litestream.csproj"/>
+  </ItemGroup>
+
+  <!--
+    THE BROWSER HALF, and what it deliberately leaves out.
+
+    Rask.Data, Rask.SQLite.Browser and Rask.Jobs all need EF Core, and EF CORE DOES NOT SURVIVE THE
+    TRIMMER IN THE BROWSER — Rask.SQLite.Browser's own readme says so, and the showcase publishes
+    trimmed at 3.28 MB brotli. Putting them in this group would force PublishTrimmed=false on every WASM
+    app, and the cost would be paid by every visitor on first load, including apps with no database at
+    all. A local-first app references those three itself and accepts the untrimmed build knowingly.
+
+    What is here is source-generated and reflection-free, so the bundle stays trimmed.
+  -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
+    <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
+    <ProjectReference Include="..\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
+  </ItemGroup>
+
+  <!-- RaskApp needs WebApplicationBuilder, so the server files compile into the server half only. -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
+    <Compile Remove="RaskApp.cs"/>
+    <Compile Remove="RaskAppOptions.cs"/>
+    <Compile Remove="RaskBatteryWiring.cs"/>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+    <Compile Remove="Browser\**\*.cs"/>
+  </ItemGroup>
+
+</Project>

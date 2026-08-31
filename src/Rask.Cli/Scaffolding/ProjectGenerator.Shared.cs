@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 
 namespace Rask.Cli.Scaffolding;
@@ -7,48 +6,6 @@ namespace Rask.Cli.Scaffolding;
 // namespace token replaced centrally (see ProjectGenerator.Materialize).
 internal static partial class ProjectGenerator
 {
-    /// <summary>
-    ///     The <c>Program.cs</c> shutdown block, shared by every web template and derived from
-    ///     <see cref="ShutdownBudget"/> rather than hardcoded — the app's budget and the deploy's grace used
-    ///     to be two literals coupled only by a comment, free to drift apart silently.
-    /// </summary>
-    /// <param name="fileBasedDatabase">
-    ///     True when the app's database is a file this process owns (SQLite), so the budget also has to
-    ///     cover a WAL checkpoint and a Litestream flush. A client-server database has neither, and saying
-    ///     it does would send someone sizing their shutdown budget after work that never happens.
-    /// </param>
-    private static string ShutdownBudgetBlock(bool fileBasedDatabase)
-    {
-        // Pre-converted so the interpolation below formats nothing — the raw literal already contains the
-        // braces of a lambda body, which is why it is $$"""…""" with {{…}} holes.
-        var dockerStop = ShutdownBudget.DockerStopSeconds.ToString(CultureInfo.InvariantCulture);
-        var hostShutdown = ShutdownBudget.HostShutdownSeconds.ToString(CultureInfo.InvariantCulture);
-        var drainTail = fileBasedDatabase
-            ? "live\n        // sessions close cleanly, and a SQLite WAL checkpoint / Litestream flush complete instead of\n        // being killed mid-write."
-            : "live\n        // sessions close cleanly, and in-flight work finishes instead of being cut off mid-request.";
-        // Litestream only exists on the SQLite path, so it must not head the example list otherwise.
-        var graceExamples = fileBasedDatabase
-            ? "Litestream's WAL flush, an in-flight email send, a"
-            : "an in-flight email send, a";
-
-        return $$"""
-
-        // Finish shutting down before the container runtime loses patience. `rask deploy` sends SIGTERM and
-        // SIGKILLs {{dockerStop}}s later, so a budget under that is what lets in-flight requests drain, {{drainTail}}
-        //
-        // ServicesStopConcurrently matters as much as the number: stopped one at a time (the .NET default)
-        // each hosted service's own shutdown grace — {{graceExamples}}
-        // running job — SUMS inside this one budget, and whichever stops last gets none of it, decided by
-        // the order of your AddRaskX calls. Stopped together they overlap instead.
-        builder.Services.Configure<HostOptions>(options =>
-        {
-            options.ShutdownTimeout = TimeSpan.FromSeconds({{hostShutdown}});
-            options.ServicesStopConcurrently = true;
-        });
-
-        """.TrimStart('\n');
-    }
-
     // The app shell every page renders through (RASK021), living in Features/Shared/ — the cross-cutting
     // bucket a new project shares across its feature slices. The welcome home page is its own Features/Home
     // slice (see HomePageCs). With Bootstrap the styling comes from the CDN-free Rask.Bootstrap asset;
@@ -391,8 +348,10 @@ internal static partial class ProjectGenerator
 
     /// <summary>
     /// Every scaffolded project's <c>.gitignore</c>. Deliberately short: build output, IDE and OS noise, the
-    /// files that carry secrets, and the app's own SQLite database — a committed <c>app.db</c> is the most
-    /// common way a scaffolded repo ends up with real data in its history.
+    /// files that carry secrets, and what the app itself writes — a committed <c>app.db</c> is the most
+    /// common way a scaffolded repo ends up with real data in its history, and now that every battery is on
+    /// by default the log store, the mail pickup directory and the snapshot directory appear the first time
+    /// the app runs rather than only in an app that asked for them.
     /// </summary>
     private const string GitIgnore =
         """
@@ -426,6 +385,12 @@ internal static partial class ProjectGenerator
         *.db
         *.db-shm
         *.db-wal
+
+        # What the batteries write beside the app. They are all on unless Program.cs says otherwise, so
+        # these appear the first time it runs: queued mail with no SMTP configured is written here as
+        # .eml files you can open, and the scheduled point-in-time backups land here.
+        mail-pickup/
+        snapshots/
 
         # Publish output
         publish/

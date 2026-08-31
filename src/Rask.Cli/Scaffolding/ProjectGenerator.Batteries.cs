@@ -33,7 +33,7 @@ internal static partial class ProjectGenerator
                 // as a cast error much later. It applies to tables as they are created, so it costs nothing
                 // here and is awkward to adopt once there is data. Drop it if you need a column type outside
                 // SQLite's INT/INTEGER/REAL/TEXT/BLOB/ANY.
-                __ADDRASKDATA__
+                builder.Services.AddRaskData();
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
                     .UseRaskSqlite(connectionString, strictTables: true)
@@ -60,25 +60,17 @@ internal static partial class ProjectGenerator
 
                 """;
 
+            // AddRaskData takes no argument either way now. It used to need
+            // `o.DispatchDomainEventsInProcess = false` whenever the outbox was on, and getting that wrong
+            // silently emptied the outbox — so the framework decides it at container-build time instead, and
+            // this emitter has one less way to be wrong.
             sb.Append(sqliteData.TrimStart('\n')
-                    .Replace("__ADDRASKDATA__", batteries.Outbox
-                        ? """
-                          builder.Services.AddRaskData(o =>
-                          {
-                              // The outbox owns delivery, so the in-process publisher stays off. Leaving it on is a
-                              // silent trap: DomainEventInterceptor drains and clears every entity's events before
-                              // OutboxInterceptor can copy them, so the outbox table stays empty and delivery quietly
-                              // stops being durable — and nothing fails, because the handlers still run in-process.
-                              o.DispatchDomainEventsInProcess = false;
-                          });
-                          """
-                        : "builder.Services.AddRaskData();", StringComparison.Ordinal)
                     .Replace("__ADDRASKOUTBOX__", batteries.Outbox
                         ? """
                           // Transactional outbox: a domain event marked IOutboxEvent is written to the outbox table in
                           // the SAME transaction as the change that raised it, then relayed at-least-once by a
-                          // background processor. Registered before the DbContext factory so its interceptor is in the
-                          // container when the factory resolves ISaveChangesInterceptor.
+                          // background processor. Registering it is also what hands it domain-event delivery, so
+                          // AddRaskData above needs no argument to match.
                           builder.Services.AddRaskOutbox<AppDbContext>();
 
                           """

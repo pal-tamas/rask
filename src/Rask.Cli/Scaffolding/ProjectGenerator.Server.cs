@@ -50,6 +50,11 @@ internal static partial class ProjectGenerator
 
         files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs(batteries.Styling)));
 
+        if (batteries is { Wasm: true, Cqrs: true })
+        {
+            files.Add(("Browser/BrowserStartup.cs", BrowserStartupCs()));
+        }
+
         if (batteries.Pwa)
         {
             files.Add(("wwwroot/icon.svg", IconSvg));
@@ -155,6 +160,13 @@ internal static partial class ProjectGenerator
         if (batteries.Wasm)
         {
             packages.Add("Rask.Wasm.Hosting");
+
+            if (batteries.Cqrs)
+            {
+                // The endpoint half. Its counterpart, Rask.Cqrs.Client, is declared as a
+                // browser-only reference so it never reaches this process.
+                packages.Add("Rask.Cqrs.Server");
+            }
         }
 
         return packages;
@@ -188,6 +200,22 @@ internal static partial class ProjectGenerator
               // and fail to compile inside a nested publish -- an error a long way from anything the
               // author wrote.
               + "\n    <RaskBrowserRootComponent>$(RootNamespace).Features.Shared.App</RaskBrowserRootComponent>"
+              + (batteries.Cqrs
+                  ? "\n    <!-- The bundle registers its own services here: it has no Program.cs of its own. -->"
+                    + "\n    <RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>"
+                  : "")
+            : "";
+
+        // The client transport belongs to the BUNDLE and must not reach the server: it is the half that
+        // calls the endpoints the server answers. RaskBrowserPackageReference is how one project says a
+        // reference is the browser's alone.
+        var browserOnlyPackages = batteries is { Wasm: true, Cqrs: true }
+            ? $"""
+
+              <ItemGroup>
+                <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="{version}"/>
+              </ItemGroup>
+            """
             : "";
 
         var litestreamProperty = batteries.Data
@@ -207,6 +235,7 @@ internal static partial class ProjectGenerator
           <ItemGroup>
             <PackageReference Include="Rask.Server" Version="{version}"/>{refs}
           </ItemGroup>
+        {browserOnlyPackages}
 
         </Project>
 
@@ -218,11 +247,53 @@ internal static partial class ProjectGenerator
     private static void Block(StringBuilder target, string block) =>
         target.Append(block.Trim('\n')).Append("\n\n");
 
+    /// <summary>
+    ///     Where the browser half registers its services. Named by <c>RaskBrowserStartup</c> in the
+    ///     csproj, and called by the bundle's generated entry point before the app runs.
+    /// </summary>
+    /// <remarks>
+    ///     The bundle has no <c>Program.cs</c> of its own — that file is the server's, and the companion
+    ///     project excludes it — so without this there is nowhere for browser-only wiring to live.
+    ///     <para>
+    ///     Under <c>Browser/</c> rather than <c>Features/Shared/</c>, and that is load-bearing: it is
+    ///     the mirror of <c>Server/</c>, and the only place a file may reference a
+    ///     <c>RaskBrowserPackageReference</c>. Anywhere else this file would also compile into the
+    ///     server, where <c>Rask.Cqrs.Client</c> is absent by design.
+    ///     </para>
+    /// </remarks>
+    private static string BrowserStartupCs() =>
+        $$"""
+          using Microsoft.Extensions.DependencyInjection;
+          using Rask.Cqrs.Client;
+
+          namespace {{NameToken}}.Browser;
+
+          /// <summary>Services the browser half needs. The server registers its own in Program.cs.</summary>
+          public static class BrowserStartup
+          {
+              public static void Configure(IServiceCollection services)
+              {
+                  // Every message this page dispatches travels to the server, over the same IDispatcher
+                  // call the server half makes in-process. Nothing on a message marks it remote: you
+                  // write a record and a handler, and where the handler lives decides where it runs.
+                  //
+                  // A client is a PURE client. A handler compiled into the bundle is BYPASSED — the
+                  // request goes to the server, which answers 404 for a name it has no handler for.
+                  // [LocalOnly] is the only way to keep a message in the browser, and it is what a
+                  // local counter or an offline queue needs.
+                  //
+                  // Handlers live under Server/, which the bundle does not compile — so a connection
+                  // string or a pricing rule cannot reach a download anybody can read.
+                  services.AddRaskCqrsClient();
+              }
+          }
+          """;
+
     private static string ServerProgram(ServerBatteries batteries)
     {
         var sb = new StringBuilder();
         // App (and, with --data, AppDbContext) live in the Features/Shared bucket.
-        sb.Append("using Company.RaskServer.Features.Shared;\nusing Microsoft.AspNetCore.DataProtection;\nusing Microsoft.AspNetCore.HttpOverrides;\nusing Rask.Server;\nusing Rask.Server.Diagnostics;\n");
+        sb.Append("using Company.RaskServer.Features.Shared;\nusing Microsoft.AspNetCore.HttpOverrides;\nusing Rask.Server;\nusing Rask.Server.Diagnostics;\n");
         if (batteries.Auth)
         {
             sb.Append("using Company.RaskServer.Features.Auth;\n");
@@ -250,6 +321,14 @@ internal static partial class ProjectGenerator
             sb.Append("using Rask.Wasm.Hosting;\n");
         }
 
+        // AddRaskCqrsServer and MapRaskCqrs are both in Rask.Cqrs.Server, which is a different namespace
+        // from the mediator's own — the endpoint half is a separate package precisely so the browser one
+        // can exist without it.
+        if (batteries is { Wasm: true, Cqrs: true })
+        {
+            sb.Append("using Rask.Cqrs.Server;\n");
+        }
+
         sb.Append(DatabaseAndBatteryUsings(batteries));
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
@@ -258,7 +337,8 @@ internal static partial class ProjectGenerator
             // Configured on the EXISTING AddRask call rather than a second one. A second
             // AddRask(configureCulture: ...) compiles and reads correctly, but the options are
             // registered with TryAddSingleton, so the first (empty) registration wins and the app
-            // silently ships with no languages at all.
+            // silently ships with no languages at all. RASK060 now reports that in the reader's own
+            // code; this comment is why the scaffold never emits it in the first place.
             var languages = string.Join(", ", batteries.Cultures.Select(c => $"\"{c}\""));
             // Configured on the SAME call for the same reason the cultures are: the options are
             // registered with TryAddSingleton, so a second AddRask would be dropped on the floor.
@@ -323,27 +403,8 @@ internal static partial class ProjectGenerator
                 options.KnownProxies.Clear();
             });
 
-            // Data-protection keys sign the auth cookie (and anything else the app protects). The default key
-            // ring is written inside the container, and every deploy replaces the container — so without this
-            // a redeploy mints a fresh ring and every cookie already issued stops validating: all your
-            // signed-in users are silently signed out. `rask deploy` mounts a volume at /data, so persisting
-            // the ring there makes it outlive the container the same way the database does. SetApplicationName
-            // matters as much as the path: the default discriminator is derived from the content root, which
-            // differs between the build and runtime images. Set Rask:DataProtection:KeyPath to override the
-            // location; when neither it nor /data exists (a plain `dotnet run`), this is skipped and ASP.NET's
-            // per-user development key ring applies.
-            var keyRingPath = builder.Configuration["Rask:DataProtection:KeyPath"]
-                              ?? (Directory.Exists("/data") ? "/data/keys" : null);
-            if (keyRingPath is not null)
-            {
-                builder.Services.AddDataProtection()
-                    .PersistKeysToFileSystem(Directory.CreateDirectory(keyRingPath))
-                    .SetApplicationName(builder.Environment.ApplicationName);
-            }
-
             """.TrimStart('\n'));
 
-        sb.Append(ShutdownBudgetBlock(batteries.Data));
 
         if (batteries.Cqrs)
         {
@@ -363,9 +424,37 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
-        // The database and every DB-backed battery, shared verbatim with the wasm-hosted template:
-        // that template's .Server host wires the same AppDbContext and the same AddRaskX<AppDbContext>()
-        // calls, and a second copy of these blocks would drift the moment one of them was corrected.
+        if (batteries is { Wasm: true, Cqrs: true })
+        {
+            // The secure default stands wherever there is a sign-in to enforce. Without --auth there is
+            // no authentication to require, and leaving it on would make every message answer 401 — the
+            // scaffold would ship a page that looks eligible for the browser and cannot reach its server.
+            sb.Append(batteries.Auth
+                ? """
+                  // The endpoint half of remote dispatch, for the pages that move into the browser.
+                  // Fails closed: every message is authenticated by default, [AllowAnonymous] is the only
+                  // way past, and an anonymous caller gets the same answer for a real message name as for
+                  // a typo — so the endpoint cannot be walked to enumerate this app's messages.
+                  builder.Services.AddRaskCqrsServer();
+
+                  """.TrimStart('\n')
+                : """
+                  // The endpoint half of remote dispatch, for the pages that move into the browser.
+                  // An anonymous caller gets the same answer for a real message name as for a typo, so
+                  // the endpoint cannot be walked to enumerate this app's messages.
+                  //
+                  // RequireAuthenticatedUser is OFF because this app has no authentication to require —
+                  // left on, every message would answer 401 and nothing would work. Add a cookie or JWT
+                  // scheme and DELETE this argument: the default is on for a reason, and a message
+                  // reachable by anyone is a decision worth making per app.
+                  builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
+
+                  """.TrimStart('\n'));
+        }
+
+        // The database and every DB-backed battery, shared verbatim with the TypeScript-SPA host:
+        // that generator wires the same AppDbContext and the same AddRaskX<AppDbContext>() calls, and a
+        // second copy of these blocks would drift the moment one of them was corrected.
         AppendDatabaseAndBatteries(sb, batteries);
 
         if (batteries.Pwa)
@@ -495,6 +584,18 @@ internal static partial class ProjectGenerator
                 // which would put routing ahead of this line however early it appears.
                 app.UseRaskWasmAssets();
                 app.UseRouting();
+
+                """.TrimStart('\n'));
+        }
+
+        if (batteries is { Wasm: true, Cqrs: true })
+        {
+            sb.Append("""
+                // Answers the messages the browser half dispatches. Two endpoints, not one per message:
+                // GET and POST on /_rask/cqrs/request/{name}, the verb carrying what IQuery and ICommand
+                // already declare — so a command is 405 on GET and cannot be fired by a URL or a
+                // prefetch. Mapped BEFORE UseRask, whose catch-all would otherwise answer these.
+                app.MapRaskCqrs();
 
                 """.TrimStart('\n'));
         }

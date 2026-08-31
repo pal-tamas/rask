@@ -97,6 +97,7 @@ jobs:
 
       - name: Pack (prerelease)
         run: |
+          dotnet pack src/Rask/Rask.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Server/Rask.Server.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release -o ./artifacts

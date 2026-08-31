@@ -50,7 +50,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
+    <!-- The one reference. On net10.0-browser this resolves to the WebAssembly host plus the trim-safe
+         batteries; the same PackageReference on a net10.0 project resolves to the ASP.NET host plus the
+         server batteries. -->
+    <ProjectReference Include="..\..\src\Rask\Rask.csproj"/>
+
+    <!-- A real consumer gets this from the package's own build/Rask.props. In-repo we reference the
+         PROJECT, and a ProjectReference does not import a package's build props, so the same rooting is
+         spelled out here. Without it the trimmer drops Rask.dll — nothing references it statically, since
+         its wiring is handed to the host from a [ModuleInitializer] — and the batteries silently do
+         nothing. Measured: Rask.dll and Rask.Query were absent from the published bundle entirely. -->
+    <TrimmerRootAssembly Include="Rask"/>
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"

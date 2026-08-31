@@ -761,6 +761,13 @@ internal static partial class ProjectGenerator
 
             var builder = WebApplication.CreateBuilder(args);
 
+            // The host half of `app.UseRaskSpa()` below. It brings brotli + gzip over the types a bundler
+            // emits — text/javascript above all, which is what the largest file in the app is served as —
+            // and the defaults every Rask web host applies: a Data Protection key ring that outlives the
+            // container a deploy replaces, and a shutdown budget that fits inside the SIGKILL, with the
+            // hosted services stopped concurrently so their graces overlap instead of summing past it.
+            builder.Services.AddRaskSpaHost();
+
             // AddRaskCqrsServer registers the mediator AND the endpoint pair the front end dispatches
             // through. The TypeScript the client imports is generated from these same message records at
             // build time, so the two halves cannot disagree about a payload or a result.
@@ -779,7 +786,6 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        sb.Append(ShutdownBudgetBlock(batteries.Data));
         AppendDatabaseAndBatteries(sb, batteries);
 
         sb.Append("""

@@ -95,9 +95,9 @@ started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–059 are documented in `docs/diagnostics.md`
-  (RASK030/032/042/047/048/049/050 are retired and never recycled; the next free id is RASK060). **Grep `src/`
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–060 are documented in `docs/diagnostics.md`
+  (RASK030/032/042/047/048/049/050 are retired and never recycled; the next free id is RASK061). **Grep `src/`
   for the id before you claim it, AND again before you merge** — three assemblies allocate in this space and
-  RS1019 only checks one compilation, so this line goes stale silently. This has now bitten three times on one
-  branch: #865 took RASK054, then #871 took RASK055, each after a branch-time grep said they were free. Treat
-  a merge from main as invalidating every id you hold.
+  RS1019 only checks one compilation, so this line goes stale silently. This has now bitten four times on one
+  branch: #865 took RASK054, #871 took RASK055, and #864 took RASK056–059 out from under #880's own RASK056,
+  caught only at merge. Treat a merge from main as invalidating every id you hold.

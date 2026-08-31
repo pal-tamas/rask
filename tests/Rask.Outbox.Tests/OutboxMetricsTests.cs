@@ -99,7 +99,7 @@ public sealed class OutboxMetricsTests : IDisposable
         services.AddSingleton(_recorder);
         services.AddSingleton(new @event.KeywordRecorder());
         services.AddRaskCqrs();
-        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+        services.AddRaskData();
         services.AddRaskOutbox<OutboxDbContext>(o =>
         {
             o.PollInterval = TimeSpan.FromMilliseconds(50);

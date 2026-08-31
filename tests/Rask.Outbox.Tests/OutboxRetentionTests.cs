@@ -124,7 +124,7 @@ public sealed class OutboxRetentionTests : IDisposable
         services.AddLogging();
         services.AddSingleton<TimeProvider>(_clock);
         services.AddRaskCqrs();
-        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+        services.AddRaskData();
         services.AddRaskOutbox<OutboxDbContext>(o =>
         {
             o.PollInterval = TimeSpan.FromMilliseconds(50);
