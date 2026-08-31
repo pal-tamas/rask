@@ -35,7 +35,7 @@
          file bridge's signatures name RaskFile and Navigator, so the tests need Core directly — the same
          arrangement a real app has, where Core arrives from its Rask.Wasm / Rask.Server host package. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>

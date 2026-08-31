@@ -340,19 +340,19 @@ Dropping either from the key lets a cache serve one visitor's page to another.
 
 ## A client-plus-host solution
 
-No template scaffolds this shape any more — `--wasm` on a server app publishes both halves from one
-project instead — but `rask dev` and `rask deploy` still recognise it, so apps built on the old
-`wasm-hosted` template keep working. Three projects in one solution: `MyApp.Client` (the browser-WASM
-SPA), `MyApp.Server` (the ASP.NET host that serves it), and `MyApp.Shared` (a class library both
-reference). The Dockerfile installs the
-`wasm-tools` workload (needed to publish the browser client the Server host bakes in), builds the
-projects, and runs **`MyApp.Server`** on the aspnet runtime image — same port/TLS story as the server app.
+**No template scaffolds this shape, and none has since the `wasm-hosted` template was removed.** What
+`rask dev` and `rask deploy` still do is *recognise* it, so a solution built on that template — or by
+hand — keeps working. Three projects in one solution: `MyApp.Client` (the browser-WASM SPA),
+`MyApp.Server` (the ASP.NET host that serves it), and `MyApp.Shared` (a class library both reference).
 
-```bash
-docker build -t myapp .
-docker run --rm -p 8080:8080 myapp
-# open http://localhost:8080  — /api/weatherforecast demonstrates the client↔host round trip
-```
+There is **no scaffolded Dockerfile for it**, because there is no scaffold. If you maintain such a
+solution you own its Dockerfile; it needs the `wasm-tools` workload installed before publishing (the
+Server host bakes in the browser client), and it runs `MyApp.Server` on the aspnet runtime image —
+same port and TLS story as the server app above.
+
+**If you are starting today, you want `--wasm` on a server app instead** ([render
+modes](render-modes.md)): one authored project, both halves, and `dotnet publish` emits the browser
+bundle into `wwwroot` from the same sources. That path *is* scaffolded, Dockerfile included.
 
 ## Standalone WASM SPA (`--template wasm`)
 

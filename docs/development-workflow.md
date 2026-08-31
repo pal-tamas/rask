@@ -40,6 +40,9 @@ Every change passes this gate before a PR (the `rask-ship` skill):
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
    `EnforceCodeStyleInBuild`), so a plain build enforces it too. See [code-analysis.md](code-analysis.md).
+   The same build runs the **public-API gate**: anything public you added, renamed or removed fails
+   until it is recorded in `src/<Project>/PublicAPI/<tfm>/PublicAPI.Unshipped.txt`. That diff is the
+   API review — read it against [api-style.md](api-style.md) before you commit.
 3. **Tests** — unit-test every feature/fix (`tests/Rask.*.Tests`); add E2E only when a unit test
    can't reach the path. **Every `samples/` change gets an E2E** journey update
    (`tests/Rask.Examples.E2E.Tests`). Inner loop — **build once, then test with `--no-build`** so
@@ -111,6 +114,34 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   worktrees, this is the thing that stops you diagnosing a failure that was never in your branch.
   `RASK_E2E_ALLOW_CONCURRENT=1` overrides it; treat anything it then reports as suspect until re-run
   alone.
+
+  **What that guard does not cover.** It detects its own kind — a second browser gate. The commoner
+  collision is everything else competing with a live suite: a `pre-commit` hook, a plain `dotnet
+  build`, a `dotnet publish`, the CLI build gate. None of those is a browser gate, so nothing refuses
+  and nothing warns. Two things soften it now, both hints rather than decisions ([#850]):
+  `pre-commit` says so before it starts when a browser gate is live (it never refuses — a blocked
+  commit is worse than a slow one), and a red suite that finds a heavy build still running names it
+  and asks you to re-run alone before investigating. Neither claims your failure is not real; they
+  say the run was not clean enough to conclude that it is.
+
+- **Every gate says whether it ran.** The path-filtered gates — CLI build, watch hot-reload, deploy,
+  install — used to take a silent branch when nothing in the push matched their paths, printing
+  nothing at all. A gate that does not run then looks exactly like one that passed, which is this
+  repo's most expensive bug class and the thing [#845] was reported over. Each now prints one
+  `… SKIPPED — nothing in this push matches the … paths.` line, so the absence of a gate is visible
+  rather than inferred.
+
+- **Hooks in a worktree run the worktree's own copy.** `core.hooksPath` is the relative path
+  `.githooks`, and git resolves it against the **pushing worktree's** top level, not the main
+  checkout's — so a hook change *is* exercised by the push that introduces it, from a worktree as much
+  as from the main clone. Verified on git 2.50.1 by pushing from a linked worktree whose
+  `.githooks/pre-push` differed from the main checkout's, from the worktree root and from a
+  subdirectory: the worktree's copy ran in both. One caveat worth knowing: if a branch does not
+  contain `.githooks/` at all, **no hook runs and nothing says so** — git does not fall back to the
+  main checkout's copy.
+
+[#845]: https://github.com/pal-tamas/rask/issues/845
+[#850]: https://github.com/pal-tamas/rask/issues/850
 - **The CLI build gate runs locally, enforced before push.** `scripts/run-cli-build-e2e.sh` is the only
   thing proving the code the CLI *writes* actually compiles — every other CLI test asserts on generated
   strings. It packs this commit's Rask packages to a local feed, scaffolds every `rask new` flag

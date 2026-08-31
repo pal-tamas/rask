@@ -28,7 +28,7 @@
   <!-- The dispatch/codec generator, as an analyzer only: consumers get the code generation without a
        runtime reference, exactly as Rask.Cqrs wires it. -->
   <ItemGroup>
-    <ProjectReference Include="..\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
