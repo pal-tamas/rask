@@ -7,7 +7,7 @@ namespace Rask.Cli.Commands;
 
 /// <summary>
 /// <c>rask new</c> — scaffold a Rask project. The CLI is the scaffolding authority: every template
-/// (<c>server</c>, <c>wasm</c>, <c>wasm-hosted</c>) is generated directly — files written +
+/// (<c>server</c>, <c>wasm</c>, and the front-end ones) is generated directly — files written +
 /// package refs baked at the CLI's own version + <c>dotnet restore</c> — with no <c>dotnet new</c> /
 /// Rask.Templates dependency.
 /// </summary>
@@ -724,7 +724,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         // build() is pure (in-memory strings), so it's safe to run before the existence check — we need its
         // RestoreTarget to know what to guard/restore. Single-project templates restore {name}.csproj at the
-        // root; a multi-project template (wasm-hosted) has no root csproj and restores its {name}.sln instead.
+        // root; a multi-project template — a front-end one, whose client sits beside an ASP.NET host — has
+        // no root csproj and restores its {name}.slnx instead.
         var version = ResolvePackageVersion(CliMetadata.Version);
         var result = build(targetDirectory, version);
 

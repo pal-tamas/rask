@@ -9,9 +9,15 @@ namespace Rask.Cli.Scaffolding;
 /// version the caller passes (the CLI's own version).
 /// </summary>
 /// <remarks>
-/// One template per partial file — <c>.Server.cs</c>, <c>.Wasm.cs</c>, <c>.WasmHosted.cs</c> — with the
-/// content more than one of them emits in <c>.Shared.cs</c>. The multi-project
-/// <c>wasm-hosted</c> template emits a Client/Server/Shared trio and restores the generated solution.
+/// One template per partial file — <c>.Server.cs</c>, <c>.Wasm.cs</c>, <c>.Spa.cs</c> — with the content
+/// more than one of them emits in <c>.Shared.cs</c>. This remark is the map a reader uses to find the
+/// emitter for a template, so it has to name files that exist.
+/// <para>
+/// Every template is a SINGLE project now. <c>--wasm</c> on the server template does not scaffold a
+/// second one: it sets <c>RaskBrowserRung</c>, and <c>dotnet publish</c> generates the browser half into
+/// <c>obj/</c> from these same sources. The multi-project Client/Server/Shared trio was
+/// <c>wasm-hosted</c>, removed in #877 along with <c>.WasmHosted.cs</c>.
+/// </para>
 /// </remarks>
 internal static partial class ProjectGenerator
 {

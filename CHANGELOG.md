@@ -328,6 +328,31 @@ them until tagged releases begin.
   ([#868](https://github.com/pal-tamas/rask/issues/868)); see the entry under **Added** above.
 
 ### Fixed
+- **The prose caught up with the removal of the `wasm-hosted` template.**
+  ([#897](https://github.com/pal-tamas/rask/issues/897),
+  [#898](https://github.com/pal-tamas/rask/issues/898)) #877 swept the generator and the catalog; the
+  documentation and the comments around them were left describing a template that no longer exists.
+
+  Two pages actively misled. `docs/deployment.md` kept a runnable `docker build` block and said "the
+  Dockerfile installs the `wasm-tools` workload" — for a Dockerfile nothing writes any more; it now says
+  plainly that the shape is recognised but not scaffolded, that its Dockerfile is yours, and points
+  anyone starting today at `--wasm` on a server app. `docs/authentication-cookie.md` told the reader the
+  generating template was gone and then documented a `MyApp.Server`/`MyApp.Client` layout with no way to
+  produce one; it now names the two samples that *are* that arrangement as the working copy.
+
+  `ProjectGenerator`'s class remark listed `.WasmHosted.cs` among the files to read — the map a reader
+  uses to find a template's emitter, pointing at a deleted file. The rest were comments naming the
+  template as current in `TemplateCatalog`, `ProjectGenerator.{Batteries,Shared,Spa,Wasm}`,
+  `ScaffoldResult`, `ProjectContext` and `NewCommand`.
+
+  Deliberately left alone: `DevTarget` and `DevCommand`, and the host-side remarks in `Rask.Server` /
+  `Rask.Wasm.Hosting` / `Rask.Dashboard`. Those describe a client-plus-host *shape* that still exists —
+  the detection is what keeps solutions built on the old template working — rather than a template.
+
+  Also corrected in `llms.txt`, both about CQRS rather than templates: `file.AsRemote()` has no
+  remaining reference in `src/` (a message declares a `RaskFile` directly), and chunked upload is no
+  longer "not implemented" — it shipped in #764, with the client's unused 409-resume path now tracked as
+  [#895](https://github.com/pal-tamas/rask/issues/895).
 - **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
   Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
   file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours

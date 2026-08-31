@@ -14,7 +14,7 @@ internal static partial class ProjectGenerator
     ///     <c>{name}.Client</c> scaffolded by the framework's own tool and then overlaid.
     /// </summary>
     /// <remarks>
-    ///     Two projects, not three. The wasm-hosted template needs a <c>.Shared</c> because both halves are
+    ///     Two projects, not three. A C#-on-both-halves solution needs a <c>.Shared</c> because both halves are
     ///     C# and must compile the same record; here the client's half of every contract is generated
     ///     TypeScript, so the messages live in the Server and there is nothing for a third project to hold.
     /// </remarks>
@@ -738,7 +738,7 @@ internal static partial class ProjectGenerator
         var sb = new StringBuilder();
         if (batteries.Data)
         {
-            // AppDbContext. It lands in the .Server project's own namespace, the way the wasm-hosted
+            // AppDbContext. It lands in the .Server project's own namespace, the way a client-plus-host
             // template's does, because that is the only project in the solution with a disk to put a
             // database on.
             sb.Append($"using {NameToken}.Server.Features.Shared;\n");
