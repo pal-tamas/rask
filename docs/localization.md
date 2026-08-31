@@ -3,21 +3,22 @@
 Ship your app in more than one language: dates and numbers in the visitor's format, text in their
 language, and `<html lang>` that tells the truth.
 
-```bash
-rask new Shop --culture en --culture hu
-```
-
-The first language named is the default. To add it to an app you already have, three lines:
+Every scaffolded server app already ships one language, English, registered in `Program.cs`. Adding a
+second is a line in the block that is already there:
 
 ```csharp
 builder.Services.AddRask(configureCulture: c =>
 {
     c.SupportedCultures.Add("en");   // the default
-    c.SupportedCultures.Add("hu");
+    c.SupportedCultures.Add("hu");   // add another to ship another
 });
 ```
 
-Until you name a language, **nothing changes**: `<html lang="en">`, no `dir` attribute, and no cost on
+The first entry is the default a visitor falls back to. **This is the only place languages are
+configured** — there is no CLI flag for it, because the file is where the answer lives and stays
+([#854](https://github.com/pal-tamas/rask/issues/854)).
+
+Until you add a second, **nothing changes**: `<html lang="en">`, no `dir` attribute, and no cost on
 the render path.
 
 ## How a visitor's language is chosen
@@ -195,6 +196,22 @@ public sealed partial class LanguageMenu(IRaskCulture culture) : Component
 
 `SetAsync` switches the session, remembers the choice, and repaints. No reload.
 
+**No template scaffolds this, deliberately** ([#854](https://github.com/pal-tamas/rask/issues/854)).
+A new project starts with English and the registration above in `Program.cs`; adding a language is
+another `c.SupportedCultures.Add(...)` line there. That is the whole configuration surface — there is
+no `--culture` flag, because a flag would only restate what the file already says, and it would say it
+once at scaffold time while the file goes on being the truth.
+
+*Where* a language control belongs in your chrome is a different question, and it is a design decision
+about your app rather than wiring — the same line `--auth` and the styling flags sit on. So a
+scaffolded app negotiates language correctly out of the box, and a visitor can be *sent* to a language
+by link, but there is no affordance for choosing one until you add the component above.
+
+That is worth stating rather than leaving to be discovered: negotiation working end to end reads very
+much like a switcher being present somewhere. `RaskCultureNegotiator.TrySelect` is kept separate from
+`Negotiate` precisely so an explicit pick is honoured regardless of `UseQueryString`, which is what
+keeps the menu above at ten lines instead of a feature.
+
 ## Right-to-left
 
 A right-to-left culture emits `dir="rtl"` on `<html>`; everything else emits no `dir` at all, because
@@ -204,12 +221,19 @@ and the layout follows.
 ## WASM and ICU
 
 A WASM app needs culture data, and Rask does **not** ship it by default, because it is the one part of
-this feature you can measure on the download. `rask new --template wasm --culture hu` sets it for you;
-add it by hand to an app that grows a second language later:
+this feature you can measure on the download — and the one part `Program.cs` cannot switch on by
+itself, since it is an MSBuild property. `rask new --template wasm` scaffolds it **commented out**,
+with the reason beside it, so an app that grows a second language later uncomments one line:
 
 ```xml
 <RaskGlobalization>true</RaskGlobalization>
 ```
+
+That is also why a browser-WASM app scaffolds no language registration at all, where the server
+template scaffolds English: on the server the runtime carries ICU regardless and it costs nothing, and
+in the browser it is roughly a megabyte. Configure the languages in `Program.cs` **and** uncomment the
+property — catalogs without ICU are a no-op, because the resolver refuses to let a culture pose as
+supported when the data is not there, and the app boots with an empty supported list and one warning.
 
 Measured on the WASM showcase, publishing the same trimmed app with and without it:
 
@@ -218,6 +242,10 @@ Measured on the WASM showcase, publishing the same trimmed app with and without 
 | without ICU | 12.44 MB | 3.28 MB |
 | with ICU | 16.36 MB | 4.33 MB |
 | **cost** | **+3.92 MB** | **+1.05 MB (+32%)** |
+
+Re-measured for [#853](https://github.com/pal-tamas/rask/issues/853) and still right: +3.90 MB raw /
++1.06 MB brotli (+33%) on the current tree. The figures were always the cost of the **shards** — see
+below — which is what has shipped all along.
 
 Roughly a third of that is the `icudt*.dat` files themselves; the rest is a larger `dotnet.native.wasm`
 and `System.Private.CoreLib`, because turning globalization on brings back runtime code that invariant
@@ -236,13 +264,33 @@ One property covers all three halves of this, because each default is a trap on 
 
 - `PredefinedCulturesOnly` otherwise stays `true`, and `CultureInfo.GetCultureInfo("hu-HU")` **throws**
   rather than falling back
-- the WebAssembly SDK otherwise ships a **reduced ICU shard** covering only EFIGS — English, French,
-  Italian, German, Spanish. Under it `hu-HU` resolves, does not throw, and formats dates **in
-  English**: every check passes and the output is quietly wrong. `RaskGlobalization` requests full ICU
-  instead
+- the runtime otherwise has **no culture data at all**, so no named culture resolves
 
-If your app genuinely only needs EFIGS, set `<WasmIncludeFullIcu>false</WasmIncludeFullIcu>` back and
-save the difference.
+### What ships, and the one thing to know about it
+
+A globalized WASM publish carries **three reduced ICU shards**, not one full `icudt.dat`:
+
+```
+icudt_EFIGS.<hash>.dat    English, French, Italian, German, Spanish
+icudt_CJK.<hash>.dat      Chinese, Japanese, Korean
+icudt_no_CJK.<hash>.dat   everything else — including Hungarian, and English
+```
+
+The runtime loads **one of them**, chosen at boot, and it chooses from the *visitor's browser*
+(`navigator.languages[0]`) rather than from the languages your app ships. So a second language works
+for a visitor whose browser is already set to it, and an `en`+`hu` app opened in an **English** browser
+loads EFIGS — which has no Hungarian. With `PredefinedCulturesOnly=false`, `hu-HU` then resolves, does
+not throw, and formats dates in English.
+
+> **Known limitation**, tracked in [#853](https://github.com/pal-tamas/rask/issues/853). Rask set
+> `WasmIncludeFullIcu` intending to ship full ICU and avoid this; the SDK's property is
+> `WasmIncludeFullIcuData`, so it was never read. Correcting the spelling turns out **not** to help
+> either: that property is honoured only by the `WasmAppBuilder` bundle path, and a Rask app publishes
+> through `Microsoft.NET.Sdk.WebAssembly`, whose pipeline has no ICU handling of its own. Measured —
+> publishing with the property `true` and `false` produces byte-identical output.
+>
+> If your app ships more than one language and its speakers may arrive with a different browser
+> language, be aware of this. A single-language app is unaffected.
 
 ## Translating the framework's own text
 

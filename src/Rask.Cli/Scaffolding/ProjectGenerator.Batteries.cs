@@ -8,7 +8,7 @@ internal static partial class ProjectGenerator
     /// Emits the database registration and every DB-backed battery into a generated <c>Program.cs</c>.
     /// </summary>
     /// <remarks>
-    /// Shared by the <c>server</c> template and the <c>wasm-hosted</c> template's <c>.Server</c> host. Both
+    /// Shared by the <c>server</c> template and the front-end templates' ASP.NET host. Both
     /// wire the same <c>AppDbContext</c> through the same <c>AddRaskX</c> calls in the same load-bearing
     /// order — the outbox before the context factory, so its interceptor is in the container when the
     /// factory resolves <c>ISaveChangesInterceptor</c> — so the blocks live here once rather than in two
