@@ -6,7 +6,7 @@ namespace Rask.SQLite;
 /// <summary>
 /// Registers the collating sequences a Rask SQLite connection needs. Like <see cref="SqlitePragmas"/>,
 /// this is the single source of truth shared by the raw-ADO factory
-/// (<see cref="IRaskSqliteConnectionFactory"/>) and the Entity Framework Core interceptor in the
+/// (<see cref="ISqlite"/>) and the Entity Framework Core interceptor in the
 /// <c>Rask.SQLite.EntityFrameworkCore</c> package.
 /// </summary>
 /// <remarks>

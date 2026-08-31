@@ -4,20 +4,20 @@ using Microsoft.Data.Sqlite;
 namespace Rask.SQLite;
 
 /// <summary>
-/// Default <see cref="IRaskSqliteConnectionFactory"/>: opens connections for a fixed connection string
+/// Default <see cref="ISqlite"/>: opens connections for a fixed connection string
 /// and applies the configured pragmas whenever a connection transitions to
 /// <see cref="ConnectionState.Open"/> — including a pooled connection being reused, which fires the
 /// event again and re-applies the per-connection pragmas.
 /// </summary>
-internal sealed class RaskSqliteConnectionFactory : IRaskSqliteConnectionFactory
+internal sealed class RaskSqliteConnectionFactory : ISqlite
 {
     private readonly string _connectionString;
-    private readonly SqlitePragmaOptions _options;
+    private readonly SqliteOptions _options;
     private readonly SqliteBusyRetryOptions _retry;
 
     public RaskSqliteConnectionFactory(
         string connectionString,
-        SqlitePragmaOptions options,
+        SqliteOptions options,
         SqliteBusyRetryOptions retry)
     {
         ArgumentException.ThrowIfNullOrEmpty(connectionString);
@@ -49,7 +49,7 @@ internal sealed class RaskSqliteConnectionFactory : IRaskSqliteConnectionFactory
         return connection;
     }
 
-    public async Task<T> ExecuteInImmediateTransactionAsync<T>(
+    public async Task<T> InImmediateTransactionAsync<T>(
         Func<SqliteConnection, CancellationToken, Task<T>> work,
         CancellationToken cancellationToken = default)
     {
@@ -59,17 +59,17 @@ internal sealed class RaskSqliteConnectionFactory : IRaskSqliteConnectionFactory
         await using (connection.ConfigureAwait(false))
         {
             return await connection
-                .ExecuteInImmediateTransactionAsync(_retry, work, cancellationToken: cancellationToken)
+                .InImmediateTransactionAsync(_retry, work, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
     }
 
-    public Task ExecuteInImmediateTransactionAsync(
+    public Task InImmediateTransactionAsync(
         Func<SqliteConnection, CancellationToken, Task> work,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(work);
-        return ExecuteInImmediateTransactionAsync(
+        return InImmediateTransactionAsync(
             async (connection, ct) =>
             {
                 await work(connection, ct).ConfigureAwait(false);

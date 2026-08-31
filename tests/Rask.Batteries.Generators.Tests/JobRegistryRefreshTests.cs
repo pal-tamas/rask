@@ -23,7 +23,7 @@ public class JobRegistryRefreshTests
     private const string OneJob = """
         using Rask.Jobs;
         namespace Demo;
-        public sealed record SendWelcomeEmail(int UserId) : IJob;
+        public sealed record SendWelcomeEmail(int UserId) : IBackgroundJob;
         """;
 
     [Fact]

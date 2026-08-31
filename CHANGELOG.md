@@ -25,6 +25,72 @@ them until tagged releases begin.
   The stale `.nupkg` assets were also removed from the 22 GitHub releases carrying them (v0.1.1 through
   v0.20.0) — `Rask.Native` and `Rask.Templates` were attached to releases as recently as v0.20.0.
   `Rask.Chrome` and `Rask.Client` needed nothing: they were never published.
+### Changed
+
+- **BREAKING: the pillar interfaces are named for what they are, not how they are built.** Every name
+  below was decided against the rule it now obeys ([`docs/api-style.md`](docs/api-style.md)): a short
+  noun with the mechanism left out, and the verb .NET already uses.
+
+  | Was | Is |
+  |---|---|
+  | `IMailQueue` | `IMail` |
+  | `IJobQueue` | `IJob` — and the job marker `IJob` became `IBackgroundJob` |
+  | `ILogStore` / `.QueryAsync` | `ILogs` / `.SearchAsync` |
+  | `IRaskSqliteConnectionFactory` | `ISqlite` |
+  | `.ExecuteInImmediateTransactionAsync` | `.InImmediateTransactionAsync` |
+  | `IWebPushSender` | `IWebPush` |
+  | `ICache.GetOrCreateAsync` | `ICache.GetOrAddAsync` |
+  | `IDispatcher.DispatchAsync` | `.QueryAsync` for a query, `.SendAsync` for a command |
+  | `SqlitePragmaOptions` | `SqliteOptions`, with `Retry` nested and `StrictTables` on it |
+
+  That a mail is queued is true and is a fact the caller never acts on — a queue that became a direct
+  SMTP write would leave every call site correct and every name a lie. `GetOrAddAsync` rather than
+  something more conversational because `ConcurrentDictionary` and `IMemoryCache` already have a word
+  for this operation, and a synonym reads better exactly once while costing every reader a translation
+  step forever. `SearchAsync` is the exception that proves it: `QueryAsync(LogQuery query)` said "query"
+  three times, so the borrowed word had stopped carrying information.
+
+  **`IDispatcher`, `IQueryClient` and `ICache` keep their names** — they name a role rather than a
+  mechanism, which is where the rule stops. `IDispatcher`'s one verb did three jobs, told apart only by
+  the parameter type; it is now `QueryAsync` to ask for data, `SendAsync` to tell the system to do
+  something, `PublishAsync` to announce that something happened. `SendAsync` was already this
+  codebase's word for it — `IRemoteDispatch.SendAsync` predates the change and is untouched.
+
+  **Jobs took the largest change and not the obvious one.** Naming the queue `IJob` meant the message
+  marker had to move, because `IJob` was already what your records implement. So a job is now
+  `record SendReceipt(Guid Id) : IBackgroundJob`, enqueued through `IJob`.
+
+- **BREAKING: two `Query` overloads instead of four, and one SQLite options delegate instead of two.**
+  `IQueryClient` had four members called `Query<TResult>`, told apart only by parameter shape; the
+  explicit key is now an optional parameter and the two ad-hoc forms merged behind an implicit
+  `string` → `QueryKey` conversion. Nothing was lost. Parameter *order* mattered more than count: the
+  obvious ordering broke 86 call sites that pass options positionally, so the rare parameter goes last.
+
+  `AddRaskSqlite` and `UseRaskSqlite` took two adjacent `Action<T>?` delegates, which cannot be told
+  apart at a call site and compile when swapped, and `UseRaskSqlite` ended in a bare `bool`. One
+  `Action<SqliteOptions>?` now carries all of it. The invisible coupling is the real fix: passing
+  `configureRetry` — even as an empty `_ => { }` — used to set `BusyTimeout` to zero. That coupling is
+  load-bearing (the async strategy owns the waiting, so SQLite's native busy handler must be off) but it
+  was inferred from whether a delegate existed. It is now `o.Retry.Enabled`.
+
+### Fixed
+
+- **A batteries-included app registered four browser APIs and then could not reach them.** `AddRask()`
+  registers `IWebPush`, `INotifications`, `IBadge` and `IWakeLock` unconditionally, but on a Server host
+  the JavaScript they need is served by `AddRaskPwa` — which nothing called. `RaskAppOptions` had a
+  battery for every other capability and none for this one. All four injected successfully and failed at
+  runtime.
+
+  There is now a **`Pwa` battery, on by default**, with a manifest named after the entry assembly so an
+  app that configures nothing is installable; `c.Pwa.Off()` declines it. `WebAppManifest`'s properties
+  moved from `init` to `set` so the battery can configure it like every other (source-compatible —
+  existing object initializers still compile).
+
+  The failure was worse than a 404. `UseRask` ends in a catch-all serving the app for any unmatched
+  path, so a missing service worker answered **200 with HTML** — `RegisterServiceWorkerAsync()` received
+  a document where it expected JavaScript. That also made the first version of the test a false green:
+  it asserted only the status code, which passes either way. The tests now assert the content type and
+  body, and are proved by disabling the wiring and watching them go red.
 
 ### Added
 - **The public API is governed, and the build enforces it.** Rask's pitch is that you can read a Rask

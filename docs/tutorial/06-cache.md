@@ -5,14 +5,14 @@
 
 The catalog changes rarely but is read constantly. `Rask.Cache` gives you a typed cache — again backed by
 the same SQLite database, so there's nothing new to run — with the one method you'll reach for most:
-`GetOrCreateAsync`.
+`GetOrAddAsync`.
 
 ## 1. Write the cache accessor
 
 Create `Features/Products/CatalogCache.cs`: a small class that owns **one cached value** — its key, its
 expiry, how to compute it, and how to invalidate it.
 
-That grouping is the point. The tempting shape is an inline `cache.GetOrCreateAsync("catalog:all", …)` at
+That grouping is the point. The tempting shape is an inline `cache.GetOrAddAsync("catalog:all", …)` at
 each call site, and it works right up until the day the data changes and one of the four places that
 should have dropped the key didn't. A cache you can't find every use of is a cache you can't reason about.
 
@@ -47,14 +47,14 @@ Fill in the generated `GetAsync` with the read you actually want to avoid. Two n
 
 - **Project to a record.** Cache values round-trip as JSON, and the `Product` entity's private setters don't
   survive that. A lightweight `ProductListItem` does.
-- **Return the cached value or compute it.** That's the whole of `GetOrCreateAsync`: hit, or run your
+- **Return the cached value or compute it.** That's the whole of `GetOrAddAsync`: hit, or run your
   factory, store the result, and return it.
 
 ```csharp
 public sealed record ProductListItem(Guid Id, string Name, decimal Price, bool InStock);
 
 public Task<IReadOnlyList<ProductListItem>> GetAsync(CancellationToken cancellationToken = default) =>
-    cache.GetOrCreateAsync(
+    cache.GetOrAddAsync(
         Key,
         async token =>
         {
@@ -87,7 +87,7 @@ serving an answer you know is wrong. The expiry is a backstop for the cases you 
 
 Now the list is served from cache until it expires *or* someone edits the catalog, whichever comes first.
 
-> **Trimming / AOT.** The simple `GetAsync`/`SetAsync`/`GetOrCreateAsync` overloads use reflection-based JSON
+> **Trimming / AOT.** The simple `GetAsync`/`SetAsync`/`GetOrAddAsync` overloads use reflection-based JSON
 > and are annotated `[RequiresUnreferencedCode]`. If you publish trimmed or AOT, use the overloads that take a
 > `JsonTypeInfo<T>` from a source-generated `JsonSerializerContext` instead — same methods, no reflection.
 

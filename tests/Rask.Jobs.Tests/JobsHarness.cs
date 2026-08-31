@@ -10,28 +10,28 @@ namespace Rask.Jobs.Tests;
 // the runtime metadata name rather than a C# display string. See KeywordNamespaceJob.cs for the shape that
 // used to dead-letter, and Outer.NestedJob below for the '+'-vs-'.' case.
 
-public sealed record RecordJob(string Value) : IJob;
+public sealed record RecordJob(string Value) : IBackgroundJob;
 
-public sealed record FailingJob : IJob;
+public sealed record FailingJob : IBackgroundJob;
 
-public sealed record TickJob : IJob;
+public sealed record TickJob : IBackgroundJob;
 
 /// <summary>
 /// A job whose handler deletes the highest-numbered still-pending job row — i.e. one that is sitting in the
 /// very batch currently being drained. Stands in for anything that writes to the jobs table underneath the
 /// processor: a manual SQL fix, an ops dashboard's "delete", a cleanup script.
 /// </summary>
-public sealed record SaboteurJob : IJob;
+public sealed record SaboteurJob : IBackgroundJob;
 
 /// <summary>A job whose handler parks until the test releases it — the lever for the shutdown-grace tests.</summary>
-public sealed record GateJob : IJob;
+public sealed record GateJob : IBackgroundJob;
 
 /// <summary>
 /// A job whose handler throws <see cref="OperationCanceledException"/> from its <em>own</em> reasoning, with
 /// no shutdown in progress. Pins the catch-filter: only a cancellation that coincides with the host stopping
 /// is an interruption; this one is an ordinary failure and must count an attempt.
 /// </summary>
-public sealed record SelfCancellingJob : IJob;
+public sealed record SelfCancellingJob : IBackgroundJob;
 
 /// <summary>Latches for driving a handler across a shutdown: entered → (test acts) → released → completed.</summary>
 public sealed class Gate
@@ -181,7 +181,7 @@ public sealed class JobsHarness : IAsyncDisposable
     /// <summary>Latches for <see cref="GateJob"/>, so a test can hold a handler open across a shutdown.</summary>
     public Gate Gate { get; } = new();
 
-    public IJobQueue Queue => _provider.GetRequiredService<IJobQueue>();
+    public IJob Queue => _provider.GetRequiredService<IJob>();
 
     /// <summary>Resolves a service from the harness's container.</summary>
     public T Get<T>() where T : notnull => _provider.GetRequiredService<T>();

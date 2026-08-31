@@ -265,7 +265,7 @@ public partial class App : Component
                     Feature("◷", "Background jobs", "Durable enqueued, delayed, and recurring work on your database, run by a hosted worker — at-least-once, with exponential backoff."),
                     Feature("✉", "Transactional email", "Email queued on the same database and delivered over SMTP off the request thread; bodies are Rask components."),
                     Feature("⤴", "Transactional outbox", "Domain events captured in the same transaction as your data and relayed at-least-once — crash-safe, no message broker."),
-                    Feature("⚡", "Cache", "A database-backed ", Code["IDistributedCache"], " plus a typed ", Code["ICache"], " with ", Code["GetOrCreateAsync"], " and sliding/absolute expiry."),
+                    Feature("⚡", "Cache", "A database-backed ", Code["IDistributedCache"], " plus a typed ", Code["ICache"], " with ", Code["GetOrAddAsync"], " and sliding/absolute expiry."),
                     Feature("⬢", "Production SQLite", "SQLite as the production database — WAL + busy-timeout pragmas (~99k ops/s on a laptop), continuous Litestream backup, scheduled snapshots."),
                     Feature("⬈", "One-command deploy", Code["rask deploy"], " takes a bare VPS to a live HTTPS site — Docker, a non-root deploy user, firewall + SSH hardening, and zero-downtime swaps."),
                     Feature("◎", "Web Push", "Send Web Push from your backend on your own VAPID keys (RFC 8292/8291) — zero external dependencies.")

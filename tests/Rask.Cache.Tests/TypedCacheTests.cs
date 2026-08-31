@@ -37,8 +37,8 @@ public sealed class TypedCacheTests
             return Task.FromResult(new Widget(1, "made"));
         }
 
-        var first = await harness.Cache.GetOrCreateAsync("w", Factory);
-        var second = await harness.Cache.GetOrCreateAsync("w", Factory);
+        var first = await harness.Cache.GetOrAddAsync("w", Factory);
+        var second = await harness.Cache.GetOrAddAsync("w", Factory);
 
         Assert.Equal(new Widget(1, "made"), first);
         Assert.Equal(new Widget(1, "made"), second);
@@ -57,9 +57,9 @@ public sealed class TypedCacheTests
         }
 
         var options = new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) };
-        var first = await harness.Cache.GetOrCreateAsync("w", Factory, options);
+        var first = await harness.Cache.GetOrAddAsync("w", Factory, options);
         harness.Clock.Advance(TimeSpan.FromMinutes(6));
-        var second = await harness.Cache.GetOrCreateAsync("w", Factory, options);
+        var second = await harness.Cache.GetOrAddAsync("w", Factory, options);
 
         Assert.Equal(1, first.Id);
         Assert.Equal(2, second.Id); // recomputed after expiry

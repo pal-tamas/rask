@@ -1,10 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Cache;
+using Rask.Core.Browser;
 using Rask.Cqrs;
 using Rask.Dashboard;
 using Rask.Data;
@@ -13,6 +15,7 @@ using Rask.Logging;
 using Rask.Mail;
 using Rask.Outbox;
 using Rask.Query;
+using Rask.Server;
 using Rask.SQLite.Litestream;
 using Rask.SQLite.Snapshots;
 using Rask.WebPush;
@@ -79,6 +82,18 @@ internal static class RaskBatteryWiring
         if (options.Push.Enabled && HasVapidKeys(builder.Configuration, options))
         {
             services.AddRaskWebPush(o => options.Push.Apply(o));
+        }
+
+        // The PWA battery serves the manifest and, more importantly, the service worker at
+        // {PathBase}/rask-sw.js. AddRask() registers IWebPush/INotifications/IBadge/IWakeLock
+        // unconditionally, and on a Server host their JS helper is served only by this call — so without
+        // it those four inject fine and then fail on a 404. The default manifest is named after the entry
+        // assembly so an app that configures nothing is still installable.
+        if (options.Pwa.Enabled)
+        {
+            var manifest = DefaultManifest(builder.Environment);
+            options.Pwa.Apply(manifest);
+            services.AddRaskPwa(manifest);
         }
 
         if (!data)
@@ -200,6 +215,16 @@ internal static class RaskBatteryWiring
             services.AddRaskDashboard<TContext>();
         }
     }
+
+    // A manifest an app gets without asking: named after the app, standalone display, Rask's own icon.
+    // Name is `required`, so there is no such thing as a manifest with nothing filled in — the question
+    // is only whether the default is the app's name or a placeholder, and the app's name is always better.
+    private static WebAppManifest DefaultManifest(IWebHostEnvironment environment) => new()
+    {
+        Name = environment.ApplicationName,
+        ShortName = environment.ApplicationName,
+        Display = DisplayMode.Standalone,
+    };
 
     // Web Push is configured either through the block or straight from configuration; either is enough.
     private static bool HasVapidKeys(IConfiguration configuration, RaskAppOptions options)

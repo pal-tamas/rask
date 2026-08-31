@@ -33,7 +33,7 @@ public sealed partial class DeleteOrder(IDispatcher dispatcher) : Component
 
     private async Task DeleteAsync()
     {
-        await dispatcher.DispatchAsync(new DeleteOrderCommand(Id), CancellationToken);
+        await dispatcher.SendAsync(new DeleteOrderCommand(Id), CancellationToken);
         if (OnDeleted is not null)
         {
             await OnDeleted();

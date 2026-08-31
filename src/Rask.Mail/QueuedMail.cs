@@ -5,7 +5,7 @@ namespace Rask.Mail;
 
 /// <summary>
 /// A persisted, ready-to-send email awaiting (or having completed) delivery. Written by
-/// <see cref="IMailQueue"/> and drained by the <see cref="MailProcessor{TContext}"/>. Recipient lists and
+/// <see cref="IMail"/> and drained by the <see cref="MailProcessor{TContext}"/>. Recipient lists and
 /// attachments are stored as JSON; the body is already rendered to HTML at enqueue time. (Named
 /// <c>QueuedMail</c> rather than <c>MailMessage</c> to avoid clashing with <c>System.Net.Mail.MailMessage</c>,
 /// since this package ships a global <c>using Rask.Mail</c>.)

@@ -7,7 +7,7 @@ namespace Rask.SQLite;
 
 /// <summary>
 /// Both of the things Rask adds to SQLite's migration SQL at once: <c>STRICT</c> tables and the DDL enforcing
-/// each <see cref="RangeExclusionSpec"/>. Registered by <c>UseRaskSqlite(..., strictTables: true)</c>.
+/// each <see cref="RangeExclusionSpec"/>. Registered by <c>UseRaskSqlite(..., o => o.StrictTables = true)</c>.
 /// </summary>
 /// <remarks>
 /// EF Core resolves exactly one <see cref="IMigrationsSqlGenerator"/>, so registering

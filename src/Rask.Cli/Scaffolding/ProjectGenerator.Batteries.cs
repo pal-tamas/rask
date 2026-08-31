@@ -36,7 +36,7 @@ internal static partial class ProjectGenerator
                 builder.Services.AddRaskData();
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-                    .UseRaskSqlite(connectionString, strictTables: true)
+                    .UseRaskSqlite(connectionString, o => o.StrictTables = true)
                     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
                 // Continuous backup. Litestream streams the write-ahead log to object storage, which is what
@@ -80,7 +80,7 @@ internal static partial class ProjectGenerator
         if (batteries.Jobs)
         {
             Block(sb, """
-                // Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJobQueue;
+                // Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJob;
                 // a hosted worker polls, runs each job through its Rask.Cqrs handler, and retries with backoff.
                 // Schedule recurring work here: o.AddRecurring<PurgeJob>("purge", TimeSpan.FromHours(1), () => new());
                 builder.Services.AddRaskJobs<AppDbContext>();
@@ -106,7 +106,7 @@ internal static partial class ProjectGenerator
         {
             Block(sb, """
                 // A cache on the app's own database: the standard IDistributedCache (so ASP.NET session/output
-                // caching just works) plus a typed ICache with GetOrCreateAsync and absolute/sliding expiry. A
+                // caching just works) plus a typed ICache with GetOrAddAsync and absolute/sliding expiry. A
                 // background purger sweeps expired rows.
                 builder.Services.AddRaskCache<AppDbContext>();
                 """);

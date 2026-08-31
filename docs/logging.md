@@ -101,10 +101,10 @@ o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database");
 ### Reading it back
 
 ```csharp
-public sealed partial class IncidentPage(ILogStore store) : Component
+public sealed partial class IncidentPage(ILogs store) : Component
 {
     // …
-    var page = await store.QueryAsync(new LogQuery
+    var page = await store.SearchAsync(new LogQuery
     {
         MinimumLevel = LogLevel.Error,
         Category = "Shop.Checkout",
@@ -123,7 +123,7 @@ Each `LogRecord` carries its `Scopes` as key/value pairs. The scope filter match
 that merely mentioned it in a message.
 
 `LogPage` carries the matching entries (newest first), the `TotalCount` behind the filter, and a `PageCount`.
-`ILogStore` also exposes `CategoriesAsync()`, `CountAsync()`, `PurgeAsync(retention, maxRows)` and
+`ILogs` also exposes `CategoriesAsync()`, `CountAsync()`, `PurgeAsync(retention, maxRows)` and
 `ClearAsync()`.
 
 ## How it works

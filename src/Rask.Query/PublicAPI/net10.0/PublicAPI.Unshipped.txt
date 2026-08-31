@@ -16,10 +16,8 @@ Rask.Query.IQueryClient.MutateAsync<TResult>(Rask.Cqrs.ICommand<TResult>! comman
 Rask.Query.IQueryClient.Mutation<TCommand, TResult>() -> Rask.Query.Mutation<TCommand, TResult>!
 Rask.Query.IQueryClient.Mutation<TCommand>() -> Rask.Query.Mutation<TCommand>!
 Rask.Query.IQueryClient.PrefetchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Query.IQueryClient.Query<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryKey key, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
-Rask.Query.IQueryClient.Query<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
+Rask.Query.IQueryClient.Query<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, Rask.Query.QueryKey? key = null) -> Rask.Query.Query<TResult>!
 Rask.Query.IQueryClient.Query<TResult>(Rask.Query.QueryKey key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
-Rask.Query.IQueryClient.Query<TResult>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
 Rask.Query.IQueryClient.SetData<TResult>(Rask.Cqrs.IQuery<TResult>! message, TResult data) -> void
 Rask.Query.IQueryClient.SetData<TResult>(Rask.Query.QueryKey key, TResult data) -> void
 Rask.Query.InvalidatesAttribute
@@ -111,6 +109,7 @@ override Rask.Query.QueryOptions.GetHashCode() -> int
 override Rask.Query.QueryOptions.ToString() -> string!
 static Rask.Query.QueryKey.Fields(params (string! Name, object? Value)[]! fields) -> Rask.Query.QueryKeyFields!
 static Rask.Query.QueryKey.Of(params object?[]! parts) -> Rask.Query.QueryKey
+static Rask.Query.QueryKey.implicit operator Rask.Query.QueryKey(string! name) -> Rask.Query.QueryKey
 static Rask.Query.QueryKey.operator !=(Rask.Query.QueryKey left, Rask.Query.QueryKey right) -> bool
 static Rask.Query.QueryKey.operator ==(Rask.Query.QueryKey left, Rask.Query.QueryKey right) -> bool
 static Rask.Query.QueryOptions.Default.get -> Rask.Query.QueryOptions!

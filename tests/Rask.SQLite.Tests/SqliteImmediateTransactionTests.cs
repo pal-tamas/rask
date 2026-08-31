@@ -27,7 +27,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
 
-        await connection.ExecuteInImmediateTransactionAsync(
+        await connection.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions(),
             async (c, ct) =>
             {
@@ -46,7 +46,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         await connection.OpenAsync();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            connection.ExecuteInImmediateTransactionAsync(
+            connection.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions(),
                 async (c, ct) =>
                 {
@@ -77,7 +77,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         await using var waiter = new SqliteConnection(_connectionString);
         await waiter.OpenAsync();
 
-        await waiter.ExecuteInImmediateTransactionAsync(
+        await waiter.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5), PollInterval = TimeSpan.FromMilliseconds(1) },
             async (c, ct) =>
             {
@@ -103,7 +103,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
 
         var stopwatch = Stopwatch.StartNew();
         var exception = await Assert.ThrowsAsync<SqliteException>(() =>
-            waiter.ExecuteInImmediateTransactionAsync(
+            waiter.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions { Timeout = TimeSpan.FromMilliseconds(150), PollInterval = TimeSpan.FromMilliseconds(1) },
                 (_, _) => Task.CompletedTask));
         stopwatch.Stop();
@@ -126,7 +126,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         Exec(connection, "BEGIN IMMEDIATE;"); // leak a write transaction onto the raw handle
         Assert.Equal(0, raw.sqlite3_get_autocommit(connection.Handle!)); // precondition: mid-transaction
 
-        await connection.ExecuteInImmediateTransactionAsync(
+        await connection.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions(),
             async (c, ct) =>
             {
@@ -157,7 +157,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         var reader = await command.ExecuteReaderAsync();
         await reader.ReadAsync(); // mid-scan: the statement is active on the handle
 
-        await connection.ExecuteInImmediateTransactionAsync(
+        await connection.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5) },
             async (c, ct) =>
             {
@@ -203,7 +203,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
             holderTx.Commit(); // release the write lock so BEGIN IMMEDIATE can finally succeed
         });
 
-        await waiter.ExecuteInImmediateTransactionAsync(
+        await waiter.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(10), PollInterval = TimeSpan.FromMilliseconds(10) },
             async (c, ct) =>
             {
@@ -226,7 +226,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         await connection.OpenAsync();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            connection.ExecuteInImmediateTransactionAsync(
+            connection.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions(),
                 async (c, ct) =>
                 {

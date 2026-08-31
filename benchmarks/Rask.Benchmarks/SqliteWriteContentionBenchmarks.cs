@@ -9,7 +9,7 @@ namespace Rask.Benchmarks;
 //
 //   NativeBusyTimeout  — the classic path: BEGIN IMMEDIATE with busy_timeout=5000, so a contended writer
 //                        BLOCKS its thread inside Microsoft.Data.Sqlite (Thread.Sleep) until the lock frees.
-//   NonBlockingRetry   — Rask's ExecuteInImmediateTransactionAsync: the write lock is taken through the raw
+//   NonBlockingRetry   — Rask's InImmediateTransactionAsync: the write lock is taken through the raw
 //                        sqlite3 handle with the busy handler off, and a contended writer AWAITS a 1 ms fair
 //                        interval (Rails' busy handler, ported) — the thread is freed while it waits.
 //
@@ -80,7 +80,7 @@ public class SqliteWriteContentionBenchmarks
             await using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
 
-            await connection.ExecuteInImmediateTransactionAsync(_retry, async (c, ct) =>
+            await connection.InImmediateTransactionAsync(_retry, async (c, ct) =>
             {
                 await using var command = c.CreateCommand();
                 command.CommandText = "INSERT INTO writes(worker) VALUES ($worker);";

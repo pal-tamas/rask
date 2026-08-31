@@ -2,8 +2,8 @@ namespace Rask.SQLite;
 
 /// <summary>
 /// Controls the non-blocking, fair-interval busy-retry used when a write lock is contended — by
-/// <see cref="SqliteConnectionExtensions.ExecuteInImmediateTransactionAsync{T}"/> /
-/// <see cref="IRaskSqliteConnectionFactory.ExecuteInImmediateTransactionAsync{T}"/> on the raw ADO.NET
+/// <see cref="SqliteConnectionExtensions.InImmediateTransactionAsync{T}"/> /
+/// <see cref="ISqlite.InImmediateTransactionAsync{T}"/> on the raw ADO.NET
 /// path, and by the Entity Framework Core execution strategy in the <c>Rask.SQLite.EntityFrameworkCore</c>
 /// package.
 /// </summary>
@@ -22,6 +22,18 @@ namespace Rask.SQLite;
 /// </remarks>
 public sealed class SqliteBusyRetryOptions
 {
+    /// <summary>
+    /// Whether contended writes are retried by the execution strategy. Off by default.
+    /// </summary>
+    /// <remarks>
+    /// Turning this on also turns SQLite's own busy handler OFF (<c>BusyTimeout</c> becomes zero),
+    /// because the two cannot both own the waiting: the native handler blocks a thread inside SQLite,
+    /// which is precisely what the async strategy exists to avoid. That used to be inferred from
+    /// whether a <c>configureRetry</c> delegate had been passed — so an empty lambda silently changed
+    /// the busy timeout — and is now this property.
+    /// </remarks>
+    public bool Enabled { get; set; }
+
     /// <summary>
     /// How long to keep retrying a contended write lock before giving up and surfacing
     /// <c>SQLITE_BUSY</c>. Defaults to 5 seconds.

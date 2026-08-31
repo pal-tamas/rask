@@ -3,12 +3,12 @@ using Rask.Mail;
 
 namespace Rask.Example.EfCore.Features.Mail.SendMail;
 
-// Vertical slice: queue a transactional email. IMailQueue writes one QueuedMail row on the same SQLite
+// Vertical slice: queue a transactional email. IMail writes one QueuedMail row on the same SQLite
 // database the catalog uses; the background MailProcessor delivers it just after — here to a pickup
 // directory as an .eml file (no SMTP server needed), so the send returns instantly and the user sees a
 // confirmation while delivery happens off the request thread.
 [Route("mail")]
-public sealed partial class SendMailPage(IMailQueue mail) : Component
+public sealed partial class SendMailPage(IMail mail) : Component
 {
     private readonly SendMailForm _form = new();
     private string? _queuedFor;

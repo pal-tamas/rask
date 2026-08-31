@@ -41,7 +41,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
                      + "silently, which is what made the failure hard to place.",
         helpLinkUri: DiagnosticHelp.Link("RASK035"));
 
-    /// <summary>Fully-qualified marker interface a type must implement, e.g. <c>Rask.Jobs.IJob</c>.</summary>
+    /// <summary>Fully-qualified marker interface a type must implement, e.g. <c>Rask.Jobs.IBackgroundJob</c>.</summary>
     protected abstract string MarkerInterface { get; }
 
     /// <summary>Namespace the generated registry class lives in.</summary>

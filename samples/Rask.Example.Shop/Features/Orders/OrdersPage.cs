@@ -28,7 +28,7 @@ public sealed partial class OrdersPage(IDispatcher dispatcher) : Component
 
     private async Task LoadAsync()
     {
-        _items = await dispatcher.DispatchAsync(new ListOrdersQuery(), CancellationToken);
+        _items = await dispatcher.QueryAsync(new ListOrdersQuery(), CancellationToken);
         _loaded = true;
     }
 

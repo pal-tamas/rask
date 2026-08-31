@@ -24,7 +24,7 @@ dotnet add package Rask.SQLite
 ```csharp
 builder.Services.AddRaskSqlite($"Data Source={dbPath}");
 
-// then inject IRaskSqliteConnectionFactory:
+// then inject ISqlite:
 await using var connection = await factory.CreateOpenAsync(ct);   // pragmas already applied
 ```
 
@@ -41,13 +41,13 @@ builder.Services.AddRaskSqlite($"Data Source={dbPath}", p =>
 
 ## Concurrent writes: IMMEDIATE transactions + a non-blocking retry
 
-For the write path under concurrency, `ExecuteInImmediateTransactionAsync` runs your work in a
+For the write path under concurrency, `InImmediateTransactionAsync` runs your work in a
 `BEGIN IMMEDIATE` transaction and acquires the write lock through a **non-blocking, fair-interval
 retry** — a constant 1 ms poll that *yields the thread* while it waits (no blocked
 thread, no spurious `database is locked`):
 
 ```csharp
-await factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+await factory.InImmediateTransactionAsync(async (connection, ct) =>
 {
     await using var cmd = connection.CreateCommand();
     cmd.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
@@ -56,7 +56,7 @@ await factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
 });
 ```
 
-Tune it with `AddRaskSqlite(cs, configureRetry: r => …)` (defaults: 5 s timeout, 1 ms interval).
+Tune it with `AddRaskSqlite(cs, o => { o.Retry.Enabled = true; …; })` (defaults: 5 s timeout, 1 ms interval).
 
 Your callback **runs at least once, not exactly once**: SQLite can roll a transaction back on its own
 when a contended `COMMIT` is answered with `SQLITE_BUSY`, and the whole transaction is then re-run

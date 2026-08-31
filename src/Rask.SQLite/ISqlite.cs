@@ -8,7 +8,7 @@ namespace Rask.SQLite;
 /// package) for code that talks to SQLite without Entity Framework Core. Register it with
 /// <see cref="SqliteServiceCollectionExtensions.AddRaskSqlite"/>.
 /// </summary>
-public interface IRaskSqliteConnectionFactory
+public interface ISqlite
 {
     /// <summary>
     /// Creates a <b>closed</b> connection with the pragmas pre-wired to apply as soon as it opens (via
@@ -31,12 +31,12 @@ public interface IRaskSqliteConnectionFactory
     /// is the recommended write path under concurrency. Issue statements with
     /// <see cref="SqliteConnection.CreateCommand"/> inside <paramref name="work"/>.
     /// </summary>
-    Task<T> ExecuteInImmediateTransactionAsync<T>(
+    Task<T> InImmediateTransactionAsync<T>(
         Func<SqliteConnection, CancellationToken, Task<T>> work,
         CancellationToken cancellationToken = default);
 
-    /// <summary>The result-less overload of <see cref="ExecuteInImmediateTransactionAsync{T}"/>.</summary>
-    Task ExecuteInImmediateTransactionAsync(
+    /// <summary>The result-less overload of <see cref="InImmediateTransactionAsync{T}"/>.</summary>
+    Task InImmediateTransactionAsync(
         Func<SqliteConnection, CancellationToken, Task> work,
         CancellationToken cancellationToken = default);
 }

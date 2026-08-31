@@ -59,7 +59,7 @@ public sealed class ShopStrictSchemaTests : IDisposable
 
     private AppDbContext NewContext() =>
         new(new DbContextOptionsBuilder<AppDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}", strictTables: true)
+            .UseRaskSqlite($"Data Source={_dbPath}", o => o.StrictTables = true)
             .Options);
 
     private Dictionary<string, string> ReadTableDdl()

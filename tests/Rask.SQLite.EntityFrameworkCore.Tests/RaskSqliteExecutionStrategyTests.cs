@@ -16,7 +16,7 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
     public async Task Enabling_retry_turns_off_the_native_busy_handler()
     {
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite(ConnectionString, configureRetry: _ => { })
+            .UseRaskSqlite(ConnectionString, o => o.Retry.Enabled = true)
             .Options;
 
         await using var context = new ProbeDbContext(options);
@@ -49,7 +49,7 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
     public async Task SaveChanges_retries_and_succeeds_when_a_held_lock_is_released()
     {
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite(ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(10))
+            .UseRaskSqlite(ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(10); })
             .Options;
 
         await using var context = new ProbeDbContext(options);
@@ -76,7 +76,7 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
     public async Task SaveChanges_throws_busy_when_the_lock_is_never_released()
     {
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite(ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromMilliseconds(200))
+            .UseRaskSqlite(ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromMilliseconds(200); })
             .Options;
 
         await using var context = new ProbeDbContext(options);
@@ -101,7 +101,7 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
         // gives up without a single retry. A long-lived context is the norm (a scoped context per request
         // outlives Timeout easily under load), so this is the realistic shape, not a corner case.
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite(ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(2))
+            .UseRaskSqlite(ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(2); })
             .Options;
 
         await using var context = new ProbeDbContext(options);

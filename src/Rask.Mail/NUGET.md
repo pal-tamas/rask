@@ -5,7 +5,7 @@ request thread, with no broker or Redis.
 
 - Compose with a fluent **`Email`** builder; the body is a **Rask component rendered to HTML**, so an email
   template is just another component.
-- Call **`IMailQueue.SendAsync(email)`** and it persists one `QueuedMail` row; a background **`MailProcessor`**
+- Call **`IMail.SendAsync(email)`** and it persists one `QueuedMail` row; a background **`MailProcessor`**
   delivers it over SMTP — **at-least-once**, with **exponential-backoff** retries up to `MaxAttempts` (then
   left as a dead letter for inspection).
 - **Delayed** send with `ScheduleAsync(email, delay)`.
@@ -37,7 +37,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source
 ```
 
 ```csharp
-// send from anywhere IMailQueue is injected:
+// send from anywhere IMail is injected:
 await mail.SendAsync(Email
     .To(user.Email, user.Name)
     .Subject("Welcome")

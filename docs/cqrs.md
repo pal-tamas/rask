@@ -48,8 +48,9 @@ them.
 builder.Services.AddRaskCqrs();
 ```
 
-Inject `IDispatcher` and call `DispatchAsync` — one method for both queries and commands, with the
-result type inferred from the message. Notifications go through `PublishAsync` on the same `IDispatcher`.
+Inject `IDispatcher` and say which of the three things you are doing: `QueryAsync` asks for data,
+`SendAsync` tells the system to do something, `PublishAsync` announces that something happened. The
+result type is inferred from the message, so you never state it.
 
 ```csharp
 public sealed partial class CounterView(IDispatcher dispatcher) : Component
@@ -57,12 +58,12 @@ public sealed partial class CounterView(IDispatcher dispatcher) : Component
     private CounterState _view = new(0, []);
 
     protected override async Task OnMountAsync() =>
-        _view = await dispatcher.DispatchAsync(new GetCounterState(), CancellationToken);
+        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
 
     private async Task IncrementAsync()
     {
-        await dispatcher.DispatchAsync(new IncrementCounter(1), CancellationToken); // ICommand<int>
-        _view = await dispatcher.DispatchAsync(new GetCounterState(), CancellationToken);
+        await dispatcher.SendAsync(new IncrementCounter(1), CancellationToken); // ICommand<int>
+        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
     }
 }
 ```
@@ -199,7 +200,7 @@ Failure to *arrive* is the one thing remote dispatch adds to the in-process call
 ### `[LocalOnly]`
 
 Keeps a message off the wire entirely, and on an **interface** covers a whole family. This matters more
-than it looks: `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
+than it looks: `IBackgroundJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
 outbox event in the app would become an internet-reachable endpoint.
 
 It is also **how a client keeps a message in-process.** "A client is a pure client" is not a figure of
@@ -225,10 +226,10 @@ file a user picked is passed straight to the handler, with nothing to convert an
 public sealed record AttachReceipt(int OrderId, RaskFile File) : ICommand;
 
 // The call site. Identical whether this page is server-rendered or running in the browser.
-await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked));
+await dispatcher.SendAsync(new AttachReceipt(orderId, picked));
 
 // Download: the file the handler returned, saved by the browser.
-navigator.Download(await dispatcher.DispatchAsync(new ExportOrders(year)));
+navigator.Download(await dispatcher.QueryAsync(new ExportOrders(year)));
 ```
 
 The handler receives a `RaskFile` too, and reads it exactly as it would in-process:

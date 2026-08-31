@@ -7,7 +7,7 @@ namespace Rask.SQLite;
 /// <summary>
 /// A migrations SQL generator that emits <c>CREATE TABLE … ) STRICT</c>, so SQLite enforces each
 /// column's declared type instead of coercing whatever it is handed. Registered by
-/// <c>UseRaskSqlite(…, strictTables: true)</c>.
+/// <c>UseRaskSqlite(…, o => o.StrictTables = true)</c>.
 /// </summary>
 /// <remarks>
 /// <para>

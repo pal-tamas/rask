@@ -165,7 +165,7 @@ public sealed class LitestreamVerifier : ISqliteBackupVerifier
         // The sentinel takes the write lock on the live database, so it goes through the non-blocking
         // fair-interval retry: it waits out a busy writer by yielding the thread, never by holding one.
         // The work is a fixed-token upsert, so it stays correct if a contended COMMIT makes it re-run.
-        await connection.ExecuteInImmediateTransactionAsync(
+        await connection.InImmediateTransactionAsync(
             verification.BusyRetry,
             async (writable, ct) =>
             {

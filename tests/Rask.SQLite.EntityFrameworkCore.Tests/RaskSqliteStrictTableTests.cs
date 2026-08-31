@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
 
 // STRICT tables (SQLite 3.37+) make the store enforce each column's declared type instead of coercing
-// whatever it is handed. EF Core has no support for them, so UseRaskSqlite(strictTables: true) swaps in a
+// whatever it is handed. EF Core has no support for them, so UseRaskSqlite(o => o.StrictTables = true) swaps in a
 // migrations SQL generator that appends the keyword. These tests drive real files.
 public sealed class RaskSqliteStrictTableTests : IDisposable
 {
@@ -106,7 +106,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
     {
         await using var context = new CustomTypeDbContext(
             new DbContextOptionsBuilder<CustomTypeDbContext>()
-                .UseRaskSqlite($"Data Source={_dbPath}", strictTables: true)
+                .UseRaskSqlite($"Data Source={_dbPath}", o => o.StrictTables = true)
                 .Options);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -136,7 +136,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
 
     private ProbeDbContext NewContext(bool strict) =>
         new(new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}", strictTables: strict)
+            .UseRaskSqlite($"Data Source={_dbPath}", o => o.StrictTables = strict)
             .Options);
 
     private string ReadDdl()

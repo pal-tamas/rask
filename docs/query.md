@@ -61,8 +61,8 @@ Write a key when you want a hierarchy that spans message types, or for data that
 through CQRS at all:
 
 ```csharp
-_list   = client.Query(new GetOrders(page), QueryKey.Of("orders", "list", QueryKey.Fields(("page", page))));
-_detail = client.Query(new GetOrder(id),    QueryKey.Of("orders", "detail", id));
+_list   = client.Query(new GetOrders(page), key: QueryKey.Of("orders", "list", QueryKey.Fields(("page", page))));
+_detail = client.Query(new GetOrder(id),    key: QueryKey.Of("orders", "detail", id));
 
 client.Invalidate(QueryKey.Of("orders"));   // both of them
 ```

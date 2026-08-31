@@ -218,7 +218,7 @@ public sealed class JobProcessor<TContext>(
                     // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
                     await using var scope = scopeFactory.CreateAsyncScope();
                     var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
-                    await dispatcher.DispatchAsync(command, graceToken).ConfigureAwait(false);
+                    await dispatcher.SendAsync(command, graceToken).ConfigureAwait(false);
                     job.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                     job.Error = null;
                     Release(job);

@@ -12,7 +12,7 @@ namespace Rask.Cqrs.Client;
 ///         file a user picked is passed straight to the handler with no conversion at the call site:
 ///     </para>
 ///     <code>
-///         await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked));
+///         await dispatcher.SendAsync(new AttachReceipt(orderId, picked));
 ///     </code>
 ///     <para>
 ///         That is identical on a server-rendered app and a WASM-hosted one. Where it runs

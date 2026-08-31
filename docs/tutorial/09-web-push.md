@@ -84,7 +84,7 @@ not in `OnMountAsync`. Asking on page load is also how you get permanently denie
 Chapter 7's handler already reacts to an order committing. Push is one more thing hanging off it:
 
 ```csharp
-public sealed class OrderShippedHandler(IWebPushSender sender, PushSubscriptionStore store)
+public sealed class OrderShippedHandler(IWebPush sender, PushSubscriptionStore store)
     : INotificationHandler<OrderShipped>
 {
     public async Task HandleAsync(OrderShipped notification, CancellationToken cancellationToken)

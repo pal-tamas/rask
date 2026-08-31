@@ -8,21 +8,21 @@ namespace Rask.Cqrs;
 /// </summary>
 internal sealed class Dispatcher(IServiceProvider provider) : IDispatcher
 {
-    public Task<TResult> DispatchAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default)
+    public Task<TResult> QueryAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
         var invoker = CqrsRegistry.GetRequestInvoker(query.GetType());
         return (Task<TResult>)invoker(provider, query, cancellationToken);
     }
 
-    public Task DispatchAsync(ICommand command, CancellationToken cancellationToken = default)
+    public Task SendAsync(ICommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
         var invoker = CqrsRegistry.GetRequestInvoker(command.GetType());
         return invoker(provider, command, cancellationToken); // Task<Unit> is a Task
     }
 
-    public Task<TResult> DispatchAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+    public Task<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
         var invoker = CqrsRegistry.GetRequestInvoker(command.GetType());

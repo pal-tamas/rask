@@ -5,10 +5,10 @@ using Rask.Jobs;
 namespace Rask.Example.Wasm.Jobs;
 
 /// <summary>
-///     A background job. <see cref="IJob" /> is a <c>Rask.Cqrs</c> command, so this is exactly the
+///     A background job. <see cref="IBackgroundJob" /> is a <c>Rask.Cqrs</c> command, so this is exactly the
 ///     declaration you would write on a server — no browser-specific anything.
 /// </summary>
-public sealed record GreetJob(string Name) : IJob;
+public sealed record GreetJob(string Name) : IBackgroundJob;
 
 /// <summary>
 ///     The handler, an ordinary <see cref="ICommandHandler{TCommand}" />. The job processor dispatches to

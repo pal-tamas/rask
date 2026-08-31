@@ -32,7 +32,7 @@ public sealed partial class RestoreProduct(IDispatcher dispatcher) : Component
 
     private async Task RestoreAsync()
     {
-        await dispatcher.DispatchAsync(new RestoreProductCommand(Id), CancellationToken);
+        await dispatcher.SendAsync(new RestoreProductCommand(Id), CancellationToken);
         if (OnRestored is not null)
         {
             await OnRestored();
