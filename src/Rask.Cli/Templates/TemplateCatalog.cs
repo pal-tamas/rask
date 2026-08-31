@@ -59,7 +59,7 @@ internal static class TemplateCatalog
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a
-    /// database <em>in</em> — the server template, and the wasm-hosted template's <c>.Server</c> project.
+    /// database <em>in</em> — the server template, and the front-end templates' ASP.NET host.
     /// A pure browser-WASM SPA has no server to run them on.
     /// </summary>
     private static readonly string[] DatabaseFlags =

@@ -17,7 +17,7 @@ internal static partial class ProjectGenerator
     /// <remarks>
     /// The FIRST language is the neutral one: it defines which keys exist, and its text is what a visitor
     /// sees until a translation is filled in. <paramref name="prefix"/> re-homes the whole set into a
-    /// sub-project, which is what the <c>wasm-hosted</c> client needs.
+    /// sub-project, which is what a front-end template's client needs.
     /// </remarks>
     private static IEnumerable<(string Path, string Content)> StringCatalogs(
         IReadOnlyList<string> cultures, string prefix = "")
