@@ -121,16 +121,16 @@ watch the pipeline log build up.
 
 ## Remote dispatch — a client and a server (`Rask.Cqrs.Client` / `Rask.Cqrs.Server`)
 
-A WASM-hosted app reaches its server through the **same `IDispatcher` call** it already makes
-in-process. There is no `HttpClient` at the call site, no `/api/*` endpoint to write, and nothing on a
-message marks it as remote — you write a record and a handler exactly as above, and *where the project
-sits* decides where it runs.
+A page running in the browser reaches its server through the **same `IDispatcher` call** it already
+makes in-process. There is no `HttpClient` at the call site, no `/api/*` endpoint to write, and nothing
+on a message marks it as remote — you write a record and a handler exactly as above, and *where the
+handler lives* decides where it runs.
 
-One package and one line per project. Neither half references the other, so a browser bundle cannot
-compile the endpoint code and the server never carries the browser transport:
+One package and one line per half. Neither references the other, so a browser bundle cannot compile the
+endpoint code and the server never carries the browser transport:
 
 ```csharp
-// The client (a WASM app). Every message it dispatches goes to the server.
+// The browser half. Every message it dispatches goes to the server.
 host.Services.AddRaskCqrsClient();
 
 // The server.
@@ -139,15 +139,32 @@ builder.Services.AddRaskCqrsServer();
 app.MapRaskCqrs();
 ```
 
-Put the message records in a project both halves reference, and the handlers in the server project only
-— which is what keeps a connection string, a table name or a pricing rule out of a download anybody can
-read.
+**`rask new --wasm` scaffolds all of it.** The [one-project build](render-modes.md) compiles one set of
+sources into both halves, so the message records are shared by construction — there is no Shared project
+to put them in any more. What is left is keeping the two transports apart, which the csproj says in one
+line each:
 
-> No template scaffolds this shape today. It arrived with the `wasm-hosted` template, which
-> [render modes](render-modes.md) replaced — a `--wasm` app compiles one set of sources into both
-> halves, so "a project both halves reference" is now just the app itself. Wiring remote dispatch into
-> that shape is not done yet ([#868](https://github.com/pal-tamas/rask/issues/868)); until it is, a
-> page that dispatches remotely needs the two transport packages added by hand.
+```xml
+<!-- The bundle gets this one; the server must not. It is the half that CALLS the endpoints the
+     server answers, and a plain PackageReference would ship it into the process answering them. -->
+<RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="..."/>
+
+<!-- The bundle has no Program.cs of its own — that file is the server's, and the companion excludes
+     it — so this names the type whose Configure(IServiceCollection) runs before the app does. -->
+<RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>
+```
+
+That startup type lives under `Browser/`, which is the only place it can: a browser-only reference is
+absent from the server by design, so a file using it has to be somewhere the server does not compile.
+`Browser/` is the mirror of `Server/` — see [render modes](render-modes.md#one-project).
+
+Keep your handlers under `Server/`, which the browser half does not compile. That is what keeps a
+connection string, a table name or a pricing rule out of a download anybody can read.
+
+> **Without `--auth`, the scaffold sets `RequireAuthenticatedUser = false` and says why.** The default is
+> on, and that is right for an app that has a sign-in — but an app with no authentication to require
+> would answer 401 to every message, and the failure reads as broken transport rather than as the secure
+> default working. Add a cookie or JWT scheme and delete the argument.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a
@@ -207,7 +224,7 @@ file a user picked is passed straight to the handler, with nothing to convert an
 ```csharp
 public sealed record AttachReceipt(int OrderId, RaskFile File) : ICommand;
 
-// The call site. Identical on a server-rendered app and a WASM-hosted one.
+// The call site. Identical whether this page is server-rendered or running in the browser.
 await dispatcher.DispatchAsync(new AttachReceipt(orderId, picked));
 
 // Download: the file the handler returned, saved by the browser.

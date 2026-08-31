@@ -28,14 +28,14 @@ internal static class CliBuildE2E
     internal static readonly string[] FeedPackages =
     [
         "Rask.Server",                      // server template
-        "Rask.Wasm",                        // wasm + wasm-hosted templates, and the --wasm companion project
-        "Rask.Wasm.Hosting",                // wasm-hosted template
+        "Rask.Wasm",                        // the wasm template, and the --wasm companion project
+        "Rask.Wasm.Hosting",                // the --wasm one-project build
         "Rask.Bootstrap",                   // every template with --bootstrap
         "Rask.Tailwind",                    // every template with --tailwind (build-only; no runtime assembly)
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Query",                       // wired by default wherever --cqrs is
-        "Rask.Cqrs.Client",                 // wasm-hosted --cqrs: the browser half of remote dispatch
-        "Rask.Cqrs.Server",                 // wasm-hosted --cqrs: the endpoint half
+        "Rask.Cqrs.Client",                 // --wasm --cqrs: the browser half of remote dispatch
+        "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half
         "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
         "Rask.Data",                        // every generated feature
         "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)
