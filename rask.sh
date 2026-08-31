@@ -39,7 +39,13 @@ RASK_INSTALL_DOTNET_ROOT="${RASK_INSTALL_DOTNET_ROOT:-${DOTNET_ROOT:-$HOME/.dotn
 RASK_INSTALL_PREFIX="${RASK_INSTALL_PREFIX:-$HOME/.local/share/rask}"
 RASK_INSTALL_DOTNET_SCRIPT_URL="${RASK_INSTALL_DOTNET_SCRIPT_URL:-https://dot.net/v1/dotnet-install.sh}"
 RASK_INSTALL_NODE_DIST="${RASK_INSTALL_NODE_DIST:-https://nodejs.org/dist}"
-RASK_INSTALL_NODE_MIN="${RASK_INSTALL_NODE_MIN:-22.12.0}"
+# 24.15.0, not the build floor (RaskSpaMinimumNode, 22.12.0). This decides whether an EXISTING Node is
+# left alone, and the thing that Node has to be able to do here is SCAFFOLD — which shells out to
+# create-vite@latest and @angular/cli@latest, and those track the Active LTS and raise their own floors
+# whenever they like. Angular's CLI already refuses below ^22.22.3 || ^24.15.0 || >=26.0.0, so a box
+# left on 22.12 installs cleanly and then fails `rask new --template angular` (#886). Installing an
+# app's build floor here would be provisioning a machine that cannot use what it just installed.
+RASK_INSTALL_NODE_MIN="${RASK_INSTALL_NODE_MIN:-24.15.0}"
 RASK_INSTALL_PACKAGE="${RASK_INSTALL_PACKAGE:-Rask.Cli}"
 
 # Flag state. Declared up front because `set -u` makes an unset read fatal.
