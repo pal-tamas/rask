@@ -15,8 +15,8 @@ public sealed partial class SerialPage : Component
 
     protected override Component? Render() =>
     [
-        H1.Class("h2 mb-1")["Web Serial"],
-        P.Class("text-secondary")[
+        H1.Class("text-3xl font-bold mb-1")["Web Serial"],
+        P.Class("text-slate-500 dark:text-slate-400")[
             "Talk to a serial device — an Arduino or microcontroller, a GPS, a USB-to-serial adapter — ",
             "straight from C# via ISerial (the Web Serial API): pick a port, write a line, and watch inbound ",
             "bytes stream into the log. WASM-only: requestPort() needs a live user gesture and the live port ",

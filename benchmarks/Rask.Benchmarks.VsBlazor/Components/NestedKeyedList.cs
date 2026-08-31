@@ -28,14 +28,14 @@ internal static partial class NestedKeyedList
             for (var r = 0; r < InnerRowCount; r++)
             {
                 rows.Add(Li
-                    .Class("row")
+                    .Class("line")
                     .Data(new Dictionary<string, string?> { ["rask-key"] = $"{cardKey}.{r}" })[
                     Span[$"Card {cardKey} · row {r}"]
                 ]);
             }
 
             cards.Add(Div
-                .Class("card")
+                .Class("panel")
                 .Data(new Dictionary<string, string?> { ["rask-key"] = cardKey.ToString() })[
                 H3[$"Card {cardKey}"],
                 Ul[rows]
@@ -105,14 +105,14 @@ internal static partial class NestedKeyedList
                 for (var r = 0; r < InnerRowCount; r++)
                 {
                     rows.Add(Li
-                        .Class("row")
+                        .Class("line")
                         .Data(new Dictionary<string, string?> { ["rask-key"] = $"{k}.{r}" })[
                         Span[$"Card {k} · row {r}"]
                     ]);
                 }
 
                 _cardsByKey[k] = Div
-                    .Class("card")
+                    .Class("panel")
                     .Data(new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
                     H3[$"Card {k}"],
                     Ul[rows]
@@ -143,7 +143,7 @@ internal static partial class NestedKeyedList
                 var cardKey = OuterOrder[i];
                 b.OpenElement(2, "div");
                 b.SetKey(cardKey);
-                b.AddAttribute(3, "class", "card");
+                b.AddAttribute(3, "class", "panel");
 
                 b.OpenElement(4, "h3");
                 b.AddContent(5, $"Card {cardKey}");
@@ -154,7 +154,7 @@ internal static partial class NestedKeyedList
                 {
                     b.OpenElement(7, "li");
                     b.SetKey($"{cardKey}.{r}");
-                    b.AddAttribute(8, "class", "row");
+                    b.AddAttribute(8, "class", "line");
 
                     b.OpenElement(9, "span");
                     b.AddContent(10, $"Card {cardKey} · row {r}");

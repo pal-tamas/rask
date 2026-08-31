@@ -43,11 +43,11 @@ public partial class DataAttributesBenchmarks : global::Rask.Core.RaskMarkup
                 ["state"] = "idle",
                 ["test-id"] = $"row-{i}"
             };
-            rows.Add(Div.Class("row").Data(data).Key($"k{i}")[
+            rows.Add(Div.Class("line").Data(data).Key($"k{i}")[
                 Span.Data(new Dictionary<string, string?> { ["label"] = "x" })[$"Item {i}"]
             ]);
         }
 
-        return Div.Class("container").Data(new Dictionary<string, string?> { ["root"] = "1" })[rows];
+        return Div.Class("wrap").Data(new Dictionary<string, string?> { ["root"] = "1" })[rows];
     }
 }

@@ -12,30 +12,30 @@ public sealed partial class FluentValidationAsyncDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-muted small mt-1")[
-            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking availability..."
+        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
+            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking availability..."
         ];
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
             FluentValidationValidator.Validator(new TicketValidator()),
             Div[
-                Label.For("v9-code").Class("form-label small mb-1")["Ticket code"],
-                Input.Bind(() => _model.Code).Id("v9-code").Class("form-control"),
+                Label.For("v9-code").Class($"{Ui.Label} text-sm mb-1")["Ticket code"],
+                Input.Bind(() => _model.Code).Id("v9-code").Class(Ui.Input),
                 ValidatingIndicator.Template(Checking).For(() => _model.Code),
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.TicketPerforated).Class("me-1"), "Reserve"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.TicketPerforated).Class("me-1"), "Reserve"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

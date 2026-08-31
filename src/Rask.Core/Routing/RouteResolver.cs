@@ -3,8 +3,15 @@ namespace Rask.Core.Routing;
 public static class RouteResolver
 {
     private static readonly object _lock = new();
-    private static IReadOnlyList<Route>? _cachedRoots;
-    private static IReadOnlyList<RouteLeaf>? _cachedLeaves;
+
+    // Flattened leaves per route tree, keyed by the tree's IDENTITY. This was a single pair of fields
+    // until mounted applications existed, when one host began resolving against two trees — the host
+    // application's and the console's — and a one-entry cache re-flattened on EVERY request as the two
+    // alternated. Reference-keyed, because RouteRegistry hands back a cached instance per tree and mints
+    // a new one whenever the table changes; a stale tree therefore drops out of this table on its own
+    // once nothing holds it.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+        IReadOnlyList<Route>, IReadOnlyList<RouteLeaf>> _leavesByTree = new();
 
     public static bool TryResolve(string path, out IReadOnlyList<Type> chain)
         => TryResolve(path, out chain, out _);
@@ -15,19 +22,36 @@ public static class RouteResolver
     ///     resolution succeeds and the chain is perfectly renderable — "nothing here" is a fact
     ///     about which route won, not about whether one did.
     /// </summary>
-    public static bool TryResolve(string path, out IReadOnlyList<Type> chain, out bool isNotFound)
+    public static bool TryResolve(string path, out IReadOnlyList<Type> chain, out bool isNotFound) =>
+        TryResolve(RouteRegistry.BuildTree(), path, out chain, out isNotFound);
+
+    /// <summary>
+    ///     Resolve <paramref name="path" /> against a GIVEN route table rather than the whole registry.
+    /// </summary>
+    /// <remarks>
+    ///     A host serving a mounted application resolves against that application's own table, so the
+    ///     console at <c>/_rask</c> cannot reach the host's pages and the host cannot reach the console's.
+    ///     Passing the table in rather than a flag keeps this a pure function of it, which is what lets
+    ///     the leaves be cached by tree identity.
+    /// </remarks>
+    public static bool TryResolve(
+        IReadOnlyList<Route> roots,
+        string path,
+        out IReadOnlyList<Type> chain,
+        out bool isNotFound)
     {
-        var roots = RouteRegistry.BuildTree();
+        ArgumentNullException.ThrowIfNull(roots);
+
         IReadOnlyList<RouteLeaf> leaves;
         lock (_lock)
         {
-            if (!ReferenceEquals(_cachedRoots, roots) || _cachedLeaves is null)
+            if (!_leavesByTree.TryGetValue(roots, out var cached))
             {
-                _cachedRoots = roots;
-                _cachedLeaves = RouteFlattener.Flatten(roots);
+                cached = RouteFlattener.Flatten(roots);
+                _leavesByTree.Add(roots, cached);
             }
 
-            leaves = _cachedLeaves;
+            leaves = cached;
         }
 
         var matched = RouteMatcher.TryMatch(leaves, path, out chain, out _, out var fullTemplate);

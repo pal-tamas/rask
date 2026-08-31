@@ -16,34 +16,34 @@ public sealed partial class ProgrammaticValidateDemo : Component
     }
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-muted small mt-1")[
-            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking…"
+        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
+            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking…"
         ];
 
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
             Div[
-                Label.For("v6-title").Class("form-label small mb-1")["Title"],
-                Input.Bind(() => _model.Title).Id("v6-title").Class("form-control"),
+                Label.For("v6-title").Class($"{Ui.Label} text-sm mb-1")["Title"],
+                Input.Bind(() => _model.Title).Id("v6-title").Class(Ui.Input),
                 ValidatingIndicator.Template(Checking).For(() => _model.Title),
                 ValidationMessage.Template(FieldError).For(() => _model.Title)
             ],
-            BsStack.Gap(2)[
-                BsButton.Color(BsColor.Secondary).Outline(true).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[
-                    BsIcon.Name(BsIconName.Search).Class("me-1"), "Validate now"
+            Div.Class("flex gap-2 flex-wrap items-center")[
+                Button.Type("button").Class(Ui.BtnOutlineSecondary).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[
+                    Icon.Name(IconName.Search).Class("me-1"), "Validate now"
                 ],
-                BsButton.Type("submit").Color(BsColor.Primary).Id("v6-submit").Disabled(_ctx.IsValidatingAny)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Save"]
+                Button.Class(Ui.BtnPrimary).Type("submit").Id("v6-submit").Disabled(_ctx.IsValidatingAny)[Icon.Name(IconName.Check2Circle).Class("me-1"), "Save"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

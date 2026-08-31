@@ -6,11 +6,11 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class BackgroundMetricsDemo : Component
 {
     protected override Component? Render() =>
-        BsRow.Gutter(4)[
-            BsCol.Lg(5)[
+        Div.Class("grid grid-cols-12 gap-4")[
+            Div.Class("lg:col-span-5")[
                 MetricsGauge
             ],
-            BsCol.Lg(7)[
+            Div.Class("lg:col-span-7")[
                 MetricsChart
             ]
         ];

@@ -10,7 +10,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         entries.Count == 0
             ? null
-            : BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+            : Div.Class($"{Ui.AlertDanger} text-sm mb-0")[
                 Ul.Class("mb-0 ps-3")[
                     entries.Select((e, i) => Li.Key(i)[
                         e.Field.Length == 0
@@ -24,27 +24,27 @@ public sealed partial class CrossFieldSummaryDemo : Component
     [
         Form.Model(_model)
             .OnValidSubmit(m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}")
-            .Class("vstack gap-3")
+            .Class("flex flex-col gap-3")
             .Validate(m =>
                 m.Return > m.Depart
                     ? Array.Empty<string>()
                     : new[] { "Return date must be after departure." })[
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Label.For("v5-depart").Class("form-label small mb-1")["Departure"],
-                Input.Bind(() => _model.Depart).Id("v5-depart").Class("form-control")
+                Label.For("v5-depart").Class($"{Ui.Label} text-sm mb-1")["Departure"],
+                Input.Bind(() => _model.Depart).Id("v5-depart").Class(Ui.Input)
             ],
             Div[
-                Label.For("v5-return").Class("form-label small mb-1")["Return"],
-                Input.Bind(() => _model.Return).Id("v5-return").Class("form-control")
+                Label.For("v5-return").Class($"{Ui.Label} text-sm mb-1")["Return"],
+                Input.Bind(() => _model.Return).Id("v5-return").Class(Ui.Input)
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Airplane).Class("me-1"), "Book"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Airplane).Class("me-1"), "Book"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

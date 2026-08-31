@@ -28,36 +28,36 @@ public sealed partial class SendMailPage(IMail mail) : Component
     }
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0 mx-auto").Style("max-width: 32rem")[
-            Div.Class("card-body")[
-                H1.Class("h4 mb-3")["Send email"],
-                P.Class("text-secondary small")[
+        Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700 border-0 mx-auto").Style("max-width: 32rem")[
+            Div.Class("p-5")[
+                H1.Class("text-xl font-semibold mb-3")["Send email"],
+                P.Class("text-slate-500 dark:text-slate-400 text-sm")[
                     "Queued on the app's own SQLite database and delivered off the request thread. ",
                     "With no SMTP configured this demo writes each message to a pickup directory as an ",
                     Code[".eml"], " file."
                 ],
                 _queuedFor is { } to
-                    ? Div.Class("alert alert-success").Id("mail-sent")[
-                        I.Class("bi bi-check2-circle me-1"),
+                    ? Div.Class("rounded-lg px-4 py-3 text-sm bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200").Id("mail-sent")[
+                        Span.Class("me-1").Attributes(("aria-hidden", "true"))["✅"],
                         "Queued for ", Strong[to], " — the processor will deliver it shortly."
                     ]
                     : null,
-                Form.Model(_form).OnValidSubmitAsync(SubmitAsync).Class("vstack gap-3")[
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync).Class("flex flex-col gap-3")[
                     Div[
-                        Label.For("mail-to").Class("form-label small mb-1")["To"],
-                        Input.Bind(() => _form.To).Id("mail-to").Class("form-control").Placeholder("jane@example.com")
+                        Label.For("mail-to").Class("mb-1 block text-sm font-medium")["To"],
+                        Input.Bind(() => _form.To).Id("mail-to").Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100").Placeholder("jane@example.com")
                     ],
                     Div[
-                        Label.For("mail-subject").Class("form-label small mb-1")["Subject"],
-                        Input.Bind(() => _form.Subject).Id("mail-subject").Class("form-control")
+                        Label.For("mail-subject").Class("mb-1 block text-sm font-medium")["Subject"],
+                        Input.Bind(() => _form.Subject).Id("mail-subject").Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100")
                     ],
                     Div[
-                        Label.For("mail-body").Class("form-label small mb-1")["Body"],
-                        Input.Bind(() => _form.Body).Id("mail-body").Class("form-control")
+                        Label.For("mail-body").Class("mb-1 block text-sm font-medium")["Body"],
+                        Input.Bind(() => _form.Body).Id("mail-body").Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100")
                     ],
-                    Div.Class("d-flex justify-content-end pt-2")[
-                        Button.Type("submit").Class("btn btn-primary").Id("mail-send")[
-                            I.Class("bi bi-send me-1"), "Send"
+                    Div.Class("flex justify-end pt-2")[
+                        Button.Type("submit").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").Id("mail-send")[
+                            Span.Class("me-1").Attributes(("aria-hidden", "true"))["➤"], "Send"
                         ]
                     ]
                 ]

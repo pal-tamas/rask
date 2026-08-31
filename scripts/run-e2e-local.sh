@@ -139,8 +139,7 @@ fi
 echo "==> Publish the samples the E2E fixtures boot"
 # Server shard boots the *published* host; the WASM static-host shards need their published wwwroot bundle.
 dotnet publish samples/Rask.Example.Server -c Release --no-build --no-restore --nologo
-# The Shop fixture runs the published app too: an in-repo `dotnet run` never materialises the
-# _content/Rask.Bootstrap static assets its shell links.
+# The Shop fixture runs the published app too, so the fixture boots what a deploy would.
 dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --nologo
 # The playground is the one sample published WITH the native relink, and it has to be: its tutorial track
 # runs EF Core against SQLite in the browser, which means linking e_sqlite3 (a static archive) into the

@@ -29,7 +29,7 @@ public partial class RenderRoundTripBenchmarks : global::Rask.Core.RaskMarkup
         var rows = new List<Component>(15);
         for (var i = 0; i < 15; i++)
         {
-            rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Key(i)[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
                 Input.Value($"v{i}").Type(InputType.Text).Name($"f{i}")
@@ -40,7 +40,7 @@ public partial class RenderRoundTripBenchmarks : global::Rask.Core.RaskMarkup
             Doctype,
             Html[
                 Body[
-                    Div.Class("container").Id("root")[
+                    Div.Class("wrap").Id("root")[
                         Div.Class("header")[Span["Bench"]],
                         Div.Class("body")[rows]
                     ]

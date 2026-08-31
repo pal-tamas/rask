@@ -12,23 +12,23 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
-                    Button.Class("btn btn-outline-primary btn-sm").Id("crypto-uuid").OnClickAsync(Uuid)["Random UUID"],
-                    Button.Class("btn btn-outline-primary btn-sm").Id("crypto-bytes").OnClickAsync(Bytes)[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
+                    Button.Class(Ui.BtnOutlinePrimary).Id("crypto-uuid").OnClickAsync(Uuid)["Random UUID"],
+                    Button.Class(Ui.BtnOutlinePrimary).Id("crypto-bytes").OnClickAsync(Bytes)[
                         "Random bytes"]
                 ],
-                Div.Class("small text-secondary")["UUID: ", Code.Id("crypto-uuid-value")[_uuid ?? "(none)"]],
-                Div.Class("small text-secondary mb-2")["Bytes: ", Code.Id("crypto-bytes-value")[_bytes ?? "(none)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["UUID: ", Code.Id("crypto-uuid-value")[_uuid ?? "(none)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")["Bytes: ", Code.Id("crypto-bytes-value")[_bytes ?? "(none)"]],
                 Input
                     .Value(_text)
                     .Id("crypto-text")
-                    .Class("form-control form-control-sm mb-2")
+                    .Class($"{Ui.Input} mb-2")
                     .OnInput(v => _text = v),
-                Button.Class("btn btn-primary btn-sm mb-2").Id("crypto-hash").OnClickAsync(Hash)["SHA-256"],
-                Div.Class("small text-secondary text-break")["Hash: ", Code.Id("crypto-hash-value")[_hash ?? "(none)"]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("crypto-status")[_status ?? "(idle)"]]
+                Button.Class($"{Ui.BtnPrimary} mb-2").Id("crypto-hash").OnClickAsync(Hash)["SHA-256"],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 text-break")["Hash: ", Code.Id("crypto-hash-value")[_hash ?? "(none)"]],
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("crypto-status")[_status ?? "(idle)"]]
             ]
         ];
 

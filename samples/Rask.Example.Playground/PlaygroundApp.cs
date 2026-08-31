@@ -1,4 +1,3 @@
-using Rask.Bootstrap;
 using Rask.Core.Live;
 
 namespace Rask.Example.Playground;
@@ -28,11 +27,10 @@ public partial class PlaygroundApp : Component
         Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
         Script[Raw.Value(ThemeInitJs)],
         Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),
-        // Typed Bootstrap + the shared design tokens (the --bs-* bridge wins over Bootstrap; global.css
-        // then overrides tokens). Same order as the showcase App.cs.
-        BootstrapStyles,
-        RaskTokens,
-        Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/global.css")
+        // Tailwind, compiled from Styles/app.css by Rask.Tailwind at this project's build. One
+        // stylesheet: the shell chrome, and the .card/.btn conveniences the starter snippet leans on,
+        // now live in the same file rather than in a stack of three whose order decided the outcome.
+        Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
     ];
 
     protected override Component? Render() => PlaygroundView;

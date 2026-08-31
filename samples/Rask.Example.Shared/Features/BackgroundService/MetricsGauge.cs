@@ -27,18 +27,18 @@ public sealed partial class MetricsGauge(IMetricsFeed feed) : Component
     protected override Component? Render()
     {
         var s = feed.State.Current;
-        return BsCard.Class(Bs.Join(Shadow.Sm, Border.None, Sizing.H(100)))[
-            BsCardBody[
-                BsStack.Justify(BsJustify.Between).Align(BsAlign.Baseline).Class(Margin.Bottom(3))[
-                    H3.Class("h6 text-secondary text-uppercase small mb-0")["System metrics"],
-                    BsBadge.Color(BsColor.Secondary).Pill(true).Id("metrics-tick")[
+        return Div.Class($"{Ui.Card} shadow-sm border-0 h-full")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex justify-between items-baseline flex-wrap items-center mb-3")[
+                    H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mb-0")["System metrics"],
+                    Span.Class(Ui.BadgeSecondary).Id("metrics-tick")[
                         $"tick {s.Tick.ToString(Inv)}"]
                 ],
-                BsRow.Gutter(3).Class(Txt.Center())[
+                Div.Class("grid grid-cols-12 gap-4 text-center")[
                     Stat("CPU", $"{s.CpuPercent.ToString("0.0", Inv)}%", "metrics-cpu"),
                     Stat("Active jobs", s.ActiveJobs.ToString(Inv), "metrics-jobs")
                 ],
-                P.Class("text-secondary small mb-0 mt-3")[
+                P.Class("text-slate-500 dark:text-slate-400 text-sm mb-0 mt-3")[
                     "updated ", Code[s.At.ToString("HH:mm:ss", Inv)], " · pushed by the background feed"
                 ]
             ]
@@ -46,8 +46,8 @@ public sealed partial class MetricsGauge(IMetricsFeed feed) : Component
     }
 
     private static Component Stat(string label, string value, string id) =>
-        BsCol.Span(6)[
-            Div.Class("fs-3 fw-bold").Id(id)[value],
-            Div.Class("text-secondary small")[label]
+        Div.Class("col-span-6")[
+            Div.Class("text-2xl font-bold").Id(id)[value],
+            Div.Class("text-slate-500 dark:text-slate-400 text-sm")[label]
         ];
 }

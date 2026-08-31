@@ -61,8 +61,8 @@ public partial class KeyTests : global::Rask.Core.RaskMarkup
     public void Key_OnFragment_ForwardsToFirstElementOnly()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(Fragment.Key("k1")[Div.Class("row")[Text.Value("x")], Div[Text.Value("y")]], sb);
-        Assert.Equal("<div class=\"row\" data-rask-key=\"k1\">x</div><div>y</div>", sb.ToString());
+        HtmlSerializer.Serialize(Fragment.Key("k1")[Div.Class("line")[Text.Value("x")], Div[Text.Value("y")]], sb);
+        Assert.Equal("<div class=\"line\" data-rask-key=\"k1\">x</div><div>y</div>", sb.ToString());
     }
 
     [Fact]

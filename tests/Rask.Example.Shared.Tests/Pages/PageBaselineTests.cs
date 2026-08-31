@@ -11,7 +11,6 @@ public sealed class PageBaselineTests
 {
     [Theory]
     [InlineData(typeof(GuidesIndexPage), "/", "Guides")]
-    [InlineData(typeof(TablePage), "/table", "Data table")]
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
@@ -30,7 +29,6 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(GuidesIndexPage))]
     [InlineData(typeof(NotFoundPage))]
-    [InlineData(typeof(TablePage))]
     [InlineData(typeof(TodosPage))]
     public void Page_IsRoutableOrTheNotFoundPage(Type pageType)
     {

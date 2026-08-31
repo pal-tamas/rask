@@ -95,8 +95,8 @@ A nested graph with **async** validators and live totals rolling up from the row
 ## Radio & checkbox groups (example components)
 
 `RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an
-`ICollection<TItem>`. Typed, production-ready versions ship in the optional **`Rask.Bootstrap`** package as
-`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect` (see [bootstrap.md](bootstrap.md)). The versions below are
+`ICollection<TItem>`. Build a typed version of your own as
+a radio group, a checkbox group or a multi-select of your own. The versions below are
 a **copyable worked example** of the binding API of §9 (`samples/Rask.Example.Shared/Shared/`) — `IFormControl<T>`
 is the framework primitive; the control is yours to build or take from the package. They're structured exactly like
 `MultiSelect<TItem>`, with **bound** and **controlled** modes (so the generator emits both chains):
@@ -124,11 +124,10 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
   `EqualityComparer<TItem>.Default`) — you usually need the explicit `CheckboxGroup<string>` when the
   collection is a concrete `List<T>`. Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` +
   `ValidateFieldAsync`, so DataAnnotations / FluentValidation rules apply.
-- Each item renders Bootstrap 5.3
-  [check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/) — a
-  `<div class="form-check">` wrapping a `.form-check-input` and a `.form-check-label` tied together by
-  `id`/`for`. `ItemClass` adds extra classes (e.g. `"form-check-inline"`); `OptionLabel` customizes the label.
-- On the `Rask.Bootstrap` `BsRadioGroup`/`BsCheckboxGroup`, pass `Label:` to give the group an accessible
+- Each item renders an `<input>` and a `<label>` tied together by `id`/`for`, so the pair is one
+  target for a pointer and one stop for a screen reader. `ItemClass` adds extra classes;
+  `OptionLabel` customizes the label.
+- On a radio or checkbox group of your own, pass a label to give the group an accessible
   name: the options are then wrapped in a `<fieldset>` titled by a `<legend>`, which is the correct
   grouping semantics for a set of related radios/checkboxes. Without a `Label` you get the bare per-item
   fragment (so you can supply your own `<fieldset>`/heading). An unnamed control derives a page-unique
@@ -144,9 +143,7 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
 
 `RadioGroup` (single value) and `CheckboxGroup` (a collection), live:
 
-<!-- demo:form-groups -->
-
-**Multi-select.** `MultiSelect<TItem>` (and the `Rask.Bootstrap` `BsMultiSelect<T>`) binds an
+**Multi-select.** `MultiSelect<TItem>` binds an
 `ICollection<TItem>` through a dropdown of chips — bound and controlled, with checkbox and radio
 option renderings. The single-value twin is `BsSelect<T>`: same data-driven API (`Options` +
 `OptionLabel`) and custom `.dropdown-menu` listbox (zero-JS, keyboard + ARIA `combobox`/`listbox`),
@@ -174,16 +171,6 @@ Two limits worth knowing:
 - **`Multiple: true` over a scalar property keeps the single-value binding.** That is a model which can
   only hold one answer; widening it silently would be the more surprising behaviour.
 
-<!-- demo:multi-select-native -->
-
-<!-- demo:multi-select -->
-
-<!-- demo:multi-select-controlled -->
-
-<!-- demo:multi-select-checkbox -->
-
-<!-- demo:multi-select-radio -->
-
 ## Surviving a redeploy
 
 If the server is replaced while someone is filling a form in, the page may have to reload — and the
@@ -202,7 +189,7 @@ Two things to know when building a form:
 
 ```csharp
 Div.Data("rask-no-restore")[
-    Input.Bind(() => _model.CouponCode).Class("form-control")   // never carried across a reload
+    Input.Bind(() => _model.CouponCode).Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100")   // never carried across a reload
 ]
 ```
 

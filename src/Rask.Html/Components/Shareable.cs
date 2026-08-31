@@ -11,7 +11,7 @@ namespace Rask.Html.Components;
 ///     Spread the bundle onto any element via its <c>Data</c> prop:
 ///     <code>
 ///     Shareable(new ShareData { Title = "Rask", Url = "https://…" },
-///         share => Button(Type: "button", Class: "btn btn-primary", Data: share)["Share"])
+///         share => Button(Type: "button", Class: "action action-primary", Data: share)["Share"])
 ///     </code>
 /// </summary>
 /// <remarks>

@@ -215,7 +215,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         // Setters. Emitted into the GLOBAL namespace: an extension method is only found when its
         // containing namespace is in scope, and the global namespace encloses every namespace — so
-        // this is what lets `Div.Class("card")` bind with no `using` anywhere. The class name carries
+        // this is what lets `Div.Class("panel")` bind with no `using` anywhere. The class name carries
         // the assembly name because several assemblies each contribute one.
         var setterHost = context.CompilationProvider.Select(static (c, _) => GetSetterHost(c));
 

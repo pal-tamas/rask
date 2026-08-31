@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Core.Routing;
 using Rask.Dashboard.Logging;
 using Rask.Dashboard.Panels;
 
@@ -29,6 +30,13 @@ public static class RaskDashboardPolicies
 public static class RaskDashboardServiceCollectionExtensions
 {
     /// <summary>
+    ///     Where the console is served. Fixed, not configurable: "the console is at /_rask" is meant to be
+    ///     something you know rather than something you look up, and it has to agree with the
+    ///     <c>[Route("_rask")]</c> on <c>DashboardLayout</c> that the pages themselves are registered under.
+    /// </summary>
+    internal const string DashboardPattern = "/_rask/{**path}";
+
+    /// <summary>
     /// Mounts the operator dashboard at <c>/_rask</c>, reading the battery tables owned by
     /// <typeparamref name="TContext"/>. Call it after the <c>AddRaskX&lt;TContext&gt;()</c> registrations —
     /// a panel appears only when its battery is both registered and mapped in the model, so an app with
@@ -53,6 +61,23 @@ public static class RaskDashboardServiceCollectionExtensions
 
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
+
+        // The console is its OWN application, not a set of pages inside the host's. RouteRegistry is
+        // process-wide, so referencing this package used to be enough to put these pages in the host
+        // app's table -- which meant the host's root rendered them, inside the host's document. Sharing
+        // a document is not cosmetic: the console's stylesheet then applied to the host's own pages, and
+        // the host's [NotFound] answered a mistyped console URL.
+        //
+        // TryAddEnumerable keyed on the implementation instance would not dedupe, so this is guarded by
+        // the options singleton above: a repeated AddRaskDashboard call finds the options already
+        // registered and would otherwise mount the console twice.
+        if (!services.Any(d => d.ServiceType == typeof(RaskMountedApp)))
+        {
+            services.AddSingleton(new RaskMountedApp(
+                typeof(RaskDashboardShell),
+                DashboardPattern,
+                typeof(RaskDashboardShell).Assembly));
+        }
         services.TryAddSingleton<DashboardSecurityState>();
         services.TryAddSingleton<DashboardLogBuffer>();
 

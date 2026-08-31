@@ -12,7 +12,7 @@ namespace Rask.Example.Playground.Compiler;
 ///     + the emitted builder-entry trees, the <c>Generated.*</c> factory trees and the <c>global using
 ///     static</c> directives), and the generator's own diagnostics. Shared by the Run pipeline
 ///     (<see cref="PlaygroundCompiler" />) and the live analysis pipeline (<see cref="PlaygroundWorkspace" />)
-///     so both see exactly the same bound program — a chain like <c>Div.Class("card")[…]</c> resolves
+///     so both see exactly the same bound program — a chain like <c>Div.Class("panel")[…]</c> resolves
 ///     identically for execution, diagnostics and completion.
 /// </summary>
 internal readonly record struct PlaygroundCompilation(

@@ -63,7 +63,7 @@ public sealed class WasmSubPathExampleTests : IAsyncLifetime
         // 1. The app boots under the /sub prefix. Guides-first: "/" is the guides index (the Welcome
         // landing page is gone), whose PageHeader renders an <h1 class="h2">Guides</h1>.
         await Page.GotoAsync("/sub/");
-        await Expect(Page.Locator("main h1.h2"))
+        await Expect(Page.Locator("main h1"))
             .ToContainTextAsync("Guides",
                 new LocatorAssertionsToContainTextOptions { Timeout = 90_000 });
 

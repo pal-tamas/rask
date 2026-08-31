@@ -4,8 +4,8 @@ Markup in Rask is C#. You name a component and chain onto it; there is no `new`,
 `using` to remember.
 
 ```csharp
-Div.Class("card")[
-    H2.Class("card-title")["Products"],
+Div.Class("panel")[
+    H2.Class("mb-1 text-lg font-semibold")["Products"],
     P["Everything we sell."]
 ]
 ```
@@ -130,6 +130,42 @@ ProductCard.Title("Coffee").Subtitle("Dark roast").OnPick(Pick)
 A non-nullable property with no initializer is required — the same rule
 [RASK001](diagnostics.md#rask001) describes — so it becomes a step. Give it a nullable type or an
 initializer if it is genuinely optional.
+
+## Lists of components
+
+A chain that ends at the `[...]` children indexer is already a component, so projecting one has always
+worked:
+
+```csharp
+Tbody[rows.Select(r => Tr.Key(r.Id)[Td[r.Name], Td[r.Total]])]
+```
+
+A chain that ends at a **step** is different. `OpsBadge.Key(k).Label(v)` has the type
+`Build<OpsBadge>`, and the implicit conversion that makes it a component at a call site does not lift
+through `IEnumerable<>` — so a projection of those is not a sequence of components. The children
+indexer accepts it anyway:
+
+```csharp
+Div[scopes.Select(s => OpsBadge.Key(s.Key).Label($"{s.Key}={s.Value}"))]
+```
+
+Literals and a projection can also sit in one list, which saves a `Concat`:
+
+```csharp
+Div["Showing ", rows.Select(r => Row.Key(r.Id).For(r)), " of ", total]
+```
+
+Nested sequences flatten, so `SelectMany` is optional, and a sequence of plain values renders as text
+exactly as a literal child does.
+
+This last overload takes `object?`, so it is the one place in the chain where a mistake is not a
+compile error: an element that is neither a component, nor a chain, nor a value with a text
+representation throws while rendering, naming the type. A generic indexer cannot express the typed
+version — C# forbids generic indexers, and a C# 14 extension block cannot declare one either
+(`CS9282`).
+
+Keys still matter. [RASK022](diagnostics.md#rask022) reads a chain that ends at a step, so a list item
+without `.Key(…)` is reported in every one of the shapes above.
 
 ## See also
 

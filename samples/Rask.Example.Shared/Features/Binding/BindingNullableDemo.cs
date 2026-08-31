@@ -9,34 +9,34 @@ public sealed partial class BindingNullableDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Label.For("bind-null-age").Class("form-label small")["Optional age (int?)"],
+            Label.For("bind-null-age").Class($"{Ui.Label} text-sm")["Optional age (int?)"],
             Input.Bind(() => _model.OptionalAge)
                 .Id("bind-null-age")
-                .Class("form-control")
+                .Class(Ui.Input)
                 .Placeholder("leave empty for null")
         ],
         Div.Class("mb-3")[
-            Label.For("bind-null-start").Class("form-label small")["Optional start date (DateOnly?)"],
+            Label.For("bind-null-start").Class($"{Ui.Label} text-sm")["Optional start date (DateOnly?)"],
             Input.Bind(() => _model.StartDate)
                 .Id("bind-null-start")
-                .Class("form-control")
+                .Class(Ui.Input)
         ],
         Div.Class("mb-3")[
-            Label.For("bind-null-color").Class("form-label small")["Optional colour (Color?)"],
+            Label.For("bind-null-color").Class($"{Ui.Label} text-sm")["Optional colour (Color?)"],
             Select.Bind(() => _model.Favorite)
                 .Id("bind-null-color")
-                .Class("form-select")[
+                .Class(Ui.Select)[
                 Option.Value("")["— none —"], Option.Value("Red")["Red"], Option.Value("Green")["Green"], Option.Value("Blue")["Blue"]
             ]
         ],
         Div.Class("mb-3")[
-            Label.For("bind-null-nick").Class("form-label small")["Nickname (string?)"],
+            Label.For("bind-null-nick").Class($"{Ui.Label} text-sm")["Nickname (string?)"],
             Input.Bind(() => _model.Nickname)
                 .Id("bind-null-nick")
-                .Class("form-control")
+                .Class(Ui.Input)
                 .Placeholder("clear me for null")
         ],
-        Pre.Class("small mb-0 p-3 bg-light border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[
             Code[
                 $"OptionalAge = {_model.OptionalAge?.ToString() ?? "null"}\n" +
                 $"StartDate   = {_model.StartDate?.ToString("yyyy-MM-dd") ?? "null"}\n" +

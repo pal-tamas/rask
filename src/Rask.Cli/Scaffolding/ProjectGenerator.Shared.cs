@@ -8,8 +8,8 @@ internal static partial class ProjectGenerator
 {
     // The app shell every page renders through (RASK021), living in Features/Shared/ — the cross-cutting
     // bucket a new project shares across its feature slices. The welcome home page is its own Features/Home
-    // slice (see HomePageCs). With Bootstrap the styling comes from the CDN-free Rask.Bootstrap asset;
-    // without it the shell carries a small baseline of its own, so an opted-out app is still presentable.
+    // slice. Styling is Tailwind, unconditionally: it is a battery like any other, so there is no axis to
+    // choose along and no unstyled path to keep presentable.
     /// <summary>
     /// One catalog per language, under the <c>Resources/</c> directory <c>Rask.Core.targets</c> globs into
     /// <c>&lt;AdditionalFiles&gt;</c> — which is why this works unchanged on a browser-WASM project.
@@ -28,7 +28,7 @@ internal static partial class ProjectGenerator
         }
     }
 
-    private static string AppShellCs(Styling styling) =>
+    private static string AppShellCs() =>
         $$"""
         using Rask.Core.Routing;
 
@@ -43,7 +43,7 @@ internal static partial class ProjectGenerator
                 Title["Company.RaskServer"],
                 Meta.Charset("utf-8"),
                 Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
-        {{StylingHead(styling)}}
+        {{TailwindHead}}
             ];
 
             // The body's content. Rask emits the doctype, <html lang>, <head> and <body> around this —
@@ -53,14 +53,6 @@ internal static partial class ProjectGenerator
 
         """;
 
-    /// <summary>The head contribution each styling choice needs.</summary>
-    private static string StylingHead(Styling styling) => styling switch
-    {
-        Styling.Bootstrap => BootstrapHead,
-        Styling.Tailwind => TailwindHead,
-        _ => BaselineHead,
-    };
-
     // A plain <link> to what the build compiled. Nothing framework-specific: Rask.Tailwind writes
     // wwwroot/css/app.css before the app builds, and every host already serves wwwroot.
     private const string TailwindHead =
@@ -68,41 +60,6 @@ internal static partial class ProjectGenerator
                 // Compiled from Styles/app.css by Rask.Tailwind, scanning this project's own source.
                 Link.Rel("stylesheet").Href("/css/app.css")
         """;
-
-    private const string BootstrapHead =
-        """
-                // Bootstrap 5.3 + Icons via Rask.Bootstrap (served from _content/Rask.Bootstrap).
-                BootstrapStyles
-        """;
-
-    // No CSS framework: a baseline inline in the shell rather than a stylesheet file, so it works the same
-    // on every template (a server app, a WASM bundle) with nothing extra to serve. Raw()
-    // because CSS is not HTML — encoding it would break every selector containing > or &.
-    private const string BaselineHead =
-        """"
-                // A small baseline of our own — no CSS framework. Replace this with yours.
-                Style[Raw.Value("""
-                    :root { color-scheme: light dark; --ink: #1c1b22; --muted: #5c5a6b; --bg: #faf9fe;
-                            --card: #ffffff; --line: #e6e4f0; --brand: #512BD4; }
-                    @media (prefers-color-scheme: dark) {
-                        :root { --ink: #eceaf5; --muted: #a5a2b8; --bg: #16151c; --card: #201f29; --line: #322f42; }
-                    }
-                    * { box-sizing: border-box; }
-                    body { margin: 0; padding: 2rem 1rem; background: var(--bg); color: var(--ink);
-                           font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-                    main { max-width: 34rem; margin: 0 auto; }
-                    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-                            padding: 1.75rem; box-shadow: 0 1px 3px rgb(0 0 0 / 6%); }
-                    h1 { margin: 0 0 .5rem; font-size: 1.5rem; letter-spacing: -0.01em; }
-                    p { margin: 0 0 1rem; color: var(--muted); }
-                    ul { margin: 0 0 1rem; padding-left: 1.25rem; }
-                    li { margin-bottom: .35rem; }
-                    code { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--brand);
-                           padding: .15em .4em; border-radius: 5px; font-size: .875em; }
-                    a { color: var(--brand); }
-                    .small { font-size: .875rem; }
-                    """)]
-        """";
 
     // The welcome home page that teaches the CLI — a Features/Home slice, so a new project already models
     // the "screens are feature slices" convention the CLI generates into.
@@ -149,13 +106,6 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private static string HomePageCs(Styling styling) => styling switch
-    {
-        Styling.Bootstrap => HomePageBootstrapCs,
-        Styling.Tailwind => HomePageTailwindCs,
-        _ => HomePageBaselineCs,
-    };
-
     // The same page in Tailwind utilities. Every class here is one Tailwind will find by scanning THIS
     // FILE at build time — which is the whole mechanism, and the reason the page is worth scaffolding
     // rather than leaving the stylesheet empty: it proves the loop end to end on the first build.
@@ -182,80 +132,6 @@ internal static partial class ProjectGenerator
                             "Edit this page in ",
                             Code.Class("rounded bg-slate-100 px-1.5 py-0.5 dark:bg-slate-700")["HomePage.cs"],
                             " — Tailwind rebuilds the stylesheet from it on the next build."
-                        ]
-                    ]
-                ];
-        }
-
-        """;
-
-    private const string HomePageBootstrapCs =
-        """
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer.Features.Home;
-
-        [Route("/")]
-        public sealed partial class HomePage : Component
-        {
-            // BsBlock exposes only Id/Class (not Element's full HTML surface), so the width lives on a
-            // plain Div wrapper rather than a .Style() on the card.
-            protected override Component? Render() =>
-                Div.Class("mx-auto my-5").Style("max-width:540px")[
-                    BsCard.Class("shadow-sm")[
-                        BsCardBody[
-                            BsCardTitle["Hello, Rask! 👋"],
-                            BsCardText.Class("text-body-secondary")["Your app is ready. What to do next:"],
-                            Ul.Class("mb-3")[
-                                Li[Code["rask dev"], " — run with hot reload"],
-                                Li[Code["rask db add Init"], " then ", Code["rask db update"], " — create the database"],
-                                Li[A.Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
-                            ],
-                            P.Class("mb-0 small text-body-secondary")[
-                                "Edit this page in ",
-                                Code["HomePage.cs"],
-                                " — drop a ",
-                                Code["HomePage.css"],
-                                " beside it and its rules are scoped to this page. Full guides at ",
-                                A.Href("https://github.com/pal-tamas/rask")["the Rask docs"],
-                                "."
-                            ]
-                        ]
-                    ]
-                ];
-        }
-
-        """;
-
-    // The same page in plain elements, against the shell's baseline CSS — no component library, so every
-    // class here is one the project owns and can rename.
-    private const string HomePageBaselineCs =
-        """
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer.Features.Home;
-
-        [Route("/")]
-        public sealed partial class HomePage : Component
-        {
-            protected override Component? Render() =>
-                Main[
-                    Div.Class("card")[
-                        H1["Hello, Rask! 👋"],
-                        P["Your app is ready. What to do next:"],
-                        Ul[
-                            Li[Code["rask dev"], " — run with hot reload"],
-                            Li[Code["rask db add Init"], " then ", Code["rask db update"], " — create the database"],
-                            Li[A.Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
-                        ],
-                        P.Class("small")[
-                            "Edit this page in ",
-                            Code["HomePage.cs"],
-                            " — drop a ",
-                            Code["HomePage.css"],
-                            " beside it and its rules are scoped to this page. Full guides at ",
-                            A.Href("https://github.com/pal-tamas/rask")["the Rask docs"],
-                            "."
                         ]
                     ]
                 ];

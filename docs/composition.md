@@ -18,7 +18,7 @@ sending events up, nesting children, and rendering windowed or reorderable lists
 Children attach through the **indexer**, not a `Children:` parameter:
 
 ```csharp
-Div.Class("card")[
+Div.Class("panel")[
     Span.Class("title")["Hello"],
     "plain text becomes a Text node",   // string → Text (HTML-encoded)
     items.Select(i => (Component)Li.Key(i.Id)[i.Name])
@@ -46,7 +46,7 @@ Div.Class("card")[
 >
 > `Key` is available before a component's *required* steps too, so a row with required properties
 > can still settle its identity first. **Elements are exempt** — an element is re-specified in full
-> every render, so its instance carries nothing and `Li.Key(i.Id)[…]` or `Div.Class("row").Key(i)`
+> every render, so its instance carries nothing and `Li.Key(i.Id)[…]` or `Div.Class("line").Key(i)`
 > both read exactly as before.
 
 A `[...]` collection expression renders its items with **no wrapping element** — use it for a list
@@ -116,7 +116,7 @@ capability. Reach for the cheapest one that does the job.
 ```csharp
 internal static class Ui
 {
-    public static Component Badge(string label) => Span.Class("badge")[label];
+    public static Component Badge(string label) => Span.Class("pill")[label];
 }
 // call it like any method — Ui.Badge("new")
 ```

@@ -175,7 +175,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     {
         // A button per row is what a real data grid looks like, so this shape has to cache like any
         // other pure-element subtree — the handler wiring is reproduced on replay rather than banned.
-        var row = new StubComponent(() => Div.Class("btn").OnClick(() => { })["click me"]);
+        var row = new StubComponent(() => Div.Class("action").OnClick(() => { })["click me"]);
         var root = new StubComponent(() => Div.Class("page")[row]);
         var cache = new SessionRenderCache();
 
@@ -192,7 +192,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // The failure this guards is a silently dead button: a replay skips the walk, so unless it
         // re-registers the run, the id the browser sends back is absent from the freshly-cleared map.
         var clicks = 0;
-        var row = new StubComponent(() => Div.Class("btn").OnClick(() => clicks++)["click me"]);
+        var row = new StubComponent(() => Div.Class("action").OnClick(() => clicks++)["click me"]);
         var root = new StubComponent(() => Div.Class("page")[row]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
@@ -267,7 +267,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // the enclosing subtree from caching. So it disqualifies too, and the walk keeps the button live.
         var clicks = 0;
         var page = new StubComponent(() =>
-            Div.Class("page")[ErrorBoundary[Div.Class("btn").OnClick(() => clicks++)["go"]]]);
+            Div.Class("page")[ErrorBoundary[Div.Class("action").OnClick(() => clicks++)["go"]]]);
         var root = new StubComponent(() => Div.Class("shell")[page]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
@@ -298,7 +298,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         var row = new StubComponent(() =>
         {
             rowRenders++;
-            return Div.Class("row").OnClick(() => rowClicks++)["row"];
+            return Div.Class("line").OnClick(() => rowClicks++)["row"];
         });
         var root = new StubComponent(() => Div.Class("page")[
             // The wrapper stays put so only the HANDLER COUNT moves — the row keeps its position in
@@ -342,7 +342,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     {
         // A keyed list row is the shape where retained memory matters most (RASK022 wants a Key on
         // every list item), so it has to be cacheable like any other pure-element subtree.
-        var page = new StubComponent(() => Div.Class("row")[Span["r1"]]) { Key = "k1" };
+        var page = new StubComponent(() => Div.Class("line")[Span["r1"]]) { Key = "k1" };
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -359,7 +359,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         var page = new StubComponent(() =>
         {
             built++;
-            return Div.Class("row")[Span["r1"]];
+            return Div.Class("line")[Span["r1"]];
         })
         { Key = "k1" };
         var cache = new SessionRenderCache();
@@ -380,7 +380,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // The hazard the snapshot's key check exists for: reassigning Key does not dirty the component
         // (Key is excluded from the propsChanged fold), so a replay here would emit the OLD key and the
         // diff would reconcile this row against the wrong sibling.
-        var page = new StubComponent(() => Div.Class("row")[Span["r1"]]) { Key = "k1" };
+        var page = new StubComponent(() => Div.Class("line")[Span["r1"]]) { Key = "k1" };
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -402,7 +402,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     public void KeyedComponent_KeyRemoved_DoesNotStaleReplay()
     {
         // Same hazard in the null direction: dropping the Key must drop the attribute, not replay it.
-        var page = new StubComponent(() => Div.Class("row")[Span["r1"]]) { Key = "k1" };
+        var page = new StubComponent(() => Div.Class("line")[Span["r1"]]) { Key = "k1" };
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -422,7 +422,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // inner, so it would replay a snapshot carrying the old identity and the diff would match this
         // subtree against the wrong sibling. The snapshot records the forwarded key it was captured
         // under precisely so this falls back to a walk.
-        var inner = new StubComponent(() => Div.Class("row")[Span["x"]]);
+        var inner = new StubComponent(() => Div.Class("line")[Span["x"]]);
         var outer = new StubComponent(() => inner) { Key = "k1" };
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();

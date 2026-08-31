@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Rask.Core;
 
 /// <summary>
@@ -22,7 +24,7 @@ namespace Rask.Core;
 ///     </para>
 ///     <para>
 ///         It stays out of the way otherwise: the implicit conversion to <typeparamref name="T" /> is what
-///         lets markup read exactly as it did — <c>Div.Class("card")[Span["hi"]]</c> — and lets a chain be
+///         lets markup read exactly as it did — <c>Div.Class("panel")[Span["hi"]]</c> — and lets a chain be
 ///         returned from <c>Render()</c>, passed to a <c>Component</c> parameter (through
 ///         <typeparamref name="T" />), or nested as a child with no cast.
 ///     </para>
@@ -31,7 +33,7 @@ namespace Rask.Core;
 ///         was given is the sequence of steps at its call site and nothing else. It is a CONVENTION, not a
 ///         guarantee: <see cref="Value" /> is hidden from completion rather than removed, and the implicit
 ///         conversion hands back the concrete component anyway, so
-///         <c>Div d = Div.Class("card"); d.Id = "x";</c> compiles. Forbidding that needs an analyzer —
+///         <c>Div d = Div.Class("panel"); d.Id = "x";</c> compiles. Forbidding that needs an analyzer —
 ///         nothing in the type system can, once a chain converts to what it built.
 ///     </para>
 ///     <para>
@@ -41,7 +43,7 @@ namespace Rask.Core;
 ///     </para>
 /// </remarks>
 /// <typeparam name="T">The component being built.</typeparam>
-public readonly struct Build<T>
+public readonly struct Build<T> : IComponentChain
     where T : Component
 {
     /// <summary>Starts a chain over an already-constructed component.</summary>
@@ -90,10 +92,17 @@ public readonly struct Build<T>
     ///     children come last, and a <c>Component</c> result is what lets one arm of a conditional pair
     ///     with <c>null</c> or with different markup.
     /// </remarks>
+    [OverloadResolutionPriority(1)]
     public Component this[params Component?[] children] => Value[children];
 
     /// <summary>Gives the component a pre-built sequence of children, ending the chain.</summary>
+    [OverloadResolutionPriority(1)]
     public Component this[IEnumerable<Component?> children] => Value[children];
+
+    /// <inheritdoc cref="Component.this[object?[]]" />
+    public Component this[params object?[] children] => Value[children];
+
+    Component IComponentChain.Unwrap() => Value;
 }
 
 /// <summary>
@@ -128,7 +137,7 @@ public readonly struct Build<T>
 /// </remarks>
 /// <typeparam name="T">The form control being built.</typeparam>
 /// <typeparam name="TMode">The mode its chain opened in.</typeparam>
-public readonly struct Build<T, TMode>
+public readonly struct Build<T, TMode> : IComponentChain
     where T : Component
 {
     /// <inheritdoc cref="Build{T}(T)" />
@@ -145,8 +154,15 @@ public readonly struct Build<T, TMode>
     public string ToHtml() => Value.ToHtml();
 
     /// <inheritdoc cref="Build{T}.this[Component?[]]" />
+    [OverloadResolutionPriority(1)]
     public Component this[params Component?[] children] => Value[children];
 
     /// <inheritdoc cref="Build{T}.this[IEnumerable{Component?}]" />
+    [OverloadResolutionPriority(1)]
     public Component this[IEnumerable<Component?> children] => Value[children];
+
+    /// <inheritdoc cref="Component.this[object?[]]" />
+    public Component this[params object?[] children] => Value[children];
+
+    Component IComponentChain.Unwrap() => Value;
 }

@@ -10,18 +10,17 @@ internal static partial class SeeAlso
     {
         var children = new List<Component>
         {
-            Span.Class(Bs.Join(Txt.Color(BsColor.Secondary), Font.Semibold))[
-                BsIcon.Name(BsIconName.JournalText).Class("me-1"), "See also"
+            Span.Class("text-slate-500 font-semibold")[
+                Icon.Name(IconName.JournalText).Class("me-1"), "See also"
             ]
         };
         children.AddRange(guides.Select(g => (Component)NavLink
             .Href(Features.Routes.GuidePage(g.Slug))
             .ActiveClass("")
-            .Class(Bs.Join("see-also-link", Txt.DecorationNone))
+            .Class("see-also-link no-underline")
             .Key(g.Slug)[g.Title]));
 
         return Div
-            .Class(Bs.Join(Display.Flex(), Flex.Wrap(), Flex.Align(BsAlign.Center), Flex.Gap(2),
-            Margin.Top(5), Padding.Top(3), Border.Top, "small"))[children];
+            .Class("flex flex-wrap items-center gap-2 mt-5 pt-3 border-t text-sm")[children];
     }
 }

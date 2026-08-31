@@ -41,6 +41,25 @@ public class MissingKeyAnalyzerTests
         Assert.Empty(await Diagnostics(App(
             "return Ul[ _items.Select(i => Li.Key(i)[i.ToString()]) ];")));
 
+    // A chain that ends at a STEP rather than at the children indexer is typed Build<T> — a struct,
+    // which inherits from nothing, so the Component-derived check saw nothing and the key check never
+    // ran. The shape was unreachable until the children indexer gained its `params object?[]`
+    // overload; now that a projection of chains can BE children, the blindness is a live false
+    // negative and this is the case that pins it.
+    [Fact]
+    public async Task ChainEndingAtAStep_NoKey_ReportsRask022()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            "return Ul[ _items.Select(i => Li.Class(\"row\")) ];")));
+        Assert.Equal("RASK022", d.Id);
+        Assert.Contains("Li", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task ChainEndingAtAStep_WithKey_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(App(
+            "return Ul[ _items.Select(i => Li.Key(i).Class(\"row\")) ];")));
+
     [Fact]
     public async Task SelectProjection_NoKey_ReportsRask022()
     {

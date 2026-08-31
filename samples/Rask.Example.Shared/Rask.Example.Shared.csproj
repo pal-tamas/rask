@@ -12,12 +12,19 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>
+    <!-- Build-order edge only. The Tailwind wiring itself arrives from Directory.Build.{props,targets}
+         (and, for a scaffolded app, from inside the host package) — this reference exists so that
+         Rask.Tailwind.Tasks.dll is on disk before the UsingTask that loads it runs. Build-only: an
+         MSBuild task and a CLI run, not an assembly, so the payload is unchanged. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.DataAnnotations\Rask.Validation.DataAnnotations.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
@@ -71,5 +78,6 @@
     <Error Condition="'@(_RaskEmbeddedLeaf->Distinct()->Count())' != '@(_RaskEmbeddedLeaf->Count())'"
            Text="Duplicate embedded-source leaf name(s) under Features/ or Shared/. EmbeddedSource resolves by bare filename (raksrc/{leaf}), so every embedded .cs/.ts/.css must have a unique file name across the project. Rename the collision." />
   </Target>
+
 
 </Project>

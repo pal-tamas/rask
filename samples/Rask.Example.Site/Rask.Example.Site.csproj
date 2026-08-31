@@ -48,9 +48,18 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <PackageReference Include="Microsoft.JSInterop"/>
+    <!-- Build-order edge only. The Tailwind wiring itself arrives from Directory.Build.{props,targets}
+         (and, for a scaffolded app, from inside the host package) — this reference exists so that
+         Rask.Tailwind.Tasks.dll is on disk before the UsingTask that loads it runs. Build-only: an
+         MSBuild task and a CLI run, not an assembly, so the payload is unchanged. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
+
 
 </Project>

@@ -13,37 +13,35 @@ public sealed partial class LiveTickerDemo : Component
 
     protected override Component? Render() =>
     [
-        Div.Class("btn-group mb-3").Id("ticker-symbol-switcher")[
+        Div.Class("mb-3").Id("ticker-symbol-switcher")[
             SwitchButton("BTC"),
             SwitchButton("ETH"),
             SwitchButton("SOL")
         ],
-        BsRow.Gutter(4)[
-            BsCol.Lg(7)[
+        Div.Class("grid grid-cols-12 gap-4")[
+            Div.Class("lg:col-span-7")[
                 LiveTicker.Symbol(_symbol).Log(AppendLog)
             ],
-            BsCol.Lg(5)[
-                BsCard.Class("border-0 bg-light h-100")[
-                    BsCardBody[
-                        BsStack.Justify(BsJustify.Between).Align(BsAlign.Baseline).Class(Margin.Bottom(3))[
-                            H3.Class("h6 text-secondary text-uppercase small mb-0")["Hook activity"],
-                            BsButton
-                                .Size(BsSize.Sm)
-                                .Class("btn-link p-0 text-decoration-none")
+            Div.Class("lg:col-span-5")[
+                Div.Class($"{Ui.Card} border-0 bg-slate-100 h-full")[
+                    Div.Class(Ui.CardBody)[
+                        Div.Class("mb-3 flex flex-wrap items-center justify-between")[
+                            H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mb-0")["Hook activity"],
+                            Button.Class(Ui.BtnLink).Type("button")
                                 .Id("ticker-clear-log")
                                 .OnClick(ClearLog)["clear"]
                         ],
                         _log.Count == 0
-                            ? P.Class("text-secondary fst-italic small mb-0")[
+                            ? P.Class("text-slate-500 dark:text-slate-400 italic text-sm mb-0")[
                                 "Empty — hooks will fire as the component mounts and ticks."]
                             : (Component)Ol
-                                .Class("list-group list-group-numbered list-group-flush")
+                                .Class($"{Ui.ListGroup} list-decimal list-inside divide-y divide-slate-200 dark:divide-slate-700")
                                 .Id("ticker-log")
                                 .Style("max-height: 360px; overflow-y: auto;")[
                                 _log.Select((l, i) => Li
                                     .Key(i)
-                                    .Class("list-group-item ps-2 small bg-transparent")[
-                                    Code.Class("small")[l]]).ToArray()]
+                                    .Class($"{Ui.ListGroupItem} ps-2 text-sm bg-transparent")[
+                                    Code.Class("text-sm")[l]]).ToArray()]
                     ]
                 ]
             ]
@@ -55,8 +53,8 @@ public sealed partial class LiveTickerDemo : Component
     private Component SwitchButton(string symbol) =>
         Button
             .Class(_symbol == symbol
-                ? "btn btn-primary btn-sm"
-                : "btn btn-outline-primary btn-sm")
+                ? $"{Ui.BtnPrimary}"
+                : $"{Ui.BtnOutlinePrimary}")
             .Id($"ticker-switch-{symbol}")
             .OnClick(() => _symbol = symbol)[symbol];
 

@@ -16,28 +16,28 @@ public sealed partial class AsyncValidationDemo : Component
     }
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-muted small mt-1")[
-            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking availability..."
+        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
+            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking availability..."
         ];
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("flex flex-col gap-3")[
             DataAnnotationsValidator,
             Div[
-                Label.For("v3-username").Class("form-label small mb-1")["Username"],
-                Input.Bind(() => _model.Username).Id("v3-username").Class("form-control"),
+                Label.For("v3-username").Class($"{Ui.Label} text-sm mb-1")["Username"],
+                Input.Bind(() => _model.Username).Id("v3-username").Class(Ui.Input),
                 ValidatingIndicator.Template(Checking).For(() => _model.Username),
-                ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])])
+                ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])])
                     .For(() => _model.Username)
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Sign up"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Check2Circle).Class("me-1"), "Sign up"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

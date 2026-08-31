@@ -88,7 +88,7 @@ public sealed partial class CodeSample : Component
                 .Class("sample-copy")
                 .Ref(_copyButton)
                 .OnClickAsync(CopyAsync)[
-                    BsIcon.Name(BsIconName.Clipboard).Class("me-1"),
+                    Icon.Name(IconName.Clipboard).Class("me-1"),
                     // A real text node (not a CSS pseudo-element) so the button has an
                     // accessible name; the scoped JS swaps it to "Copied!" on click.
                     Span.Class("sample-copy-text")["Copy"]
@@ -99,14 +99,14 @@ public sealed partial class CodeSample : Component
     protected override Component? Render()
     {
         var (_, activeSource, activeLanguage, codeClass) = Pane(_active);
-        return BsCard.Class(Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4), "sample-card"))[
+        return Div.Class($"{Ui.Card} shadow-sm border-0 mb-4 sample-card")[
             Title is null && Notes is null
                 ? null
-                : BsCardHeader.Class("bg-white border-bottom")[
-                    Title is null ? null : H5.Class("mb-0 fw-semibold")[Title],
+                : Div.Class($"{Ui.CardHeader} bg-white border-b")[
+                    Title is null ? null : H5.Class("mb-0 font-semibold")[Title],
                     Notes is null
                         ? null
-                        : P.Class($"text-secondary small mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
+                        : P.Class($"text-slate-500 dark:text-slate-400 text-sm mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
                 ],
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
             // top-to-bottom — the code you'd write, then what it renders — and never squeezes either

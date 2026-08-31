@@ -116,7 +116,7 @@ public sealed partial class JobsDemo : Component
                         " Your data is safe — it just isn't reachable from here, because only one tab may "
                         + "own the file. Close the other tab and this will say so."]
                 : null,
-            Div.Class("row")[
+            Div.Class("grid grid-cols-12 gap-4")[
                 Input.Value(_name)
                     .Type(InputType.Text)
                     .Placeholder("a name to greet")

@@ -48,7 +48,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         return [
             DashboardError.Message(LoadError),
             FailureBanner(),
-            BsRow.Class("g-3")[_queues.SelectMany(q => Tiles(q.Panel, q.Counts))],
+            OpsGrid[_queues.SelectMany(q => Tiles(q.Panel, q.Counts))],
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
@@ -64,8 +64,9 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         }
 
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
-        return BsAlert.Color(BsColor.Danger).Class("d-flex align-items-center gap-2")[
-            BsIcon.Name(BsIconName.ExclamationTriangle),
+        return Div.Role("alert")
+            .Class("mb-6 flex items-start gap-3 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200")[
+            OpsIcon.Name(OpsIconName.Warning).Class("mt-0.5 size-5 shrink-0"),
             Span[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
                 Span[string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}"))],
@@ -76,23 +77,19 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
 
     private IEnumerable<Component> Tiles(IQueuePanel panel, QueueCounts counts)
     {
-        yield return BsCol.Sm(6).Lg(3)[
-            BsStat
-                .Value(counts.Outstanding.ToString())
-                .Label($"{panel.Title} outstanding")
-                .Icon(panel.Icon)
-                .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting")
-                .Href(Routes.QueuePage(panel.Slug))
-        ];
+        yield return OpsStat
+            .Value(counts.Outstanding.ToString())
+            .Label($"{panel.Title} outstanding")
+            .Icon(panel.Icon)
+            .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting")
+            .Href(Routes.QueuePage(panel.Slug));
 
-        yield return BsCol.Sm(6).Lg(3)[
-            BsStat
-                .Value(counts.Failed.ToString())
-                .Label($"{panel.Title} failed")
-                .Icon(BsIconName.ExclamationTriangle)
-                .Tone(counts.Failed > 0 ? BsColor.Danger : null)
-                .Caption($"after {panel.MaxAttempts} attempts")
-                .Href(Routes.QueuePage(panel.Slug))
-        ];
+        yield return OpsStat
+            .Value(counts.Failed.ToString())
+            .Label($"{panel.Title} failed")
+            .Icon(OpsIconName.Warning)
+            .Tone(counts.Failed > 0 ? "danger" : null)
+            .Caption($"after {panel.MaxAttempts} attempts")
+            .Href(Routes.QueuePage(panel.Slug));
     }
 }

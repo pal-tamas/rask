@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class ComponentTiersDemo : Component
 {
     protected override Component? Render() =>
-        BsRow.Id("component-tiers").Gutter(3)[
+        Div.Class("grid grid-cols-12 gap-4").Id("component-tiers")[
             Tier("Tier 0 — static method", "Inlined markup. No instance, no state, no lifecycle.",
                 TierStaticHelperDemo),
             Tier("Tier 1 — stateless component", "Props in → markup out. Identity + lifecycle, no fields.",
@@ -20,11 +20,11 @@ public sealed partial class ComponentTiersDemo : Component
 
     // A Tier-0 static helper itself — the pattern the first card describes — reused for each column.
     private static Component Tier(string title, string blurb, Component body) =>
-        BsCol.Md(4)[
-            BsCard.Class("h-100")[
-                BsCardBody[
-                    H6.Class("fw-semibold mb-1")[title],
-                    P.Class("small text-secondary")[blurb],
+        Div.Class("md:col-span-4")[
+            Div.Class($"{Ui.Card} h-full")[
+                Div.Class(Ui.CardBody)[
+                    H6.Class("font-semibold mb-1")[title],
+                    P.Class("text-sm text-slate-500 dark:text-slate-400")[blurb],
                     body
                 ]
             ]

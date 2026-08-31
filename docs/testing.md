@@ -266,7 +266,7 @@ public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
             .Name("action")
             .Value("save")
             .Id("go")
-            .Class("btn")
+            .Class("action")
             .Style("color:red")
             .Data("test-id", "primary")
             .ToHtml());

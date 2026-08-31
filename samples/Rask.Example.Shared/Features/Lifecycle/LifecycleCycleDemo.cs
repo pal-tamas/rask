@@ -11,33 +11,28 @@ public sealed partial class LifecycleCycleDemo : Component
 
     protected override Component? Render() =>
         Div[
-            BsStack.Gap(2).Class(Margin.Bottom(3))[
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Size(BsSize.Sm)
+            Div.Class("flex gap-2 flex-wrap items-center mb-3")[
+                Button.Type("button").Class(Ui.BtnPrimary)
                     .Id("lifecycle-cycle-mount")
                     .Disabled(_cycleMounted)
-                    .OnClick(MountCycle)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount probe"],
-                BsButton
-                    .Color(BsColor.Secondary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                    .OnClick(MountCycle)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Mount probe"],
+                Button.Type("button").Class(Ui.BtnOutlineSecondary)
                     .Id("lifecycle-cycle-unmount")
                     .Disabled(!_cycleMounted)
-                    .OnClick(UnmountCycle)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount probe"]
+                    .OnClick(UnmountCycle)[Icon.Name(IconName.StopCircle).Class("me-1"), "Unmount probe"]
             ],
             _cycleMounted
                 ? LifecycleCycleProbe.Log(AppendCycleLog).InstanceId(_nextCycleId)
-                : P.Class("text-secondary fst-italic mb-0")["Probe not mounted."],
-            H3.Class("h6 text-secondary text-uppercase small mt-4")["Log"],
+                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Probe not mounted."],
+            H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mt-4")["Log"],
             _cycleLog.Count == 0
-                ? P.Class("text-secondary small mb-0")["Empty — mount and unmount the probe."]
+                ? P.Class("text-slate-500 dark:text-slate-400 text-sm mb-0")["Empty — mount and unmount the probe."]
                 : Ol
-                    .Class("list-group list-group-numbered list-group-flush")
+                    .Class($"{Ui.ListGroup} list-decimal list-inside divide-y divide-slate-200 dark:divide-slate-700")
                     .Id("lifecycle-cycle-log")[
                     _cycleLog.Select((l, i) => Li
                         .Key(i)
-                        .Class("list-group-item ps-2 small")[Code.Class("small")[l]]).ToArray()]
+                        .Class($"{Ui.ListGroupItem} ps-2 text-sm")[Code.Class("text-sm")[l]]).ToArray()]
         ];
 
     private void MountCycle()

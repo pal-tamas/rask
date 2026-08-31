@@ -1,7 +1,7 @@
 # Chapter 1 — Scaffold the app
 
 > **Goal:** create the Shop project, run it, and understand what the template gave you.
-> **You'll run:** `rask new Shop --auth --bootstrap`
+> **You'll run:** `rask new Shop --auth`
 
 ## Create the project
 
@@ -9,7 +9,7 @@ The `rask` CLI scaffolds projects. We'll use the default **server** template (on
 components render on the server, live updates ship over a WebSocket):
 
 ```bash
-rask new Shop --auth --bootstrap
+rask new Shop --auth
 cd Shop
 ```
 
@@ -24,8 +24,8 @@ The two flags are the two things `rask new` doesn't decide for you, because they
 
 - **`--auth`** adds a working cookie-authentication flow — a `/login` page, a sign-out action, a protected
   members area, and the services in `Program.cs` to back them. ([authentication](../authentication.md).)
-- **`--bootstrap`** renders the generated pages with `Rask.Bootstrap`'s `Bs*` components, which is what
-  the rest of this tutorial is written in. Leave it off for plain CSS, or use `--tailwind` instead.
+- The pages are styled with **Tailwind**, which every project gets — the compiler ships inside the host
+  package, so there is no flag, no package to add, and nothing to turn on or off.
 
 These are **scaffold-time** choices — they wire into `Program.cs` and the `DbContext` as the project is
 created, so you pick them up front rather than bolting them on later.
@@ -53,7 +53,7 @@ rask dev
 change applies to the running app and re-renders the open page — no manual rebuild, no browser refresh.
 
 Open the URL printed in the console. You'll see a single **"Hello, Rask! 👋"** welcome card — a
-[Rask.Bootstrap](../bootstrap.md) `BsCard` that lists the CLI commands you'll use next. That's the whole
+card that lists the CLI commands you'll use next. That's the whole
 starter app: no example pages to delete, just a clean shell to build on. Because you passed `--auth`, you
 also have a working **`/login`** page and a protected **`/members`** page.
 

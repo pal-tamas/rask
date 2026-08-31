@@ -32,7 +32,7 @@ internal static partial class NavSwitch
         var contentRows = new List<Component>(RowsPerTab);
         for (var i = 0; i < RowsPerTab; i++)
         {
-            contentRows.Add(Div.Class("row")[
+            contentRows.Add(Div.Class("line")[
                 Span.Class("label")[$"Tab {activeTab} row {i}"],
                 A.Href($"/tab/{activeTab}/{i}")[$"open {i}"]
             ]);
@@ -75,7 +75,7 @@ internal static partial class NavSwitch
                 content = new List<Component>(RowsPerTab);
                 for (var i = 0; i < RowsPerTab; i++)
                 {
-                    content.Add(Div.Class("row")[
+                    content.Add(Div.Class("line")[
                         Span.Class("label")[$"Tab {ActiveTab} row {i}"],
                         A.Href($"/tab/{ActiveTab}/{i}")[$"open {i}"]
                     ]);
@@ -122,7 +122,7 @@ internal static partial class NavSwitch
             for (var i = 0; i < RowsPerTab; i++)
             {
                 b.OpenElement(11, "div");
-                b.AddAttribute(12, "class", "row");
+                b.AddAttribute(12, "class", "line");
                 b.OpenElement(13, "span");
                 b.AddAttribute(14, "class", "label");
                 b.AddContent(15, $"Tab {ActiveTab} row {i}");

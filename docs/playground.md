@@ -25,7 +25,7 @@ All of that runs in the browser, on the Mono WebAssembly runtime:
 2. **Compile.** `CSharpGeneratorDriver` runs the **Rask `ComponentFactoryGenerator`** over your code, with
    the builder surface switched on explicitly — there is no MSBuild in a browser tab to set
    `RaskBuilderSurface`, and an absent value reads as off, which would emit no entries for the components
-   *you* just wrote. With it on you write the same `Div.Class("card")[…]` chain you would in a real project.
+   *you* just wrote. With it on you write the same `Div.Class("panel")[…]` chain you would in a real project.
    `Emit` then produces an assembly, and Rask's analyzers (RASK001–032) run as a second, display-only pass
    so their diagnostics can surface in the editor.
 3. **Render.** The emitted assembly is loaded, the entry component instantiated, and mounted **as a child
@@ -72,10 +72,10 @@ public sealed partial class Playground : Component
     private int _count;
 
     protected override Component? Render() =>
-        Div.Class("card")[
+        Div.Class("panel")[
             H1["Hello, Rask 👋"],
             P[$"You clicked {_count} times."],
-            Button.Class("btn").OnClick(() => _count++)["Click me"]
+            Button.Class("action").OnClick(() => _count++)["Click me"]
         ];
 }
 ```

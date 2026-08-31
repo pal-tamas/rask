@@ -10,7 +10,7 @@ public partial class App : Component
     // every demo component), dedupes by rendered HTML, resolves singleton tags
     // (<title>, <base>) so the latest contributor wins, and auto-appends the
     // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
-    // the scoped-css link so global.css's brand palette overrides Bootstrap.
+    // the scoped-css link, so a page's own stylesheet still wins over them.
     // Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
     // across the site/docs/playground on the same origin) or the OS preference, BEFORE any stylesheet
     // matches — so there's no flash of the wrong theme. Also re-applies the SAVED choice from
@@ -45,22 +45,24 @@ public partial class App : Component
             .Rel("stylesheet")
             .Href("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700"
                 + "&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"),
-        // Bootstrap 5.3 + Bootstrap Icons, delivered by the Rask.Bootstrap package as static web
-        // assets under _content/Rask.Bootstrap (PathBase-aware). This dogfoods the package's own
-        // BootstrapStyles() helper instead of vendoring the CSS per app.
-        BootstrapStyles,
-        // Shared Rask design tokens (violet dark-first palette + the Bootstrap --bs-* bridge). AFTER
-        // BootstrapStyles() so the bridge wins the cascade, BEFORE global.css so app CSS can override.
-        RaskTokens,
+        // Tailwind, compiled from Styles/app.css at this project's build. It replaced a three-sheet
+        // stack — Bootstrap, the design tokens, then global.css overriding both — where the cascade
+        // ORDER was what decided the outcome and a comment was the only thing keeping it right.
+        Link
+            .Rel("stylesheet")
+            // Served from the SHARED project, so it lives under _content/{assembly}/ -- not /css/, which is
+        // this host's own wwwroot and has no css/ directory at all. Linking /css/app.css 404s, and a
+        // 404 stylesheet is invisible: the page renders, unstyled, with nothing failing.
+        .Href(LiveOptions.PathBase + "/_content/Rask.Example.Shared/css/app.css"),
         // Brand palette + global cascade. Plain wwwroot stylesheet (not a scoped {Component}.css)
-        // because every rule targets :root, Bootstrap classes, or shell tags — things this
-        // component never stamps a scope id on. Linked here so it loads before the scoped links.
+        // because every rule targets :root or shell tags — things this component never stamps a
+        // scope id on. Linked after Tailwind so app CSS can override it.
         Link
             .Rel("stylesheet")
             .Href(LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override string? BodyClass => "bg-body-tertiary";
+    protected override string? BodyClass => "bg-slate-50 dark:bg-slate-900";
 
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
     protected override Component? Render() => Router;

@@ -97,8 +97,14 @@ public sealed class SpaTemplateTests
         // maintained by hand would be a worse one within a release or two — so the overlay growing is the
         // signal that the split has stopped working, and this is where that shows up.
         //
-        // Four is the ceiling, not a target: a Vite config for the dev proxy, an entry that installs the
-        // QueryClient, the component that dispatches, and — where TanStack ships a router — its routes.
+        // Six is the ceiling, not a target: a Vite config for the dev proxy, an entry that installs the
+        // QueryClient, the component that dispatches, — where TanStack ships a router — its routes, the
+        // Tailwind stylesheet that REPLACES create-vite's demo one, and on Angular a .postcssrc.json,
+        // because Angular's Vite config belongs to @angular/build and has no plugin slot to use.
+        //
+        // It was four while styling was a choice and Tailwind was one answer. Raising a ceiling is exactly
+        // the move this test exists to make someone justify, so: the two new files are the ones Tailwind
+        // needs to compile at all, and neither is a hand-maintained copy of a framework's own skeleton.
         var ours = result.Files
             .Select(f => f.Path.Replace('\\', '/'))
             .Where(p => p.Contains("/Shop.Client/", StringComparison.Ordinal))
@@ -109,7 +115,7 @@ public sealed class SpaTemplateTests
         // Angular declares its dev proxy in angular.json and gets proxy.conf.json instead — there is no
         // vite.config.ts to write, because the Vite config Angular's build runs on is Angular's own.
         Assert.Contains(Framework(key).WritesViteConfig ? "vite.config.ts" : "proxy.conf.json", ours);
-        Assert.InRange(ours.Length, 2, 4);
+        Assert.InRange(ours.Length, 2, 6);
     }
 
     [Fact]
@@ -430,14 +436,17 @@ public sealed class SpaTemplateTests
     public void Lit_needs_no_vite_plugin()
     {
         // Its components are standard custom elements and its decorators are TypeScript's — which is why
-        // create-vite ships that template with no vite.config.ts at all. The generated one exists purely
-        // to carry the dev proxy, and a dangling `import  from` would not parse.
+        // create-vite ships that template with no vite.config.ts at all. The generated one exists to carry
+        // the dev proxy and Tailwind, and a dangling `import  from` would not parse.
         var config = Content(
             ProjectGenerator.GenerateSpa(Root, "Shop", Framework("lit"), new ServerBatteries(), "1.2.3"),
             "/Shop.Client/vite.config.ts");
 
         Assert.DoesNotContain("import  from", config, StringComparison.Ordinal);
-        Assert.Contains("plugins: []", config, StringComparison.Ordinal);
+
+        // Tailwind's plugin and NOTHING else: the empty-list assertion this replaced was checking that Lit
+        // contributes no framework plugin of its own, and that is still the thing worth pinning.
+        Assert.Contains("plugins: [tailwindcss()]", config, StringComparison.Ordinal);
         Assert.Contains("'/_rask'", config, StringComparison.Ordinal);
     }
 
@@ -456,7 +465,7 @@ public sealed class SpaTemplateTests
         foreach (var framework in SpaFramework.All)
         {
             var result = ProjectGenerator.GenerateSpa(
-                Root, "Shop", framework, new ServerBatteries { Styling = Styling.Tailwind }, "1.2.3");
+                Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
             var packageJson = PackageJson(result);
             Assert.Contains("\"tailwindcss\"", packageJson, StringComparison.Ordinal);
@@ -497,7 +506,7 @@ public sealed class SpaTemplateTests
         foreach (var framework in SpaFramework.All)
         {
             var result = ProjectGenerator.GenerateSpa(
-                Root, "Shop", framework, new ServerBatteries { Styling = Styling.Tailwind }, "1.2.3");
+                Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
             var sheet = Content(result, $"/Shop.Client/{framework.GlobalStylesheet}");
             Assert.Contains("@import \"tailwindcss\";", sheet, StringComparison.Ordinal);
@@ -536,7 +545,7 @@ public sealed class SpaTemplateTests
         foreach (var framework in SpaFramework.All)
         {
             var result = ProjectGenerator.GenerateSpa(
-                Root, "Shop", framework, new ServerBatteries { Styling = Styling.Tailwind }, "1.2.3");
+                Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
             var sheet = Content(result, $"/Shop.Client/{framework.GlobalStylesheet}");
             var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
@@ -566,14 +575,20 @@ public sealed class SpaTemplateTests
     }
 
     [Fact]
-    public void Without_tailwind_no_client_carries_any_of_its_wiring()
+    public void Every_client_carries_the_wiring_Tailwind_needs_to_compile()
     {
         foreach (var framework in SpaFramework.All)
         {
             var result = ProjectGenerator.GenerateSpa(Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
-            Assert.DoesNotContain("tailwind", PackageJson(result), StringComparison.OrdinalIgnoreCase);
-            Assert.False(Has(result, "/Shop.Client/.postcssrc.json"));
+            Assert.Contains("tailwindcss", PackageJson(result), StringComparison.Ordinal);
+
+            // Angular's Vite config belongs to @angular/build and has no plugin slot, so it takes Tailwind
+            // through PostCSS instead. Without the file the packages install and NOTHING compiles the
+            // stylesheet: the app builds, and every utility class is silently missing.
+            Assert.Equal(
+                !framework.WritesViteConfig,
+                Has(result, "/Shop.Client/.postcssrc.json"));
         }
     }
 

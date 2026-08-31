@@ -43,35 +43,35 @@ public sealed partial class CacheReportPage(ICache cache) : Component
     }
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0 mx-auto").Style("max-width: 32rem")[
-            Div.Class("card-body")[
-                H1.Class("h4 mb-3")["Database-backed cache"],
-                P.Class("text-secondary small")[
+        Div.Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700 border-0 mx-auto").Style("max-width: 32rem")[
+            Div.Class("p-5")[
+                H1.Class("text-xl font-semibold mb-3")["Database-backed cache"],
+                P.Class("text-slate-500 dark:text-slate-400 text-sm")[
                     "The first load runs an \"expensive\" factory and stores the result as a row on the app's ",
                     "own SQLite database. Load again and it's served from that row — no recompute. ",
                     "Clear it to force the next load to recompute."
                 ],
                 _report is { } report
-                    ? Div.Class("alert " + (_servedFromCache ? "alert-info" : "alert-success")).Id("cache-result")[
+                    ? Div.Class("rounded-lg px-4 py-3 text-sm bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200" + (_servedFromCache ? "rounded-lg px-4 py-3 text-sm bg-sky-50 text-sky-900 dark:bg-sky-950 dark:text-sky-200" : "rounded-lg px-4 py-3 text-sm bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200")).Id("cache-result")[
                         Div[Strong["Value: "], Span.Id("cache-value")[report.Label]],
-                        Div.Class("small")[
+                        Div.Class("text-sm")[
                             "Computed at ", Span.Id("cache-computed-at")[report.ComputedAt.ToString("HH:mm:ss.fff")]
                         ],
-                        Div.Class("small mt-1")[
+                        Div.Class("text-sm mt-1")[
                             Span.Id("cache-source")[_servedFromCache ? "Served from cache" : "Computed fresh"]
                         ]
                     ]
                     : null,
-                Div.Class("d-flex gap-2 pt-2")[
-                    Button.Type("button").Class("btn btn-primary").Id("cache-load").OnClickAsync(LoadAsync)[
-                        I.Class("bi bi-lightning-charge me-1"), "Load report"
+                Div.Class("flex gap-2 pt-2")[
+                    Button.Type("button").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").Id("cache-load").OnClickAsync(LoadAsync)[
+                        Span.Class("me-1").Attributes(("aria-hidden", "true"))["⚡"], "Load report"
                     ],
                     Button
                         .Type("button")
-                        .Class("btn btn-outline-secondary")
+                        .Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-transparent ring-1 text-slate-700 ring-slate-300 hover:bg-slate-50 dark:text-slate-300 dark:ring-slate-600 dark:hover:bg-slate-800")
                         .Id("cache-clear")
                         .OnClickAsync(ClearAsync)[
-                        I.Class("bi bi-trash me-1"), "Clear cache"
+                        Span.Class("me-1").Attributes(("aria-hidden", "true"))["🗑"], "Clear cache"
                     ]
                 ]
             ]

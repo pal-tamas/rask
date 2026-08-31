@@ -37,7 +37,7 @@ public class KeyedInsertNavTests
         var insert = FindInsertSubtree(frames);
         Assert.NotNull(insert);
         // The fragment must be the complete, correctly-sliced <li> — not garbled bytes.
-        Assert.Equal($"<li class=\"row\" data-rask-key=\"{key}\">item {key}</li>", insert);
+        Assert.Equal($"<li class=\"line\" data-rask-key=\"{key}\">item {key}</li>", insert);
     }
 
     // Walk every shipped diff frame; return the HTML payload of the first InsertSubtree op

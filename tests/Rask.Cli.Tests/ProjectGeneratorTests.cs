@@ -18,6 +18,7 @@ public sealed class ProjectGeneratorTests
         "Properties/launchSettings.json", "appsettings.json", "appsettings.Production.json",
         // For the editor, not the build: scoped TypeScript is compiled by tsgo with explicit flags,
         // but without a tsconfig an author gets no checking and no completion while writing it.
+        "Styles/app.css",
         "tsconfig.json",
     ];
 
@@ -44,8 +45,9 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(WithHygiene(AlwaysPresent).Order(), files.Keys.Order());
 
-        // Just the framework. Plain CSS is the default, so no styling package is pulled in by not
-        // choosing one — Bootstrap and Tailwind are both opinions, and neither is what you get for free.
+        // Just the framework -- and the framework is all a styled app needs. Tailwind is built INTO
+        // Rask.Server (RaskTailwindBuildPack), so a scaffolded csproj names no styling package at all:
+        // naming one would import the same targets a second time and run the compiler twice.
         Assert.Equal(["Rask.Server"], result.Packages);
         // No opt-in artifacts leak in.
         Assert.DoesNotContain("Features/Auth/CredentialStore.cs", files.Keys);
@@ -236,11 +238,9 @@ public sealed class ProjectGeneratorTests
         // The welcome copy points at the file it actually lives in.
         Assert.Contains("HomePage.cs", home, StringComparison.Ordinal);
 
-        // Whichever styling was asked for is what the page is written in — and each is a real starting
-        // point rather than a stripped-down version of another.
-        Assert.Contains("BsCard", Generate(styling: Styling.Bootstrap).Files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
-        Assert.Contains("rounded-xl", Generate(styling: Styling.Tailwind).Files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("BsCard", home, StringComparison.Ordinal);
+        // The page is written in Tailwind, which is what every project gets: the classes here are the
+        // ones its own build scans this file for.
+        Assert.Contains("rounded-xl", Generate().Files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -274,17 +274,16 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Csproj_pins_every_package_to_the_supplied_version()
     {
-        // Bootstrap explicitly, so the pin is still checked on a styling package rather than only on the
-        // framework — the version has to be stamped on every reference the template emits, not most.
-        var (files, _) = Generate(cqrs: true, styling: Styling.Bootstrap);
+        // With --cqrs, so the pin is checked on an opt-in package rather than only on the framework —
+        // the version has to be stamped on every reference the template emits, not most.
+        var (files, _) = Generate(cqrs: true);
         var csproj = files["App.csproj"];
 
         Assert.Contains("<PackageReference Include=\"Rask.Server\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
-        Assert.Contains("<PackageReference Include=\"Rask.Bootstrap\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"Rask.Cqrs\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
 
-        var tailwind = Generate(styling: Styling.Tailwind).Files["App.csproj"];
-        Assert.Contains("<PackageReference Include=\"Rask.Tailwind\" Version=\"9.9.9\"/>", tailwind, StringComparison.Ordinal);
+        // And nothing pins a Tailwind package, because there is no Tailwind package to pin.
+        Assert.DoesNotContain("Rask.Tailwind", Generate().Files["App.csproj"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -420,10 +419,13 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("Rask.Server", result.Packages);
         Assert.Equal(cqrs, result.Packages.Contains("Rask.Cqrs"));
 
-        // Plain CSS is the default, so neither styling package is here unless it was asked for. This
-        // used to assert Rask.Bootstrap was ALWAYS present, which was the old default speaking.
-        Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
+        // Tailwind is built in, so no combination REFERENCES it and every combination still gets it --
+        // it rides inside Rask.Server. This assertion has now been all four things in turn: Bootstrap
+        // always present, then neither present, then Tailwind always referenced, now Tailwind never
+        // referenced because it is not a reference any more. Which is exactly why it is asserted on
+        // every combination rather than assumed.
         Assert.DoesNotContain("Rask.Tailwind", result.Packages);
+        Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
 
         Assert.Equal(auth, files.ContainsKey("Features/Auth/CredentialStore.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
@@ -449,13 +451,12 @@ public sealed class ProjectGeneratorTests
     }
 
     private static (Dictionary<string, string> Files, ScaffoldResult Result) Generate(
-        bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false, bool data = false,
-        Styling styling = Styling.Plain)
+        bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false, bool data = false)
     {
         var result = ProjectGenerator.GenerateServer(
             Root,
             "App",
-            new ServerBatteries { Auth = auth, Pwa = pwa, Cqrs = cqrs, Data = data, Docker = docker, Styling = styling },
+            new ServerBatteries { Auth = auth, Pwa = pwa, Cqrs = cqrs, Data = data, Docker = docker },
             Version);
         return (Index(result), result);
     }
@@ -473,6 +474,7 @@ public sealed class ProjectGeneratorTests
         "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
         "wwwroot/index.html", "runtimeconfig.template.json",
         // For the editor, not the build — see AlwaysPresent.
+        "Styles/app.css",
         "tsconfig.json",
     ];
 
@@ -533,27 +535,21 @@ public sealed class ProjectGeneratorTests
             "AddRaskQuery", Index(without)["Program.cs"], StringComparison.Ordinal);
     }
 
+    // The browser template compiles its own stylesheet like every other host. It was the one worth
+    // spelling out while styling was a choice, because the WASM SDK publishes wwwroot as it finds it and a
+    // stylesheet written after the publish would simply not be there.
     [Fact]
-    public void Wasm_honours_all_three_styling_answers()
+    public void Wasm_compiles_its_own_stylesheet()
     {
-        var plain = ProjectGenerator.GenerateWasm(
+        var result = ProjectGenerator.GenerateWasm(
             Root, "App", auth: false, pwa: false, docker: false, Version, new ServerBatteries());
-        Assert.Equal(["Rask.Wasm"], plain.Packages);
-        Assert.DoesNotContain("Styles/app.css", Index(plain).Keys);
+        var files = Index(result);
 
-        var bootstrap = ProjectGenerator.GenerateWasm(
-            Root, "App", auth: false, pwa: false, docker: false, Version,
-            new ServerBatteries { Styling = Styling.Bootstrap });
-        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], bootstrap.Packages);
-
-        var tailwind = ProjectGenerator.GenerateWasm(
-            Root, "App", auth: false, pwa: false, docker: false, Version,
-            new ServerBatteries { Styling = Styling.Tailwind });
-        var files = Index(tailwind);
-
-        Assert.Equal(["Rask.Wasm", "Rask.Tailwind"], tailwind.Packages);
+        Assert.Equal(["Rask.Wasm"], result.Packages);
         Assert.Contains("@import \"tailwindcss\";", files["Styles/app.css"], StringComparison.Ordinal);
-        Assert.Contains("Rask.Tailwind", files["App.csproj"], StringComparison.Ordinal);
+
+        // The csproj names Rask.Wasm and nothing else for styling: the Tailwind build ships inside it.
+        Assert.DoesNotContain("Rask.Tailwind", files["App.csproj"], StringComparison.Ordinal);
 
         // The head has to point at what the build writes, or the stylesheet is compiled and never served.
         Assert.Contains("/css/app.css", files["Features/Shared/App.cs"], StringComparison.Ordinal);

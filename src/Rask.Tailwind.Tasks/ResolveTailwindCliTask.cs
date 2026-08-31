@@ -31,8 +31,10 @@ namespace Rask.Tailwind.Tasks;
 ///         fetched a binary on every build, which broke offline builds and errored outright on a RID with
 ///         no published asset — hence <c>RaskLitestreamDownload=false</c>. Three things make this
 ///         different: it is fetched <b>once</b> into a per-user cache rather than per build, the version
-///         is <b>pinned</b> rather than floating, and <c>RaskTailwindBuild=false</c> turns it off
-///         entirely. The first build of a scaffolded app is what populates the cache.
+///         is <b>pinned</b> rather than floating, and the two engines between them leave no platform
+///         unsupported, so there is nothing to opt out OF. The first build of a scaffolded app is what
+///         populates the cache; <c>RaskTailwindCacheRoot</c> seeds it somewhere else, and
+///         <c>RaskTailwindOffline</c> makes an unseeded cache an error instead of a download.
 ///     </para>
 /// </remarks>
 public sealed class ResolveTailwindCliTask : Task
@@ -87,8 +89,8 @@ public sealed class ResolveTailwindCliTask : Task
                 Log.LogError(
                     "Rask.Tailwind: RaskTailwindEngine=standalone, but Tailwind publishes no standalone "
                     + $"binary for this platform ({RuntimeInformation.OSDescription}, "
-                    + $"{RuntimeInformation.ProcessArchitecture}). Leave the engine on 'auto' to fall back "
-                    + "to npm, or set RaskTailwindBuild=false.");
+                    + $"{RuntimeInformation.ProcessArchitecture}). Leave the engine on 'auto' and it "
+                    + "falls back to npm, which covers this platform.");
                 return false;
             }
 
@@ -107,8 +109,9 @@ public sealed class ResolveTailwindCliTask : Task
         {
             Log.LogError(
                 $"Rask.Tailwind: '{path}' is not there and RaskTailwindOffline is set, so it will not be "
-                + $"fetched. Put {TailwindCli.DownloadUrl(Version, assetName)} at that path, or set "
-                + "RaskTailwindBuild=false.");
+                + $"fetched. Download {TailwindCli.DownloadUrl(Version, assetName)} and put it at that "
+                + "path — the cache is per user, so seeding it once serves every project on this "
+                + "machine — or unset RaskTailwindOffline and let this build fetch it.");
             return false;
         }
 
@@ -144,8 +147,9 @@ public sealed class ResolveTailwindCliTask : Task
             Log.LogError(
                 $"Rask.Tailwind: {why}, and 'npm' is not on PATH. Install Node.js from https://nodejs.org "
                 + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your "
-                + "distro's nodejs package), or set RaskTailwindBuild=false to build without the "
-                + "stylesheet — the app still compiles and runs, it just has no generated CSS.");
+                + "distro's nodejs package). Rask apps are styled with Tailwind, so there is no build "
+                + "without it: a project whose pages are written in utilities and whose stylesheet was "
+                + "never compiled renders as unstyled HTML.");
             return false;
         }
 

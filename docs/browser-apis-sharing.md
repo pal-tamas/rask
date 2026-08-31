@@ -61,7 +61,7 @@ it hands you the `data-rask-share` attribute to spread onto it:
 
 ```csharp
 Shareable(new ShareData { Title = "Rask", Url = "https://…" },
-    share => Button.Type("button").Class("btn btn-primary").Data(share)["Share"])
+    share => Button.Type("button").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").Data(share)["Share"])
 ```
 
 The shared client fires `navigator.share` **inside the click gesture** — no round-trip, so the transient

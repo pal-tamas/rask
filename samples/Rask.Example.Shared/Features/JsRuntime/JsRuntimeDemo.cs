@@ -33,41 +33,35 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
     }
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
                 Div.Class("mb-3")[
-                    Label.Class("form-label").For("demo-input")["sessionStorage value"],
+                    Label.Class(Ui.Label).For("demo-input")["sessionStorage value"],
                     Input
                         .Value(_input)
                         .Id("demo-input")
-                        .Class("form-control")
+                        .Class(Ui.Input)
                         .OnInput(v => _input = v)
                 ],
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(3))[
-                    BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("demo-set").OnClickAsync(SetAsync)[
-                        BsIcon.Name(BsIconName.Save).Class("me-1"), "Set"],
-                    BsButton
-                        .Color(BsColor.Primary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                Div.Class("flex gap-2 flex-wrap items-center mb-3")[
+                    Button.Type("button").Class(Ui.BtnPrimary).Id("demo-set").OnClickAsync(SetAsync)[
+                        Icon.Name(IconName.Save).Class("me-1"), "Set"],
+                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("demo-read")
                         .OnClickAsync(ReadAsync)[
-                        BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Read"],
-                    BsButton
-                        .Color(BsColor.Danger)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                        Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Read"],
+                    Button.Type("button").Class(Ui.BtnOutlineDanger)
                         .Id("demo-remove")
                         .OnClickAsync(RemoveAsync)[
-                        BsIcon.Name(BsIconName.Trash).Class("me-1"), "Remove"]
+                        Icon.Name(IconName.Trash).Class("me-1"), "Remove"]
                 ],
                 Div.Class("mb-2")[
-                    Span.Class("text-secondary small text-uppercase")["Last read"],
-                    Div[Code.Class("fs-6").Id("demo-last-read")[_lastRead ?? "(null)"]]
+                    Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Last read"],
+                    Div[Code.Class("text-base").Id("demo-last-read")[_lastRead ?? "(null)"]]
                 ],
                 Div[
-                    Span.Class("text-secondary small text-uppercase")["Status"],
-                    Div[Code.Class("fs-6").Id("demo-status")[_status ?? "(idle)"]]
+                    Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Status"],
+                    Div[Code.Class("text-base").Id("demo-status")[_status ?? "(idle)"]]
                 ]
             ]
         ];

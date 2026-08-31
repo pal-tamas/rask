@@ -8,30 +8,21 @@ public sealed partial class VibrationDemo(IVibration vibration) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
-                    BsButton
-                        .Color(BsColor.Primary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
+                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("vibrate-buzz")
                         .OnClickAsync(Buzz)["Buzz"],
-                    BsButton
-                        .Color(BsColor.Primary)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
                         .Id("vibrate-pattern")
                         .OnClickAsync(Pattern)[
                         "Pattern"],
-                    BsButton
-                        .Color(BsColor.Danger)
-                        .Outline(true)
-                        .Size(BsSize.Sm)
+                    Button.Type("button").Class(Ui.BtnOutlineDanger)
                         .Id("vibrate-cancel")
                         .OnClickAsync(Cancel)["Cancel"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
             ]
         ];
 

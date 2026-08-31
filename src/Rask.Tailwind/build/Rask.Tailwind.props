@@ -5,11 +5,16 @@
   -->
   <PropertyGroup>
     <!--
-      Master switch. False skips the whole thing — no engine resolution, no download, no CSS. The app
-      still compiles and runs; it just has no generated stylesheet. Same shape as RaskSpaBuild, and the
-      escape hatch every error message points at.
+      There is no master switch. Tailwind is not a feature of a Rask app, it is how a Rask app is
+      styled: the stylesheet ships with the host package, every scaffolded project is written in
+      utilities, and a build that quietly produced no CSS would render every page as unstyled HTML —
+      which is not a failure anybody notices until it is in front of a user.
+
+      What decides whether the compiler runs is whether the project HAS a stylesheet to compile
+      (RaskTailwindInput, below). That is what makes this file safe to import into every project in a
+      solution — a class library with no wwwroot has nothing to compile and does nothing — while
+      leaving no switch that turns styling off for a project that does.
     -->
-    <RaskTailwindBuild Condition="'$(RaskTailwindBuild)' == ''">true</RaskTailwindBuild>
 
     <!--
       PINNED, never floating. Tailwind is a compiler: a different version emits different CSS, so a

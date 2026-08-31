@@ -51,9 +51,13 @@ public abstract partial class SharedSmokeTests
         await NavigateToAsync("/");
         // Guides-first: "/" is the guides index now (the Welcome landing page is gone); its PageHeader
         // renders an <h1 class="h2">Guides</h1>.
-        await Expect(Page.Locator("main h1.h2"))
+        await Expect(Page.Locator("main h1"))
             .ToContainTextAsync("Guides",
                 new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+
+        // The shell has loaded its stylesheets by now. Check them before walking the layout: every
+        // responsive assertion below is meaningless if the CSS never arrived.
+        AssertStylesheetsLoaded();
 
         // Plant a sentinel on window — every in-SPA nav below must preserve it (proves no full
         // reload happened and the SPA context survived).
@@ -62,7 +66,7 @@ public abstract partial class SharedSmokeTests
         // Theme toggle: the navbar toggle flips BOTH data-theme and data-bs-theme on <html> together (the
         // raw-token layer + the Bootstrap bridge stay in lockstep). Toggle, assert the flip, then toggle
         // back so the rest of the journey runs at the original theme.
-        var themeToggle = Page.Locator("nav button:has(.bi-circle-half)").First;
+        var themeToggle = Page.Locator("nav button[aria-label='Toggle light / dark theme']").First;
         var themeBefore = await Page.EvaluateAsync<string>(
             "() => document.documentElement.getAttribute('data-bs-theme') || ''");
         await themeToggle.ClickAsync();
@@ -88,8 +92,6 @@ public abstract partial class SharedSmokeTests
         await WalkAuthGuideAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync(opts);
-        await WalkBootstrapGuideAsync();
-        await WalkDataGridGuideAsync();
         await TestGuidesAsync();
 
         await TestInSessionNotFoundAsync();
@@ -106,7 +108,7 @@ public abstract partial class SharedSmokeTests
 
     // In-SPA navigation via the sidebar + heading assertion. Works on every host once the shell is
     // loaded; on StandaloneWasm the sidebar click is the only navigation path available.
-    protected async Task SideAsync(string label, string heading, string headingSelector = "main h1.h2")
+    protected async Task SideAsync(string label, string heading, string headingSelector = "main h1")
     {
         await ClickSidebar(label);
         await Expect(Page.Locator(headingSelector).First).ToContainTextAsync(heading,
@@ -154,10 +156,12 @@ public abstract partial class SharedSmokeTests
     protected async Task TestSidebarNavAsync()
     {
         // Guides-first: the guide category groups are expanded by default (the narrative spine), while the
-        // demoted Examples/Bootstrap groups stay collapsed so the ~90-item list isn't dumped at once.
+        // demoted Examples group stays collapsed so the long item list isn't dumped at once.
         await Expect(Page.Locator(".side-nav .nav-group-toggle").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        var open = await Page.Locator(".side-nav .collapse.show").CountAsync();
+        // A collapsed group renders NO items element at all now, where BsCollapse rendered one and hid
+        // it with .collapse — so "expanded" is the presence of the items container, not a class on it.
+        var open = await Page.Locator(".side-nav .nav-group-items").CountAsync();
         Assert.True(open >= 5, $"expected the guide groups expanded by default, got {open}");
         var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
         // The five guide groups (Overview + the four GuideCatalog categories) plus the surviving Examples
@@ -194,7 +198,7 @@ public abstract partial class SharedSmokeTests
         // Dismiss by tapping the backdrop. A real tap lands on the visible backdrop strip beside the
         // drawer, but Playwright's centre-click would be intercepted by the panel that overlays it —
         // so dispatch the click straight to the backdrop element (its data-rask-on-click still fires).
-        await Page.Locator(".offcanvas-backdrop").DispatchEventAsync("click");
+        await Page.Locator(".nav-backdrop").DispatchEventAsync("click");
         await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await Page.SetViewportSizeAsync(1280, 720);
@@ -237,9 +241,6 @@ public abstract partial class SharedSmokeTests
 
     // ---- page walk -----------------------------------------------------------------------------
 
-    // Bootstrap section (Rask.Bootstrap). Proves the package's CSS is actually served from
-    // _content/Rask.Bootstrap and that the interactive components run with ZERO bootstrap.js —
-    // the modal opens and closes purely through Rask's live runtime.
     // The Guides section: the repo's docs/*.md rendered on-site by the Markdown component, now in the
     // Narrative-guide chrome (Chapters TOC, on-this-page rail, prev/next) with live demos embedded
     // inline via <!-- demo:key --> markers. Verify a guide renders to a .markdown-body, cross-links are
@@ -268,953 +269,6 @@ public abstract partial class SharedSmokeTests
         Assert.Equal(0, await Page.Locator("text=Unknown demo").CountAsync());
 
         await AssertNoGlobalCrashAsync();
-    }
-
-    // Bootstrap guide: the Rask.Bootstrap component showcase, now split into one small page per component
-    // group under the "Bootstrap" sidebar group (a thin hub + buttons, cards, feedback, icons, navbar,
-    // overlays, disclosure, toasts, form controls, selects, pickers, utilities). Walk the pages that carry
-    // interactive demos, hydration-gate on one demo per page, and drive the representative components in
-    // place — all live via Rask state, no bootstrap.js. Demo resolution is keyed by demo-id, so the demos
-    // themselves are unchanged; only their host page moved.
-    protected async Task WalkBootstrapGuideAsync()
-    {
-        // === Hub: the overview / component-map page (no live demos — it links out to each group page). ===
-        await SideAsync("Bootstrap", "Rask.Bootstrap", "main .markdown-body h1");
-        // The component map's relative .md links were rewritten to SPA-routed /guides/* anchors.
-        Assert.True(
-            await Page.Locator(".markdown-body a[data-rask-nav][href$='/guides/bootstrap-buttons']").CountAsync() > 0,
-            "expected the Bootstrap hub to link out to the per-group pages");
-
-        // === Layout — BsContainer/BsRow/BsCol/BsStack. The primitives' rendered classes are unit-tested
-        //     exactly; what only a browser can settle is that those classes actually reflow, because the
-        //     breakpoints are real CSS media queries. So this measures a BsCol(Md: 6, Lg: 4) against its
-        //     BsRow at three widths and asserts it really is full / half / a third. That also proves the
-        //     design call that a spanned column omits a companion .col: below md it's `.row > *` at
-        //     width:100% that makes it full-width, and nothing else. ===
-        await SideAsync("Layout", "layout", "main .markdown-body h1");
-        var responsiveRow = Page.Locator("#bs-layout-responsive");
-        await Expect(responsiveRow).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions
-        {
-            Timeout = 45_000,
-        });
-        await Expect(Page.Locator(".guide-demo .sample-result-body .d-flex.gap-2").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        var firstCol = responsiveRow.Locator("> .col-md-6.col-lg-4").First;
-        foreach (var (width, divisor, label) in new[]
-                 {
-                     (390, 1d, "below md → full width"),
-                     (850, 2d, "md → half"),
-                     (1280, 3d, "lg → a third"),
-                 })
-        {
-            await Page.SetViewportSizeAsync(width, 800);
-            // The gutter (.g-2) is column padding inside the same border box, so the column's box is an
-            // exact 1/N of the row's regardless of gutter — 2% tolerance absorbs sub-pixel rounding only.
-            var rowBox = await responsiveRow.BoundingBoxAsync();
-            var colBox = await firstCol.BoundingBoxAsync();
-            Assert.NotNull(rowBox);
-            Assert.NotNull(colBox);
-
-            var ratio = colBox!.Width / rowBox!.Width;
-            Assert.True(Math.Abs(ratio - (1d / divisor)) < 0.02,
-                $"at {width}px a BsCol(Md: 6, Lg: 4) should be {label} of its BsRow "
-                + $"(expected ~{1d / divisor:F3}, measured {ratio:F3})");
-        }
-
-        // Restore the desktop viewport the rest of the walk assumes.
-        await Page.SetViewportSizeAsync(1280, 720);
-
-        // === Buttons & badges — Bootstrap CSS applied (the _content bundle served): .btn-primary renders. ===
-        await SideAsync("Buttons & badges", "buttons & badges", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 1,
-            "expected the Buttons page to embed the buttons demo as a live demo");
-        // Gate on it so the page has hydrated before we assert.
-        await Expect(Page.Locator(".guide-demo .sample-result-body button.btn.btn-primary").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        // Badges render on the same demo (the .badge span; exact markup is unit-tested).
-        await Expect(Page.Locator(".guide-demo .sample-result-body .badge").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // === Tabs, accordion & collapse — the disclosure components, all controlled and zero-JS. The
-        //     accordion is embedded in the tabs demo; BsCollapse has its own demo whose toggle flips Open. ===
-        await SideAsync("Tabs, accordion & collapse", "tabs, accordion & collapse", "main .markdown-body h1");
-        await Expect(Page.Locator(".guide-demo .sample-result-body .accordion").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        // BsCollapse — its card body starts hidden (.collapse without .show → display:none). The toggle
-        // adds .show through the live diff and reveals it, no bootstrap.js. Scope to .card-body so the
-        // accordion's own .collapse panels (one starts open) don't match.
-        var collapseBody = Page.Locator(".guide-demo .sample-result-body .collapse .card-body").First;
-        await Expect(collapseBody).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-        await Page.Locator(".guide-demo button:has-text('Show details')").First.ClickAsync();
-        await Expect(collapseBody).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // === Alerts, spinners & progress — the feedback components. All render live; a structural
-        //     visibility assertion is the browser-side proof, their exact markup is unit-tested. ===
-        await SideAsync("Alerts, spinners & progress", "alerts, spinners & progress", "main .markdown-body h1");
-        await Expect(Page.Locator(".guide-demo .sample-result-body .alert").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        await Expect(Page.Locator(".guide-demo .sample-result-body .spinner-border").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator(".guide-demo .sample-result-body .progress .progress-bar").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // === Navbar & nav — the BsNavItems render as SPA-routed anchors (data-rask-nav), the same primitive
-        //     the showcase chrome is built from. ===
-        await SideAsync("Navbar & nav", "navbar & nav", "main .markdown-body h1");
-        await Expect(Page.Locator(".guide-demo .sample-result-body .navbar").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        Assert.True(
-            await Page.Locator(".guide-demo .sample-result-body .nav .nav-link[data-rask-nav]").CountAsync() > 0);
-
-        // === Modals, offcanvas & dropdowns ===
-        await SideAsync("Modals, offcanvas & dropdowns", "modals, offcanvas & dropdowns", "main .markdown-body h1");
-
-        // Modal — open + close driven by Rask state, no bootstrap.js loaded. The runtime focus trap
-        // (data-rask-focus-trap in rask-dom.js) moves focus into the dialog on open, Escape dismisses
-        // it via the backdrop-close handler, and focus returns to the trigger on close.
-        var launchModal = Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First;
-        await Expect(launchModal).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        await launchModal.ClickAsync();
-        var dialog = Page.Locator("div.modal.show").First;
-        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        // Focus was trapped into the dialog — the trap focuses the modal element itself (tabindex=-1).
-        await Expect(dialog).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
-        // Escape closes it — no bootstrap.js, no btn-close click.
-        await Page.Keyboard.PressAsync("Escape");
-        await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        // Focus returned to the trigger button.
-        await Expect(launchModal).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
-
-        // Full-screen-below-sm modal — FullscreenBelow: Bp.Sm adds .modal-fullscreen-sm-down.
-        await Page.Locator(".guide-demo button:has-text(\"Full-screen on phones\")").First.ClickAsync();
-        await Expect(Page.Locator("div.modal.show .modal-dialog.modal-fullscreen-sm-down").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Page.Locator("div.modal .btn-close").First.ClickAsync();
-        await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        // Dropdown (Popper-less, controlled) opened inside the same overflow:hidden card — the menu is
-        // re-anchored position:fixed by the same helper so it isn't clipped. Selecting an item closes the
-        // menu (its handler sets Open=false) and updates the readout. AlignEnd is covered by the unit test.
-        await Page.Locator("#demo-dropdown .dropdown-toggle").First.ClickAsync();
-        var ddMenu = Page.Locator("#demo-dropdown .dropdown-menu.show").First;
-        await Expect(ddMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // Retry the position read: on the slower WASM transport the data-rask-popover re-anchor can land a
-        // beat after the menu paints, and this page is freshly navigated (not a long pre-hydrated one).
-        await Expect(ddMenu).ToHaveCSSAsync("position", "fixed",
-            new LocatorAssertionsToHaveCSSOptions { Timeout = 10_000 });
-        await Expect(ddMenu).ToBeInViewportAsync(
-            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
-        await ddMenu.Locator("button").Filter(new LocatorFilterOptions { HasText = "Archive" }).First.ClickAsync();
-        await Expect(Page.Locator("#demo-dropdown-out")).ToContainTextAsync("Archive",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Offcanvas — the panel stays in the DOM and slides in via .show; the trigger opens it, a
-        // backdrop click dismisses it, all through the live diff (no bootstrap.js).
-        await Page.Locator(".guide-demo button:has-text('Open settings')").First.ClickAsync();
-        var drawer = Page.Locator(".guide-demo .sample-result-body .offcanvas.show").First;
-        await Expect(drawer).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        // Dispatch the click rather than actuate it: the .offcanvas-backdrop is position:fixed far down a
-        // long guide page, where Playwright's actionability/scroll handling can fail to land a real click on
-        // a fixed Bs overlay. DispatchEventAsync fires the handler directly — the same idiom the sidebar
-        // drawer dismissal uses above.
-        await Page.Locator(".guide-demo .sample-result-body .offcanvas-backdrop").First.DispatchEventAsync("click");
-        await Expect(Page.Locator(".guide-demo .sample-result-body .offcanvas.show")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        // Confirm dialog — a BsModal-backed prompt. Confirming runs the action (updates the readout) and
-        // closes it; the destructive confirm button is btn-danger.
-        await Page.Locator(".guide-demo button:has-text('Delete item')").First.ClickAsync();
-        var confirm = Page.Locator("div.modal.show").First;
-        await Expect(confirm).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await confirm.Locator("button.btn-danger:has-text('Delete')").First.ClickAsync();
-        await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(Page.Locator("#bs-confirm-status")).ToContainTextAsync("deleted",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // === Toasts — shown and dismissed entirely by live-diff state (no bootstrap.js, no data-bs-dismiss).
-        //     Showing renders class="toast show"; the × removes it. ===
-        await SideAsync("Toasts", "toasts", "main .markdown-body h1");
-        var showToast = Page.Locator(".guide-demo button:has-text('Show toast')").First;
-        await Expect(showToast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        await showToast.ClickAsync();
-        var toast = Page.Locator(".guide-demo .sample-result-body .toast.show").First;
-        await Expect(toast).ToContainTextAsync("Hello, world!",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await toast.Locator(".btn-close").ClickAsync();
-        await Expect(Page.Locator(".guide-demo .sample-result-body .toast.show")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-
-        // === Cards, lists & tables — the static content components (breadcrumb, list group, placeholder
-        //     skeletons) render in a real browser. These carry no interactive state, so a structural
-        //     visibility assertion is the browser-side proof; their exact markup is unit-tested. ===
-        await SideAsync("Cards, lists & tables", "cards, lists & tables", "main .markdown-body h1");
-        await Expect(Page.Locator(".guide-demo .sample-result-body .breadcrumb").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        await Expect(Page.Locator(".guide-demo .sample-result-body .list-group .list-group-item").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator(".guide-demo .sample-result-body .placeholder").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // BsTable renders its rows (static — structural proof; exact markup is unit-tested).
-        await Expect(Page.Locator(".guide-demo .sample-result-body table.table tbody tr").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // BsPagination — clicking a page button flips _page through the live runtime: the .active marker
-        // moves to that page and the readout updates. Each item is a real <button>, no bootstrap.js.
-        await Page.Locator(".guide-demo .sample-result-body .pagination .page-link")
-            .Filter(new LocatorFilterOptions { HasText = "3" }).First.ClickAsync();
-        await Expect(Page.Locator(".guide-demo .sample-result-body .pagination .page-item.active .page-link"))
-            .ToHaveTextAsync("3", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("#bs-pagination-status")).ToContainTextAsync("Page 3",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // === Form controls — the IFormControl<T>-bound demo, incl. the in-form single-select (BsSelect). ===
-        await SideAsync("Form controls", "form controls", "main .markdown-body h1");
-
-        // Single-select (BsSelect) — a .form-select DISPLAY combobox <div>. Clicking opens the .dropdown-menu
-        // listbox (re-anchored position:fixed by the overflow-escape helper). A Filter predicate adds a SEARCH
-        // FIELD in the dropdown: typing there narrows the options; picking writes the bound model and the box
-        // shows the option's label, then closes. Component markup is unit-tested in BsSelectTests.
-        var plan = Page.Locator("#bs-plan");
-        await Expect(plan).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        await plan.ClickAsync();
-        var planMenu = Page.Locator("#bs-plan-list.dropdown-menu.show");
-        await Expect(planMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(planMenu).ToHaveCSSAsync("position", "fixed",
-            new LocatorAssertionsToHaveCSSOptions { Timeout = 10_000 });
-        // Type in the dropdown's search field — only the option whose label contains "Te" (Team) survives.
-        await Page.Locator("#bs-plan-search").FillAsync("Te");
-        await Expect(planMenu.Locator(".dropdown-item")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await planMenu.Locator(".dropdown-item").First.ClickAsync();
-        await Expect(plan).ToContainTextAsync("Team", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Expect(planMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-
-        // Re-open to assert the combobox popover behaviours wired in rask-dom.js's installRaskPopover:
-        await plan.ClickAsync();
-        await Expect(planMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // (1) WIDTH: the fixed menu is pinned to the trigger box, not stretched to the viewport. A w-100
-        // menu carries .w-100 { width:100% !important }, which — once position:fixed — would resolve 100%
-        // against the viewport unless the inline pin is written !important. Allow 2px for rounding.
-        var planBox = await plan.BoundingBoxAsync();
-        var planMenuBox = await planMenu.BoundingBoxAsync();
-        Assert.True(planBox is not null && planMenuBox is not null
-            && Math.Abs(planBox.Width - planMenuBox.Width) <= 2,
-            $"open menu width {planMenuBox?.Width} should match the trigger {planBox?.Width}, not the viewport");
-        // (2) FILTER FOCUS: opening a searchable select moves focus into its filter so the user types at once.
-        await Expect(Page.Locator("#bs-plan-search"))
-            .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
-        // (3) KEY CONTAINMENT: Enter in the filter picks the highlighted option and must NOT submit/validate
-        // the surrounding <form> (whose other required fields would otherwise surface .invalid-feedback).
-        await Page.Locator("#bs-plan-search").PressAsync("Enter");
-        await Expect(planMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("form:has(#bs-plan) .invalid-feedback"))
-            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
-
-        // Native fallback (Native: true) renders a real OS <select> (data-fed from the same Options), so
-        // it degrades cleanly where the custom popover is unwanted.
-        var tier = Page.Locator("select#bs-tier");
-        await Expect(tier).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(tier.Locator("option")).ToHaveCountAsync(3,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await Expect(tier.Locator("option").Filter(new LocatorFilterOptions { HasText = "Team" }))
-            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // Picking an option two-way-binds: the model updates (the readout echoes it) AND the <select> HOLDS
-        // the new value — it must not snap back. (Regression: the selected <option> used to lose its
-        // reconciliation key, desyncing the browser's live `selected` property so the box reverted.)
-        await tier.SelectOptionAsync("team");
-        await Expect(Page.Locator("#bs-readout")).ToContainTextAsync("Tier: Team",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Expect(tier).ToHaveValueAsync("team", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
-
-        // Nullable select (#bs-seats, int?) — a plain dropdown (no Filter → no search field). Pick a value;
-        // the × clear then resets it to null so the box shows the "Any" placeholder again.
-        var seats = Page.Locator("#bs-seats");
-        await seats.ClickAsync();
-        await Page.Locator("#bs-seats-list .dropdown-item").Filter(new LocatorFilterOptions { HasText = "2 seats" })
-            .First.ClickAsync();
-        await Expect(seats).ToContainTextAsync("2 seats", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator(".dropdown:has(#bs-seats) .bs-select-clear").First.ClickAsync();
-        await Expect(seats).ToContainTextAsync("Any", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // === Selects & multiselect — the BsSelect/BsMultiSelect variant galleries. ===
-        await SideAsync("Selects & multiselect", "selects & multiselect", "main .markdown-body h1");
-
-        // BsSelect variant gallery — the native variant binds and holds its pick; a custom basic pick writes
-        // the model. Both are echoed by the gallery's own readout.
-        var selTier = Page.Locator("select#sel-tier");
-        await Expect(selTier).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        await selTier.SelectOptionAsync("team");
-        await Expect(selTier).ToHaveValueAsync("team", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
-        var selPlan = Page.Locator("#sel-plan");
-        await selPlan.ClickAsync();
-        await Page.Locator(".dropdown:has(#sel-plan) .dropdown-menu.show .dropdown-item").First.ClickAsync();
-        await Expect(Page.Locator("#sel-readout")).ToContainTextAsync("Plan: Free",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("#sel-readout")).ToContainTextAsync("Tier: Team",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Stacking regression: the clear × must not paint over ANOTHER select's open dropdown menu. Both a ×
-        // and an open .dropdown-menu.show default to z-index 1000, so with the × always raised the later-in-DOM
-        // × won the tie and showed through. Fix: the × gets its raised z-index (needed to clear its OWN
-        // click-outside backdrop at 999) ONLY while its own control is open, via .bs-clear-open — so a *closed*
-        // select's × drops to z-index:auto and sits behind any open menu. Assert the computed z-index in both
-        // states on the clearable Seats select (giving it a value surfaces the ×).
-        var galSeats = Page.Locator("#sel-seats");
-        await galSeats.ScrollIntoViewIfNeededAsync();
-        await galSeats.ClickAsync();
-        await Page.Locator(".dropdown:has(#sel-seats) .dropdown-menu.show .dropdown-item")
-            .Filter(new LocatorFilterOptions { HasText = "2 seats" }).First.ClickAsync();
-        var galSeatsClear = Page.Locator(".dropdown:has(#sel-seats) .bs-select-clear");
-        await Expect(galSeatsClear).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // Closed: no raised-z-index hook, so the × computes to z-index:auto (paints behind any open menu).
-        Assert.DoesNotContain("bs-clear-open", await galSeatsClear.GetAttributeAsync("class") ?? "");
-        Assert.Equal("auto", await galSeatsClear.EvaluateAsync<string>("x => getComputedStyle(x).zIndex"));
-        // Re-open this select: its OWN × must rise to z-index 1000 to stay clickable above its backdrop (999).
-        await galSeats.ClickAsync();
-        await Expect(Page.Locator(".dropdown:has(#sel-seats) .dropdown-menu.show"))
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        Assert.Contains("bs-clear-open", await galSeatsClear.GetAttributeAsync("class") ?? "");
-        Assert.Equal("1000", await galSeatsClear.EvaluateAsync<string>("x => getComputedStyle(x).zIndex"));
-        // Close via the backdrop so it doesn't intercept the next click.
-        await Page.Locator(".dropdown:has(#sel-seats) .position-fixed").DispatchEventAsync("click");
-        await Expect(Page.Locator(".dropdown:has(#sel-seats) .dropdown-menu.show"))
-            .ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-
-        // BsMultiSelect variant gallery — ticking two options in the basic control shows them as chips and
-        // the gallery readout lists them.
-        var msBasic = Page.Locator("#ms-basic");
-        await msBasic.ClickAsync();
-        var msMenu = Page.Locator("#ms-basic .dropdown-menu.show");
-        await Expect(msMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await msMenu.Locator(".dropdown-item").Nth(0).ClickAsync();
-        await msMenu.Locator(".dropdown-item").Nth(1).ClickAsync();
-        await Expect(Page.Locator("#ms-readout")).ToContainTextAsync("Web, Mobile",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // A multiselect stays open while you tick items — close it so its full-viewport backdrop doesn't
-        // intercept the next navigation click.
-        await Page.Locator("#ms-basic .position-fixed").DispatchEventAsync("click");
-        await Expect(msMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-
-        // Grouped single-select — OptionGroup renders .dropdown-header sections and OptionDisabled greys a
-        // non-selectable option (the "Data" team); picking an enabled option writes the bound id.
-        var grouped = Page.Locator("#sel-grouped");
-        await grouped.ClickAsync();
-        var groupedMenu = Page.Locator(".dropdown:has(#sel-grouped) .dropdown-menu.show");
-        await Expect(groupedMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(groupedMenu.Locator(".dropdown-header").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(groupedMenu.Locator(".dropdown-item[disabled]"))
-            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await groupedMenu.Locator(".dropdown-item:not([disabled])").First.ClickAsync();
-        await Expect(Page.Locator("#sel-readout")).ToContainTextAsync("GroupedTeam: Platform",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Grouped multiselect — OptionGroup renders three .dropdown-header sections, SelectAll adds a bulk
-        // "Select all" header, and the disabled "Games" is a non-interactive option. (The select-all/disabled
-        // toggle behaviour is unit-tested; here we verify the grouped structure renders in a real browser —
-        // count-based checks avoid depending on the fixed popover scrolling each row into the viewport.)
-        var msGrouped = Page.Locator("#ms-grouped");
-        await msGrouped.ClickAsync();
-        var msGroupedMenu = Page.Locator("#ms-grouped .dropdown-menu.show");
-        await Expect(msGroupedMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(msGroupedMenu.Locator(".dropdown-header"))
-            .ToHaveCountAsync(3, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 }); // Frontend/Data/Other
-        await Expect(msGroupedMenu.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Select all" }))
-            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await Expect(msGroupedMenu.Locator(".dropdown-item[disabled]"))
-            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 }); // "Games" disabled
-        await Page.Locator("#ms-grouped .position-fixed").DispatchEventAsync("click");
-        await Expect(msGroupedMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-
-        // === Date & time pickers — hand-editable, custom-popover calendar/clock controls (no bootstrap.js). ===
-        await SideAsync("Date & time pickers", "date & time pickers", "main .markdown-body h1");
-        await Expect(Page.Locator("#pick-date").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-
-        // Date picker (custom popover) — the calendar opens, is navigated and a day picked entirely from
-        // Rask live-diff state (no bootstrap.js). Picking the 1st of the current month writes the bound
-        // model; the readout rendered OUTSIDE the Form updates, proving the two-way bind round-trips with
-        // no StateHasChanged. Cell ids are invariant (yyyyMMdd), so this is deterministic on any date.
-        var ym = DateTime.Today.ToString("yyyyMM");
-        var firstIso = DateTime.Today.ToString("yyyy-MM") + "-01";
-        await Page.Locator("#pick-date").First.ClickAsync();
-        await Expect(Page.Locator("#pick-date-cal.bs-cal[role=\"grid\"]").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // The popover escapes the .sample-card { overflow:hidden } wrapper via the data-rask-popover helper
-        // (rask-dom.js). That position:fixed re-anchor is asserted directly — on WASM too — for the dropdown
-        // (overlays page) and the in-form select (form-controls page) above; here we exercise it functionally
-        // instead: the day cell being clickable proves the calendar isn't clipped. (On a freshly-navigated
-        // WASM pickers page the picker re-renders per keystroke, so a late live-diff frame can transiently
-        // reset the open menu's inline position — re-asserting the CSS property here is racy, and redundant.)
-        await Page.Locator($"#pick-date-d-{ym}01").First.ClickAsync();
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Hand-editable: the picker box is a text <input>. Typing a date commits live per keystroke (culture
-        // parse; ISO yyyy-MM-dd is accepted in any culture), so the bound readout updates with no calendar.
-        var dateInput = Page.Locator("#pick-date").First;
-        await dateInput.FillAsync("2026-12-25");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // An unparseable entry keeps the raw text (no mid-typing revert) and leaves the value unchanged.
-        await dateInput.FillAsync("not a date");
-        await Expect(dateInput).ToHaveValueAsync("not a date",
-            new LocatorAssertionsToHaveValueOptions { Timeout = 5_000 });
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25",
-            new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
-        // Close the opened picker so its full-viewport backdrop doesn't intercept later clicks. (The nullable
-        // picker's × clear is unit-tested; the ×-clears-to-null click is E2E-covered on #bs-seats above.)
-        await Page.Locator(".dropdown:has(#pick-date) .position-fixed").DispatchEventAsync("click");
-
-        // Date-time picker (#pick-datetime, bound to a DateTime): open the calendar and pick a day. The
-        // composed value must write back as a DateTime — regression guard for the "Object of type
-        // DateTimeOffset cannot be converted to type DateTime" write crash (BoxValue could box the wrong
-        // date/time type; WriteBoxedAsync now coerces to the property's real type). A crash surfaces as the
-        // Rask error boundary; the readout's third segment updating proves the write succeeded.
-        await Page.Locator("#pick-datetime").First.ClickAsync();
-        await Expect(Page.Locator("#pick-datetime-cal.bs-cal[role=\"grid\"]").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Page.Locator($"#pick-datetime-d-{ym}15").First.ClickAsync();
-        await Expect(Page.Locator("#pick-readout"))
-            .ToContainTextAsync(DateTime.Today.ToString("yyyy-MM") + "-15",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // Also pick an hour + minute (the time columns compose with the date — same DateTime write path),
-        // and type a full value into the box (the parse path). None may throw the DateTimeOffset cast.
-        var dtMenu = Page.Locator(".dropdown-menu.show:has(#pick-datetime-cal)").First;
-        await dtMenu.Locator(".bs-time-col").Nth(0)
-            .GetByText("11", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
-        await dtMenu.Locator(".bs-time-col").Nth(1)
-            .GetByText("30", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("-15 11:30",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("#pick-datetime").First.FillAsync("2026-12-25 14:45");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25 14:45",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
-
-        // Keyboard navigation (a11y): the calendar is fully operable from the keyboard, which only a browser
-        // proves end-to-end. Focus opens the popover; ArrowRight moves a virtual cursor (aria-activedescendant
-        // on the box, not DOM focus); Enter selects it. Deterministic on any date — from the 1st, one step
-        // right lands on the 2nd of the same month (every month has a 2nd).
-        var secondIso = DateTime.Today.ToString("yyyy-MM") + "-02";
-        var kbDate = Page.Locator("#pick-date").First;
-        await kbDate.FillAsync(firstIso);
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await kbDate.FocusAsync();
-        await kbDate.PressAsync("ArrowRight");
-        await Expect(kbDate).ToHaveAttributeAsync("aria-activedescendant", $"pick-date-d-{ym}02",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
-        await kbDate.PressAsync("Enter");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(secondIso,
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Time picker keyboard: focus opens the clock; ArrowDown nudges the minute by the step (15). From
-        // 09:00 the readout's time segment moves to 09:15 — the nudge writes the bound TimeOnly, no click.
-        var kbTime = Page.Locator("#pick-time").First;
-        await kbTime.FillAsync("09:00");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("09:00",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await kbTime.FocusAsync();
-        await kbTime.PressAsync("ArrowDown");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("09:15",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // Home/End jump to the day edge (this picker has no Min/Max): End → 23:59, Home → 00:00.
-        await kbTime.PressAsync("End");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("23:59",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await kbTime.PressAsync("Home");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("00:00",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator(".dropdown:has(#pick-time) .position-fixed").DispatchEventAsync("click");
-
-        // Nullable picker × clears to null: set a deadline, then click the × — the readout's last segment
-        // returns to the "—" placeholder, proving the clear writes null through the bound accessor.
-        var kbDeadline = Page.Locator("#pick-deadline").First;
-        await kbDeadline.FillAsync("2026-11-20");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-11-20",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator(".dropdown:has(#pick-deadline) .bs-picker-clear").First.ClickAsync();
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("—",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator(".dropdown:has(#pick-deadline) .position-fixed").DispatchEventAsync("click");
-    }
-
-    // The data-grid guide (docs/data-grid.md). BsDataGrid is the showcase's most stateful component, and its
-    // sort/page/expand transitions are unit-tested in BsDataGridInteractionTests; what only a browser proves is
-    // that those transitions survive the real live morph over each host's transport (Server WS / WASM
-    // JSImport) — a re-ordered <tbody> and a keyed detail-row insert are exactly where a diff bug would hide.
-    protected async Task WalkDataGridGuideAsync()
-    {
-        // The heading match is case-sensitive; this page's h1 is just "Data grid" (the Bootstrap group pages
-        // read "Bootstrap — buttons & badges", which is why those walks assert lowercase).
-        await SideAsync("Data grid", "Data grid", "main .markdown-body h1");
-        await AssertGuideDemosAsync(4, "data-grid");
-
-        // === Sorting — clicking a header re-orders the rows in the real DOM and flips aria-sort. ===
-        var demo = Page.Locator("#grid-demo");
-        var grid = Page.Locator("#bs-grid");
-        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(0);
-
-        var before = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        var productHeader = grid.Locator("th:has-text('Product')").First;
-        await productHeader.Locator("button").ClickAsync();
-        await Expect(productHeader).ToHaveAttributeAsync("aria-sort", "ascending",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-
-        var ascending = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        Assert.Equal(ascending.OrderBy(x => x, StringComparer.Ordinal), ascending);
-        Assert.NotEqual(before, ascending);
-
-        // A second click flips to descending. The grid is paged (5 of 12), so page 1 descending is the tail of
-        // the list reversed — NOT the reverse of page 1 ascending. Assert the order it actually claims.
-        await productHeader.Locator("button").ClickAsync();
-        await Expect(productHeader).ToHaveAttributeAsync("aria-sort", "descending",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-        var descending = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        Assert.Equal(descending.OrderByDescending(x => x, StringComparer.Ordinal), descending);
-        Assert.NotEqual(ascending, descending);
-
-        // Only one column may claim a direction at a time.
-        await grid.Locator("th:has-text('Category') button").First.ClickAsync();
-        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        // === Paging — page 2 shows a DISJOINT slice, and the footer total spans the whole set, not the page.
-        //     A footer computed over the visible page would change here; it must not. ===
-        var footer = await grid.Locator("tfoot td").Last.InnerTextAsync();
-        var page1 = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        await demo.Locator(".pagination li button:has-text('2')").First.ClickAsync();
-        await Expect(demo.Locator(".pagination li:has(button:text-is('2'))")).ToHaveClassAsync(
-            new Regex("active"), new LocatorAssertionsToHaveClassOptions { Timeout = 15_000 });
-
-        var page2 = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        Assert.Empty(page2.Intersect(page1));
-        Assert.Equal(footer, await grid.Locator("tfoot td").Last.InnerTextAsync());
-
-        // The active page is the app's brand primary, not Bootstrap's blue. Bootstrap derives every OTHER
-        // pagination colour from a CSS variable but bakes the literal hex #0d6efd into --bs-pagination-
-        // active-bg, so an app that themes --bs-primary used to get a purple surface with a blue active page.
-        // rask-bootstrap.css re-points it at the runtime var; only a real browser resolves that cascade, so
-        // the assertion lives here. The showcase's --bs-primary is #7C3AED.
-        // ToHaveCSS, not a one-shot getComputedStyle: .page-link transitions background-color over .15s, so
-        // reading it the instant the class lands samples the fade (a near-white part-way colour that differs
-        // run to run). This retries until it settles.
-        await Expect(demo.Locator(".pagination li.active .page-link").First)
-            .ToHaveCSSAsync("background-color", "rgb(124, 58, 237)",
-                new LocatorAssertionsToHaveCSSOptions { Timeout = 15_000 });
-
-        // Sorting returns to page 1 — otherwise the user lands mid-way through a list they just re-ordered.
-        await grid.Locator("th:has-text('Product') button").First.ClickAsync();
-        await Expect(demo.Locator(".pagination li:has(button:text-is('1'))")).ToHaveClassAsync(
-            new Regex("active"), new LocatorAssertionsToHaveClassOptions { Timeout = 15_000 });
-
-        // === Master-detail — the expander inserts a keyed detail <tr>; two can be open at once, and closing
-        //     one leaves the other untouched (the keyed-insert claim the live diff makes). ===
-        var detail = Page.Locator("#bs-grid-detail");
-        await Expect(detail).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        // The expanded detail renders a nested BsTable, so a bare "tbody tr" also counts its line rows. Only the
-        // grid's own rows are direct children of its tbody.
-        var outerRows = detail.Locator("> tbody > tr");
-        var collapsedRows = await outerRows.CountAsync();
-
-        var first = detail.Locator("> tbody > tr button[aria-expanded]").First;
-        await Expect(first).ToHaveAttributeAsync("aria-expanded", "false");
-        await first.ClickAsync();
-        await Expect(first).ToHaveAttributeAsync("aria-expanded", "true",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-        await Expect(outerRows).ToHaveCountAsync(collapsedRows + 1);
-        await Expect(detail.Locator("> tbody > tr > td[colspan]").First).ToBeVisibleAsync();
-
-        var second = detail.Locator("> tbody > tr button[aria-expanded]").Nth(1);
-        await second.ClickAsync();
-        await Expect(detail.Locator("> tbody > tr > td[colspan]")).ToHaveCountAsync(2,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(first).ToHaveAttributeAsync("aria-expanded", "true");
-
-        await first.ClickAsync();
-        await Expect(detail.Locator("> tbody > tr > td[colspan]")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        // === Empty state — the placeholder replaces the whole table, and the grid comes back. ===
-        // The grid's Id lands on the <table> itself, so #bs-grid-empty IS the table: it disappears entirely
-        // when Empty takes over, rather than emptying out.
-        var emptyGrid = Page.Locator("#bs-grid-empty");
-        await Expect(emptyGrid).ToHaveCountAsync(1);
-        await Page.Locator("#grid-filter-none").ClickAsync();
-        await Expect(Page.Locator("#grid-empty")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Expect(emptyGrid).ToHaveCountAsync(0);
-
-        await Page.Locator("#grid-filter-clear").ClickAsync();
-        await Expect(emptyGrid).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        await WalkDataGridStickyAsync();
-
-        // ---- advanced subpage (docs/data-grid-advanced.md) ----
-        // Grouping, the column chooser, selection and row detail moved here in the hub/subpage split.
-        await SideAsync("Data grid — advanced", "advanced features", "main .markdown-body h1");
-        await AssertGuideDemosAsync(4, "data-grid-advanced");
-        await WalkDataGridGroupAsync();
-        await WalkDataGridColumnsAsync();
-        await WalkDataGridSelectionAsync();
-        await WalkDataGridRowsAsync();
-
-        // ---- server-side subpage (docs/data-grid-server.md) ----
-        await SideAsync("Data grid — server-side", "server-side data & URL state", "main .markdown-body h1");
-        await AssertGuideDemosAsync(1, "data-grid-server");
-        await WalkDataGridLoadingAsync();
-    }
-
-    // The column chooser, driven from the keyboard-first menu. The unit tests pin the fold/reorder arithmetic;
-    // the browser proves the real live morph — hiding rewrites the header AND every row's cells, reordering
-    // permutes them, and sort still resolves to the right column afterwards through the whole transport.
-    private async Task WalkDataGridColumnsAsync()
-    {
-        var demo = Page.Locator("#grid-columns-demo");
-        var grid = Page.Locator("#bs-grid-columns");
-        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-
-        var headers = grid.Locator("thead th");
-        await Expect(headers).ToHaveTextAsync(["Account", "Region", "Rep", "Amount"]);
-
-        // Open the menu — a real disclosure button, no drag needed.
-        await demo.Locator("button[aria-label='Columns']").ClickAsync();
-        await Expect(demo.Locator(".bs-grid-columnmenu")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-
-        // === Hide — unchecking Region folds its header (and cells) out of the table. ===
-        await demo.Locator("input[aria-label='Show Region']").ClickAsync();
-        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(headers).ToHaveCountAsync(3);
-
-        // Re-show it — the menu row outlives the hidden column, which is the only way back.
-        await demo.Locator("input[aria-label='Show Region']").ClickAsync();
-        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        // === Reorder — moving Amount earlier permutes the header order in the real DOM (Amount before Rep). ===
-        await demo.Locator("button[aria-label='Move Amount earlier']").ClickAsync();
-        await Expect(headers).ToHaveTextAsync(["Account", "Region", "Amount", "Rep"],
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-
-        // === Sort survives the reorder — clicking the moved Amount header still sorts by Amount, not by
-        //     whatever column now sits at that slot. ===
-        await grid.Locator("th:has-text('Amount') button").ClickAsync();
-        await Expect(grid.Locator("th:has-text('Amount')")).ToHaveAttributeAsync("aria-sort", "ascending",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(1);
-    }
-
-    // Grouping. The unit tests pin the banding; the browser proves the ordering guarantee survives the real
-    // live morph — re-banding and re-sorting rewrite the <tbody> wholesale, which is exactly where a diff bug
-    // would hide.
-    private async Task WalkDataGridGroupAsync()
-    {
-        var demo = Page.Locator("#grid-group-demo");
-        var grid = Page.Locator("#bs-grid-group");
-        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-
-        // === One level. The demo's source list is NOT ordered by region, so each region appearing exactly
-        //     once is the ordering guarantee doing its job. ===
-        var bands = grid.Locator("tbody tr.table-group-divider");
-        await Expect(bands).ToHaveCountAsync(3); // AMER, APAC, EMEA
-        await Expect(bands.First).ToContainTextAsync("Region: AMER");
-
-        // === Grouped columns fold away (default). Region is grouped, so its own <th> is gone — the value lives
-        //     only in the band header. "Show grouped column" flips ShowGroupedColumns to bring the column back;
-        //     toggle it off again so the rest of the walk runs against the default. ===
-        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(0);
-        await demo.Locator("#group-show-col").ClickAsync();
-        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await demo.Locator("#group-show-col").ClickAsync();
-        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        // === The user's sort applies WITHIN a band, never across it. Sorting by Account keeps three bands. ===
-        await grid.Locator("th:has-text('Account') button").ClickAsync();
-        await Expect(grid.Locator("th:has-text('Account')")).ToHaveAttributeAsync("aria-sort", "ascending",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-        await Expect(bands).ToHaveCountAsync(3);
-
-        var emeaAccounts = await grid.Locator("tbody tr:not(.table-group-divider):not(.table-light) td:nth-child(1)")
-            .AllInnerTextsAsync();
-        Assert.NotEmpty(emeaAccounts);
-
-        // === Subtotals — one per band, plus the grand total in <tfoot>. ===
-        await Expect(grid.Locator("tbody tr.table-light")).ToHaveCountAsync(3);
-        await Expect(grid.Locator("tfoot")).ToBeVisibleAsync();
-
-        // === Collapse — keyed by the band's value, so it survives the re-render. ===
-        var firstToggle = grid.Locator("tbody tr.table-group-divider button[aria-expanded]").First;
-        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "true");
-        var rowsBefore = await grid.Locator("tbody tr:not(.table-group-divider):not(.table-light)").CountAsync();
-        await firstToggle.ClickAsync();
-        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "false",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-        await Expect(grid.Locator("tbody tr:not(.table-group-divider):not(.table-light)"))
-            .Not.ToHaveCountAsync(rowsBefore);
-        await Expect(bands).ToHaveCountAsync(3); // the band header stays; only its rows go
-
-        await firstToggle.ClickAsync();
-        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "true",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-
-        // === Nesting — region ▸ rep: more bands, and the outer ones still appear once each. ===
-        // 3 region bands + 5 region/rep bands (EMEA has Ana and Dee, AMER has Bo and Ana, APAC only Cy).
-        await demo.Locator("#group-nested").ClickAsync();
-        await Expect(bands).ToHaveCountAsync(8,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(grid.Locator("tbody tr.table-group-divider:has-text('Region:')")).ToHaveCountAsync(3);
-
-        // === Ungrouped — every band goes, the rows stay. ===
-        await demo.Locator("#group-none").ClickAsync();
-        await Expect(bands).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(grid.Locator("tbody tr")).ToHaveCountAsync(9);
-        await Expect(grid.Locator("tbody tr.table-light")).ToHaveCountAsync(0);
-
-        await demo.Locator("#group-region").ClickAsync();
-        await Expect(bands).ToHaveCountAsync(3,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        await WalkDataGridGroupPanelAsync(demo, grid, bands);
-    }
-
-    // The group panel, driven BOTH ways. The keyboard walk is the point: the panel's promise is that drag is an
-    // accelerator, not the only way in, and only a browser can prove a real Enter keypress on a real focused
-    // button does the same thing a drag does.
-    private async Task WalkDataGridGroupPanelAsync(ILocator demo, ILocator grid, ILocator bands)
-    {
-        var panel = demo.Locator(".bs-grid-grouppanel");
-        await Expect(panel).ToBeVisibleAsync();
-        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(1); // region
-
-        // === KEYBOARD ONLY. Press Enter on the Rep header's group control — no pointer at all. ===
-        // The settle is load-bearing, and cost an hour to find. The steps above end with a click that
-        // re-groups the whole grid, and its LAST live frame can land a beat after the assertion that waited
-        // for it: the diff then replaces this very button, and a keypress aimed at it lands on a detached
-        // node — silently, because a key that hits nothing raises nothing. Let the re-render finish first.
-        // (Locator.Press does not help: its auto-wait re-resolves the element, but cannot know a frame is
-        // still in flight.)
-        await Page.WaitForTimeoutAsync(500);
-        await grid.Locator("th:has-text('Rep') button[aria-label='Group by Rep']").PressAsync("Enter");
-        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(2,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        // region ▸ rep, the same nesting the buttons produced above. Grouping is two renders — the grid's own
-        // (from the click) and the consumer's (from OnGroupedChange) — so give it the same room as its
-        // neighbours rather than the 5s default.
-        await Expect(bands).ToHaveCountAsync(8,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        // Renest from the keyboard: move Rep out one level, so rep ▸ region.
-        await panel.Locator("button[aria-label='Move Rep out one level']").PressAsync("Enter");
-        await Expect(panel.Locator(".bs-grid-chip").First).ToContainTextAsync("Rep",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-
-        // The ends are really disabled, not merely styled that way.
-        await Expect(panel.Locator("button[aria-label='Move Rep out one level']")).ToBeDisabledAsync();
-
-        // Ungroup from the keyboard.
-        await panel.Locator("button[aria-label='Stop grouping by Rep']").PressAsync("Enter");
-        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        // === DRAG is wired, but is not asserted end-to-end here, and that is deliberate. Rask uses NATIVE
-        //     HTML5 drag-and-drop (dragstart/dragover/drop), and Playwright's DragTo synthesises mouse
-        //     move/down/up — which the browser does not turn into native drag events. Driving it needs manual
-        //     dispatchEvent with a hand-built DataTransfer, which tests the harness more than the feature.
-        //     The keyboard path above IS the accessible path and is proven end-to-end; the drag is the
-        //     pointer accelerator over the same handlers. Assert its wiring is present rather than fake a
-        //     gesture the harness can't faithfully produce. ===
-        var repHeader = grid.Locator("th:has-text('Rep')");
-        await Expect(repHeader).ToHaveAttributeAsync("draggable", "true");
-        await Expect(repHeader).ToHaveAttributeAsync("data-rask-on-dragstart", new Regex(".+"));
-        await Expect(panel).ToHaveAttributeAsync("data-rask-on-drop", new Regex(".+"));
-        await Expect(panel.Locator(".bs-grid-chip").First).ToHaveAttributeAsync("draggable", "true");
-    }
-
-    // Selection driving a bulk action. The unit tests pin the set arithmetic; the browser proves the part that
-    // only a real transport shows — that ticking a checkbox re-renders the grid's OWNER (the toolbar count
-    // lives outside the grid), which is exactly what the consumer-resolution fix underneath this is about.
-    private async Task WalkDataGridSelectionAsync()
-    {
-        var grid = Page.Locator("#bs-grid-selection");
-        var archive = Page.Locator("#grid-bulk-archive");
-        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-
-        // Nothing selected: the bulk action is disabled and says so.
-        await Expect(archive).ToHaveTextAsync("Archive 0 selected");
-        await Expect(archive).ToBeDisabledAsync();
-
-        var boxes = grid.Locator("tbody .form-check-input");
-        await Expect(boxes).ToHaveCountAsync(6);
-
-        // Tick two rows — the count outside the grid tracks, and the rows mark themselves.
-        await boxes.Nth(0).CheckAsync();
-        await Expect(archive).ToHaveTextAsync("Archive 1 selected",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-        await boxes.Nth(2).CheckAsync();
-        await Expect(archive).ToHaveTextAsync("Archive 2 selected",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-        await Expect(grid.Locator("tbody tr.table-active")).ToHaveCountAsync(2);
-        await Expect(archive).ToBeEnabledAsync();
-
-        // Selection is keyed, so it follows the rows through a sort rather than staying at those positions.
-        var pickedBefore = await grid.Locator("tbody tr.table-active td:nth-child(2)").AllInnerTextsAsync();
-        await grid.Locator("th:has-text('Task') button").ClickAsync();
-        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        var pickedAfter = await grid.Locator("tbody tr.table-active td:nth-child(2)").AllInnerTextsAsync();
-        Assert.Equal(pickedBefore.OrderBy(x => x, StringComparer.Ordinal),
-            pickedAfter.OrderBy(x => x, StringComparer.Ordinal));
-
-        // Select-all covers the page, and its accessible name says exactly that.
-        var all = grid.Locator("thead .form-check-input");
-        await Expect(all).ToHaveAttributeAsync("aria-label", "Select all rows on this page");
-        await all.CheckAsync();
-        await Expect(archive).ToHaveTextAsync("Archive 6 selected",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-
-        await all.UncheckAsync();
-        await Expect(archive).ToHaveTextAsync("Archive 0 selected",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-
-        // The bulk action consumes the reported keys.
-        await boxes.Nth(0).CheckAsync();
-        await Expect(archive).ToHaveTextAsync("Archive 1 selected",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-        await archive.ClickAsync();
-        await Expect(grid.Locator("tbody tr")).ToHaveCountAsync(5,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(Page.Locator("#grid-bulk-done")).ToHaveTextAsync("Archived 1.");
-    }
-
-    // The busy state over a real transport. The unit tests pin the markup of each state; what only a browser
-    // shows is the round trip — spinner appears, controls go inert, rows are replaced, spinner goes.
-    private async Task WalkDataGridLoadingAsync()
-    {
-        var grid = Page.Locator("#bs-grid-loading");
-        var demo = Page.Locator("#grid-loading-demo");
-        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-
-        // Idle: in use (Loading: false) so the wrapper is there, but no overlay and no aria-busy.
-        await Expect(demo.Locator(".position-relative")).ToHaveCountAsync(1);
-        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0);
-        await Expect(grid).Not.ToHaveAttributeAsync("aria-busy", "true");
-
-        var firstBefore = await grid.Locator("tbody tr td:nth-child(1)").First.InnerTextAsync();
-
-        // Sorting awaits a 600ms fetch, so the overlay is observable. The demo's Loading flips true, the grid
-        // re-renders, and only then does the await complete.
-        await grid.Locator("th:has-text('City') button").ClickAsync();
-
-        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(grid).ToHaveAttributeAsync("aria-busy", "true");
-        // aria-disabled, not disabled: the control must stay focusable while it says it is inert.
-        await Expect(grid.Locator("th:has-text('City') button")).ToHaveAttributeAsync("aria-disabled", "true");
-        await Expect(demo.Locator(".pagination .page-item:not(.disabled)")).ToHaveCountAsync(0);
-
-        // ...and it clears, leaving the rows sorted.
-        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(grid).Not.ToHaveAttributeAsync("aria-busy", "true");
-
-        var sorted = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        Assert.Equal(sorted.OrderBy(x => x, StringComparer.Ordinal), sorted);
-        Assert.NotEqual(firstBefore, sorted[0]);
-
-        // The wrapper survived the whole flip — it must never be torn down, or the table would lose its DOM
-        // identity (and any focus or scroll inside it) on every fetch.
-        await Expect(demo.Locator(".position-relative")).ToHaveCountAsync(1);
-
-        // Paging awaits too, and lands on a disjoint slice. Wait out the whole fetch — overlay in, overlay
-        // out — before reading the rows. Neither shortcut works here, and both fail in opposite directions:
-        // "overlay is gone" is already true in the instant before the fetch starts, and "the pager says 2" is
-        // true from the MID-AWAIT render onwards, while the rows are still the previous page's. The overlay's
-        // two edges are the only signal that brackets the fetch itself.
-        var pageOne = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        await demo.Locator(".pagination li:has(button:text-is('2')) button").ClickAsync();
-        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        var pageTwo = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        Assert.Empty(pageOne.Intersect(pageTwo));
-    }
-
-    // Row clicks and conditional row styling. The unit tests prove which cells carry the handler; only a real
-    // browser proves the consequence of that choice — that a click on the row body opens the row, while the
-    // button inside a template cell still fires its OWN handler rather than being cancelled by an ancestor.
-    private async Task WalkDataGridRowsAsync()
-    {
-        var grid = Page.Locator("#bs-grid-row");
-        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-
-        // === RowClass — the overdue invoices are tinted from their own data, the current ones are not. ===
-        await Expect(grid.Locator("tbody tr.table-warning")).ToHaveCountAsync(1);
-        await Expect(grid.Locator("tbody tr.table-danger")).ToHaveCountAsync(1);
-
-        // === Row click — clicking a Value cell reports its row. ===
-        await Expect(Page.Locator("#grid-row-opened")).ToHaveCountAsync(0);
-        await grid.Locator("tbody tr:nth-child(2) td.bs-grid-click").First.ClickAsync();
-        await Expect(Page.Locator("#grid-row-opened")).ToHaveTextAsync("Opened INV-1042",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-
-        // === The Open button still works. This is the regression that matters: the button lives in a Template
-        //     cell, which is NOT row-clickable, so no ancestor handler cancels its click. Were the row click
-        //     attached to the <tr> instead, this button would be dead and nothing would say so. ===
-        await grid.Locator("#open-INV-1044").ClickAsync();
-        await Expect(Page.Locator("#grid-row-opened")).ToHaveTextAsync("Opened INV-1044",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-
-        // The button's cell never carries a handler of its own.
-        await Expect(grid.Locator("tbody tr:first-child td:last-child")).Not.ToHaveClassAsync(
-            new System.Text.RegularExpressions.Regex("bs-grid-click"));
-    }
-
-    // The sticky header, which is only observable in a real layout: the assertion is that the header stays put
-    // in the viewport while the rows scroll under it inside the bounded container.
-    private async Task WalkDataGridStickyAsync()
-    {
-        var grid = Page.Locator("#bs-grid-sticky");
-        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-        await Expect(grid).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("bs-table-sticky"));
-
-        var header = grid.Locator("thead th").First;
-        var box = grid.Locator("xpath=..");  // the .table-responsive wrapper MaxHeight bounds
-
-        var headerBefore = await header.BoundingBoxAsync();
-        var firstRowBefore = await grid.Locator("tbody tr").First.BoundingBoxAsync();
-
-        // Scroll the container, not the page: the header sticks to its nearest scroll container, which is
-        // exactly what MaxHeight created.
-        await box.EvaluateAsync("el => el.scrollTop = 200");
-        await Page.WaitForTimeoutAsync(250);
-
-        var headerAfter = await header.BoundingBoxAsync();
-        var firstRowAfter = await grid.Locator("tbody tr").First.BoundingBoxAsync();
-
-        Assert.NotNull(headerBefore);
-        Assert.NotNull(headerAfter);
-        Assert.NotNull(firstRowBefore);
-        Assert.NotNull(firstRowAfter);
-
-        // The rows moved up; the header did not move at all. Without position:sticky both would have moved.
-        Assert.True(firstRowAfter!.Y < firstRowBefore!.Y - 100,
-            $"rows should have scrolled up, but went {firstRowBefore.Y} -> {firstRowAfter.Y}");
-        Assert.True(Math.Abs(headerAfter!.Y - headerBefore!.Y) < 2,
-            $"the header should have stayed put, but went {headerBefore.Y} -> {headerAfter.Y}");
     }
 
     protected async Task WalkUserComponentsGuideAsync()
@@ -1296,7 +350,7 @@ public abstract partial class SharedSmokeTests
         // Context: toggling a provider updates a deep consumer straight through a render-cached
         // intermediate. Scope to this demo — badges appear in other demos on the page too.
         var ctxDemo = Page.Locator(".guide-demo:has(button:has-text('Toggle theme'))");
-        var ctxBadge = ctxDemo.Locator(".badge");
+        var ctxBadge = ctxDemo.Locator(".theme-badge");
         await Expect(ctxBadge).ToContainTextAsync("Light", contains);
         await ctxDemo.Locator("button:has-text('Toggle theme')").ClickAsync();
         await Expect(ctxBadge).ToContainTextAsync("Dark", contains);
@@ -1338,21 +392,14 @@ public abstract partial class SharedSmokeTests
 
         // ---- lists, toasts, drag & error boundaries (docs/composition-lists.md) ----
         await SideAsync("Composition — lists & more", "lists, toasts, drag", "main .markdown-body h1");
-        await AssertGuideDemosAsync(10, "composition-lists");
+        await AssertGuideDemosAsync(9, "composition-lists");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the page still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
-        // Toast: a producer raises an IToaster message; the headless ToastOutlet drains it (consumed-once)
-        // and renders a dismissible BsAlert — live-diff state, no client JS. The demo's ToastOutlet sets
-        // AutoDismissAfter: 5s, so the toast clears itself with no click — driven entirely by a server/WASM
-        // -side timer over live-diff. (Manual × dismissal is covered by the ToastOutlet unit tests.)
-        await Page.Locator(".guide-demo button:has-text('Success')").First.ClickAsync();
-        var toastAlert = Page.Locator(".alert:has-text('Your changes were saved.')");
-        await Expect(toastAlert).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // Auto-dismiss: gone on its own within the 5s delay (+ slack for transport + render).
-        await Expect(toastAlert).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 12_000 });
+        // The toast walk that stood here drove BsToast / the dismissible BsAlert it rendered. Both went
+        // with Rask.Bootstrap, and no sample raises an IToaster message any more.
 
         // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).
         var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
@@ -1364,10 +411,10 @@ public abstract partial class SharedSmokeTests
         // caret riding its keyed row across the move — is exercised by the keyed-reconciliation unit
         // tests in Rask.Core.Tests; asserting it through the browser on the co-mounted guide is
         // timing-fragile, so the E2E proves the reverse re-renders the live keyed list instead.)
-        await Expect(Page.Locator("#kl-list li").First.Locator("span.fw-semibold"))
+        await Expect(Page.Locator("#kl-list li").First.Locator("span.font-semibold"))
             .ToContainTextAsync("Apple", contains);
         await Page.Locator("#kl-reverse").ClickAsync();
-        await Expect(Page.Locator("#kl-list li").First.Locator("span.fw-semibold"))
+        await Expect(Page.Locator("#kl-list li").First.Locator("span.font-semibold"))
             .ToContainTextAsync("Elderberry", contains);
 
         // Master-detail (its /master-detail page folded into this section): expanding a row inserts a keyed
@@ -1403,7 +450,7 @@ public abstract partial class SharedSmokeTests
         // — the error is contained, the navbar (outside the user boundary) survives, Recover restores.
         await Page.Locator("#boom-throw").ClickAsync();
         await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — handler boundary demo", contains);
-        await Expect(Page.Locator(".navbar .navbar-brand")).ToContainTextAsync("Rask"); // root boundary not tripped
+        await Expect(Page.Locator(".app-navbar .app-brand")).ToContainTextAsync("Rask"); // root boundary not tripped
         await Page.Locator("#boom-recover").First.ClickAsync();
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -1418,7 +465,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkAuthGuideAsync()
     {
         // The BsToast element, Toast-messages and User & auth example pages were folded into their guides:
-        // BsToast → WalkBootstrapGuideAsync, Toast messages + events → TestCompositionGuideAsync. This walks the
+        // Toast messages + events → TestCompositionGuideAsync. This walks the
         // Authentication guide's two gating demos (imperative UserGate + declarative Authorize).
         await SideAsync("Authentication", "Authentication", "main .markdown-body h1");
 
@@ -1484,7 +531,7 @@ public abstract partial class SharedSmokeTests
         // the render counter (an event-handler render — it does not re-fire OnMount / OnPropsChanged).
         await Expect(Page.Locator("li code:has-text('OnMountAsync (after')"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        var badge = Page.Locator(".badge:has-text('Render #')").First;
+        var badge = Page.GetByText(new Regex("Render #\\d+")).First;
         var before = ExtractRenderCount(await badge.TextContentAsync());
         await Page.Locator("button:has-text('Trigger re-render')").ClickAsync();
         await Expect(badge).Not.ToContainTextAsync($"Render #{before}",
@@ -1532,7 +579,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkRoutingGuideAsync()
     {
         await SideAsync("Routing", "Routing", "main .markdown-body h1");
-        await AssertGuideDemosAsync(4, "routing");
+        await AssertGuideDemosAsync(3, "routing");
         var navDemo = Page.Locator(".guide-demo:has(#nav-query)");
         await Expect(navDemo.Locator("#nav-query")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
@@ -1574,7 +621,7 @@ public abstract partial class SharedSmokeTests
         await AssertGuideDemosAsync(1, "localization");
 
         var rows = Page.Locator(".guide-demo tbody tr[data-culture]");
-        var warning = Page.Locator(".guide-demo .alert-warning");
+        var warning = Page.Locator(".guide-demo [role='alert']");
 
         // Wait for the demo to settle into one of its two shapes before deciding which to assert.
         await Expect(rows.First.Or(warning.First)).ToBeVisibleAsync(
@@ -1951,7 +998,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkElementsGuideAsync()
     {
         await SideAsync("Elements & the DSL", "Elements & the DSL", "main .markdown-body h1");
-        await AssertGuideDemosAsync(26, "elements");
+        await AssertGuideDemosAsync(28, "elements");
         // Gate on a late demo's distinctive element (the Interactive-elements demo, near the end).
         await Expect(Page.Locator(".guide-demo .sample-result-body details[open] summary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
@@ -1997,7 +1044,7 @@ public abstract partial class SharedSmokeTests
         // HttpClient + DI: the injected client loads a post card in OnMountAsync. This also guards the
         // WASM base-address fix — the relative fetch must resolve against the app root from the two-segment
         // /guides/http-and-files route (not against /guides/), or it 404s and the error banner shows instead.
-        await Expect(Page.Locator(".guide-demo .sample-result-body article.card").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         // File upload: the typed file picker renders its input.
@@ -2017,7 +1064,7 @@ public abstract partial class SharedSmokeTests
         // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
         // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
         await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(16, "forms");
+        await AssertGuideDemosAsync(13, "forms");
         // The hub co-mounts its forms demos on one (large) page; wait for a late demo's control (the
         // floating-label form, the last marker on the page) before driving any interaction so clicks
         // never race hydration.
@@ -2043,99 +1090,27 @@ public abstract partial class SharedSmokeTests
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Floating labels: the reusable Floating* wrappers (input/select/textarea). An empty submit
-        // surfaces the Bootstrap .invalid-feedback under a field (shown via .d-block, no is-invalid
+        // surfaces .field-error under a field (always shown -- there is no is-invalid
         // toggle); a valid submit reaches the success banner. (Structure/id/label derivation is
         // unit-tested.)
         var floatingForm = Page.Locator("form:has(#ff-FullName)");
         await floatingForm.Locator("button[type=submit]").ClickAsync();
-        await Expect(floatingForm.Locator(".invalid-feedback").First)
+        await Expect(floatingForm.Locator(".field-error").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await floatingForm.Locator("#ff-FullName").FillAsync("Ada Lovelace");
         await floatingForm.Locator("#ff-Email").FillAsync("ada@example.com");
         await floatingForm.Locator("#ff-Age").FillAsync("30");
         await floatingForm.Locator("#ff-Plan").SelectOptionAsync("pro");
         await floatingForm.Locator("button[type=submit]").ClickAsync();
-        await Expect(Page.Locator(".sample-result-body .alert-success")
+        await Expect(Page.Locator(".sample-result-body [role='status']")
                 .Filter(new LocatorFilterOptions { HasText = "Ada Lovelace" }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // ---- advanced subpage (docs/forms-advanced.md) ----
-        // Nested models, control groups and the multi-select moved here in the hub/subpage split.
+        // Nested models. The control groups and the multi-select that also lived here were
+        // BsRadioGroup/BsCheckboxGroup/BsMultiSelect, and went with Rask.Bootstrap.
         await SideAsync("Forms — advanced", "nested models & control groups", "main .markdown-body h1");
-        await AssertGuideDemosAsync(10, "forms-advanced");
-        await Expect(Page.Locator("#ms-interests")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-
-        // Radio & checkbox groups: single-value radio bind + ICollection checkbox bind. Scope the
-        // option locators to this demo — the "Pro"/"AI" values also appear in the form-controls and
-        // multi-select demos on the same guide page.
-        var groupsDemo = Page.Locator(".guide-demo:has(#groups-summary)");
-        var groups = groupsDemo.Locator("#groups-summary");
-        await groupsDemo.Locator("input[type=radio][value='Pro']").CheckAsync();
-        await Expect(groups).ToContainTextAsync("Plan: Pro", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await groupsDemo.Locator("input[type=checkbox][value='AI']").CheckAsync();
-        await Expect(groups).ToContainTextAsync("AI", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Multi-select: the reusable BsMultiSelect<T> dropdown binds to an ICollection — open it (server
-        // live-diff, no Bootstrap JS), pick an option and it appears as a live chip (the control re-renders
-        // itself — no StateHasChanged). (Component mechanics are unit-tested in Demos/MultiSelectTests.)
-        var multi = Page.Locator("#ms-interests");
-        await multi.Locator(".form-select").ClickAsync(); // open the dropdown
-        await multi.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "AI" }).ClickAsync();
-        var aiChip = multi.Locator(".badge").Filter(new LocatorFilterOptions { HasText = "AI" });
-        await Expect(aiChip).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // Removing a chip via its × must drop the badge on its own — no reopening the dropdown. The × is a
-        // BsCloseButton (a wrapper) callback, so the GENERIC BsMultiSelect<T> re-renders only if AutoCallback
-        // resolves it as the owner; a regression there left the badge onscreen until an unrelated render.
-        // Close the dropdown first (its full-viewport backdrop otherwise intercepts the ×, and a closed
-        // dropdown is the exact scenario the bug was reported in — the badge lingered until reopening).
-        await multi.Locator(".position-fixed").DispatchEventAsync("click");
-        await Expect(Page.Locator("#ms-interests .dropdown-menu.show")).ToBeHiddenAsync(
-            new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-        await aiChip.Locator(".btn-close").ClickAsync();
-        await Expect(aiChip).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // Re-open and re-select so the open-menu / Escape / backdrop steps below still exercise a filled control.
-        await multi.Locator(".form-select").ClickAsync();
-        await multi.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "AI" }).ClickAsync();
-        await Expect(aiChip).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // The menu stays open across selections; Escape from the focusable box closes it (no bootstrap.js).
-        // (Type-to-filter is opt-in via a Filter predicate and shares BsSelect's dropdown search field, which
-        // is exercised on #bs-plan above.)
-        var openMenu = Page.Locator("#ms-interests .dropdown-menu.show");
-        await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // Same overflow-escape helper: the open menu is re-anchored position:fixed (data-rask-popover).
-        Assert.Equal("fixed", await openMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
-        await multi.Locator(".form-select").FocusAsync();
-        await Page.Keyboard.PressAsync("Escape");
-        await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-
-        // Re-open, then close by clicking outside — the transparent full-viewport backdrop (z-index 999)
-        // catches it. Dispatch the click straight to the backdrop element rather than a coordinate click:
-        // a positional click is unreliable here (the sticky navbar covers the top, and — now that
-        // CodeSample stacks full-width — the `w-100` open menu covers the centre band, so both intercept
-        // parts of the backdrop). DispatchEvent bubbles to Rask's delegated click handler and fires the
-        // backdrop's OnClick(_open=false), exercising the close-on-outside-click path deterministically.
-        await multi.Locator(".form-select").ClickAsync();
-        await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await multi.Locator(".position-fixed").DispatchEventAsync("click");
-        await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-
-        // Controlled BsMultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
-        // and the parent's summary updates — again with no StateHasChanged.
-        var controlled = Page.Locator("#ms-controlled");
-        await controlled.Locator(".form-select").ClickAsync();
-        await controlled.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Tech" }).ClickAsync();
-        await Expect(Page.Locator("#ms-controlled-summary")).ToContainTextAsync("Tech",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // Close it again so the open dropdown's full-viewport backdrop doesn't intercept later navigation.
-        // DispatchEvent (not a positional click) — the full-width open menu / sticky navbar cover the
-        // backdrop's clickable points; this fires the backdrop's OnClick handler directly. See the
-        // #ms-interests close above.
-        await controlled.Locator(".position-fixed").DispatchEventAsync("click");
-        await Expect(Page.Locator("#ms-controlled .dropdown-menu.show")).ToBeHiddenAsync(
-            new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await AssertGuideDemosAsync(5, "forms-advanced");
 
         // ---- back to the hub for the form-controls demos (docs/forms.md) ----
         await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
@@ -2160,30 +1135,8 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // BsRadioGroup — bound (Component control): the derived readout sits OUTSIDE the Form yet updates.
-        // The bound group passes Label:, so the radios are wrapped in an accessible <fieldset>/<legend>.
-        await Expect(Page.Locator("#fc-radio-bound fieldset > legend")).ToHaveTextAsync("Plan",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-        await Page.Locator("input[type=radio][name='fc-radio-b'][value='Team']").CheckAsync();
-        await Expect(Page.Locator("#fc-radio-bound-out")).ToContainTextAsync("Team",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // BsCheckboxGroup — controlled.
-        await Page.Locator("input[type=checkbox][name='fc-checkbox-c'][value='AI']").CheckAsync();
-        await Expect(Page.Locator("#fc-checkbox-controlled-out")).ToContainTextAsync("AI",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // BsMultiSelect — bound: open, pick a topic, the readout outside the Form updates; then close so the
-        // backdrop doesn't intercept later navigation.
-        var fcMulti = Page.Locator("#fc-multiselect-bound");
-        await fcMulti.Locator(".form-select").ClickAsync();
-        await fcMulti.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Tech" }).ClickAsync();
-        await Expect(Page.Locator("#fc-multiselect-bound-out")).ToContainTextAsync("Tech",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await fcMulti.Locator(".position-fixed").DispatchEventAsync("click");
-        await Expect(fcMulti.Locator(".dropdown-menu.show")).ToBeHiddenAsync(
-            new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
-
+        // The BsRadioGroup / BsCheckboxGroup / BsMultiSelect walks that followed are gone with the
+        // controls themselves; docs/building-form-controls.md is the path for building one back.
         // ---- validation subpage (docs/forms-validation.md) ----
         await SideAsync("Forms — validation", "Forms — validation", "main .markdown-body h1");
         await AssertGuideDemosAsync(11, "forms-validation");
@@ -2214,17 +1167,14 @@ public abstract partial class SharedSmokeTests
         // read — poll for each rather than asserting once.
         await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // The brand palette actually overrides Bootstrap's :root defaults: tokens.css (linked after
-        // bootstrap.min.css) maps --bs-primary onto the violet --accent through the Bootstrap 5.3
-        // --bs-*-rgb bridge. The exact shade tracks the active theme — dark rgb(139,92,246) / light
-        // rgb(124,58,237) — so assert the primary is one of the two brand violets and NOT Bootstrap's
-        // default blue, rather than a single hard-coded hex. Read --bs-primary-rgb (a literal triplet)
-        // rather than --bs-primary (a var(--accent) whose computed spelling varies), and normalise
-        // whitespace so the comma spacing the browser returns doesn't matter.
+        // The brand palette is applied: --accent is the violet the showcase publishes, and its exact
+        // shade tracks the active theme — dark #8b5cf6 / light #7c3aed. Assert it is one of the two
+        // rather than a single hard-coded value, and normalise whitespace and case so the browser's
+        // own spelling of the colour does not matter.
         await Page.WaitForFunctionAsync(
-            "() => { const p = getComputedStyle(document.documentElement)"
-            + ".getPropertyValue('--bs-primary-rgb').replace(/\\s+/g, '');"
-            + " return p === '139,92,246' || p === '124,58,237'; }",
+            "() => { const a = getComputedStyle(document.documentElement)"
+            + ".getPropertyValue('--accent').replace(/\\s+/g, '').toLowerCase();"
+            + " return a === '#8b5cf6' || a === '#7c3aed'; }",
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 
@@ -2239,7 +1189,7 @@ public abstract partial class SharedSmokeTests
         var navScroll = await Page.Locator(".side-nav .side-nav-scroll").First.EvaluateAsync<string>(
             @"el => {
                 const cs = getComputedStyle(el);
-                const body = getComputedStyle(el.closest('.offcanvas-body'));
+                const body = getComputedStyle(el.closest('.side-nav'));
                 const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'));
                 return JSON.stringify({
                     overflowY: cs.overflowY,
@@ -2257,21 +1207,22 @@ public abstract partial class SharedSmokeTests
 
         // Todos: full CRUD + URL-driven dialog. Add, edit, toggle, delete.
         await SideAsync("Todos", "Todos");
-        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(2,
+        await Expect(Page.Locator("#todo-list li")).ToHaveCountAsync(2,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
-        // BsModal opens centered over a .modal-backdrop; clicking the modal area outside the dialog cancels.
-        await Expect(Page.Locator(".modal.show")).ToBeVisibleAsync(
+        // The dialog opens centered over its own backdrop; clicking the backdrop outside it cancels.
+        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Expect(Page.Locator(".modal-backdrop")).ToBeVisibleAsync(
+        await Expect(Page.Locator(".dialog-backdrop")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        // BsModal's focus trap moves focus into the dialog on open (the .modal itself carries tabindex=-1),
-        // so the keyboard primitive works with no prior click.
-        await Expect(Page.Locator(".modal.show")).ToBeFocusedAsync(
-            new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
-        // Escape closes the modal: the runtime focus trap routes Escape to the dismiss target (OnClose → cancel).
+        // Escape closes. A non-modal <dialog> fires no `cancel` event, so the page reads the key from a
+        // keydown handler ON THE DIALOG and routes back through the same cancel the backdrop uses — no
+        // client script. Focus has to be inside the dialog for that handler to hear the key, which any
+        // interaction gives it: `autofocus` is rendered but browsers only honour it for elements present
+        // at parse time, not ones the live diff inserts. Click the field first, as a user would.
+        await Page.Locator("dialog[open] #todo-title").ClickAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
@@ -2280,9 +1231,9 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
-        await Expect(Page.Locator(".modal.show")).ToBeVisibleAsync(
+        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Page.Locator(".modal button:has-text('Cancel')").ClickAsync();
+        await Page.Locator("dialog[open] button:has-text('Cancel')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         // Reopen for the rest of the flow.
@@ -2291,23 +1242,23 @@ public abstract partial class SharedSmokeTests
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         // Empty submit → [Required].
         await Page.Locator("button:has-text('Add')").ClickAsync();
-        await Expect(Page.Locator(".invalid-feedback")).ToContainTextAsync("Title is required",
+        await Expect(Page.Locator(".field-error")).ToContainTextAsync("Title is required",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Page.Locator("#todo-title").FillAsync("Wire up reconnect");
         await Page.Locator("button:has-text('Add')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
-        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(3,
+        await Expect(Page.Locator("#todo-list li")).ToHaveCountAsync(3,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
         // Toggle the first item's checkbox → completed class.
-        var firstTitle = await Page.Locator(".list-group-item .todo-title").First.InnerTextAsync();
-        await Page.Locator(".list-group-item").First.Locator("input[type='checkbox']").CheckAsync();
+        var firstTitle = await Page.Locator("#todo-list li .todo-title").First.InnerTextAsync();
+        await Page.Locator("#todo-list li").First.Locator("input[type='checkbox']").CheckAsync();
         await Expect(Page.Locator(".todo-title.completed", new PageLocatorOptions { HasTextString = firstTitle }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
         // Delete one row.
-        var rowsBefore = await Page.Locator(".list-group .list-group-item").CountAsync();
-        await Page.Locator(".list-group-item button:has(i.bi-trash)").First.ClickAsync();
-        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(rowsBefore - 1,
+        var rowsBefore = await Page.Locator("#todo-list li").CountAsync();
+        await Page.Locator("button[aria-label^='Delete ']").First.ClickAsync();
+        await Expect(Page.Locator("#todo-list li")).ToHaveCountAsync(rowsBefore - 1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
         // Page-source CodeSample card is present.
         await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
@@ -2335,7 +1286,7 @@ public abstract partial class SharedSmokeTests
         // The demos all live on the reference subpage — the hub is prose and carries none, so walking it
         // would assert nothing (docs/browser-apis.md has zero `<!-- demo: -->` markers).
         await SideAsync("Browser APIs — reference & demos", "reference & live demos", "main .markdown-body h1");
-        await AssertGuideDemosAsync(35, "browser-apis-reference");
+        await AssertGuideDemosAsync(36, "browser-apis-reference");
         await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -2466,7 +1417,7 @@ public abstract partial class SharedSmokeTests
             history.pushState({ rask: true }, '', '/in-session-missing');
             window.dispatchEvent(new PopStateEvent('popstate'));
         }");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Page not found",
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Page not found",
             new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         await Expect(Page.Locator(".side-nav a.side-nav-link.active")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
@@ -2474,7 +1425,7 @@ public abstract partial class SharedSmokeTests
         // "Back to guides" is an in-session nav to "/" — returns us to a known page so the journey
         // can continue, and proves recovery from the not-found state.
         await Page.Locator("main button:has-text(\"Back to guides\")").ClickAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Guides",
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Guides",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
     }
 
@@ -2487,49 +1438,29 @@ public abstract partial class SharedSmokeTests
         await Page.GoBackAsync();
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
         await Page.GoForwardAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Todos",
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
 
-        // Data table: a [QueryParam]-driven grid — every interaction is a URL query mutation → rebind →
-        // re-render. Its /table route is unlisted (folded code-only into routing.md) but still a real page;
-        // exercise it here (post-sentinel) since reaching it is a hard nav. Sort → ?sort=name, filter →
-        // ?filter=…, page-size → 25 rows.
-        await Page.GotoAsync("/table");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(10,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await Page.Locator("th button:has-text('Name')").First.ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]sort=name"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Page.Locator("input[type='search']").FillAsync("Linus");
-        await Page.WaitForTimeoutAsync(300);
-        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]filter=Linus"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        var filteredRows = await Page.Locator("tbody tr").CountAsync();
-        Assert.True(filteredRows is > 0 and < 10, $"filter should reduce rows; got {filteredRows}");
-        await Page.Locator("input[type='search']").FillAsync("");
-        await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
-        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // The [QueryParam]-driven data table that stood here was the BsDataGrid showcase at /table.
+        // It went with Rask.Bootstrap, and the route is gone with it.
 
         if (opts.DeepLink)
         {
             // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)
-            // and re-emit server-highlighted spans. The Data table page's only language-code block is
-            // its own highlighted page-source sample, so every match must carry token spans.
-            await Page.GotoAsync("/table");
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
+            // and re-emit server-highlighted spans. Todos is the page used here now: its only
+            // language-code block is its own highlighted page source, so every match must carry spans.
+            await Page.GotoAsync("/todos");
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
             await Page.ReloadAsync();
             Assert.Equal(0, await Page.Locator(".rask-error-boundary h1:has-text(\"Something went wrong\")").CountAsync());
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
             await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
             var total = await Page.Locator("pre code[class*='language-']").CountAsync();
             var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
             Assert.True(total > 0 && total == highlighted,
-                $"/table after refresh: {highlighted}/{total} highlighted.");
+                $"/todos after refresh: {highlighted}/{total} highlighted.");
 
             // Guide prose code fences are syntax-highlighted server-side (Markdig has no highlighter, so
             // Markdown.HighlightCodeBlocks runs ColorCode) — a fresh load must carry token spans.
@@ -2550,7 +1481,7 @@ public abstract partial class SharedSmokeTests
 
             // A deep link to an unknown route renders the [NotFound] page inside the layout shell.
             await Page.GotoAsync("/this-route-definitely-does-not-exist");
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Page not found",
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Page not found",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         }
 
@@ -2559,7 +1490,7 @@ public abstract partial class SharedSmokeTests
             // WasmAppHost serves only /index.html; a reload there must always boot the runtime.
             await Page.GotoAsync("/index.html");
             await Page.ReloadAsync();
-            await Expect(Page.Locator("main h1.h2"))
+            await Expect(Page.Locator("main h1"))
                 .ToContainTextAsync("Guides",
                     new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
         }
@@ -2578,7 +1509,7 @@ public abstract partial class SharedSmokeTests
                 ["uploadThroughput"] = 50 * 1024,
             });
             await Page.GotoAsync("/guides/http-and-files");
-            await Expect(Page.Locator(".guide-demo .sample-result-body article.card").First).ToBeVisibleAsync(
+            await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(
                 new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
 
             if (opts.OfflineReconnect)
@@ -2679,15 +1610,12 @@ public abstract partial class SharedSmokeTests
     protected async Task AssertNavigationScrollAsync()
     {
         // --- a forward nav resets scroll to the top ---------------------------------------------
-        // The data table at 25 rows is reliably taller than the viewport; scroll to the bottom and
-        // confirm the document actually moved before navigating away. (Its /table route is unlisted now —
-        // folded code-only into routing.md — so reach it directly.)
-        await Page.GotoAsync("/table");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
-        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // Any page reliably taller than the viewport will do; a guide is. (The data table that used to
+        // serve this purpose was the BsDataGrid showcase and went with Rask.Bootstrap.) Scroll to the
+        // bottom and confirm the document actually moved before navigating away.
+        await Page.GotoAsync("/guides/getting-started");
+        await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await Page.EvaluateAsync("() => window.scrollTo(0, document.documentElement.scrollHeight)");
         await Page.WaitForFunctionAsync("() => window.scrollY > 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });

@@ -10,17 +10,17 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
 {
     protected override Component? Render() =>
         Div[
-            BsCard.Class(Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(3)))[
-                BsCardBody[
-                    BsRow.Gutter(3)[
-                        BsCol.Md(6)[
-                            Span.Class("text-secondary small text-uppercase")["Path"],
-                            Div[Code.Class("fs-6").Id("nav-path")[route.Path]]
+            Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
+                Div.Class(Ui.CardBody)[
+                    Div.Class("grid grid-cols-12 gap-4")[
+                        Div.Class("md:col-span-6")[
+                            Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Path"],
+                            Div[Code.Class("text-base").Id("nav-path")[route.Path]]
                         ],
-                        BsCol.Md(6)[
-                            Span.Class("text-secondary small text-uppercase")["Query"],
+                        Div.Class("md:col-span-6")[
+                            Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Query"],
                             Div[
-                                Code.Class("fs-6").Id("nav-query")[
+                                Code.Class("text-base").Id("nav-query")[
                                     route.Query.Count == 0 ? "(empty)" : BuildQuery(route)
                                 ]
                             ]
@@ -28,39 +28,24 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
                     ]
                 ]
             ],
-            Div.Class("btn-group flex-wrap")[
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+            Div.Class("flex-wrap")[
+                Button.Type("button").Class(Ui.BtnOutlinePrimary)
                     .Id("nav-set-page1")
                     .OnClick(() => nav.SetQuery("page", "1"))[
                     "SetQuery page=1"],
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                Button.Type("button").Class(Ui.BtnOutlinePrimary)
                     .Id("nav-set-page2")
                     .OnClick(() => nav.SetQuery("page", "2"))[
                     "SetQuery page=2"],
-                BsButton
-                    .Color(BsColor.Primary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                Button.Type("button").Class(Ui.BtnOutlinePrimary)
                     .Id("nav-set-sort")
                     .OnClick(() => nav.SetQuery("sort", "asc"))[
                     "SetQuery sort=asc"],
-                BsButton
-                    .Color(BsColor.Secondary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                Button.Type("button").Class(Ui.BtnOutlineSecondary)
                     .Id("nav-remove-page")
                     .OnClick(() => nav.RemoveQuery("page"))[
                     "RemoveQuery page"],
-                BsButton
-                    .Color(BsColor.Danger)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                Button.Type("button").Class(Ui.BtnOutlineDanger)
                     .Id("nav-clear")
                     .OnClick(() => nav.ClearQuery())["ClearQuery"]
             ]

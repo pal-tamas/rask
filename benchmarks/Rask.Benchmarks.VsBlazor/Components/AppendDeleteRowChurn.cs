@@ -28,7 +28,7 @@ internal static partial class AppendDeleteRowChurn
         {
             var idx = order[i];
             rows.Add(Div
-                .Class("row")
+                .Class("line")
                 .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
                 Span[$"Item {idx}"]
             ]);
@@ -93,7 +93,7 @@ internal static partial class AppendDeleteRowChurn
             }
 
             row = Div
-                .Class("row")
+                .Class("line")
                 .Data(new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[
                 Span[$"Item {key}"]
             ];
@@ -129,7 +129,7 @@ internal static partial class AppendDeleteRowChurn
                 var idx = Order[i];
                 b.OpenElement(2, "div");
                 b.SetKey(idx);
-                b.AddAttribute(3, "class", "row");
+                b.AddAttribute(3, "class", "line");
 
                 b.OpenElement(4, "span");
                 b.AddContent(5, $"Item {idx}");

@@ -1,5 +1,6 @@
 using Microsoft.JSInterop;
 using Rask.Core;
+using Rask.Example.Shared;
 using Rask.Wasm.Browser;
 
 namespace Rask.Example.Wasm.Features;
@@ -37,8 +38,8 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
     }
 
     protected override Component? Render() =>
-        Div.Class("card shadow-sm border-0")[
-            Div.Class("card-body")[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
                 Video
                     .Ref(_video)
                     .Width(320)
@@ -46,13 +47,13 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
                     .Muted(true)
                     .PlaysInline(true)
                     .Controls(true)
-                    .Class("rounded border mb-2 bg-dark"),
-                Div.Class("d-flex gap-2 flex-wrap mb-2")[
-                    Button.Class("btn btn-primary btn-sm").Id("pip-enter").OnClickAsync(Enter)[
+                    .Class("rounded border mb-2 bg-slate-900"),
+                Div.Class("flex gap-2 flex-wrap mb-2")[
+                    Button.Class(Ui.BtnPrimary).Id("pip-enter").OnClickAsync(Enter)[
                         "Open miniplayer"],
-                    Button.Class("btn btn-outline-danger btn-sm").Id("pip-exit").OnClickAsync(Exit)["Exit"]
+                    Button.Class(Ui.BtnOutlineDanger).Id("pip-exit").OnClickAsync(Exit)["Exit"]
                 ],
-                Div.Class("small text-secondary")["Status: ", Code.Id("pip-status")[_status]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("pip-status")[_status]]
             ]
         ];
 

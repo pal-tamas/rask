@@ -13,24 +13,24 @@ public sealed partial class LoginPage(JwtLoginService login) : Component
     [QueryParam] public string? ReturnUrl { get; set; }
 
     protected override Component? Render() =>
-        Div.Id("login").Class("card shadow-sm mx-auto").Style("max-width:24rem")[
-            Div.Class("card-body")[
-                H1.Class("h3 card-title mb-3")["Sign in"],
+        Div.Id("login").Class("rounded-xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700 mx-auto").Style("max-width:24rem")[
+            Div.Class("p-5")[
+                H1.Class("mb-1 text-lg font-semibold text-2xl mb-3")["Sign in"],
                 _error is null
                     ? null
-                    : Div.Id("login-error").Class("alert alert-danger py-2")[_error],
+                    : Div.Id("login-error").Class("rounded-lg px-4 py-3 text-sm bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200 py-2")[_error],
                 Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
                     Div.Class("mb-3")[
-                        Label.For("username").Class("form-label")["Username"],
-                        Input.Bind(() => _model.Username).Id("username").Class("form-control")
+                        Label.For("username").Class("mb-1 block text-sm font-medium")["Username"],
+                        Input.Bind(() => _model.Username).Id("username").Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100")
                     ],
                     Div.Class("mb-3")[
-                        Label.For("password").Class("form-label")["Password"],
-                        Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("form-control")
+                        Label.For("password").Class("mb-1 block text-sm font-medium")["Password"],
+                        Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100")
                     ],
-                    Button.Type("submit").Id("login-submit").Class("btn btn-primary w-100")["Sign in"]
+                    Button.Type("submit").Id("login-submit").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500 w-full")["Sign in"]
                 ],
-                P.Class("text-muted small mt-3 mb-0")[
+                P.Class("text-slate-500 dark:text-slate-400 text-sm mt-3 mb-0")[
                     "Try alice / password (user) or root / password (admin)."]
             ]
         ];

@@ -33,28 +33,26 @@ public sealed partial class GanttDemo : Component
     private GanttViewMode _viewMode = GanttViewMode.Day;
 
     protected override Component? Render() =>
-        Div.Class("vstack gap-3")[
-            BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true)[
-                BsButtonGroup.Size(BsSize.Sm)[
+        Div.Class("flex flex-col gap-3")[
+            Div.Class("flex gap-2 items-center flex-wrap items-center")[
+                // A segmented control: the selected mode carries the filled style, the rest the outline
+                // one. BsButtonGroup's .Active() was a prop; here it is just which class string wins.
+                Div.Class("inline-flex gap-1")[
                     Enum.GetValues<GanttViewMode>().Select(mode =>
-                        BsButton
+                        Button
                             .Key(mode.ToString())
-                            .Color(BsColor.Secondary)
-                            .Outline(_viewMode != mode)
-                            .Active(_viewMode == mode)
+                            .Type("button")
+                            .Class(_viewMode == mode ? Ui.BtnPrimary : Ui.BtnOutlineSecondary)
                             .OnClick(() => _viewMode = mode)[ViewModeLabel(mode)])
                 ],
                 // Add/remove push a new task list at the library — the prop-change path.
-                BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Outline(true).OnClick(AddTask)[
-                    BsIcon.Name(BsIconName.Plus), " Add task"],
+                Button.Type("button").Class(Ui.BtnOutlinePrimary).OnClick(AddTask)[
+                    Icon.Name(IconName.Plus), " Add task"],
                 // Disabled at one task rather than rendered conditionally: a component's identity is its
                 // (type, position) among its parent's children, so a sibling that disappears shifts every
                 // later child's position by one. The Gantt below would be matched against the wrong slot
                 // and rebuilt from scratch — remounting the chart on an unrelated click.
-                BsButton
-                    .Color(BsColor.Danger)
-                    .Size(BsSize.Sm)
-                    .Outline(true)
+                Button.Type("button").Class(Ui.BtnOutlineDanger)
                     .Disabled(_tasks.Count <= 1)
                     .OnClick(RemoveLast)["Remove last"]
             ],
@@ -69,28 +67,28 @@ public sealed partial class GanttDemo : Component
                 .OnDateChange(TaskMoved)
                 .OnProgressChange(ProgressChanged),
 
-            BsCard.Class("gantt-log")[
-                BsCardBody.Class("py-2")[
-                    Div.Class("small text-secondary mb-1")["Events from the chart:"],
+            Div.Class($"{Ui.Card} gantt-log")[
+                Div.Class($"{Ui.CardBody} py-2")[
+                    Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Events from the chart:"],
                     _log.Count == 0
-                        ? Div.Class("small fst-italic text-secondary")[
+                        ? Div.Class("text-sm italic text-slate-500 dark:text-slate-400")[
                             "Nothing yet — click a bar, or drag one to move it."]
-                        : Ul.Class("list-unstyled small mb-0 font-monospace")[
+                        : Ul.Class("list-unstyled text-sm mb-0 font-mono")[
                             _log.Select(e => Li.Key(e.Seq.ToString())[e.Text])]
                 ]
             ],
 
             // The C# state, rendered normally. This is what proves the round trip: it can only change
             // because the browser pushed an event into the callbacks above.
-            BsTable.Small(true).Class("mb-0 align-middle")[
-                Thead[Tr[Th["Task"], Th["Start"], Th["End"], Th.Class("text-end")["Progress"]]],
+            Table.Class("w-full border-collapse text-left text-sm")[
+                Thead[Tr[Th["Task"], Th["Start"], Th["End"], Th.Class("text-right")["Progress"]]],
                 Tbody[
                     _tasks.Select(t =>
                         Tr.Key(t.Id)[
                             Td[t.Name],
-                            Td.Class("font-monospace small")[t.Start.ToString("yyyy-MM-dd")],
-                            Td.Class("font-monospace small")[t.End.ToString("yyyy-MM-dd")],
-                            Td.Class("text-end")[BsBadge.Color(ProgressColor(t.Progress))[$"{t.Progress:F0}%"]]
+                            Td.Class("font-mono text-sm")[t.Start.ToString("yyyy-MM-dd")],
+                            Td.Class("font-mono text-sm")[t.End.ToString("yyyy-MM-dd")],
+                            Td.Class("text-right")[Span.Class(Ui.BadgeSecondary)[$"{t.Progress:F0}%"]]
                         ])
                 ]
             ]
@@ -103,11 +101,11 @@ public sealed partial class GanttDemo : Component
         _ => mode.ToString()
     };
 
-    private static BsColor ProgressColor(double progress) => progress switch
+    private static string ProgressColor(double progress) => progress switch
     {
-        >= 100 => BsColor.Success,
-        > 0 => BsColor.Info,
-        _ => BsColor.Secondary
+        >= 100 => "bg-emerald-500",
+        > 0 => "bg-sky-500",
+        _ => "bg-slate-400"
     };
 
     // No StateHasChanged anywhere below: each of these is a single-argument callback prop, so the

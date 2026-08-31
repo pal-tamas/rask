@@ -28,8 +28,8 @@ public sealed partial class UnmountTimerProbe : Component
     }
 
     protected override Component? Render() =>
-        BsStack.Gap(2).Align(BsAlign.Center)[
-            BsBadge.Color(BsColor.Warning)[$"#{InstanceId} tick {_ticks}"],
-            Span.Class("text-secondary small")["Stop me to fire OnUnmount and dispose the Timer."]
+        Div.Class("flex gap-2 items-center flex-wrap items-center")[
+            Span.Class(Ui.BadgeWarning)[$"#{InstanceId} tick {_ticks}"],
+            Span.Class("text-slate-500 dark:text-slate-400 text-sm")["Stop me to fire OnUnmount and dispose the Timer."]
         ];
 }

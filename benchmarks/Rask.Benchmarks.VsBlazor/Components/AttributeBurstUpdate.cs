@@ -24,10 +24,10 @@ internal static partial class AttributeBurstUpdate
         for (var i = 0; i < RowCount; i++)
         {
             var row = loaded
-                ? Div.Class("row").Data(new Dictionary<string, string?> { ["loaded"] = "true" })[
+                ? Div.Class("line").Data(new Dictionary<string, string?> { ["loaded"] = "true" })[
                     Span[$"Row {i}"]
                 ]
-                : Div.Class("row")[
+                : Div.Class("line")[
                     Span[$"Row {i}"]
                 ];
             rows.Add(row);
@@ -47,7 +47,7 @@ internal static partial class AttributeBurstUpdate
             for (var i = 0; i < RowCount; i++)
             {
                 b.OpenElement(2, "div");
-                b.AddAttribute(3, "class", "row");
+                b.AddAttribute(3, "class", "line");
                 if (Loaded)
                 {
                     b.AddAttribute(4, AttrName, "true");

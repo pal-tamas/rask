@@ -208,8 +208,8 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
 
         // Signed in, the operator sees the panels for the pillars this app actually registered.
         Assert.DoesNotContain("/login", _page.Url, StringComparison.Ordinal);
-        await Assertions.Expect(_page.Locator("a.nav-link", new() { HasTextString = "Jobs" })).ToBeVisibleAsync();
-        await Assertions.Expect(_page.Locator("a.nav-link", new() { HasTextString = "Outbox" })).ToBeVisibleAsync();
+        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Jobs" })).ToBeVisibleAsync();
+        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Outbox" })).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
 
         // History exists at all only because Rask.Logging is registered — without it the page is the
         // in-memory tail and offers no such mode.
-        await Assertions.Expect(_page.Locator("a.nav-link", new() { HasTextString = "History" }))
+        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "History" }))
             .ToBeVisibleAsync();
         await Assertions.Expect(_page.GetByText(new Regex("stored entries, kept across restarts")))
             .ToBeVisibleAsync();
@@ -241,7 +241,7 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         await Assertions.Expect(_page.GetByText("Application started").First).ToBeVisibleAsync();
 
         // The live tail is still there beside it, reading nothing from disk.
-        await _page.ClickAsync("a.nav-link:has-text('Live')");
+        await _page.ClickAsync("nav a:has-text('Live')");
         await Assertions.Expect(_page.GetByText(new Regex("in memory only"))).ToBeVisibleAsync();
     }
 

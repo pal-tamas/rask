@@ -22,7 +22,14 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
+    <!-- Build-order edge only. The Tailwind wiring itself arrives from Directory.Build.{props,targets}
+         (and, for a scaffolded app, from inside the host package) — this reference exists so that
+         Rask.Tailwind.Tasks.dll is on disk before the UsingTask that loads it runs. Build-only: an
+         MSBuild task and a CLI run, not an assembly. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
@@ -58,5 +65,6 @@
          lever under CPM — transitive pinning does not move it. See Directory.Packages.props. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
   </ItemGroup>
+
 
 </Project>

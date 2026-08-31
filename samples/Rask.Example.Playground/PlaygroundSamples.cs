@@ -37,10 +37,10 @@ public static class PlaygroundSamples
                 private int _count;
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Hello, Rask 👋"],
                         P[$"You clicked {_count} times."],
-                        Button.Class("btn").OnClick(() => _count++)["Click me"]
+                        Button.Class("action").OnClick(() => _count++)["Click me"]
                     ];
             }
             """),
@@ -70,7 +70,7 @@ public static class PlaygroundSamples
                 private string? _welcome;
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Create account"],
                         Form.Model(_model)
                             .OnValidSubmit(m => _welcome = $"Welcome, {m.Name}!")
@@ -104,7 +104,7 @@ public static class PlaygroundSamples
                             Input.Bind(() => _model.Confirm).Type(InputType.Password).Class("field"),
 
                             ValidationSummary.Template(Summary),
-                            Button.Type("submit").Class("btn")["Sign up"]
+                            Button.Type("submit").Class("action")["Sign up"]
                         ],
                         _welcome is null ? null : P.Class("ok")[_welcome]
                     ];
@@ -156,11 +156,11 @@ public static class PlaygroundSamples
                 private readonly Draft _draft = new();
 
                 protected override Component? Render() =>
-                    Div.Class("card")[
+                    Div.Class("panel")[
                         H1["Todos"],
-                        Div.Class("row")[
+                        Div.Class("line")[
                             Input.Bind(() => _draft.Text).Class("field").Placeholder("What needs doing?"),
-                            Button.Class("btn").OnClick(Add)["Add"]
+                            Button.Class("action").OnClick(Add)["Add"]
                         ],
                         Ul.Class("list")[
                             _todos.Select(t => Li.Key(t.Id).Class(t.Done ? "done" : null)[

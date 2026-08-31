@@ -16,7 +16,7 @@ internal static partial class StaticList
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(Div.Class("row").Id($"r{i}")[
+            rows.Add(Div.Class("line").Id($"r{i}")[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
             ]);
@@ -36,7 +36,7 @@ internal static partial class StaticList
             for (var i = 0; i < RowCount; i++)
             {
                 b.OpenElement(2, "div");
-                b.AddAttribute(3, "class", "row");
+                b.AddAttribute(3, "class", "line");
                 b.AddAttribute(4, "id", $"r{i}");
 
                 b.OpenElement(5, "span");

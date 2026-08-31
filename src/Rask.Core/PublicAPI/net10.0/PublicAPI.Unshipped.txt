@@ -1304,6 +1304,7 @@ Rask.Core.Build<T, TMode>.ToHtml() -> string!
 Rask.Core.Build<T, TMode>.Value.get -> T!
 Rask.Core.Build<T, TMode>.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.Core.Component!
 Rask.Core.Build<T, TMode>.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Component!
+Rask.Core.Build<T, TMode>.this[params object?[]! children].get -> Rask.Core.Component!
 Rask.Core.Build<T>
 Rask.Core.Build<T>.Build() -> void
 Rask.Core.Build<T>.Build(T! component) -> void
@@ -1311,6 +1312,7 @@ Rask.Core.Build<T>.ToHtml() -> string!
 Rask.Core.Build<T>.Value.get -> T!
 Rask.Core.Build<T>.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.Core.Component!
 Rask.Core.Build<T>.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Component!
+Rask.Core.Build<T>.this[params object?[]! children].get -> Rask.Core.Component!
 Rask.Core.BuilderRuntime
 Rask.Core.Component
 Rask.Core.Component.CancellationToken.get -> System.Threading.CancellationToken
@@ -1331,6 +1333,7 @@ Rask.Core.Component.ToHtml() -> string!
 Rask.Core.Component.UICulture.get -> System.Globalization.CultureInfo!
 Rask.Core.Component.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.Core.Component!
 Rask.Core.Component.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Component!
+Rask.Core.Component.this[params object?[]! children].get -> Rask.Core.Component!
 Rask.Core.Components.A
 Rask.Core.Components.A.A() -> void
 Rask.Core.Components.A.Download.get -> string?
@@ -2071,6 +2074,8 @@ Rask.Core.Globalization.SessionCulture.Supported.get -> System.Collections.Gener
 Rask.Core.Globalization.SessionCulture.UICulture.get -> System.Globalization.CultureInfo!
 Rask.Core.Http.IPageResponse
 Rask.Core.Http.IPageResponse.SetStatus(int statusCode) -> void
+Rask.Core.IComponentChain
+Rask.Core.IComponentChain.Unwrap() -> Rask.Core.Component!
 Rask.Core.Live.ClipboardEventArgs
 Rask.Core.Live.ClipboardEventArgs.<Clone>$() -> Rask.Core.Live.ClipboardEventArgs!
 Rask.Core.Live.ClipboardEventArgs.ClipboardEventArgs(string! Text) -> void
@@ -2549,6 +2554,13 @@ Rask.Core.Routing.QueryParamAttribute
 Rask.Core.Routing.QueryParamAttribute.Name.get -> string?
 Rask.Core.Routing.QueryParamAttribute.QueryParamAttribute(string? name = null) -> void
 Rask.Core.Routing.QueryString
+Rask.Core.Routing.RaskMountedApp
+Rask.Core.Routing.RaskMountedApp.Covers(string? path) -> bool
+Rask.Core.Routing.RaskMountedApp.Pattern.get -> string!
+Rask.Core.Routing.RaskMountedApp.Prefix.get -> string!
+Rask.Core.Routing.RaskMountedApp.RaskMountedApp(System.Type! root, string! pattern, System.Reflection.Assembly! routesFrom) -> void
+Rask.Core.Routing.RaskMountedApp.Root.get -> System.Type!
+Rask.Core.Routing.RaskMountedApp.RoutesFrom.get -> System.Reflection.Assembly!
 Rask.Core.Routing.Route
 Rask.Core.Routing.Route.<Clone>$() -> Rask.Core.Routing.Route!
 Rask.Core.Routing.Route.Deconstruct(out System.Type! PageType, out string! Template, out System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>? SubRoutes) -> void
@@ -3306,8 +3318,12 @@ static Rask.Core.Routing.RouteRegistration.operator !=(Rask.Core.Routing.RouteRe
 static Rask.Core.Routing.RouteRegistration.operator ==(Rask.Core.Routing.RouteRegistration left, Rask.Core.Routing.RouteRegistration right) -> bool
 static Rask.Core.Routing.RouteRegistry.Add(System.Collections.Generic.IEnumerable<Rask.Core.Routing.RouteRegistration>! registrations) -> void
 static Rask.Core.Routing.RouteRegistry.BuildTree() -> System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>!
+static Rask.Core.Routing.RouteRegistry.BuildTree(System.Reflection.Assembly! assembly) -> System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>!
+static Rask.Core.Routing.RouteRegistry.BuildTreeExcept(System.Collections.Generic.IReadOnlyList<System.Reflection.Assembly!>! assemblies) -> System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>!
+static Rask.Core.Routing.RouteRegistry.BuildTreeExcept(System.Reflection.Assembly! assembly) -> System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>!
 static Rask.Core.Routing.RouteRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.Core.Routing.RouteRegistration>! registrations) -> void
 static Rask.Core.Routing.RouteRegistry.SetDefaultFallback(System.Type! pageType) -> void
+static Rask.Core.Routing.RouteResolver.TryResolve(System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>! roots, string! path, out System.Collections.Generic.IReadOnlyList<System.Type!>! chain, out bool isNotFound) -> bool
 static Rask.Core.Routing.RouteResolver.TryResolve(string! path, out System.Collections.Generic.IReadOnlyList<System.Type!>! chain) -> bool
 static Rask.Core.Routing.RouteResolver.TryResolve(string! path, out System.Collections.Generic.IReadOnlyList<System.Type!>! chain, out bool isNotFound) -> bool
 static Rask.Core.Routing.RouteUrl.External(string! url) -> Rask.Core.Routing.RouteUrl

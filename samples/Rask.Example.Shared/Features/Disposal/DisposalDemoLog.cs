@@ -27,13 +27,13 @@ internal sealed partial class DisposalDemoLog : Component
 
     protected override Component? Render() =>
         [
-            H3.Class("h6 text-secondary text-uppercase small mt-4")["Log"],
+            H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mt-4")["Log"],
             Entries.Count == 0
-                ? P.Class("text-secondary small mb-0")["Empty — mount and unmount the probe."]
+                ? P.Class("text-slate-500 dark:text-slate-400 text-sm mb-0")["Empty — mount and unmount the probe."]
                 : Ol
-                    .Class("list-group list-group-numbered list-group-flush")
+                    .Class($"{Ui.ListGroup} list-decimal list-inside divide-y divide-slate-200 dark:divide-slate-700")
                     .Id(ListId)[Entries.Select((line, i) => Li
                         .Key(i)
-                        .Class("list-group-item ps-2 small")[Code.Class("small")[line]]).ToArray()]
+                        .Class($"{Ui.ListGroupItem} ps-2 text-sm")[Code.Class("text-sm")[line]]).ToArray()]
         ];
 }

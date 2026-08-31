@@ -61,7 +61,7 @@ dotnet run --project samples/Rask.Example.Server
 - **Attribute render order: id, class, style, title, the plain globals (lang, dir, hidden, inert,
   popover, contenteditable, spellcheck, translate), data-*, role, tabindex, aria-*, `Attributes`
   (the verbatim escape hatch), then tag-specific — tests assert it; preserve it.**
-- Markup is a CHAIN: `Div.Class("card")[Span["hi"]]` — no `new`, no factory call. Children via the
+- Markup is a CHAIN: `Div.Class("panel")[Span["hi"]]` — no `new`, no factory call. Children via the
   indexer (no `Children:` param; `..` spread breaks — pass enumerables). A component's REQUIRED props are
   chain steps taken first (any order); `Bind` vs `Value` are mutually exclusive openings; type arguments
   are inferred from the opening step, or stated with `.Of<T>()`. See `docs/building-components.md`.
@@ -91,14 +91,14 @@ dotnet run --project samples/Rask.Example.Server
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–059, RASK030/032/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–059, RASK030/032/034/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–060 are documented in `docs/diagnostics.md`
-  (RASK030/032/042/047/048/049/050 are retired and never recycled; the next free id is RASK061). **Grep `src/`
+  (RASK030/032/034/042/047/048/049/050 are retired and never recycled; the next free id is RASK061). **Grep `src/`
   for the id before you claim it, AND again before you merge** — three assemblies allocate in this space and
   RS1019 only checks one compilation, so this line goes stale silently. This has now bitten four times on one
   branch: #865 took RASK054, #871 took RASK055, and #864 took RASK056–059 out from under #880's own RASK056,

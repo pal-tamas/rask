@@ -15,11 +15,18 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+    <!-- Tailwind, compiled at this project's build. Build-only: it contributes an MSBuild task and a
+         CLI run, not an assembly. -->
+    <ProjectReference Include="..\..\src\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
 
   <!-- The ASP.NET Web SDK requires a wwwroot to exist even when there are no static files. -->
   <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">
     <MakeDir Directories="wwwroot"/>
   </Target>
+
 
 </Project>

@@ -9,17 +9,15 @@ public sealed partial class BoomNestedDemo : Component
         ErrorBoundary.Fallback((ex, _) => OuterFallback(ex))[
             Div.Class("p-3 border rounded bg-white").Id("boom-nested-host")[
                 P
-                    .Class("mb-2 small text-secondary")
+                    .Class("mb-2 text-sm text-slate-500 dark:text-slate-400")
                     .Id("boom-nested-outer-healthy")[
                     "Outer healthy region — stays mounted while the inner boundary trips."],
                 ErrorBoundary.Fallback((ex, recover) => InnerFallback(ex, recover))[
-                    Div.Class("p-3 border rounded bg-light")[
-                        P.Class("small text-secondary mb-2")["Inner boundary subtree."],
-                        BsButton
-                            .Color(BsColor.Danger)
-                            .Size(BsSize.Sm)
+                    Div.Class("p-3 border rounded bg-slate-100")[
+                        P.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")["Inner boundary subtree."],
+                        Button.Type("button").Class(Ui.BtnDanger)
                             .Id("boom-nested-throw")
-                            .OnClick(ThrowFromInnerHandler)[BsIcon.Name(BsIconName.ExclamationTriangle).Class("me-2"),
+                            .OnClick(ThrowFromInnerHandler)[Icon.Name(IconName.ExclamationTriangle).Class("me-2"),
                             "Throw inside inner boundary"]
                     ]
                 ]
@@ -27,26 +25,21 @@ public sealed partial class BoomNestedDemo : Component
         ];
 
     private static Component InnerFallback(Exception ex, Action recover) =>
-        BsAlert
-            .Color(BsColor.Warning)
-            .Class("d-flex align-items-start")
+        Div.Class($"{Ui.AlertWarning} flex items-start")
             .Id("boom-nested-inner-fallback")[
-            BsIcon.Name(BsIconName.ShieldExclamation).Class("me-3 fs-4"),
+            Icon.Name(IconName.ShieldExclamation).Class("me-3 text-xl"),
             Div[
                 Strong["Inner boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],
-                P.Class("mb-2 mt-1 small")[ex.Message],
-                BsButton
-                    .Color(BsColor.Secondary)
-                    .Outline(true)
-                    .Size(BsSize.Sm)
+                P.Class("mb-2 mt-1 text-sm")[ex.Message],
+                Button.Type("button").Class(Ui.BtnOutlineSecondary)
                     .Id("boom-nested-inner-recover")
-                    .OnClick(recover)[BsIcon.Name(BsIconName.ArrowCounterclockwise).Class("me-1"), "Recover inner"]
+                    .OnClick(recover)[Icon.Name(IconName.ArrowCounterclockwise).Class("me-1"), "Recover inner"]
             ]
         ];
 
     private static Component OuterFallback(Exception ex) =>
-        BsAlert.Color(BsColor.Danger).Id("boom-nested-outer-fallback")[
+        Div.Class(Ui.AlertDanger).Id("boom-nested-outer-fallback")[
             Strong["Outer boundary caught: "], ex.Message
         ];
 

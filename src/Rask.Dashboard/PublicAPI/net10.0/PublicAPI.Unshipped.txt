@@ -28,6 +28,20 @@ Rask.Dashboard.Logging.DashboardLogEntry.Sequence.get -> long
 Rask.Dashboard.Logging.DashboardLogEntry.Sequence.init -> void
 Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.get -> System.DateTimeOffset
 Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.init -> void
+Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Archive = 6 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Clock = 4 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Database = 2 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Envelope = 3 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Gear = 8 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Outbox = 7 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Overview = 0 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Queue = 1 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Retry = 5 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.ShieldOk = 11 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.ShieldWarning = 12 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Storage = 9 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Warning = 10 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.Pages.CachePage
 Rask.Dashboard.Pages.CachePage.CachePage(Rask.Dashboard.Panels.ICachePanelReader! cache, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
 Rask.Dashboard.Pages.CachePage.Search.get -> string?
@@ -40,13 +54,15 @@ Rask.Dashboard.Pages.LogsPage.Category.set -> void
 Rask.Dashboard.Pages.LogsPage.Dispose() -> void
 Rask.Dashboard.Pages.LogsPage.Level.get -> string?
 Rask.Dashboard.Pages.LogsPage.Level.set -> void
-Rask.Dashboard.Pages.LogsPage.LogsPage(Rask.Dashboard.Logging.DashboardLogBuffer! buffer, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider, System.IServiceProvider! services) -> void
+Rask.Dashboard.Pages.LogsPage.LogsPage(Rask.Dashboard.Logging.DashboardLogBuffer! buffer, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider, Rask.Core.Routing.Navigator! navigator, System.IServiceProvider! services) -> void
 Rask.Dashboard.Pages.LogsPage.Page.get -> int?
 Rask.Dashboard.Pages.LogsPage.Page.set -> void
 Rask.Dashboard.Pages.LogsPage.Query.get -> string?
 Rask.Dashboard.Pages.LogsPage.Query.set -> void
 Rask.Dashboard.Pages.LogsPage.View.get -> string?
 Rask.Dashboard.Pages.LogsPage.View.set -> void
+Rask.Dashboard.Pages.NotFoundPage
+Rask.Dashboard.Pages.NotFoundPage.NotFoundPage() -> void
 Rask.Dashboard.Pages.OverviewPage
 Rask.Dashboard.Pages.OverviewPage.OverviewPage(System.Collections.Generic.IEnumerable<Rask.Dashboard.Panels.IQueuePanel!>! queues, Rask.Dashboard.RaskDashboardOptions! options) -> void
 Rask.Dashboard.Pages.PollingPanel
@@ -173,7 +189,7 @@ Rask.Dashboard.Panels.IQueueActions.RetryAllAsync(System.Threading.CancellationT
 Rask.Dashboard.Panels.IQueueActions.RetryAsync(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
 Rask.Dashboard.Panels.IQueuePanel
 Rask.Dashboard.Panels.IQueuePanel.CountsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.QueueCounts>!
-Rask.Dashboard.Panels.IQueuePanel.Icon.get -> Rask.Bootstrap.BsIconName
+Rask.Dashboard.Panels.IQueuePanel.Icon.get -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.Panels.IQueuePanel.IsAvailable.get -> bool
 Rask.Dashboard.Panels.IQueuePanel.MaxAttempts.get -> int
 Rask.Dashboard.Panels.IQueuePanel.PageAsync(Rask.Dashboard.Panels.QueueFilter filter, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.QueueRow!>! Rows, int Total)>!
@@ -367,6 +383,7 @@ static RaskBuilderSettersRask_Dashboard.__RaskResetPending_Rask_Dashboard_Pages_
 static RaskEntriesRask_Dashboard.CachePage.get -> Rask.Core.Build<Rask.Dashboard.Pages.CachePage!>
 static RaskEntriesRask_Dashboard.DashboardLayout.get -> Rask.Core.Build<Rask.Dashboard.Pages.DashboardLayout!>
 static RaskEntriesRask_Dashboard.LogsPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
+static RaskEntriesRask_Dashboard.NotFoundPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.NotFoundPage!>
 static RaskEntriesRask_Dashboard.OverviewPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.OverviewPage!>
 static RaskEntriesRask_Dashboard.QueuePage.get -> Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!>
 static RaskEntriesRask_Dashboard.RaskDashboardShell.get -> Rask.Core.Build<Rask.Dashboard.RaskDashboardShell!>

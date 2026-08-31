@@ -12,17 +12,17 @@ public sealed partial class FirstErrorWinsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Activated: {m.Code}").Class("vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Activated: {m.Code}").Class("flex flex-col gap-3")[
             DataAnnotationsValidator,
             Div[
-                Label.For("v8-code").Class("form-label small mb-1")["License code"],
+                Label.For("v8-code").Class($"{Ui.Label} text-sm mb-1")["License code"],
                 Input.Bind(() => _model.Code)
                     .Id("v8-code")
-                    .Class("form-control")
+                    .Class(Ui.Input)
                     .Validate(v =>
                         string.IsNullOrWhiteSpace(v)
                             ? new[] { "Code is required." }
@@ -30,12 +30,12 @@ public sealed partial class FirstErrorWinsDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Unlock).Class("me-1"), "Activate"]
+                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Unlock).Class("me-1"), "Activate"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

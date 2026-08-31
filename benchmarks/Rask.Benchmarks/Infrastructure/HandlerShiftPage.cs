@@ -36,12 +36,12 @@ public sealed partial class HandlerShiftPage : Component
             Html[
                 Head,
                 Body[
-                    Div.Class("container").Id("root")[
+                    Div.Class("wrap").Id("root")[
                         Div.Class("toolbar")[
                             Span["Rows"],
                             ShowToolbarAction ? Button.OnClick(() => { })["clear"] : null
                         ],
-                        Table.Class("table")[Tbody[rows]]
+                        Table.Class("sheet")[Tbody[rows]]
                     ]
                 ]
             ]

@@ -72,7 +72,7 @@ public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Target("_blank").Rel("noopener").Class("lnk")[$"open {i}"],
                 Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32).Loading("lazy"),
@@ -80,10 +80,10 @@ public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
             ]);
         }
 
-        return Div.Class("container").Id("root")[
+        return Div.Class("wrap").Id("root")[
             Div.Class("header")[
                 Span.Class("title")["Benchmark Tree"],
-                Button.Type("button").Class("btn").Disabled(false)["Click"]
+                Button.Type("button").Class("action").Disabled(false)["Click"]
             ],
             Div.Class("body")[rows]
         ];
@@ -119,7 +119,7 @@ public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
             // All values are encoding-free ASCII so the HtmlEncoder.Encode call returns
             // a string allocation that's literally identical to the input. The proposed
             // fast-path (scan-for-special-chars, append verbatim) elides that allocation.
-            rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
+            rows.Add(Div.Class("line").Id($"r{i}").Key(i)[
                 Span.Class("label")[$"item {i}"],
                 Span.Class("value")[$"value {i}"],
                 Span.Class("meta")[$"meta {i}"],
@@ -127,7 +127,7 @@ public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
             ]);
         }
 
-        return Div.Class("container").Id("root")[
+        return Div.Class("wrap").Id("root")[
             Div.Class("body")[rows]
         ];
     }
@@ -140,24 +140,24 @@ public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
 public sealed partial class ScopedRowA : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => Div.Class("row").Id($"a{Index}")[Span[$"a {Index}"]];
+    protected override Component? Render() => Div.Class("line").Id($"a{Index}")[Span[$"a {Index}"]];
 }
 
 public sealed partial class ScopedRowB : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => Div.Class("row").Id($"b{Index}")[Span[$"b {Index}"]];
+    protected override Component? Render() => Div.Class("line").Id($"b{Index}")[Span[$"b {Index}"]];
 }
 
 public sealed partial class ScopedRowC : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => Div.Class("row").Id($"c{Index}")[Span[$"c {Index}"]];
+    protected override Component? Render() => Div.Class("line").Id($"c{Index}")[Span[$"c {Index}"]];
 }
 
 public sealed partial class ScopedRowD : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => Div.Class("row").Id($"d{Index}")[Span[$"d {Index}"]];
+    protected override Component? Render() => Div.Class("line").Id($"d{Index}")[Span[$"d {Index}"]];
 }
 #pragma warning restore RASK014

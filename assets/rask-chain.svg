@@ -1,33 +1,33 @@
-<svg class="rc-svg" role="img" viewBox="0 0 880 620" xmlns="http://www.w3.org/2000/svg"><title>The Counter component being typed, with the IDE&#x27;s completion list and doc comment</title><desc>An editor types a Rask Counter page character by character, starting with its [Route(&quot;/counter&quot;)] attribute. As H1[ is written a tooltip explains the indexer; when the caret stops after Button. a completion list opens showing Class, Id, OnClick and Style with each member&#x27;s XML doc summary, then the line finishes as Button.OnClick(() =&gt; _count&#x2B;&#x2B;)[&quot;Click me&quot;].</desc><style>.rc-win { fill: var(--panel, #14141f); }
-.rc-bar { fill: var(--panel-2, #1b1b2a); }
-.rc-edge { fill: none; stroke: var(--line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
-.rc-rule { stroke: var(--line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
-.rc-dot { fill: var(--muted, #8a8aa4); opacity: 0.45; }
+<svg class="rc-svg" role="img" viewBox="0 0 880 620" xmlns="http://www.w3.org/2000/svg"><title>The Counter component being typed, with the IDE&#x27;s completion list and doc comment</title><desc>An editor types a Rask Counter page character by character, starting with its [Route(&quot;/counter&quot;)] attribute. As H1[ is written a tooltip explains the indexer; when the caret stops after Button. a completion list opens showing Class, Id, OnClick and Style with each member&#x27;s XML doc summary, then the line finishes as Button.OnClick(() =&gt; _count&#x2B;&#x2B;)[&quot;Click me&quot;].</desc><style>.rc-win { fill: var(--color-panel, #14141f); }
+.rc-bar { fill: var(--color-panel-2, #1b1b2a); }
+.rc-edge { fill: none; stroke: var(--color-line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
+.rc-rule { stroke: var(--color-line, rgba(139, 92, 246, 0.28)); stroke-width: 1; }
+.rc-dot { fill: var(--color-muted, #8a8aa4); opacity: 0.45; }
 .rc-t {
   font-family: var(--mono, "SFMono-Regular", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace);
   font-size: 18px;
-  fill: var(--ink, #e9e9f2);
+  fill: var(--color-ink, #e9e9f2);
 }
 .rc-md { font-size: 17px; }
 .rc-sm { font-size: 15px; }
 .rc-xs { font-size: 14px; }
 .rc-xxs { font-size: 13px; }
-.rc-mut { fill: var(--muted, #8a8aa4); }
-.rc-soft { fill: var(--ink-soft, #c3c2d6); }
-.rc-kw { fill: var(--accent-ink, #c4b5fd); }
-.rc-ent { fill: var(--accent, #8b5cf6); }
-.rc-mem { fill: var(--ink, #e9e9f2); }
-.rc-str { fill: var(--signal, #34d399); }
-.rc-op { fill: var(--ink-soft, #c3c2d6); }
-.rc-interp { fill: var(--accent-ink, #c4b5fd); }
-.rc-chip { fill: var(--accent, #8b5cf6); opacity: 0.35; }
+.rc-mut { fill: var(--color-muted, #8a8aa4); }
+.rc-soft { fill: var(--color-ink-soft, #c3c2d6); }
+.rc-kw { fill: var(--color-accent-ink, #c4b5fd); }
+.rc-ent { fill: var(--color-accent, #8b5cf6); }
+.rc-mem { fill: var(--color-ink, #e9e9f2); }
+.rc-str { fill: var(--color-signal, #34d399); }
+.rc-op { fill: var(--color-ink-soft, #c3c2d6); }
+.rc-interp { fill: var(--color-accent-ink, #c4b5fd); }
+.rc-chip { fill: var(--color-accent, #8b5cf6); opacity: 0.35; }
 /* fill-opacity, not opacity: .rc-hl on the same element has its opacity driven by keyframes,
    and two opacity declarations would let the animation paint a solid block over the row. */
-.rc-hlbar { fill: var(--accent, #8b5cf6); fill-opacity: 0.18; }
+.rc-hlbar { fill: var(--color-accent, #8b5cf6); fill-opacity: 0.18; }
 /* transform-origin is per segment — the text's right edge, not the cover's. See the note on
    the cover's Bleed at the top of the file. */
 .rc-cv { transform-box: fill-box; }
-.rc-ct { fill: var(--accent, #8b5cf6); }
+.rc-ct { fill: var(--color-accent, #8b5cf6); }
 
 /* Base state == the final frame: everything typed, every hint dismissed. */
 .rc-cv { transform: scaleX(0); }

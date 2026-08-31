@@ -50,19 +50,19 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
     }
 
     protected override Component? Render() =>
-        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody[
-                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
-                    BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("battery-read").OnClickAsync(Read)[
+        Div.Class($"{Ui.Card} shadow-sm border-0")[
+            Div.Class(Ui.CardBody)[
+                Div.Class("flex gap-2 flex-wrap items-center mb-2")[
+                    Button.Type("button").Class(Ui.BtnPrimary).Id("battery-read").OnClickAsync(Read)[
                         "Read now"]
                 ],
-                Div.Class("small text-secondary mb-1")[
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
                     "Level: ", Code.Id("battery-level")[_status is { } s ? $"{s.Level * 100:0}%" : "(none)"]],
-                Div.Class("small text-secondary mb-1")[
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
                     "Charging: ", Code.Id("battery-charging")[_status is { } c ? (c.Charging ? "yes" : "no") : "(none)"]],
-                Div.Class("small text-secondary mb-1")[
+                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
                     "Watch: ", Code.Id("battery-watch")[_watchState]],
-                Div.Class("small text-secondary")["Status: ", Code.Id("battery-status")[_readState]]
+                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("battery-status")[_readState]]
             ]
         ];
 
