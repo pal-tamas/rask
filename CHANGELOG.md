@@ -346,6 +346,25 @@ them until tagged releases begin.
   the test still passes against the bug after ~100 s, on `HttpClient`'s own default timeout. Verified
   by reverting the fix — it went green in 1 m 40 s instead of milliseconds, which is a test passing for
   the wrong reason.
+- **A dropped upload chunk resumes instead of failing the whole dispatch.**
+  ([#895](https://github.com/pal-tamas/rask/issues/895)) The server has always echoed
+  `X-Rask-Upload-Offset` and answered **409** on a mismatch — 409 rather than 400 precisely so the
+  offset it holds can ride along — and the client read neither, throwing on any non-2xx chunk. So a
+  single lost chunk failed an upload the protocol was built to recover, and the affordance cost server
+  code and a documented status code while delivering nothing.
+
+  The client now restarts from the offset the server reports, in either direction: less than it sent (a
+  chunk was lost) or more (a retry it thought had failed did land). The stream is **re-opened** rather
+  than sought, because that is the one thing guaranteed to work on every host — a `RaskFile` reads in
+  slices through `Blob.slice` in the browser and a `FileStream` on the server — and a non-seekable
+  stream is advanced by read-and-discard.
+
+  Bounded twice, so it cannot spin: three attempts per file, and the reported offset must **change** —
+  a server repeatedly naming the offset the client is already at is a disagreement retrying cannot
+  settle, so it surfaces as a `RemoteDispatchException` carrying 409 rather than looping until a budget
+  runs out. Resume is in-session only; a browser's `File` handle dies with the page, which
+  `docs/cqrs.md` now states along with `ChunkedUploadThreshold` being load-bearing for browser memory
+  rather than a tuning knob.
 - **The packed `Rask.External` now carries its real `build/Rask.External.props`.** The Static Web
   Assets SDK auto-generates `build/$(PackageId).props` to import its own wiring, so the hand-written
   file of the same name had a second producer: NuGet packed the SDK's copy first and dropped ours

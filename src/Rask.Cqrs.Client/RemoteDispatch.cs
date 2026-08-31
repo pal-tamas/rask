@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -217,22 +218,121 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
 
         for (var index = 0; index < files.Count; index++)
         {
-            // Opened once and read forward. A RaskFile reads in slices on every host — Blob.slice in the
-            // browser, a FileStream on the server — so the file is never materialised whole on either
-            // side of this loop.
-            await using var source = files[index].OpenReadStream(cancellationToken);
-
             long offset = 0;
-            int read;
-            while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            var attemptsLeft = MaxResumeAttempts;
+
+            while (true)
             {
-                await SendChunkAsync(uploadId, index, offset, files[index], buffer, read, cancellationToken)
-                    .ConfigureAwait(false);
-                offset += read;
+                // Re-opened rather than sought on a resume: a RaskFile reads in slices on every host —
+                // Blob.slice in the browser, a FileStream on the server — and re-opening is the one thing
+                // guaranteed to work on both. The file is never materialised whole either way.
+                await using var source = files[index].OpenReadStream(cancellationToken);
+                await SkipAsync(source, offset, buffer, cancellationToken).ConfigureAwait(false);
+
+                try
+                {
+                    int read;
+                    while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                    {
+                        await SendChunkAsync(
+                                uploadId, index, offset, files[index], buffer, read, cancellationToken)
+                            .ConfigureAwait(false);
+                        offset += read;
+                    }
+
+                    break;
+                }
+                catch (ChunkOffsetMismatch mismatch) when (attemptsLeft > 0 && mismatch.ServerOffset != offset)
+                {
+                    // Resume from what the server actually holds, in either direction: less than we sent
+                    // (a chunk was lost) or more (a retry we thought had failed did land).
+                    //
+                    // Requiring the offset to CHANGE is what stops this looping: a server repeatedly
+                    // answering with the offset we are already at is a disagreement retrying cannot fix,
+                    // so it falls through to the failure below rather than spinning until the budget runs
+                    // out. In-session only — a browser's File handle dies with the page, so a resume
+                    // across a reload remains impossible and is documented as such.
+                    attemptsLeft--;
+                    offset = mismatch.ServerOffset;
+                }
+                catch (ChunkOffsetMismatch mismatch)
+                {
+                    // Out of attempts, or the server keeps naming the offset we are already at. Either
+                    // way this is a disagreement retrying cannot settle, and it must leave as the same
+                    // kind of failure every other refused chunk does — an internal exception type
+                    // reaching a caller would be a leak, and one they could not catch.
+                    throw new RemoteDispatchException(
+                        "The upload could not resume: the server holds "
+                        + $"{mismatch.ServerOffset.ToString(CultureInfo.InvariantCulture)} bytes and the "
+                        + "client could not reconcile with that.")
+                    {
+                        StatusCode = (int)HttpStatusCode.Conflict,
+                    };
+                }
             }
         }
 
         return uploadId;
+    }
+
+    /// <summary>How many times one file may restart from a server-reported offset before giving up.</summary>
+    /// <remarks>
+    ///     Bounded rather than open-ended: a resume is for a dropped chunk, and a server that keeps
+    ///     disagreeing is a fault to report rather than one to keep paying for. Per file, so a large
+    ///     upload of several files does not spend one budget across all of them.
+    /// </remarks>
+    private const int MaxResumeAttempts = 3;
+
+    /// <summary>Advances <paramref name="source" /> to <paramref name="offset" /> after a resume.</summary>
+    private static async Task SkipAsync(
+        Stream source,
+        long offset,
+        byte[] buffer,
+        CancellationToken cancellationToken)
+    {
+        if (offset <= 0)
+        {
+            return;
+        }
+
+        if (source.CanSeek)
+        {
+            source.Seek(offset, SeekOrigin.Begin);
+            return;
+        }
+
+        // Read-and-discard for a stream that cannot seek. It costs a re-read of what was already sent,
+        // which is the price of resuming at all — and still bounded, since the buffer is one chunk.
+        var remaining = offset;
+        while (remaining > 0)
+        {
+            var wanted = (int)Math.Min(buffer.Length, remaining);
+            var read = await source.ReadAsync(buffer.AsMemory(0, wanted), cancellationToken).ConfigureAwait(false);
+            if (read <= 0)
+            {
+                // The file is shorter than the server claims to hold: retrying cannot reconcile that.
+                throw new RemoteDispatchException(
+                    "The upload could not resume: the file ended before the offset the server reported.");
+            }
+
+            remaining -= read;
+        }
+    }
+
+    /// <summary>The server's <c>X-Rask-Upload-Offset</c>, when it sent a parseable one.</summary>
+    private static bool TryReadOffset(HttpResponseMessage response, out long offset)
+    {
+        offset = 0;
+        return response.Headers.TryGetValues(RemoteEndpointDefaults.UploadOffsetHeader, out var values)
+               && long.TryParse(
+                   values.FirstOrDefault(), NumberStyles.Integer, CultureInfo.InvariantCulture, out offset)
+               && offset >= 0;
+    }
+
+    /// <summary>A 409 carrying the offset the server holds — recoverable, unlike every other refusal.</summary>
+    private sealed class ChunkOffsetMismatch(long serverOffset) : Exception
+    {
+        public long ServerOffset { get; } = serverOffset;
     }
 
     private async Task SendChunkAsync(
@@ -290,6 +390,16 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
             if (response.IsSuccessStatusCode)
             {
                 return;
+            }
+
+            // 409 is the one refusal that is not the end: the server is saying "not where I am", and it
+            // says where it IS in X-Rask-Upload-Offset. That header is the entire point of answering 409
+            // rather than 400, and until now the client read neither (#895) — so a single dropped chunk
+            // failed an upload the protocol was built to recover.
+            if (response.StatusCode == HttpStatusCode.Conflict
+                && TryReadOffset(response, out var serverOffset))
+            {
+                throw new ChunkOffsetMismatch(serverOffset);
             }
 
             throw new RemoteDispatchException(
