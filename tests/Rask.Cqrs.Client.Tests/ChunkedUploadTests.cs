@@ -98,6 +98,62 @@ public sealed class ChunkedUploadTests
         Assert.Single(handler.Requests);
     }
 
+    /// <summary>
+    ///     A 409 is the one refusal the client recovers from, because the server says where it is.
+    /// </summary>
+    /// <remarks>
+    ///     The server has always echoed <c>X-Rask-Upload-Offset</c> and answered 409 on a mismatch —
+    ///     409 rather than 400 precisely so the offset can ride along — and the client read neither, so a
+    ///     single dropped chunk failed an upload the protocol was built to recover (#895). The affordance
+    ///     cost server code and a documented status code while delivering nothing.
+    /// </remarks>
+    [Fact]
+    public async Task A_dropped_chunk_resumes_from_the_offset_the_server_reports()
+    {
+        // Rejects the chunk at 1024 once, claiming to hold only 512 — so the client must go back and
+        // resend from there rather than failing the whole upload.
+        var handler = new RecordingHandler(rejectOnce: (Offset: 1024, ServerHolds: 512));
+        var file = new PickedFile("big.bin", "application/octet-stream", new byte[4096]);
+
+        await Dispatcher(handler, o =>
+        {
+            o.ChunkedUploadThreshold = 1024;
+            o.UploadChunkSize = 1024;
+        }).DispatchAsync(new AttachToThing(1, file));
+
+        var offsets = handler.Requests
+            .Where(r => r.Offset is not null)
+            .Select(r => r.Offset!)
+            .ToArray();
+
+        // 1024 is refused, then the client restarts at the server's 512 and carries on to the end.
+        Assert.Equal(["0", "1024", "512", "1536", "2560", "3584"], offsets);
+
+        // And the message itself still goes, after the file is whole — the point of resuming at all.
+        Assert.Contains(handler.Requests, r => r.Offset is null);
+    }
+
+    [Fact]
+    public async Task A_server_that_keeps_reporting_the_same_offset_fails_instead_of_looping()
+    {
+        // The offset must CHANGE for a retry to be worth making. A server answering 409 with the offset
+        // the client is already at is a disagreement retrying cannot fix, so it has to surface rather
+        // than spin until a budget runs out.
+        var handler = new RecordingHandler(rejectOnce: (Offset: 1024, ServerHolds: 1024), always: true);
+        var file = new PickedFile("big.bin", "application/octet-stream", new byte[4096]);
+
+        var dispatcher = Dispatcher(handler, o =>
+        {
+            o.ChunkedUploadThreshold = 1024;
+            o.UploadChunkSize = 1024;
+        });
+
+        var error = await Assert.ThrowsAsync<RemoteDispatchException>(
+            () => dispatcher.DispatchAsync(new AttachToThing(1, file)));
+
+        Assert.Equal(409, error.StatusCode);
+    }
+
     private static IDispatcher Dispatcher(RecordingHandler handler, Action<RaskCqrsClientOptions>? configure = null)
     {
         var services = new ServiceCollection();
@@ -109,9 +165,20 @@ public sealed class ChunkedUploadTests
     private sealed record Captured(
         string Path, string ContentType, int Length, string? UploadId, string? Offset, string? FileName);
 
-    private sealed class RecordingHandler(HttpStatusCode chunkStatus = HttpStatusCode.NoContent)
+    /// <param name="rejectOnce">
+    ///     Answer 409 for the chunk at <c>offset</c>, reporting <c>serverHolds</c> in
+    ///     <c>X-Rask-Upload-Offset</c> — a real server's shape for "that does not follow on from what I
+    ///     have". Fired once unless <paramref name="always" /> is set.
+    /// </param>
+    /// <param name="always">Keep rejecting, to prove a client that cannot make progress gives up.</param>
+    private sealed class RecordingHandler(
+        HttpStatusCode chunkStatus = HttpStatusCode.NoContent,
+        (long Offset, long ServerHolds)? rejectOnce = null,
+        bool always = false)
         : HttpMessageHandler
     {
+        private bool _rejected;
+
         public List<Captured> Requests { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -132,6 +199,24 @@ public sealed class ChunkedUploadTests
 
             var isChunk = request.RequestUri.AbsolutePath.EndsWith(
                 RemoteEndpointDefaults.UploadSegment, StringComparison.Ordinal);
+
+            if (isChunk && rejectOnce is { } reject && (always || !_rejected)
+                && Header(request, RemoteEndpointDefaults.UploadOffsetHeader)
+                    == reject.Offset.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            {
+                _rejected = true;
+
+                // What the server sends: 409, with the offset it actually holds. The header is the whole
+                // reason the status is 409 rather than 400.
+                var conflict = new HttpResponseMessage(HttpStatusCode.Conflict)
+                {
+                    Content = new StringContent("{\"title\":\"Offset mismatch\"}"),
+                };
+                conflict.Headers.TryAddWithoutValidation(
+                    RemoteEndpointDefaults.UploadOffsetHeader,
+                    reject.ServerHolds.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                return conflict;
+            }
 
             return new HttpResponseMessage(isChunk ? chunkStatus : HttpStatusCode.OK)
             {
