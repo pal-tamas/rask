@@ -15,6 +15,50 @@ namespace Rask.Core.Tests.Live;
 public class QuiescenceScopeStaleThreadTests
 {
     [Fact]
+    public void TheRunningFlowsScopeBeatsALiveOneLeftOnTheThread()
+    {
+        // The bug this exists for. A pool thread can still hold ANOTHER render's scope — Begin sets the
+        // thread slot, and only a Dispose that happens to run on that same thread clears it. If the
+        // thread won, this render's work would be tracked against a stranger's scope, this render's own
+        // wave loop would see nothing pending, and the page would be served with a placeholder for data
+        // it never waited for — answering 200 while doing it.
+        //
+        // Nothing needs the thread to win: the one path that loses the AsyncLocal (LifecycleSyncContext's
+        // suppressed Task.Run) restores the captured scope with Enter, which sets both slots.
+        QuiescenceScope.ResetSyncForTests();
+        using var mine = QuiescenceScope.Begin();
+        using var stranger = QuiescenceScope.Begin();
+
+        Assert.Same(mine, QuiescenceScope.Resolve(flow: mine, thread: stranger));
+    }
+
+    [Fact]
+    public void TheThreadIsUsedWhenTheFlowCarriesNothing()
+    {
+        // The reason the thread slot exists at all: code that crossed an ExecutionContext.SuppressFlow
+        // boundary has no AsyncLocal to read. Preferring the flow must not mean ignoring the thread.
+        QuiescenceScope.ResetSyncForTests();
+        using var thread = QuiescenceScope.Begin();
+
+        Assert.Same(thread, QuiescenceScope.Resolve(flow: null, thread: thread));
+    }
+
+    [Fact]
+    public void ADeadScopeInEitherSlotIsNeverResolved()
+    {
+        QuiescenceScope.ResetSyncForTests();
+        var deadFlow = QuiescenceScope.Begin();
+        deadFlow.Dispose();
+        var liveThread = QuiescenceScope.Begin();
+
+        // A finished render must not keep collecting, whichever slot still points at it.
+        Assert.Same(liveThread, QuiescenceScope.Resolve(deadFlow, liveThread));
+        Assert.Null(QuiescenceScope.Resolve(deadFlow, deadFlow));
+
+        liveThread.Dispose();
+    }
+
+    [Fact]
     public void ADisposedScopeIsNotCurrent()
     {
         QuiescenceScope.ResetSyncForTests();
