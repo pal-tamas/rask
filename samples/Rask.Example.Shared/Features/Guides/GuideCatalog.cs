@@ -262,6 +262,8 @@ public static class GuideCatalog
             "bi-tools", "Advanced"),
         new("aot", "AOT compilation", "Ahead-of-time compile for WASM, and trim-safety.",
             "bi-cpu", "Advanced"),
+        new("prerendering", "Prerendering", "Render a standalone WASM app's pages to HTML at publish.",
+            "bi-file-earmark-code", "Advanced"),
         new("playground", "Live playground", "The in-browser Roslyn playground.",
             "bi-easel", "Advanced"),
         new("code-analysis", "Code analysis", "The analyzers and warnings-as-errors adoption.",
