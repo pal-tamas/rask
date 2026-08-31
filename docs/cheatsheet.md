@@ -88,7 +88,7 @@ After any `modelBuilder.AddRask…` line: `rask db add <Name>` → `rask db upda
 
 ```csharp
 // Dispatch a query or command — one method, result type inferred from the message:
-var view = await dispatcher.DispatchAsync(new GetProducts(), CancellationToken);   // IDispatcher, ctor-injected
+var view = await dispatcher.QueryAsync(new GetProducts(), CancellationToken);   // IDispatcher, ctor-injected
 
 // Type-safe URL for a routed page — never a string path:
 NavLink.Href(Routes.ProductsPage())["Catalog"];       // list page → <Plural>Page

@@ -539,11 +539,11 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             var local = contract.Kind switch
             {
                 RemoteKind.Query =>
-                    $"(object)await Dispatcher(provider).DispatchAsync((global::Rask.Cqrs.IQuery<{contract.ResultFqn}>)message, cancellationToken)",
+                    $"(object)await Dispatcher(provider).QueryAsync((global::Rask.Cqrs.IQuery<{contract.ResultFqn}>)message, cancellationToken)",
                 RemoteKind.ResultCommand =>
-                    $"(object)await Dispatcher(provider).DispatchAsync((global::Rask.Cqrs.ICommand<{contract.ResultFqn}>)message, cancellationToken)",
+                    $"(object)await Dispatcher(provider).SendAsync((global::Rask.Cqrs.ICommand<{contract.ResultFqn}>)message, cancellationToken)",
                 RemoteKind.VoidCommand =>
-                    "await Dispatcher(provider).DispatchAsync((global::Rask.Cqrs.ICommand)message, cancellationToken); return null",
+                    "await Dispatcher(provider).SendAsync((global::Rask.Cqrs.ICommand)message, cancellationToken); return null",
                 _ =>
                     $"await Dispatcher(provider).PublishAsync(({contract.Message.Fqn})message, cancellationToken); return null",
             };

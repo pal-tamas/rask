@@ -8,7 +8,7 @@ namespace Rask.Cqrs;
 /// <remarks>
 ///     <para>
 ///         It exists to keep the reflection-free promise at the one place it is hardest to keep.
-///         <see cref="IDispatcher.DispatchAsync{TResult}(IQuery{TResult}, System.Threading.CancellationToken)" />
+///         <see cref="IDispatcher.QueryAsync{TResult}(IQuery{TResult}, System.Threading.CancellationToken)" />
 ///         must hand back a real <c>Task&lt;TResult&gt;</c>, and a transport that knew the result only as
 ///         a <see cref="System.Type" /> would have to build one through
 ///         <c>MakeGenericType</c> — runtime reflection, in the hot path, in exactly the package that
