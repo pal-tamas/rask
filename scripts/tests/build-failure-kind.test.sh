@@ -41,6 +41,28 @@ assert() {
 
 echo "==> rask_build_failure_kind"
 
+# The refusal, which used to classify as `unknown` — so the hook printed "look for a failing assertion,
+# a timeout, or a host that exited early" directly beneath the guard's own "wait for the run above to
+# finish", about a suite that had not started. Advice pointing at a test output that does not exist.
+assert "the concurrency guard's refusal" busy \
+"pre-push: running the local E2E gate (browser journeys).
+run-e2e-local: another browser E2E gate is already running on this machine.
+               pid 22845, running for 00:07: bash /repo/scripts/run-e2e-local.sh
+"
+
+# It must NOT fire on a log that merely quotes the phrase — a test asserting on the guard's own wording
+# would otherwise make every red run look like contention.
+assert "a test that quotes the refusal is not busy" unknown \
+"  Failed AGuardTest.It_says_another_browser_E2E_gate_is_already_running [12 ms]
+  Assert.Contains() Failure
+"
+
+# A real compile error still wins over a refusal line: if it got far enough to fail compiling, it ran.
+assert "compile errors beat a quoted refusal" code \
+"run-e2e-local: another browser E2E gate is already running on this machine.
+/repo/src/A.cs(1,1): error CS1002: ; expected
+"
+
 # The case the gate always got right, and must keep getting right.
 assert "compile errors alone" code \
   '/src/App/Program.cs(12,9): error CS0246: The type or namespace name '\''Foo'\'' could not be found
@@ -133,6 +155,7 @@ assert_says() {
   fi
 }
 
+assert_says "busy says nothing ran, not that a test failed"  busy no no
 assert_says "code says the branch is broken"          code     yes no
 assert_says "workload blames neither the branch nor the gate" workload no no
 assert_says "sdk blames neither the branch nor the gate"      sdk      no no

@@ -118,3 +118,51 @@ rask_e2e_command_of() {
   fi
   ps -o command= -p "$1" 2>/dev/null
 }
+
+# Is some OTHER heavy build competing with this suite? Prints their pids, one per line.
+#
+# This is the collision the guard above does NOT catch, and the one #850 is about. That guard detects
+# its own kind — a second browser gate — and refuses. The expensive case is everything else: a
+# pre-commit hook, a plain `dotnet build`, a `dotnet publish`, the CLI build gate. None of those is a
+# browser gate, so nothing refuses, nothing warns, and the contention is silent. The browser journeys
+# and the WebSocket tests are timing-sensitive; under load they fail in ways that look exactly like
+# real bugs, minutes after the contention, with nothing in the log pointing back at it.
+#
+# Deliberately a HINT and never a decision. `dotnet` runs for dozens of legitimate reasons, most of
+# them cheap, and refusing on any of them would block far more than it protects — so this is consulted
+# only to add a line to a failure that has ALREADY happened. That is why it can afford to be
+# approximate where the refuse-or-proceed guard cannot, and why a false positive costs a sentence
+# rather than a blocked push.
+#
+# Only the verbs that cost minutes and saturate cores: `dotnet run`, `dotnet ef`, `dotnet tool` and a
+# bare `dotnet --version` are not contention worth naming, and a language server certainly is not.
+rask_other_heavy_builds() {
+  self_pid="${1:-$$}"
+
+  candidates="$(
+    if [ -n "${RASK_HEAVY_PGREP_OVERRIDE:-}" ]; then
+      printf '%s\n' $RASK_HEAVY_PGREP_OVERRIDE
+    else
+      pgrep -f 'dotnet' 2>/dev/null || true
+    fi
+  )"
+
+  for pid in $candidates; do
+    [ "$pid" = "$self_pid" ] && continue
+
+    cmd="$(rask_e2e_command_of "$pid")"
+    [ -n "$cmd" ] || continue
+
+    # An MSBuild worker node belongs to a build already counted, so naming every node would report
+    # one build as eight competitors.
+    case "$cmd" in
+      *nodemode*) continue ;;
+    esac
+
+    case "$cmd" in
+      *"dotnet build"*|*"dotnet test"*|*"dotnet publish"*|*"dotnet msbuild"*|*"dotnet pack"*)
+        printf '%s\n' "$pid"
+        ;;
+    esac
+  done
+}
