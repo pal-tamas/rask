@@ -120,6 +120,58 @@ form not  "less /repo/scripts/run-e2e-local.sh"
 form not  ""
 
 echo
+echo "==> rask_other_heavy_builds"
+
+# The #850 half: the competitor that is NOT a browser gate. This one only ever adds a line to a failure
+# that already happened, so the cost of being wrong is asymmetric — a miss loses a hint, a false
+# positive prints a sentence. It still has to tell a real build from `dotnet --version`, or the hint
+# fires on every red run and stops being read.
+heavy() {
+  name="$1"
+  expected="$2"
+  shift 2
+
+  actual="$(rask_other_heavy_builds 100 | tr '\n' ' ' | sed 's/ *$//')"
+  checked=$((checked + 1))
+
+  if [ "$actual" = "$expected" ]; then
+    printf '  ok   %-56s -> [%s]\n' "$name" "$actual"
+  else
+    printf '  FAIL %-56s -> [%s] (expected [%s])\n' "$name" "$actual" "$expected" >&2
+    failures=$((failures + 1))
+  fi
+}
+
+export RASK_HEAVY_PGREP_OVERRIDE="301"
+RASK_E2E_CMD_301="dotnet build Rask.slnx -c Release" heavy "a solution build" "301"
+
+RASK_E2E_CMD_301="dotnet test Rask.slnx --no-build" heavy "a test run" "301"
+RASK_E2E_CMD_301="dotnet publish samples/Rask.Example.Wasm -c Release" heavy "a publish" "301"
+RASK_E2E_CMD_301="dotnet msbuild probe.csproj -getItem:Watch" heavy "an msbuild evaluation" "301"
+RASK_E2E_CMD_301="dotnet pack src/Rask.Core" heavy "a pack" "301"
+
+# The cheap verbs. A dev server, a migration and a version query are not contention worth naming, and
+# reporting them would train people to ignore the line that matters.
+RASK_E2E_CMD_301="dotnet run --project samples/Rask.Example.Server" heavy "a dev server is not contention" ""
+RASK_E2E_CMD_301="dotnet ef migrations add Init" heavy "a migration is not contention" ""
+RASK_E2E_CMD_301="dotnet --version" heavy "a version query is not contention" ""
+RASK_E2E_CMD_301="dotnet tool install -g dotnet-ef" heavy "a tool install is not contention" ""
+
+# One build is ONE competitor. MSBuild spawns a worker node per core, and naming each would report a
+# single `dotnet build` as eight machines fighting for the box.
+RASK_E2E_CMD_301="dotnet /usr/share/dotnet/sdk/10.0.100/MSBuild.dll -nodemode:1 -nologo" \
+  heavy "an MSBuild worker node is not a separate build" ""
+
+# Self is excluded, or the gate reports itself as its own competitor on every failure.
+export RASK_HEAVY_PGREP_OVERRIDE="100"
+RASK_E2E_CMD_100="dotnet test Rask.slnx" heavy "self is excluded" ""
+
+export RASK_HEAVY_PGREP_OVERRIDE="302"
+RASK_E2E_CMD_302="" heavy "a pid that has already exited" ""
+
+unset RASK_HEAVY_PGREP_OVERRIDE
+
+echo
 if [ "$failures" -ne 0 ]; then
   echo "e2e-concurrency: $failures of $checked checks FAILED." >&2
   exit 1

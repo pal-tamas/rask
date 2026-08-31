@@ -78,10 +78,40 @@ echo "==> Unit & integration tests (excludes the browser E2E)"
 # crash in an assembly that reported more tests than Rask.Server.Tests has. Blame writes a per-host
 # sequence file naming the test in flight and collects a dump, so the next occurrence is diagnosable
 # instead of merely observed. It costs nothing on a green run.
+set +e
 dotnet test Rask.slnx -c Release --no-build \
   --filter "FullyQualifiedName!~Rask.Examples.E2E$tsc_filter" \
   --blame-crash \
   --results-directory "$root/artifacts/test-blame" \
   --logger "console;verbosity=normal"
+unit_status=$?
+set -e
+
+# The same hint the browser gate prints, for the same reason. This suite has WebSocket and timing
+# tests of its own, and #850 records one being blamed for a change that could not have caused it —
+# the real cause was a browser gate holding the machine while this ran.
+if [ "$unit_status" -ne 0 ]; then
+  # shellcheck source=lib/e2e-concurrency.sh
+  . "$root/scripts/lib/e2e-concurrency.sh"
+  browser_gates="$(rask_other_e2e_runs | tr '\n' ' ')"
+
+  if [ -n "${browser_gates// /}" ]; then
+    {
+      echo
+      echo "run-unit-local: a browser E2E gate was running on this machine during this run."
+      for pid in $browser_gates; do
+        elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
+        cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
+        [ -n "$elapsed" ] && echo "                pid $pid, running for ${elapsed}: $cmd"
+      done
+      echo
+      echo "             Re-run alone before investigating. A timing-sensitive failure here under a"
+      echo "             live browser suite has already cost one investigation into a test the change"
+      echo "             under review could not reach."
+    } >&2
+  fi
+
+  exit "$unit_status"
+fi
 
 echo "==> Format + unit gate passed."
