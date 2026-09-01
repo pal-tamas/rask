@@ -74,6 +74,19 @@ them until tagged releases begin.
   was inferred from whether a delegate existed. It is now `o.Retry.Enabled`.
 
 ### Fixed
+- **The "downloads stream, headers-first" claim now rests on something a gate can see.**
+  `docs/cqrs.md` promises a `FileDownload` comes back without being buffered, and `RemoteDispatch` asks
+  for exactly that with `HttpCompletionOption.ResponseHeadersRead` — but in the browser neither is
+  enough on its own. `BrowserHttpHandler` buffers the whole response unless response streaming is on,
+  and nothing in this repository turns it on: the WASM SDK's `BrowserWasmApp.targets` defaults
+  `WasmEnableStreamingResponse` to `true` ([#894](https://github.com/pal-tamas/rask/issues/894)).
+
+  The default does hold for a Rask publish — verified on the shipped bundle, where the boot module
+  carries `System.Net.Http.WasmEnableStreamingResponse: true` — so the claim was true, and true by
+  something that could move without a Rask commit. The browser-rung publish gate now asserts it on that
+  artifact, and `docs/cqrs.md` says which property decides it, mirroring what it already says about
+  `ChunkedUploadThreshold` in the direction `fetch` cannot stream.
+
 - **The ops console shipped with no stylesheet on the first build in a fresh clone.** `Rask.Dashboard`
   compiles its Tailwind stylesheet into `obj/` and embeds it, but the `EmbeddedResource` item was
   declared in a static `ItemGroup` guarded by `Condition="Exists(...)"` — and a static item's condition
@@ -103,6 +116,34 @@ them until tagged releases begin.
   body, and are proved by disabling the wiring and watching them go red.
 
 ### Added
+- **The two CQRS transport halves are proved to agree on a wire.** No test project referenced both
+  `Rask.Cqrs.Client` and `Rask.Cqrs.Server`, so the halves were only ever tested against a stand-in for
+  each other: the client against a fake `HttpMessageHandler`, the server against hand-built
+  `HttpRequestMessage`s. Both could be self-consistently wrong and both suites stay green
+  ([#896](https://github.com/pal-tamas/rask/issues/896)).
+
+  `tests/Rask.Cqrs.Transport.Tests` is the first compilation that sees both. It puts the real
+  `RemoteDispatch` in front of a real `MapRaskCqrs()` endpoint over a `TestServer` and dispatches for
+  real: the verb a message's shape selects, the `POST` fallback above `MaxQueryUrlLength`, the CSRF
+  header, role authorization, the multipart layout and its index-to-property pairing, a chunked upload
+  and its `409` resume, a streamed `FileDownload`, and the failure mapping that keeps a handler's
+  exception on the server. A one-sided change to the query parameter's name fails six of them.
+
+  The client half is constructed rather than registered there, and that is the finding worth recording:
+  `AddRaskCqrsClient()` installs remote invokers into the **process-wide** `CqrsRegistry`, which is also
+  what the server's `contract.LocalInvoker` dispatches through — so in one process, registering the
+  client makes the server bounce every message it receives straight back out. The harness gives the
+  client half its own `IServiceProvider` and calls the generated `contract.Invoker` with it, which is
+  the exact delegate `AddRaskCqrsClient()` registers.
+
+- **The WASM cookie-auth sample dispatches remotely, and the E2E watches it.** A browser is the one
+  place the transport meets `fetch`, a real `HttpOnly` cookie, and an `HttpClient` whose `BaseAddress`
+  is only readable after the JS module imports — and no browser suite dispatched remotely at all.
+  `samples/Rask.Example.Auth.WasmCookie` now calls `AddRaskCqrsClient()`, its host maps the endpoint,
+  and one message file is compiled into both halves. The members page asks the server who is calling
+  and notes a visit; the journey asserts a 2xx on `POST /_rask/cqrs/request/{name}` and that the answer
+  follows the session rather than the page — `root (admin)` before sign-out, `alice (user)` after.
+
 - **The public API is governed, and the build enforces it.** Rask's pitch is that you can read a Rask
   program aloud, and nothing was holding the names to it: the same operation was `DispatchAsync` in
   `Rask.Cqrs` and `MutateAsync`/`FetchAsync`/`Query` in `Rask.Query`. `ICache.GetOrCreateAsync` named

@@ -31,7 +31,16 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
+    <!-- The browser half of remote dispatch. Only this project takes it: the host answers those
+         endpoints, so shipping endpoint-CALLING code into the process that serves them would be the
+         arrangement the two packages were split up to prevent. -->
+    <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <!-- The dispatch/codec generator. Named explicitly because analyzer references do not flow
+         transitively through a ProjectReference — a package consumer gets it from Rask.Cqrs. -->
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
     <!-- Tailwind, compiled at this project's build. Build-only: it contributes an MSBuild task and a

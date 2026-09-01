@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 using Xunit;
 
@@ -150,6 +151,8 @@ public sealed class BrowserRungPublishE2ETests
             Assert.True(
                 Directory.EnumerateFiles(publishDir, "Rask.Cqrs.Server.*").Any(),
                 "the server cannot answer a dispatch: its endpoint half is missing from the output.");
+
+            AssertResponseStreamingIsOn(publishDir);
         }
         finally
         {
@@ -157,5 +160,61 @@ public sealed class BrowserRungPublishE2ETests
             catch (IOException) { /* best effort */ }
             catch (UnauthorizedAccessException) { /* best effort */ }
         }
+    }
+
+    /// <summary>
+    ///     The published boot module must carry <c>System.Net.Http.WasmEnableStreamingResponse: true</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>docs/cqrs.md</c> promises a <c>FileDownload</c> comes back headers-first, and
+    ///         <c>RemoteDispatch</c> asks for exactly that with <c>ResponseHeadersRead</c>. In the browser
+    ///         neither is enough on its own: <c>BrowserHttpHandler</c> buffers the whole response unless
+    ///         response streaming is enabled, so with it off the export the docs call constant-memory is
+    ///         materialised whole in the tab.
+    ///     </para>
+    ///     <para>
+    ///         Nothing in this repository sets it — <c>BrowserWasmApp.targets</c> defaults it to
+    ///         <c>true</c>, and grepping Rask's own sources for it finds nothing (#894). That is precisely
+    ///         why it is asserted on the SHIPPED artifact rather than on a property: the value belongs to
+    ///         the SDK, so it can move without a Rask commit, and the doc claim would quietly become
+    ///         false. The boot module is where the value ends up, and where the runtime reads it.
+    ///     </para>
+    /// </remarks>
+    private static void AssertResponseStreamingIsOn(string publishDir)
+    {
+        // The switch reaches the browser through the boot config, which the WebAssembly SDK bakes into
+        // the boot module's own text rather than leaving a JSON file beside it. So this reads text.
+        //
+        // Every .js under _framework is a candidate, plus any runtimeconfig.json the publish carries.
+        // The glob is deliberately not `dotnet.*.js`: the one-project build publishes the runtime
+        // UNFINGERPRINTED (`dotnet.js`, which that pattern does not match) while a stand-alone WASM app
+        // fingerprints it (`dotnet.<hash>.js`) — a pattern that fits only one of them passes the other
+        // by finding nothing at all. Several files NAME the key (the runtime reads it too) and only one
+        // carries the value, so every match is examined rather than the first.
+        const string key = "System.Net.Http.WasmEnableStreamingResponse";
+        var enabled = new Regex(@"System\.Net\.Http\.WasmEnableStreamingResponse""\s*:\s*""?true""?");
+
+        var framework = Path.Combine(publishDir, "wwwroot", "_framework");
+        var searched = Directory.EnumerateFiles(framework, "*.js")
+            .Concat(Directory.EnumerateFiles(publishDir, "*.runtimeconfig.json", SearchOption.AllDirectories))
+            .ToList();
+
+        var candidates = searched
+            .Select(file => (File: file, Text: File.ReadAllText(file)))
+            .Where(f => f.Text.Contains(key, StringComparison.Ordinal))
+            .ToList();
+
+        Assert.True(
+            candidates.Count > 0,
+            $"nothing in the publish output mentions {key}, so a FileDownload's memory behaviour in the "
+            + $"browser is unknown. Searched {searched.Count} file(s) under {publishDir}: "
+            + string.Join(", ", searched.Select(Path.GetFileName)));
+
+        Assert.True(
+            candidates.Exists(f => enabled.IsMatch(f.Text)),
+            $"{key} is not true in the published bundle, so BrowserHttpHandler will buffer a whole "
+            + "FileDownload before the caller sees a byte — which is the opposite of what docs/cqrs.md "
+            + $"promises. Carrying the key: {string.Join(", ", candidates.Select(f => Path.GetFileName(f.File)))}");
     }
 }

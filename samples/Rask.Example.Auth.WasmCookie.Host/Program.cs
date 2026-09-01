@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Rask.Cqrs.Server;
+using Rask.Example.Auth.WasmCookie.Host;
 using Rask.Wasm.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
 builder.Services.AddRask(); // Rask.Wasm.Hosting — response compression for the AppBundle
+
+// The endpoint half of remote dispatch, plus what its handlers need. One call registers Rask.Cqrs and
+// every handler in this assembly; the browser bundle's AddRaskCqrsClient() is the other side of it.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<VisitCounter>();
+builder.Services.AddRaskCqrsServer();
 
 var app = builder.Build();
 
@@ -47,6 +55,11 @@ app.MapPost("/auth/logout", async (HttpContext ctx) =>
     await ctx.SignOutAsync();
     return Results.Ok();
 });
+
+// Answers the messages the bundle dispatches: GET and POST on /_rask/cqrs/request/{name}, the verb
+// carrying what IQuery and ICommand already declare. BEFORE UseRask, whose catch-all serves the bundle
+// for anything unmatched and would otherwise answer these with the app shell.
+app.MapRaskCqrs();
 
 app.UseRask(); // serve the published WASM AppBundle
 
