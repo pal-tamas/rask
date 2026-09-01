@@ -31,6 +31,22 @@
     <RaskExternalBuild Condition="'$(RaskExternalBuild)' == ''">true</RaskExternalBuild>
 
     <!--
+      Whether a `.ts` beside a `.cs` of the same name is assumed to be a LIT island.
+
+      That rule is what lets a Lit component be found by convention — and it is character-for-character
+      the rule Rask's SCOPED TypeScript already uses. Nothing in MSBuild can separate them: the only
+      difference is whether the C# class derives from LitComponent, which Roslyn knows and a glob does
+      not. So in a project holding both, every scoped `.ts` is also offered to the bundler as a Lit
+      island, and the build fails on a module that never default-exported a tag name.
+
+      A project with scoped TypeScript and no Lit islands sets this false and loses nothing. A project
+      with both sets it false and declares its Lit islands explicitly, which is what
+      <RaskExternal Include="widgets/gauge.ts" Runtime="lit"/> has always been for. The other three
+      runtimes have extensions of their own and are never ambiguous.
+    -->
+    <RaskExternalLitAutoPair Condition="'$(RaskExternalLitAutoPair)' == ''">true</RaskExternalLitAutoPair>
+
+    <!--
       Where the built chunks land. Under wwwroot on purpose: the SDK already publishes wwwroot, so the
       bundle reaches a deployed app with no publish target of its own — the gap that made the WASM
       host's baked absolute path fail inside a container.

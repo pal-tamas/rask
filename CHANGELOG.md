@@ -38,6 +38,14 @@ them until tagged releases begin.
   at the tag that used it, not merely at its `<script>` block. A missing checker says so and never
   passes quietly.
 
+- **The islands showcase runs on both hosts.** `/islands` exists on the WASM sample too, built from
+  byte-identical front-end files — the published chunks hash the same on both, which is the claim made
+  concrete. What differs is underneath: a callback reaches C# through a `[JSExport]` call into the
+  tab's own runtime rather than over a WebSocket, and nothing in the `.vue`, `.tsx` or `.svelte` knows
+  which. It publishes with `TrimMode=full` and zero IL warnings, because props are serialized by
+  generated `Utf8JsonWriter` code rather than reflection. Lit is absent there on purpose: that app has
+  scoped TypeScript, which a Lit island's `.ts` collides with.
+
 - **An islands showcase, at `/islands` on the Server sample.** Islands shipped with no sample and no
   browser coverage. Four runtimes now sit in one Rask tree with C# owning every prop, built around the
   two claims markup alone cannot show: the Vue chart's bar click re-enters C# over the live WebSocket,
@@ -64,14 +72,18 @@ them until tagged releases begin.
   `Unexpected JSX expression` at line 1 — naming neither Vue nor the plugin that should have handled
   it. Single-file compilers are registered first now.
 
-- **A Lit island and scoped TypeScript claim the same file.** Both features are spelled `Name.ts`
-  beside `Name.cs`, and nothing in MSBuild can tell them apart — the only difference is whether the
-  class derives from `LitComponent`, which Roslyn knows and a glob does not. In a project holding
-  both, the scoped pipeline compiles the island's file as a component asset while the island build
-  bundles it, and the repo's scoped type-check fails on a `@rask/Name.props` mapping that exists only
-  in the island's own generated tsconfig. Documented, with `RaskScopedTsAutoInclude=false` as the
-  answer for a project whose only `.ts` files are islands; separating the two properly is still open.
-  The other three runtimes have extensions of their own and are unaffected.
+- **A Lit island and scoped TypeScript claim the same file, in both directions.** Both features are
+  spelled `Name.ts` beside `Name.cs`, and nothing in MSBuild can tell them apart — the only difference
+  is whether the class derives from `LitComponent`, which Roslyn knows and a glob does not. So the
+  scoped pipeline compiles an island's file as a component asset, *and* island discovery offers every
+  scoped file to the bundler as a Lit module that never default-exported a tag name. The second half
+  broke the build outright in the first app that had both.
+
+  New `RaskExternalLitAutoPair` turns off the `.ts` convention-pairing, leaving
+  `<RaskExternal Include="…" Runtime="lit"/>` — which has always existed — as the way to name a Lit
+  island explicitly. A project with islands and no scoped TypeScript still says
+  `RaskScopedTsAutoInclude=false` instead. The other three runtimes have extensions of their own and
+  are never ambiguous. Separating the two properly, so neither property is needed, is still open.
 
 - **`tsconfig.paths.json` is written where the docs said it was.** The `@rask/*` mapping an author
   extends by hand was emitted under `obj/Debug/net10.0/rask-external/`, while `docs/islands.md`

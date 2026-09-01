@@ -371,6 +371,7 @@ line 1 — naming neither Vue nor the plugin that should have handled it.
 | Property | Default | |
 |---|---|---|
 | `RaskExternalBuild` | `true` | `false` skips node entirely. They still render their host elements. |
+| `RaskExternalLitAutoPair` | `true` | `false` stops a `.ts` beside a `.cs` being assumed a Lit island. Set it in any project that also has scoped TypeScript. |
 | `RaskExternalOutputDir` | `wwwroot/_rask/external` | Under `wwwroot` so the SDK publishes it with no publish target of its own. |
 
 The bundle is written after `wwwroot` has already been globbed, so the build registers it as a
@@ -397,12 +398,18 @@ what to create — a custom element registers its own tag and nothing about the 
 
 > **A Lit island collides with scoped TypeScript.** Both features are spelled `Name.ts` beside
 > `Name.cs`, and nothing in MSBuild can tell them apart: the only difference is whether the class
-> derives from `LitComponent`, which Roslyn knows and a glob does not. In a project that has both, the
-> scoped pipeline compiles the island's file as a component asset while the island build bundles it,
-> and the scoped type-check fails on `@rask/Name.props` — a mapping that exists only in the island's
-> own generated tsconfig. Until the two are separated, a project whose only `.ts` files are Lit
-> islands should say so: `<RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>`. The other three
-> runtimes have extensions of their own and are unaffected.
+> derives from `LitComponent`, which Roslyn knows and a glob does not. It bites in both directions —
+> the scoped pipeline compiles an island's file as a component asset, and island discovery offers
+> every scoped file to the bundler as a Lit module that never default-exported a tag name.
+>
+> Say which the project has:
+>
+> - **Islands only** (no scoped TypeScript): `<RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>`.
+> - **Scoped TypeScript only**, or scoped TypeScript plus Lit islands you name yourself:
+>   `<RaskExternalLitAutoPair>false</RaskExternalLitAutoPair>`, then declare each Lit island with
+>   `<RaskExternal Include="widgets/gauge.ts" Runtime="lit"/>`.
+>
+> The other three runtimes have extensions of their own and are never ambiguous.
 
 ### Both hosts, verified
 

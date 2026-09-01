@@ -313,7 +313,7 @@
           IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
-  <Target Name="_RaskExternalPairLitFiles">
+  <Target Name="_RaskExternalPairLitFiles" Condition="'$(RaskExternalLitAutoPair)' != 'false'">
     <ItemGroup>
       <_RaskExternalFile Include="@(_RaskExternalLitCandidate)" Condition="Exists('%(_RaskExternalLitCandidate.Sibling)')">
         <IslandName>%(Filename)</IslandName>
