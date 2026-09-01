@@ -73,12 +73,22 @@ internal static partial class PayloadBytesReport
         return check ? CheckAgainstBaseline(rows) : 0;
     }
 
-    // Compares the deterministic diff-codec metrics (diff wire bytes + op count — the values that only
-    // move when the render/diff path itself changes) against the committed baseline, and fails the CI
-    // gate on a regression. FullPayloadBytes is informational (it moves whenever the scenario markup
-    // changes) and is not gated. An improvement (fewer bytes/ops) passes but asks for a baseline refresh
-    // so the file keeps tracking reality; a scenario missing from the baseline also fails, so a new
-    // scenario can't slip in ungated.
+    // Compares the deterministic diff-codec metrics (diff wire bytes + op count) against the committed
+    // baseline, and fails the CI gate on a regression. FullPayloadBytes is informational (it moves
+    // whenever the scenario markup changes) and is not gated. An improvement (fewer bytes/ops) passes
+    // but asks for a baseline refresh so the file keeps tracking reality; a scenario missing from the
+    // baseline also fails, so a new scenario can't slip in ungated.
+    //
+    // THE GATED METRICS ARE NOT IMMUNE TO A MARKUP EDIT, and this comment used to claim they were —
+    // that they "only move when the render/diff path itself changes". AppendRowToList100's diff is an
+    // InsertSubtree whose op.Value IS the new row's HTML fragment, so anything that changes a row's
+    // markup lands in a gated number. #914 renamed a class on the benchmark rows (`row` → `line`, one
+    // character longer), the diff grew by exactly that byte, and the gate reported a codec regression
+    // that never happened — red across three merges before anyone worked out why (#919).
+    //
+    // So: the scenarios' own markup is FROZEN. A repo-wide rename sweep must skip benchmarks/, and an
+    // edit here that is genuinely wanted has to refresh Baselines/payload-bytes.csv in the same commit
+    // with the reason, exactly as an improvement is asked to.
     private static int CheckAgainstBaseline(List<Row> current)
     {
         var baselinePath = Path.Combine(AppContext.BaseDirectory, "Baselines", "payload-bytes.csv");
