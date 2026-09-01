@@ -55,6 +55,19 @@ them until tagged releases begin.
   `Rask.Chrome` and `Rask.Client` needed nothing: they were never published.
 ### Changed
 
+- **The other two front doors show the same counter as the README.** #924 cut the front-page sample to
+  one button, but `NUGET.md` — the readme packed into every published package, so the nuget.org landing
+  page — and the landing site's hero still showed the three-line `H1`/`P`/`Button["Click me"]` version.
+  The site hero was further adrift than that: it showed `Counter : Page` with a
+  `protected override string Route => "/counter"`, an API that exists nowhere in the tree any more, so
+  the first code a visitor read could not compile. Both now carry the README's block verbatim, and
+  `NUGET.md`'s intro drops the "no `.razor`, no JSX, no JavaScript" claim the README dropped.
+
+  `ChainAnimation` (and the `assets/rask-chain.svg` baked from it) deliberately keeps the longer sample:
+  it is a timed typing animation whose point is the completion list opening after `Button.`, which needs
+  the multi-line form to read. `docs/getting-started.md` keeps it too, where the heading and paragraph
+  are what the surrounding prose teaches.
+
 - **The README is a front page again, and the front end has three peers.** It was 191 lines that opened
   with a 30-row package table (a NuGet shield per row) and a second collapsed table mapping every package
   to its entry-point API, so a reader met two dozen package names before they met the framework. It now

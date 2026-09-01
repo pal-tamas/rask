@@ -9,22 +9,18 @@
 
 </div>
 
-Write components as plain C# classes. Return a tree of HTML from `Render()`. **No `.razor`, no JSX,
-no JavaScript to write** — and the *same* component code runs server-rendered with live WebSocket
+Write components as plain C# classes. Return a tree of HTML from `Render()`: state is a field, and an
+event handler is a delegate. The *same* component code runs server-rendered with live WebSocket
 updates or fully client-side on WebAssembly.
 
 ```csharp
 [Route("/counter")]
-public sealed class Counter : Component
+public sealed partial class Counter : Component
 {
     private int _count;
 
     protected override Component? Render() =>
-    [
-        H1["Counter"],
-        P[$"Current count: {_count}"],
-        Button.OnClick(() => _count++)["Click me"]
-    ];
+        Button.OnClick(() => _count++)[$"Current count: {_count}"];
 }
 ```
 
