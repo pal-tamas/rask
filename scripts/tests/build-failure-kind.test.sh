@@ -41,25 +41,46 @@ assert() {
 
 echo "==> rask_build_failure_kind"
 
-# The refusal, which used to classify as `unknown` — so the hook printed "look for a failing assertion,
-# a timeout, or a host that exited early" directly beneath the guard's own "wait for the run above to
-# finish", about a suite that had not started. Advice pointing at a test output that does not exist.
-assert "the concurrency guard's refusal" busy \
+# The queue giving up, which used to classify as `unknown` — so the hook printed "look for a failing
+# assertion, a timeout, or a host that exited early" about a suite that had not started. Advice
+# pointing at a test output that does not exist.
+assert "the queue timing out" busy \
 "pre-push: running the local E2E gate (browser journeys).
-run-e2e-local: another browser E2E gate is already running on this machine.
+run-e2e-local: another browser E2E gate holds this machine.
                pid 22845, running for 00:07: bash /repo/scripts/run-e2e-local.sh
+run-e2e-local: still queued after 90m — giving up rather than waiting silently.
+"
+
+# The explicit opt-out of waiting is the same outcome by a different route, and needs its own line
+# because the banner above it is no longer sufficient to classify on (see the row below).
+assert "an explicit RASK_E2E_QUEUE=0 refusal" busy \
+"run-e2e-local: another browser E2E gate holds this machine.
+run-e2e-local: refused to start — RASK_E2E_QUEUE=0 and the lane is held.
+"
+
+# THE row that stops the queue from poisoning every later diagnosis. Since the gate began waiting, the
+# "holds this machine" banner prints on runs that queue, GET the lane, run in full, and then fail on
+# their own merits. Classifying on that banner — the obvious thing to match, and what the pre-queue
+# detector effectively did — would tell the author "nothing ran" about a complete suite with a real
+# failing assertion in it.
+assert "a queued run that started and then failed is not busy" unknown \
+"run-e2e-local: another browser E2E gate holds this machine.
+run-e2e-local: queued behind it — waiting up to 90m for the lane.
+run-e2e-local: lane free after 12m 20s — starting.
+  Failed HomePageTests.It_renders [4021 ms]
+  Assert.Equal() Failure
 "
 
 # It must NOT fire on a log that merely quotes the phrase — a test asserting on the guard's own wording
 # would otherwise make every red run look like contention.
 assert "a test that quotes the refusal is not busy" unknown \
-"  Failed AGuardTest.It_says_another_browser_E2E_gate_is_already_running [12 ms]
+"  Failed AGuardTest.It_says_it_still_queued_after_the_deadline [12 ms]
   Assert.Contains() Failure
 "
 
 # A real compile error still wins over a refusal line: if it got far enough to fail compiling, it ran.
 assert "compile errors beat a quoted refusal" code \
-"run-e2e-local: another browser E2E gate is already running on this machine.
+"run-e2e-local: still queued after 90m — giving up rather than waiting silently.
 /repo/src/A.cs(1,1): error CS1002: ; expected
 "
 

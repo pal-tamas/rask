@@ -67,34 +67,37 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return OpsCard.Heading("Database").Class("mb-6")[
-            OpsGrid[
-                OpsStat
+        // A leader list rather than four tiles. These are four short scalars an operator reads once to
+        // confirm the deployment is configured the way they think — a headline number's worth of weight
+        // each was three times the space and none of the extra meaning.
+        return OpsCard.Heading("Database").Class("mb-4 sm:mb-6")[
+            OpsDetailList[
+                OpsDetailRow
                     .Key("size")
-                    .Value(db.SizeBytes is { } size ? DashboardParts.Bytes(size) : "—")
                     .Label("Size")
-                    .Icon(OpsIconName.Database),
-                OpsStat
+                    .Value(db.SizeBytes is { } size ? DashboardParts.Bytes(size) : "—")
+                    .Mono(true),
+                OpsDetailRow
                     .Key("journal")
-                    .Value(db.JournalMode?.ToUpperInvariant() ?? "n/a")
                     .Label("Journal mode")
+                    .Value(db.JournalMode?.ToUpperInvariant() ?? "n/a")
+                    .Mono(true)
                     // WAL is the mode every Rask deployment expects; anything else is worth noticing.
                     .Tone(db.JournalMode is not null
                           && !db.JournalMode.Equals("wal", StringComparison.OrdinalIgnoreCase)
                         ? "warn"
-                        : null)
-                    .Icon(OpsIconName.Storage),
-                OpsStat
+                        : null),
+                OpsDetailRow
                     .Key("fks")
-                    .Value(db.ForeignKeys switch { true => "on", false => "off", null => "n/a" })
                     .Label("Foreign keys")
-                    .Tone(db.ForeignKeys is false ? "warn" : null)
-                    .Icon(OpsIconName.Gear),
-                OpsStat
+                    .Value(db.ForeignKeys switch { true => "on", false => "off", null => "n/a" })
+                    .Mono(true)
+                    .Tone(db.ForeignKeys is false ? "warn" : null),
+                OpsDetailRow
                     .Key("provider")
-                    .Value(ShortProvider(db.Provider))
                     .Label("Provider")
-                    .Icon(OpsIconName.Database)
+                    .Value(ShortProvider(db.Provider))
+                    .Mono(true)
             ]
         ];
     }
@@ -166,15 +169,24 @@ public sealed partial class SystemPage(
                 Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
                     Tr[
                         Th.Class("px-3 py-2 font-medium")["Snapshot"],
-                        Th.Class("px-3 py-2 font-medium")["Size"],
-                        Th.Class("px-3 py-2 font-medium")["Taken"]
+                        Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Size"],
+                        Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Taken"]
                     ]
                 ],
                 Tbody[_snapshots.Take(10).Select(s => Tr.Key(s.Name)
                     .Class("border-b border-ops-line/60 last:border-0")[
-                    Td.Class($"px-3 py-2 {Ops.Mono}")[s.Name],
-                    Td.Class("px-3 py-2 tabular-nums")[DashboardParts.Bytes(s.SizeBytes)],
-                    Td.Class("px-3 py-2 text-xs text-ops-muted").Title(s.CreatedAt.ToString("u"))[
+                    Td.Class($"w-full max-w-0 px-3 py-2 align-top {Ops.Mono}")[
+                        Div.Class("break-all")[s.Name],
+                        Div.Class("mt-1 flex flex-wrap gap-x-2 font-sans text-xs text-ops-muted sm:hidden")[
+                            Span.Class("tabular-nums")[DashboardParts.Bytes(s.SizeBytes)],
+                            Span.Title(s.CreatedAt.ToString("u"))[DashboardParts.Ago(s.CreatedAt, now)]
+                        ]
+                    ],
+                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums sm:table-cell")[
+                        DashboardParts.Bytes(s.SizeBytes)
+                    ],
+                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
+                        .Title(s.CreatedAt.ToString("u"))[
                         DashboardParts.Ago(s.CreatedAt, now)
                     ]
                 ])]
@@ -192,15 +204,23 @@ public sealed partial class SystemPage(
                 Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
                     Tr[
                         Th.Class("px-3 py-2 font-medium")["Name"],
-                        Th.Class("px-3 py-2 font-medium")["Every"],
-                        Th.Class("px-3 py-2 font-medium")["Last enqueued"]
+                        Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Every"],
+                        Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Last enqueued"]
                     ]
                 ],
                 Tbody[_recurring.Select(r => Tr.Key(r.Name)
                     .Class("border-b border-ops-line/60 last:border-0")[
-                    Td.Class($"px-3 py-2 {Ops.Mono}")[r.Name],
-                    Td.Class("px-3 py-2")[DashboardParts.Duration(r.Interval)],
-                    Td.Class("px-3 py-2")[
+                    Td.Class($"w-full max-w-0 px-3 py-2 align-top {Ops.Mono}")[
+                        Div.Class("break-all")[r.Name],
+                        Div.Class("mt-1 flex flex-wrap items-center gap-x-2 font-sans text-xs text-ops-muted sm:hidden")[
+                            Span[$"every {DashboardParts.Duration(r.Interval)}"],
+                            r.LastEnqueuedAt is { } lastSmall
+                                ? Span.Title(lastSmall.ToString("u"))[DashboardParts.Ago(lastSmall, now)]
+                                : OpsBadge.Label("never")
+                        ]
+                    ],
+                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[DashboardParts.Duration(r.Interval)],
+                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[
                         r.LastEnqueuedAt is { } last
                             ? Span.Class("text-xs text-ops-muted").Title(last.ToString("u"))[
                                 DashboardParts.Ago(last, now)

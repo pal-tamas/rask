@@ -48,6 +48,27 @@ public enum OpsIconName
 
     /// <summary>Not secured.</summary>
     ShieldWarning,
+
+    // Appended, never inserted: PublicAPI records each member by its ordinal, so putting a new name in
+    // the middle silently renumbers every one below it and reads as a diff of unrelated members.
+
+    /// <summary>Search.</summary>
+    Search,
+
+    /// <summary>Dismiss, or close an overlay.</summary>
+    Close,
+
+    /// <summary>A switcher: this value can be stepped to another.</summary>
+    ChevronUpDown,
+
+    /// <summary>Onwards — a breadcrumb separator, or a row that opens.</summary>
+    ChevronRight,
+
+    /// <summary>Delete.</summary>
+    Trash,
+
+    /// <summary>Done.</summary>
+    Check,
 }
 
 /// <summary>
@@ -164,6 +185,24 @@ internal sealed partial class OpsIcon : Component
             "M12 9v3.75m0-10.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.75c0 5.592 3.824 10.29 9 11.622 "
             + "5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.25-8.25-3.286Zm0 13.036h."
             + "008v.008H12v-.008Z"),
+
+        OpsIconName.Search => SvgPath.D(
+            "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"),
+
+        OpsIconName.Close => SvgPath.D("M6 18 18 6M6 6l12 12"),
+
+        OpsIconName.ChevronUpDown => SvgPath.D("M8.25 15 12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"),
+
+        OpsIconName.ChevronRight => SvgPath.D("m8.25 4.5 7.5 7.5-7.5 7.5"),
+
+        OpsIconName.Trash => SvgPath.D(
+            "m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 "
+            + "2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3."
+            + "478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-."
+            + "91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48."
+            + "667 0 0 0-7.5 0"),
+
+        OpsIconName.Check => SvgPath.D("m4.5 12.75 6 6 9-13.5"),
 
         // Unreachable for a declared name. A new enum member without a shape would otherwise draw an empty
         // box and read as a styling fault rather than a missing case.

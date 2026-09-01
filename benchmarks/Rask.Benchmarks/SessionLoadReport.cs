@@ -47,8 +47,15 @@ internal static class SessionLoadReport
 
     public static int Run(string[] args)
     {
-        var sessions = IntArg(args, "--sessions=") ?? DefaultSessions;
-        var seconds = IntArg(args, "--seconds=") ?? DefaultSeconds;
+        // --smoke: prove the report still RUNS, on the gate's budget. ONE page, no sweep, and none of
+        // the JIT throwaway below — a smoke is not a measurement, and the numbers it prints are not
+        // comparable with a real run's. Left as a sweep it costs ~13s of every push (3 pages x warmup +
+        // measure, plus 4 Kestrel starts) for an answer the gate never reads. See
+        // scripts/run-benchmarks-local.sh, and session-churn --smoke for the one smoke that ASSERTS.
+        var smoke = Array.IndexOf(args, "--smoke") >= 0;
+        var sessions = IntArg(args, "--sessions=") ?? (smoke ? 2 : DefaultSessions);
+        var seconds = IntArg(args, "--seconds=") ?? (smoke ? 1 : DefaultSeconds);
+        var pages = smoke ? [5] : Pages;
 
         SessionHarness.VerifySelfMeasurement();
 
@@ -67,9 +74,12 @@ internal static class SessionLoadReport
         // pays the process-wide costs — JIT across Kestrel, the WebSocket stack and the render path — and
         // reported them as if they were the page's. It showed: the empty page came out slower than the
         // 5-row one, which is not a thing that can be true.
-        RunOneAsync(rows: 5, sessions: Math.Min(4, sessions), seconds: 1).GetAwaiter().GetResult();
+        if (!smoke)
+        {
+            RunOneAsync(rows: 5, sessions: Math.Min(4, sessions), seconds: 1).GetAwaiter().GetResult();
+        }
 
-        foreach (var rows in Pages)
+        foreach (var rows in pages)
         {
             var result = RunOneAsync(rows, sessions, seconds).GetAwaiter().GetResult();
             Console.WriteLine(string.Join(',',

@@ -68,9 +68,11 @@ public static class RaskSpaServiceCollectionExtensions
         services.AddDataProtection();
 
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>());
+            ServiceDescriptor.Singleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>(
+                RaskDataProtectionSetup.Create));
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>());
+            ServiceDescriptor.Singleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>(
+                RaskDataProtectionSetup.Create));
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>());
 

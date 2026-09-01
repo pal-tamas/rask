@@ -206,10 +206,72 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         await SignInAsync();
         await _page.GotoAsync("/_rask");
 
-        // Signed in, the operator sees the panels for the pillars this app actually registered.
+        // Signed in, the operator sees the console's sections.
         Assert.DoesNotContain("/login", _page.Url, StringComparison.Ordinal);
-        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Jobs" })).ToBeVisibleAsync();
-        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Outbox" })).ToBeVisibleAsync();
+        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Queues" })).ToBeVisibleAsync();
+
+        // The individual queues used to be one top-level tab each; they are one "Queues" tab plus a
+        // breadcrumb switcher now, so the claim that this app registered Jobs AND Outbox moves to that
+        // switcher's options. Asserted by count, not visibility: an <option> is never "visible".
+        await _page.ClickAsync("nav a:has-text('Queues')");
+        await Assertions.Expect(_page.Locator("header select option:has-text('Jobs')")).ToHaveCountAsync(1);
+        await Assertions.Expect(_page.Locator("header select option:has-text('Outbox')")).ToHaveCountAsync(1);
+    }
+
+    [Fact]
+    public async Task The_dashboard_fits_a_phone_without_scrolling_sideways()
+    {
+        // The console is built mobile-first, and the one failure that makes it unusable rather than merely
+        // ugly is a page wider than the viewport — a stack trace, a long queue name or a table that forgot
+        // to drop a column will all do it, and none of them fail any other assertion here.
+        await SignInAsync();
+        await _page.SetViewportSizeAsync(360, 780);
+
+        // History, not the live tail: the stored log is the one surface guaranteed to have rows, and rows
+        // are what the table check below needs in order to be measuring anything at all.
+        var tablesSeen = 0;
+
+        foreach (var path in new[]
+                 { "/_rask", "/_rask/queues/jobs", "/_rask/cache", "/_rask/logs?view=history", "/_rask/system" })
+        {
+            await _page.GotoAsync(path);
+            await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Overview" })).ToBeVisibleAsync();
+
+            // Wait for the panel's FIRST LOAD to finish, not just for the chrome. Every page renders
+            // DashboardLoading ("Reading…") until its data arrives over the live diff, and the layout's nav
+            // is on screen from the first paint — so measuring here would measure a spinner. A spinner has
+            // no table, `querySelectorAll('table')` returns empty, and the table assertion below passes by
+            // having nothing to look at. That is the failure mode this whole test exists to prevent.
+            await Assertions.Expect(_page.Locator("h1")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+            await Assertions.Expect(_page.GetByText("Reading…")).ToHaveCountAsync(
+                0, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+            tablesSeen += await _page.Locator("table").CountAsync();
+
+            // scrollWidth over clientWidth on the document: this is the actual definition of "the page
+            // scrolls sideways", rather than a proxy for it.
+            var overflows = await _page.EvaluateAsync<bool>(
+                "() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1");
+            Assert.False(overflows, $"{path} scrolls horizontally at 360px wide.");
+
+            // And the tables separately, because they carry their own overflow-x as a backstop — so a
+            // column that failed to collapse hides its content behind an internal scrollbar while the
+            // document check above stays perfectly green. That is exactly how this shipped once: a request
+            // id in a log scope pushed the table wide and nothing failed.
+            var scrollers = await _page.EvaluateAsync<string[]>(
+                """
+                () => [...document.querySelectorAll('table')]
+                    .filter(t => t.scrollWidth > t.parentElement.clientWidth + 1)
+                    .map(t => t.parentElement.className)
+                """);
+            Assert.True(scrollers.Length == 0, $"{path} has a table wider than the phone: {string.Join(" | ", scrollers)}");
+        }
+
+        // The positive control. Without it the loop above is green on a console that rendered five
+        // spinners, which is indistinguishable from a console that rendered five correct layouts — and
+        // "no table was too wide" is worthless when the answer is "there were no tables".
+        Assert.True(tablesSeen > 0, "measured no tables at all across the console — the check proved nothing.");
     }
 
     [Fact]

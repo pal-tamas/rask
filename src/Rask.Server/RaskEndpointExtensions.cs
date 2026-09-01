@@ -205,10 +205,17 @@ public static partial class RaskEndpointExtensions
         // it overrides ASP.NET's discovered default, and an app configuring its own ring after AddRask still
         // wins, because options setups run in registration order. See RaskDataProtectionSetup for why an
         // ephemeral ring signs every user out on redeploy without logging anything.
+        //
+        // Through its own factory rather than by constructor activation: the host services it reads are
+        // OPTIONAL. A container that is not a host — a test fixture, a benchmark harness — has no
+        // IConfiguration, and activating this by constructor there threw the first time anything
+        // materialised the options, a long way from the AddRask that caused it (#922).
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>());
+            ServiceDescriptor.Singleton<IConfigureOptions<KeyManagementOptions>, RaskDataProtectionSetup>(
+                RaskDataProtectionSetup.Create));
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>());
+            ServiceDescriptor.Singleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>(
+                RaskDataProtectionSetup.Create));
 
         // Stop the hosted services CONCURRENTLY, inside a budget that fits under the deploy's SIGKILL.
         // Sequentially — .NET's default — each pillar's shutdown grace sums to 30s against a window that

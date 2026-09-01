@@ -7,6 +7,89 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The operator console is rebuilt light, mobile-first, and on a component kit.** `/_rask` was a dark
+  utility page: it worked, and it looked like a debug view. It now follows the design language it was
+  specified against — a near-white surface ladder, hairline rules, monospace for every machine value, and
+  a breadcrumb bar over an underlined tab bar.
+
+  Three constraints were already true of it and stayed true: Tailwind v4 only (no scoped CSS, no
+  Bootstrap), zero JavaScript, and a reusable kit rather than utility strings copied between pages. So
+  this is a visual and IA change, not a re-platforming. The kit grew — `Ui/` now holds the shell, top bar,
+  tab bar, metric row, detail sheet, toast, search and button — and stays `internal` throughout, so the
+  only public surface added is six `OpsIconName` members. `DashboardLayout`'s constructor takes a
+  `Navigator` (the queue switcher navigates on change): a public signature change, on a type no
+  application constructs itself.
+
+  The substantive IA change: **every registered queue used to get its own top-level tab**, so a
+  deployment running jobs, outbox and mail spent half its navigation on them, and the nav grew with the
+  batteries instead of describing the console. They are one `Queues` section now, with the individual
+  queue on a breadcrumb switcher — a real `<select>`, because a menu is a popover and a popover is a key
+  listener, and this ships no script. Every existing URL still resolves.
+
+  The smaller ones each remove a duplication rather than add a surface. The five counts were a tile row
+  AND a tab strip carrying the same numbers; they are one row that both reports and filters, each tile a
+  real link carrying `?show=`. A row's detail was an extra `<tr>` spliced underneath, which cramped a
+  stack trace into a table column and pushed every row below it down on a polling page; it is a sheet.
+  The overview printed two tiles per queue and prints one card. And the cache's `?q=` filter — which has
+  shipped since that page did, and which its own empty state names — finally has a box to type into.
+
+  Mobile-first is a different claim from responsive: secondary table columns collapse below `sm` and fold
+  under the primary cell rather than scrolling sideways, because a table you have to swipe has hidden the
+  column you came for. Controls take a 44px touch target below `sm`.
+
+  Two defects were found by looking at it at 390px rather than by any test. An odd tile in a two-column
+  row left an empty cell that rendered as a grey block, because the hairlines are the container's own
+  background showing through the gaps. And an unbreakable request id in a log scope pushed the table
+  wider than the phone, hiding content behind the table's `overflow-x` while the document-level overflow
+  check stayed perfectly green — `ShopExampleTests` now measures the document AND every table against the
+  viewport at 360px, which is the assertion that would have caught it.
+
+  `SystemPageBackupTests` asserted on `text-red-400` and `text-amber-400`. The intent — Unknown renders
+  as warn, never as danger — is unchanged and now reads `text-ops-danger` / `text-ops-warn`, which is a
+  semantic contract rather than a palette coincidence, and is why it broke in the first place.
+
+  Review caught five things worth naming. **Delete from the detail sheet raised its confirmation
+  underneath the sheet** — the prompt renders in normal flow, the sheet is `fixed inset-0 z-50` over a
+  backdrop, and `RunAsync` never cleared `_expanded`, so the button looked inert. Retry never showed it,
+  because Retry skips confirmation. Pinned by `QueueDetailSheetTests`, proven by reverting the fix.
+  **The phone-overflow gate could pass by measuring nothing**: it waited only for the layout's nav, which
+  is on screen from the first paint, so on the pages that load asynchronously it measured a spinner with
+  no tables in it — it now waits for the first load and asserts it saw at least one table.
+  **`--color-ops-warn` was 2.13:1 as text on white** and `--color-ops-ok` 3.73:1, in a file whose own
+  comment demands 4.5:1; both now have `-ink` twins for light grounds while the vivid fills stay for the
+  dots and the near-black toast, where the dark ones would fail instead. `CurrentQueue()` compared the
+  path case-sensitively while `QueuePage` resolves its slug case-insensitively, so `/_rask/queues/Jobs`
+  rendered correctly with its breadcrumb and switcher silently missing. And `DashboardStylesheetTests`
+  now pins **every** token rather than three of ten — the stylesheet's comment claimed it already did.
+
+### Fixed
+- **A class library's Tailwind stylesheet reaches the consuming app's publish.** Since #914 the docs
+  showcase at `https://rask.sh/docs/` has been serving
+  `_content/Rask.Example.Shared/css/app.css` as a **404** and rendering every page unstyled, while a
+  committed file two directories away in the same `wwwroot` served fine.
+
+  `Rask.Tailwind` writes its output at `BeforeBuild`, which runs after the SDK has globbed `wwwroot/**`
+  into `@(Content)` at **evaluation** time. For an app that is harmless — static-web-asset discovery
+  re-enumerates during the build and picks the file up anyway, verified on both `Sdk.Web` and
+  `Sdk.WebAssembly`. For a **Razor class library** it is fatal: an RCL's assets come from the evaluated
+  `@(Content)` with no second pass, so a stylesheet generated later never enters its manifest and never
+  reaches any consumer's publish.
+
+  The fix is one item, in `Rask.Tailwind.props`: name the output in a **literal** `Content` include
+  rather than leaving it to the glob. A literal include does not consult the disk at evaluation — the
+  item exists regardless, and the file is only required when it is copied, which is after the compiler
+  has run. That is the same distinction #852 turned on for pack, applied to the other side of it.
+
+  Why nothing caught it: the file always exists locally from a previous build, so the glob matches and
+  every developer publish — and every local E2E — is correct. Only the first build in a clone is wrong,
+  which is every CI run and no developer's machine. `TailwindPublishBuildE2ETests` was written for
+  exactly this bug and could not see it, because both its cases were **apps**, the shape that does not
+  fail; its own remarks asserted the wrong half of the mechanism and are corrected here. A third case
+  now covers an RCL consumed by an app, with a committed file beside the generated one as the control
+  so that a `_content` plumbing failure cannot be mistaken for this one.
+
 ### Added
 
 - **`Rask.Blazor` hosts a real Blazor component as a Rask island.** Derive a `partial` class from
@@ -166,6 +249,41 @@ them until tagged releases begin.
   its own test. The identity now travels in `GIT_AUTHOR_*`/`GIT_COMMITTER_*`, which cannot leak into a
   config file, and four assertions pin `HEAD`, the working tree, the committing identity and the
   absence of any `git config user.*` write.
+### Changed
+
+- **The browser E2E gate queues for the machine instead of refusing it.** The lane is a machine-wide
+  singleton — two suites contend and the contention surfaces as a plausible-looking red minutes later
+  — so finding another gate running used to fail the push with "wait for the run above to finish, then
+  push again". That was right about the contention and wrong about what to do with it: every caller
+  hand-rolled a waiter, and anyone who did not got a failed push for a machine state that had nothing
+  to do with their branch. The gate now names the run holding the lane and **waits for it**, starting
+  automatically when it frees.
+
+  The serialization guarantee is unchanged: still exactly one suite at a time. What went away is the
+  manual retry.
+
+  Ordering is by **process age** — a gate waits only for gates older than itself — and that is
+  load-bearing rather than cosmetic. A *waiting* gate is itself a `run-e2e-local.sh` process, so
+  process detection cannot tell it from the run holding the machine. Two waiters that each wait for
+  "any other gate" deadlock against each other; two that each start when the holder exits begin
+  simultaneously, which is precisely the contention the guard exists to prevent. Waiting only for your
+  seniors totally orders the contenders with no shared state, so exactly one is released at a time —
+  ties breaking on pid so the order is total. Still by process and never a lockfile, for the reason
+  the guard has always given: a Ctrl-C'd waiter simply vanishes from everyone else's ordering.
+
+  | variable | effect |
+  |---|---|
+  | `RASK_E2E_QUEUE_TIMEOUT` | seconds before giving up (default `5400`, 90m); past it the gate exits 1 and names what still holds the lane |
+  | `RASK_E2E_QUEUE_POLL` | seconds between checks (default `20`) |
+  | `RASK_E2E_QUEUE=0` | refuse immediately, the previous behaviour |
+  | `RASK_E2E_ALLOW_CONCURRENT=1` | run alongside anyway (unchanged) |
+
+  `rask_build_failure_kind` moved with it. Its `busy` classification keyed on the guard's banner, which
+  now prints on runs that queue, **get** the lane, run in full and then fail on their own merits —
+  keying on it would have stamped "nothing ran" on a complete suite with a real failing assertion in
+  it. It now matches only the two terminal outcomes: the queue giving up, and an explicit
+  `RASK_E2E_QUEUE=0` refusal. `scripts/tests/` covers all of this (52 + 19 checks), each new assertion
+  proved by reintroducing the bug it forbids — including both naive queues and that misclassification.
 
 ### Removed
 - **The nine package ids left behind by earlier removals are retired from nuget.org.** `Rask.Native`,
@@ -314,12 +432,62 @@ them until tagged releases begin.
   could never engage.
 
 ### Fixed
-
 - **The `Rask.External` package description told users to write an attribute that does not exist.** It
   said to "Mark a component `[Island]`" — there has never been an `IslandAttribute`; the base class *is*
   the declaration. Its `<Title>` also read "Rask — Foreign Components", a third name for the feature
   matching neither the docs nor the README. Both now describe deriving from `ReactComponent` or
   `LitComponent`. This is package metadata, so it was visible on nuget.org rather than in any build.
+- **Every page served leaked its whole live session — ~1.1 MB apiece, for the life of the process.**
+  Rask injects two things into a page during **serialization**: the live runtime `<script>` at the close
+  of `<body>`, and the host's `<head>` contribution. Both build through the chain, and a chain built
+  inside a live render pushes an *entry slot* — the record of which props it did not name, so they can
+  be reset when the enclosing `Render()` returns. These two have no enclosing `Render()`. The slot is
+  attributed to whichever component is on the parent stack, whose `Render()` returned long ago and
+  took its drain with it, so nothing ever popped it. It stayed on a `[ThreadStatic]` list holding a
+  `Component` from a finished page — and through that component's `LiveState`, the entire live session:
+  DI scope, component tree, buffers and all.
+
+  The thread is a long-lived request worker, so this had no ceiling and no symptom. Measured on a
+  200-row page: a 500-cycle create→dispose run left **563 MB** behind where it should leave zero
+  (`session-churn`), every disposed session still fully reachable. Both injection sites are now
+  bracketed by the slot depth, so whatever a host build leaves behind is drained the way the end of a
+  `Render()` would have drained it. Residue is back to **0 bytes at 500 cycles**, and allocation per
+  update is byte-for-byte unchanged (140,648 / 644,377 B on 200 / 1,000 rows), as are both
+  payload-bytes baselines.
+
+  Pinned four ways, each of which fails without the fix: the slot stack is empty after a render
+  (mechanism), the rendered page is collectible once its render returns (symptom), the drain still runs
+  when a host contribution **throws** mid-serialize (the error path — host-supplied code runs inside the
+  serializer, so the bracket is a `try`/`finally`, as `Component`'s own drain already is), and the
+  `session-churn` smoke asserts the retained bytes (the number a host actually pays). Note the existing
+  injection tests could not have caught it — their stub returns a *pre-built* component, which pushes
+  no slot; only a stub that builds through the chain, as the real `ServerRuntimeScript` does,
+  reproduces it.
+- **`AddRask()` no longer demands host services from a container that is not a host — and the capacity
+  reports run again.** `RaskDataProtectionSetup` (#888) took `IConfiguration`, `IHostEnvironment` and
+  `ILoggerFactory` as constructor dependencies. Every host builder registers them, so no app was
+  affected; a `ServiceCollection` composed by hand — a test fixture, a benchmark harness — was. And it
+  did not fail at `AddRask`: the throw came the first time anything materialised the Data Protection
+  options, which for `session-footprint` and `session-churn` was four frames deep inside a session
+  render, as `Unable to resolve service for type 'IConfiguration'`. Both reports died on startup and
+  had done since 2026-08-28 (#922).
+
+  It also defeated a deliberate decision one line above it, where `AddRask` *asks* for the Data
+  Protection provider with `GetService` rather than assuming it, so a host without one degrades instead
+  of failing: the provider was registered, so the ask succeeded, and then building it threw. The setup
+  now resolves all three optionally and falls back to the framework's own key ring — the same ring a
+  plain `dotnet run` already gets — warning if it has a durable ring but no application name to pin the
+  discriminator to.
+- **The live-session capacity reports are gated instead of hand-run.** They are what
+  [`docs/scaling.md`](docs/scaling.md) and [`docs/configuration.md`](docs/configuration.md) tell you to
+  run to size a host, and nothing had run them since the nightly `benchmarks-full` job was deleted with
+  the rest of CI. Four days later two of the three were dead on startup, and that outage is what hid
+  the session leak above. `scripts/run-benchmarks-local.sh` now runs all three smoke-sized on every
+  push (~4s in total, alongside the payload-bytes gates): `session-footprint` and `session-load` have only
+  to run, while `session-churn --smoke` **asserts** that 100 create→dispose cycles leave nothing
+  behind. The full reports stay hand-run. Each runs as its own step with its own status bookkeeping —
+  ganged into one block, the first to abort left the rest unrun, which is exactly how `session-churn`'s
+  identical failure stayed invisible while `session-footprint`'s was being looked at.
 - **The payload-bytes gate was red for three merges over a CSS class rename.** #914's Bootstrap sweep
   renamed classes inside the benchmark scenarios themselves — `row` → `line`, one character longer —
   and `AppendRowToList100`'s diff is an `InsertSubtree` whose value *is* one row's HTML, so it grew by

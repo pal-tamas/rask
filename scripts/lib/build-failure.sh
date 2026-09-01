@@ -21,18 +21,21 @@
 
 # Classify a captured build/test log. Echoes exactly one kind:
 #
-#   busy     — the gate REFUSED TO START because another browser gate held the machine. Nothing ran,
-#              so every other kind would be a guess about a run that never happened.
+#   busy     — the gate NEVER STARTED: it queued for the lane and gave up, or RASK_E2E_QUEUE=0 made it
+#              refuse outright. Nothing ran, so every other kind would be a guess about a run that
+#              never happened. Note this is now the exception rather than the rule — a gate that finds
+#              the lane held waits for it, and a run that waits and then starts is not `busy` at all.
 #   code     — real compile errors (`error CS…`). The gate's own message is correct; the branch is broken.
 #   workload — `error NETSDK1147` and no CS errors. A browser target could not resolve its workload.
 #   sdk      — some other `error NETSDK…` and no CS errors. An SDK/restore problem, still not the branch.
 #   unknown  — neither appears. The gate failed somewhere that is not a compile at all (a failing
 #              assertion, a timeout, a crashed host), so claiming "it doesn't compile" would be wrong too.
 #
-# `busy` is checked FIRST and wins outright. Without it the concurrency guard's refusal fell through to
-# `unknown`, whose advice is "look for a failing assertion, a timeout, or a host that exited early" —
-# advice about a suite that never started, printed directly beneath the guard's own correct explanation
-# and contradicting it. The guard says "wait"; the classifier said "go read your test output".
+# `busy` is checked FIRST among the non-code kinds and wins outright. Without it the guard's refusal
+# fell through to `unknown`, whose advice is "look for a failing assertion, a timeout, or a host that
+# exited early" — advice about a suite that never started, printed directly beneath the guard's own
+# correct explanation and contradicting it. The guard says "wait"; the classifier said "go read your
+# test output".
 #
 # CS wins over the machine kinds when both appear: a NETSDK error alongside genuine compile errors does
 # not excuse them.
@@ -49,10 +52,16 @@ rask_build_failure_kind() {
   netsdk=$(grep -Ec 'error[[:space:]]+NETSDK[0-9]+' "$log" 2>/dev/null || true)
   workload=$(grep -Ec 'error[[:space:]]+NETSDK1147' "$log" 2>/dev/null || true)
 
-  # Matched on the guard's own refusal line, anchored to the script name at the start of a line so a
-  # test log that merely QUOTES the phrase — a case that exists, since the guard's wording is itself
-  # asserted — cannot trip it.
-  busy=$(grep -Ec '^run-e2e-local: another browser E2E gate is already running' "$log" 2>/dev/null || true)
+  # Matched on the two lines that mean the suite NEVER STARTED, anchored to the script name at the
+  # start of a line so a test log that merely QUOTES the phrase — a case that exists, since the guard's
+  # wording is itself asserted — cannot trip it.
+  #
+  # Deliberately NOT matched on the "holds this machine" banner, which is the obvious candidate and the
+  # wrong one. Since the gate began queueing, that banner prints on runs that then wait, start, and
+  # fail hours later for reasons entirely their own — keying on it would stamp `busy` on a real red and
+  # tell the author nothing ran when a full suite did. Only the terminal outcomes qualify: the queue
+  # giving up, and the explicit RASK_E2E_QUEUE=0 refusal.
+  busy=$(grep -Ec '^run-e2e-local: (still queued after|refused to start)' "$log" 2>/dev/null || true)
 
   # `busy` sits BELOW code and above the machine kinds. A refusal means the suite never started, so it
   # outranks anything inferred from an absence — but it must never outrank a real `error CS`: if
@@ -86,11 +95,13 @@ rask_explain_build_failure() {
   case "$kind" in
     busy)
       {
-        echo "$gate: nothing ran — the machine was already busy with another browser gate."
+        echo "$gate: nothing ran — another browser gate held the machine for the whole wait."
         echo
-        echo "  The guard above refused to start this suite and named the run that holds the machine."
-        echo "  There is no failure here to investigate: no journey ran, no assertion was evaluated."
-        echo "  Wait for that run to finish and push again."
+        echo "  This suite queued for the lane and never got it, so there is no failure here to"
+        echo "  investigate: no journey ran, no assertion was evaluated. The lines above name the run"
+        echo "  that held it and how long this one waited."
+        echo "  A gate past the ~40m norm is usually wedged rather than busy — check it before pushing"
+        echo "  again, or raise RASK_E2E_QUEUE_TIMEOUT if the machine is merely slow today."
       } >&2
       ;;
     code)

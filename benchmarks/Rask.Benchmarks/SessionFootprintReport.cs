@@ -60,7 +60,13 @@ internal static class SessionFootprintReport
 
     public static int Run(string[] args)
     {
-        var sessions = ParseSessions(args);
+        // --smoke: prove the report still RUNS, in seconds rather than minutes. It is not a measurement
+        // — the two cheap pages and a handful of sessions say nothing about capacity — it is the gate
+        // that would have caught #922, where this report died on startup for four days and nobody knew,
+        // because nothing ran it. See scripts/run-benchmarks-local.sh.
+        var smoke = Array.IndexOf(args, "--smoke") >= 0;
+        var sessions = smoke ? 10 : ParseSessions(args);
+        var pages = smoke ? Pages[..2] : Pages;
         SessionHarness.VerifySelfMeasurement();
 
         Console.WriteLine("# Live-session retained footprint. Framework floor only — excludes the transport");
@@ -73,7 +79,7 @@ internal static class SessionFootprintReport
         Console.WriteLine("#        Connected = socket attached + updates driven (buffers at high-water).");
         Console.WriteLine("Page,PageHtmlBytes,State,BytesPerSession,SessionsPer1GiB");
 
-        foreach (var (name, rows) in Pages)
+        foreach (var (name, rows) in pages)
         {
             // A zero-row page has no rows to make interactive, so the shape axis is meaningless there —
             // emitting it twice would imply a comparison that isn't being made.
