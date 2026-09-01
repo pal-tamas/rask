@@ -206,10 +206,50 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         await SignInAsync();
         await _page.GotoAsync("/_rask");
 
-        // Signed in, the operator sees the panels for the pillars this app actually registered.
+        // Signed in, the operator sees the console's sections.
         Assert.DoesNotContain("/login", _page.Url, StringComparison.Ordinal);
-        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Jobs" })).ToBeVisibleAsync();
-        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Outbox" })).ToBeVisibleAsync();
+        await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Queues" })).ToBeVisibleAsync();
+
+        // The individual queues used to be one top-level tab each; they are one "Queues" tab plus a
+        // breadcrumb switcher now, so the claim that this app registered Jobs AND Outbox moves to that
+        // switcher's options. Asserted by count, not visibility: an <option> is never "visible".
+        await _page.ClickAsync("nav a:has-text('Queues')");
+        await Assertions.Expect(_page.Locator("header select option:has-text('Jobs')")).ToHaveCountAsync(1);
+        await Assertions.Expect(_page.Locator("header select option:has-text('Outbox')")).ToHaveCountAsync(1);
+    }
+
+    [Fact]
+    public async Task The_dashboard_fits_a_phone_without_scrolling_sideways()
+    {
+        // The console is built mobile-first, and the one failure that makes it unusable rather than merely
+        // ugly is a page wider than the viewport — a stack trace, a long queue name or a table that forgot
+        // to drop a column will all do it, and none of them fail any other assertion here.
+        await SignInAsync();
+        await _page.SetViewportSizeAsync(360, 780);
+
+        foreach (var path in new[] { "/_rask", "/_rask/queues/jobs", "/_rask/cache", "/_rask/logs", "/_rask/system" })
+        {
+            await _page.GotoAsync(path);
+            await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Overview" })).ToBeVisibleAsync();
+
+            // scrollWidth over clientWidth on the document: this is the actual definition of "the page
+            // scrolls sideways", rather than a proxy for it.
+            var overflows = await _page.EvaluateAsync<bool>(
+                "() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1");
+            Assert.False(overflows, $"{path} scrolls horizontally at 360px wide.");
+
+            // And the tables separately, because they carry their own overflow-x as a backstop — so a
+            // column that failed to collapse hides its content behind an internal scrollbar while the
+            // document check above stays perfectly green. That is exactly how this shipped once: a request
+            // id in a log scope pushed the table wide and nothing failed.
+            var scrollers = await _page.EvaluateAsync<string[]>(
+                """
+                () => [...document.querySelectorAll('table')]
+                    .filter(t => t.scrollWidth > t.parentElement.clientWidth + 1)
+                    .map(t => t.parentElement.className)
+                """);
+            Assert.True(scrollers.Length == 0, $"{path} has a table wider than the phone: {string.Join(" | ", scrollers)}");
+        }
     }
 
     [Fact]

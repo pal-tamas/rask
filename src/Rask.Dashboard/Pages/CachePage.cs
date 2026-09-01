@@ -64,15 +64,27 @@ public sealed partial class CachePage(
         return [
             OpsHeader.Heading("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
-            ActionResult(),
-            Div.Class("mb-6 grid gap-4 sm:grid-cols-3")[
-                OpsStat.Value(_stats.Entries.ToString()).Label("Entries").Icon(OpsIconName.Archive),
-                OpsStat.Value(DashboardParts.Bytes(_stats.Bytes)).Label("Stored").Icon(OpsIconName.Database),
-                OpsStat
-                    .Value(_stats.Expired.ToString())
-                    .Label("Expired, not yet swept")
-                    .Icon(OpsIconName.Clock)
-                    .Caption("removed by the purge sweep")
+            ConfirmPrompt(),
+            Div.Class("mb-4 sm:mb-5")[
+                OpsMetricRow.Columns(3)[
+                    OpsMetric.Key("entries").Label("Entries").Value(_stats.Entries.ToString()),
+                    OpsMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
+                    OpsMetric
+                        .Key("expired")
+                        .Label("Expired, not swept")
+                        .Value(_stats.Expired.ToString())
+                        .Caption("removed by the purge sweep")
+                ]
+            ],
+            // The q filter has always been here — the empty state below has named it since this page
+            // shipped — but nothing ever rendered a box to type it into, so it was reachable only by
+            // hand-editing the URL.
+            Div.Class("mb-4")[
+                OpsSearch
+                    .Placeholder("Search keys")
+                    .Label("Search cache keys")
+                    .Value(Search)
+                    .OnSearch(SearchAsync)
             ],
             _rows.Count == 0
                 ? DashboardEmpty.Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
@@ -80,7 +92,16 @@ public sealed partial class CachePage(
                 : KeyTable(now),
             Pager(),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
+            ResultToast(),
         ];
+    }
+
+    private async Task SearchAsync(string value)
+    {
+        Search = string.IsNullOrWhiteSpace(value) ? null : value;
+        _page = 0;
+        await LoadAsync(CancellationToken).ConfigureAwait(false);
+        StateHasChanged();
     }
 
     private Component KeyTable(DateTime now) =>
@@ -88,32 +109,44 @@ public sealed partial class CachePage(
             Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
                 Tr[
                     Th.Class("px-3 py-2 font-medium")["Key"],
-                    Th.Class("px-3 py-2 font-medium")["Size"],
-                    Th.Class("px-3 py-2 font-medium")["Written"],
-                    Th.Class("px-3 py-2 font-medium")["Expires"],
-                    Th.Class("px-3 py-2 font-medium")["Sliding"],
+                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Size"],
+                    Th.Class("hidden px-3 py-2 font-medium md:table-cell")["Written"],
+                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Expires"],
+                    Th.Class("hidden px-3 py-2 font-medium lg:table-cell")["Sliding"],
                     Th.Class("px-3 py-2")
                 ]
             ],
             Tbody[_rows.Select(r => Tr.Key(r.Key).Class(r.ExpiresAt <= now
                 ? "border-b border-ops-line/60 text-ops-muted last:border-0"
                 : "border-b border-ops-line/60 last:border-0")[
-                Td.Class("px-3 py-2")[
-                    Div.Class($"max-w-[28rem] truncate {Ops.Mono}").Title(r.Key)[r.Key]
+                Td.Class("w-full max-w-0 px-3 py-2 align-top")[
+                    Div.Class("min-w-0")[
+                        Div.Class($"truncate sm:max-w-[28rem] {Ops.Mono}").Title(r.Key)[r.Key],
+                        // Size and expiry follow the key down when their own columns are gone.
+                        Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ops-muted sm:hidden")[
+                            Span.Class("tabular-nums")[DashboardParts.Bytes(r.Bytes)],
+                            r.ExpiresAt <= now
+                                ? OpsBadge.Label("expired")
+                                : Span.Title(r.ExpiresAt.ToString("u"))[
+                                    $"expires {DashboardParts.Ago(r.ExpiresAt, now)}"
+                                ]
+                        ]
+                    ]
                 ],
-                Td.Class("px-3 py-2 tabular-nums")[DashboardParts.Bytes(r.Bytes)],
-                Td.Class("px-3 py-2 text-xs text-ops-muted").Title(r.CreatedAt.ToString("u"))[
+                Td.Class("hidden px-3 py-2 align-top tabular-nums sm:table-cell")[DashboardParts.Bytes(r.Bytes)],
+                Td.Class("hidden px-3 py-2 align-top text-xs text-ops-muted md:table-cell")
+                    .Title(r.CreatedAt.ToString("u"))[
                     DashboardParts.Ago(r.CreatedAt, now)
                 ],
-                Td.Class("px-3 py-2 text-xs").Title(r.ExpiresAt.ToString("u"))[
+                Td.Class("hidden px-3 py-2 align-top text-xs sm:table-cell").Title(r.ExpiresAt.ToString("u"))[
                     r.ExpiresAt <= now
                         ? OpsBadge.Label("expired")
                         : Span.Class("text-ops-muted")[DashboardParts.Ago(r.ExpiresAt, now)]
                 ],
-                Td.Class("px-3 py-2 text-xs text-ops-muted")[
+                Td.Class("hidden px-3 py-2 align-top text-xs text-ops-muted lg:table-cell")[
                     r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"
                 ],
-                Td.Class("px-3 py-2 text-right")[EvictButton(r.Key)]
+                Td.Class("px-3 py-2 align-top text-right")[EvictButton(r.Key)]
             ])]
         ];
 
@@ -125,14 +158,19 @@ public sealed partial class CachePage(
             return null;
         }
 
-        return Div.Class("mt-4 flex items-center gap-3")[
-            Button.Type("button").Class(Ops.Button)
+        // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
+        // which is where thumbs are.
+        return Div.Class("mt-4 flex items-center justify-between gap-3")[
+            OpsButton.Key("prev").Label("Previous")
                 .Disabled(_page == 0)
-                .OnClickAsync(() => GoAsync(_page - 1))["Previous"],
-            Span.Class("text-xs text-ops-muted")[$"Page {_page + 1} of {pages} — {_total} keys"],
-            Button.Type("button").Class(Ops.Button)
+                .OnClickAsync(() => GoAsync(_page - 1)),
+            Span.Class("text-center text-xs text-ops-muted")[
+                Span[$"Page {_page + 1} of {pages}"],
+                Span.Class("hidden sm:inline")[$" — {_total} keys"]
+            ],
+            OpsButton.Key("next").Label("Next")
                 .Disabled(_page >= pages - 1)
-                .OnClickAsync(() => GoAsync(_page + 1))["Next"]
+                .OnClickAsync(() => GoAsync(_page + 1))
         ];
     }
 
@@ -141,41 +179,27 @@ public sealed partial class CachePage(
     // stampede — hence the Destructive tier and a confirmation.
     private Component? EvictButton(string key) =>
         options.Actions.HasFlag(RaskDashboardActions.Safe)
-            ? Button.Type("button").Class(Ops.Button).OnClickAsync(() => EvictAsync(key))["Evict"]
+            ? OpsButton.Label("Evict").OnClickAsync(() => EvictAsync(key))
             : null;
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? Button.Type("button")
-                .Class("inline-flex items-center rounded-md bg-red-500/15 px-2.5 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/25")
-                .OnClick(() => Confirm(true))["Flush cache"]
+            ? OpsButton.Label("Flush cache").Tone("danger").Icon(OpsIconName.Trash).OnClick(() => Confirm(true))
             : null;
 
-    private Component? ActionResult()
-    {
-        if (_confirmFlush)
-        {
-            return OpsNotice.Tone("warn")[
-                Span.Class("grow")[
+    private Component? ConfirmPrompt() =>
+        _confirmFlush
+            ? OpsNotice.Tone("warn")[
+                Span.Class("min-w-0 grow break-words")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                Button.Type("button")
-                    .Class("inline-flex items-center rounded-md bg-red-500/20 px-2.5 py-1.5 text-xs font-medium text-red-200 hover:bg-red-500/30")
-                    .OnClickAsync(FlushAsync)["Confirm"],
-                Button.Type("button").Class(Ops.Button).OnClick(() => Confirm(false))["Cancel"]
-            ];
-        }
-
-        return _message is { } message
-            ? OpsNotice.Tone("info")[
-                Span.Class("grow")[message],
-                Button.Type("button")
-                    .Class("rounded-md px-2 py-1 text-xs text-ops-muted hover:text-ops-ink")
-                    .Aria(new Dictionary<string, string?> { ["label"] = "Dismiss" })
-                    .OnClick(Dismiss)["Dismiss"]
+                OpsButton.Key("confirm").Label("Confirm").Tone("danger").OnClickAsync(FlushAsync),
+                OpsButton.Key("cancel").Label("Cancel").OnClick(() => Confirm(false))
             ]
             : null;
-    }
+
+    private Component? ResultToast() =>
+        _message is { } message ? OpsToast.Message(message).Dismiss(Dismiss) : null;
 
     private void Confirm(bool pending)
     {

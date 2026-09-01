@@ -4,7 +4,7 @@ using Rask.Dashboard.Panels;
 namespace Rask.Dashboard.Pages;
 
 /// <summary>
-/// The landing panel: one tile per queue, plus the cache. Deliberately counters-only — the question it
+/// The landing panel: one card per queue. Deliberately counters-only — the question it
 /// answers is "is anything wrong?", and the answer should be readable without reading.
 /// </summary>
 [Route("")]
@@ -46,9 +46,10 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         }
 
         return [
+            OpsHeader.Heading("Overview").Caption(StateLine()),
             DashboardError.Message(LoadError),
             FailureBanner(),
-            OpsGrid[_queues.SelectMany(q => Tiles(q.Panel, q.Counts))],
+            OpsGrid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
@@ -65,9 +66,11 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
 
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
         return Div.Role("alert")
-            .Class("mb-6 flex items-start gap-3 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200")[
+            .Class(
+                "mb-4 flex items-start gap-3 rounded-xl border border-ops-danger/30 bg-ops-danger/5 px-4 py-3 "
+                + "text-sm text-ops-danger sm:mb-6")[
             OpsIcon.Name(OpsIconName.Warning).Class("mt-0.5 size-5 shrink-0"),
-            Span[
+            Span.Class("min-w-0 break-words")[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
                 Span[string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}"))],
                 ". These have run out of attempts and will not be retried."
@@ -75,21 +78,64 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         ];
     }
 
-    private IEnumerable<Component> Tiles(IQueuePanel panel, QueueCounts counts)
+    // The one-line state of the whole console, beside the heading — so the first thing on screen says
+    // whether anything needs attention before any tile is read.
+    private string StateLine()
     {
-        yield return OpsStat
-            .Value(counts.Outstanding.ToString())
-            .Label($"{panel.Title} outstanding")
-            .Icon(panel.Icon)
-            .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting")
-            .Href(Routes.QueuePage(panel.Slug));
+        var outstanding = _queues.Sum(q => q.Counts.Outstanding);
+        var failed = _queues.Sum(q => q.Counts.Failed);
+        var queues = _queues.Count == 1 ? "1 queue" : $"{_queues.Count} queues";
 
-        yield return OpsStat
-            .Value(counts.Failed.ToString())
-            .Label($"{panel.Title} failed")
-            .Icon(OpsIconName.Warning)
-            .Tone(counts.Failed > 0 ? "danger" : null)
-            .Caption($"after {panel.MaxAttempts} attempts")
-            .Href(Routes.QueuePage(panel.Slug));
+        return failed > 0
+            ? $"{queues} · {outstanding} outstanding · {failed} failed"
+            : $"{queues} · {outstanding} outstanding · nothing failed";
     }
+
+    /// <summary>
+    /// One card per queue: what it is, whether it is healthy, and the two numbers worth knowing.
+    /// </summary>
+    /// <remarks>
+    /// This was two tiles per queue, so a deployment running three of them opened on six tiles that were
+    /// mostly the word "outstanding" repeated — and, at four to a row, a second row holding two. A queue is
+    /// one thing, so it gets one card, and the grid divides evenly by the number of queues rather than by
+    /// twice it.
+    /// </remarks>
+    private Component QueueCard(IQueuePanel panel, QueueCounts counts)
+    {
+        var failing = counts.Failed > 0;
+
+        return NavLink
+            .Key(panel.Slug)
+            .Href(Routes.QueuePage(panel.Slug))
+            .Class($"{Ops.Card} block no-underline transition-colors hover:bg-ops-well")[
+            Div.Class("flex items-center gap-2")[
+                OpsIcon.Name(panel.Icon).Class("size-5 shrink-0 text-ops-muted"),
+                Span.Class("truncate font-medium text-ops-ink")[panel.Title],
+                Div.Class("ml-auto shrink-0")[
+                    OpsStatusDot
+                        .Label(failing ? $"{counts.Failed} failed" : "healthy")
+                        .Tone(failing ? "danger" : "ok")
+                ]
+            ],
+            Div.Class("mt-4 flex items-baseline gap-6")[
+                Figure("Outstanding", counts.Outstanding, tone: null),
+                Figure("Failed", counts.Failed, tone: failing ? "danger" : null)
+            ],
+            Div.Class("mt-2 truncate text-xs text-ops-muted")[
+                counts.Delayed > 0
+                    ? $"{counts.Delayed} waiting on a retry · dead after {panel.MaxAttempts} attempts"
+                    : $"nothing waiting · dead after {panel.MaxAttempts} attempts"
+            ]
+        ];
+    }
+
+    // Named Figure, not Stat or Metric: both of those are chain entries on this markup host.
+    private Component Figure(string label, int value, string? tone) =>
+        Div[
+            Div.Class("text-xs font-medium text-ops-muted")[label],
+            Div.Class("mt-0.5 text-2xl font-semibold tabular-nums tracking-tight "
+                      + (tone == "danger" ? "text-ops-danger" : "text-ops-ink"))[
+                value.ToString()
+            ]
+        ];
 }
