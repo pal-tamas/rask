@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      net10.0 ONLY, and singular on purpose. A hosted Blazor component cannot survive the trimmer:
+      ParameterView.SetParameterProperties reaches [Parameter] properties through
+      Microsoft.AspNetCore.Components' own reflection, on types this package does not own, and the
+      component libraries people host here (MudBlazor, Radzen) carry no trim annotations either.
+      samples/Rask.Example.Wasm publishes with TrimMode=full + EnableTrimAnalyzer + -warnaserror, so
+      that is not a warning we could honestly suppress.
+
+      A single TFM makes it a property of the package graph rather than a NoWarn that can rot: a
+      net10.0-browser project cannot even reference this — restore fails NU1201, long before any
+      trimmer runs. PackageShapeTests pins that this stays true, and that neither TFM group of the
+      Rask meta-package ever references it.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <RootNamespace>Rask.Blazor</RootNamespace>
+
+    <!--
+      BL0006 — "the types in Microsoft.AspNetCore.Components.RenderTree are not recommended for use
+      outside of the Blazor framework."
+
+      Hosting a Blazor renderer IS this package's entire purpose, so the warning is telling us
+      something we already decided rather than something we should change. It fires on exactly one
+      thing: BlazorIslandRenderer.UpdateDisplayAsync(in RenderBatch), the base method we must override
+      to learn that a hosted component re-rendered itself — plus the sites that merely NAME that
+      class, since the override puts a RenderTree type in its signature.
+
+      What matters for the risk this warning is about: we never read RenderBatch, never index into it,
+      and never depend on its shape. The override's body ignores the parameter entirely and re-reads
+      the component's HTML instead. So a future change to those types cannot silently alter this
+      package's behaviour — it can only fail to compile, loudly.
+
+      Scoped to this project rather than the repo, and this project exists only to host Blazor.
+    -->
+    <NoWarn>$(NoWarn);BL0006</NoWarn>
+
+    <PackageId>Rask.Blazor</PackageId>
+    <Title>Rask — Blazor components</Title>
+    <Description>Hosts a real Blazor component inside a Rask page. Derive a component from BlazorComponent&lt;T&gt; and the Razor SDK's own output — your Razor Class Library, MudBlazor, Radzen — renders server-side into the first HTTP response, with its parameters passed as live C# objects rather than serialized. Rask children placed inside it keep working handlers. Server-side rendering only: interaction inside the hosted component itself needs a Blazor circuit.</Description>
+    <PackageTags>web component framework net10 blazor razor interop islands</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Microsoft.AspNetCore.Components{,.Web} arrive through the shared framework rather than a
+      PackageReference, so Directory.Packages.props needs no entry for them — the same way
+      benchmarks/Rask.Benchmarks.VsBlazor takes its Blazor dependency.
+    -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all" — Rask.Core and Rask.Html are IsPackable=false, so without it the nuspec
+         would list dependencies on packages that exist on no feed and every restore fails NU1101.
+         Consumers get both from whichever host package they already reference. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
+    <!--
+      The generator has to RUN here, not merely be available to consumers. A referenced library's
+      components cannot be reached from a chain unless that library publishes its own
+      RaskEntries{Assembly} class — which is what this emits. Without it BlazorComponent compiles,
+      ships, and is simply unreachable at every call site, with nothing reporting why. It also
+      publishes the required-property assembly attributes RASK038 reads across an assembly boundary.
+    -->
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Blazor.Tests"/>
+  </ItemGroup>
+
+</Project>

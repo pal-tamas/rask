@@ -9,6 +9,42 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Blazor` hosts a real Blazor component as a Rask island.** Derive a `partial` class from
+  `BlazorComponent<T>` — where `T` is a type from a Razor Class Library, MudBlazor, Radzen, anything
+  the Razor SDK already compiled — and it renders inside a Rask page. The Razor SDK is neither
+  replaced nor configured: it compiles `.razor` exactly as it always has, and Rask hosts the result.
+  This is the `.tsx`/Lit island contract with a different runtime behind it.
+
+  **It is server-rendered, so the component is complete in the FIRST response.** The work runs from
+  `OnPropsChangedAsync`, whose task lands in the ambient quiescence scope, so a hosted component that
+  awaits in `OnInitializedAsync` has finished before the page is sent rather than appearing a frame
+  later. Parameters cross as live C# objects through `ParameterView` — no serialization, so no wire
+  vocabulary to violate, unlike a `.tsx` island's JSON props.
+
+  **The hosted component's own event handlers work, with no Blazor circuit.** Blazor assigns a real
+  handler id to every `@onclick` even in a static render; its own HTML writer simply drops them.
+  `BlazorFrameWriter` walks the render tree and writes Rask's `data-rask-on-*` instead, so a click
+  travels the WebSocket that is already open and comes back through `DispatchEventAsync`. No SignalR,
+  no `blazor.web.js`, no second connection — the same channel the React and Lit islands use.
+
+  **A statically rendered island is deliberately NOT opaque.** `ExternalComponent` seals
+  `OpaqueSubtree` true because React genuinely owns those nodes; here nothing in the browser does.
+  `FrameDiffer` skips an opaque element's children, so an opaque static island would render new HTML
+  on the server and never ship it — painting once and silently freezing. Opacity is reserved for a
+  future circuit mode, where the subtree really would belong to Blazor.
+
+  **`net10.0` only, and that is enforced by the package graph rather than a suppression.** A hosted
+  third-party component cannot survive the trimmer: `[Parameter]` discovery reflects inside
+  `Microsoft.AspNetCore.Components`, on types Rask does not own, and no component library is
+  trim-annotated. A single TFM means a `net10.0-browser` project fails restore with NU1201 before any
+  trimmer runs, and the `Rask` meta-package references it from neither TFM group.
+
+  Compiling `.razor` into the chain was investigated and rejected. The Razor syntax layer is
+  `internal` in every shipped version, the .NET 10 SDK compiler exposes neither the intermediate
+  document nor a way to register a pass — its 23 `InternalsVisibleTo` friends reach those instead —
+  and the last public extension API is `Microsoft.AspNetCore.Razor.Language` 6.0.36, a .NET 6-era
+  package out of support since November 2024. Hosting the SDK's own output costs nothing that rots.
+
 - **The Counter sample is pinned across its three front doors.** It is written in `README.md`, in
   `NUGET.md` (packed into every package, so the nuget.org page) and in the landing site's hero, and
   nothing held them together. They drifted exactly as you would expect: #924 cut the sample to one
