@@ -19,8 +19,8 @@
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
 
     <PackageId>Rask.External</PackageId>
-    <Title>Rask — Foreign Components</Title>
-    <Description>Lets a .tsx, .jsx or Lit component be an ordinary Rask component. Mark a component [Island], drop the front-end file beside it, and its props are declared in C# — the generator emits the TypeScript interface the file imports, so renaming a C# property stops the front end compiling. The live diff treats the island's subtree as opaque, because those nodes belong to its own renderer.</Description>
+    <Title>Rask — Islands</Title>
+    <Description>Lets a .tsx, .jsx or Lit component be an ordinary Rask component. Derive a component from ReactComponent or LitComponent, drop the front-end file beside it, and its props are declared in C# — the generator emits the TypeScript interface the file imports, so renaming a C# property stops the front end compiling. The live diff treats the island's subtree as opaque, because those nodes belong to its own renderer.</Description>
     <PackageTags>web component framework wasm net10 react lit islands typescript interop</PackageTags>
 
     <!-- Razor SDK for its static-web-asset pipeline only (no .razor files), same as Rask.Bootstrap:

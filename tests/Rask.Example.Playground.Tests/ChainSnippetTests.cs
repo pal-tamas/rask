@@ -16,9 +16,10 @@ public sealed class ChainSnippetTests
     private static PlaygroundCompiler NewCompiler() =>
         new(TestReferences.Build(), new ServiceCollection().BuildServiceProvider());
 
-    // README.md — the only C# on the front page. It is a Page, so it also pins the two things a routable
-    // component needs: a [Route] naming the URL it answers, and a parameterless render that returns a
-    // collection expression rather than a single root.
+    // README.md — the only C# on the front page. It is a Page, so it also pins what a routable component
+    // needs: a [Route] naming the URL it answers, and a parameterless render. This one returns a SINGLE
+    // root rather than a collection expression, which is the case that proves a bare chain converts to
+    // Component? on the way out — see Build<T> in CLAUDE.md.
     [Fact]
     public async Task Readme_counter_example_compiles()
     {
@@ -35,11 +36,7 @@ public sealed class ChainSnippetTests
                 private int _count;
 
                 protected override Component? Render() =>
-                [
-                    H1["Counter"],
-                    P[$"Current count: {_count}"],
-                    Button.OnClick(() => _count++)["Click me"]
-                ];
+                    Button.OnClick(() => _count++)[$"Current count: {_count}"];
             }
             """);
 
@@ -47,7 +44,6 @@ public sealed class ChainSnippetTests
 
         var html = result.Component!.ToHtml();
         Assert.Contains("Current count: 0", html, StringComparison.Ordinal);
-        Assert.Contains("Click me", html, StringComparison.Ordinal);
     }
 
     // docs/building-components.md — where the README sends a reader to learn the chain properly, so its

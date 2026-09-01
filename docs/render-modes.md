@@ -398,7 +398,7 @@ Only same-site paths are accepted; anything else throws.
 - **A static page reached by client-side navigation is interactive.** The socket already exists, so
   the page renders in-session — but pressing F5 gives a document with no runtime. "Static" is a
   property of the entry document, not of the page.
-- **Detection is per page, decided at the end of the render.** There are no islands: one handler
+- **Detection is per page, decided at the end of the render.** Interactivity is not decided per component: one handler
   anywhere on the page makes the whole page interactive.
 - **`MaxSessions` now means what its name says.** It used to bound both concurrent users and GET
   traffic, because every `GET` retained a session for ten seconds. Static pages retain none.

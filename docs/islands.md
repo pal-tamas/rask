@@ -1,6 +1,6 @@
-# External components — a `.tsx` file as a Rask component
+# Islands — a `.tsx` file as a Rask component
 
-An **external component** is an ordinary Rask component whose markup is produced by a front-end
+An **island** is an ordinary Rask component whose markup is produced by a front-end
 framework. Derive from `ReactComponent` or `LitComponent`, drop the front-end file beside it, and it
 goes anywhere the chain goes — a leaf inside a card, a subtree, or the whole of a `[Route]` page's
 `Render()`.
@@ -207,7 +207,7 @@ export default function Chart({ series, onPointClick }: ChartProps) {
 
 They travel as a handler reference rather than a value, and reach C# through the **same channel every
 DOM handler uses**: the open WebSocket on the Server host, a direct `[JSExport]` call into this tab's
-runtime on WASM. An external component never opens a channel of its own, so a callback inherits sequence
+runtime on WASM. An island never opens a channel of its own, so a callback inherits sequence
 stamping, the queue-while-reconnecting, and the auth suppression window for free — and the `.tsx` is
 byte-identical on both hosts.
 
@@ -230,7 +230,7 @@ Chart.Series(_points).Hydration(ExternalHydration.Visible)
 
 ## Slots
 
-An external component can wrap Rask-rendered content, so replacing a component in the middle of a tree does not
+An island can wrap Rask-rendered content, so replacing a component in the middle of a tree does not
 strand its descendants:
 
 ```csharp
@@ -290,7 +290,7 @@ through.
 
 **A project using them needs Node and a `package.json`.** That single file is also the gate: a project
 without one runs no npm, probes for no node, and never learns this package has a build step. A Rask app
-with no external components is unaffected, which is most of them.
+with no islands is unaffected, which is most of them.
 
 ```bash
 npm init -y
