@@ -7,6 +7,10 @@ nor reconfigured: it compiles `.razor` exactly as it always has, and Rask render
 This is the [islands](islands.md) contract with a different runtime behind it. A `.tsx` is a React
 component rendered by React; a `.razor` is a Blazor component rendered by Blazor.
 
+To be exact about what changed and what did not: **you still never write `.razor` to write Rask.** A
+`.razor` here is a component you are *hosting* — someone else's, or your own from a class library —
+not the way you author a Rask page. The chain is still the only authoring surface.
+
 ```csharp
 public sealed partial class Chart : BlazorComponent<MudChart> { }
 ```

@@ -48,6 +48,13 @@
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Blazor\Rask.Blazor.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+    <!--
+      A REAL Razor Class Library, so the headline path is exercised: a hosted component from a
+      REFERENCED assembly, whose [Parameter]s are read out of metadata. The hand-written ComponentBase
+      fixtures in this project cannot show that — they live in this compilation, where the symbols
+      come from source.
+    -->
+    <ProjectReference Include="..\Rask.Blazor.Library.Fixture\Rask.Blazor.Library.Fixture.csproj"/>
     <!-- The generator has to RUN here: markup-host entries are injected per compilation, so without
          it the fixture islands below cannot be written as a chain at all. -->
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"

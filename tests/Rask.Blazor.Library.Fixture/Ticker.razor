@@ -1,0 +1,37 @@
+@* A real .razor, compiled by the Razor SDK, used from another assembly. *@
+
+<div class="ticker @Tone">
+    <strong>@Symbol</strong>
+    <span>@Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)</span>
+    @if (Note is not null)
+    {
+        <em>@Note</em>
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>The instrument. Mandatory, and Blazor says so.</summary>
+    [Parameter, EditorRequired]
+    public string Symbol { get; set; } = "";
+
+    /// <summary>The last price.</summary>
+    [Parameter]
+    public decimal Price { get; set; }
+
+    /// <summary>Optional annotation.</summary>
+    [Parameter]
+    public string? Note { get; set; }
+
+    /// <summary>Styling hook — deliberately named after an ordinary UI-library parameter.</summary>
+    [Parameter]
+    public string? Tone { get; set; }
+
+    /// <summary>Anything Rask renders inside the island.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Raised when the row is clicked, from the component's own markup.</summary>
+    [Parameter]
+    public EventCallback<string> OnPick { get; set; }
+}
