@@ -73,6 +73,27 @@ them until tagged releases begin.
   load-bearing (the async strategy owns the waiting, so SQLite's native busy handler must be off) but it
   was inferred from whether a delegate existed. It is now `o.Retry.Enabled`.
 
+### Added
+- **The payload-bytes gates run before push, like the browser E2E.**
+  `scripts/run-benchmarks-local.sh` checks both wire-byte baselines — the standalone codec numbers and
+  the head-to-head against Blazor — and `.githooks/pre-push` runs it on every push
+  (`RASK_SKIP_BENCHMARKS=1` to bypass). `ci.yml` runs the same two gates, but `main` has no required
+  checks, so CI's answer stopped nobody: the gate rode red through three merges before anyone noticed
+  ([#919](https://github.com/pal-tamas/rask/issues/919)). This is where it bites now, which is how the
+  unit suite, the browser journeys and the CLI build gate already work here.
+
+  **Both gates always run, even when the first fails.** In CI they are two steps in one job, so a
+  fail-fast on the first left the second unrun — which is exactly how the vs-Blazor baseline stayed
+  broken while the standalone one was being fixed, and how a half-fix read as complete. The script
+  reports both and fails once at the end. Proved by tightening both baselines and watching it fail with
+  both named, then restoring and watching it pass.
+
+  It is deliberately **not** path-filtered, unlike the heavier pre-push gates: it costs about a minute,
+  and a hand-listed filter is itself a way for a gate to stop running silently — the repo has been bitten
+  by exactly that. `docs/repo-administration.md` is corrected too: it had listed `unit` and the `e2e`
+  shards as required status checks, and neither runs in CI at all, so that described protection that
+  could never engage.
+
 ### Fixed
 - **The payload-bytes gate was red for three merges over a CSS class rename.** #914's Bootstrap sweep
   renamed classes inside the benchmark scenarios themselves — `row` → `line`, one character longer —

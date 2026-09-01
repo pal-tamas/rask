@@ -173,6 +173,30 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 
 [#845]: https://github.com/pal-tamas/rask/issues/845
 [#850]: https://github.com/pal-tamas/rask/issues/850
+- **The payload-bytes gates run locally, enforced before push.** `scripts/run-benchmarks-local.sh`
+  checks both wire-byte baselines — the standalone codec numbers and the head-to-head against Blazor —
+  byte-for-byte. The numbers are noise-free (no timing: every render emits the same payload shape with
+  one value differing), so a change is a real change. `.githooks/pre-push` runs it on every push,
+  UNFILTERED unlike the heavier gates below: it costs about a minute, and a hand-listed path filter is
+  itself a way for a gate to stop running silently. Bypass with `git push --no-verify` or
+  `RASK_SKIP_BENCHMARKS=1`.
+
+  It exists because CI's copy stopped nobody. `ci.yml` runs the same two gates, but `main` has no
+  required checks, so the gate rode red through three merges before anyone noticed
+  ([#919](https://github.com/pal-tamas/rask/issues/919)).
+
+  **Both gates always run, even when the first fails.** In CI they are two steps in one job, so a
+  fail-fast on the first leaves the second unrun — which is how the vs-Blazor baseline stayed broken
+  while the standalone one was being fixed, and how a half-fix looked complete. Locally you get both
+  answers at once.
+
+  **A regression here means one of two opposite things.** Either the render/diff path got heavier —
+  fix the code, do not touch the baseline — or a benchmark scenario's own markup changed, which *does*
+  reach a gated number: `AppendRowToList100`'s diff is an `InsertSubtree` whose value is the new row's
+  HTML. In that case refresh the baseline in the same commit and say why. The vs-Blazor report tells
+  them apart: it records `BlazorBatchBytes` too, and if Blazor's numbers moved by the same amount the
+  bytes came from markup both frameworks render, not from anything Rask encodes. Build before
+  `--check` — the baseline is read from `bin/`, so `--no-build` compares against a stale copy.
 - **The CLI build gate runs locally, enforced before push.** `scripts/run-cli-build-e2e.sh` is the only
   thing proving the code the CLI *writes* actually compiles — every other CLI test asserts on generated
   strings. It packs this commit's Rask packages to a local feed, scaffolds every `rask new` flag
