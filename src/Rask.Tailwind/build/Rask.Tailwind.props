@@ -61,4 +61,35 @@
     <RaskTailwindCacheRoot Condition="'$(RaskTailwindCacheRoot)' == ''">$(HOME)/.rask/tailwind</RaskTailwindCacheRoot>
   </PropertyGroup>
 
+  <!--
+    Name the generated stylesheet as a LITERAL Content item, here, at evaluation — before it exists.
+
+    The SDK globs `wwwroot/**` into @(Content) at evaluation time, which is before any target runs. The
+    Tailwind build writes its output at BeforeBuild, so on the FIRST build in a clone that glob cannot
+    have matched it. For an app (Sdk.Web, Sdk.WebAssembly) that turns out not to matter: static-web-asset
+    discovery re-enumerates during the build and picks the file up anyway. For a RAZOR CLASS LIBRARY it
+    matters completely — the RCL's assets come from the evaluated @(Content), so a file generated later
+    never enters its manifest and never reaches the consuming app's publish.
+
+    That is not a theory. It shipped: from #914 (Tailwind built in, Bootstrap gone) until this change,
+    every CI deploy of the docs showcase served `_content/Rask.Example.Shared/css/app.css` as a 404 and
+    rendered the whole site unstyled, while a committed file two directories away in the same wwwroot
+    served fine. It was invisible locally because a previous build always left the file on disk, so the
+    glob matched and every local publish — and every local E2E — was correct.
+
+    A literal Include is the fix because it does not consult the disk at evaluation. The item exists
+    regardless; the file is only required when it is COPIED, which is after the generating target has
+    run. This is the same distinction #852 turned on for pack, applied to the other side of it: there, a
+    glob silently collected nothing and shipped a package without its task assembly.
+
+    Guarded on !Exists so the second build — where the glob DOES match — does not declare it twice.
+    Guarded on the input existing so projects with no stylesheet (a class library, a test project, the
+    static-file half of a hosted WASM app) declare nothing, exactly as _RaskTailwindDoBuild decides.
+  -->
+  <ItemGroup Condition=" '$(RaskTailwindOutput)' != ''
+                         AND Exists('$(MSBuildProjectDirectory)/$(RaskTailwindInput)')
+                         AND !Exists('$(MSBuildProjectDirectory)/$(RaskTailwindOutput)') ">
+    <Content Include="$(RaskTailwindOutput)"/>
+  </ItemGroup>
+
 </Project>
