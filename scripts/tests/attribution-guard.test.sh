@@ -44,6 +44,13 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OB
 repo_head_before="$(git rev-parse HEAD)"
 repo_status_before="$(git status --porcelain)"
 
+# And the committing identity, which is the half that got away the first time. HEAD and the working
+# tree were both checked and both looked clean, because the damage was in .git/config: this suite
+# had written "Test <test@example.invalid>" there, so the NEXT commit — a real one, made later, by
+# something else entirely — carried it. A test that sets an identity has to prove it did not set
+# yours. Empty when unset, which is itself the value to preserve.
+repo_ident_before="$(git config --get user.name || true)|$(git config --get user.email || true)"
+
 # shellcheck source=../lib/attribution.sh
 . "$root/scripts/lib/attribution.sh"
 
@@ -121,11 +128,26 @@ mkdir -p "$push_repo/scripts/lib" "$push_repo/.githooks"
 cp "$root/scripts/lib/attribution.sh" "$root/scripts/lib/build-failure.sh" "$push_repo/scripts/lib/"
 cp "$root/.githooks/pre-push" "$push_repo/.githooks/pre-push"
 
+# The throwaway repository's identity, passed through the ENVIRONMENT rather than written with
+# `git config`. A config write is a write, and it lands wherever git thinks the repository is.
+#
+# This file used to run `git config user.email ...` here. The first time it ran under pre-commit, a
+# leaked GIT_DIR (see the scrub above) sent those two lines into the REAL repository's .git/config —
+# which is shared by every worktree. The next real commit was therefore authored by
+# "Test <test@example.invalid>", GitHub turned that into a Co-authored-by trailer on the squash
+# commit, and the pull request adding this guard put an attribution trailer on main. Removing it
+# cost another force-push. The guard, defeated by its own test.
+#
+# Environment variables cannot leak into a config file, so this failure mode is closed by
+# construction rather than by remembering to scrub. The assertions at the end of this file prove it.
+export GIT_AUTHOR_NAME="Rask attribution test"
+export GIT_AUTHOR_EMAIL="attribution-test@rask.invalid"
+export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+
 (
   cd "$push_repo"
   git init -q -b main
-  git config user.email "test@example.invalid"
-  git config user.name "Test"
   echo one > f && git add f && git commit -q -m "chore: base"
 ) >/dev/null 2>&1
 
@@ -203,6 +225,25 @@ if [ "$(git status --porcelain)" = "$repo_status_before" ]; then
   pass "the working tree is where it was"
 else
   fail "the working tree is where it was" "-> status changed; a git env var leaked into the temp repo"
+fi
+
+# The one that was missing. HEAD and the tree both looked clean while .git/config had already been
+# rewritten, and the cost landed on a later commit made by something else.
+checked=$((checked + 1))
+repo_ident_after="$(git config --get user.name || true)|$(git config --get user.email || true)"
+if [ "$repo_ident_after" = "$repo_ident_before" ]; then
+  pass "the committing identity is untouched"
+else
+  fail "the committing identity is untouched" \
+    "-> '$repo_ident_after', was '$repo_ident_before' — this suite wrote git config into a real repo"
+fi
+
+# Belt and braces: nothing in this file may write an identity into any repository at all.
+checked=$((checked + 1))
+if grep -qE '^[[:space:]]*git config user\.' "$0"; then
+  fail "no 'git config user.*' writes in this file" "-> use GIT_AUTHOR_*/GIT_COMMITTER_* instead"
+else
+  pass "no 'git config user.*' writes in this file"
 fi
 
 echo

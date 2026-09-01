@@ -142,7 +142,7 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   time, and `.githooks/pre-push` over the commits actually being pushed. The second is not
   redundant — the first only runs once `core.hooksPath` is set, and a fresh clone or a new worktree
   has not set it, which is exactly how the two trailers got in. A human `Signed-off-by:` passes;
-  `scripts/tests/attribution-guard.test.sh` states all 30 cases, both directions.
+  `scripts/tests/attribution-guard.test.sh` states all 32 cases, both directions.
 - **E2E runs locally, enforced before push.** The browser-journey E2E
   (`tests/Rask.Examples.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
   `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
