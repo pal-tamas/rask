@@ -33,10 +33,93 @@ Read this table before anything else — it is the whole shape of the feature.
 | `OnInitialized`, `OnInitializedAsync`, `OnParametersSet`, `BuildRenderTree` | ✅ |
 | Reacts to a Rask prop change, keeping its own state | ✅ |
 | Its own `@onclick` / `EventCallback` firing from the browser | ✅ (see [events](#events)) |
-| Rask children inside it, with working handlers | ✅ |
+| Rask children inside it, with working handlers | ✅ (captured per prop change — see [limits](#what-is-not-here-yet)) |
 | `OnAfterRender`, `IJSRuntime`, `ElementReference` | ❌ |
+| Its own `@onkeydown`, `@onsubmit`, `@onmouseover` | ❌ — see [events](#events) |
 | `@bind` writing a value back | ✅ (see [binding](#binding)) |
-| WebAssembly | ❌ — server only, by construction |
+| WebAssembly | ✅ — untrimmed, see [both hosts](#both-hosts) |
+
+## A worked example
+
+End to end, and compiled: the component below is a real `.razor` in the repository, its island is
+declared in the test suite, and the output printed here is asserted by
+`tests/Rask.Blazor.Tests/DocExampleTests.cs`. A test also pins this document against the file, so the
+two cannot drift apart.
+
+**1. The Blazor component**, in a Razor Class Library — an ordinary `.razor`, compiled by the Razor
+SDK, with nothing in it that knows Rask exists:
+
+```razor
+@using System.Globalization
+
+<div class="price-tag @Tone">
+    <strong>@Symbol</strong>
+    <span>@Price.ToString("0.00", CultureInfo.InvariantCulture)</span>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Symbol { get; set; } = "";
+
+    [Parameter]
+    public decimal Price { get; set; }
+
+    [Parameter]
+    public string? Tone { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
+```
+
+**2. The island** — the whole declaration. Nothing is redeclared; the chain steps are read from the
+component's own `[Parameter]`s:
+
+```csharp
+public sealed partial class Quote : BlazorComponent<PriceTag>;
+```
+
+**3. The services**, once in `Program.cs`:
+
+```csharp
+builder.Services.AddRask();
+builder.Services.AddRaskBlazor();
+```
+
+**4. Use it** anywhere the chain goes — a leaf, a subtree, or a whole page:
+
+```csharp
+Div.Class("grid")[
+    H1["Watchlist"],
+    Quote.Symbol("RASK").Price(12.5m).Tone("up")[
+        Span["watching"]
+    ],
+]
+```
+
+**What comes back**, in the first HTTP response:
+
+```html
+<rask-blazor name="Quote" component="…PriceTag">
+  <div class="price-tag up">
+    <strong>RASK</strong>
+    <span>12.50</span>
+    <span>watching</span>
+  </div>
+</rask-blazor>
+```
+
+Three things in that are worth naming:
+
+- **`Symbol` opened the chain** because `PriceTag` marked it `[EditorRequired]`. `Price` and `Tone`
+  are ordinary optional steps, and omitting `Tone` leaves the component's own default alone rather
+  than passing null.
+- **`Span["watching"]` is Rask's**, rendered by Rask inside the hosted component's `ChildContent`.
+  Give it an `.OnClick(…)` and the handler works — it reaches the page through the same delegated
+  channel as any other Rask element.
+- **`12.50` is in the first response**, not painted in later. Had `PriceTag` awaited in
+  `OnInitializedAsync`, that would be finished too.
 
 ## Declaring one
 
@@ -143,6 +226,18 @@ and Lit islands use for their callbacks.
 Table.Rows(_rows).OnRowClick(row => _selected = row)   // fires
 ```
 
+**Not every event, and the ones that cannot work render nothing rather than pretending.** Rask routes
+an inbound event to a handler by the delegate's shape and refuses a mismatch, so an event it cannot
+feed gets no attribute at all — a component that looks wired and does nothing on the first click is
+the failure this package exists to avoid. What works today:
+
+| | |
+|---|---|
+| `click`, `focus`, `blur`, `focusin`, `focusout` | ✅ |
+| `select`, `invalid`, `reset`, the `drag*` family | ✅ |
+| `change`, `input` — including `@bind` | ✅ |
+| `keydown`, `keyup`, `submit`, `mouseover`, `wheel`, `paste`, … | ❌ no attribute emitted |
+
 ## Binding
 
 `@bind` works, including the write-back. It travels a different channel from the click above, and
@@ -186,16 +281,26 @@ constructor — most notably `NavigationManager`, which many components inject a
 silent no-op: a component calling into JavaScript in a statically rendered island has hit a real
 capability gap, and a no-op would leave it looking correct while being subtly wrong.
 
-## Server only
+## Both hosts
 
-`Rask.Blazor` targets `net10.0` only, so a `net10.0-browser` project cannot reference it — restore
-fails before any trimmer runs. This is enforced by the package graph rather than by a suppression that
-could rot.
+`Rask.Blazor` targets `net10.0` **and** `net10.0-browser`, and the two share one code path with no
+`#if`: a hosted component is rendered to markup in process, which browser-WebAssembly does as readily
+as a server. The only difference is where the renderer comes from — the ASP.NET shared framework on
+the server, the `Microsoft.AspNetCore.Components.Web` package in the browser.
 
-The reason is not fixable from Rask's side: `[Parameter]` discovery reflects inside
-`Microsoft.AspNetCore.Components`, on types Rask does not own, and no component library is
-trim-annotated. `samples/Rask.Example.Wasm` publishes with `TrimMode=full` and warnings as errors, and
-there is no honest way to suppress what a hosted component would produce.
+**A WASM app hosting a Blazor component must publish untrimmed.** `[Parameter]` discovery reflects
+inside `Microsoft.AspNetCore.Components`, on types Rask does not own, and no component library
+(MudBlazor, Radzen) is trim-annotated — so the trimmer removes properties the renderer then cannot
+find. This is the same rule [Rask.SQLite.Browser](data-access.md) already carries, for the same
+reason.
+
+```xml
+<PublishTrimmed>false</PublishTrimmed>
+```
+
+It is deliberately **not** in the `Rask` meta-package on either framework. Everything there is
+referenced by every app on that framework, and an app that wants nothing to do with Blazor should not
+carry its renderer.
 
 ## What is not here yet
 
@@ -204,6 +309,10 @@ there is no honest way to suppress what a hosted component would produce.
 - **A prop change replaces the island's DOM.** The update ships as a subtree replace rather than a
   fine diff, so scroll position and text selection inside the island are lost when a prop changes.
 - **Templated parameters** (`RenderFragment<T>`) get no chain step.
+- **Rask children are captured when a prop changes**, not on every render. A page re-render caused by
+  something else — another component's state — leaves the island showing the children it captured
+  last. Pass the changing value as a *parameter* rather than as a child and it updates normally.
+- **Events beyond the set above** emit no attribute, so a hosted `@onkeydown` is inert.
 - **Circuit mode.** `BlazorInteractivity.Circuit` is reserved in the enum and not implemented.
 
 ## Diagnostics

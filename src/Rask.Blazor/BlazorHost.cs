@@ -24,14 +24,8 @@ internal sealed partial class BlazorHost : Element
     /// <inheritdoc />
     protected override string TagName => BlazorDefaults.HostTag;
 
-    /// <summary>Whether the subtree belongs to a Blazor circuit rather than to Rask.</summary>
-    /// <remarks>
-    ///     False for a statically rendered island: nothing in the browser owns those nodes, they are
-    ///     Rask's own markup, and marking them opaque would make <c>FrameDiffer</c> skip the
-    ///     subtree — so a prop change would render new HTML on the server and never ship it.
-    /// </remarks>
-    public bool Opaque { get; set; }
-
-    /// <inheritdoc />
-    protected override bool OpaqueSubtree => Opaque;
+    // Never opaque, and there is no knob for it. Nothing in the browser owns these nodes — they are
+    // Rask's own markup, produced on the server — and marking them opaque would make FrameDiffer skip
+    // the subtree, so a prop change would render new HTML and never ship it. A future circuit mode
+    // would change that, and can add the override when it exists rather than before.
 }

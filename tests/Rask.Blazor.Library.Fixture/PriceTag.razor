@@ -1,0 +1,21 @@
+@using System.Globalization
+
+<div class="price-tag @Tone">
+    <strong>@Symbol</strong>
+    <span>@Price.ToString("0.00", CultureInfo.InvariantCulture)</span>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Symbol { get; set; } = "";
+
+    [Parameter]
+    public decimal Price { get; set; }
+
+    [Parameter]
+    public string? Tone { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

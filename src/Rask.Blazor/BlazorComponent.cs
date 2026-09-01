@@ -45,10 +45,14 @@ public abstract partial class BlazorComponent<TComponent> : Component
     private BlazorIslandRenderer? _renderer;
     private TComponent? _instance;
     private int _componentId = -1;
-    private string? _html;
-
-    // (Blazor handler id, DOM event) per placeholder the writer left in _html, in index order.
-    private readonly List<(ulong BlazorHandlerId, string EventName)> _handlers = [];
+    // The hosted markup and the handlers its placeholders stand for, as ONE value.
+    //
+    // Two fields would be a data race rather than a tidiness question: RewriteHtml runs on the
+    // renderer's dispatcher (a hosted timer, an injected service's event) while BindHandlers reads on
+    // the render-walk thread, with no ordering between them. Clearing a list there while indexing it
+    // here throws; pairing new markup with a stale list serves a page with raw placeholders in it.
+    // One immutable snapshot, swapped by a single reference assignment, has neither failure.
+    private volatile IslandMarkup? _markup;
 
     // Whether there is a live session to dispatch through, captured on the render thread. The HTML is
     // rewritten from the renderer's dispatcher, where the ambient context is not visible.
@@ -58,16 +62,6 @@ public abstract partial class BlazorComponent<TComponent> : Component
     // lifecycle hook, not the serialize walk — but the habit is the repo's.
     private readonly Dictionary<string, object?> _parameters = new(StringComparer.Ordinal);
 
-    /// <summary>How much of the hosted component's own behaviour reaches the browser.</summary>
-    /// <remarks>
-    ///     Nullable rather than a property with an initializer, and that is not a style choice. A
-    ///     member initializer compiles into the constructor and leaves no trace in metadata, so across
-    ///     an assembly boundary <c>Interactivity { get; set; } = Static</c> is indistinguishable from
-    ///     <c>Interactivity { get; set; }</c> — the chain would read it as a REQUIRED step and force
-    ///     every call site to spell out a value that has an obvious default. Nullability survives
-    ///     metadata, and says the more precise thing: null is "not specified".
-    /// </remarks>
-    public BlazorInteractivity? Interactivity { get; set; }
 
     /// <summary>The name this island is identified by. Its own simple type name.</summary>
     protected virtual string ComponentName => GetType().Name;
@@ -196,8 +190,8 @@ public abstract partial class BlazorComponent<TComponent> : Component
             return;
         }
 
-        _handlers.Clear();
-        _html = BlazorFrameWriter.Write(
+        var handlers = new List<(ulong BlazorHandlerId, string EventName)>();
+        var html = BlazorFrameWriter.Write(
             _renderer,
             _componentId,
             (blazorId, eventName) =>
@@ -209,9 +203,11 @@ public abstract partial class BlazorComponent<TComponent> : Component
                     return null;
                 }
 
-                _handlers.Add((blazorId, eventName));
-                return Placeholder(_handlers.Count - 1);
+                handlers.Add((blazorId, eventName));
+                return Placeholder(handlers.Count - 1);
             });
+
+        _markup = new IslandMarkup(html, handlers);
     }
 
     /// <summary>
@@ -225,22 +221,24 @@ public abstract partial class BlazorComponent<TComponent> : Component
     /// </remarks>
     private string? BindHandlers()
     {
-        if (_html is null || _handlers.Count == 0)
+        // Read once: a self-render on the renderer's dispatcher can swap it mid-method.
+        var markup = _markup;
+        if (markup is null || markup.Handlers.Count == 0)
         {
-            return _html;
+            return markup?.Html;
         }
 
         var context = LiveRenderContext.CurrentSync ?? LiveRenderContext.Current;
         var renderer = _renderer;
         if (context is null || renderer is null)
         {
-            return _html;
+            return markup.Html;
         }
 
-        var sb = new System.Text.StringBuilder(_html);
-        for (var i = 0; i < _handlers.Count; i++)
+        var sb = new System.Text.StringBuilder(markup.Html);
+        for (var i = 0; i < markup.Handlers.Count; i++)
         {
-            var (blazorHandlerId, eventName) = _handlers[i];
+            var (blazorHandlerId, eventName) = markup.Handlers[i];
 
             // A value-carrying event needs a delegate that TAKES the value: Rask routes an inbound
             // frame to a handler by the delegate's shape, and only Action<string>/Func<string, Task>
@@ -300,12 +298,12 @@ public abstract partial class BlazorComponent<TComponent> : Component
         await _renderer.DisposeAsync();
         _renderer = null;
         _instance = default;
+        _markup = null;
     }
 
     /// <inheritdoc />
     protected sealed override Component? Render() =>
         BlazorHost
-            .Opaque(Interactivity == BlazorInteractivity.Circuit)
             .Data(new Dictionary<string, string?> { ["rask-blazor"] = ComponentName })
             .Attributes(new Dictionary<string, string?>
             {
@@ -390,4 +388,11 @@ public abstract partial class BlazorComponent<TComponent> : Component
         var markup = html.ToString();
         return builder => builder.AddMarkupContent(0, markup);
     }
+
+    /// <summary>The hosted markup and the handlers its placeholders stand for, as one value.</summary>
+    /// <param name="Html">The markup, with a placeholder wherever a handler id belongs.</param>
+    /// <param name="Handlers">(Blazor handler id, DOM event) in placeholder index order.</param>
+    private sealed record IslandMarkup(
+        string Html,
+        IReadOnlyList<(ulong BlazorHandlerId, string EventName)> Handlers);
 }

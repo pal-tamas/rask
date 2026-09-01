@@ -71,14 +71,6 @@ internal sealed class BlazorIslandRenderer : StaticHtmlRenderer
     /// <summary>The argument type Blazor expects for a handler, so the payload can be built.</summary>
     public Type ArgsTypeFor(ulong handlerId) => GetEventArgsType(handlerId);
 
-    /// <summary>The component's current HTML.</summary>
-    public string Html(int componentId)
-    {
-        var writer = new StringWriter();
-        WriteComponentHtml(componentId, writer);
-        return writer.ToString();
-    }
-
     /// <summary>
     ///     A render this island did not ask for — the hosted component called
     ///     <c>StateHasChanged</c> itself.

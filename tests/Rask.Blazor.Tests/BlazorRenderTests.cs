@@ -43,16 +43,6 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_circuit_island_is_opaque()
-    {
-        var html = RaskTest
-            .Render(GreetingIsland.Heading("Hi").Interactivity(BlazorInteractivity.Circuit), Services())
-            .Html;
-
-        Assert.Contains("data-rask-opaque", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task An_awaiting_hosted_component_is_complete_in_the_FIRST_paint()
     {
         // The entire value claim of static hosting, and it has to be asserted on the QUIESCENT path

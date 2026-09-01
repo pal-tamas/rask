@@ -38,6 +38,36 @@ internal static class BlazorFrameWriter
         "link", "meta", "param", "source", "track", "wbr",
     };
 
+    // The events Rask feeds a parameterless handler (HandlerFrameShape's "None" row). A Func<Task>
+    // registered for anything else is refused at dispatch, because the inbound frame's type belongs
+    // to a shape that wants arguments.
+    private static readonly HashSet<string> ParameterlessEvents = new(StringComparer.Ordinal)
+    {
+        "click", "dragstart", "dragover", "drop", "dragend", "drag", "dragenter", "dragleave",
+        "focus", "blur", "focusin", "focusout", "select", "invalid", "reset",
+    };
+
+    // The events that carry the element's value, fed to an Action<string>/Func<string, Task>.
+    private static readonly HashSet<string> ValueEvents = new(StringComparer.Ordinal)
+    {
+        "change", "input",
+    };
+
+    // Attributes whose value is a URL, and so a script-execution sink: javascript: and vbscript: run
+    // on click, data: can carry a document. Rask neutralises these framework-wide through
+    // Component.AppendUrlAttr, and an island's markup reaches the page through Raw — Rask's only
+    // un-encoded path — so nothing downstream would catch a miss here.
+    private static readonly HashSet<string> UrlAttributes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "href", "action", "formaction", "ping", "cite", "background",
+    };
+
+    // As above, but inline media is both common and inert, so data:image/* and friends stay allowed.
+    private static readonly HashSet<string> MediaUrlAttributes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "src", "poster", "srcset",
+    };
+
     /// <summary>Renders <paramref name="componentId" />'s current tree.</summary>
     /// <param name="renderer">The island's renderer, used to reach nested components' frames.</param>
     /// <param name="componentId">The root to write.</param>
@@ -155,31 +185,29 @@ internal static class BlazorFrameWriter
             // "onclick" -> "click", so it lands on Rask's own data-rask-on-{event} convention and the
             // delegated listener already in the page picks it up with no new client code.
             var eventName = name.StartsWith("on", StringComparison.OrdinalIgnoreCase) ? name[2..] : name;
+
+            // An event Rask cannot route to a handler of the shape we register gets NO attribute.
+            // Rask matches an inbound frame to a handler by the delegate's shape, and refuses a
+            // mismatch — so emitting the attribute anyway would render a component that looks wired
+            // and does nothing on the first click, which is the failure this package exists to avoid.
+            if (!ValueEvents.Contains(eventName) && !ParameterlessEvents.Contains(eventName))
+            {
+                return;
+            }
+
             if (registerEvent(frame.AttributeEventHandlerId, eventName) is not { } raskId)
             {
                 return;
             }
 
             // A value-carrying event goes through Rask's INPUT channel rather than its DOM-event one,
-            // and that distinction is what makes @bind work. `change` and `input` are deliberately
-            // absent from the DOM-event table: the client reads the element's value off
-            // data-rask-on-input and ships {id, type:"input", value}, which is the only inbound frame
-            // that carries a payload the element itself produced.
-            if (eventName is "change" or "input")
-            {
-                sb.Append(" data-rask-on-input=\"").Append(raskId).Append('"');
-
-                // data-rask-on-change is a MARKER, not a second handler id — the client still reads
-                // the id from data-rask-on-input. Its presence is what makes the dispatch synchronous,
-                // which is what `change` means: the value is final, not still being typed.
-                if (eventName == "change")
-                {
-                    sb.Append(" data-rask-on-change=\"").Append(raskId).Append('"');
-                }
-
-                return;
-            }
-
+            // and that distinction is what makes @bind work: `change` and `input` are deliberately
+            // absent from the DOM-event table because the client reads the element's value and ships
+            // it alongside the id.
+            //
+            // ONE attribute, never both. They carry separate ids and each dispatches its own frame,
+            // so writing the same id to both fires the handler twice per edit — harmless for @bind,
+            // wrong for a hosted @onchange that appends to a list or increments a counter.
             sb.Append(" data-rask-on-").Append(eventName).Append("=\"").Append(raskId).Append('"');
             return;
         }
@@ -197,49 +225,51 @@ internal static class BlazorFrameWriter
 
                 break;
             default:
+            {
+                var text = frame.AttributeValue.ToString();
+
+                // A URL-valued attribute goes through the same sanitizer every Rask element uses, so
+                // a hosted <a href="@Url"> fed from a parameter cannot emit javascript: verbatim.
+                if (UrlAttributes.Contains(name))
+                {
+                    text = UrlSanitizer.Sanitize(text);
+                }
+                else if (MediaUrlAttributes.Contains(name))
+                {
+                    text = UrlSanitizer.SanitizeMedia(text);
+                }
+
                 sb.Append(' ').Append(name).Append("=\"");
-                HtmlEncodeAttribute(frame.AttributeValue.ToString(), sb);
+                HtmlEncode(text, sb);
                 sb.Append('"');
                 break;
+            }
         }
     }
 
+    /// <summary>
+    ///     Appends <paramref name="value" /> HTML-encoded, by the same encoder the rest of Rask uses.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>HtmlSerializer.AppendEncoded</c> rather than a switch over the handful of characters
+    ///         that obviously matter. This is an XSS-relevant path, and a hand-rolled encoder here
+    ///         would be a second, untested answer to a question the framework already answers — it
+    ///         delegates to <c>HtmlEncoder.Default</c>, which is stricter than the obvious set (it
+    ///         encodes <c>'</c> and non-ASCII too) behind a fast path that leaves safe ASCII
+    ///         untouched with no allocation.
+    ///     </para>
+    ///     <para>
+    ///         One encoder for both text and attribute values, because <c>HtmlEncoder.Default</c>
+    ///         escapes the quote as well — so there is no context this is too weak for, and no second
+    ///         rule to keep in step with the first.
+    ///     </para>
+    /// </remarks>
     private static void HtmlEncode(string? value, StringBuilder sb)
     {
-        if (string.IsNullOrEmpty(value))
+        if (!string.IsNullOrEmpty(value))
         {
-            return;
-        }
-
-        foreach (var c in value)
-        {
-            switch (c)
-            {
-                case '&': sb.Append("&amp;"); break;
-                case '<': sb.Append("&lt;"); break;
-                case '>': sb.Append("&gt;"); break;
-                default: sb.Append(c); break;
-            }
-        }
-    }
-
-    private static void HtmlEncodeAttribute(string? value, StringBuilder sb)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return;
-        }
-
-        foreach (var c in value)
-        {
-            switch (c)
-            {
-                case '&': sb.Append("&amp;"); break;
-                case '"': sb.Append("&quot;"); break;
-                case '<': sb.Append("&lt;"); break;
-                case '>': sb.Append("&gt;"); break;
-                default: sb.Append(c); break;
-            }
+            HtmlSerializer.AppendEncoded(sb, value);
         }
     }
 }

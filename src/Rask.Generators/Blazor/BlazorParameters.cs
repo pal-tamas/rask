@@ -20,6 +20,11 @@ namespace Rask.Generators.Blazor;
 /// <param name="NeedsNew">
 ///     Whether the property shadows an inherited chain entry and so must say <c>new</c>.
 /// </param>
+/// <param name="DeclaredByUser">
+///     Whether the island already declares this property itself — via <c>[BlazorParameter]</c> or a
+///     plain hand-written property. It is still WRITTEN to the parameter dictionary; it just must not
+///     be declared a second time.
+/// </param>
 internal readonly record struct BlazorParam(
     string Parameter,
     string Name,
@@ -27,7 +32,8 @@ internal readonly record struct BlazorParam(
     string? EventArg,
     bool IsEventCallback,
     bool IsRequired,
-    bool NeedsNew);
+    bool NeedsNew,
+    bool DeclaredByUser);
 
 /// <summary>
 ///     Reads the chain steps an island gets from the Blazor component it hosts.
@@ -180,10 +186,13 @@ internal static class BlazorParameters
                 }
 
                 var name = renames.TryGetValue(prop.Name, out var renamed) ? renamed : prop.Name;
-                if (declared.Contains(name))
-                {
-                    continue;
-                }
+
+                // A property the island declares itself is NOT skipped — it is the mapping. Skipping
+                // it here is what made [BlazorParameter("ChartSeries")] on a hand-written Series
+                // produce a chain step that accepted a value and never passed it on: the step existed
+                // (the factory generator sees the real property) but nothing wrote it into the
+                // parameter dictionary. It is emitted as a WRITE without a declaration.
+                var declaredByUser = declared.Contains(name);
 
                 var isCallback = typeFqn.StartsWith("global::" + EventCallbackName, StringComparison.Ordinal);
                 var eventArg = isCallback && prop.Type is INamedTypeSymbol { TypeArguments.Length: 1 } named
@@ -206,7 +215,8 @@ internal static class BlazorParameters
                     eventArg,
                     isCallback,
                     isRequired,
-                    NeedsNew: inherited.Contains(name)));
+                    NeedsNew: !declaredByUser && inherited.Contains(name),
+                    DeclaredByUser: declaredByUser));
             }
         }
 

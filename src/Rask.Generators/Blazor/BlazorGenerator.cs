@@ -102,7 +102,11 @@ public sealed class BlazorGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (!IsPartial(type))
+            // The island itself, and every type it is nested in: the generated part has to be
+            // written INSIDE its containers, and a container that is not partial cannot be re-opened.
+            // Emitting at namespace scope instead produces a second, unrelated top-level class whose
+            // errors (CS0101, CS0534) point nowhere near the cause.
+            if (!IsPartial(type) || Containers(type).Any(static c => !IsPartial(c)))
             {
                 spc.ReportDiagnostic(Diagnostic.Create(Rask061, LocationOf(type), type.Name));
                 continue;
@@ -159,11 +163,26 @@ public sealed class BlazorGenerator : IIncrementalGenerator
             sb.AppendLine();
         }
 
+        // Re-open the containing types, outermost first, so a nested island's generated part lands
+        // inside them rather than beside them at namespace scope.
+        var containers = Containers(island).Reverse().ToList();
+        foreach (var container in containers)
+        {
+            sb.Append("partial class ").AppendLine(container.Name);
+            sb.AppendLine("{");
+        }
+
         sb.Append("partial class ").AppendLine(island.Name);
         sb.AppendLine("{");
 
         foreach (var p in parameters)
         {
+            // The island declares this one itself; it still gets written below, just not redeclared.
+            if (p.DeclaredByUser)
+            {
+                continue;
+            }
+
             sb.Append("    /// <summary>Feeds the hosted component's <c>").Append(p.Parameter)
                 .AppendLine("</c> parameter.</summary>");
 
@@ -209,6 +228,12 @@ public sealed class BlazorGenerator : IIncrementalGenerator
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
+
+        for (var i = 0; i < containers.Count; i++)
+        {
+            sb.AppendLine("}");
+        }
+
         return sb.ToString();
     }
 
@@ -224,6 +249,15 @@ public sealed class BlazorGenerator : IIncrementalGenerator
         return p.EventArg is null
             ? $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, this.{p.Name})"
             : $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create<{p.EventArg}>(this, this.{p.Name})";
+    }
+
+    /// <summary>The types <paramref name="type" /> is nested in, innermost first.</summary>
+    private static IEnumerable<INamedTypeSymbol> Containers(INamedTypeSymbol type)
+    {
+        for (var t = type.ContainingType; t is not null; t = t.ContainingType)
+        {
+            yield return t;
+        }
     }
 
     private static bool IsPartial(INamedTypeSymbol type) =>

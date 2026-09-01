@@ -2,19 +2,20 @@
 
   <PropertyGroup>
     <!--
-      net10.0 ONLY, and singular on purpose. A hosted Blazor component cannot survive the trimmer:
-      ParameterView.SetParameterProperties reaches [Parameter] properties through
-      Microsoft.AspNetCore.Components' own reflection, on types this package does not own, and the
-      component libraries people host here (MudBlazor, Radzen) carry no trim annotations either.
-      samples/Rask.Example.Wasm publishes with TrimMode=full + EnableTrimAnalyzer + -warnaserror, so
-      that is not a warning we could honestly suppress.
+      Both hosts. The renderer is the same on each — a hosted component is rendered to markup in
+      process, which browser-WebAssembly can do as readily as a server can.
 
-      A single TFM makes it a property of the package graph rather than a NoWarn that can rot: a
-      net10.0-browser project cannot even reference this — restore fails NU1201, long before any
-      trimmer runs. PackageShapeTests pins that this stays true, and that neither TFM group of the
-      Rask meta-package ever references it.
+      What differs is TRIMMING, and it is a real constraint rather than a caveat.
+      ParameterView.SetParameterProperties reaches [Parameter] properties through
+      Microsoft.AspNetCore.Components' own reflection, on types this package does not own, and no
+      component library (MudBlazor, Radzen) is trim-annotated. So a WASM app hosting one must publish
+      UNTRIMMED — the same rule Rask.SQLite.Browser already carries, for the same reason — and
+      docs/blazor-components.md says so.
+
+      This package is deliberately not in the Rask meta-package on either framework: it is opt-in, so
+      an app that wants nothing to do with Blazor never pays for it. PackageShapeTests pins that.
     -->
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -41,17 +42,25 @@
 
     <PackageId>Rask.Blazor</PackageId>
     <Title>Rask — Blazor components</Title>
-    <Description>Hosts a real Blazor component inside a Rask page. Derive a component from BlazorComponent&lt;T&gt; and the Razor SDK's own output — your Razor Class Library, MudBlazor, Radzen — renders server-side into the first HTTP response, with its parameters passed as live C# objects rather than serialized. Rask children placed inside it keep working handlers. Server-side rendering only: interaction inside the hosted component itself needs a Blazor circuit.</Description>
+    <Description>Hosts a real Blazor component inside a Rask page. Derive a component from BlazorComponent&lt;T&gt; and the Razor SDK's own output — your Razor Class Library, MudBlazor, Radzen — renders server-side into the first HTTP response, with its parameters passed as live C# objects rather than serialized. Rask children placed inside it keep working handlers, and the hosted component's own click and bind events fire over Rask's existing channel with no Blazor circuit. Works on the ASP.NET host and on WebAssembly; a WASM app hosting one must publish untrimmed.</Description>
     <PackageTags>web component framework net10 blazor razor interop islands</PackageTags>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!--
-      Microsoft.AspNetCore.Components{,.Web} arrive through the shared framework rather than a
-      PackageReference, so Directory.Packages.props needs no entry for them — the same way
-      benchmarks/Rask.Benchmarks.VsBlazor takes its Blazor dependency.
-    -->
+  <!--
+    Server: Microsoft.AspNetCore.Components{,.Web} arrive through the shared framework, so nothing is
+    packaged and Directory.Packages.props needs no entry — the same way
+    benchmarks/Rask.Benchmarks.VsBlazor takes its Blazor dependency.
+  -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!--
+    Browser: there is no shared framework to reference, so the identical types come from the package
+    instead. This is the only difference between the two targets — no #if, no second code path.
+  -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web"/>
   </ItemGroup>
 
   <ItemGroup>

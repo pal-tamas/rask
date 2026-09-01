@@ -69,11 +69,29 @@ them until tagged releases begin.
   on the server and never ship it — painting once and silently freezing. Opacity is reserved for a
   future circuit mode, where the subtree really would belong to Blazor.
 
-  **`net10.0` only, and that is enforced by the package graph rather than a suppression.** A hosted
-  third-party component cannot survive the trimmer: `[Parameter]` discovery reflects inside
-  `Microsoft.AspNetCore.Components`, on types Rask does not own, and no component library is
-  trim-annotated. A single TFM means a `net10.0-browser` project fails restore with NU1201 before any
-  trimmer runs, and the `Rask` meta-package references it from neither TFM group.
+  **Both hosts, one code path.** `net10.0` and `net10.0-browser`, with no `#if`: a hosted component
+  renders to markup in process, which browser-WebAssembly does as readily as a server. Only the
+  renderer's source differs — the ASP.NET shared framework on one, the
+  `Microsoft.AspNetCore.Components.Web` package on the other. A WASM app hosting one must publish
+  **untrimmed**, because `[Parameter]` discovery reflects inside `Microsoft.AspNetCore.Components` on
+  types Rask does not own and no component library is trim-annotated — the same rule
+  `Rask.SQLite.Browser` already carries. Deliberately absent from the `Rask` meta-package on both
+  frameworks, so an app that wants nothing to do with Blazor never carries its renderer.
+
+  **Only the events Rask can actually route emit an attribute.** Rask matches an inbound event to a
+  handler by the delegate's shape and refuses a mismatch, so `click`, the focus and drag families,
+  `select`/`invalid`/`reset`, and `change`/`input` are wired — and anything else (`keydown`,
+  `submit`, `mouseover`) emits nothing rather than rendering a component that looks wired and does
+  nothing on the first click.
+
+  **`AddRaskBlazor()`** registers what a hosted component resolves: a `NavigationManager` bound to the
+  app's base URI — most component libraries inject one and Blazor's base class throws without it — and
+  an `IJSRuntime` that throws with a message naming the fix rather than no-opping, because a silent
+  no-op turns a real capability gap into a component that looks right and is subtly wrong.
+
+  The documented example is compiled, not printed: its `.razor` is a real file in the fixture library,
+  its island and the output the page claims are asserted by `DocExampleTests`, and a third test pins
+  the document against the file so the two cannot drift. That guard was proved by breaking it.
 
   Compiling `.razor` into the chain was investigated and rejected. The Razor syntax layer is
   `internal` in every shipped version, the .NET 10 SDK compiler exposes neither the intermediate
