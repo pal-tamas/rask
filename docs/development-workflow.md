@@ -133,6 +133,16 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   the "spurious CS1503" that kept this gate on the whitespace pass alone until #584. The
   `.githooks/pre-commit` hook runs it whenever a commit stages code (enable hooks with
   `git config core.hooksPath .githooks`; bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`).
+- **Attribution trailers are rejected, at both boundaries.** Commit messages carry no
+  `Co-authored-by:`, no `Claude-Session:` and no "Generated with …" footer. GitHub's contributor list
+  credits co-authors as well as authors, so one footer adds an account to the sidebar that only a
+  history rewrite removes — two of them (one Claude, one Copilot Autofix) cost a rewrite of all 970
+  commits plus a force-push of `main` and 18 release tags. The rule lives once, in
+  `scripts/lib/attribution.sh`, and is consulted by **both** hooks: `.githooks/commit-msg` at commit
+  time, and `.githooks/pre-push` over the commits actually being pushed. The second is not
+  redundant — the first only runs once `core.hooksPath` is set, and a fresh clone or a new worktree
+  has not set it, which is exactly how the two trailers got in. A human `Signed-off-by:` passes;
+  `scripts/tests/attribution-guard.test.sh` states all 30 cases, both directions.
 - **E2E runs locally, enforced before push.** The browser-journey E2E
   (`tests/Rask.Examples.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
   `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks

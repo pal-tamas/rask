@@ -91,6 +91,14 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   pushing from** — not the main checkout. Most work here happens in `git worktree`s, so this matters:
   a change to a hook is exercised by its own push, and the copy that runs is the one on the branch
   under test. If a branch contains no `.githooks/` at all, no hook runs and nothing reports it.
+- **No attribution trailers.** Commit messages carry no `Co-authored-by:`, no `Claude-Session:`, and no
+  "Generated with …" footer. This is not a style preference: GitHub's contributor list credits
+  co-authors as well as authors, so one such footer puts a second account in the repository sidebar,
+  and the only way back off it is a history rewrite — two of them cost a rewrite of all 970 commits
+  and a force-push of `main` and 18 release tags. `commit-msg` rejects them at commit time and
+  `pre-push` re-checks the commits being pushed, because the commit-time hook only runs once
+  `core.hooksPath` is set and a fresh clone has not set it. A human `Signed-off-by:` is fine; the
+  rule is table tested in `scripts/tests/attribution-guard.test.sh`.
 - **Tests and gates run locally, not in CI.** The unit/integration suite, both E2E suites and the
   deterministic benchmark byte-gates all run from `.githooks/`. GitHub does the bare minimum — the
   things only GitHub can do: `commitlint.yml` (commit messages and the PR title, which is the squash

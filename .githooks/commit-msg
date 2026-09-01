@@ -4,6 +4,31 @@
 # CI also enforces this via .github/workflows/commitlint.yml.
 
 msg_file="$1"
+
+root="$(git rev-parse --show-toplevel)"
+# shellcheck source=../scripts/lib/attribution.sh
+. "$root/scripts/lib/attribution.sh"
+
+# Attribution guard. Checked before the merge/revert early-exit below, so those messages are covered
+# too — a squash or merge footer counts on the contributor list exactly like any other. The rule and
+# the reasoning live in scripts/lib/attribution.sh; .githooks/pre-push re-checks it for commits made
+# in a clone that never set core.hooksPath.
+if rask_message_has_attribution < "$msg_file"; then
+  offenders=$(rask_attribution_offenders < "$msg_file")
+  cat >&2 <<EOF
+✖ Commit message carries an attribution trailer:
+
+$offenders
+
+  This repository credits a single contributor. GitHub counts Co-authored-by
+  trailers toward the contributor list, so this footer adds an account that only
+  a full history rewrite can remove.
+
+  Delete the line and commit again — that is the whole fix. Not --no-verify.
+EOF
+  exit 1
+fi
+
 header=$(head -n1 "$msg_file")
 
 # Allow merge/revert/fixup commits through.

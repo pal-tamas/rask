@@ -22,6 +22,63 @@ root="$(git rev-parse --show-toplevel)"
 gate_logs="${TMPDIR:-/tmp}/rask-pre-push-$$"
 mkdir -p "$gate_logs"
 
+# --- Attribution guard (cheap, and first) ------------------------------------
+#
+# .githooks/commit-msg already rejects Co-authored-by / Generated-with footers at
+# commit time — but ONLY when core.hooksPath is set. A fresh clone that never ran
+# that config, or an agent committing in a new worktree, bypasses it in silence.
+# That is exactly how two AI trailers reached main and put two extra accounts on
+# GitHub's contributor list, which counts co-authors and not just authors. Taking
+# them back off cost a rewrite of all 970 commits and a force-push of main plus
+# 18 release tags.
+#
+# So the rule is re-checked here, against the commits actually being pushed. This
+# is the last boundary at which the fix is still free: one line, one amend.
+# shellcheck source=../scripts/lib/attribution.sh
+. "$root/scripts/lib/attribution.sh"
+
+zero="0000000000000000000000000000000000000000"
+offending=""
+
+# git feeds the hook "<local ref> <local sha> <remote ref> <remote sha>" per ref.
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue   # branch deletion — nothing to inspect
+
+  if [ "$remote_sha" = "$zero" ]; then
+    # New branch: everything on it that no remote already has.
+    range_args="$local_sha --not --remotes"
+  else
+    range_args="$remote_sha..$local_sha"
+  fi
+
+  # shellcheck disable=SC2086  # range_args is deliberately word-split into rev-list
+  for sha in $(git rev-list $range_args); do
+    if git log -1 --format=%B "$sha" | rask_message_has_attribution; then
+      offending="$offending$(git log -1 --format='  %h %s' "$sha")
+"
+    fi
+  done
+done
+
+if [ -n "$offending" ]; then
+  cat >&2 <<EOF
+✖ pre-push: these commits carry an attribution trailer:
+
+$offending
+  This repository credits a single contributor. GitHub counts Co-authored-by
+  trailers toward the contributor list, so pushing these adds accounts that only
+  a full history rewrite can remove.
+
+  Fix with:  git rebase -i --exec 'git commit --amend --no-edit' <base>
+  or, for the tip commit:  git commit --amend
+
+  Install the commit-time guard so this never reaches push again:
+      git config core.hooksPath .githooks
+EOF
+  exit 1
+fi
+# -----------------------------------------------------------------------------
+
 # Run one gate, keep its full output, and — if it fails — say something TRUE about why.
 #
 # Every gate below builds. When the wasm-tools workload is momentarily unresolvable, every
