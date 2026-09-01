@@ -48,6 +48,23 @@ steps are read from its own `[Parameter]` properties. `MudChart` declaring
 `[Parameter] public List<ChartSeries> ChartSeries { get; set; }` is what makes
 `Chart.ChartSeries(...)` a step.
 
+### Required parameters
+
+A parameter the hosted component marked `[EditorRequired]` becomes a **required** chain step — one
+the call site cannot omit, taken before any optional step. Blazor already has a word for
+"mandatory", so it maps onto Rask's own and neither framework has to learn the other's idiom.
+
+```csharp
+// MudBlazor: [Parameter, EditorRequired] public string Label { get; set; }
+Badge.Label("New")              // ✓ required, so it opens the chain
+Badge.Label("New").Tone("warn") // ✓ optional steps follow
+Badge.Tone("warn")              // ✗ RASK038 — Label is never set
+```
+
+Everything not marked stays optional. An `EventCallback` is never required even when marked: "you
+must handle this event" is not something the chain can usefully insist on, and an unwired callback is
+simply not wired, exactly as for any other Rask component.
+
 The type argument is how the hosted component is named — not a sibling file, the way a `.tsx` island
 pairs by filename. That is deliberate: the common case has no `.razor` in your project at all, only a
 referenced type.

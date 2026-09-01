@@ -85,6 +85,24 @@ public sealed partial class GreetingIsland : BlazorComponent<Greeting>
 /// </summary>
 public sealed partial class EmptyIsland : BlazorComponent<Greeting>;
 
+/// <summary>A hosted component that marks one parameter mandatory the way Blazor does.</summary>
+public sealed class Badge : ComponentBase
+{
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string? Tone { get; set; }
+
+    protected override void BuildRenderTree(RenderTreeBuilder builder)
+    {
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", Tone ?? "plain");
+        builder.AddContent(2, Label);
+        builder.CloseElement();
+    }
+}
+
+/// <summary>An empty island whose <c>Label</c> step is required because Blazor said so.</summary>
+public sealed partial class BadgeIsland : BlazorComponent<Badge>;
+
 /// <summary>Stands in for MudTable: a hosted component with its own click handler.</summary>
 public sealed class Clicker : ComponentBase
 {

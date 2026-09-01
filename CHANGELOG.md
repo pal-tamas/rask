@@ -18,10 +18,19 @@ them until tagged releases begin.
   **Nothing is redeclared — the island body is empty.** A Blazor component already states its
   surface, so `public sealed partial class Chart : BlazorComponent<MudChart>;` is the whole
   declaration and the chain steps are read from `MudChart`'s own `[Parameter]` properties. Each
-  becomes an optional step (never a required one, which would force every call site to supply every
-  parameter the component happens to declare), and an `EventCallback<T>` becomes a plain
-  `Action<T>?`, because Rask has no callback wrapper type. `[BlazorParameter("Name")]` renames one
-  whose name would collide with a chain entry.
+  becomes an optional step, and an `EventCallback<T>` becomes a plain `Action<T>?`, because Rask has
+  no callback wrapper type. `[BlazorParameter("Name")]` renames one whose call-site name you want
+  changed.
+
+  **`[EditorRequired]` becomes a required chain step.** Blazor already has a word for "mandatory", so
+  it maps onto Rask's own rather than everything being optional — the call site cannot omit it, and it
+  is taken before the optional steps. Not applied to an `EventCallback`: "you must handle this event"
+  is not something the chain can usefully insist on.
+
+  A parameter named after an HTML tag — `Label`, `Title`, `Form`, `Select`, all ordinary names for a
+  UI library — used to be CS0102, because the generated property landed in the same class as the chain
+  entry injected under that name. The hosted parameter names now feed the collision check that entry
+  injection already ran for every other member.
 
   That needed both generators: `BlazorGenerator` writes the properties and the parameter writer, and
   `ComponentFactoryGenerator` writes their chain setters. It cannot be done in one, because a source

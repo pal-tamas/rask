@@ -83,7 +83,7 @@ public sealed class BlazorGenerator : IIncrementalGenerator
 
     private static void Emit(SourceProductionContext spc, Compilation compilation)
     {
-        if (compilation.GetTypeByMetadataName(BlazorParameters.IslandBaseMetadataName) is null)
+        if (compilation.GetTypeByMetadataName("Rask.Blazor.BlazorComponent`1") is null)
         {
             // The app does not reference Rask.Blazor. Nothing to do, and nothing to say about it.
             return;
@@ -97,7 +97,7 @@ public sealed class BlazorGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (BlazorParameters.HostedTypeOf(type, compilation) is not { } hosted)
+            if (BlazorParameters.HostedTypeOf(type) is not { } hosted)
             {
                 continue;
             }
@@ -141,7 +141,7 @@ public sealed class BlazorGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var parameters = BlazorParameters.Read(island, hosted, compilation);
+            var parameters = BlazorParameters.Read(island, hosted);
             spc.AddSource(
                 $"{island.ToDisplayString()}.Blazor.g.cs",
                 SourceText.From(Render(island, parameters), Encoding.UTF8));
@@ -166,7 +166,13 @@ public sealed class BlazorGenerator : IIncrementalGenerator
         {
             sb.Append("    /// <summary>Feeds the hosted component's <c>").Append(p.Parameter)
                 .AppendLine("</c> parameter.</summary>");
-            sb.Append("    public ").Append(p.ChainTypeFqn).Append(' ').Append(p.Name)
+
+            // `required` for an [EditorRequired] parameter: it is what makes this a chain step the
+            // call site cannot omit, and it is also what keeps the non-nullable property from
+            // tripping CS8618 without inventing an initializer — which would EXCLUDE it from the
+            // chain entirely rather than making it mandatory.
+            sb.Append("    public ").Append(p.IsRequired ? "required " : string.Empty)
+                .Append(p.ChainTypeFqn).Append(' ').Append(p.Name)
                 .AppendLine(" { get; set; }");
             sb.AppendLine();
         }
@@ -178,6 +184,15 @@ public sealed class BlazorGenerator : IIncrementalGenerator
         sb.AppendLine("    {");
         foreach (var p in parameters)
         {
+            if (p.IsRequired)
+            {
+                // Required: the chain cannot build the component without it, so there is no "unset"
+                // state to test for, and a null check on a non-nullable member is a warning.
+                sb.Append("        into[\"").Append(p.Parameter).Append("\"] = ")
+                    .Append(Value(p)).AppendLine(";");
+                continue;
+            }
+
             // Omit rather than write null: ParameterView is authoritative, so a null would CLOBBER
             // the hosted component's own default rather than mean "not specified".
             sb.Append("        if (this.").Append(p.Name).AppendLine(" is not null)");

@@ -91,6 +91,21 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void An_EditorRequired_parameter_becomes_a_REQUIRED_chain_step()
+    {
+        // Blazor already has a word for "mandatory", so it maps onto Rask's own rather than every
+        // hosted parameter being optional. Label opens the chain because it is required; Tone, which
+        // is not marked, stays an ordinary optional step.
+        var html = RaskTest.Render(BadgeIsland.Label("New").Tone("warn"), Services()).Html;
+
+        Assert.Contains("<span class=\"warn\">New</span>", html, StringComparison.Ordinal);
+
+        // And the optional one really is optional — the hosted component keeps its own default.
+        var bare = RaskTest.Render(BadgeIsland.Label("New"), Services()).Html;
+        Assert.Contains("<span class=\"plain\">New</span>", bare, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_hosted_components_OWN_event_handlers_are_wired_to_Rasks_channel()
     {
         // Blazor assigns a handler id to every @onclick even in a static render; its own HTML writer
