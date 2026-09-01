@@ -91,10 +91,12 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   pushing from** — not the main checkout. Most work here happens in `git worktree`s, so this matters:
   a change to a hook is exercised by its own push, and the copy that runs is the one on the branch
   under test. If a branch contains no `.githooks/` at all, no hook runs and nothing reports it.
-- **Tests run locally, not in CI.** The unit/integration suite and both E2E suites were moved out of the
-  CI pipeline. `.github/workflows/ci.yml` has exactly one job — the deterministic benchmark byte-gates —
-  alongside commitlint and GitHub's default CodeQL setup. No workflow in this repo runs `dotnet test`, so
-  **nothing but your machine will tell you a test broke.**
+- **Tests and gates run locally, not in CI.** The unit/integration suite, both E2E suites and the
+  deterministic benchmark byte-gates all run from `.githooks/`. GitHub does the bare minimum — the
+  things only GitHub can do: `commitlint.yml` (commit messages and the PR title, which is the squash
+  subject and so never passes through a local hook), `pages.yml`, `release.yml` and `nightly.yml`'s
+  prerelease publish. No workflow in this repo runs `dotnet test` or a benchmark, so **nothing but your
+  machine will tell you something broke.**
 - **Format + unit tests — `pre-commit`.** The `pre-commit` hook runs `scripts/run-unit-local.sh` when a
   commit stages code (`src/`, `tests/`, `benchmarks/`, `Rask.slnx`, `Directory.*`); docs-only commits skip
   it. The script builds once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace +

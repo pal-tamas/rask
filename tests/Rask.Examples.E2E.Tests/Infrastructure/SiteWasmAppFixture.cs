@@ -11,9 +11,9 @@ public sealed class SiteWasmAppFixture : StaticWwwrootHostFixture
     protected override string ProjectRelativePath => "samples/Rask.Example.Site";
 
     protected override string MissingBundleMessage(string wwwroot) =>
-        $"Published {ProjectRelativePath} not found at '{wwwroot}'. The E2E build publishes it explicitly " +
-        "(see the 'Publish landing site sample' step in ci.yml's e2e-build job). Locally, run " +
-        "`dotnet publish samples/Rask.Example.Site -c Release -p:WasmBuildNative=false` first.";
+        $"Published {ProjectRelativePath} not found at '{wwwroot}'. scripts/run-e2e-local.sh publishes it " +
+        "before running the journeys, so this usually means the suite was started directly. Run " +
+        "`dotnet publish samples/Rask.Example.Site -c Release -p:WasmBuildNative=false` first, or use the script.";
 
     /// <summary>
     ///     Fail fast if the baked scoped-JS bundle is missing — the hero canvas animation lives in the

@@ -3,10 +3,10 @@
 Reference numbers from the live-render diff codec. Each future PR touching the
 render path should compare against these and quote the delta in its description.
 
-> **`payload-bytes.csv` is enforced by CI.** The `benchmarks` job in
-> `.github/workflows/ci.yml` runs
-> `dotnet run -c Release --project benchmarks/Rask.Benchmarks -- payload-bytes --check`
-> on every PR and **fails on a regression** — more diff bytes or more diff ops than the
+> **`payload-bytes.csv` is enforced before push, on your machine.** `.githooks/pre-push` runs
+> `scripts/run-benchmarks-local.sh`, which checks this baseline *and* the vs-Blazor one
+> (`dotnet run -c Release --project benchmarks/Rask.Benchmarks -- payload-bytes --check`)
+> and **fails on a regression** — more diff bytes or more diff ops than the
 > committed baseline, for any scenario. These metrics are deterministic (no timing noise),
 > so the comparison is byte-exact. An *improvement* passes with a "refresh the baseline"
 > notice; when you improve the codec, regenerate the CSV (command below) in the same PR so

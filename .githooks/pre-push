@@ -75,6 +75,24 @@ else
     "Fix the failing journey, or bypass with --no-verify."
 fi
 
+# The payload-bytes gates, both baselines. This is the ONLY place they run: the CI job that used to
+# duplicate them was nothing but a second opinion nobody was required to listen to, and it rode red
+# through three merges before anyone noticed (#919). Here is where it bites.
+#
+# UNPATH-FILTERED, unlike the gates below it. They cost minutes and are scoped to the pushes they can
+# say something about; this costs about one, and a hand-listed filter is itself a way for a gate to
+# stop running silently — see the `generator_paths` note below, where exactly that happened.
+if [ "${RASK_SKIP_BENCHMARKS:-}" = "1" ]; then
+  echo "pre-push: RASK_SKIP_BENCHMARKS=1 set — skipping the payload-bytes gates."
+else
+  echo "pre-push: running the payload-bytes gates (standalone codec + vs Blazor)."
+  echo "          bypass with 'git push --no-verify' or RASK_SKIP_BENCHMARKS=1."
+
+  run_gate "Payload-bytes gates" scripts/run-benchmarks-local.sh \
+    "The benchmark projects don't compile." \
+    "The wire got heavier, or a scenario's markup changed and its baseline needs refreshing — the gate's own output says how to tell those apart."
+fi
+
 # Like the deploy gate below, this one is scoped to the pushes it can actually say something about:
 # it packs 19 packages and runs several full builds, and only the CLI's generators, the packages a
 # generated project references, or the tutorial it reproduces can change its answer. Running it on
