@@ -250,12 +250,62 @@ them until tagged releases begin.
   could never engage.
 
 ### Fixed
-
 - **The `Rask.External` package description told users to write an attribute that does not exist.** It
   said to "Mark a component `[Island]`" — there has never been an `IslandAttribute`; the base class *is*
   the declaration. Its `<Title>` also read "Rask — Foreign Components", a third name for the feature
   matching neither the docs nor the README. Both now describe deriving from `ReactComponent` or
   `LitComponent`. This is package metadata, so it was visible on nuget.org rather than in any build.
+- **Every page served leaked its whole live session — ~1.1 MB apiece, for the life of the process.**
+  Rask injects two things into a page during **serialization**: the live runtime `<script>` at the close
+  of `<body>`, and the host's `<head>` contribution. Both build through the chain, and a chain built
+  inside a live render pushes an *entry slot* — the record of which props it did not name, so they can
+  be reset when the enclosing `Render()` returns. These two have no enclosing `Render()`. The slot is
+  attributed to whichever component is on the parent stack, whose `Render()` returned long ago and
+  took its drain with it, so nothing ever popped it. It stayed on a `[ThreadStatic]` list holding a
+  `Component` from a finished page — and through that component's `LiveState`, the entire live session:
+  DI scope, component tree, buffers and all.
+
+  The thread is a long-lived request worker, so this had no ceiling and no symptom. Measured on a
+  200-row page: a 500-cycle create→dispose run left **563 MB** behind where it should leave zero
+  (`session-churn`), every disposed session still fully reachable. Both injection sites are now
+  bracketed by the slot depth, so whatever a host build leaves behind is drained the way the end of a
+  `Render()` would have drained it. Residue is back to **0 bytes at 500 cycles**, and allocation per
+  update is byte-for-byte unchanged (140,648 / 644,377 B on 200 / 1,000 rows), as are both
+  payload-bytes baselines.
+
+  Pinned four ways, each of which fails without the fix: the slot stack is empty after a render
+  (mechanism), the rendered page is collectible once its render returns (symptom), the drain still runs
+  when a host contribution **throws** mid-serialize (the error path — host-supplied code runs inside the
+  serializer, so the bracket is a `try`/`finally`, as `Component`'s own drain already is), and the
+  `session-churn` smoke asserts the retained bytes (the number a host actually pays). Note the existing
+  injection tests could not have caught it — their stub returns a *pre-built* component, which pushes
+  no slot; only a stub that builds through the chain, as the real `ServerRuntimeScript` does,
+  reproduces it.
+- **`AddRask()` no longer demands host services from a container that is not a host — and the capacity
+  reports run again.** `RaskDataProtectionSetup` (#888) took `IConfiguration`, `IHostEnvironment` and
+  `ILoggerFactory` as constructor dependencies. Every host builder registers them, so no app was
+  affected; a `ServiceCollection` composed by hand — a test fixture, a benchmark harness — was. And it
+  did not fail at `AddRask`: the throw came the first time anything materialised the Data Protection
+  options, which for `session-footprint` and `session-churn` was four frames deep inside a session
+  render, as `Unable to resolve service for type 'IConfiguration'`. Both reports died on startup and
+  had done since 2026-08-28 (#922).
+
+  It also defeated a deliberate decision one line above it, where `AddRask` *asks* for the Data
+  Protection provider with `GetService` rather than assuming it, so a host without one degrades instead
+  of failing: the provider was registered, so the ask succeeded, and then building it threw. The setup
+  now resolves all three optionally and falls back to the framework's own key ring — the same ring a
+  plain `dotnet run` already gets — warning if it has a durable ring but no application name to pin the
+  discriminator to.
+- **The live-session capacity reports are gated instead of hand-run.** They are what
+  [`docs/scaling.md`](docs/scaling.md) and [`docs/configuration.md`](docs/configuration.md) tell you to
+  run to size a host, and nothing had run them since the nightly `benchmarks-full` job was deleted with
+  the rest of CI. Four days later two of the three were dead on startup, and that outage is what hid
+  the session leak above. `scripts/run-benchmarks-local.sh` now runs all three smoke-sized on every
+  push (~4s in total, alongside the payload-bytes gates): `session-footprint` and `session-load` have only
+  to run, while `session-churn --smoke` **asserts** that 100 create→dispose cycles leave nothing
+  behind. The full reports stay hand-run. Each runs as its own step with its own status bookkeeping —
+  ganged into one block, the first to abort left the rest unrun, which is exactly how `session-churn`'s
+  identical failure stayed invisible while `session-footprint`'s was being looked at.
 - **The payload-bytes gate was red for three merges over a CSS class rename.** #914's Bootstrap sweep
   renamed classes inside the benchmark scenarios themselves — `row` → `line`, one character longer —
   and `AppendRowToList100`'s diff is an `InsertSubtree` whose value *is* one row's HTML, so it grew by

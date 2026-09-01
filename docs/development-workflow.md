@@ -186,7 +186,7 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 
 [#845]: https://github.com/pal-tamas/rask/issues/845
 [#850]: https://github.com/pal-tamas/rask/issues/850
-- **The payload-bytes gates run locally, enforced before push.** `scripts/run-benchmarks-local.sh`
+- **The benchmark gates run locally, enforced before push.** `scripts/run-benchmarks-local.sh`
   checks both wire-byte baselines — the standalone codec numbers and the head-to-head against Blazor —
   byte-for-byte. The numbers are noise-free (no timing: every render emits the same payload shape with
   one value differing), so a change is a real change. `.githooks/pre-push` runs it on every push,
@@ -198,10 +198,19 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   required checks, so it rode red through three merges before anyone noticed
   ([#919](https://github.com/pal-tamas/rask/issues/919)). That job is gone; this is the only copy.
 
-  **Both gates always run, even when the first fails.** In CI they are two steps in one job, so a
+  **It also smoke-runs the three live-session capacity reports** (`session-footprint`, `session-churn`,
+  `session-load`) for about four seconds in total. Two of the three had been dead on startup for four days with
+  nothing to notice, because the nightly job that ran them went when the rest of CI did
+  ([#922](https://github.com/pal-tamas/rask/issues/922)) — and that outage hid a leak in which every
+  page served retained its whole live session. So `session-churn --smoke` does not merely run: it
+  **asserts** that 100 create→dispose cycles leave nothing behind. The full reports stay hand-run; run
+  them yourself before claiming a capacity number.
+
+  **Every gate always runs, even when an earlier one fails.** In CI they are two steps in one job, so a
   fail-fast on the first leaves the second unrun — which is how the vs-Blazor baseline stayed broken
-  while the standalone one was being fixed, and how a half-fix looked complete. Locally you get both
-  answers at once.
+  while the standalone one was being fixed, how a half-fix looked complete, and how `session-churn`'s
+  crash stayed invisible while `session-footprint`'s identical one was being looked at. Locally you get
+  every answer at once.
 
   **A regression here means one of two opposite things.** Either the render/diff path got heavier —
   fix the code, do not touch the baseline — or a benchmark scenario's own markup changed, which *does*

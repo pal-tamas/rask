@@ -145,6 +145,40 @@ public class DataProtectionKeyRingTests : IDisposable
     }
 
     [Fact]
+    public async Task AddRask_survives_a_container_that_is_not_a_host()
+    {
+        // A ServiceCollection with none of the host services in it — what a test fixture or a benchmark
+        // harness composes when it wants the live subsystem without a web host. Every host builder
+        // registers IConfiguration and IHostEnvironment, so this is not a shape any app has; it is the
+        // shape every harness has, and AddRask used to survive it.
+        //
+        // It stopped when RaskDataProtectionSetup arrived and took the two of them as CONSTRUCTOR
+        // dependencies. Nothing failed at AddRask: the throw came later and elsewhere, the first time
+        // anything materialised the Data Protection options — for the capacity reports, four frames deep
+        // inside a session render, as "Unable to resolve service for type 'IConfiguration'" (#922).
+        //
+        // It also defeated a deliberate design one line up in AddRask, which ASKS for the Data Protection
+        // provider with GetService rather than assuming it so a host without one degrades. The provider
+        // was registered, so the ask succeeded — and then building it threw.
+        //
+        // Driven through the OPTIONS, not through the registration: registering was never what failed.
+        // await using: resolving the store makes the container hold an IAsyncDisposable, which a
+        // synchronous Dispose refuses outright.
+        await using var provider = new ServiceCollection().AddRask().BuildServiceProvider();
+
+        var keys = provider.GetRequiredService<IOptions<KeyManagementOptions>>().Value;
+        var dp = provider.GetRequiredService<IOptions<DataProtectionOptions>>().Value;
+
+        // With no configuration to read and (on any machine this suite runs on) no /data volume, Rask has
+        // nowhere durable to put a ring, so it declines to choose exactly as it does on a plain dotnet run.
+        Assert.Null(keys.XmlRepository);
+        Assert.Null(dp.ApplicationDiscriminator);
+
+        // And the thing the harness was actually after: a live session store, built and usable.
+        Assert.NotNull(provider.GetRequiredService<LiveSessionStore>());
+    }
+
+    [Fact]
     public void The_discriminator_survives_Data_Protection_arriving_after_AddRask()
     {
         // The order a scaffolded app actually has: AddRask first, and Data Protection pulled in below it

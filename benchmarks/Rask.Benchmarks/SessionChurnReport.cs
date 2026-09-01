@@ -61,10 +61,29 @@ internal static class SessionChurnReport
     // small enough to soak quickly.
     private const int Rows = 200;
 
+    // What a create→dispose cycle may leave behind across the whole smoke run before it is called a
+    // leak. The honest value is zero and that is what the fixed framework reports; the tolerance is
+    // there so a stray pooled buffer or a cached reflection entry cannot fail a push. A REAL leak here
+    // is the whole session — ~1.1 MB per cycle on this page — so nothing about this is a close call.
+    private const long SmokeResidueBudgetBytes = 64 * 1024;
+
+    private const int SmokeChurnCycles = 100;
+
     public static int Run(string[] args)
     {
-        _ = args;
         SessionHarness.VerifySelfMeasurement();
+
+        // --smoke: the churn pass only, at a fifth of the cycles, ASSERTED rather than printed. Two
+        // things it catches that nothing else does. One, that these reports still run at all — this one
+        // and session-footprint both died on startup for four days and nothing said so, because nothing
+        // ran them (#922). Two, the leak that outage hid: every page served retained its whole live
+        // session, ~1.1 MB a time, growing without bound. The unit suite pins the mechanism; this pins
+        // the number a host actually pays. See scripts/run-benchmarks-local.sh.
+        if (Array.IndexOf(args, "--smoke") >= 0)
+        {
+            return Smoke();
+        }
+
         Soak();
         Console.WriteLine();
         UpdateCost();
@@ -73,6 +92,39 @@ internal static class SessionChurnReport
         Console.WriteLine();
         Churn();
         return 0;
+    }
+
+    private static int Smoke()
+    {
+        var services = SessionHarness.NewHost();
+        var store = services.GetRequiredService<LiveSessionStore>();
+
+        // Warm up first, so JIT, statics and the pool's buckets are settled before the baseline — they
+        // are one-off costs, and counting them as residue is how a gate like this cries wolf.
+        RunChurnBatch(store, ChurnBatch);
+
+        var baseline = SessionHarness.StableHeap();
+        RunChurnBatch(store, SmokeChurnCycles);
+        var residue = SessionHarness.StableHeap() - baseline;
+
+        GC.KeepAlive(store);
+        GC.KeepAlive(services);
+
+        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+            "session-churn --smoke: {0} create→dispose cycles ({1}-row page) left {2} bytes behind "
+            + "(budget {3}).", SmokeChurnCycles, Rows, residue, SmokeResidueBudgetBytes));
+
+        if (residue <= SmokeResidueBudgetBytes)
+        {
+            return 0;
+        }
+
+        Console.Error.WriteLine(string.Format(CultureInfo.InvariantCulture,
+            "session-churn --smoke FAILED: {0} bytes retained across {1} disposed sessions "
+            + "({2} bytes each). A disposed session is not being released — run the full report "
+            + "(`-- session-churn`) for the per-batch curve.",
+            residue, SmokeChurnCycles, residue / SmokeChurnCycles));
+        return 1;
     }
 
     // ---- Soak: does per-session cost converge? ---------------------------------------
