@@ -75,9 +75,9 @@ else
     "Fix the failing journey, or bypass with --no-verify."
 fi
 
-# The payload-bytes gates, both baselines. ci.yml runs them too, but main has no required checks, so
-# CI's answer stops nobody — this one rode red through three merges before anyone noticed (#919). Here
-# is where it bites.
+# The payload-bytes gates, both baselines. This is the ONLY place they run: the CI job that used to
+# duplicate them was nothing but a second opinion nobody was required to listen to, and it rode red
+# through three merges before anyone noticed (#919). Here is where it bites.
 #
 # UNPATH-FILTERED, unlike the gates below it. They cost minutes and are scoped to the pushes they can
 # say something about; this costs about one, and a hand-listed filter is itself a way for a gate to

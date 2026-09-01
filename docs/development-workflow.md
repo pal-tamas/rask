@@ -116,8 +116,11 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 
 ## CI
 
-- `ci.yml` — the deterministic benchmark byte-gates. **Tests do not run in CI** — the unit/integration
-  suite and the E2E suites run locally (see below).
+- **GitHub runs the bare minimum: only what GitHub alone can do.** `commitlint.yml` (PR commits + the
+  PR title — the squash subject, which no local hook ever sees), `pages.yml`, `release.yml`, and
+  `nightly.yml`'s prerelease publish. There is no `ci.yml`: the benchmark byte-gates moved into
+  `.githooks/pre-push` alongside the browser E2E, so **nothing in CI runs a test or a benchmark** —
+  your machine is the only thing that will tell you something broke.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load, ~36s), then every test except the browser E2E. The full pass earns its
@@ -181,9 +184,9 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   itself a way for a gate to stop running silently. Bypass with `git push --no-verify` or
   `RASK_SKIP_BENCHMARKS=1`.
 
-  It exists because CI's copy stopped nobody. `ci.yml` runs the same two gates, but `main` has no
-  required checks, so the gate rode red through three merges before anyone noticed
-  ([#919](https://github.com/pal-tamas/rask/issues/919)).
+  It exists because CI's copy stopped nobody. A CI job ran the same two gates, but `main` has no
+  required checks, so it rode red through three merges before anyone noticed
+  ([#919](https://github.com/pal-tamas/rask/issues/919)). That job is gone; this is the only copy.
 
   **Both gates always run, even when the first fails.** In CI they are two steps in one job, so a
   fail-fast on the first leaves the second unrun — which is how the vs-Blazor baseline stayed broken

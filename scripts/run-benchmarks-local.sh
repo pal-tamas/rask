@@ -8,9 +8,9 @@
 #   benchmarks/Rask.Benchmarks/Baselines/payload-bytes.csv                  (standalone codec)
 #   benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor-payload-bytes.csv  (head-to-head)
 #
-# ci.yml runs these too, but nothing on main is a required check, so CI's answer stops nobody — the
-# payload-bytes gate rode red through three merges before anyone noticed (#919). This hook is where it
-# actually bites, the same way the browser E2E and the CLI build gate do.
+# This is the ONLY place they run. A CI job used to duplicate them, but nothing on main was a required
+# check, so its answer stopped nobody — the gate rode red through three merges before anyone noticed
+# (#919). It runs here now, the same way the browser E2E and the CLI build gate do.
 #
 # UNCONDITIONAL, deliberately. Every other gate here is path-filtered because it costs minutes; this one
 # costs about one, and a hand-listed filter is itself a way for a gate to stop running without saying so
@@ -40,9 +40,9 @@ dotnet build "$standalone" -c Release -p:MinVerSkip=true
 dotnet build "$vsblazor" -c Release -p:MinVerSkip=true
 
 # Both gates run even when the first one fails, and that is the whole point of the `||` bookkeeping
-# rather than plain `set -e`. In ci.yml these are two steps in one job, so a fail-fast on the first
-# leaves the second UNRUN — which is how the vs-Blazor baseline stayed broken while the standalone one
-# was being fixed, and how the fix looked complete when it was half of one (#921).
+# rather than plain `set -e`. The CI job they came from ran them as two steps, so a fail-fast on the
+# first left the second UNRUN — which is how the vs-Blazor baseline stayed broken while the standalone
+# one was being fixed, and how the fix looked complete when it was half of one (#921).
 status=0
 
 echo

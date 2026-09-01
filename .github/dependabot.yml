@@ -43,7 +43,7 @@ updates:
           - "Microsoft.Playwright"
           - "coverlet.*"
 
-  # GitHub Actions used by ci.yml / release.yml / nightly.yml / pages.yml
+  # GitHub Actions used by commitlint.yml / release.yml / nightly.yml / pages.yml
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

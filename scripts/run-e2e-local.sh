@@ -49,8 +49,9 @@ cd "$root"
 # problem, `ps -o etime=` is what lets you decide whether to wait for it or investigate your own red.
 #
 # Skipped under CI purely so this can never be the thing that breaks an automated run. Nothing in
-# .github/workflows runs the browser E2E today — release.yml only packs, ci.yml runs the benchmark
-# gates — so this is insurance against a future parallel path, not protection of a known one.
+# .github/workflows runs the browser E2E or the benchmarks today — GitHub only publishes (release.yml,
+# pages.yml, nightly.yml) and lints commit messages — so this is insurance against a future parallel
+# path, not protection of a known one.
 # Sourced unconditionally, though only the REFUSAL below is skipped under CI: the contention hint on a
 # failing suite at the end of this script needs rask_other_heavy_builds either way, and a helper that
 # exists only on one branch of an `if` is a "command not found" waiting for the first CI run.

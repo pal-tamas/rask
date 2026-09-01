@@ -28,13 +28,18 @@ leaves the machine unproven. `unit` and the `e2e` shards were listed here as req
 long time and could never have engaged — they do not run in CI at all. See
 [development-workflow.md](development-workflow.md).
 
-`ci.yml` still runs `benchmarks` on every PR, as a second opinion rather than a gate. It rode red
-through three merges without stopping anyone ([#919](https://github.com/pal-tamas/rask/issues/919)),
-which is what a non-required check on a repo with no required checks does. The fix was to give it
-teeth locally — `scripts/run-benchmarks-local.sh`, wired into pre-push — not to start requiring it.
+**GitHub does the bare minimum — only what GitHub alone can do:** `commitlint.yml`, `pages.yml`,
+`release.yml`, and `nightly.yml`'s prerelease publish. There is no `ci.yml`; the benchmark byte-gates
+it held moved into `.githooks/pre-push`. `commitlint` earns its place because it checks the **PR
+title**, and the repo squash-merges — so that title becomes the commit on `main` and no local
+`commit-msg` hook ever sees it.
 
-If a required check is ever added, read the live state back: `contexts: []` means nothing is enforced,
-whatever this file claims.
+The one CI gate that did exist rode red through three merges without stopping anyone
+([#919](https://github.com/pal-tamas/rask/issues/919)), which is what a non-required check on a repo
+with no required checks does. The fix was to give it teeth locally, not to start requiring it.
+
+If a required check is ever added, read the live state back — `contexts: []` means nothing is
+enforced, whatever this file claims:
 
 ```bash
 gh api repos/pal-tamas/rask/branches/main/protection \
@@ -49,13 +54,12 @@ and the force-push/deletion blocks:
 ```bash
 gh api -X PATCH repos/pal-tamas/rask/branches/main/protection/required_status_checks \
   --input - <<'JSON'
-{"strict": true, "checks": [{"context": "benchmarks"}]}
+{"strict": true, "checks": [{"context": "commitlint"}]}
 JSON
 ```
 
-Mind the name: `benchmarks` is the `ci.yml` job. **`benchmarks-full` is a different job**, in
-`nightly.yml`, running the noisy BenchmarkDotNet timing suites — deliberately not a gate, and currently
-red ([#922](https://github.com/pal-tamas/rask/issues/922)). Requiring that one would block `main`.
+Only ever require a check that actually runs on every PR. A required check that is skipped — by a path
+filter, or because its workflow was deleted — blocks the branch for ever with no way to satisfy it.
 
 The reviews-and-restrictions half, set once (example):
 ```bash

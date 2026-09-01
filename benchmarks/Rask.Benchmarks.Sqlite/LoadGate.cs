@@ -10,9 +10,10 @@ internal sealed record Invariant(string Name, bool Passed, string Detail, bool T
 /// The regression gate. It deliberately asserts <b>invariants and same-run ratios</b>, never absolute
 /// milliseconds or throughput.
 /// <para>
-/// That is not timidity, it is this repo's existing position: <c>ci.yml</c>'s benchmark job gates the
-/// deterministic wire-byte reports and explicitly leaves the timing suites to nightly as "too noisy on
-/// shared runners to gate on", and the mem-footprint report is logged rather than gated for the same reason.
+/// That is not timidity, it is this repo's existing position: the pre-push benchmark gate
+/// (<c>scripts/run-benchmarks-local.sh</c>) checks the deterministic wire-byte reports and nothing else —
+/// the timing suites are too noisy to gate on, and the mem-footprint report is logged rather than gated
+/// for the same reason.
 /// A gate that flaked on a busy runner would be switched off within a week, which is worse than no gate.
 /// </para>
 /// <para>
