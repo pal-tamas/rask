@@ -272,6 +272,12 @@ internal static class GeneratorDriverFixture
         var raskServer = Assembly.Load("Rask.Server");
         refs.Add(MetadataReference.CreateFromFile(raskServer.Location));
 
+        // Rask.External, so ExternalGenerator can resolve the island base classes. It looks them up by
+        // metadata name and returns early when none resolves, so a test compilation without this
+        // reference would report no diagnostics and read exactly like a passing one.
+        var raskExternal = Assembly.Load("Rask.External");
+        refs.Add(MetadataReference.CreateFromFile(raskExternal.Location));
+
         return refs.ToImmutableArray();
     }
 

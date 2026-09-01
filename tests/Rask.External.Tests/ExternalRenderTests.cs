@@ -29,6 +29,23 @@ public sealed partial class Gauge : LitComponent
     public double Value { get; set; }
 }
 
+/// <summary>A board rendered by a sibling Board.vue.</summary>
+public sealed partial class Board : VueComponent
+{
+    /// <summary>Heading shown above the content.</summary>
+    public required string Heading { get; set; }
+
+    /// <summary>Runs when the panel is dismissed.</summary>
+    public Action? OnDismiss { get; set; }
+}
+
+/// <summary>A meter rendered by a sibling Meter.svelte.</summary>
+public sealed partial class Meter : SvelteComponent
+{
+    /// <summary>The reading, 0..1.</summary>
+    public double Value { get; set; }
+}
+
 // Renders real components rather than asserting on generator output as text. What has to work is the
 // whole seam: the base class is discovered, the partial is generated, the host element serializes
 // with the diff-boundary marker, and the props JSON is exactly what the front end will be typed
@@ -64,6 +81,44 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("module=\"./Dial.ts\"", html, StringComparison.Ordinal);
         Assert.Contains("runtime=\"lit\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_vue_component_pairs_with_a_vue_file()
+    {
+        var html = Render(Board.Heading("Sales"));
+
+        Assert.Contains("module=\"./Board.vue\"", html, StringComparison.Ordinal);
+        Assert.Contains("runtime=\"vue\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_svelte_component_pairs_with_a_svelte_file()
+    {
+        var html = Render(Meter.Value(0.5));
+
+        Assert.Contains("module=\"./Meter.svelte\"", html, StringComparison.Ordinal);
+        Assert.Contains("runtime=\"svelte\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Every_runtime_renders_the_same_host_element()
+    {
+        // The runtime is metadata on one host element, not a different rendering path. If adding a
+        // runtime ever changed the markup's shape, the client runtime — which never reads the runtime
+        // attribute at all — would stop being able to mount it.
+        foreach (var html in new[]
+                 {
+                     Render(Chart.Series([])),
+                     Render(Dial.Value(0)),
+                     Render(Board.Heading("Sales")),
+                     Render(Meter.Value(0)),
+                 })
+        {
+            Assert.StartsWith("<rask-external ", html, StringComparison.Ordinal);
+            Assert.Contains("data-rask-opaque", html, StringComparison.Ordinal);
+            Assert.Contains("props=", html, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

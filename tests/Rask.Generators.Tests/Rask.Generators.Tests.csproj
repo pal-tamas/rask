@@ -37,6 +37,11 @@
          whole family — the jobs and outbox generators used to be two more, each compiling its own
          copy of RASK035's descriptor. -->
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"/>
+    <!-- The island base classes, so ExternalGenerator's own diagnostics can be tested. The generator
+         resolves ReactComponent/LitComponent/VueComponent/SvelteComponent by metadata name and does
+         nothing at all when none of them is present, so without this reference every test of it would
+         pass by generating nothing. -->
+    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
   </ItemGroup>
 
 </Project>

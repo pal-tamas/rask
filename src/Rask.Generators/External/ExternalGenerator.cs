@@ -34,9 +34,31 @@ namespace Rask.Generators.External;
 [Generator(LanguageNames.CSharp)]
 public sealed class ExternalGenerator : IIncrementalGenerator
 {
-    private const string ReactBaseName = "Rask.External.ReactComponent";
-    private const string LitBaseName = "Rask.External.LitComponent";
     private const string SkipFactoryName = "Rask.Core.SkipFactoryAttribute";
+
+    /// <summary>
+    ///     The runtimes, as the generator needs to see them: which base class declares one, and which
+    ///     file extension its module is inferred to have.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A table rather than a chain of <c>if</c>s. Two runtimes fit in a ternary; four do not,
+    ///         and the failure of the ternary is silent — a Vue component would infer <c>./Chart.tsx</c>
+    ///         and the browser would resolve a module the bundle never built.
+    ///     </para>
+    ///     <para>
+    ///         The extension mirrors the discovery globs in <c>Rask.External.targets</c>. The two have
+    ///         to agree: this side decides what the rendered markup POINTS AT, that side decides what
+    ///         actually gets BUILT, and nothing cross-checks them.
+    ///     </para>
+    /// </remarks>
+    private static readonly (string BaseName, string Runtime, string Extension)[] Runtimes =
+    {
+        ("Rask.External.ReactComponent", "react", "tsx"),
+        ("Rask.External.LitComponent", "lit", "ts"),
+        ("Rask.External.VueComponent", "vue", "vue"),
+        ("Rask.External.SvelteComponent", "svelte", "svelte"),
+    };
 
     // RASK057 ("declares its own Render") is retired. ExternalComponent seals Render(), so writing
     // one is now CS0239 from the compiler itself — a rule the type system can state does not need an
@@ -107,9 +129,20 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
     private static void Execute(SourceProductionContext spc, Compilation compilation)
     {
-        var reactBase = compilation.GetTypeByMetadataName(ReactBaseName);
-        var litBase = compilation.GetTypeByMetadataName(LitBaseName);
-        if (reactBase is null || litBase is null)
+        // Resolved one at a time and kept only if present, rather than required all-or-nothing. An
+        // older Rask.External that predates a runtime would return null for it, and a combined guard
+        // would then switch the WHOLE generator off — no props, no module, no diagnostics — for a
+        // project whose components are all fine.
+        var bases = new List<(INamedTypeSymbol Base, string Runtime)>();
+        foreach (var (baseName, runtimeKey, _) in Runtimes)
+        {
+            if (compilation.GetTypeByMetadataName(baseName) is { } declared)
+            {
+                bases.Add((declared, runtimeKey));
+            }
+        }
+
+        if (bases.Count == 0)
         {
             // The app does not reference Rask.External. Nothing to do, and not a problem.
             return;
@@ -129,16 +162,17 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // adapter mounts it?". An abstract class in the middle of someone's own hierarchy is
             // skipped: it declares no props of its own to write, and generating for it would emit
             // implementations of members its concrete subclasses must override anyway.
-            string runtime;
-            if (Inherits(type, reactBase))
+            string? runtime = null;
+            foreach (var (declared, runtimeKey) in bases)
             {
-                runtime = "react";
+                if (Inherits(type, declared))
+                {
+                    runtime = runtimeKey;
+                    break;
+                }
             }
-            else if (Inherits(type, litBase))
-            {
-                runtime = "lit";
-            }
-            else
+
+            if (runtime is null)
             {
                 continue;
             }
@@ -329,6 +363,25 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         return false;
     }
 
+    /// <summary>The sibling file's extension for a runtime, without the dot.</summary>
+    /// <remarks>
+    ///     Falls back to <c>tsx</c> for a runtime the table does not know, which cannot happen: the
+    ///     key came from the table in the first place. Stated rather than thrown because a generator
+    ///     that throws takes the whole compilation down.
+    /// </remarks>
+    private static string Extension(string runtime)
+    {
+        foreach (var (_, runtimeKey, extension) in Runtimes)
+        {
+            if (string.Equals(runtimeKey, runtime, StringComparison.Ordinal))
+            {
+                return extension;
+            }
+        }
+
+        return "tsx";
+    }
+
     private static ComponentModel? Describe(SourceProductionContext spc, INamedTypeSymbol type, string runtime)
     {
         var location = type.Locations.FirstOrDefault(l => l.IsInSource);
@@ -346,15 +399,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         }
 
         // The module defaults to the sibling file, paired by filename exactly as scoped CSS and scoped
-        // JS already are. React implies .tsx; Lit implies .ts, because a Lit component is ordinary
-        // TypeScript — which the base class has now said, so it no longer has to be declared twice.
+        // JS already are. Each runtime implies its own extension — React .tsx, Vue .vue, Svelte
+        // .svelte, and Lit .ts because a Lit component is ordinary TypeScript. The base class is what
+        // says which, so none of it has to be declared twice.
         var declaredModule = DeclaredModule(spc, type, location);
         if (declaredModule is { Failed: true })
         {
             return null;
         }
 
-        var module = declaredModule?.Value ?? $"./{type.Name}.{(runtime == "lit" ? "ts" : "tsx")}";
+        var module = declaredModule?.Value ?? $"./{type.Name}.{Extension(runtime)}";
 
         var model = new ComponentModel
         {
@@ -394,7 +448,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             if (wire.Kind == WireKind.Unsupported)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask056,
+                    Rask057,
                     property.Locations.FirstOrDefault(l => l.IsInSource) ?? location,
                     type.Name,
                     property.Name,

@@ -23,6 +23,10 @@ Rask.External.RaskSeed_ExternalSlot.Named(string! Named) -> Rask.Core.Build<Rask
 Rask.External.RaskSeed_ExternalSlot.RaskSeed_ExternalSlot() -> void
 Rask.External.ReactComponent
 Rask.External.ReactComponent.ReactComponent() -> void
+Rask.External.SvelteComponent
+Rask.External.SvelteComponent.SvelteComponent() -> void
+Rask.External.VueComponent
+Rask.External.VueComponent.VueComponent() -> void
 RaskBuilderSettersRask_External
 RaskEntriesRask_External
 abstract Rask.External.ExternalComponent.ComponentName.get -> string!
@@ -46,6 +50,8 @@ override sealed Rask.External.ExternalComponent.TagName.get -> string?
 override sealed Rask.External.ExternalComponent.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override sealed Rask.External.LitComponent.Runtime.get -> string!
 override sealed Rask.External.ReactComponent.Runtime.get -> string!
+override sealed Rask.External.SvelteComponent.Runtime.get -> string!
+override sealed Rask.External.VueComponent.Runtime.get -> string!
 static Rask.External.ExternalDefaults.Wire(Rask.External.ExternalHydration hydration) -> string?
 static Rask.External.ExternalHandlers.Register(Rask.Core.Component! owner, System.Delegate! handler) -> string!
 static Rask.External.ExternalSlots.Wrap(System.Collections.Generic.IEnumerable<Rask.Core.Component?>? children) -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>!
