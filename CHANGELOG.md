@@ -74,6 +74,21 @@ them until tagged releases begin.
   was inferred from whether a delegate existed. It is now `o.Retry.Enabled`.
 
 ### Fixed
+- **The payload-bytes gate was red for three merges over a CSS class rename.** #914's Bootstrap sweep
+  renamed classes inside the benchmark scenarios themselves — `row` → `line`, one character longer —
+  and `AppendRowToList100`'s diff is an `InsertSubtree` whose value *is* one row's HTML, so it grew by
+  exactly that byte and the gate reported `112→113` as a codec regression. It was not one: all six
+  scenarios' payload deltas reconcile to the renames with no residue (200 rows x +1 minus
+  `container`→`wrap` = the +195 on `CounterOnLargePage`, and so on), and nothing in the render or diff
+  path moved. The baseline is refreshed to what the renamed markup actually costs
+  ([#919](https://github.com/pal-tamas/rask/issues/919)).
+
+  The comment on `CheckAgainstBaseline` claimed the gated metrics "only move when the render/diff path
+  itself changes". That is what made this read as a real regression, and it is now corrected: a
+  scenario's markup reaches a gated number through `InsertSubtree`, so the scenarios are frozen — a
+  rename sweep skips `benchmarks/`, and a wanted edit refreshes the baseline in the same commit.
+  `main` has no required checks, which is why a red gate rode along unnoticed.
+
 - **The "downloads stream, headers-first" claim now rests on something a gate can see.**
   `docs/cqrs.md` promises a `FileDownload` comes back without being buffered, and `RemoteDispatch` asks
   for exactly that with `HttpCompletionOption.ResponseHeadersRead` — but in the browser neither is
