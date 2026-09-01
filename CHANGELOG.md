@@ -89,6 +89,13 @@ them until tagged releases begin.
   rename sweep skips `benchmarks/`, and a wanted edit refreshes the baseline in the same commit.
   `main` has no required checks, which is why a red gate rode along unnoticed.
 
+  **Both** payload-bytes baselines are refreshed. The `benchmarks` job gates two, and the second
+  (`Rask.Benchmarks.VsBlazor`) had been masked all along: steps run fail-fast, so the standalone gate
+  failing first meant the vs-Blazor gate never ran, and fixing one merely uncovered the other. Its
+  `BlazorBatchBytes` column moved by exactly the same amounts as Rask's (`AppendRow` 224→225,
+  `KeyedListLargeAppend` 5957→6007) — the far side of the comparison shifting identically is what
+  proves the cause is shared scenario markup and nothing in Rask's codec.
+
 - **The "downloads stream, headers-first" claim now rests on something a gate can see.**
   `docs/cqrs.md` promises a `FileDownload` comes back without being buffered, and `RemoteDispatch` asks
   for exactly that with `HttpCompletionOption.ResponseHeadersRead` — but in the browser neither is
