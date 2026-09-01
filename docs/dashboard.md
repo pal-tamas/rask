@@ -55,7 +55,7 @@ of its own for `UseRaskServer<TApp>` to name.
 | Panel | Answers |
 | --- | --- |
 | **Overview** | Is anything wrong? One tile per queue, plus a banner the moment any dead letter exists. |
-| **Queues** — outbox / jobs / mail | Due, delayed, **failed**, processed. Expand a row for its last error and stored payload. |
+| **Queues** — outbox / jobs / mail | Due, delayed, **failed**, processed, as a row of counts that is also the filter. Open a row for its last error and stored payload. |
 | **Cache** | Keys, sizes, expiry, and how many are expired but not yet swept. |
 | **Logs** | A live tail of the `ILogger` pipeline — the failures that leave no row anywhere — plus a searchable **History** over the stored log when [`Rask.Logging`](logging.md) is installed. |
 | **System** | SQLite pragmas read live, database size, and the recurring-job schedule with when each last fired. |
@@ -63,6 +63,16 @@ of its own for `UseRaskServer<TApp>` to name.
 A panel appears **only when its battery is registered and its table is mapped**. An app with jobs and
 nothing else gets a jobs panel and no empty placeholders — the nav is an inventory of what this deployment
 actually runs.
+
+The chrome is two rows: a **breadcrumb bar** saying what you are looking at, over a **tab bar** saying
+which part of the console you are in. Every queue shares the one `Queues` tab, and the breadcrumb carries
+a switcher between them — so a deployment running all three does not spend half its navigation on them.
+The switcher is a plain `<select>`: the console ships no JavaScript, so it is keyboard-navigable for free
+and opens the platform's own picker on a phone.
+
+It is built mobile-first. Below `sm` the secondary table columns collapse and fold under the primary cell
+rather than scrolling sideways — a table you have to swipe has hidden the column you came for — and every
+control takes a 44px touch target.
 
 ### Failed is the number that matters
 

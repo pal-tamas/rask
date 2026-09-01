@@ -24,12 +24,19 @@ namespace Rask.Dashboard.Pages;
 /// navigation rather than a live one, which is the point: an operator polling a queue never shares a
 /// render session with an end user's page.
 /// </para>
+/// <para>
+/// The chrome is two rows: a breadcrumb bar saying WHAT you are looking at, and a tab bar saying WHICH
+/// PART of the console you are in. That split is why the queues are one tab rather than one tab each — a
+/// deployment running jobs, outbox and mail used to spend three of its six top-level tabs on them, which
+/// made the nav grow with the batteries instead of describing the console.
+/// </para>
 /// </summary>
 [Authorize(Policy = RaskDashboardPolicies.Access)]
 [Route("_rask")]
 public sealed partial class DashboardLayout(
     IEnumerable<IQueuePanel> queues,
     RouteState route,
+    Navigator navigator,
     DashboardSecurityState security) : Component
 {
     /// <summary>
@@ -46,6 +53,10 @@ public sealed partial class DashboardLayout(
     /// </para>
     /// </remarks>
     private static readonly string Css = ReadCss();
+
+    // Enumerated once and kept: IsAvailable asks whether the battery is registered AND mapped in the EF
+    // model, and the chrome asks that question for the tab bar, the crumb and the switcher on every render.
+    private IReadOnlyList<IQueuePanel>? _available;
 
     private static string ReadCss()
     {
@@ -73,56 +84,113 @@ public sealed partial class DashboardLayout(
         Style[Raw.Value(Css)],
     ];
 
+    /// <summary>Only the batteries the app actually registered, so the chrome is an honest inventory.</summary>
+    private IReadOnlyList<IQueuePanel> Available =>
+        _available ??= queues
+            .Where(q => q.IsAvailable)
+            .OrderBy(q => q.Title, StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>
+    /// The path every queue page hangs off, taken from the generated URL rather than spelled again — so
+    /// moving the route moves this with it.
+    /// </summary>
+    private string QueuesPrefix
+    {
+        get
+        {
+            var sample = Routes.QueuePage("x").Path;
+            return sample[..sample.LastIndexOf('/')];
+        }
+    }
+
     /// <inheritdoc />
     protected override Component? Render() =>
-        // .rask-ops is a hook, not a fence. It was a fence while these pages rendered inside the host
-        // application's document and every rule had to be scoped under it; the console is now a mounted
-        // application with its own document (RaskMountedApp), so the stylesheet is free to be ordinary.
-        Div.Class("rask-ops min-h-screen bg-ops-bg text-ops-ink")[
-            Header.Class("border-b border-ops-line")[
-                Div.Class("mx-auto flex max-w-none items-center gap-6 px-6 py-3")[
-                    A.Href(Routes.OverviewPage())
-                        .Class("flex items-center gap-2 font-semibold tracking-tight text-ops-ink no-underline")[
-                        OpsIcon.Name(OpsIconName.Overview),
-                        Span["Ops"]
-                    ],
-                    Nav.Class("ml-auto flex flex-wrap items-center gap-1")[NavItems()]
-                ]
+        OpsShell[
+            OpsTopBar.Trailing(OpsTopLink.Label("Docs").Href("https://rask.sh/docs/"))[
+                OpsBrand,
+                QueueSeparator(),
+                QueueSwitcher()
             ],
-            Main.Class("mx-auto max-w-none px-6 py-6")[
+            OpsNav[NavTabs()],
+            OpsMain[
                 UnsecuredWarning(),
                 Outlet
             ]
         ];
 
-    private IEnumerable<Component> NavItems()
-    {
-        yield return NavItem(Routes.OverviewPage(), "Overview", OpsIconName.Overview, exact: true);
+    // ── Chrome ──────────────────────────────────────────────────────────────────────────────────────
 
-        // Only the batteries the app actually registered get a tab, so the nav is an honest inventory of
-        // what this deployment runs rather than a menu of mostly-dead links.
-        foreach (var queue in queues.Where(q => q.IsAvailable).OrderBy(q => q.Title, StringComparer.Ordinal))
+    private IEnumerable<Component> NavTabs()
+    {
+        yield return Tab(Routes.OverviewPage(), "Overview", exact: true);
+
+        // One tab for every queue. It keeps you on the queue you are already reading and otherwise lands on
+        // the first — there is no memory of a previously-viewed queue, and claiming one would be a promise
+        // this makes nowhere. A deployment with no queue batteries gets no tab at all rather than a dead
+        // link.
+        if (Available.Count > 0)
         {
-            yield return NavItem(Routes.QueuePage(queue.Slug), queue.Title, queue.Icon, exact: false);
+            var target = CurrentQueue() ?? Available[0];
+            yield return Tab(Routes.QueuePage(target.Slug), "Queues", exact: false, prefix: QueuesPrefix);
         }
 
-        yield return NavItem(Routes.CachePage(), "Cache", OpsIconName.Archive, exact: false);
-        yield return NavItem(Routes.LogsPage(), "Logs", OpsIconName.Queue, exact: false);
-        yield return NavItem(Routes.SystemPage(), "System", OpsIconName.Storage, exact: false);
+        yield return Tab(Routes.CachePage(), "Cache", exact: false);
+        yield return Tab(Routes.LogsPage(), "Logs", exact: false);
+        yield return Tab(Routes.SystemPage(), "System", exact: false);
     }
 
-    // Named NavItem, not NavLink: a private method of that name would shadow the NavLink chain entry it
-    // needs to call, and the entry is a member of this markup host rather than a type it can qualify.
-    private Component NavItem(RouteUrl url, string label, OpsIconName icon, bool exact) =>
-        NavLink
-            .Key(label)
+    // Named Tab, not NavTab: a private method named after a chain entry would shadow the entry it needs to
+    // call, and the entry is a member of this markup host rather than a type it can qualify.
+    private Component Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
+        OpsNavTab
+            .Label(label)
             .Href(url)
-            .Class(IsActive(url.Path, exact)
-                ? "flex items-center gap-1.5 rounded-md bg-ops-panel px-3 py-1.5 text-sm font-medium text-ops-ink no-underline"
-                : "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-ops-muted no-underline hover:bg-ops-panel hover:text-ops-ink")[
-            OpsIcon.Name(icon).Class("size-4 shrink-0"),
-            Span[label]
-        ];
+            .Active(IsActive(prefix ?? url.Path, exact));
+
+    private Component? QueueSeparator() =>
+        CurrentQueue() is null ? null : OpsCrumbSeparator;
+
+    private Component? QueueSwitcher()
+    {
+        // Only while you are looking at one. Elsewhere the crumb would be asserting a scope the page below
+        // it does not actually have.
+        if (CurrentQueue() is not { } current)
+        {
+            return null;
+        }
+
+        return OpsCrumbSwitcher
+            .Label("Switch queue")
+            .Value(current.Slug)
+            .Choices([.. Available.Select(q => (q.Slug, q.Title))])
+            .Icon(current.Icon)
+            .OnSelect(GoToQueueAsync);
+    }
+
+    private Task GoToQueueAsync(string slug)
+    {
+        if (Available.Any(q => string.Equals(q.Slug, slug, StringComparison.Ordinal)))
+        {
+            navigator.NavigateTo(Routes.QueuePage(slug).Path);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // Matched against the generated URL rather than by parsing the path, so an unknown slug simply selects
+    // nothing instead of half-matching.
+    //
+    // OrdinalIgnoreCase to agree with QueuePage, which resolves its panel case-insensitively (QueuePage
+    // .LoadAsync). Comparing Ordinal here meant /_rask/queues/Jobs rendered the Jobs queue perfectly while
+    // the crumb and the switcher above it silently vanished — the page working and its chrome disagreeing
+    // about whether you were on it.
+    private IQueuePanel? CurrentQueue()
+    {
+        var path = route.Path.TrimEnd('/');
+        return Available.FirstOrDefault(q =>
+            string.Equals(path, Routes.QueuePage(q.Slug).Path.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
+    }
 
     // Exact for the overview, prefix for the rest — otherwise "/_rask" would light up on every page,
     // since every dashboard path starts with it.
@@ -139,11 +207,13 @@ public sealed partial class DashboardLayout(
     private Component? UnsecuredWarning() =>
         security.IsUnsecured
             ? Div.Role("alert")
-                .Class("mb-6 flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200")[
-                OpsIcon.Name(OpsIconName.ShieldWarning).Class("mt-0.5 size-5 shrink-0"),
-                Span[
+                .Class(
+                    "mb-4 flex items-start gap-3 rounded-xl border border-ops-warn/40 bg-ops-warn/10 px-4 py-3 "
+                    + "text-sm text-ops-ink sm:mb-6")[
+                OpsIcon.Name(OpsIconName.ShieldWarning).Class("mt-0.5 size-5 shrink-0 text-ops-warn-ink"),
+                Span.Class("min-w-0 break-words")[
                     "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
-                    Code.Class("rounded bg-black/30 px-1 py-0.5 font-mono text-xs")[RaskDashboardPolicies.Access],
+                    Code.Class("rounded bg-ops-warn/15 px-1 py-0.5 font-mono text-xs")[RaskDashboardPolicies.Access],
                     " authorization policy; without one the dashboard denies everyone outside Development."
                 ]
             ]

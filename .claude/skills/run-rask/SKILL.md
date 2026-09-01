@@ -1,6 +1,6 @@
 ---
 name: run-rask
-description: Build, launch, and drive the Rask Server showcase app (samples/Rask.Example.Server) — the server-rendered, live-over-WebSocket demo of the framework. Use to run/start/launch the app, take a screenshot, or confirm a UI change works in the real running app (not just tests). Drives it headlessly with a committed C# Playwright driver — pure .NET, no Node.
+description: Build, launch, and drive the Rask Server showcase app (samples/Rask.Example.Server) — the server-rendered, live-over-WebSocket demo of the framework. Use to run/start/launch the app, take a screenshot, or confirm a UI change works in the real running app (not just tests). Drives it headlessly with a committed C# Playwright driver — pure .NET, no Node. Also drives the built-in operator console (Rask.Dashboard at /_rask) out of samples/Rask.Example.Shop, at desktop and phone widths, via dashboard-driver.cs.
 ---
 
 # Run the Rask showcase
@@ -96,6 +96,33 @@ dotnet run --project samples/Rask.Example.Server
 
 Serves on http://localhost:5099 (from `Properties/launchSettings.json`); open it in a browser.
 Useless for automation — it blocks the terminal and opens nothing headlessly. Ctrl-C to stop.
+
+## The operator console (`dashboard-driver.cs`)
+
+The Server showcase does not mount `Rask.Dashboard`. The sample that does is
+**`samples/Rask.Example.Shop`**, and its console is behind a policy, so a driver has to sign in before it
+can see anything.
+
+```bash
+dotnet build samples/Rask.Example.Shop -c Debug -m:1
+ASPNETCORE_ENVIRONMENT=Development \
+  dotnet run --project samples/Rask.Example.Shop --no-build -c Debug --urls http://localhost:5123 &
+cd .claude/skills/run-rask && dotnet run dashboard-driver.cs http://localhost:5123
+```
+
+Signs in as `alice`/`password`, then shoots all five console pages at **1280 and 390** into
+`screenshots/` (gitignored). The console is built mobile-first, and the two widths are genuinely
+different markup — columns collapse, the leader rules disappear — so one width proves nothing about the
+other.
+
+Each shot is checked for two kinds of overflow, and the second is the one that matters:
+
+- `PAGE-OVERFLOW` — the document is wider than the viewport.
+- `TABLE-WIDE(n)` — a **table** is wider than its container. Tables carry their own `overflow-x` as a
+  backstop, so a column that failed to collapse hides its content behind an internal scrollbar while the
+  page-level check stays perfectly green. That is how a request id in a log scope shipped once.
+
+Both must read `ok` on every mobile row.
 
 ## Gotchas
 

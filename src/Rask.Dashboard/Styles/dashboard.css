@@ -18,23 +18,52 @@
 @import "tailwindcss";
 
 /*
-  Dark by default, and not negotiable from outside: this is an operator surface, and the host
-  application's theme has no business deciding what it looks like.
+  Light, and not negotiable from outside: this is an operator surface, and the host application's theme
+  has no business deciding what it looks like. The console is read on a phone as often as at a desk, so
+  the palette is built for a bright screen and every layout in it is built mobile-first.
+
+  Every name below is load-bearing beyond this file: DashboardStylesheetTests asserts the compiled output
+  still contains each one, because a rename here is the kind of change whose only symptom is an unstyled
+  page nobody notices. Tailwind only emits a token something references, so that test is also the check
+  that no token here is decorative — add one and it fails until a utility uses it.
 */
 @theme {
-  --color-ops-bg: oklch(0.19 0.02 265);
-  --color-ops-panel: oklch(0.24 0.02 265);
-  --color-ops-line: oklch(0.32 0.02 265);
-  --color-ops-ink: oklch(0.93 0.01 265);
-  --color-ops-muted: oklch(0.72 0.02 265);
-  --color-ops-brand: oklch(0.62 0.19 285);
+  /* Neutrals — a near-white ladder, not a grey one. The steps are deliberately close together: the
+     console's depth comes from hairlines, not from contrast between surfaces. */
+  --color-ops-bg: oklch(1 0 0);
+  --color-ops-panel: oklch(0.993 0 0);
+  --color-ops-well: oklch(0.979 0 0);
+  --color-ops-line: oklch(0.909 0 0);
+  --color-ops-ink: oklch(0.22 0 0);
+  /* 0.52, not lighter: this is body text on white and has to clear 4.5:1, which a true grey-500 does
+     not. Secondary does not mean unreadable. */
+  --color-ops-muted: oklch(0.52 0 0);
+
+  /* Accent — links, focus rings, the active tab. */
+  --color-ops-brand: oklch(0.55 0.2 265);
+
+  /* Status FILLS — dots, tinted badge grounds, and text on the dark toast. Green is teal-leaning on
+     purpose: a pure green reads as decorative beside the amber and the rose, and these three have to stay
+     distinguishable at the size of a 6px status dot. */
+  --color-ops-ok: oklch(0.6 0.11 175);
+  --color-ops-warn: oklch(0.77 0.16 70);
+  --color-ops-danger: oklch(0.55 0.2 20);
+
+  /* Status TEXT on a light ground. Separate tokens rather than darker ones, because the same two colours
+     are read on two different grounds: the fills above are correct on the near-black toast and fail as
+     text on white (amber measures 2.13:1, teal 3.73:1 — nowhere near the 4.5:1 this file demands two
+     comments up), while these clear it and would in turn be too dark on the toast. Rose already passes
+     at 5.39:1 and needs no twin. Verified by computing the ratios, not by eye. */
+  --color-ops-ok-ink: oklch(0.55 0.1 175);
+  --color-ops-warn-ink: oklch(0.57 0.13 70);
 }
 
 @layer base {
-  /* The console owns the document, so its ground colour belongs on the document. */
+  /* The console owns the document, so its ground colour belongs on the document. The well rather than
+     the page white: cards sit ON something, and on a phone the well IS the page. */
   html,
   body {
-    background-color: var(--color-ops-bg);
+    background-color: var(--color-ops-well);
     color: var(--color-ops-ink);
   }
 }

@@ -7,6 +7,63 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The operator console is rebuilt light, mobile-first, and on a component kit.** `/_rask` was a dark
+  utility page: it worked, and it looked like a debug view. It now follows the design language it was
+  specified against — a near-white surface ladder, hairline rules, monospace for every machine value, and
+  a breadcrumb bar over an underlined tab bar.
+
+  Three constraints were already true of it and stayed true: Tailwind v4 only (no scoped CSS, no
+  Bootstrap), zero JavaScript, and a reusable kit rather than utility strings copied between pages. So
+  this is a visual and IA change, not a re-platforming. The kit grew — `Ui/` now holds the shell, top bar,
+  tab bar, metric row, detail sheet, toast, search and button — and stays `internal` throughout, so the
+  only public surface added is six `OpsIconName` members. `DashboardLayout`'s constructor takes a
+  `Navigator` (the queue switcher navigates on change): a public signature change, on a type no
+  application constructs itself.
+
+  The substantive IA change: **every registered queue used to get its own top-level tab**, so a
+  deployment running jobs, outbox and mail spent half its navigation on them, and the nav grew with the
+  batteries instead of describing the console. They are one `Queues` section now, with the individual
+  queue on a breadcrumb switcher — a real `<select>`, because a menu is a popover and a popover is a key
+  listener, and this ships no script. Every existing URL still resolves.
+
+  The smaller ones each remove a duplication rather than add a surface. The five counts were a tile row
+  AND a tab strip carrying the same numbers; they are one row that both reports and filters, each tile a
+  real link carrying `?show=`. A row's detail was an extra `<tr>` spliced underneath, which cramped a
+  stack trace into a table column and pushed every row below it down on a polling page; it is a sheet.
+  The overview printed two tiles per queue and prints one card. And the cache's `?q=` filter — which has
+  shipped since that page did, and which its own empty state names — finally has a box to type into.
+
+  Mobile-first is a different claim from responsive: secondary table columns collapse below `sm` and fold
+  under the primary cell rather than scrolling sideways, because a table you have to swipe has hidden the
+  column you came for. Controls take a 44px touch target below `sm`.
+
+  Two defects were found by looking at it at 390px rather than by any test. An odd tile in a two-column
+  row left an empty cell that rendered as a grey block, because the hairlines are the container's own
+  background showing through the gaps. And an unbreakable request id in a log scope pushed the table
+  wider than the phone, hiding content behind the table's `overflow-x` while the document-level overflow
+  check stayed perfectly green — `ShopExampleTests` now measures the document AND every table against the
+  viewport at 360px, which is the assertion that would have caught it.
+
+  `SystemPageBackupTests` asserted on `text-red-400` and `text-amber-400`. The intent — Unknown renders
+  as warn, never as danger — is unchanged and now reads `text-ops-danger` / `text-ops-warn`, which is a
+  semantic contract rather than a palette coincidence, and is why it broke in the first place.
+
+  Review caught five things worth naming. **Delete from the detail sheet raised its confirmation
+  underneath the sheet** — the prompt renders in normal flow, the sheet is `fixed inset-0 z-50` over a
+  backdrop, and `RunAsync` never cleared `_expanded`, so the button looked inert. Retry never showed it,
+  because Retry skips confirmation. Pinned by `QueueDetailSheetTests`, proven by reverting the fix.
+  **The phone-overflow gate could pass by measuring nothing**: it waited only for the layout's nav, which
+  is on screen from the first paint, so on the pages that load asynchronously it measured a spinner with
+  no tables in it — it now waits for the first load and asserts it saw at least one table.
+  **`--color-ops-warn` was 2.13:1 as text on white** and `--color-ops-ok` 3.73:1, in a file whose own
+  comment demands 4.5:1; both now have `-ink` twins for light grounds while the vivid fills stay for the
+  dots and the near-black toast, where the dark ones would fail instead. `CurrentQueue()` compared the
+  path case-sensitively while `QueuePage` resolves its slug case-insensitively, so `/_rask/queues/Jobs`
+  rendered correctly with its breadcrumb and switcher silently missing. And `DashboardStylesheetTests`
+  now pins **every** token rather than three of ten — the stylesheet's comment claimed it already did.
+
 ### Fixed
 - **A class library's Tailwind stylesheet reaches the consuming app's publish.** Since #914 the docs
   showcase at `https://rask.sh/docs/` has been serving

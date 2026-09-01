@@ -30,7 +30,11 @@ Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.get -> System.DateTimeOffset
 Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.init -> void
 Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Archive = 6 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Check = 18 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.ChevronRight = 16 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.ChevronUpDown = 15 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Clock = 4 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Close = 14 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Database = 2 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Envelope = 3 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Gear = 8 -> Rask.Dashboard.OpsIconName
@@ -38,16 +42,18 @@ Rask.Dashboard.OpsIconName.Outbox = 7 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Overview = 0 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Queue = 1 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Retry = 5 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Search = 13 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.ShieldOk = 11 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.ShieldWarning = 12 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Storage = 9 -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.OpsIconName.Trash = 17 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.OpsIconName.Warning = 10 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.Pages.CachePage
 Rask.Dashboard.Pages.CachePage.CachePage(Rask.Dashboard.Panels.ICachePanelReader! cache, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
 Rask.Dashboard.Pages.CachePage.Search.get -> string?
 Rask.Dashboard.Pages.CachePage.Search.set -> void
 Rask.Dashboard.Pages.DashboardLayout
-Rask.Dashboard.Pages.DashboardLayout.DashboardLayout(System.Collections.Generic.IEnumerable<Rask.Dashboard.Panels.IQueuePanel!>! queues, Rask.Core.Routing.RouteState! route, Rask.Dashboard.DashboardSecurityState! security) -> void
+Rask.Dashboard.Pages.DashboardLayout.DashboardLayout(System.Collections.Generic.IEnumerable<Rask.Dashboard.Panels.IQueuePanel!>! queues, Rask.Core.Routing.RouteState! route, Rask.Core.Routing.Navigator! navigator, Rask.Dashboard.DashboardSecurityState! security) -> void
 Rask.Dashboard.Pages.LogsPage
 Rask.Dashboard.Pages.LogsPage.Category.get -> string?
 Rask.Dashboard.Pages.LogsPage.Category.set -> void

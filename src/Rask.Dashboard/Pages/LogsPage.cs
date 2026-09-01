@@ -174,8 +174,10 @@ public sealed partial class LogsPage(
             .Label(label)
             .Active(IsHistory == (view is not null));
 
+    // Stacked on a phone, one row from sm up. Three filter controls side by side at 360px leaves each of
+    // them too narrow to read the value it is set to, which is the only thing a filter has to show.
     private Component Filters() =>
-        Div.Class("mb-4 flex flex-wrap items-center gap-2")[
+        Div.Class("mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center")[
             OpsTabs[
                 LevelPill(null, "All"),
                 LevelPill(LogLevel.Information, "Info+"),
@@ -211,7 +213,10 @@ public sealed partial class LogsPage(
 
         return Select
             .Value(Category ?? "")
-            .Class("rounded-md border border-ops-line bg-ops-panel px-2.5 py-1.5 text-sm text-ops-ink")
+            .Class(
+                "min-h-11 w-full rounded-lg border border-ops-line bg-ops-bg px-2.5 py-1.5 text-sm text-ops-ink "
+                + "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ops-brand "
+                + "sm:min-h-0 sm:w-auto")
             .Aria(new Dictionary<string, string?> { ["label"] = "Filter by category" })
             .OnChangeAsync(CategoryChangedAsync)[options];
     }
@@ -223,12 +228,11 @@ public sealed partial class LogsPage(
     }
 
     private Component SearchBox() =>
-        Input
-            .Value(Query)
-            .Type(InputType.Search)
-            .Class("w-72 rounded-md border border-ops-line bg-ops-panel px-2.5 py-1.5 text-sm text-ops-ink placeholder:text-ops-muted")
+        OpsSearch
             .Placeholder("Search message or exception")
-            .OnChangeAsync(SearchAsync);
+            .Label("Search stored log entries")
+            .Value(Query)
+            .OnSearch(SearchAsync);
 
     private async Task SearchAsync(string value)
     {
@@ -286,10 +290,14 @@ public sealed partial class LogsPage(
         }
 
         var page = CurrentPage;
-        return Div.Class("mt-4 flex items-center gap-3")[
+
+        // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
+        // which is where thumbs are.
+        return Div.Class("mt-4 flex items-center justify-between gap-3")[
             PagerLink("Previous", page - 1, page <= 1),
-            Span.Class("text-xs text-ops-muted")[
-                $"Page {page} of {_history.PageCount} — {_history.TotalCount} entries"
+            Span.Class("text-center text-xs text-ops-muted")[
+                Span[$"Page {page} of {_history.PageCount}"],
+                Span.Class("hidden sm:inline")[$" — {_history.TotalCount} entries"]
             ],
             PagerLink("Next", page + 1, page >= _history.PageCount)
         ];
@@ -300,7 +308,7 @@ public sealed partial class LogsPage(
     // a link that goes nowhere should not be focusable.
     private Component PagerLink(string label, int page, bool disabled) =>
         disabled
-            ? Span.Class("rounded-md border border-ops-line px-2.5 py-1.5 text-xs text-ops-muted opacity-40")[label]
+            ? Span.Class($"{Ops.Button} pointer-events-none opacity-40")[label]
             : NavLink.Href(Link(Level, Category, page)).Class($"{Ops.Button} no-underline")[label];
 
     // One row shape for both surfaces, so the two modes cannot drift into rendering an entry differently.
@@ -315,27 +323,40 @@ public sealed partial class LogsPage(
 
     private static Component LogTable(IEnumerable<LogRow> rows, DateTime now) =>
         OpsTable[
+            // The message is the column an operator came for, so it is the one that survives a narrow
+            // screen; when, level and category fold in above it rather than scrolling off to the right.
             Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
                 Tr[
-                    Th.Class("px-3 py-2 font-medium")["When"],
-                    Th.Class("px-3 py-2 font-medium")["Level"],
-                    Th.Class("px-3 py-2 font-medium")["Category"],
+                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["When"],
+                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Level"],
+                    Th.Class("hidden px-3 py-2 font-medium lg:table-cell")["Category"],
                     Th.Class("px-3 py-2 font-medium")["Message"]
                 ]
             ],
             Tbody[rows.Select(r => Tr.Key(r.Key).Class("border-b border-ops-line/60 last:border-0")[
-                Td.Class("whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted")
+                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
                     .Title(r.Timestamp.UtcDateTime.ToString("u"))[
                     DashboardParts.Ago(r.Timestamp.UtcDateTime, now)
                 ],
-                Td.Class("px-3 py-2 align-top")[LevelBadge(r.Level)],
-                Td.Class($"px-3 py-2 align-top {Ops.Mono} text-ops-muted")[r.Category],
-                Td.Class("px-3 py-2 align-top")[
-                    Div.Class("text-ops-ink")[r.Message],
+                Td.Class("hidden px-3 py-2 align-top sm:table-cell")[LevelBadge(r.Level)],
+                Td.Class($"hidden px-3 py-2 align-top lg:table-cell {Ops.Mono} text-ops-muted")[r.Category],
+                Td.Class("w-full max-w-0 px-3 py-2 align-top")[
+                    Div.Class("mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden")[
+                        LevelBadge(r.Level),
+                        Span.Class("text-xs text-ops-muted").Title(r.Timestamp.UtcDateTime.ToString("u"))[
+                            DashboardParts.Ago(r.Timestamp.UtcDateTime, now)
+                        ]
+                    ],
+                    Div.Class("break-words text-ops-ink")[r.Message],
+                    // The category is worth keeping on a phone, just not in a column of its own.
+                    Div.Class($"mt-0.5 break-all text-ops-muted lg:hidden {Ops.Mono}")[r.Category],
                     // The stack trace is the reason an error entry is worth surfacing at all, but it would
                     // drown the table, so it renders muted beneath rather than in a separate view.
                     r.Exception is { } ex
-                        ? Pre.Class($"mt-1 whitespace-pre-wrap {Ops.Mono} text-ops-muted")[ex]
+                        ? Pre.Class(
+                            $"mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-all {Ops.Mono} text-ops-muted")[
+                            ex
+                        ]
                         : null,
                     // The ambient state the entry was written under — the request id, the user id. This is
                     // what turns one line into a thread you can pull: copy a value into the scope filter
@@ -349,7 +370,12 @@ public sealed partial class LogsPage(
         scopes is null || scopes.Count == 0
             ? null
             : Div.Class("mt-1.5 flex flex-wrap gap-1")[
-                scopes.Select(s => OpsBadge.Key(s.Key).Label($"{s.Key}={s.Value}").Class(Ops.Mono))
+                // break-all, because a scope value is a request id: one unbreakable 40-character token is
+                // enough to push the whole table wider than a phone.
+                scopes.Select(s => OpsBadge
+                    .Key(s.Key)
+                    .Label($"{s.Key}={s.Value}")
+                    .Class($"max-w-full break-all {Ops.Mono}"))
             ];
 
     private static Component LevelBadge(LogLevel level) => OpsBadge

@@ -83,33 +83,45 @@ public sealed partial class QueuePage(
                 .Icon(_panel.Icon)
                 .Actions(Div.Class("flex flex-wrap gap-2")[QueueActionButtons()]),
             DashboardError.Message(LoadError),
-            ActionResult(),
-            FilterTabs(),
+            // A question stays in the flow: it has to be answered before anything else means anything, and
+            // a toast is the wrong shape for something you must respond to.
+            ConfirmPrompt(),
+            CountTiles(),
             _rows.Count == 0 ? EmptyForFilter() : RowsTable(),
             Pager(),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
+            DetailSheet(),
+            ResultToast(),
         ];
     }
 
-    private Component FilterTabs() =>
-        Div.Class("mb-5")[
-            OpsTabs[
-                Tab(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, alarm: false),
-                Tab(QueueFilter.Due, "Due", _counts.Due, alarm: false),
-                Tab(QueueFilter.Delayed, "Delayed", _counts.Delayed, alarm: false),
-                Tab(QueueFilter.Failed, "Failed", _counts.Failed, alarm: _counts.Failed > 0),
-                Tab(QueueFilter.Processed, "Processed", _counts.Processed, alarm: false)
+    /// <summary>
+    /// The counts, as the control that selects which of them you are looking at.
+    /// </summary>
+    /// <remarks>
+    /// These were a tile row and a tab strip carrying the same five numbers. One row that both reports and
+    /// filters is fewer things on the screen and one fewer place for the two to disagree — and because each
+    /// tile is a real link carrying <c>?show=</c>, the selection is still shareable and keyboard-reachable.
+    /// </remarks>
+    private Component CountTiles() =>
+        Div.Class("mb-4 sm:mb-5")[
+            OpsMetricRow.Columns(5)[
+                Tile(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, tone: null),
+                Tile(QueueFilter.Due, "Due", _counts.Due, tone: null),
+                Tile(QueueFilter.Delayed, "Delayed", _counts.Delayed, tone: null),
+                Tile(QueueFilter.Failed, "Failed", _counts.Failed, tone: _counts.Failed > 0 ? "danger" : null),
+                Tile(QueueFilter.Processed, "Processed", _counts.Processed, tone: null)
             ]
         ];
 
-    private Component Tab(QueueFilter filter, string label, int count, bool alarm) =>
-        OpsTab
+    private Component Tile(QueueFilter filter, string label, int count, string? tone) =>
+        OpsMetric
             .Key(label)
-            .Href(Routes.QueuePage(_panel!.Slug, Show: filter.ToString().ToLowerInvariant()))
             .Label(label)
-            .Active(Filter == filter)
-            .Count(count.ToString())
-            .Alarm(alarm);
+            .Value(count.ToString())
+            .Tone(tone)
+            .Href(Routes.QueuePage(_panel!.Slug, Show: filter.ToString().ToLowerInvariant()))
+            .Active(Filter == filter);
 
     private Component EmptyForFilter() => DashboardEmpty.Heading($"Nothing {Filter.ToString().ToLowerInvariant()}")
         .Detail(Filter == QueueFilter.Failed
@@ -120,49 +132,55 @@ public sealed partial class QueuePage(
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return OpsTable[
+            // The secondary columns are dropped below sm rather than scrolled to. A table an operator has to
+            // swipe sideways has hidden the column they came for; the primary cell carries the same facts
+            // stacked underneath instead, so nothing is lost — see the remarks on OpsTable.
             Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
                 Tr[
-                    Th.Class("px-3 py-2 font-medium")["#"],
+                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["#"],
                     Th.Class("px-3 py-2 font-medium")[TypeColumnLabel()],
-                    Th.Class("px-3 py-2 font-medium")["When"],
-                    Th.Class("px-3 py-2 font-medium")["Attempts"],
-                    Th.Class("px-3 py-2 font-medium")["Status"],
+                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["When"],
+                    Th.Class("hidden px-3 py-2 font-medium md:table-cell")["Attempts"],
+                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Status"],
                     Th.Class("px-3 py-2")
                 ]
             ],
-            Tbody[_rows.SelectMany(r => Row(r, now))]
+            Tbody[_rows.Select(r => Row(r, now))]
         ];
     }
 
     // Mail's "type" column is really its subject; calling it Type on that page would be a small lie.
     private string TypeColumnLabel() => _panel!.Slug == "mail" ? "Subject" : "Type";
 
-    private IEnumerable<Component> Row(QueueRow row, DateTime now)
+    private Component Row(QueueRow row, DateTime now)
     {
         var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
-        yield return Tr.Key(row.Id).Class(isDead
-            ? "border-b border-ops-line/60 bg-red-500/5 last:border-0"
+
+        return Tr.Key(row.Id).Class(isDead
+            ? "border-b border-ops-line/60 bg-ops-danger/5 last:border-0"
             : "border-b border-ops-line/60 last:border-0")[
-            Td.Class($"px-3 py-2 text-ops-muted {Ops.Mono}")[row.Id.ToString()],
-            Td.Class("px-3 py-2")[
-                Div.Class("max-w-[28rem] truncate").Title(row.Type)[row.Type]
+            Td.Class($"hidden whitespace-nowrap px-3 py-2 align-top text-ops-muted sm:table-cell {Ops.Mono}")[row.Id.ToString()],
+            Td.Class("w-full max-w-0 px-3 py-2 align-top")[
+                Div.Class("min-w-0")[
+                    Div.Class("truncate sm:max-w-[28rem]").Title(row.Type)[row.Type],
+                    // What the hidden columns were carrying, folded under the one cell that survives.
+                    Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ops-muted sm:hidden")[
+                        Span.Class(Ops.Mono)[$"#{row.Id}"],
+                        Span.Title(row.CreatedAt.ToString("u"))[DashboardParts.Ago(row.CreatedAt, now)],
+                        StatusBadge(row, isDead, now)
+                    ]
+                ]
             ],
-            Td.Class("px-3 py-2 text-xs text-ops-muted").Title(row.CreatedAt.ToString("u"))[
+            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
+                .Title(row.CreatedAt.ToString("u"))[
                 DashboardParts.Ago(row.CreatedAt, now)
             ],
-            Td.Class("px-3 py-2 tabular-nums")[row.Attempts.ToString()],
-            Td.Class("px-3 py-2")[StatusBadge(row, isDead, now)],
-            Td.Class("px-3 py-2 text-right")[
+            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums md:table-cell")[row.Attempts.ToString()],
+            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[StatusBadge(row, isDead, now)],
+            Td.Class("px-3 py-2 align-top text-right")[
                 Div.Class("flex justify-end gap-1")[RowButtons(row, isDead)]
             ]
         ];
-
-        if (_expanded == row.Id)
-        {
-            yield return Tr.Key($"{row.Id}-details")[
-                Td.Colspan(6).Class("border-b border-ops-line/60 bg-black/20 px-3 py-3")[Details(row)]
-            ];
-        }
     }
 
     private IEnumerable<Component> RowButtons(QueueRow row, bool isDead)
@@ -172,11 +190,13 @@ public sealed partial class QueuePage(
             yield return button;
         }
 
-        yield return Button
+        // Opens the detail sheet. A button rather than a clickable row: a <tr> is not focusable, and the
+        // console has no script to make one behave like a control.
+        yield return OpsButton
             .Key("details")
-            .Type("button")
-            .Class(Ops.Button)
-            .OnClick(() => Toggle(row.Id))[_expanded == row.Id ? "Hide" : "Details"];
+            .Label("Details")
+            .Icon(OpsIconName.ChevronRight)
+            .OnClick(() => Open(row.Id));
     }
 
     private Component StatusBadge(QueueRow row, bool isDead, DateTime now) => row switch
@@ -188,21 +208,71 @@ public sealed partial class QueuePage(
         _ => OpsBadge.Label("due").Tone("info"),
     };
 
-    private static new Component Details(QueueRow row) =>
-        Div.Class("text-xs")[
+    /// <summary>
+    /// Everything known about one row, over the list it came from.
+    /// </summary>
+    /// <remarks>
+    /// This was an extra <c>&lt;tr&gt;</c> spliced under the row. A stack trace inside a table cell has to
+    /// share the table's column widths, so it was permanently cramped on a desk and unreadable on a phone —
+    /// and expanding it pushed every row below it down, which on a polling page moved rows under the
+    /// operator's pointer. A sheet is the same information with neither problem.
+    /// </remarks>
+    private Component? DetailSheet()
+    {
+        if (_expanded is not { } id || _rows.FirstOrDefault(r => r.Id == id) is not { } row)
+        {
+            return null;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
+
+        return OpsModal
+            .Heading(row.Type)
+            .Close(Close)
+            .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
+                RowActionButtons(row, isDead),
+                OpsButton.Key("close").Label("Close").OnClick(Close)
+            ])[
+            OpsDetailList[
+                OpsDetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
+                OpsDetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
+                OpsDetailRow.Key("attempts").Label("Total attempts")
+                    .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(true),
+                OpsDetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(true),
+                OpsDetailRow.Key("runat").Label(row.ProcessedAt is null ? "Runs at" : "Started")
+                    .Value(row.RunAt.ToString("u")).Mono(true),
+                row.ProcessedAt is { } done
+                    ? OpsDetailRow.Key("done").Label("Processed").Value(done.ToString("u")).Mono(true)
+                    : null,
+                OpsDetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
+            ],
+            Div.Class("mt-4 flex items-center gap-2")[
+                Span.Class("text-xs font-medium text-ops-muted")["Status"],
+                StatusBadge(row, isDead, now)
+            ],
             row.Error is { } error
-                ? Div.Class("mb-3")[
-                    Div.Class("mb-1 font-medium text-red-300")["Last error"],
-                    Pre.Class($"whitespace-pre-wrap break-all text-ops-muted {Ops.Mono}")[error]
+                ? Div.Class("mt-4")[
+                    Div.Class("mb-1.5 text-xs font-medium text-ops-danger")["Last error"],
+                    OpsCode.Content(error).Tone("danger")
                 ]
                 : null,
-            Div.Class("mb-1 font-medium text-ops-muted")["Payload"],
-            Pre.Class($"whitespace-pre-wrap break-all text-ops-muted {Ops.Mono}")[row.Payload]
+            Div.Class("mt-4")[
+                Div.Class("mb-1.5 text-xs font-medium text-ops-muted")["Payload"],
+                OpsCode.Content(row.Payload)
+            ]
         ];
+    }
 
-    private void Toggle(long id)
+    private void Open(long id)
     {
-        _expanded = _expanded == id ? null : id;
+        _expanded = id;
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        _expanded = null;
         StateHasChanged();
     }
 
@@ -281,6 +351,13 @@ public sealed partial class QueuePage(
         if (confirm is not null)
         {
             _pending = (confirm, action);
+
+            // Close the sheet, or the question is invisible. The prompt renders in the page's normal flow
+            // while the sheet is `fixed inset-0 z-50` over a backdrop — so an action raised FROM the sheet
+            // would put its own confirmation underneath it, and Delete would look like a button that does
+            // nothing. Retry never hit this: it passes confirm: null and goes straight to ExecuteAsync,
+            // which clears _expanded itself.
+            _expanded = null;
             StateHasChanged();
             return Task.CompletedTask;
         }
@@ -308,28 +385,27 @@ public sealed partial class QueuePage(
         StateHasChanged();
     }
 
-    private Component? ActionResult()
-    {
-        if (_pending is { } pending)
-        {
-            return OpsNotice.Tone("warn")[
-                Span.Class("grow")[pending.Prompt],
-                Button.Type("button").Class(Ops.Danger)
-                    .OnClickAsync(() => ExecuteAsync(pending.Action))["Confirm"],
-                Button.Type("button").Class(Ops.Button).OnClick(Cancel)["Cancel"]
-            ];
-        }
-
-        return _message is { } message
-            ? OpsNotice.Tone("info")[
-                Span.Class("grow")[message],
-                Button.Type("button")
-                    .Class(Ops.Quiet)
-                    .Aria(new Dictionary<string, string?> { ["label"] = "Dismiss" })
-                    .OnClick(Dismiss)["Dismiss"]
+    // The question, in the flow, where it cannot be missed.
+    private Component? ConfirmPrompt() =>
+        _pending is { } pending
+            ? OpsNotice.Tone("warn")[
+                Span.Class("min-w-0 grow break-words")[pending.Prompt],
+                OpsButton.Key("confirm").Label("Confirm").Tone("danger")
+                    .OnClickAsync(() => ExecuteAsync(pending.Action)),
+                OpsButton.Key("cancel").Label("Cancel").OnClick(Cancel)
             ]
             : null;
-    }
+
+    // The answer, out of the flow. An inline result pushed the whole table down the moment an action
+    // completed, which on a polling page moves rows under the operator's pointer; a toast reports the same
+    // thing and moves nothing.
+    private Component? ResultToast() =>
+        _message is { } message
+            ? OpsToast
+                .Message(message)
+                .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? "danger" : null)
+                .Dismiss(Dismiss)
+            : null;
 
     private void Cancel()
     {
@@ -351,14 +427,20 @@ public sealed partial class QueuePage(
             return null;
         }
 
-        return Div.Class("mt-4 flex items-center gap-3")[
-            Button.Type("button").Class(Ops.Button)
+        // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
+        // which is where thumbs are.
+        return Div.Class("mt-4 flex items-center justify-between gap-3")[
+            OpsButton.Key("prev").Label("Previous")
                 .Disabled(_page == 0)
-                .OnClickAsync(() => GoAsync(_page - 1))["Previous"],
-            Span.Class("text-xs text-ops-muted")[$"Page {_page + 1} of {pages} — {_total} rows"],
-            Button.Type("button").Class(Ops.Button)
+                .OnClickAsync(() => GoAsync(_page - 1)),
+            Span.Class("text-center text-xs text-ops-muted")[
+                Span[$"Page {_page + 1} of {pages}"],
+                // The total is the first thing to go when there is no room for it.
+                Span.Class("hidden sm:inline")[$" — {_total} rows"]
+            ],
+            OpsButton.Key("next").Label("Next")
                 .Disabled(_page >= pages - 1)
-                .OnClickAsync(() => GoAsync(_page + 1))["Next"]
+                .OnClickAsync(() => GoAsync(_page + 1))
         ];
     }
 
