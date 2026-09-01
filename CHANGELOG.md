@@ -7,6 +7,25 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **The git hooks reject attribution trailers, at both boundaries.** `Co-authored-by:`,
+  `Claude-Session:` and "Generated with …" footers are refused by `.githooks/commit-msg` at commit
+  time and again by `.githooks/pre-push` over the commits actually being pushed. The rule was already
+  written down; it is now enforced.
+
+  It earns a gate because the cost is wildly asymmetric across the push. GitHub's contributor list
+  credits `Co-authored-by:` trailers as well as authors, so two footers a coding agent appended out of
+  habit — one Claude, one Copilot Autofix — put two extra accounts in the repository sidebar. Removing
+  them meant rewriting all 970 commits and force-pushing `main` and 18 release tags. Before a push the
+  same fix is one deleted line.
+
+  Both hooks are needed. `commit-msg` only runs once `core.hooksPath` is set, and a fresh clone or a
+  new worktree has not set it — which is precisely how the two trailers got in. The predicate lives
+  once, in `scripts/lib/attribution.sh`, so the two cannot drift apart, and
+  `scripts/tests/attribution-guard.test.sh` states 30 cases in both directions: the trailers that
+  actually reached `main` are rejected, and a human `Signed-off-by:`, a merge commit, and a body that
+  merely *discusses* the trailer all still pass.
+
 ### Removed
 - **The nine package ids left behind by earlier removals are retired from nuget.org.** `Rask.Native`,
   `Rask.Templates`, `Rask.Postgres`, `Rask.SqlServer`, `Rask.ObjectStore`, `Rask.Sync`,

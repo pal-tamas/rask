@@ -24,3 +24,51 @@ jobs:
           # rename here that misses the workflow leaves a green gate enforcing defaults instead of
           # this repo's rules. CommitlintConfigTests pins the two together.
           configFile: commitlint.config.ts
+
+      # The attribution guard, at the one boundary the local hooks cannot cover.
+      #
+      # .githooks/commit-msg and .githooks/pre-push both check this, but both are hooks: they only run
+      # once someone has set core.hooksPath, and a fresh clone has not. That is how two AI trailers
+      # reached main and put two extra accounts on GitHub's contributor list, which credits
+      # Co-authored-by as well as authors — removing them cost a rewrite of all 970 commits.
+      #
+      # The PR BODY is checked too, and is the more important half here: a squash merge builds the
+      # commit message from the PR title and description, so a trailer pasted into the description
+      # lands on main having passed no hook at all.
+      #
+      # Same predicate as the hooks (scripts/lib/attribution.sh) — one regex, three callers.
+      - name: Reject attribution trailers
+        env:
+          # Via env, not ${{ }} interpolation into the script: the body is attacker-controlled text.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          . scripts/lib/attribution.sh
+
+          failed=0
+
+          for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
+            if git log -1 --format=%B "$sha" | rask_message_has_attribution; then
+              echo "::error::commit $(git log -1 --format='%h %s' "$sha") carries an attribution trailer"
+              failed=1
+            fi
+          done
+
+          if printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" | rask_message_has_attribution; then
+            echo "::error::the pull request title/description carries an attribution trailer — a squash merge would copy it onto main"
+            failed=1
+          fi
+
+          if [ "$failed" -ne 0 ]; then
+            echo
+            echo "This repository credits a single contributor. GitHub counts Co-authored-by trailers"
+            echo "toward the contributor list, so these add an account that only a history rewrite removes."
+            echo "Delete the line(s); see CONTRIBUTING.md. Install the local guard with:"
+            echo "    git config core.hooksPath .githooks"
+            exit 1
+          fi
+
+          echo "No attribution trailers in $(git rev-list --count "$BASE_SHA..$HEAD_SHA") commit(s), the title, or the body."
