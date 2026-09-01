@@ -77,7 +77,7 @@ RASK_E2E_PGREP_OVERRIDE="304 305 306" \
 #
 # The predicate decides on argv POSITION, not substring, and these are the rows that pin it. An earlier
 # version anchored on the '/scripts/' path segment: it got the editor and the tee right and silently
-# missed `bash scripts/run-e2e-local.sh`, which is the form CLAUDE.md and CONTRIBUTING.md document for
+# missed `bash scripts/run-e2e-local.sh`, which is the form CLAUDE.md and .github/CONTRIBUTING.md document for
 # running the gate by hand. A guard blind to the manual runs that prompted it is worse than none,
 # because it looks correct.
 echo

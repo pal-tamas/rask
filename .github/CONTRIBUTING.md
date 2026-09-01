@@ -7,7 +7,7 @@ factory generator, scoped CSS/JS, routing, and a live diff runtime over WebSocke
 **Contributions are open.** Anyone can [open an issue](https://github.com/pal-tamas/rask/issues/new/choose)
 or send a pull request (fork → branch → PR). Review and merge are handled by the maintainer
 (@pal-tamas) — see [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and the
-[full development workflow](docs/development-workflow.md).
+[full development workflow](../docs/development-workflow.md).
 
 ## Prerequisites
 
@@ -59,7 +59,7 @@ a `[DynamicallyAccessedMembers]` annotation or a justified `[UnconditionalSuppre
 | `tests/`, `benchmarks/` | Test suites and render hot-path baselines. |
 
 Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
-[`docs/`](docs/README.md) and the [architecture notes](docs/architecture/live-rendering.md).
+[`docs/`](../docs/README.md) and the [architecture notes](../docs/architecture/live-rendering.md).
 
 ## Conventions
 
@@ -69,7 +69,7 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   `tests/Rask.Core.Tests/Components/{Tag}Tests.cs` asserting exact attribute order
   (id, class, style, data-*, then tag-specific). The factory is generated automatically.
 - **Don't `new` a `Component`** outside `Rask.Core` — use the generated factory (RASK014).
-- Diagnostics RASK001–042 are documented in [docs/diagnostics.md](docs/diagnostics.md);
+- Diagnostics RASK001–042 are documented in [docs/diagnostics.md](../docs/diagnostics.md);
   the analyzer descriptors are the source of truth.
 
 ## Commits & pull requests
@@ -120,7 +120,7 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   is not part of the CI pipeline. Run it with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for
   you on `git push`; bypass a docs-only push with `git push --no-verify` or `RASK_SKIP_E2E=1`).
 - **Do not** append `Co-Authored-By` or `Generated-with` footers to commits or PR descriptions.
-- Add a note to [`CHANGELOG.md`](CHANGELOG.md) under `[Unreleased]` for user-visible changes.
+- Add a note to [`CHANGELOG.md`](../CHANGELOG.md) under `[Unreleased]` for user-visible changes.
 - User-facing changes must update a sample under `samples/` and the relevant docs
-  (`docs/`, `README.md`, `NUGET.md`). See the [development workflow](docs/development-workflow.md).
+  (`docs/`, `README.md`, `NUGET.md`). See the [development workflow](../docs/development-workflow.md).
 - The maintainer merges (squash); the branch is deleted afterwards.

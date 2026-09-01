@@ -54,7 +54,7 @@ rask_other_e2e_runs() {
 #
 # An earlier version anchored on the '/scripts/' path segment instead. That got the editor and the tee
 # right but silently missed `bash scripts/run-e2e-local.sh` -- no leading slash -- which is exactly the
-# form CLAUDE.md and CONTRIBUTING.md document for running the gate by hand. It would have been blind to
+# form CLAUDE.md and .github/CONTRIBUTING.md document for running the gate by hand. It would have been blind to
 # the manual runs that prompted the check, while looking correct. Substring matching cannot separate
 # "is running this" from "names this"; argv position can.
 rask_is_e2e_gate_command() {

@@ -71,7 +71,7 @@ public static class GuideCatalog
             IconName.Shuffle, "One Person Framework"),
         new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.",
             IconName.FiletypeTsx, "One Person Framework"),
-        new("external-components", "External components",
+        new("islands", "Islands",
             "A .tsx or Lit file as an ordinary Rask component, with props owned by C#.",
             IconName.BoxSeam, "One Person Framework"),
         new("tailwind", "Tailwind CSS", "Tailwind v4 compiled by dotnet build — no npm, no config file.",

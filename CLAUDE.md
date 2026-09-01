@@ -44,7 +44,7 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
   `partial` class from `ReactComponent`/`LitComponent` (the base class IS the declaration — no attribute), front-end
   file paired by filename like scoped JS. Props declared in C#, serialized reflection-free; callbacks re-enter C#
   over the existing handler channel AND escalate the page to interactive. Its subtree is a **diff boundary**
-  (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/external-components.md`.
+  (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/islands.md`.
 - `samples/` — showcase apps. `tests/` — sibling `*.Tests` per project + `Rask.Examples.E2E.Tests` (Playwright). `benchmarks/`.
 
 ## Commands

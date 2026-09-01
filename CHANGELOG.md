@@ -55,6 +55,30 @@ them until tagged releases begin.
   `Rask.Chrome` and `Rask.Client` needed nothing: they were never published.
 ### Changed
 
+- **The README is a front page again, and the front end has three peers.** It was 191 lines that opened
+  with a 30-row package table (a NuGet shield per row) and a second collapsed table mapping every package
+  to its entry-point API, so a reader met two dozen package names before they met the framework. It now
+  shows **one** install command — `dotnet add package Rask`, the package almost every app wants — and
+  presents **Rask components**, **SPA** and **Islands** as three sections at the same heading level
+  rather than one pitch followed by two trailing paragraphs. The package tables are gone; `NUGET.md` and
+  [`docs/`](docs/) remain where the full set is listed. The baked chain illustration is no longer
+  embedded (`assets/rask-chain.svg` itself stays — it is generated from `ChainAnimation` and pinned by a
+  bake test).
+
+- **External components are called islands.** The name was already the one the code used —
+  `ExternalHydration`'s modes, `ExternalBuildPlan.raskIslandManifest()`, the generated
+  `vite.islands.config.mjs`, and the `RASKISLAND002`/`RASKISLAND003` build errors all said *island*
+  while the docs said *external component*. `docs/external-components.md` is now
+  [`docs/islands.md`](docs/islands.md), and the on-site guide moved with it, so the docs-site URL
+  `/guides/external-components` is now `/guides/islands`. **The package and the API are unchanged**:
+  `Rask.External`, `Rask.External.Tasks`, `ReactComponent` and `LitComponent` keep their names, so no
+  project reference or `using` changes. `docs/render-modes.md` no longer says "there are no islands"
+  about the per-page interactivity ladder, which is a different axis and now reads as such.
+
+- **`CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` moved to `.github/`.** GitHub recognises community health
+  files there and still surfaces the contributing prompt on new issues and pull requests, and the
+  repository landing page lists two fewer entries above the README.
+
 - **BREAKING: the pillar interfaces are named for what they are, not how they are built.** Every name
   below was decided against the rule it now obeys ([`docs/api-style.md`](docs/api-style.md)): a short
   noun with the mechanism left out, and the verb .NET already uses.
@@ -145,6 +169,12 @@ them until tagged releases begin.
   could never engage.
 
 ### Fixed
+
+- **The `Rask.External` package description told users to write an attribute that does not exist.** It
+  said to "Mark a component `[Island]`" — there has never been an `IslandAttribute`; the base class *is*
+  the declaration. Its `<Title>` also read "Rask — Foreign Components", a third name for the feature
+  matching neither the docs nor the README. Both now describe deriving from `ReactComponent` or
+  `LitComponent`. This is package metadata, so it was visible on nuget.org rather than in any build.
 - **The payload-bytes gate was red for three merges over a CSS class rename.** #914's Bootstrap sweep
   renamed classes inside the benchmark scenarios themselves — `row` → `line`, one character longer —
   and `AppendRowToList100`'s diff is an `InsertSubtree` whose value *is* one row's HTML, so it grew by
