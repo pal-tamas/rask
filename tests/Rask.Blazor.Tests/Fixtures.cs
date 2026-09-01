@@ -78,6 +78,13 @@ public sealed partial class GreetingIsland : BlazorComponent<Greeting>
     }
 }
 
+/// <summary>
+///     An island with NOTHING in it. Its chain steps come from <see cref="Greeting" />'s own
+///     <c>[Parameter]</c>s, which is the whole point: a hosted component already states its surface,
+///     so restating it in C# would be duplicated work that drifts on the next upgrade.
+/// </summary>
+public sealed partial class EmptyIsland : BlazorComponent<Greeting>;
+
 /// <summary>Stands in for MudTable: a hosted component with its own click handler.</summary>
 public sealed class Clicker : ComponentBase
 {

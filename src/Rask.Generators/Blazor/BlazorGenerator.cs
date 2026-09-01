@@ -1,50 +1,35 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Rask.Generators.Blazor;
 
 /// <summary>
-///     Completes a component deriving from <c>BlazorComponent&lt;T&gt;</c>, taking its chain steps
+///     Completes a component deriving from <c>BlazorComponent&lt;T&gt;</c>, taking its properties
 ///     from the hosted Blazor component's own <c>[Parameter]</c>s.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Nothing is redeclared. A Blazor component already states its surface — <c>[Parameter]</c>
-///         properties and <c>EventCallback</c>s — so an island body is empty and the chain steps are
-///         read straight off the hosted type. Restating them in C# would be duplicated work that can
-///         silently drift when the library is upgraded.
+///         properties and <c>EventCallback</c>s — so an island body is empty and the steps are read
+///         straight off the hosted type. Restating them in C# would be duplicated work that drifts
+///         silently the first time the library is upgraded.
 ///     </para>
 ///     <para>
-///         This generator writes only <c>WriteParameters</c> — the reflection-free mapping from the
-///         island's chain props onto the hosted component's parameter names. The PROPERTIES and their
-///         chain setters come from <c>ComponentFactoryGenerator</c>, which reads the hosted type's
-///         parameters as part of building the island's own prop list.
-///     </para>
-///     <para>
-///         They cannot be split the other way round. One source generator never sees another's
-///         output, so a property written here would be invisible to the factory generator and would
-///         get no chain step at all — the island would compile with a property nobody could set from
-///         markup. Whatever emits the properties has to be whatever emits their setters.
-///     </para>
-///     <para>
-///         Only a hosted type from a REFERENCED assembly can be read this way. A <c>.razor</c> in the
-///         same project is produced by the Razor source generator, so its parameters are invisible
-///         here for exactly the same reason — that is RASK066, and the island still works, just
-///         unverified.
+///         This generator writes the PROPERTIES and the parameter writer. Their chain setters come
+///         from <c>ComponentFactoryGenerator</c>, which reads the same list through
+///         <see cref="BlazorParameters" /> — shared precisely because one source generator never sees
+///         another's output, so the two computations must not be allowed to diverge.
 ///     </para>
 /// </remarks>
 [Generator(LanguageNames.CSharp)]
 public sealed class BlazorGenerator : IIncrementalGenerator
 {
-    private const string IslandBaseName = "Rask.Blazor.BlazorComponent`1";
-    private const string ParameterAttrName = "Microsoft.AspNetCore.Components.ParameterAttribute";
-    private const string EventCallbackName = "Microsoft.AspNetCore.Components.EventCallback";
-    private const string RenderFragmentName = "Microsoft.AspNetCore.Components.RenderFragment";
-    private const string BlazorParameterAttrName = "Rask.Blazor.BlazorParameterAttribute";
-
     private static readonly DiagnosticDescriptor Rask061 = new(
         "RASK061",
         "Blazor island must be partial",
@@ -98,15 +83,11 @@ public sealed class BlazorGenerator : IIncrementalGenerator
 
     private static void Emit(SourceProductionContext spc, Compilation compilation)
     {
-        var baseType = compilation.GetTypeByMetadataName(IslandBaseName);
-        if (baseType is null)
+        if (compilation.GetTypeByMetadataName(BlazorParameters.IslandBaseMetadataName) is null)
         {
             // The app does not reference Rask.Blazor. Nothing to do, and nothing to say about it.
             return;
         }
-
-        var parameterAttr = compilation.GetTypeByMetadataName(ParameterAttrName);
-        var renameAttr = compilation.GetTypeByMetadataName(BlazorParameterAttrName);
 
         var islands = new List<(INamedTypeSymbol Island, INamedTypeSymbol Hosted)>();
         foreach (var type in Types(compilation.Assembly.GlobalNamespace))
@@ -116,14 +97,14 @@ public sealed class BlazorGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (HostedTypeOf(type, baseType) is not { } hosted)
+            if (BlazorParameters.HostedTypeOf(type, compilation) is not { } hosted)
             {
                 continue;
             }
 
             if (!IsPartial(type))
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask061, Location(type), type.Name));
+                spc.ReportDiagnostic(Diagnostic.Create(Rask061, LocationOf(type), type.Name));
                 continue;
             }
 
@@ -131,13 +112,13 @@ public sealed class BlazorGenerator : IIncrementalGenerator
         }
 
         // The name is what identifies an island in the rendered markup, so it has to be unique.
-        var byName = new Dictionary<string, INamedTypeSymbol>();
+        var byName = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
         foreach (var (island, _) in islands)
         {
             if (byName.TryGetValue(island.Name, out var first))
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask064, Location(island), first.ToDisplayString(), island.ToDisplayString(), island.Name));
+                    Rask064, LocationOf(island), first.ToDisplayString(), island.ToDisplayString(), island.Name));
                 continue;
             }
 
@@ -150,8 +131,7 @@ public sealed class BlazorGenerator : IIncrementalGenerator
             // Razor source generator produced it, and one generator cannot see another's output.
             if (hosted.TypeKind == TypeKind.Error)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask066, Location(island), island.Name, hosted.Name));
+                spc.ReportDiagnostic(Diagnostic.Create(Rask066, LocationOf(island), island.Name, hosted.Name));
             }
 
             // A hand-written writer wins outright. Emitting beside it would be a duplicate member,
@@ -161,131 +141,36 @@ public sealed class BlazorGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var parameters = ReadParameters(hosted, parameterAttr, renameAttr, island);
+            var parameters = BlazorParameters.Read(island, hosted, compilation);
             spc.AddSource(
                 $"{island.ToDisplayString()}.Blazor.g.cs",
                 SourceText.From(Render(island, parameters), Encoding.UTF8));
         }
     }
 
-    private static List<Param> ReadParameters(
-        INamedTypeSymbol hosted,
-        INamedTypeSymbol? parameterAttr,
-        INamedTypeSymbol? renameAttr,
-        INamedTypeSymbol island)
+    private static string Render(INamedTypeSymbol island, List<BlazorParam> parameters)
     {
-        var result = new List<Param>();
-        if (parameterAttr is null)
-        {
-            return result;
-        }
-
-        // Names the island (or a base) already declares are left alone: a hand-written property is an
-        // explicit override and must win over anything generated for it.
-        var declared = new HashSet<string>(
-            Members(island).Select(m => m.Name),
-            System.StringComparer.Ordinal);
-
-        // Renames the author asked for, keyed by the HOSTED parameter they point at.
-        var renames = new Dictionary<string, string>(System.StringComparer.Ordinal);
-        if (renameAttr is not null)
-        {
-            foreach (var member in island.GetMembers().OfType<IPropertySymbol>())
-            {
-                foreach (var attr in member.GetAttributes())
-                {
-                    if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, renameAttr)
-                        && attr.ConstructorArguments.Length == 1
-                        && attr.ConstructorArguments[0].Value is string target)
-                    {
-                        renames[target] = member.Name;
-                    }
-                }
-            }
-        }
-
-        for (var t = hosted; t is not null; t = t.BaseType)
-        {
-            foreach (var prop in t.GetMembers().OfType<IPropertySymbol>())
-            {
-                if (prop.IsStatic || prop.SetMethod is null || prop.DeclaredAccessibility != Accessibility.Public)
-                {
-                    continue;
-                }
-
-                if (!prop.GetAttributes().Any(a =>
-                        SymbolEqualityComparer.Default.Equals(a.AttributeClass, parameterAttr)))
-                {
-                    continue;
-                }
-
-                // ChildContent is the indexer, not a step — Rask children cross as markup.
-                if (prop.Name == "ChildContent" || result.Any(p => p.Parameter == prop.Name))
-                {
-                    continue;
-                }
-
-                var fullType = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-                // A templated parameter has no Rask equivalent yet; skip rather than emit something
-                // that compiles and cannot work.
-                if (fullType.StartsWith("global::" + RenderFragmentName, System.StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var name = renames.TryGetValue(prop.Name, out var renamed) ? renamed : prop.Name;
-                if (declared.Contains(name))
-                {
-                    continue;
-                }
-
-                result.Add(new Param(
-                    prop.Name,
-                    name,
-                    fullType,
-                    IsEventCallback(prop.Type),
-                    EventArg(prop.Type)));
-            }
-        }
-
-        return result;
-    }
-
-    private static bool IsEventCallback(ITypeSymbol type) =>
-        type.OriginalDefinition.ToDisplayString() is EventCallbackName or EventCallbackName + "<T>";
-
-    private static string? EventArg(ITypeSymbol type) =>
-        type is INamedTypeSymbol { TypeArguments.Length: 1 } named
-        && named.OriginalDefinition.ToDisplayString().StartsWith(EventCallbackName, System.StringComparison.Ordinal)
-            ? named.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-            : null;
-
-    private static string Render(INamedTypeSymbol island, List<Param> parameters)
-    {
-        var ns = island.ContainingNamespace.IsGlobalNamespace
-            ? null
-            : island.ContainingNamespace.ToDisplayString();
-
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated/>");
         sb.AppendLine("#nullable enable");
-        if (ns is not null)
+        if (!island.ContainingNamespace.IsGlobalNamespace)
         {
-            sb.Append("namespace ").Append(ns).AppendLine(";").AppendLine();
+            sb.Append("namespace ").Append(island.ContainingNamespace.ToDisplayString()).AppendLine(";");
+            sb.AppendLine();
         }
 
-        sb.Append("partial class ").Append(island.Name).AppendLine();
+        sb.Append("partial class ").AppendLine(island.Name);
         sb.AppendLine("{");
 
         foreach (var p in parameters)
         {
-            sb.Append("    /// <summary>Feeds the hosted component's <c>")
-                .Append(p.Parameter).AppendLine("</c> parameter.</summary>");
-            sb.Append("    public ").Append(p.ClrType).Append(' ').Append(p.Name).AppendLine(" { get; set; }");
+            sb.Append("    /// <summary>Feeds the hosted component's <c>").Append(p.Parameter)
+                .AppendLine("</c> parameter.</summary>");
+            sb.Append("    public ").Append(p.ChainTypeFqn).Append(' ').Append(p.Name)
+                .AppendLine(" { get; set; }");
+            sb.AppendLine();
         }
 
-        sb.AppendLine();
         sb.AppendLine("    /// <inheritdoc />");
         sb.AppendLine(
             "    protected override void WriteParameters("
@@ -297,61 +182,37 @@ public sealed class BlazorGenerator : IIncrementalGenerator
             // the hosted component's own default rather than mean "not specified".
             sb.Append("        if (this.").Append(p.Name).AppendLine(" is not null)");
             sb.AppendLine("        {");
-            if (p.IsEventCallback)
-            {
-                var create = p.EventArg is null
-                    ? $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, this.{p.Name})"
-                    : $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create<{p.EventArg}>(this, this.{p.Name})";
-                sb.Append("            into[\"").Append(p.Parameter).Append("\"] = ").Append(create).AppendLine(";");
-            }
-            else
-            {
-                sb.Append("            into[\"").Append(p.Parameter).Append("\"] = this.")
-                    .Append(p.Name).AppendLine(";");
-            }
-
+            sb.Append("            into[\"").Append(p.Parameter).Append("\"] = ")
+                .Append(Value(p)).AppendLine(";");
             sb.AppendLine("        }");
         }
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
-
         return sb.ToString();
     }
 
-    private static INamedTypeSymbol? HostedTypeOf(INamedTypeSymbol type, INamedTypeSymbol unboundBase)
+    private static string Value(BlazorParam p)
     {
-        for (var t = type.BaseType; t is not null; t = t.BaseType)
+        if (!p.IsEventCallback)
         {
-            if (SymbolEqualityComparer.Default.Equals(t.OriginalDefinition, unboundBase)
-                && t.TypeArguments.Length == 1
-                && t.TypeArguments[0] is INamedTypeSymbol hosted)
-            {
-                return hosted;
-            }
+            return "this." + p.Name;
         }
 
-        return null;
-    }
-
-    private static IEnumerable<ISymbol> Members(INamedTypeSymbol type)
-    {
-        for (var t = type; t is not null; t = t.BaseType)
-        {
-            foreach (var m in t.GetMembers())
-            {
-                yield return m;
-            }
-        }
+        // A plain Rask delegate becomes the EventCallback the hosted component declared. The factory
+        // overload is public and takes the receiver, so no reflection is involved.
+        return p.EventArg is null
+            ? $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, this.{p.Name})"
+            : $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create<{p.EventArg}>(this, this.{p.Name})";
     }
 
     private static bool IsPartial(INamedTypeSymbol type) =>
         type.DeclaringSyntaxReferences.Any(r =>
-            r.GetSyntax() is Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax d
-            && d.Modifiers.Any(m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)));
+            r.GetSyntax() is TypeDeclarationSyntax d
+            && d.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)));
 
-    private static Location Location(INamedTypeSymbol type) =>
-        type.Locations.FirstOrDefault() ?? Microsoft.CodeAnalysis.Location.None;
+    private static Location LocationOf(INamedTypeSymbol type) =>
+        type.Locations.FirstOrDefault() ?? Location.None;
 
     private static IEnumerable<INamedTypeSymbol> Types(INamespaceSymbol ns)
     {
@@ -372,11 +233,4 @@ public sealed class BlazorGenerator : IIncrementalGenerator
             }
         }
     }
-
-    private readonly record struct Param(
-        string Parameter,
-        string Name,
-        string ClrType,
-        bool IsEventCallback,
-        string? EventArg);
 }

@@ -71,6 +71,26 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void An_island_with_an_EMPTY_body_takes_its_chain_steps_from_the_hosted_component()
+    {
+        // Nothing is declared on EmptyIsland. Heading and Count are Greeting's own [Parameter]s, and
+        // both the property and its chain setter are generated from that one source of truth.
+        var html = RaskTest.Render(EmptyIsland.Heading("Hi").Count(9), Services()).Html;
+
+        Assert.Contains("<p class=\"greeting\">Hi/9</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_empty_islands_generated_steps_are_OPTIONAL_not_required()
+    {
+        // A non-nullable property with no initializer would be a REQUIRED step (RASK001), which would
+        // force every call site to supply every parameter the hosted component happens to declare.
+        var html = RaskTest.Render(EmptyIsland.Count(4), Services()).Html;
+
+        Assert.Contains("(none)/4", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_hosted_components_OWN_event_handlers_are_wired_to_Rasks_channel()
     {
         // Blazor assigns a handler id to every @onclick even in a static render; its own HTML writer

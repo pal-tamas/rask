@@ -15,6 +15,20 @@ them until tagged releases begin.
   replaced nor configured: it compiles `.razor` exactly as it always has, and Rask hosts the result.
   This is the `.tsx`/Lit island contract with a different runtime behind it.
 
+  **Nothing is redeclared — the island body is empty.** A Blazor component already states its
+  surface, so `public sealed partial class Chart : BlazorComponent<MudChart>;` is the whole
+  declaration and the chain steps are read from `MudChart`'s own `[Parameter]` properties. Each
+  becomes an optional step (never a required one, which would force every call site to supply every
+  parameter the component happens to declare), and an `EventCallback<T>` becomes a plain
+  `Action<T>?`, because Rask has no callback wrapper type. `[BlazorParameter("Name")]` renames one
+  whose name would collide with a chain entry.
+
+  That needed both generators: `BlazorGenerator` writes the properties and the parameter writer, and
+  `ComponentFactoryGenerator` writes their chain setters. It cannot be done in one, because a source
+  generator never sees another's output — a property written by the first would be invisible to the
+  second and would get no chain step at all. They read one shared list (`BlazorParameters.Read`) so
+  the two cannot drift into emitting a setter for a property that does not exist.
+
   **It is server-rendered, so the component is complete in the FIRST response.** The work runs from
   `OnPropsChangedAsync`, whose task lands in the ambient quiescence scope, so a hosted component that
   awaits in `OnInitializedAsync` has finished before the page is sent rather than appearing a frame

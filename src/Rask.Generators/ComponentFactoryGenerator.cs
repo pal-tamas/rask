@@ -4494,6 +4494,55 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
+        // A Blazor island's chain steps come from the component it HOSTS rather than from anything it
+        // declares — not redeclaring the hosted component's surface is the point of the feature.
+        //
+        // Appended HERE, in the generator that emits the setters, rather than generated as properties
+        // by BlazorGenerator and picked up on some later pass: one source generator never sees
+        // another's output, so a property written there would be invisible to this and would get no
+        // chain step at all. Both read BlazorParameters.Read so the list cannot diverge — whatever
+        // emits a property must be matched by whatever emits its setter.
+        if (Blazor.BlazorParameters.HostedTypeOf(symbol, compilation) is { } hostedComponent)
+        {
+            var islandRef = symbol.DeclaringSyntaxReferences.FirstOrDefault();
+            var islandPath = islandRef?.SyntaxTree.FilePath ?? string.Empty;
+            var islandStart = islandRef?.Span.Start ?? 0;
+            var islandLength = islandRef?.Span.Length ?? 0;
+
+            foreach (var hosted in Blazor.BlazorParameters.Read(symbol, hostedComponent, compilation))
+            {
+                if (!seen.Add(hosted.Name))
+                {
+                    continue;
+                }
+
+                result.Add(new PropInfo(
+                    hosted.Name,
+                    hosted.ChainTypeFqn,
+                    // Always nullable, so the step is optional: a non-nullable property with no
+                    // initializer would be REQUIRED (RASK001), forcing every call site to supply
+                    // every parameter the hosted component happens to declare.
+                    IsNullable: true,
+                    HasInitializer: false,
+                    UserMarkedRequired: false,
+                    InheritanceDepth: 0,
+                    islandPath,
+                    islandStart,
+                    islandLength,
+                    // An EventCallback becomes a plain delegate, and a callback prop on a non-Element
+                    // component is auto-wrapped so invoking it re-renders the owning parent.
+                    IsAutoRerenderDelegate: hosted.IsEventCallback,
+                    IsTypeParameter: false,
+                    IsBoundInterfaceProp: false,
+                    IsDelegate: hosted.IsEventCallback,
+                    InitializerDefault: null,
+                    IsInitOnly: false,
+                    IsSharedSurfaceProp: false,
+                    HasDerivedSetter: false,
+                    $"Feeds the hosted component's <c>{hosted.Parameter}</c> parameter."));
+            }
+        }
+
         // Sort: (a) derived-class properties first (lowest depth), then (b) by file path
         // and span — preserves the user's declaration order within each level of the
         // inheritance chain.
