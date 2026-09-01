@@ -125,8 +125,10 @@ public sealed partial class DashboardLayout(
     {
         yield return Tab(Routes.OverviewPage(), "Overview", exact: true);
 
-        // One tab for every queue, landing on whichever one you were last looking at — or the first, on the
-        // way in. A deployment with no queue batteries gets no tab at all rather than a dead link.
+        // One tab for every queue. It keeps you on the queue you are already reading and otherwise lands on
+        // the first — there is no memory of a previously-viewed queue, and claiming one would be a promise
+        // this makes nowhere. A deployment with no queue batteries gets no tab at all rather than a dead
+        // link.
         if (Available.Count > 0)
         {
             var target = CurrentQueue() ?? Available[0];
@@ -178,11 +180,16 @@ public sealed partial class DashboardLayout(
 
     // Matched against the generated URL rather than by parsing the path, so an unknown slug simply selects
     // nothing instead of half-matching.
+    //
+    // OrdinalIgnoreCase to agree with QueuePage, which resolves its panel case-insensitively (QueuePage
+    // .LoadAsync). Comparing Ordinal here meant /_rask/queues/Jobs rendered the Jobs queue perfectly while
+    // the crumb and the switcher above it silently vanished — the page working and its chrome disagreeing
+    // about whether you were on it.
     private IQueuePanel? CurrentQueue()
     {
         var path = route.Path.TrimEnd('/');
         return Available.FirstOrDefault(q =>
-            string.Equals(path, Routes.QueuePage(q.Slug).Path.TrimEnd('/'), StringComparison.Ordinal));
+            string.Equals(path, Routes.QueuePage(q.Slug).Path.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
     }
 
     // Exact for the overview, prefix for the rest — otherwise "/_rask" would light up on every page,
@@ -203,7 +210,7 @@ public sealed partial class DashboardLayout(
                 .Class(
                     "mb-4 flex items-start gap-3 rounded-xl border border-ops-warn/40 bg-ops-warn/10 px-4 py-3 "
                     + "text-sm text-ops-ink sm:mb-6")[
-                OpsIcon.Name(OpsIconName.ShieldWarning).Class("mt-0.5 size-5 shrink-0 text-ops-warn"),
+                OpsIcon.Name(OpsIconName.ShieldWarning).Class("mt-0.5 size-5 shrink-0 text-ops-warn-ink"),
                 Span.Class("min-w-0 break-words")[
                     "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
                     Code.Class("rounded bg-ops-warn/15 px-1 py-0.5 font-mono text-xs")[RaskDashboardPolicies.Access],

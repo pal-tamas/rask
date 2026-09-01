@@ -50,6 +50,20 @@ them until tagged releases begin.
   as warn, never as danger — is unchanged and now reads `text-ops-danger` / `text-ops-warn`, which is a
   semantic contract rather than a palette coincidence, and is why it broke in the first place.
 
+  Review caught five things worth naming. **Delete from the detail sheet raised its confirmation
+  underneath the sheet** — the prompt renders in normal flow, the sheet is `fixed inset-0 z-50` over a
+  backdrop, and `RunAsync` never cleared `_expanded`, so the button looked inert. Retry never showed it,
+  because Retry skips confirmation. Pinned by `QueueDetailSheetTests`, proven by reverting the fix.
+  **The phone-overflow gate could pass by measuring nothing**: it waited only for the layout's nav, which
+  is on screen from the first paint, so on the pages that load asynchronously it measured a spinner with
+  no tables in it — it now waits for the first load and asserts it saw at least one table.
+  **`--color-ops-warn` was 2.13:1 as text on white** and `--color-ops-ok` 3.73:1, in a file whose own
+  comment demands 4.5:1; both now have `-ink` twins for light grounds while the vivid fills stay for the
+  dots and the near-black toast, where the dark ones would fail instead. `CurrentQueue()` compared the
+  path case-sensitively while `QueuePage` resolves its slug case-insensitively, so `/_rask/queues/Jobs`
+  rendered correctly with its breadcrumb and switcher silently missing. And `DashboardStylesheetTests`
+  now pins **every** token rather than three of ten — the stylesheet's comment claimed it already did.
+
 ### Fixed
 - **A class library's Tailwind stylesheet reaches the consuming app's publish.** Since #914 the docs
   showcase at `https://rask.sh/docs/` has been serving

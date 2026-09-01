@@ -182,10 +182,10 @@ public sealed partial class SystemPage(
                             Span.Title(s.CreatedAt.ToString("u"))[DashboardParts.Ago(s.CreatedAt, now)]
                         ]
                     ],
-                    Td.Class("hidden px-3 py-2 align-top tabular-nums sm:table-cell")[
+                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums sm:table-cell")[
                         DashboardParts.Bytes(s.SizeBytes)
                     ],
-                    Td.Class("hidden px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
+                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
                         .Title(s.CreatedAt.ToString("u"))[
                         DashboardParts.Ago(s.CreatedAt, now)
                     ]
@@ -219,8 +219,8 @@ public sealed partial class SystemPage(
                                 : OpsBadge.Label("never")
                         ]
                     ],
-                    Td.Class("hidden px-3 py-2 align-top sm:table-cell")[DashboardParts.Duration(r.Interval)],
-                    Td.Class("hidden px-3 py-2 align-top sm:table-cell")[
+                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[DashboardParts.Duration(r.Interval)],
+                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[
                         r.LastEnqueuedAt is { } last
                             ? Span.Class("text-xs text-ops-muted").Title(last.ToString("u"))[
                                 DashboardParts.Ago(last, now)

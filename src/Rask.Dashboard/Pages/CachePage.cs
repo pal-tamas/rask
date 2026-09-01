@@ -133,17 +133,17 @@ public sealed partial class CachePage(
                         ]
                     ]
                 ],
-                Td.Class("hidden px-3 py-2 align-top tabular-nums sm:table-cell")[DashboardParts.Bytes(r.Bytes)],
-                Td.Class("hidden px-3 py-2 align-top text-xs text-ops-muted md:table-cell")
+                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums sm:table-cell")[DashboardParts.Bytes(r.Bytes)],
+                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted md:table-cell")
                     .Title(r.CreatedAt.ToString("u"))[
                     DashboardParts.Ago(r.CreatedAt, now)
                 ],
-                Td.Class("hidden px-3 py-2 align-top text-xs sm:table-cell").Title(r.ExpiresAt.ToString("u"))[
+                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs sm:table-cell").Title(r.ExpiresAt.ToString("u"))[
                     r.ExpiresAt <= now
                         ? OpsBadge.Label("expired")
                         : Span.Class("text-ops-muted")[DashboardParts.Ago(r.ExpiresAt, now)]
                 ],
-                Td.Class("hidden px-3 py-2 align-top text-xs text-ops-muted lg:table-cell")[
+                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted lg:table-cell")[
                     r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"
                 ],
                 Td.Class("px-3 py-2 align-top text-right")[EvictButton(r.Key)]

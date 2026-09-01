@@ -159,7 +159,7 @@ public sealed partial class QueuePage(
         return Tr.Key(row.Id).Class(isDead
             ? "border-b border-ops-line/60 bg-ops-danger/5 last:border-0"
             : "border-b border-ops-line/60 last:border-0")[
-            Td.Class($"hidden px-3 py-2 align-top text-ops-muted sm:table-cell {Ops.Mono}")[row.Id.ToString()],
+            Td.Class($"hidden whitespace-nowrap px-3 py-2 align-top text-ops-muted sm:table-cell {Ops.Mono}")[row.Id.ToString()],
             Td.Class("w-full max-w-0 px-3 py-2 align-top")[
                 Div.Class("min-w-0")[
                     Div.Class("truncate sm:max-w-[28rem]").Title(row.Type)[row.Type],
@@ -171,12 +171,12 @@ public sealed partial class QueuePage(
                     ]
                 ]
             ],
-            Td.Class("hidden px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
+            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
                 .Title(row.CreatedAt.ToString("u"))[
                 DashboardParts.Ago(row.CreatedAt, now)
             ],
-            Td.Class("hidden px-3 py-2 align-top tabular-nums md:table-cell")[row.Attempts.ToString()],
-            Td.Class("hidden px-3 py-2 align-top sm:table-cell")[StatusBadge(row, isDead, now)],
+            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums md:table-cell")[row.Attempts.ToString()],
+            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[StatusBadge(row, isDead, now)],
             Td.Class("px-3 py-2 align-top text-right")[
                 Div.Class("flex justify-end gap-1")[RowButtons(row, isDead)]
             ]
@@ -351,6 +351,13 @@ public sealed partial class QueuePage(
         if (confirm is not null)
         {
             _pending = (confirm, action);
+
+            // Close the sheet, or the question is invisible. The prompt renders in the page's normal flow
+            // while the sheet is `fixed inset-0 z-50` over a backdrop — so an action raised FROM the sheet
+            // would put its own confirmation underneath it, and Delete would look like a button that does
+            // nothing. Retry never hit this: it passes confirm: null and goes straight to ExecuteAsync,
+            // which clears _expanded itself.
+            _expanded = null;
             StateHasChanged();
             return Task.CompletedTask;
         }

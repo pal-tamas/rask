@@ -91,6 +91,10 @@ internal sealed partial class OpsToast : Component
             .Class(
                 "fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-lg items-center gap-3 rounded-xl bg-ops-ink "
                 + "px-4 py-3 text-sm text-ops-bg shadow-lg sm:inset-x-0")[
+            // The FILL tokens, not the -ink twins, and amber rather than rose for the failure: this sits on
+            // the near-black toast, where the light-ground text colours invert the problem they solve —
+            // ops-danger on this ground is the low-contrast one. The icon shape (Warning vs Check) is what
+            // actually carries the outcome; the colour only reinforces it.
             OpsIcon
                 .Name(Tone == "danger" ? OpsIconName.Warning : OpsIconName.Check)
                 .Class($"size-5 shrink-0 {(Tone == "danger" ? "text-ops-warn" : "text-ops-ok")}"),

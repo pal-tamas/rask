@@ -101,7 +101,7 @@ internal sealed partial class OpsNavTab : Component
     {
         var active = Active == true;
 
-        return NavLink
+        var tab = NavLink
             .Href(Href)
             // -mb-px pulls the tab's own bottom border onto the bar's, so the active underline replaces the
             // hairline rather than sitting above it.
@@ -109,10 +109,17 @@ internal sealed partial class OpsNavTab : Component
                 "-mb-px flex min-h-11 shrink-0 items-center whitespace-nowrap border-b-2 pb-2.5 pt-2.5 text-sm "
                 + "no-underline " + (active
                     ? "border-ops-ink font-medium text-ops-ink"
-                    : "border-transparent text-ops-muted hover:border-ops-line hover:text-ops-ink"))
-            .Attributes(active ? ("aria-current", "page") : ("data-inactive", "true"))[
-            Label
-        ];
+                    : "border-transparent text-ops-muted hover:border-ops-line hover:text-ops-ink"));
+
+        // Added only when it is true, rather than as one half of a ternary that has to yield a tuple either
+        // way. The else branch of that shape ships a meaningless data-inactive on every inactive tab of
+        // every page, and invites someone to start styling off it.
+        if (active)
+        {
+            tab = tab.Attributes(("aria-current", "page"));
+        }
+
+        return tab[Label];
     }
 }
 

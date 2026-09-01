@@ -22,9 +22,10 @@
   has no business deciding what it looks like. The console is read on a phone as often as at a desk, so
   the palette is built for a bright screen and every layout in it is built mobile-first.
 
-  These six names are load-bearing beyond this file: DashboardStylesheetTests asserts the compiled output
-  still contains them, because a rename here is the kind of change whose only symptom is an unstyled page
-  nobody notices. Add tokens freely; rename one only on purpose.
+  Every name below is load-bearing beyond this file: DashboardStylesheetTests asserts the compiled output
+  still contains each one, because a rename here is the kind of change whose only symptom is an unstyled
+  page nobody notices. Tailwind only emits a token something references, so that test is also the check
+  that no token here is decorative — add one and it fails until a utility uses it.
 */
 @theme {
   /* Neutrals — a near-white ladder, not a grey one. The steps are deliberately close together: the
@@ -41,14 +42,20 @@
   /* Accent — links, focus rings, the active tab. */
   --color-ops-brand: oklch(0.55 0.2 265);
 
-  /* Status. Green is teal-leaning on purpose: a pure green reads as decorative beside the amber and the
-     rose, and these three have to stay distinguishable at the size of a 6px status dot. */
+  /* Status FILLS — dots, tinted badge grounds, and text on the dark toast. Green is teal-leaning on
+     purpose: a pure green reads as decorative beside the amber and the rose, and these three have to stay
+     distinguishable at the size of a 6px status dot. */
   --color-ops-ok: oklch(0.6 0.11 175);
   --color-ops-warn: oklch(0.77 0.16 70);
   --color-ops-danger: oklch(0.55 0.2 20);
 
-  /* Categorical only — the type badge on a cache or storage row. Never a status. */
-  --color-ops-violet: oklch(0.62 0.19 295);
+  /* Status TEXT on a light ground. Separate tokens rather than darker ones, because the same two colours
+     are read on two different grounds: the fills above are correct on the near-black toast and fail as
+     text on white (amber measures 2.13:1, teal 3.73:1 — nowhere near the 4.5:1 this file demands two
+     comments up), while these clear it and would in turn be too dark on the toast. Rose already passes
+     at 5.39:1 and needs no twin. Verified by computing the ratios, not by eye. */
+  --color-ops-ok-ink: oklch(0.55 0.1 175);
+  --color-ops-warn-ink: oklch(0.57 0.13 70);
 }
 
 @layer base {

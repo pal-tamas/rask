@@ -153,7 +153,7 @@ internal sealed partial class OpsStat : Component
         var tone = Tone switch
         {
             "danger" => "text-ops-danger",
-            "warn" => "text-ops-warn",
+            "warn" => "text-ops-warn-ink",
             _ => null,
         };
 
@@ -291,9 +291,9 @@ internal sealed partial class OpsBadge : Component
     private string Palette() => Tone switch
     {
         "danger" => "bg-ops-danger/10 text-ops-danger",
-        "warn" => "bg-ops-warn/15 text-ops-warn",
+        "warn" => "bg-ops-warn/15 text-ops-warn-ink",
         "info" => "bg-ops-brand/10 text-ops-brand",
-        "ok" => "bg-ops-ok/10 text-ops-ok",
+        "ok" => "bg-ops-ok/10 text-ops-ok-ink",
         _ => "bg-ops-well text-ops-muted",
     };
 }

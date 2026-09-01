@@ -76,7 +76,7 @@ internal sealed partial class OpsMetric : Component
         var tone = Tone switch
         {
             "danger" => "text-ops-danger",
-            "warn" => "text-ops-warn",
+            "warn" => "text-ops-warn-ink",
             _ => "text-ops-ink",
         };
 
@@ -98,7 +98,7 @@ internal sealed partial class OpsMetric : Component
 
         var selected = Active == true;
 
-        return NavLink
+        var tile = NavLink
             .Href(href)
             // An inset bottom bar, echoing the section tabs' underline — not a ring and not a border. A
             // border moves the tile's content by a pixel as the selection changes, and a ring is drawn at
@@ -106,11 +106,16 @@ internal sealed partial class OpsMetric : Component
             // as a box slightly out of register with the tile it was meant to mark.
             .Class("block p-3 no-underline transition-colors sm:p-4 " + (selected
                 ? "bg-ops-well shadow-[inset_0_-2px_0_0_var(--color-ops-ink)]"
-                : "bg-ops-panel hover:bg-ops-well"))
-            .Attributes(selected ? ("aria-current", "page") : ("data-inactive", "true"))[
-            body,
-            caption
-        ];
+                : "bg-ops-panel hover:bg-ops-well"));
+
+        // Only when true — see OpsNavTab. A ternary here would ship a meaningless attribute on every
+        // unselected tile.
+        if (selected)
+        {
+            tile = tile.Attributes(("aria-current", "page"));
+        }
+
+        return tile[body, caption];
     }
 }
 
@@ -151,7 +156,7 @@ internal sealed partial class OpsDetailRow : Component
         var tone = Tone switch
         {
             "danger" => "text-ops-danger",
-            "warn" => "text-ops-warn",
+            "warn" => "text-ops-warn-ink",
             _ => "text-ops-ink",
         };
 

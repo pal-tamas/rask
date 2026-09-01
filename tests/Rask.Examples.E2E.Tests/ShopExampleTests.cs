@@ -227,10 +227,27 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         await SignInAsync();
         await _page.SetViewportSizeAsync(360, 780);
 
-        foreach (var path in new[] { "/_rask", "/_rask/queues/jobs", "/_rask/cache", "/_rask/logs", "/_rask/system" })
+        // History, not the live tail: the stored log is the one surface guaranteed to have rows, and rows
+        // are what the table check below needs in order to be measuring anything at all.
+        var tablesSeen = 0;
+
+        foreach (var path in new[]
+                 { "/_rask", "/_rask/queues/jobs", "/_rask/cache", "/_rask/logs?view=history", "/_rask/system" })
         {
             await _page.GotoAsync(path);
             await Assertions.Expect(_page.Locator("nav a", new() { HasTextString = "Overview" })).ToBeVisibleAsync();
+
+            // Wait for the panel's FIRST LOAD to finish, not just for the chrome. Every page renders
+            // DashboardLoading ("Reading…") until its data arrives over the live diff, and the layout's nav
+            // is on screen from the first paint — so measuring here would measure a spinner. A spinner has
+            // no table, `querySelectorAll('table')` returns empty, and the table assertion below passes by
+            // having nothing to look at. That is the failure mode this whole test exists to prevent.
+            await Assertions.Expect(_page.Locator("h1")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+            await Assertions.Expect(_page.GetByText("Reading…")).ToHaveCountAsync(
+                0, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+            tablesSeen += await _page.Locator("table").CountAsync();
 
             // scrollWidth over clientWidth on the document: this is the actual definition of "the page
             // scrolls sideways", rather than a proxy for it.
@@ -250,6 +267,11 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
                 """);
             Assert.True(scrollers.Length == 0, $"{path} has a table wider than the phone: {string.Join(" | ", scrollers)}");
         }
+
+        // The positive control. Without it the loop above is green on a console that rendered five
+        // spinners, which is indistinguishable from a console that rendered five correct layouts — and
+        // "no table was too wide" is worthless when the answer is "there were no tables".
+        Assert.True(tablesSeen > 0, "measured no tables at all across the console — the check proved nothing.");
     }
 
     [Fact]
