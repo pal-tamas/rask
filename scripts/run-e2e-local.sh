@@ -59,10 +59,10 @@ cd "$root"
 . "$root/scripts/lib/e2e-concurrency.sh"
 
 if [ -z "${CI:-}" ]; then
-  others="$(rask_other_e2e_runs | tr '\n' ' ')"
+  others="$(rask_e2e_lane_holders | tr '\n' ' ')"
 
   if [ -n "${others// /}" ]; then
-    echo "run-e2e-local: another browser E2E gate is already running on this machine."
+    echo "run-e2e-local: another browser E2E gate holds this machine."
     for pid in $others; do
       elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
       cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
@@ -75,13 +75,70 @@ if [ -z "${CI:-}" ]; then
     echo "            unexplained timeout between two worktrees that were coordinating and still both"
     echo "            believed the machine was idle."
     echo
-    echo "            Wait for the run above to finish, then push again. To run anyway:"
-    echo "                RASK_E2E_ALLOW_CONCURRENT=1 git push        (or set it for this script)"
-    echo "            and treat any failure as suspect until you have re-run it alone."
-    if [ "${RASK_E2E_ALLOW_CONCURRENT:-}" != "1" ]; then
-      exit 1
+
+    if [ "${RASK_E2E_ALLOW_CONCURRENT:-}" = "1" ]; then
+      echo "run-e2e-local: RASK_E2E_ALLOW_CONCURRENT=1 — starting alongside it anyway."
+      echo "            Treat any failure as suspect until you have re-run it alone."
+    else
+      # QUEUE, rather than refuse.
+      #
+      # Refusing was right about the contention and wrong about what to do with it. The lane is a
+      # machine-wide singleton shared by several worktrees, so "wait for it and push again" was the
+      # standing advice — which meant every caller hand-rolled a waiter, and the ones that did not got
+      # a failed push for a machine state that had nothing to do with their branch. A queue keeps the
+      # serialization guarantee (still exactly one suite at a time) and spends the wait automatically.
+      #
+      # The refusal is kept as the TIMEOUT, so nothing waits forever: past the deadline this exits 1
+      # with the same guidance it always printed. RASK_E2E_QUEUE=0 restores the old refuse-immediately
+      # behaviour for anyone who wants the push back rather than the wait.
+      #
+      # Note the ordering is computed FRESH each poll rather than once up front. A waiter that cached
+      # its seniors would keep waiting for a pid that had already exited, and — worse — would miss a
+      # gate that started later but outranks it after a tie-break.
+      queue_deadline_s="${RASK_E2E_QUEUE_TIMEOUT:-5400}"
+      queue_poll_s="${RASK_E2E_QUEUE_POLL:-20}"
+      queue_waited_s=0
+
+      if [ "${RASK_E2E_QUEUE:-1}" = "0" ]; then
+        echo "            Wait for the run above to finish, then push again. To run anyway:"
+        echo "                RASK_E2E_ALLOW_CONCURRENT=1 git push        (or set it for this script)"
+        echo "            and treat any failure as suspect until you have re-run it alone."
+        # A distinct, anchored line for rask_build_failure_kind. It cannot classify on the "holds this
+        # machine" banner above: that now prints on runs which go on to QUEUE AND SUCCEED, so keying on
+        # it would relabel a genuine failure hours later as contention.
+        echo "run-e2e-local: refused to start — RASK_E2E_QUEUE=0 and the lane is held."
+        exit 1
+      fi
+
+      echo "run-e2e-local: queued behind it — waiting up to $((queue_deadline_s / 60))m for the lane."
+      echo "            Ctrl-C to give up; RASK_E2E_QUEUE=0 to refuse immediately instead of waiting;"
+      echo "            RASK_SKIP_E2E=1 to skip the gate entirely."
+
+      while [ -n "$(rask_e2e_lane_holders | tr -d '\n ')" ]; do
+        if [ "$queue_waited_s" -ge "$queue_deadline_s" ]; then
+          echo
+          echo "run-e2e-local: still queued after $((queue_waited_s / 60))m — giving up rather than waiting silently."
+          echo "            The lane is held by:"
+          for pid in $(rask_e2e_lane_holders); do
+            elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
+            cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
+            [ -n "$elapsed" ] && echo "                pid $pid, running for ${elapsed}: $cmd"
+          done
+          echo "            A gate that has outlived the ~40m norm is usually a wedged run, not a busy"
+          echo "            machine — check it before assuming you are merely unlucky."
+          exit 1
+        fi
+        sleep "$queue_poll_s"
+        queue_waited_s=$((queue_waited_s + queue_poll_s))
+        # One line a minute: enough to show the wait is alive inside a hook printing thousands of build
+        # lines, quiet enough not to become the noise it is reporting on.
+        if [ "$((queue_waited_s % 60))" -eq 0 ]; then
+          echo "run-e2e-local: still queued ($((queue_waited_s / 60))m)…"
+        fi
+      done
+
+      echo "run-e2e-local: lane free after $((queue_waited_s / 60))m $((queue_waited_s % 60))s — starting."
     fi
-    echo "run-e2e-local: RASK_E2E_ALLOW_CONCURRENT=1 — starting alongside it anyway."
   fi
 fi
 

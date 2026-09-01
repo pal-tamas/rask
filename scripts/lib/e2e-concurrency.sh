@@ -110,6 +110,109 @@ rask_is_e2e_gate_command() {
   return 1
 }
 
+# Elapsed seconds for a pid, from `ps -o etime=`.
+#
+# macOS ps has no `etimes` -- the Linux keyword that would hand us seconds directly errors here with
+# "keyword not found" -- so the formatted field is parsed instead. The format is [[dd-]hh:]mm:ss and
+# all three widths occur in practice: a gate seconds after launch prints "07", a normal run "12:34",
+# a run that outlived a laptop sleep "01-00:39:09".
+#
+# Anything unparseable returns 0, i.e. "infinitely young". That is the safe direction: a process whose
+# age cannot be read never outranks anyone, so a ps that fails can delay a run but can never be the
+# reason two suites start at once.
+rask_etime_seconds() {
+  etime="${1:-}"
+  [ -n "$etime" ] || { printf '0'; return; }
+
+  days=0
+  case "$etime" in
+    *-*)
+      days="${etime%%-*}"
+      etime="${etime#*-}"
+      ;;
+  esac
+
+  case "$etime" in
+    *:*:*)
+      hours="${etime%%:*}"
+      rest="${etime#*:}"
+      mins="${rest%%:*}"
+      secs="${rest#*:}"
+      ;;
+    *:*)
+      hours=0
+      mins="${etime%%:*}"
+      secs="${etime#*:}"
+      ;;
+    *)
+      hours=0
+      mins=0
+      secs="$etime"
+      ;;
+  esac
+
+  # Reject non-numeric parts, then strip leading zeros: $(( 08 )) is an octal error, and "08" is what
+  # ps prints for the first minute of every run.
+  for _field in days hours mins secs; do
+    eval "_n=\$$_field"
+    case "$_n" in
+      *[!0-9]* | "") printf '0'; return ;;
+    esac
+    _n="${_n#"${_n%%[!0]*}"}"
+    [ -n "$_n" ] || _n=0
+    eval "$_field=\$_n"
+  done
+
+  printf '%s' "$((days * 86400 + hours * 3600 + mins * 60 + secs))"
+}
+
+# Indirected so the test can stub it without spawning real processes.
+rask_e2e_etime_of() {
+  if [ -n "${RASK_E2E_COMMAND_STUB:-}" ]; then
+    eval "printf '%s' \"\${RASK_E2E_ETIME_$1:-}\""
+    return
+  fi
+  ps -o etime= -p "$1" 2>/dev/null | tr -d ' '
+}
+
+# Of the other live gates, which ones outrank us for the lane? Prints their pids, one per line.
+# Empty output means it is our turn.
+#
+# This is what makes WAITING safe, and it is the whole reason the queue is not a plain sleep loop.
+#
+# A gate that is waiting for the lane is itself a `run-e2e-local.sh` process, so process detection
+# alone cannot tell a waiter from the run that holds the machine. Two waiters therefore see each
+# other. If both wait until no other gate exists, they deadlock; if both instead proceed the moment
+# the holder exits, they start simultaneously -- which is exactly the contention this guard exists to
+# prevent. A naive queue converts one honest refusal into either a hang or the very bug it replaced.
+#
+# Resolved by AGE, which totally orders the contenders with no shared state: you wait only for gates
+# OLDER than you. The holder is older than every waiter, so everyone waits for it. Among waiters each
+# waits for all of its seniors, so when the holder exits exactly one waiter -- the oldest -- is
+# released, and the others keep waiting because that one is still older than they are. FIFO, and fair.
+#
+# Ties (the same whole second, plausible when a merge train fires several pushes at once) break on
+# numeric pid, purely to make the order total. Any deterministic tiebreak would do; what matters is
+# that both sides compute the same one, so two processes never each conclude they outrank the other.
+#
+# Still no lockfile, for the reason this file has always given: process age is self-healing. Ctrl-C a
+# waiter and it drops out of everyone else's ordering with nothing to clean up.
+rask_e2e_lane_holders() {
+  self_pid="${1:-$$}"
+  parent_pid="${2:-$PPID}"
+
+  self_age="$(rask_etime_seconds "$(rask_e2e_etime_of "$self_pid")")"
+
+  for pid in $(rask_other_e2e_runs "$self_pid" "$parent_pid"); do
+    age="$(rask_etime_seconds "$(rask_e2e_etime_of "$pid")")"
+    if [ "$age" -gt "$self_age" ]; then
+      printf '%s\n' "$pid"
+    elif [ "$age" -eq "$self_age" ] && [ "$pid" -lt "$self_pid" ]; then
+      printf '%s\n' "$pid"
+    fi
+  done
+}
+
 # Indirected so the test can stub it without spawning real processes.
 rask_e2e_command_of() {
   if [ -n "${RASK_E2E_COMMAND_STUB:-}" ]; then
