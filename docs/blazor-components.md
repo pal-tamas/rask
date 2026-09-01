@@ -272,6 +272,39 @@ This is strictly better than a `.tsx` island, whose slot content is placed once 
 dead. The useful shape is to let the Blazor component be chrome and keep the interactive parts in
 Rask.
 
+## Tailwind
+
+Worth knowing before you write a utility class in a hosted component, because the failure is silent:
+**Tailwind only emits the classes it can see**, and it detects sources from the project directory it
+runs in. A Razor Class Library is a different project directory, so the app's Tailwind never reads it
+— and a component written in `flex gap-4` renders with classes no stylesheet defines.
+
+A `.razor` in the **same project** as the island is already inside the scanned directory and needs
+nothing. For a class library, pick one:
+
+**The library compiles its own stylesheet.** Give it a `Styles/app.css` with `@import "tailwindcss";`
+and it compiles on its own build, shipping the result as a static web asset at
+`_content/<PackageId>/css/app.css` — which the app links once. This is how
+`samples/Rask.Example.Shared` already works, so the path is exercised on every build of this
+repository rather than only described here.
+
+```csharp
+services.AddRaskBlazor(o => o.HeadAssets.Add(
+    Link.Rel("stylesheet").Href("_content/MyComponents/css/app.css")));
+```
+
+**Or the app scans the library.** Tailwind v4 takes extra sources as a directive, so one stylesheet
+can cover both projects — no second compile, no `_content` link:
+
+```css
+@import "tailwindcss";
+@source "../MyComponents";
+```
+
+The first keeps the library self-contained and shippable on its own; the second keeps one stylesheet
+for the whole app. Neither is more correct, and a third-party library (MudBlazor, Radzen) needs
+neither — it ships its own CSS, which you add through `HeadAssets` the same way.
+
 ## Services
 
 Call `AddRaskBlazor()` in `Program.cs`. It registers what a library component will demand of its

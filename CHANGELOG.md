@@ -176,6 +176,13 @@ them until tagged releases begin.
   its island and the output the page claims are asserted by `DocExampleTests`, and a third test pins
   the document against the file so the two cannot drift. That guard was proved by breaking it.
 
+  **Tailwind in a hosted component is documented, because the failure is silent.** Tailwind emits only
+  the classes it can see and detects sources from the project directory it runs in, so a class library
+  — the layout this feature recommends, since it is what makes parameters verifiable — is not scanned
+  by the app's compile. Either the library compiles its own stylesheet and ships it at `_content/`
+  (how `samples/Rask.Example.Shared` already works), or the app's sheet adds `@source`. A `.razor` in
+  the app's own project needs neither.
+
   Compiling `.razor` into the chain was investigated and rejected. The Razor syntax layer is
   `internal` in every shipped version, the .NET 10 SDK compiler exposes neither the intermediate
   document nor a way to register a pass — its 23 `InternalsVisibleTo` friends reach those instead —
