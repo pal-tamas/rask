@@ -409,9 +409,35 @@ internal static class HtmlSerializer
                     // needed. Serialized inline on every render and kept byte-stable, so — like the body
                     // runtime <script> — it survives server live-updates and costs the diff codec nothing.
                     // No provider registered (the default, and on WASM) → nothing extra is emitted.
-                    if (live.Services?.GetService<IRaskHeadContribution>()?.Render() is { } headExtra)
+                    //
+                    // Bracketed by the slot depth: this chain runs during SERIALIZATION, so the entry
+                    // slot it pushes is attributed to whichever component is on the parent stack — a
+                    // component whose Render() returned long ago and whose drain has therefore already
+                    // happened. Nothing would ever pop it. See BuilderRuntime.DrainSlotsAbove.
+                    // try/finally, not a straight-line call: a contribution that throws mid-serialize
+                    // would otherwise skip the drain and leak the very thing this bracket exists to
+                    // stop — once per fault, on a thread that outlives the request. Component does the
+                    // same for its own drain, in a catch before it rethrows.
+                    var headSlotDepth = BuilderRuntime.SlotDepth;
+                    try
                     {
-                        Serialize(headExtra, sb);
+                        if (live.Services?.GetService<IRaskHeadContribution>()?.Render() is { } headExtra)
+                        {
+                            // BEFORE serializing, not after — this is the reset the enclosing Render()
+                            // would have run, and Component runs it before the serializer walks the
+                            // child. Draining afterwards would write the PREVIOUS render's value for
+                            // any prop this chain did not name (a contribution that conditionally
+                            // sets .Content(...) would emit the stale one for a render), and on the
+                            // server that stale byte is diffed and pushed.
+                            BuilderRuntime.DrainSlotsAbove(headSlotDepth);
+                            Serialize(headExtra, sb);
+                        }
+                    }
+                    finally
+                    {
+                        // Anything the walk itself left behind — and the whole bracket if Render() or
+                        // Serialize threw, which is host-supplied code and can.
+                        BuilderRuntime.DrainSlotsAbove(headSlotDepth);
                     }
                 }
 
@@ -424,10 +450,28 @@ internal static class HtmlSerializer
                 // so a sentinel would drop the script on the first update. Stable bytes also
                 // mean the diff codec never emits ops for it. On WASM no provider is
                 // registered (the runtime boots from the page shell), so nothing is injected.
-                if (tagName == "body" && live?.Services?.GetService<IRaskRuntimeScript>() is { } runtime
-                                      && runtime.Render() is { } runtimeScript)
+                //
+                // Slot-depth bracketed for the same reason as the head contribution above: built during
+                // serialization, so its entry slot has no enclosing Render() to drain it and would sit
+                // on this thread's slot stack holding the page — and the whole live session — for ever.
+                if (tagName == "body" && live?.Services?.GetService<IRaskRuntimeScript>() is { } runtime)
                 {
-                    Serialize(runtimeScript, sb);
+                    // try/finally for the same reason as the head bracket above: a fault must not be
+                    // able to skip the drain.
+                    var runtimeSlotDepth = BuilderRuntime.SlotDepth;
+                    try
+                    {
+                        if (runtime.Render() is { } runtimeScript)
+                        {
+                            // Before the walk, for the reason spelled out on the head bracket above.
+                            BuilderRuntime.DrainSlotsAbove(runtimeSlotDepth);
+                            Serialize(runtimeScript, sb);
+                        }
+                    }
+                    finally
+                    {
+                        BuilderRuntime.DrainSlotsAbove(runtimeSlotDepth);
+                    }
                 }
 
                 sb.Append("</").Append(tagName).Append('>');

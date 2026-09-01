@@ -286,6 +286,59 @@ public static partial class BuilderRuntime
         slots.RemoveRange(write, slots.Count - write);
     }
 
+    /// <summary>
+    ///     How many entry slots are in flight on this thread. Paired with <see cref="DrainSlotsAbove" />
+    ///     to bracket a chain built from OUTSIDE any component's <c>Render()</c>.
+    /// </summary>
+    internal static int SlotDepth => _slots?.Count ?? 0;
+
+    /// <summary>
+    ///     Drains every slot pushed above <paramref name="depth" /> — the resets that
+    ///     <see cref="DrainSlots" /> would have run at the end of the enclosing <c>Render()</c>, for a
+    ///     chain that had no enclosing <c>Render()</c> to end.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The slot stack is drained by the component that owns it, when its <c>Render()</c> returns.
+    ///         A chain that runs during SERIALIZATION — the framework's own host injections, the live
+    ///         runtime <c>&lt;script&gt;</c> and the host head contribution — is attributed to whichever
+    ///         component is on the parent stack at that moment, and that component's <c>Render()</c>
+    ///         returned long ago. Its drain has already run, so nothing ever pops the slot: it sits on a
+    ///         <see cref="ThreadStaticAttribute" /> list holding a <c>Component</c> from a page that is
+    ///         otherwise finished with, and through that component's <c>LiveState</c> the entire live
+    ///         session — DI scope, component tree, buffers and all.
+    ///     </para>
+    ///     <para>
+    ///         That is a leak with no upper bound and no symptom: the thread is a long-lived request
+    ///         worker, so every page served on it retains one whole session for the life of the process.
+    ///         Measured at ~1.1 MB per session on a 200-row page, growing linearly
+    ///         (<c>session-churn</c>, whose whole purpose is to report exactly this and which had been
+    ///         crashing on startup, so nobody was reading it — #922).
+    ///     </para>
+    ///     <para>
+    ///         Bracketing by DEPTH rather than by parent identity: a host contribution can itself render
+    ///         nested components, and those push and drain their own slots in between, so the count
+    ///         returns to where it was. Everything still above the mark is what this build left behind,
+    ///         whoever it was attributed to.
+    ///     </para>
+    /// </remarks>
+    internal static void DrainSlotsAbove(int depth)
+    {
+        var slots = _slots;
+        if (slots is null || slots.Count <= depth)
+        {
+            return;
+        }
+
+        for (var i = depth; i < slots.Count; i++)
+        {
+            var slot = slots[i];
+            slot.Reset(slot.Target, slot.Pending);
+        }
+
+        slots.RemoveRange(depth, slots.Count - depth);
+    }
+
     /// <summary>A component with nothing to reset — no own props and not an <see cref="Element" />.</summary>
     public static void ResetNothing(Component target, ulong pending)
     {
