@@ -373,9 +373,14 @@ matches_precommit() { printf '%s\n' "$1" | grep -qE "$precommit_filter" && print
 check "a rask.sh-only commit runs the unit gate"  yes "$(matches_precommit rask.sh)"
 check "a rask.ps1-only commit runs the unit gate" yes "$(matches_precommit rask.ps1)"
 check "a scripts/ change still runs it"           yes "$(matches_precommit scripts/tests/install-script.test.sh)"
-# Documented rather than fixed: a commit touching ONLY the root README/NUGET.md/llms.txt still skips
-# the gate, so the URL checks above would not run for it. Widening the filter makes every typo fix pay
-# for the full unit suite, which is a call for the repo owner, not for this test.
+# Still true, and still deliberate: a commit touching ONLY the root README/NUGET.md/llms.txt skips the
+# full format + unit gate, so the URL checks above do not run for it. Widening this filter would make
+# every typo fix pay for the whole unit suite, which is a call for the repo owner, not for this test.
+#
+# The narrower half of that gap IS now closed: pre-commit runs scripts/tests/front-doors.test.sh on its
+# own path list when README.md or NUGET.md is staged, because the Counter sample had already rotted
+# apart across those files unnoticed. That check costs milliseconds; this gate costs minutes, which is
+# the whole reason one is wired that way and the other is not.
 check "a root README-only commit still skips it"  no  "$(matches_precommit README.md)"
 
 check "pre-push registers the install gate" yes \

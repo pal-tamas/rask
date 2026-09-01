@@ -39,6 +39,28 @@ fi
 #   rask.sh / rask.ps1 are here for the same reason, one level worse: they sit at the repo root, so
 #   they matched none of the prefixes above, and a commit that touched only the public installer was
 #   the one commit that ran neither the formatter nor scripts/tests/install-script.test.sh.
+# The Counter sample is written on three front doors — README.md, NUGET.md and the site hero — and
+# scripts/tests/front-doors.test.sh is the only thing pinning them to each other. Two of those doors
+# sit at the REPO ROOT and match none of the prefixes below, so a commit that fixes a typo in the
+# README is precisely the commit that would skip the guard written to catch README drift. That is the
+# rask.sh shape again, and it is why the sample rotted in the first place.
+#
+# Running the one check here, rather than adding these files to the filter below, is deliberate: the
+# filter decides whether to run the FULL format + unit suite, and making a typo fix pay for that is
+# the cost scripts/tests/install-script.test.sh declined to impose. This costs well under a second.
+# The site hero needs no entry — it lives under samples/, so it already runs the whole gate, which
+# runs this test through scripts/run-unit-local.sh.
+front_doors='^(README\.md|NUGET\.md)$'
+
+if git diff --cached --name-only | grep -E "$front_doors" >/dev/null; then
+  fd_root="$(git rev-parse --show-toplevel)"
+  if [ -x "$fd_root/scripts/tests/front-doors.test.sh" ] \
+     && ! "$fd_root/scripts/tests/front-doors.test.sh"; then
+    echo "pre-commit: the Counter sample differs between its front doors — see above." >&2
+    exit 1
+  fi
+fi
+
 if ! git diff --cached --name-only | grep -E '^(src/|samples/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
