@@ -7,6 +7,32 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **A class library's Tailwind stylesheet reaches the consuming app's publish.** Since #914 the docs
+  showcase at `https://rask.sh/docs/` has been serving
+  `_content/Rask.Example.Shared/css/app.css` as a **404** and rendering every page unstyled, while a
+  committed file two directories away in the same `wwwroot` served fine.
+
+  `Rask.Tailwind` writes its output at `BeforeBuild`, which runs after the SDK has globbed `wwwroot/**`
+  into `@(Content)` at **evaluation** time. For an app that is harmless — static-web-asset discovery
+  re-enumerates during the build and picks the file up anyway, verified on both `Sdk.Web` and
+  `Sdk.WebAssembly`. For a **Razor class library** it is fatal: an RCL's assets come from the evaluated
+  `@(Content)` with no second pass, so a stylesheet generated later never enters its manifest and never
+  reaches any consumer's publish.
+
+  The fix is one item, in `Rask.Tailwind.props`: name the output in a **literal** `Content` include
+  rather than leaving it to the glob. A literal include does not consult the disk at evaluation — the
+  item exists regardless, and the file is only required when it is copied, which is after the compiler
+  has run. That is the same distinction #852 turned on for pack, applied to the other side of it.
+
+  Why nothing caught it: the file always exists locally from a previous build, so the glob matches and
+  every developer publish — and every local E2E — is correct. Only the first build in a clone is wrong,
+  which is every CI run and no developer's machine. `TailwindPublishBuildE2ETests` was written for
+  exactly this bug and could not see it, because both its cases were **apps**, the shape that does not
+  fail; its own remarks asserted the wrong half of the mechanism and are corrected here. A third case
+  now covers an RCL consumed by an app, with a committed file beside the generated one as the control
+  so that a `_content` plumbing failure cannot be mistaken for this one.
+
 ### Added
 
 - **The Counter sample is pinned across its three front doors.** It is written in `README.md`, in
