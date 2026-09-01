@@ -22,9 +22,18 @@ them until tagged releases begin.
   Both hooks are needed. `commit-msg` only runs once `core.hooksPath` is set, and a fresh clone or a
   new worktree has not set it — which is precisely how the two trailers got in. The predicate lives
   once, in `scripts/lib/attribution.sh`, so the two cannot drift apart, and
-  `scripts/tests/attribution-guard.test.sh` states 30 cases in both directions: the trailers that
+  `scripts/tests/attribution-guard.test.sh` states 32 cases in both directions: the trailers that
   actually reached `main` are rejected, and a human `Signed-off-by:`, a merge commit, and a body that
   merely *discusses* the trailer all still pass.
+
+  The suite makes commits, so it also proves it made them somewhere else. git exports `GIT_DIR` to
+  the hooks it invokes, and this file runs under `pre-commit`: on its first run the throwaway
+  repository it creates resolved to the real one, its `git config user.*` writes landed in the shared
+  `.git/config`, every worktree inherited that identity, and the next real commit was authored by it —
+  which GitHub turned into a `Co-authored-by:` trailer on the squash commit. The guard, defeated by
+  its own test. The identity now travels in `GIT_AUTHOR_*`/`GIT_COMMITTER_*`, which cannot leak into a
+  config file, and four assertions pin `HEAD`, the working tree, the committing identity and the
+  absence of any `git config user.*` write.
 
 ### Removed
 - **The nine package ids left behind by earlier removals are retired from nuget.org.** `Rask.Native`,
