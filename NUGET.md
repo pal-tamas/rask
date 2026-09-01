@@ -35,7 +35,7 @@ public sealed class Counter : Component
 > `sudo`. Already have the .NET 10 SDK? `dotnet tool install -g Rask.Cli` is the whole story.
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh   # the rask CLI — scaffold, migrate, run, deploy
+curl -sSL https://rask.sh/rask.sh | sh   # the rask CLI — scaffold, migrate, run, deploy
 rask new MyApp                            # batteries included; or: --template wasm, or --wasm
 rask dev                                  # run with hot reload — the first migration is already applied
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
@@ -129,7 +129,7 @@ the page). It's a craft project built in the open, deep on Roslyn source generat
   [Configuration](https://github.com/pal-tamas/rask/blob/main/docs/configuration.md) ·
   [Observability](https://github.com/pal-tamas/rask/blob/main/docs/observability.md) ·
   [Accessibility](https://github.com/pal-tamas/rask/blob/main/docs/accessibility.md)
-- 🚀 **[Live demo](https://pal-tamas.github.io/rask/docs/)**
+- 🚀 **[Live demo](https://rask.sh/docs/)**
 - 💻 **[Source & README](https://github.com/pal-tamas/rask)**
 - 🤖 **[AI assistant guide](https://github.com/pal-tamas/rask/blob/main/llms.txt)**
 

@@ -36,23 +36,27 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # The Pages site is three Rask WASM apps: the marketing landing page (Rask.Example.Site) at the
-      # root /<repo>/, the live feature showcase (Rask.Example.Wasm) at /<repo>/docs/, and the live
-      # playground at /<repo>/playground/. Each is published with /p:RaskPathBase so the framework's
-      # _RaskRewriteBaseHref target rewrites its <base href> to the sub-path; every other asset URL +
+      # The Pages site is three Rask WASM apps served from the apex custom domain https://rask.sh:
+      # the marketing landing page (Rask.Example.Site) at the root /, the live feature showcase
+      # (Rask.Example.Wasm) at /docs/, and the live playground at /playground/. The custom domain
+      # serves the site at the ORIGIN root, so the landing app needs no RaskPathBase at all (its
+      # <base href="/"> is already correct, and _RaskRewriteBaseHref no-ops on '' and '/'); only the
+      # two nested apps set one so the target rewrites their <base href> to the sub-path. Publishing
+      # the landing app under /<repo>/ here — as this workflow did while the site lived at
+      # pal-tamas.github.io/rask/ — would 404 every asset on the apex. Every other asset URL +
       # the SRI-pinned import map stays document-relative, so the corrected base resolves them all
       # under the sub-path. (Microsoft.NET.Sdk.WebAssembly fingerprints the framework assets and fills
       # the import map with integrity at publish, keeping static-host redeploys SRI-safe.)
       - name: Publish the landing site (Rask.Example.Site → /)
-        run: dotnet publish samples/Rask.Example.Site -c Release /p:RaskPathBase=/${{ github.event.repository.name }}
+        run: dotnet publish samples/Rask.Example.Site -c Release
 
       - name: Publish the live showcase / docs (Rask.Example.Wasm → /docs/)
-        run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/${{ github.event.repository.name }}/docs
+        run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/docs
 
       # The playground is untrimmed (Roslyn needs full assembly metadata as references), so it is kept
       # out of the size-tuned docs bundle and published to its own output dir.
       - name: Publish the playground (→ /playground/)
-        run: dotnet publish samples/Rask.Example.Playground -c Release /p:RaskPathBase=/${{ github.event.repository.name }}/playground -o playground-publish
+        run: dotnet publish samples/Rask.Example.Playground -c Release /p:RaskPathBase=/playground -o playground-publish
 
       # Expected, harmless: with DevTools open each WASM app logs a 404 for _framework/dotnet.runtime.js.map.
       # The Release publish strips all .map files, but the fingerprinted dotnet.runtime.*.js keeps its
@@ -87,6 +91,13 @@ jobs:
           # suite stays green.
           cp rask.sh "$SITE/rask.sh"
           cp rask.ps1 "$SITE/rask.ps1"
+          # The apex custom domain. GitHub reads this from the repo's Pages *setting*, so the site
+          # would serve correctly without the file; we emit it anyway so the domain is reproducible
+          # from the tree rather than living only in a settings field nobody diffs. It must match the
+          # configured domain — a CNAME that disagrees with the setting is how a site quietly starts
+          # answering on the wrong host. www.rask.sh CNAMEs to pal-tamas.github.io and GitHub 301s it
+          # here; the apex carries the A/AAAA records.
+          echo "rask.sh" > "$SITE/CNAME"
           # GitHub Pages serves /404.html for any unknown path; boot the docs SPA (its <base href> is
           # /<repo>/docs/, so it client-routes correctly) as the deep-link fallback — the landing page
           # itself is a single route, so it needs none.

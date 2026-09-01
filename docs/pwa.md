@@ -459,4 +459,4 @@ dotnet publish -c Release /p:RaskPathBase=/my-repo
 The manifest's relative `start_url`/`scope` and the `<base href>`-relative SW registration handle the
 prefix automatically — the published app is installable and offline at `https://you.github.io/my-repo/`.
 The Rask showcase itself is a deployed WASM PWA — install it from
-[the live demo](https://pal-tamas.github.io/rask/docs/).
+[the live demo](https://rask.sh/docs/).

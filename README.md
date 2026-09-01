@@ -7,7 +7,7 @@
 
 ### The .NET One Person Framework — build, run, and ship a whole product solo, in C#, on one server.
 
-**[Site ↗](https://pal-tamas.github.io/rask/)** · **[Docs ↗](https://pal-tamas.github.io/rask/docs/)** · **[Playground ↗](https://pal-tamas.github.io/rask/playground/)**
+**[Site ↗](https://rask.sh/)** · **[Docs ↗](https://rask.sh/docs/)** · **[Playground ↗](https://rask.sh/playground/)**
 
 </div>
 
@@ -30,10 +30,10 @@ public sealed partial class Counter : Component
 ## Install
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
+curl -sSL https://rask.sh/rask.sh | sh
 ```
 
-On Windows, in PowerShell: `irm https://pal-tamas.github.io/rask/rask.ps1 | iex`.
+On Windows, in PowerShell: `irm https://rask.sh/rask.ps1 | iex`.
 
 **Prerequisites: none.** The installer adds whatever is missing — the .NET 10 SDK, the `wasm-tools`
 workload, Node — all under `$HOME`, no `sudo`. Already have the SDK and want only the tool?

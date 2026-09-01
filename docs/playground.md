@@ -1,12 +1,12 @@
 # Live playground
 
-**[Open the playground ↗](https://pal-tamas.github.io/rask/playground/)** — write Rask component C# in
+**[Open the playground ↗](https://rask.sh/playground/)** — write Rask component C# in
 your browser with a real IDE: **IntelliSense**, **as-you-type diagnostics** (the framework's own RASK
 squiggles included, before you ever press Run), and a **gallery of ready-to-run examples**. See it render
 live — nothing is sent to a server, the C# is compiled entirely in WebAssembly.
 
 The playground is the `samples/Rask.Example.Playground` app, published to GitHub Pages next to the
-[feature showcase](https://pal-tamas.github.io/rask/docs/) (the showcase's navbar links to it).
+[feature showcase](https://rask.sh/docs/) (the showcase's navbar links to it).
 
 ## How it works
 

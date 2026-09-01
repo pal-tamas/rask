@@ -51,7 +51,7 @@ public sealed class SiteExampleTests
             // install method, so whichever one a visitor lands on has to show a command that works on a
             // machine with no .NET SDK. This is the published front door — the page is served from
             // GitHub Pages next to the very script it tells you to curl.
-            const string installer = "curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh";
+            const string installer = "curl -sSL https://rask.sh/rask.sh | sh";
 
             await Expect(page.Locator(".term")).ToContainTextAsync(installer);
             await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "WASM" }).ClickAsync();
@@ -63,7 +63,7 @@ public sealed class SiteExampleTests
 
             // Windows can't run a .sh, and rask.sh refuses under MINGW/MSYS and points here.
             await Expect(page.Locator(".install-foot").First)
-                .ToContainTextAsync("irm https://pal-tamas.github.io/rask/rask.ps1 | iex");
+                .ToContainTextAsync("irm https://rask.sh/rask.ps1 | iex");
 
             // The page opens on the chain animation, before it says anything about the framework. The
             // adjacent-sibling selector is the assertion: it only matches if the animation's box comes

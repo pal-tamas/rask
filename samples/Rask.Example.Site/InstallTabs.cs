@@ -16,9 +16,9 @@ public sealed partial class InstallTabs : Component
     /// <c>scripts/tests/install-script.test.sh</c> fails the build if any of them drifts — a wrong URL
     /// on the landing page is a broken front door that nothing else would catch.
     /// </summary>
-    private const string InstallCommand = "curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh";
+    private const string InstallCommand = "curl -sSL https://rask.sh/rask.sh | sh";
 
-    private const string WindowsInstallCommand = "irm https://pal-tamas.github.io/rask/rask.ps1 | iex";
+    private const string WindowsInstallCommand = "irm https://rask.sh/rask.ps1 | iex";
 
     /// <inheritdoc />
     protected override Component? Render() =>

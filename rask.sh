@@ -23,8 +23,8 @@
 # POSIX sh, not bash — the advertised one-liner pipes into `sh`. So `set -eu` with no `pipefail`
 # (not POSIX), no `[[ ]]`, no arrays, no `local`. The same test asserts that too, so it can't rot.
 #
-# Usage:  curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
-#         curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh -s -- --prerelease
+# Usage:  curl -sSL https://rask.sh/rask.sh | sh
+#         curl -sSL https://rask.sh/rask.sh | sh -s -- --prerelease
 #         sh rask.sh --help
 # Exit:   0 ok · 1 something failed · 2 bad arguments (matches the CLI's own error surface)
 set -eu
@@ -320,8 +320,8 @@ rask_usage() {
 rask.sh — install the rask CLI and the dependencies it needs.
 
 Usage:
-  curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
-  curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh -s -- --prerelease
+  curl -sSL https://rask.sh/rask.sh | sh
+  curl -sSL https://rask.sh/rask.sh | sh -s -- --prerelease
   sh rask.sh [options]
 
 Options:
@@ -428,7 +428,7 @@ step_preflight() {
             rask_die 2 \
                 "this is the Unix installer, and you are on Windows." \
                 "Use rask.ps1 instead:" \
-                "  irm https://pal-tamas.github.io/rask/rask.ps1 | iex"
+                "  irm https://rask.sh/rask.ps1 | iex"
             ;;
     esac
 
