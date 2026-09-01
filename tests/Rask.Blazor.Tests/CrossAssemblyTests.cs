@@ -46,6 +46,53 @@ public partial class CrossAssemblyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_bound_input_is_wired_to_Rasks_VALUE_channel_not_its_DOM_event_channel()
+    {
+        // @bind lowers to `value=` plus an onchange handler reading ChangeEventArgs.Value, so the
+        // browser's value has to reach the hosted component. Rask carries a value only on its input
+        // channel — data-rask-on-input, which ships {id, type:"input", value} — so binding works only
+        // if the handler lands THERE rather than on data-rask-on-change as a bare DOM event.
+        var html = RaskTest.Render(EditorIsland.Text("hello"), Services()).Html;
+
+        Assert.Contains("data-rask-on-input=", html, StringComparison.Ordinal);
+
+        // The marker that makes the dispatch synchronous — `change` means the value is final rather
+        // than still being typed. The client still reads the id from data-rask-on-input.
+        Assert.Contains("data-rask-on-change=", html, StringComparison.Ordinal);
+
+        // And the current value is rendered, so the input is not blank on first paint.
+        Assert.Contains("value=\"hello\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Typing_into_a_bound_input_reaches_the_hosted_component_and_re_renders()
+    {
+        // The round trip, not just the wiring: the browser's value travels Rask's input channel,
+        // becomes a ChangeEventArgs, is dispatched into Blazor, assigns the bound field through the
+        // binder @bind generated, and the component's own re-render reaches the page.
+        var page = RaskTest.Render(EditorIsland.Text("hello"), Services());
+        Assert.Contains("echo: hello", page.Html, StringComparison.Ordinal);
+
+        await page.InputAsync("{\"value\":\"typed\"}");
+
+        Assert.Contains("echo: typed", page.Html, StringComparison.Ordinal);
+        Assert.Contains("value=\"typed\"", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Clicking_the_hosted_components_own_element_reaches_its_EventCallback()
+    {
+        var picked = "";
+        var page = RaskTest.Render(
+            TickerIsland.Symbol("RASK").OnPick(s => picked = s),
+            Services());
+
+        await page.On("[data-rask-on-click]").ClickAsync();
+
+        Assert.Equal("RASK", picked);
+    }
+
+    [Fact]
     public void Rask_children_render_inside_the_referenced_component()
     {
         var html = RaskTest
@@ -60,3 +107,6 @@ public partial class CrossAssemblyTests : global::Rask.Core.RaskMarkup
 
 /// <summary>An island over a component this assembly does not declare. Body deliberately empty.</summary>
 public sealed partial class TickerIsland : BlazorComponent<Ticker>;
+
+/// <summary>An island over a component that uses real two-way <c>@bind</c>.</summary>
+public sealed partial class EditorIsland : BlazorComponent<Editor>;

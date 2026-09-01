@@ -4522,7 +4522,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             foreach (var hosted in Blazor.BlazorParameters.Read(symbol, hostedComponent))
             {
-                if (!seen.Add(hosted.Name))
+                // Against what was actually PRODUCED, not against `seen`. That set records every
+                // property name walked, including ones immediately skipped for being static — and the
+                // chain entries inherited from RaskMarkup are static members named after components,
+                // so consulting it would silently drop a parameter called Text, Table, Form or Label.
+                // Those are ordinary names for a UI library, and the failure would be no step, no
+                // diagnostic, and no way to pass a value the component plainly declares.
+                if (result.Any(p => string.Equals(p.Name, hosted.Name, StringComparison.Ordinal)))
                 {
                     continue;
                 }

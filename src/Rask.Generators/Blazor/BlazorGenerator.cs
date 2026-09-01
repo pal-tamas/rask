@@ -171,7 +171,12 @@ public sealed class BlazorGenerator : IIncrementalGenerator
             // call site cannot omit, and it is also what keeps the non-nullable property from
             // tripping CS8618 without inventing an initializer — which would EXCLUDE it from the
             // chain entirely rather than making it mandatory.
-            sb.Append("    public ").Append(p.IsRequired ? "required " : string.Empty)
+            // `new` when the name shadows an inherited chain entry — Text, Table, Form, Label are
+            // ordinary parameter names for a UI library and every one of them is a component here.
+            // CS0108 is fatal under -warnaserror, and `new` is the same answer Element gives for its
+            // own Title.
+            sb.Append("    public ").Append(p.NeedsNew ? "new " : string.Empty)
+                .Append(p.IsRequired ? "required " : string.Empty)
                 .Append(p.ChainTypeFqn).Append(' ').Append(p.Name)
                 .AppendLine(" { get; set; }");
             sb.AppendLine();

@@ -47,6 +47,13 @@ public abstract partial class BlazorComponent<TComponent> : Component
     private int _componentId = -1;
     private string? _html;
 
+    // (Blazor handler id, DOM event) per placeholder the writer left in _html, in index order.
+    private readonly List<(ulong BlazorHandlerId, string EventName)> _handlers = [];
+
+    // Whether there is a live session to dispatch through, captured on the render thread. The HTML is
+    // rewritten from the renderer's dispatcher, where the ambient context is not visible.
+    private bool _live;
+
     // Refilled rather than reallocated per render. Not the render hot path — this runs from an async
     // lifecycle hook, not the serialize walk — but the habit is the repo's.
     private readonly Dictionary<string, object?> _parameters = new(StringComparer.Ordinal);
@@ -64,6 +71,18 @@ public abstract partial class BlazorComponent<TComponent> : Component
 
     /// <summary>The name this island is identified by. Its own simple type name.</summary>
     protected virtual string ComponentName => GetType().Name;
+
+    /// <summary>
+    ///     Never replayed from the render cache.
+    /// </summary>
+    /// <remarks>
+    ///     A handler id belongs to the render that minted it, and this component mints one per event
+    ///     the hosted component wired. A cached replay skips <see cref="Render" />, so nothing
+    ///     re-registers them — and the replayed markup then points at handler ids the dispatcher can
+    ///     no longer find. The failure is the worst shape available: the island looks right, and the
+    ///     first click does nothing.
+    /// </remarks>
+    protected sealed override bool BypassRenderCache => true;
 
     /// <summary>
     ///     Fills <paramref name="into" /> with the hosted component's parameters. Generated.
@@ -125,7 +144,14 @@ public abstract partial class BlazorComponent<TComponent> : Component
             }
 
             await renderer.RenderAsync(_componentId, BuildParameterView(childMarkup));
-            _html = BlazorFrameWriter.Write(renderer, _componentId, (blazorId, _) => Bridge(context, renderer, blazorId));
+
+            // Handlers are NOT registered here. A handler id belongs to the render that minted it, and
+            // this hook runs outside the render walk — on the renderer's own dispatcher, no less — so
+            // anything registered now is discarded by the next walk and the id in the markup resolves
+            // to nothing. The writer leaves a placeholder per handler instead, and Render() (which IS
+            // the walk) registers them and substitutes the real ids.
+            _live = context is not null;
+            RewriteHtml();
         });
     }
 
@@ -145,20 +171,95 @@ public abstract partial class BlazorComponent<TComponent> : Component
     ///         inert island is better than markup advertising a handler that cannot be delivered.
     ///     </para>
     /// </remarks>
-    private string? Bridge(LiveRenderContext? context, BlazorIslandRenderer renderer, ulong blazorHandlerId)
+    /// <summary>The stand-in a handler id occupies until BindHandlers mints the real one.</summary>
+    /// <remarks>
+    ///     Delimited by U+0001 because it is substituted into rendered HTML, where an undelimited
+    ///     token like <c>rb0</c> could occur in the hosted component's own content and be rewritten
+    ///     into a handler id. A control character cannot appear in the markup Blazor produces.
+    /// </remarks>
+    private static string Placeholder(int index) => "\u0001rb" + index + "\u0001";
+
+    /// <summary>Re-reads the hosted component's markup from its current render tree.</summary>
+    /// <remarks>
+    ///     Called both after a Rask prop change and when the hosted component re-renders ITSELF. The
+    ///     second is easy to miss, and was missed: a self-render called StateHasChanged without
+    ///     re-reading the markup, so Rask faithfully re-rendered the previous string and the
+    ///     component's own update - a timer, an injected service's event, the write-back half of
+    ///     <c>@bind</c> - never reached the page. The island looked alive and showed stale content.
+    ///
+    ///     Runs on the renderer's dispatcher, which is where both callers already are.
+    /// </remarks>
+    private void RewriteHtml()
     {
-        if (context is null)
+        if (_renderer is null || _componentId < 0)
         {
-            return null;
+            return;
         }
 
-        Func<Task> handler = () => renderer.Dispatcher.InvokeAsync(
-            () => renderer.DispatchAsync(blazorHandlerId, EventArgsFor(renderer, blazorHandlerId)));
+        _handlers.Clear();
+        _html = BlazorFrameWriter.Write(
+            _renderer,
+            _componentId,
+            (blazorId, eventName) =>
+            {
+                // No live session to dispatch through, so no attribute at all: markup advertising a
+                // handler that cannot be delivered is worse than inert markup.
+                if (!_live)
+                {
+                    return null;
+                }
 
-        // RegisterHandlerFor, never owner.RegisterHandler: that overload treats its receiver as the
-        // render ROOT and restarts the id sequence at zero, so the handler would collide with the
-        // page's own and silently never fire.
-        return context.RegisterHandlerFor(this, handler);
+                _handlers.Add((blazorId, eventName));
+                return Placeholder(_handlers.Count - 1);
+            });
+    }
+
+    /// <summary>
+    ///     Registers this render's handlers and puts their ids into the markup.
+    /// </summary>
+    /// <remarks>
+    ///     Runs from <see cref="Render" />, inside the render walk, because that is where a handler id
+    ///     is valid: it belongs to the render that minted it. Registering from the async hook instead
+    ///     produced ids the very next walk discarded, and the markup pointed at handlers the
+    ///     dispatcher could not find.
+    /// </remarks>
+    private string? BindHandlers()
+    {
+        if (_html is null || _handlers.Count == 0)
+        {
+            return _html;
+        }
+
+        var context = LiveRenderContext.CurrentSync ?? LiveRenderContext.Current;
+        var renderer = _renderer;
+        if (context is null || renderer is null)
+        {
+            return _html;
+        }
+
+        var sb = new System.Text.StringBuilder(_html);
+        for (var i = 0; i < _handlers.Count; i++)
+        {
+            var (blazorHandlerId, eventName) = _handlers[i];
+
+            // A value-carrying event needs a delegate that TAKES the value: Rask routes an inbound
+            // frame to a handler by the delegate's shape, and only Action<string>/Func<string, Task>
+            // is fed the string payload. This is what carries @bind — Blazor's binding compiles to
+            // `value=` plus an onchange handler reading ChangeEventArgs.Value, and that value can
+            // only arrive here.
+            Delegate handler = eventName is "change" or "input"
+                ? (Func<string, Task>)(value => renderer.Dispatcher.InvokeAsync(
+                    () => renderer.DispatchAsync(blazorHandlerId, new ChangeEventArgs { Value = value })))
+                : (Func<Task>)(() => renderer.Dispatcher.InvokeAsync(
+                    () => renderer.DispatchAsync(blazorHandlerId, EventArgsFor(renderer, blazorHandlerId))));
+
+            // RegisterHandlerFor, never owner.RegisterHandler: that overload treats its receiver as
+            // the render ROOT and restarts the id sequence at zero, so the handler would collide with
+            // the page's own and silently never fire.
+            sb.Replace(Placeholder(i), context.RegisterHandlerFor(this, handler));
+        }
+
+        return sb.ToString();
     }
 
     private static EventArgs EventArgsFor(BlazorIslandRenderer renderer, ulong handlerId)
@@ -211,7 +312,7 @@ public abstract partial class BlazorComponent<TComponent> : Component
                 [BlazorDefaults.NameAttribute] = ComponentName,
                 [BlazorDefaults.ComponentAttribute] = typeof(TComponent).FullName,
             })[
-            _html is null ? null : Raw.Value(_html)
+            BindHandlers() is { } markup ? Raw.Value(markup) : null
         ];
 
     private BlazorIslandRenderer CreateRenderer()
@@ -229,7 +330,8 @@ public abstract partial class BlazorComponent<TComponent> : Component
         // nowhere to go without a live session, so say so as well as repainting.
         return new BlazorIslandRenderer(services, logs, () =>
         {
-            LiveRenderContext.Current?.MarkRequiresLiveSession(InteractivityReason.Declared);
+            // Re-read BEFORE telling Rask to repaint, or the repaint ships the previous markup.
+            RewriteHtml();
             StateHasChanged();
         });
     }

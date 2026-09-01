@@ -1,6 +1,6 @@
 @* A real .razor, compiled by the Razor SDK, used from another assembly. *@
 
-<div class="ticker @Tone">
+<div class="ticker @Tone" @onclick="() => OnPick.InvokeAsync(Symbol)">
     <strong>@Symbol</strong>
     <span>@Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)</span>
     @if (Note is not null)

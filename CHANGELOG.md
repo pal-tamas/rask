@@ -50,6 +50,19 @@ them until tagged releases begin.
   travels the WebSocket that is already open and comes back through `DispatchEventAsync`. No SignalR,
   no `blazor.web.js`, no second connection — the same channel the React and Lit islands use.
 
+  **`@bind` works, write-back included**, and it travels a different channel from a click — which is
+  exactly why it works. `change` and `input` are deliberately absent from Rask's DOM-event table
+  because a value-carrying event goes through Rask's *input* channel, the one that ships the element's
+  value alongside the handler id. A bound input therefore renders with `data-rask-on-input`, and the
+  island turns the string back into the `ChangeEventArgs` the binder `@bind` generated is waiting for.
+
+  Three things had to be right for that, and each was wrong first. Handler ids belong to the render
+  that minted them, so they are registered from `Render()` rather than the async hook, which the next
+  walk discarded. A self-render now re-reads the hosted markup — calling `StateHasChanged` alone made
+  Rask faithfully re-render the previous string, so a timer, an injected service's event, or the
+  write-back half of a binding left the island looking alive and showing stale content. And the island
+  bypasses the render cache, since a cached replay skips `Render()` and nothing re-registers.
+
   **A statically rendered island is deliberately NOT opaque.** `ExternalComponent` seals
   `OpaqueSubtree` true because React genuinely owns those nodes; here nothing in the browser does.
   `FrameDiffer` skips an opaque element's children, so an opaque static island would render new HTML

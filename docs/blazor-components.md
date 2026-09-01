@@ -35,7 +35,7 @@ Read this table before anything else — it is the whole shape of the feature.
 | Its own `@onclick` / `EventCallback` firing from the browser | ✅ (see [events](#events)) |
 | Rask children inside it, with working handlers | ✅ |
 | `OnAfterRender`, `IJSRuntime`, `ElementReference` | ❌ |
-| `@bind` writing a value back | ❌ (see [limits](#what-is-not-here-yet)) |
+| `@bind` writing a value back | ✅ (see [binding](#binding)) |
 | WebAssembly | ❌ — server only, by construction |
 
 ## Declaring one
@@ -143,6 +143,24 @@ and Lit islands use for their callbacks.
 Table.Rows(_rows).OnRowClick(row => _selected = row)   // fires
 ```
 
+## Binding
+
+`@bind` works, including the write-back. It travels a different channel from the click above, and
+that is the whole reason it works: `change` and `input` are deliberately absent from Rask's DOM-event
+table, because a value-carrying event goes through Rask's **input** channel instead — the one that
+ships the element's value alongside the handler id.
+
+So a bound input renders with `data-rask-on-input` rather than `data-rask-on-change`, the browser
+sends the value, Rask hands it to the island as a string, and the island turns it into the
+`ChangeEventArgs` the binder `@bind` generated is waiting for.
+
+```razor
+<input @bind="Text" />
+<p>echo: @Text</p>
+```
+
+Typing updates `Text` inside the hosted component and the echo follows, with no circuit involved.
+
 ## Rask children keep working
 
 Children placed inside an island cross as the hosted component's `ChildContent`, and because Rask
@@ -181,8 +199,6 @@ there is no honest way to suppress what a hosted component would produce.
 
 ## What is not here yet
 
-- **`@bind` writing back.** Rask's DOM handlers carry no payload, so a value-carrying event has
-  nowhere to put the value. Read-only display works; two-way binding does not.
 - **`OnAfterRender`, `IJSRuntime`, `ElementReference`.** These need a browser-side renderer.
   A component whose behaviour *is* JavaScript — a menu, a dialog, an autocomplete — renders inert.
 - **A prop change replaces the island's DOM.** The update ships as a subtree replace rather than a

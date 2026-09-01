@@ -17,13 +17,17 @@ namespace Rask.Generators.Blazor;
 ///     Whether the hosted component marked it <c>[EditorRequired]</c>, which makes it a required
 ///     chain step rather than an optional one.
 /// </param>
+/// <param name="NeedsNew">
+///     Whether the property shadows an inherited chain entry and so must say <c>new</c>.
+/// </param>
 internal readonly record struct BlazorParam(
     string Parameter,
     string Name,
     string ChainTypeFqn,
     string? EventArg,
     bool IsEventCallback,
-    bool IsRequired);
+    bool IsRequired,
+    bool NeedsNew);
 
 /// <summary>
 ///     Reads the chain steps an island gets from the Blazor component it hosts.
@@ -117,13 +121,31 @@ internal static class BlazorParameters
             return result;
         }
 
-        // Anything the island (or a base) already declares is an explicit override and wins outright.
+        // A hand-written property is an explicit override and wins outright — but only an INSTANCE
+        // member counts. Chain entries are STATIC members named after components, and Rask.Core's
+        // arrive by inheritance from RaskMarkup, so a parameter called Text, Table, Form or Label
+        // would otherwise look like an override of an entry it has nothing to do with and be dropped
+        // silently: no step, no diagnostic, no way to pass a value the component plainly declares.
         var declared = new HashSet<string>(StringComparer.Ordinal);
+
+        // Everything reachable, static included. A generated property whose name matches an inherited
+        // entry HIDES it, which is CS0108 and fatal here — so it has to say `new`, exactly as
+        // Element does for its own Title.
+        var inherited = new HashSet<string>(StringComparer.Ordinal);
+
         for (var t = island; t is not null; t = t.BaseType)
         {
             foreach (var m in t.GetMembers())
             {
-                declared.Add(m.Name);
+                if (!m.IsStatic)
+                {
+                    declared.Add(m.Name);
+                }
+
+                if (!SymbolEqualityComparer.Default.Equals(t, island))
+                {
+                    inherited.Add(m.Name);
+                }
             }
         }
 
@@ -183,7 +205,8 @@ internal static class BlazorParameters
                     ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
                     eventArg,
                     isCallback,
-                    isRequired));
+                    isRequired,
+                    NeedsNew: inherited.Contains(name)));
             }
         }
 

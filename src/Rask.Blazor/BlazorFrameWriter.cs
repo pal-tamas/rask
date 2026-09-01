@@ -155,11 +155,32 @@ internal static class BlazorFrameWriter
             // "onclick" -> "click", so it lands on Rask's own data-rask-on-{event} convention and the
             // delegated listener already in the page picks it up with no new client code.
             var eventName = name.StartsWith("on", StringComparison.OrdinalIgnoreCase) ? name[2..] : name;
-            if (registerEvent(frame.AttributeEventHandlerId, eventName) is { } raskId)
+            if (registerEvent(frame.AttributeEventHandlerId, eventName) is not { } raskId)
             {
-                sb.Append(" data-rask-on-").Append(eventName).Append("=\"").Append(raskId).Append('"');
+                return;
             }
 
+            // A value-carrying event goes through Rask's INPUT channel rather than its DOM-event one,
+            // and that distinction is what makes @bind work. `change` and `input` are deliberately
+            // absent from the DOM-event table: the client reads the element's value off
+            // data-rask-on-input and ships {id, type:"input", value}, which is the only inbound frame
+            // that carries a payload the element itself produced.
+            if (eventName is "change" or "input")
+            {
+                sb.Append(" data-rask-on-input=\"").Append(raskId).Append('"');
+
+                // data-rask-on-change is a MARKER, not a second handler id — the client still reads
+                // the id from data-rask-on-input. Its presence is what makes the dispatch synchronous,
+                // which is what `change` means: the value is final, not still being typed.
+                if (eventName == "change")
+                {
+                    sb.Append(" data-rask-on-change=\"").Append(raskId).Append('"');
+                }
+
+                return;
+            }
+
+            sb.Append(" data-rask-on-").Append(eventName).Append("=\"").Append(raskId).Append('"');
             return;
         }
 

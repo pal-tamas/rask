@@ -21,3 +21,4 @@ override Rask.Blazor.BlazorComponent<TComponent>.OnUnmountAsync() -> System.Thre
 override sealed Rask.Blazor.BlazorComponent<TComponent>.Render() -> Rask.Core.Component?
 virtual Rask.Blazor.BlazorComponent<TComponent>.ComponentName.get -> string!
 virtual Rask.Blazor.BlazorComponent<TComponent>.Create() -> TComponent
+override sealed Rask.Blazor.BlazorComponent<TComponent>.BypassRenderCache.get -> bool
