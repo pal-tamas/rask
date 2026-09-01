@@ -7,6 +7,80 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Vue and Svelte join React and Lit as island runtimes.** An island is an ordinary Rask component
+  whose markup a front-end framework produces, and it now covers four of them: derive from
+  `VueComponent` or `SvelteComponent`, drop `Chart.vue` or `Meter.svelte` beside the class, and it
+  goes anywhere the chain goes. Preact still needs no adapter of its own — it rides React's through an
+  app-wide `preact/compat` alias, which is a choice one bundle makes once for every island in it.
+
+  `docs/islands.md` argued these would be additive, because a single-file component is compiled by a
+  *Vite plugin* rather than a compiler of its own. That held. What did not survive contact is the
+  shape the first two runtimes were written in: the runtime was a bare string duplicated across the
+  build, with the SET of them implicit in `if (lit) … else react` branches. Two fit that; four do not,
+  and every branch missed fails silently rather than loudly — a Vue component would have inferred
+  `./Chart.tsx` and resolved a module the bundle never built. There is now one table,
+  `ExternalRuntime`, carrying the entry-import shape, the adapter factory and the Vite plugin clause.
+  Entry-module and Vite-config output are byte-identical for React and Lit.
+
+  Svelte's adapter is a `.svelte.ts` module, and that extension is load-bearing: `$state` is a
+  compiler rune, not a function, so it does not exist in a file the Svelte plugin does not compile.
+  Without it the only way to show new props would be to remount, which throws away the component's own
+  state on every C# re-render — the one thing the diff boundary exists to prevent.
+
+  A single-file component cannot be type-checked by tsgo, which parses TypeScript and JSX and has no
+  plugin seam for anything else, so `.vue` and `.svelte` are checked by `vue-tsc` and `svelte-check`
+  from the project's own `node_modules`. That is the second and third toolchain the "why Vite, and
+  only Vite" argument declines for *bundlers*, taken knowingly: no single tool reads all five file
+  types, and a compile-time contract that silently skips two of them is the failure the feature exists
+  to avoid. The reward is that the check reaches into the template — renaming a C# prop fails a `.vue`
+  at the tag that used it, not merely at its `<script>` block. A missing checker says so and never
+  passes quietly.
+
+- **An islands showcase, at `/islands` on the Server sample.** Islands shipped with no sample and no
+  browser coverage. Four runtimes now sit in one Rask tree with C# owning every prop, built around the
+  two claims markup alone cannot show: the Vue chart's bar click re-enters C# over the live WebSocket,
+  and the React counter and Svelte meter each keep local state C# never sees, so raising a value from
+  C# proves the update reconciles rather than remounts. This is the first sample to carry a
+  `package.json`.
+
+### Fixed
+
+- **RASK057 was reported through RASK056's descriptor, so it never fired at all.** A prop whose type
+  has no wire encoding was reported with the partial-class descriptor — a one-placeholder message
+  format handed three arguments — so it read as *"'Chart' must be declared 'partial'"* against the
+  property, and RASK057 itself was unreachable despite `docs/diagnostics.md` documenting it. One
+  wrong identifier at one call site; every descriptor was perfectly well formed, which is why nothing
+  caught it. `ExternalGenerator` had no test coverage of any kind, and RASK056-059 have it now.
+
+- **An unknown island runtime is refused rather than defaulted to React.** A typo in a hand-written
+  `<RaskExternal Runtime="vue3"/>` used to generate a React entry for a Vue component: the build
+  succeeded, the bundle shipped, the chunk loaded, and nothing mounted.
+
+- **The Vite plugin order made a `.vue` unbuildable next to a `.tsx`.** A Vue or Svelte plugin claims
+  one extension it alone understands; the React plugin installs a *general* JSX transform. Registered
+  in the wrong order the single-file component reached the JSX parser and the build died with
+  `Unexpected JSX expression` at line 1 — naming neither Vue nor the plugin that should have handled
+  it. Single-file compilers are registered first now.
+
+- **A Lit island and scoped TypeScript claim the same file.** Both features are spelled `Name.ts`
+  beside `Name.cs`, and nothing in MSBuild can tell them apart — the only difference is whether the
+  class derives from `LitComponent`, which Roslyn knows and a glob does not. In a project holding
+  both, the scoped pipeline compiles the island's file as a component asset while the island build
+  bundles it, and the repo's scoped type-check fails on a `@rask/Name.props` mapping that exists only
+  in the island's own generated tsconfig. Documented, with `RaskScopedTsAutoInclude=false` as the
+  answer for a project whose only `.ts` files are islands; separating the two properly is still open.
+  The other three runtimes have extensions of their own and are unaffected.
+
+- **`tsconfig.paths.json` is written where the docs said it was.** The `@rask/*` mapping an author
+  extends by hand was emitted under `obj/Debug/net10.0/rask-external/`, while `docs/islands.md`
+  documented the configuration-independent `obj/rask-external/`. It is the one path in this feature
+  written by hand, and a committed `tsconfig.json` names a single `extends`: pointed at the
+  intermediate path it resolved in whichever configuration was built last and failed in the other. On
+  Vite that is not a degraded type-check but a dead build — esbuild refuses a tsconfig whose `extends`
+  is missing.
+
 ### Changed
 
 - **The operator console is rebuilt light, mobile-first, and on a component kit.** `/_rask` was a dark

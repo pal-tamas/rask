@@ -1,0 +1,26 @@
+{
+  // Extends the fragment Rask writes into obj/, which is what makes `@rask/VueChart.props` resolve.
+  // A fragment rather than an edit to this file's own settings: nothing generated is committed, so a
+  // fresh clone shows the import unresolved until the first build.
+  "extends": "./obj/rask-external/tsconfig.paths.json",
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["esnext", "dom"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    // Lit's @customElement/@property need these; `accessor` fields are the Lit 3 decorator form.
+    "experimentalDecorators": false,
+    "useDefineForClassFields": false,
+    "types": ["svelte"]
+  },
+  "include": [
+    "Features/**/*.ts",
+    "Features/**/*.tsx",
+    "Features/**/*.vue",
+    "Features/**/*.svelte"
+  ]
+}

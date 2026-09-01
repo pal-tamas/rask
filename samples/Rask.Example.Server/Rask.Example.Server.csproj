@@ -4,6 +4,18 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!--
+      This app has no scoped TypeScript. Its only .ts is LitBadge.ts — a Lit ISLAND — and the two
+      features share a convention exactly: scoped TS is `Name.ts` beside `Name.cs`, and so is a Lit
+      island. Nothing in MSBuild can tell them apart, because the only difference is whether the C#
+      class derives from LitComponent, which Roslyn knows and a glob does not.
+
+      Left on, the scoped pipeline compiles the island's file as a component asset AND the island
+      build bundles it, and the repo-wide scoped type-check fails on `@rask/LitBadge.props` — a
+      mapping that exists only in the island's own generated tsconfig. Turning it off here is exact
+      rather than a workaround: there is no scoped TypeScript in this project to turn off.
+    -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +24,9 @@
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\..\src\Rask.WebPush\Rask.WebPush.csproj"/>
+    <!-- The islands showcase. This is the sample carrying a package.json, so it is the one that can
+         build React, Vue, Svelte and Lit components. -->
+    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
@@ -23,7 +38,7 @@
        as raksrc/{leaf}; Program.cs registers this app assembly with EmbeddedSource so the lookup finds
        them. A .cs stays compiled too; this only adds its text as a manifest resource. -->
   <ItemGroup>
-    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.js;Features/**/*.css">
+    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.js;Features/**/*.css;Features/**/*.tsx;Features/**/*.vue;Features/**/*.svelte">
       <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>

@@ -1,9 +1,16 @@
-# Islands — a `.tsx` file as a Rask component
+# Islands — a `.tsx`, `.vue` or `.svelte` file as a Rask component
 
 An **island** is an ordinary Rask component whose markup is produced by a front-end
-framework. Derive from `ReactComponent` or `LitComponent`, drop the front-end file beside it, and it
-goes anywhere the chain goes — a leaf inside a card, a subtree, or the whole of a `[Route]` page's
-`Render()`.
+framework. Derive from `ReactComponent`, `VueComponent`, `SvelteComponent` or `LitComponent`, drop the
+front-end file beside it, and it goes anywhere the chain goes — a leaf inside a card, a subtree, or
+the whole of a `[Route]` page's `Render()`.
+
+| Base class | Pairs with | Compiled by | Covers |
+|---|---|---|---|
+| `ReactComponent` | `Chart.tsx` | `@vitejs/plugin-react` | React, and Preact through a `preact/compat` alias |
+| `VueComponent` | `Chart.vue` | `@vitejs/plugin-vue` | Vue 3 |
+| `SvelteComponent` | `Chart.svelte` | `@sveltejs/vite-plugin-svelte` | Svelte 5 |
+| `LitComponent` | `Chart.ts` | nothing — it is ordinary TypeScript | Lit, and any custom element with property-shaped inputs |
 
 ```csharp
 [Route("/dashboard")]
@@ -48,6 +55,13 @@ public sealed partial class Chart : ReactComponent
     public string? Heading { get; set; }
 }
 
+// Features/Dashboard/Meter.cs
+public sealed partial class Meter : SvelteComponent
+{
+    /// <summary>The reading, 0..1.</summary>
+    public double Value { get; set; }
+}
+
 // Features/Dashboard/Gauge.cs
 public sealed partial class Gauge : LitComponent
 {
@@ -60,9 +74,10 @@ public sealed partial class Gauge : LitComponent
 props writer are generated into the same class.
 
 The front-end file is found the way scoped CSS and scoped JS already are: by filename, beside the
-class. `Chart.cs` pairs with `Chart.tsx`; `Gauge.cs` pairs with `Gauge.ts`. **The base class is what
-makes that inference possible for Lit** — a Lit component is ordinary TypeScript and nothing about a
-`.ts` extension distinguishes it, so before the runtime was stated by the type, every Lit component
+class. `Chart.cs` pairs with `Chart.tsx`; `Meter.cs` with `Meter.svelte`; `Gauge.cs` with `Gauge.ts`.
+**The base class is what makes that inference possible for Lit** — a Lit component is ordinary
+TypeScript and nothing about a `.ts` extension distinguishes it, so before the runtime was stated by
+the type, every Lit component
 had to name its module by hand.
 
 Override `Module` only when the file lives somewhere convention cannot reach:
@@ -166,6 +181,28 @@ error TS2339: Property 'level' does not exist on type 'DialProps'.
 
 Turn it off with `<RaskExternalTypeCheck>false</RaskExternalTypeCheck>` — for a deliberately red front
 end mid-refactor, say. It costs roughly 0.2s.
+
+### A single-file component needs its framework's own checker
+
+Rask type-checks `.ts`, `.tsx` and `.jsx` with **tsgo**, the same native TypeScript it fetches for
+everything else. tsgo parses TypeScript and JSX and nothing else, and there is no plugin seam to teach
+it a `.vue` or a `.svelte` — so those are checked by **`vue-tsc`** and **`svelte-check`**, run from
+your own `node_modules` at the version your `package.json` pinned.
+
+That is a second and third toolchain, which is exactly the tax [Why Vite, and only
+Vite](#why-vite-and-only-vite) declines for *bundlers*. It is accepted here because the alternative is
+not a weaker check but no check: no single tool reads all five file types, and a compile-time contract
+that silently skips two of them is the failure this whole feature exists to avoid. The reward is that
+the check reaches into the **template**, not only the script block:
+
+```
+error TS2339: Property 'seriesTypo' does not exist on type 'DefineProps<LooseRequired<ChartProps>>'.
+```
+
+Rask does **not** fetch these the way it fetches tsgo — they are the same packages your front end
+already builds with, and a second copy on a different version would disagree with the bundler about
+the same file. If one is missing, the build says so in as many words and carries on; it never passes
+silently.
 
 **A component that imports nothing from npm is checked with nothing installed.** A Lit element or a
 plain custom element resolves its generated props and no more, so the no-npm path is checked too —
@@ -294,8 +331,15 @@ with no islands is unaffected, which is most of them.
 
 ```bash
 npm init -y
-npm install -D vite @vitejs/plugin-react react react-dom
+npm install -D vite @vitejs/plugin-react react react-dom          # React (or Preact)
+npm install -D vite @vitejs/plugin-vue vue vue-tsc                # Vue
+npm install -D vite @sveltejs/vite-plugin-svelte svelte svelte-check   # Svelte
+npm install -D vite lit                                           # Lit
 ```
+
+Install only what you use. A plugin is written into the generated Vite config **only** when an island
+of that runtime exists, so a Lit-only app is never asked for `@vitejs/plugin-react`, and a Vue-only
+app is not either.
 
 ### Why Vite, and only Vite
 
@@ -315,8 +359,14 @@ The no-npm audience was also narrower than it first appeared. A real Lit compone
 `import { LitElement, html } from 'lit'` — which is npm. Only a dependency-free custom element
 qualified, which is a genuine case but a small one, and not worth a permanent second toolchain.
 
-Vite also makes the runtimes still to come cheap: Vue and Svelte single-file components are compiled
-by *Vite plugins*, so adding them is an adapter rather than a compiler integration.
+Vite is also what made Vue and Svelte cheap when they landed: a single-file component is compiled by a
+*Vite plugin*, so each was an adapter rather than a compiler integration. Angular is the one still
+outstanding, and the one where that is not true.
+
+**Plugin order is not cosmetic.** A Vue or Svelte plugin claims one extension it alone understands;
+the React plugin installs a *general* JSX transform. Rask registers the single-file compilers first,
+because the other order sends a `.vue` to the JSX parser and fails as `Unexpected JSX expression` at
+line 1 — naming neither Vue nor the plugin that should have handled it.
 
 | Property | Default | |
 |---|---|---|
@@ -345,17 +395,15 @@ lives somewhere that pairing cannot reach — the build-side counterpart of over
 A Lit module default-exports its registered tag name, which is how the generated entry knows
 what to create — a custom element registers its own tag and nothing about the file reveals it.
 
-## What is not here yet
+> **A Lit island collides with scoped TypeScript.** Both features are spelled `Name.ts` beside
+> `Name.cs`, and nothing in MSBuild can tell them apart: the only difference is whether the class
+> derives from `LitComponent`, which Roslyn knows and a glob does not. In a project that has both, the
+> scoped pipeline compiles the island's file as a component asset while the island build bundles it,
+> and the scoped type-check fails on `@rask/Name.props` — a mapping that exists only in the island's
+> own generated tsconfig. Until the two are separated, a project whose only `.ts` files are Lit
+> islands should say so: `<RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>`. The other three
+> runtimes have extensions of their own and are unaffected.
 
-- **Live slot updates.** Slot content is placed once, at mount. When the C# that produced it
-  re-renders, the component does not yet see the new content — see [Slots](#slots) for why that is the
-  hard half.
-- **Vue, Svelte, Angular.** The adapter seam is three functions wide and the client runtime imports no
-  framework, so these are additive. Angular is viable through standalone components plus
-  `createApplication()`, which needs no root component and no NgModule; its build is the real cost,
-  since Angular components need the Angular compiler rather than plain Vite.
-- **Blazor.** `.razor` components, with props staying C# and never becoming JSON — and static prerender
-  needing no bundler at all.
 ### Both hosts, verified
 
 The same component, byte-identical `.tsx`, was built and driven in a browser on both hosts: it mounts,
@@ -365,5 +413,20 @@ local state advancing together, which is what shows the adapter reconciles rathe
 On WASM the callback reaches C# through a `[JSExport]` call into this tab's runtime rather than over a
 socket; nothing in the front-end file knows which.
 
+## What is not here yet
+
+- **Live slot updates.** Slot content is placed once, at mount. When the C# that produced it
+  re-renders, the component does not yet see the new content — see [Slots](#slots) for why that is the
+  hard half.
+- **Angular.** The adapter seam is three functions wide and the client runtime imports no framework, so
+  it is additive the way Vue and Svelte were. Angular is viable through standalone components plus
+  `createApplication()`, which needs no root component and no NgModule; its build is the real cost,
+  since Angular components need the Angular compiler rather than plain Vite.
+- **Blazor.** `.razor` components, with props staying C# and never becoming JSON — and static prerender
+  needing no bundler at all.
+- **Islands in a shared library.** The client runtime resolves the manifest at the app-rooted
+  `/_rask/external/manifest.json`, so the app that serves the page is the app that has to bundle them.
+  A class library can hold the C#, but its bundle would be served under `_content/<PackageId>/` where
+  nothing looks for it.
 - **Server-side rendering** for the bundler-backed runtimes, which is what would make `Hydration.None`
   broadly useful.

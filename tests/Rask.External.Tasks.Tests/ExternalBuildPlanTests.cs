@@ -222,6 +222,29 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
+    public void Single_file_compilers_are_registered_before_the_jsx_transform()
+    {
+        var config = Config([
+            new ExternalEntry { Name = "Chart", Source = "/a/c.tsx", Runtime = "react" },
+            new ExternalEntry { Name = "Panel", Source = "/a/p.vue", Runtime = "vue" },
+            new ExternalEntry { Name = "Dial", Source = "/a/d.svelte", Runtime = "svelte" },
+        ]);
+
+        var vue = config.IndexOf("vue()", StringComparison.Ordinal);
+        var svelte = config.IndexOf("svelte()", StringComparison.Ordinal);
+        var react = config.IndexOf("react()", StringComparison.Ordinal);
+
+        Assert.True(vue >= 0 && svelte >= 0 && react >= 0);
+
+        // Not cosmetic. A Vue or Svelte plugin claims one extension it alone understands; the React
+        // plugin installs a GENERAL JSX transform. Registered the other way round, a .vue reaches the
+        // JSX parser and the build dies with "Unexpected JSX expression" at line 1 — an error naming
+        // neither Vue nor the plugin that should have handled it. Cost a real debugging round.
+        Assert.True(vue < react, "the Vue plugin must be registered before the React one");
+        Assert.True(svelte < react, "the Svelte plugin must be registered before the React one");
+    }
+
+    [Fact]
     public void The_plugin_order_does_not_depend_on_the_order_islands_were_discovered()
     {
         var one = Config([

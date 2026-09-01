@@ -33,6 +33,20 @@
     <!-- Where the generated prop types land. Under obj/ because they are build output: a generated
          file in the source tree is one somebody edits by hand and loses on the next build. -->
     <_RaskExternalTypes>$(_RaskExternalObj)types\</_RaskExternalTypes>
+    <!--
+      The ONE path an author writes by hand, so it cannot carry the configuration in it.
+
+      Everything else here lives under $(IntermediateOutputPath) — obj/Debug/net10.0/... — which is
+      correct for build inputs and wrong for this one file: `tsconfig.json` is committed, it names a
+      single `extends`, and that name has to mean the same thing in Debug and in Release. Pointed at
+      the intermediate path it resolves in whichever configuration was built last and fails in the
+      other, which on Vite is not a warning — esbuild refuses a tsconfig whose extends is missing, so
+      the BUNDLE dies rather than the type-check degrading.
+
+      The mapping inside it still points into the configuration's own types directory; only the file
+      naming it is stable.
+    -->
+    <_RaskExternalStableObj>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/obj/rask-external'))\</_RaskExternalStableObj>
     <_RaskExternalOut>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskExternalOutputDir)'))</_RaskExternalOut>
     <_RaskExternalManifest>$(_RaskExternalOut)\manifest.json</_RaskExternalManifest>
 
@@ -156,7 +170,7 @@
           Outputs="$(_RaskExternalObj)types.stamp">
     <WriteExternalPropTypesTask AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
                                 OutputDirectory="$(_RaskExternalTypes)"
-                                TsConfigPath="$(_RaskExternalObj)tsconfig.paths.json"
+                                TsConfigPath="$(_RaskExternalStableObj)tsconfig.paths.json"
                                 CheckConfigPath="$(_RaskExternalObj)tsconfig.check.json"
                                 VueConfigPath="$(_RaskExternalObj)tsconfig.vue.json"
                                 SvelteConfigPath="$(_RaskExternalObj)tsconfig.svelte.json"

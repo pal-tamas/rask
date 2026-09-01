@@ -108,12 +108,21 @@ internal sealed class ExternalRuntime
     ///     Every runtime, in the order their plugins are written into the Vite config.
     /// </summary>
     /// <remarks>
-    ///     The order is load-bearing only in that it must be STABLE: the config is compared against
-    ///     what is already on disk and rewritten only when it differs, and a set-ordered list would
-    ///     rewrite a bundler input on some builds and not others, restarting the dev server's
-    ///     dependency graph for no reason.
+    ///     <para>
+    ///         <strong>Single-file compilers first, the JSX transform last.</strong> A Vue or Svelte
+    ///         plugin claims one extension it alone understands; the React plugin installs a general
+    ///         JSX transform. Ordered the other way round, a <c>.vue</c> reaches the JSX parser and
+    ///         fails as <c>Unexpected JSX expression</c> at line 1 — an error naming neither Vue nor
+    ///         the plugin that should have handled it.
+    ///     </para>
+    ///     <para>
+    ///         The order is also STABLE, which matters for a second reason: the config is compared
+    ///         against what is already on disk and rewritten only when it differs, and an order that
+    ///         tracked island discovery would rewrite a bundler input on some builds and not others,
+    ///         restarting the dev server's dependency graph for no reason.
+    ///     </para>
     /// </remarks>
-    public static IReadOnlyList<ExternalRuntime> All { get; } = new[] { React, Lit, Vue, Svelte };
+    public static IReadOnlyList<ExternalRuntime> All { get; } = new[] { Vue, Svelte, React, Lit };
 
     /// <summary>The runtime for a wire key, or null if nothing declares it.</summary>
     public static ExternalRuntime? Find(string? key) =>

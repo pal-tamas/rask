@@ -161,3 +161,10 @@ src/Rask.Wasm/Browser/rask-sw.js
 # tree is a build artifact: committing it means a stale stylesheet can be served by a checkout that never
 # ran the build, and every build shows up as a diff.
 **/wwwroot/css/app.css
+
+# Island bundles. Vite writes them into wwwroot so the SDK publishes them with no publish target
+# of its own — but they are build output, regenerated on every build, and the chunk names are hashed.
+**/wwwroot/_rask/external/
+
+# The tsconfig fragment Rask writes for the @rask/* prop-type mapping. Generated, never committed.
+**/obj/rask-external/

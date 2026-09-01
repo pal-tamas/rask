@@ -41,7 +41,8 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
 - `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
-  `partial` class from `ReactComponent`/`LitComponent` (the base class IS the declaration — no attribute), front-end
+  `partial` class from `ReactComponent`/`VueComponent`/`SvelteComponent`/`LitComponent` (the base class IS the
+  declaration — no attribute; one `ExternalRuntime` table drives extension, adapter and Vite plugin), front-end
   file paired by filename like scoped JS. Props declared in C#, serialized reflection-free; callbacks re-enter C#
   over the existing handler channel AND escalate the page to interactive. Its subtree is a **diff boundary**
   (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/islands.md`.
