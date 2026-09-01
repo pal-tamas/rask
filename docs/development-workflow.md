@@ -152,12 +152,28 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   `RASK_E2E_FILTER='FullyQualifiedName~PlaygroundExampleTests' scripts/run-e2e-local.sh`. It says loudly
   that the run was filtered, because a narrowed green is not the gate.
 
-  **Only one browser gate runs at a time.** Two suites on one machine contend for resources, and that
-  shows up as a plausible-looking red minutes later with nothing in the log pointing back at it — so the
-  gate names the other run (pid, elapsed, worktree) and stops. If you are working across several
-  worktrees, this is the thing that stops you diagnosing a failure that was never in your branch.
-  `RASK_E2E_ALLOW_CONCURRENT=1` overrides it; treat anything it then reports as suspect until re-run
-  alone.
+  **Only one browser gate runs at a time — and the second one queues.** Two suites on one machine
+  contend for resources, and that shows up as a plausible-looking red minutes later with nothing in the
+  log pointing back at it. So the gate names the other run (pid, elapsed, worktree) and then **waits for
+  it**, starting automatically when the lane frees. If you are working across several worktrees, this is
+  what stops you diagnosing a failure that was never in your branch — without costing you the push.
+
+  The queue is ordered by process age: a gate waits only for gates *older* than itself, so the run
+  holding the machine is ahead of everyone and each waiter is ahead of the ones that arrived later.
+  Exactly one is released at a time. That ordering is load-bearing rather than decorative — a waiting
+  gate is itself a `run-e2e-local.sh` process, so "wait until no other gate exists" would deadlock two
+  waiters against each other, and "start when the holder exits" would release them simultaneously into
+  the very contention the guard prevents.
+
+  | variable | effect |
+  |---|---|
+  | `RASK_E2E_QUEUE_TIMEOUT` | seconds to wait before giving up (default `5400`, 90m). Past it the gate exits 1 and names what still holds the lane — a run past the ~40m norm is usually wedged, not busy. |
+  | `RASK_E2E_QUEUE_POLL` | seconds between checks (default `20`). |
+  | `RASK_E2E_QUEUE=0` | do not wait; refuse immediately, as this gate did before. |
+  | `RASK_E2E_ALLOW_CONCURRENT=1` | do not wait; run alongside. Treat anything it reports as suspect until re-run alone. |
+
+  Worth knowing when you read a red: contention produces boot timeouts and dead fixtures, never a false
+  assertion pass. **A green under contention is trustworthy; a red is not.**
 
   **What that guard does not cover.** It detects its own kind — a second browser gate. The commoner
   collision is everything else competing with a live suite: a `pre-commit` hook, a plain `dotnet

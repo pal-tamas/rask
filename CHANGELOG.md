@@ -102,6 +102,41 @@ them until tagged releases begin.
   its own test. The identity now travels in `GIT_AUTHOR_*`/`GIT_COMMITTER_*`, which cannot leak into a
   config file, and four assertions pin `HEAD`, the working tree, the committing identity and the
   absence of any `git config user.*` write.
+### Changed
+
+- **The browser E2E gate queues for the machine instead of refusing it.** The lane is a machine-wide
+  singleton — two suites contend and the contention surfaces as a plausible-looking red minutes later
+  — so finding another gate running used to fail the push with "wait for the run above to finish, then
+  push again". That was right about the contention and wrong about what to do with it: every caller
+  hand-rolled a waiter, and anyone who did not got a failed push for a machine state that had nothing
+  to do with their branch. The gate now names the run holding the lane and **waits for it**, starting
+  automatically when it frees.
+
+  The serialization guarantee is unchanged: still exactly one suite at a time. What went away is the
+  manual retry.
+
+  Ordering is by **process age** — a gate waits only for gates older than itself — and that is
+  load-bearing rather than cosmetic. A *waiting* gate is itself a `run-e2e-local.sh` process, so
+  process detection cannot tell it from the run holding the machine. Two waiters that each wait for
+  "any other gate" deadlock against each other; two that each start when the holder exits begin
+  simultaneously, which is precisely the contention the guard exists to prevent. Waiting only for your
+  seniors totally orders the contenders with no shared state, so exactly one is released at a time —
+  ties breaking on pid so the order is total. Still by process and never a lockfile, for the reason
+  the guard has always given: a Ctrl-C'd waiter simply vanishes from everyone else's ordering.
+
+  | variable | effect |
+  |---|---|
+  | `RASK_E2E_QUEUE_TIMEOUT` | seconds before giving up (default `5400`, 90m); past it the gate exits 1 and names what still holds the lane |
+  | `RASK_E2E_QUEUE_POLL` | seconds between checks (default `20`) |
+  | `RASK_E2E_QUEUE=0` | refuse immediately, the previous behaviour |
+  | `RASK_E2E_ALLOW_CONCURRENT=1` | run alongside anyway (unchanged) |
+
+  `rask_build_failure_kind` moved with it. Its `busy` classification keyed on the guard's banner, which
+  now prints on runs that queue, **get** the lane, run in full and then fail on their own merits —
+  keying on it would have stamped "nothing ran" on a complete suite with a real failing assertion in
+  it. It now matches only the two terminal outcomes: the queue giving up, and an explicit
+  `RASK_E2E_QUEUE=0` refusal. `scripts/tests/` covers all of this (52 + 19 checks), each new assertion
+  proved by reintroducing the bug it forbids — including both naive queues and that misclassification.
 
 ### Removed
 - **The nine package ids left behind by earlier removals are retired from nuget.org.** `Rask.Native`,
