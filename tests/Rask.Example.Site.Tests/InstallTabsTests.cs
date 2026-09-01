@@ -11,8 +11,8 @@ namespace Rask.Example.Site.Tests;
 // this page — is asserted in scripts/tests/install-script.test.sh, which greps the sources.
 public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
 {
-    private const string Installer = "curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh";
-    private const string WindowsInstaller = "irm https://pal-tamas.github.io/rask/rask.ps1 | iex";
+    private const string Installer = "curl -sSL https://rask.sh/rask.sh | sh";
+    private const string WindowsInstaller = "irm https://rask.sh/rask.ps1 | iex";
 
     [Fact]
     public void Server_tab_is_the_default_and_leads_with_the_installer()

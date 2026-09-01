@@ -200,7 +200,7 @@ public sealed partial class PlaygroundView : Component
                         .OnClickAsync(RunAsync)[_busy ? "Running…" : "Run ▸"],
                     // Cross-app links back to the docs + repo, and the shared light/dark toggle.
                     A
-                        .Href("https://pal-tamas.github.io/rask/docs/")
+                        .Href("https://rask.sh/docs/")
                         .Target("_blank")
                         .Rel("noopener")
                         .Class(Ui.Button)["Docs"],

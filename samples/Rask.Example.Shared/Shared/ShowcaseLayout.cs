@@ -98,7 +98,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 // Server and WASM showcases (and runs locally), neither of which serves a /playground
                 // route — so link to the one place it actually lives (absolute), opened in a new tab.
                 A
-                    .Href("https://pal-tamas.github.io/rask/playground/")
+                    .Href("https://rask.sh/playground/")
                     .Target("_blank")
                     .Rel("noopener")
                     .Class(Ui.BtnPrimary)[Icon.Name(IconName.PlayFill), "Playground"],

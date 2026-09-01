@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Table test for rask.sh — the public installer served at https://pal-tamas.github.io/rask/rask.sh.
+# Table test for rask.sh — the public installer served at https://rask.sh/rask.sh.
 #
 # Two halves, and the second is the point.
 #
@@ -304,8 +304,8 @@ check "--help and the parser agree on flags" "$help_flags" "$parser_flags"
 # them drifting apart, and a wrong URL in the README is a broken front door.
 
 echo "==> install URL consistency"
-sh_url="https://pal-tamas.github.io/rask/rask.sh"
-ps1_url="https://pal-tamas.github.io/rask/rask.ps1"
+sh_url="https://rask.sh/rask.sh"
+ps1_url="https://rask.sh/rask.ps1"
 
 for f in \
     rask.sh \
@@ -340,6 +340,22 @@ check "pages.yml publishes rask.sh" yes \
     "$(grep -qE 'cp .*rask\.sh' .github/workflows/pages.yml && printf yes || printf no)"
 check "pages.yml publishes rask.ps1" yes \
     "$(grep -qE 'cp .*rask\.ps1' .github/workflows/pages.yml && printf yes || printf no)"
+
+# The site moved from a project sub-path (pal-tamas.github.io/rask/) to the apex custom domain
+# rask.sh, so it is served from the ORIGIN ROOT. That makes the landing app's RaskPathBase a
+# liability rather than a requirement: _RaskRewriteBaseHref would rewrite its <base href> to
+# "/rask/" and every asset URL — all document-relative off that base — would 404 on rask.sh.
+# Nothing else in the repo reads pages.yml, so this regression ships green.
+check "pages.yml roots the landing app at the origin" "" \
+    "$(grep -n 'Rask\.Example\.Site.*RaskPathBase' .github/workflows/pages.yml || true)"
+check "pages.yml uses no /<repo> sub-path" "" \
+    "$(grep -nF 'RaskPathBase=/${{ github.event.repository.name }}' .github/workflows/pages.yml || true)"
+
+# The custom domain, emitted into the bundle so it is reproducible from the tree. GitHub takes the
+# domain from the repo's Pages setting, which no diff ever shows; this file is the copy a reviewer
+# can actually see, and it has to agree with the host every doc advertises.
+check "pages.yml emits the CNAME" yes \
+    "$(grep -qE '^ *echo "rask\.sh" > "\$SITE/CNAME"$' .github/workflows/pages.yml && printf yes || printf no)"
 
 # --- gate wiring --------------------------------------------------------------------------------
 # rask.sh and rask.ps1 sit at the REPO ROOT, and the pre-commit hook's path filter is a list of

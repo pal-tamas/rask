@@ -3,12 +3,12 @@
 One command, on a machine with nothing on it:
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
+curl -sSL https://rask.sh/rask.sh | sh
 ```
 
 ```powershell
 # Windows
-irm https://pal-tamas.github.io/rask/rask.ps1 | iex
+irm https://rask.sh/rask.ps1 | iex
 ```
 
 That installs the `rask` CLI **and the dependencies the CLI actually shells out to**, then runs
@@ -43,7 +43,7 @@ Node is downloaded from `nodejs.org` and its **SHA-256 is verified against the p
 ## Options
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh -s -- --prerelease
+curl -sSL https://rask.sh/rask.sh | sh -s -- --prerelease
 ```
 
 The `-s --` is how you pass an option through a pipe: `sh` reads the script from stdin, and
@@ -66,7 +66,7 @@ On Windows the same options are PowerShell switches (`-Prerelease`, `-NoNode`, `
 cannot pass arguments, so use a script block when you need one:
 
 ```powershell
-& ([scriptblock]::Create((irm https://pal-tamas.github.io/rask/rask.ps1))) -Prerelease
+& ([scriptblock]::Create((irm https://rask.sh/rask.ps1))) -Prerelease
 ```
 
 ### Install locations
@@ -141,7 +141,7 @@ SDK and Node already installed, `--no-sdk --no-node` reduces that to `nuget.org`
 this repository — read it at [`rask.sh`](https://github.com/pal-tamas/rask/blob/main/rask.sh), or:
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh -o rask.sh
+curl -sSL https://rask.sh/rask.sh -o rask.sh
 less rask.sh
 sh rask.sh --dry-run     # prints every step, changes nothing
 sh rask.sh

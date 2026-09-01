@@ -25,6 +25,29 @@ them until tagged releases begin.
   `scripts/tests/attribution-guard.test.sh` states 32 cases in both directions: the trailers that
   actually reached `main` are rejected, and a human `Signed-off-by:`, a merge commit, and a body that
   merely *discusses* the trailer all still pass.
+### Changed
+- **The site and the installers move to the project's own domain, `https://rask.sh`.** Everything the
+  docs advertise as a URL — the landing page, the docs showcase, the playground, and the one-line
+  installers — now lives on the apex domain instead of `pal-tamas.github.io/rask/`:
+
+  ```sh
+  curl -sSL https://rask.sh/rask.sh | sh          # was pal-tamas.github.io/rask/rask.sh
+  irm https://rask.sh/rask.ps1 | iex
+  ```
+
+  Nothing breaks: GitHub 301s the old project-pages URLs to the new host, so an install command
+  already pasted in a blog post or a CI script keeps working under `curl -sSL` / `irm`, and
+  `www.rask.sh` redirects to the apex. The installer keeps its `/rask.sh` path rather than moving to
+  `/install.sh`, so the served filename still matches the file in the repo.
+
+  The load-bearing part of the move is invisible in the docs: a custom apex domain serves the site
+  from the **origin root**, where the project-pages deploy served it from `/rask/`. The landing app
+  therefore publishes with no `RaskPathBase` at all — passing the old `/<repo>` sub-path would rewrite
+  its `<base href>` to `/rask/` and 404 every asset, since each asset URL the SDK emits is
+  document-relative off that base. The two nested apps keep a path (`/docs`, `/playground`). Three new
+  assertions in `scripts/tests/install-script.test.sh` pin this: the landing app must carry no
+  `RaskPathBase`, no publish step may reintroduce the `/<repo>` sub-path, and the bundle must emit the
+  `CNAME`. Nothing else in the repo reads `pages.yml`, so that regression would otherwise ship green.
 
   The suite makes commits, so it also proves it made them somewhere else. git exports `GIT_DIR` to
   the hooks it invokes, and this file runs under `pre-commit`: on its first run the throwaway

@@ -13,7 +13,7 @@ Rask-specific ideas, not the language.
 
 > **Coming from Blazor?** Skim [migrating from Blazor](migration-from-blazor.md) for the concept
 > mapping (`@page` → `[Route]`, `[Parameter]` → a property, `EventCallback` → a plain delegate). **Just
-> want to look first?** Click through the [live demo](https://pal-tamas.github.io/rask/docs/) — a full
+> want to look first?** Click through the [live demo](https://rask.sh/docs/) — a full
 > multi-page Rask app, no install needed.
 
 ## Before you start
@@ -39,7 +39,7 @@ setup, and the components you write are identical across hosts, so nothing you l
 you switch later.
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh   # one-time: the rask CLI + what it needs
+curl -sSL https://rask.sh/rask.sh | sh   # one-time: the rask CLI + what it needs
 
 rask new MyApp                       # create a server app in ./MyApp (server is the default)
 ```

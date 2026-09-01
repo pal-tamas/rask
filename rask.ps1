@@ -19,11 +19,11 @@
     property structurally, because sh executes as it reads.
 
 .EXAMPLE
-    irm https://pal-tamas.github.io/rask/rask.ps1 | iex
+    irm https://rask.sh/rask.ps1 | iex
 
 .EXAMPLE
     # `iex` cannot pass arguments, so use a script block when you need a flag.
-    & ([scriptblock]::Create((irm https://pal-tamas.github.io/rask/rask.ps1))) -Prerelease
+    & ([scriptblock]::Create((irm https://rask.sh/rask.ps1))) -Prerelease
 
 .NOTES
     Exit codes: 0 ok · 1 something failed · 2 bad arguments (matching the CLI's own error surface).

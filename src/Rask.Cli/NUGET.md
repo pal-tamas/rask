@@ -8,7 +8,7 @@ a single host over SSH — all with short, Rask-aware commands.
 ## Install
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
+curl -sSL https://rask.sh/rask.sh | sh
 ```
 
 That adds the .NET 10 SDK, this tool, and the dependencies it shells out to (`dotnet-ef`, the

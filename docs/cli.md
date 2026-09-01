@@ -11,7 +11,7 @@ a consistent copy of a live database — and it never gets in the way of the too
 ## Install
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
+curl -sSL https://rask.sh/rask.sh | sh
 ```
 
 That puts a `rask` command on your `PATH`, along with the .NET 10 SDK and the dependencies the CLI

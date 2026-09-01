@@ -65,12 +65,12 @@ actually runs.
 You need the **.NET 10 SDK** and the **`rask` CLI**. One command gets you both:
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
+curl -sSL https://rask.sh/rask.sh | sh
 ```
 
 It installs the SDK only if you don't already have one, adds the `rask` command, and finishes by
 running `rask doctor` so you can see where you stand. Everything lands under `$HOME` — no `sudo`.
-On Windows, use `irm https://pal-tamas.github.io/rask/rask.ps1 | iex`.
+On Windows, use `irm https://rask.sh/rask.ps1 | iex`.
 
 Already set up? `dotnet --version` should print `10.0` or newer, and
 `dotnet tool install -g Rask.Cli` (or `dotnet tool update -g Rask.Cli`) is all you need. Full
