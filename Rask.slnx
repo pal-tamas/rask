@@ -72,6 +72,7 @@
         <Project Path="tests/Rask.Cqrs.Codecs.Tests/Rask.Cqrs.Codecs.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Client.Tests/Rask.Cqrs.Client.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Server.Tests/Rask.Cqrs.Server.Tests.csproj"/>
+        <Project Path="tests/Rask.Cqrs.Transport.Tests/Rask.Cqrs.Transport.Tests.csproj"/>
         <Project Path="tests/Rask.Dashboard.Tests/Rask.Dashboard.Tests.csproj"/>
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj"/>
         <Project Path="tests/Rask.Html.Tests/Rask.Html.Tests.csproj"/>

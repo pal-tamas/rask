@@ -53,6 +53,33 @@ public sealed class WasmCookieAuthExampleTests : IAsyncLifetime
         await Expect(_page.Locator("#admin-note"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
+        // 2b. Remote CQRS dispatch, from the bundle to the host it was served by. The two transport
+        //     halves are only ever put in front of each other here and in Rask.Cqrs.Transport.Tests —
+        //     and only here over a real fetch, with a real HttpOnly cookie, from a client whose
+        //     HttpClient.BaseAddress was read back through the JS module after boot (#896).
+        //
+        //     The query answers with the identity the SERVER sees, so "root" appearing in it is proof
+        //     that the dispatch carried the session rather than a name the message supplied.
+        await Expect(_page.Locator("#cqrs-whoami"))
+            .ToContainTextAsync("The server sees root (admin)",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+
+        // The command half: a POST, answered with server state that changed because of it. Asserted on
+        // the response as well as on the rendering — a 2xx on the endpoint is the thing #896 asked for,
+        // and a rendering alone could not tell a served answer from a cached one.
+        var dispatched = await _page.RunAndWaitForResponseAsync(
+            () => _page.Locator("#cqrs-visit").ClickAsync(),
+            response => response.Url.Contains("/_rask/cqrs/request/", StringComparison.Ordinal)
+                        && response.Request.Method == "POST",
+            new PageRunAndWaitForResponseOptions { Timeout = 30_000 });
+
+        Assert.True(
+            dispatched.Ok,
+            $"the command dispatch was refused: {dispatched.Status} {dispatched.StatusText} {dispatched.Url}");
+
+        await Expect(_page.Locator("#cqrs-visits"))
+            .ToHaveTextAsync("1", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
         // 3. Sign out → back to /login.
         await _page.Locator("#logout").ClickAsync();
         await Expect(_page).ToHaveURLAsync(new Regex(@"/login"),
@@ -67,5 +94,11 @@ public sealed class WasmCookieAuthExampleTests : IAsyncLifetime
         await Expect(_page.Locator("#members-greeting"))
             .ToContainTextAsync("alice", new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
         await Expect(_page.Locator("#admin-note")).ToHaveCountAsync(0);
+
+        // And the dispatch follows the session rather than the page: the same query, the same bundle,
+        // a different answer because a different cookie rode it.
+        await Expect(_page.Locator("#cqrs-whoami"))
+            .ToContainTextAsync("The server sees alice (user)",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
     }
 }

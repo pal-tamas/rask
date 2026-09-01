@@ -171,6 +171,20 @@ connection string, a table name or a pricing rule out of a download anybody can 
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a
 client's own handlers still run *and* the notification travels.
 
+**Two projects instead of one works the same way, with one extra line.** Where a bundle and its host are
+separate projects, the message records have to reach both compilations — link the file rather than
+duplicating it, and there is still exactly one declaration:
+
+```xml
+<!-- In the HOST's csproj. The messages live with the call sites; the handlers stay here. -->
+<Compile Include="..\MyApp.Browser\Shared\RemoteMessages.cs" Link="Shared\RemoteMessages.cs"/>
+```
+
+[`samples/Rask.Example.Auth.WasmCookie`](../samples/Rask.Example.Auth.WasmCookie) and its host are that
+arrangement end to end, over cookie auth: the members page asks the server who is calling, and the
+answer is the identity the *server* sees — proof the session cookie rode the dispatch, since the message
+carries no name at all.
+
 ### Two endpoints, not one per message
 
 `GET` and `POST` on `/_rask/cqrs/request/{name}`. The verb carries what `IQuery` and `ICommand` already
@@ -258,6 +272,20 @@ multipart upload of a 500 MB file costs 500 MB *in the tab*. Above the threshold
 bounded pieces first and the message follows carrying only the session id, which is what keeps the
 request small as well as the read. Raising it raises the browser's peak memory by the same amount.
 
+**The download direction is the one `fetch` does stream, and one property decides it.** The transport
+asks for the response headers first (`HttpCompletionOption.ResponseHeadersRead`), but in the browser
+that only means anything while `WasmEnableStreamingResponse` is on — the WASM SDK defaults it to `true`,
+and `false` makes `BrowserHttpHandler` buffer the whole body before the caller is handed a stream. So a
+constant-memory export stops being constant-memory the moment an app sets:
+
+```xml
+<!-- Don't. A FileDownload is then materialised whole in the tab. -->
+<WasmEnableStreamingResponse>false</WasmEnableStreamingResponse>
+```
+
+The published bundle is checked for that flag by the browser-rung publish gate, because the default
+belongs to the SDK rather than to Rask and could otherwise change under the claim (#894).
+
 **A dropped chunk resumes.** Every chunk response echoes `X-Rask-Upload-Offset`, and a chunk that does
 not follow on from what the server holds is answered `409` carrying the offset it *does* hold — 409
 rather than 400 because the request is well-formed, it is just out of step. The client restarts from
@@ -313,3 +341,12 @@ Handlers are plain classes — unit-test them directly, no dispatcher required. 
 `AddRaskCqrs` into a `ServiceCollection`, build the provider, and dispatch. See
 [`tests/Rask.Cqrs.Tests`](../tests/Rask.Cqrs.Tests) and the generator tests in
 [`tests/Rask.Batteries.Generators.Tests`](../tests/Rask.Batteries.Generators.Tests).
+
+**The transport is tested with both halves in front of each other**, in
+[`tests/Rask.Cqrs.Transport.Tests`](../tests/Rask.Cqrs.Transport.Tests) — the real client building the
+request, the real endpoint receiving it. Note what that project cannot do, because it is a property of
+the design rather than of the test: `AddRaskCqrsClient()` installs its remote invokers into the
+**process-wide** `CqrsRegistry`, and the endpoint dispatches through that same registry, so a process
+that registers both halves sends every message it receives straight back out. A client process and a
+server process are two processes — that is the assumption, and it is worth knowing before you try to
+register both in one app.

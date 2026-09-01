@@ -21,11 +21,28 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
+    <!-- The endpoint half. Its counterpart, Rask.Cqrs.Client, is referenced by the browser project
+         only — the process that answers the endpoints has no business calling them. -->
+    <ProjectReference Include="..\..\src\Rask.Cqrs.Server\Rask.Cqrs.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\Rask.Example.Auth.WasmCookie\Rask.Example.Auth.WasmCookie.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!--
+    The message contract, compiled into BOTH halves from one file. The browser project owns it because
+    that is where the call sites are; the handlers live here and never travel. This is the two-project
+    spelling of what the CLI's wasm scaffold does with one project and a Browser/ folder — either way
+    there is exactly one declaration of the message, so the two sides cannot drift apart.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Example.Auth.WasmCookie\Shared\RemoteMessages.cs"
+             Link="Shared\RemoteMessages.cs"/>
   </ItemGroup>
 
   <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">

@@ -33,6 +33,15 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The one project that puts this transport in front of the real Rask.Cqrs.Server endpoint. It
+         constructs RemoteDispatch instead of calling AddRaskCqrsClient(), because that registration
+         installs remote invokers into the process-wide CqrsRegistry the server half dispatches
+         through — in one process that would make the server bounce every message straight back out.
+         See the remarks on its Wire harness. -->
+    <InternalsVisibleTo Include="Rask.Cqrs.Transport.Tests"/>
+  </ItemGroup>
+
   <!--
     The generator is deliberately NOT packed here. This package depends on Rask.Cqrs, which already ships
     it under analyzers/dotnet/cs/, and analyzer assets DO flow through a package dependency. Packing a
