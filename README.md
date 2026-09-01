@@ -30,9 +30,10 @@ public sealed partial class Counter : Component
 ## Install
 
 ```bash
-curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh    # macOS / Linux
-irm https://pal-tamas.github.io/rask/rask.ps1 | iex        # Windows
+curl -sSL https://pal-tamas.github.io/rask/rask.sh | sh
 ```
+
+On Windows, in PowerShell: `irm https://pal-tamas.github.io/rask/rask.ps1 | iex`.
 
 **Prerequisites: none.** The installer adds whatever is missing — the .NET 10 SDK, the `wasm-tools`
 workload, Node — all under `$HOME`, no `sudo`. Already have the SDK and want only the tool?
@@ -81,7 +82,8 @@ rask new Shop --template react
 A `.tsx` or Lit file as an *ordinary* Rask component. Derive from `ReactComponent`, drop `Chart.tsx`
 beside it, and place it anywhere the chain goes — a leaf inside a card, or a whole route. Props are
 declared in C#, callbacks re-enter C# over the channel every handler already uses, and the live diff
-leaves the subtree alone because its own renderer owns it.
+leaves the subtree alone because its own renderer owns it. This is the one pillar `Rask` does not
+bring on its own: add `Rask.External`, and Node, because your React does.
 
 ```csharp
 public sealed partial class Chart : ReactComponent
@@ -95,13 +97,14 @@ public sealed partial class Chart : ReactComponent
 ## Ship it
 
 ```bash
-rask db add InitialCreate && rask db update               # create + apply the SQLite migration
-rask dev                                                  # run it, hot-reloading
+rask dev                                                  # run it — the first migration is already applied
+rask db add AddProducts && rask db update                 # after you change the model
 rask deploy --host root@box --domain shop.example.com     # bare box → Docker + auto-HTTPS, zero-downtime
 ```
 
-Auth, jobs, mail, cache and events are on by default, and every one of them rides the app's own SQLite
-database. Run `rask` with no arguments for a wizard.
+Jobs, mail, cache and events are on by default, and every one of them rides the app's own SQLite
+database. Auth is the one you ask for: `rask new Shop --auth` scaffolds a cookie login. Run `rask` with
+no arguments for a wizard.
 
 ## Documentation
 
@@ -121,7 +124,7 @@ The full index is **[`docs/`](docs/)**, and the other packages are listed in
 *Rask* is the Norwegian/Danish/Swedish word for **fast**, and the engine earns it: after first paint a
 counter tick on a 24 KB page goes out as ~41 bytes. It ships fewer bytes on the wire than Blazor on
 every scenario in the head-to-head suite, allocates ~40× less per update and holds a ~30% leaner
-retained tree per mounted page — the CI-enforced numbers are in the
+retained tree per mounted page — the numbers, enforced by the local pre-push gate, are in the
 **[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
 
 ## Status
