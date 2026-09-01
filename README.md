@@ -14,7 +14,7 @@
 One developer builds, runs and ships a *complete* product — the UI, the data, the auth, the background
 work and the deployment — from **one C# codebase on one server**, with **SQLite as the production
 database**. Components are plain C# classes that return a tree of HTML from `Render()`: state is a
-field, an event handler is a delegate, and there is no `.razor`, no JSX and no JavaScript to write.
+field, and an event handler is a delegate.
 
 ```csharp
 [Route("/counter")]
@@ -23,11 +23,7 @@ public sealed partial class Counter : Component
     private int _count;
 
     protected override Component? Render() =>
-    [
-        H1["Counter"],
-        P[$"Current count: {_count}"],
-        Button.OnClick(() => _count++)["Click me"]
-    ];
+        Button.OnClick(() => _count++)[$"Current count: {_count}"];
 }
 ```
 
