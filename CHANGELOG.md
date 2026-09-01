@@ -8,6 +8,25 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+
+- **The Counter sample is pinned across its three front doors.** It is written in `README.md`, in
+  `NUGET.md` (packed into every package, so the nuget.org page) and in the landing site's hero, and
+  nothing held them together. They drifted exactly as you would expect: #924 cut the sample to one
+  button and left the other two on the old three-line version, and the hero had been sitting on
+  `Counter : Page` with a `protected override string Route` — an API deleted from the tree long
+  before — so the first Rask code a visitor read could not compile. Both were caught by reading them.
+
+  `scripts/tests/front-doors.test.sh` now asserts the three are the same code, normalising the hero's
+  syntax-highlighted HTML back to plain C# before comparing. It also pins its own extractors, since a
+  regex that silently matches nothing is how this kind of guard becomes a no-op.
+
+  **Wiring is the point.** `README.md` and `NUGET.md` sit at the repo root and match none of the
+  pre-commit filter's directory prefixes, so a README typo fix was precisely the commit that would
+  skip a guard written to catch README drift — the `rask.sh` shape again. `pre-commit` therefore runs
+  this one test on its own path list rather than widening the main filter: the guard takes ~0.08s,
+  where the full format + unit gate takes minutes, and making every typo fix pay for that is the cost
+  [`install-script.test.sh`](scripts/tests/install-script.test.sh) had explicitly declined to impose.
+  The hero needs no entry, living under `samples/`, which already runs the whole gate.
 - **The git hooks reject attribution trailers, at both boundaries.** `Co-authored-by:`,
   `Claude-Session:` and "Generated with …" footers are refused by `.githooks/commit-msg` at commit
   time and again by `.githooks/pre-push` over the commits actually being pushed. The rule was already
