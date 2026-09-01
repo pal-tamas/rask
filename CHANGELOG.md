@@ -62,6 +62,14 @@ them until tagged releases begin.
   wrong identifier at one call site; every descriptor was perfectly well formed, which is why nothing
   caught it. `ExternalGenerator` had no test coverage of any kind, and RASK056-059 have it now.
 
+- **A Lit element written with decorators silently never mounts.** `@customElement` and `accessor`
+  are standard-decorator syntax that the *bundler* has to lower, and Vite's oxc-based transform does
+  not. Nothing reports it: the chunk builds, ships and loads, the element never upgrades, and the
+  island renders empty with a clean console and a clean build log. Documented, with the decorator-free
+  `static properties` + `customElements.define` form — the same API with no transform to depend on —
+  and the showcase's Lit island written that way. Caught by the new browser coverage, which is the
+  only thing that could have caught it.
+
 - **An unknown island runtime is refused rather than defaulted to React.** A typo in a hand-written
   `<RaskExternal Runtime="vue3"/>` used to generate a React entry for a Vue component: the build
   succeeded, the bundle shipped, the chunk loaded, and nothing mounted.

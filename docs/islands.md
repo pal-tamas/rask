@@ -396,6 +396,13 @@ lives somewhere that pairing cannot reach — the build-side counterpart of over
 A Lit module default-exports its registered tag name, which is how the generated entry knows
 what to create — a custom element registers its own tag and nothing about the file reveals it.
 
+> **Write a Lit element without decorators.** `@customElement` and `accessor` are standard-decorator
+> syntax, and the *bundler* is what has to lower them — Vite's oxc-based transform does not. The
+> failure is silent in the worst way: the chunk builds, ships, and loads, and the element simply never
+> upgrades, so the island renders empty with nothing in the console and nothing in the build log. Use
+> `static properties` plus `customElements.define('my-tag', MyElement)`, which is the same API with no
+> transform to depend on.
+
 > **A Lit island collides with scoped TypeScript.** Both features are spelled `Name.ts` beside
 > `Name.cs`, and nothing in MSBuild can tell them apart: the only difference is whether the class
 > derives from `LitComponent`, which Roslyn knows and a glob does not. It bites in both directions —
