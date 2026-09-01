@@ -384,18 +384,13 @@ public partial class App : Component
     // Static, trusted syntax-highlighted markup for the Counter.cs sample (global .t-* classes).
     private const string CounterCodeHtml =
         """
-        <span class="t-key">public sealed partial class</span> <span class="t-type">Counter</span> : <span class="t-type">Page</span>
+        [<span class="t-type">Route</span>(<span class="t-str">"/counter"</span>)]
+        <span class="t-key">public sealed partial class</span> <span class="t-type">Counter</span> : <span class="t-type">Component</span>
         {
-            <span class="t-key">protected override string</span> Route =&gt; <span class="t-str">"/counter"</span>;
-
             <span class="t-key">private int</span> _count;
 
             <span class="t-key">protected override</span> <span class="t-type">Component</span>? <span class="t-fn">Render</span>() =&gt;
-            [
-                <span class="t-type">H1</span>[<span class="t-str">"Counter"</span>],
-                <span class="t-type">P</span>[<span class="t-str">$"Current count: {_count}"</span>],
-                <span class="t-type">Button</span>.<span class="t-fn">OnClick</span>(() =&gt; _count++)[<span class="t-str">"Click me"</span>]
-            ];
+                <span class="t-type">Button</span>.<span class="t-fn">OnClick</span>(() =&gt; _count++)[<span class="t-str">$"Current count: {_count}"</span>];
         }
         """;
 }
