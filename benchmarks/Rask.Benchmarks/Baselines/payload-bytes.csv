@@ -1,7 +1,7 @@
 Scenario,FullPayloadBytes,DiffPayloadBytes,DiffOpCount
-CounterOnLargePage,66838,45,1
-KeyedList100Reorder,6691,47,1
-TextNodeUpdate,66721,54,1
-AppendRowToList100,6759,112,1
-RawGuidePage,1770,661,1
-HandlerShiftAboveList100,15133,94,1
+CounterOnLargePage,67033,45,1
+KeyedList100Reorder,6791,47,1
+TextNodeUpdate,66921,54,1
+AppendRowToList100,6860,113,1
+RawGuidePage,1782,661,1
+HandlerShiftAboveList100,15228,94,1
