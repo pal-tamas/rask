@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Rask.Api` — API controllers and minimal API endpoints, hosted properly.** `AddRaskApi()` +
+  `MapRaskApi()`. Controllers are mapped (nothing in `src/` referenced MVC before this), and a request
+  under the API prefix that matches **nothing** now answers 404 with an RFC 9457 problem document.
+
+  That second part is the real defect, and it is not the one the docs used to describe. Endpoint
+  routing matches on precedence, so an app's own routes were never at risk from `UseRask`'s catch-all.
+  An *unmatched* path was: it reached the catch-all and rendered the app, so a mistyped or deleted API
+  route answered `200` with a web page and the caller's JSON parse failed a long way from the cause.
+
+  The guard is an ordinary endpoint at the default order, not a fallback. A fallback sits at
+  `int.MaxValue` and loses to the catch-all — checked, not assumed: swapping `MapMethods` for
+  `MapFallback` turns three tests in `NotFoundGuardTests` red. At the same order `/api/{**rest}`
+  outranks `/{**path}`, and loses in turn to every real route beneath it. It names every verb, so a
+  POST to a wrong path answers 404 rather than a 405 that would claim the route exists.
+
+  `ApiOptions` carries `Prefix` (default `/api`), `NotFound` and `Controllers`. `MapRaskApi()` returns
+  the endpoint group, so rate limiting, CORS or output caching attach to the whole API in one line.
+
 ### Changed
 
 - **BREAKING: `WireJson`, `RemoteFile` and `FileDownload` moved from `Rask.Cqrs` to a new `Rask.Wire`

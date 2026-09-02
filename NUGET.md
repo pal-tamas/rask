@@ -73,6 +73,7 @@ a `modelBuilder.AddRaskX()` schema line:
 
 ```bash
 dotnet add package Rask.Data              # base entity + EF interceptors (soft delete, concurrency, events)
+dotnet add package Rask.Api               # host API controllers and minimal APIs, with a real 404 under /api
 dotnet add package Rask.Wire              # reflection-free JSON primitives the generated codecs call
 dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
 dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM client
