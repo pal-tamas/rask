@@ -70,6 +70,7 @@
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/Rask.Api.Client.Tests/Rask.Api.Client.Tests.csproj"/>
+        <Project Path="tests/Rask.Api.Generators.Tests/Rask.Api.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Api.Tests/Rask.Api.Tests.csproj"/>
         <Project Path="tests/Rask.Cache.Tests/Rask.Cache.Tests.csproj"/>
         <Project Path="tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj"/>
