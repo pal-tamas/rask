@@ -65,7 +65,7 @@ public class MetaFrameworkTests
     public void Next_reads_HOSTNAME_rather_than_HOST()
     {
         Assert.Equal("HOSTNAME", MetaFramework.Next.HostVariable);
-        Assert.Equal("server.js", MetaFramework.Next.ServerEntry);
+        Assert.Equal(".next/standalone/server.js", MetaFramework.Next.ServerEntry);
     }
 
     /// <summary>Everything else reads <c>HOST</c>, and all six read <c>PORT</c>.</summary>
@@ -86,6 +86,60 @@ public class MetaFrameworkTests
     }
 
     /// <summary>
+    ///     Next runs from inside its standalone directory; everything else from the app root.
+    /// </summary>
+    /// <remarks>
+    ///     Taken from each framework's own documented invocation rather than assumed to be uniform.
+    ///     Nitro and SvelteKit are documented as <c>node .output/server/index.mjs</c> from the app
+    ///     root; Next's Docker guidance copies the standalone tree to the working directory and runs
+    ///     <c>node server.js</c> from within it. Running Next from the app root instead would leave it
+    ///     resolving its own files against the wrong directory.
+    /// </remarks>
+    [Fact]
+    public void Only_next_runs_from_a_subdirectory()
+    {
+        Assert.Equal(".next/standalone", MetaFramework.Next.WorkingSubdirectory);
+
+        MetaFramework[] fromAppRoot =
+        [
+            MetaFramework.Nuxt,
+            MetaFramework.TanStackStart,
+            MetaFramework.SolidStart,
+            MetaFramework.Analog,
+            MetaFramework.SvelteKit,
+        ];
+
+        Assert.All(fromAppRoot, f => Assert.Equal(string.Empty, f.WorkingSubdirectory));
+    }
+
+    /// <summary>
+    ///     Every framework's client assets are declared, and Next needs two roots.
+    /// </summary>
+    /// <remarks>
+    ///     Nitro's four converge on <c>.output/public</c> the same way their server entries converge —
+    ///     which is what keeps this a table rather than a class hierarchy.
+    /// </remarks>
+    [Fact]
+    public void Client_assets_are_declared_for_every_framework()
+    {
+        Assert.Equal(
+            [new StaticRoot(string.Empty, ".output/public")],
+            MetaFramework.Nuxt.StaticRoots);
+        Assert.Equal(
+            [new StaticRoot(string.Empty, "dist/analog/public")],
+            MetaFramework.Analog.StaticRoots);
+        Assert.Equal(
+            [new StaticRoot(string.Empty, "build/client")],
+            MetaFramework.SvelteKit.StaticRoots);
+        Assert.Equal(
+            [
+                new StaticRoot(string.Empty, "public"),
+                new StaticRoot("/_next/static", ".next/static"),
+            ],
+            MetaFramework.Next.StaticRoots);
+    }
+
+    /// <summary>
     ///     A preset can be adjusted without restating it.
     /// </summary>
     /// <remarks>
@@ -99,6 +153,6 @@ public class MetaFrameworkTests
 
         Assert.Equal("custom/server.js", custom.ServerEntry);
         Assert.Equal("HOSTNAME", custom.HostVariable);
-        Assert.Equal("server.js", MetaFramework.Next.ServerEntry);
+        Assert.Equal(".next/standalone/server.js", MetaFramework.Next.ServerEntry);
     }
 }

@@ -86,6 +86,40 @@ them until tagged releases begin.
 
 ### Added
 
+- **The meta lane builds, publishes and serves its own assets — two lines of configuration.**
+  [#946](https://github.com/pal-tamas/rask/issues/946) continued: `dotnet build` now runs the
+  framework's own toolchain, `dotnet publish` copies its output next to the app, and Kestrel serves the
+  built client assets itself. See [`docs/meta.md`](docs/meta.md).
+
+  ```xml
+  <RaskMetaFramework>nuxt</RaskMetaFramework>
+  ```
+
+  ```csharp
+  builder.Services.AddRaskMeta();   // no argument: the build baked which framework
+  ```
+
+  **The framework is named once, in the project file**, because the build needs it there anyway to know
+  what to publish. Baking it into the assembly is what lets `AddRaskMeta()` take nothing and still be
+  certain it fronts the framework that was actually built; a C# option still overrides. The front end
+  lives in `Client/` inside the host project — one project owning both halves, since a meta framework
+  app has no separate client artifact for a host to reference.
+
+  **Kestrel serves the built client assets** rather than forwarding them: one hop less per asset, and
+  the immutable cache headers written for you. That makes good on a claim this package had to walk back
+  — Next's standalone output deliberately omits `public` and `.next/static` because it assumes a CDN,
+  and here Kestrel *is* the thing in front, so the omission stops being a problem instead of needing a
+  hand-written `cp`. The rule is **a file on disk**, never the shape of the URL, so a generated
+  `/sitemap.xml` still reaches the framework.
+
+  Each framework's working directory is taken from its own documented invocation rather than assumed
+  uniform: Nitro's and SvelteKit's run from the app root, Next's from inside `.next/standalone`.
+
+  The publish is gated by driving the **shipped** props and targets through a real `dotnet publish` and
+  asserting on the published tree. That is not ceremony: the first run of it found that the targets
+  file did not parse at all — an XML comment cannot contain `--`, and `npm ci --omit=dev` was sitting
+  in one — which a test reading the file as text would have passed straight over.
+
 - **`Rask.Meta.Hosting` — a meta framework front end and your C# in one container.** The first landing
   of [#946](https://github.com/pal-tamas/rask/issues/946): `AddRaskMeta()` supervises the framework's
   own Node server, and `UseRaskMeta()` forwards to it everything Kestrel did not answer itself.

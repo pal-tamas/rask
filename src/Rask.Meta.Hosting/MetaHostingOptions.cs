@@ -12,7 +12,7 @@ public sealed class MetaHostingOptions
     ///     The directory holding the framework's build output. Relative paths resolve against the
     ///     content root.
     /// </summary>
-    public string AppDirectory { get; set; } = "frontend";
+    public string AppDirectory { get; set; } = "Client";
 
     /// <summary>The <c>node</c> executable, resolved on <c>PATH</c> unless given a full path.</summary>
     public string NodeExecutable { get; set; } = "node";
