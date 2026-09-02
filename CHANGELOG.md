@@ -17,8 +17,16 @@ them until tagged releases begin.
   "./rask/browser/geolocation"` while Server and WASM keep resolving the same code by dotted
   identifier through the one module that registers the globals, `browser/globals.ts`.
 
-  This lands API by API; 32 modules have moved so far, and `rask-api.ts` is down from 1,975 lines to
-  516. Two rules hold for every module:
+  This lands API by API; 37 modules have moved so far. `rask-api.ts` is down from 1,975 lines to 443
+  and `rask-pwa.ts` is gone entirely, its four APIs (Web Push, notifications, badging, wake lock)
+  now ordinary modules like the rest.
+
+  What is deliberately NOT moving is as much of the design as what is. `RTCPeerConnection`, the
+  device APIs (serial, USB, HID, Bluetooth), `element.animate()`, `navigator.clipboard` and
+  `localStorage` stay where they are: they are native, well typed, and a wrapper would hand a
+  TypeScript caller something worse than `lib.dom.d.ts` already gives them. What survives the cut
+  either has a server half that is ours (`signaling`, `webPush`) or is ceremony nobody should write
+  twice (`webAuthn`'s base64url dance, OPFS's ranged writes, the wake lock's re-acquire). Two rules hold for every module:
   the names are idiomatic TypeScript (`getCurrentPosition`, not `GetCurrentPositionAsync`, and the
   platform's own name wins wherever it has one), and **side effects live in `globals.ts` alone** —
   a module that touched `window` at import time would break a Next or Nuxt server render and would
@@ -38,6 +46,23 @@ them until tagged releases begin.
   no use for it. See [TypeScript front ends → Browser APIs](docs/spa.md#browser-apis).
 
 ### Fixed
+
+- **A `--push` client lost its push code on a fresh clone ([#957](https://github.com/pal-tamas/rask/issues/957)).**
+  `rask new --push` wrote `push.ts` into the client's `src/rask/` — the directory the same scaffolder
+  adds to `.gitignore`, because everything else in it is regenerated from the package on every build.
+  `push.ts` was not: it was written once, by the CLI, and by nothing afterwards. So it was never
+  committed, a fresh clone did not have it, and the client failed to build on an unresolved import in a
+  project whose `--push` flag was the entire reason the file existed.
+
+  Split rather than moved, because the file was doing two jobs. The browser ceremony — the base64url
+  VAPID key, and flattening a `PushSubscription` into the shape the host binds — is
+  `rask/browser/webPush`, copied from the package like the rest of the layer. What is left is the app's
+  own wiring (which endpoints, and when to ask for permission), scaffolded to `src/push.ts` as an
+  ordinary committed file the developer owns and edits.
+
+  The test is the general form rather than this instance: no scaffolded file may land under any
+  directory the scaffold itself gitignores. Verified by putting the path back and watching it fail,
+  naming the file.
 
 - **Two build gates were green over code they never read.** The framework's own TypeScript is
   type-checked from a list of files, guarded against going stale by an enumeration that used

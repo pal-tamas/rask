@@ -411,20 +411,24 @@ Available today — the layer is moving over one API at a time:
 | **Identity & crypto** | `webAuthn` · `crypto` · `permissions` |
 | **Coordination** | `broadcastChannel` · `webLocks` |
 | **Media & speech** | `mediaSession` · `speechSynthesis` · `speechRecognition` |
-| **Other** | `networkInformation` · `performance` · `installPrompt` · `eyeDropper` |
+| **PWA** | `webPush` · `notifications` · `badge` · `wakeLock` · `installPrompt` |
+| **Peer to peer** | `signaling` |
+| **Other** | `networkInformation` · `performance` · `eyeDropper` |
 
-Still to come: signaling and WebRTC, and Web Push (which today has its own `rask/push.ts`).
+Note what is **not** here, because the line matters more than the list. `clipboard` is
+`navigator.clipboard.writeText`, `localStorage` is `localStorage`, and `element.animate()` is already a
+method on the element — wrapping those would hand you a worse version of what `lib.dom.d.ts` already
+types. The same goes for `RTCPeerConnection` and the device APIs (`serial`, `usb`, `hid`, `bluetooth`):
+native, well typed, and yours to call. `signaling` is here precisely because it is the exception — the
+relay it connects to is Rask's, so it is not something you could write against nothing.
 
-Some of these you would never write yourself and some you would never want to. `webAuthn` is the
-clearest of the first kind: the platform deals in `ArrayBuffer`s while every relying party speaks
-base64url, so the module takes and returns base64url on both sides and a passkey ceremony is two
-calls. `originPrivateFileSystem` is the other: ranged reads and writes into the origin's private tree,
-with `keepExistingData` set — without which a ranged write silently discards every byte outside the
-range it wrote.
-
-Note what is **not** here. `clipboard` is `navigator.clipboard.writeText`, `localStorage` is
-`localStorage`, and `element.animate()` is already a method on the element. Wrapping those would give
-you a worse version of what `lib.dom.d.ts` already types.
+These are the ones you would rather not write. `webAuthn` is the clearest: the platform deals in
+`ArrayBuffer`s while every relying party speaks base64url, so the module takes and returns base64url on
+both sides and a passkey ceremony is two calls. `originPrivateFileSystem` does ranged reads and writes
+into the origin's private tree with `keepExistingData` set — without which a ranged write silently
+discards every byte outside the range it wrote. `wakeLock` re-acquires the lock when the page becomes
+visible again, because the browser takes it away when the page is hidden and does not give it back,
+which is how a recipe left open quietly stops keeping the screen on.
 
 Names are idiomatic TypeScript, and where the platform already has a name it keeps it —
 `getCurrentPosition`, not `GetCurrentPositionAsync`. Subscriptions hand back a stop function rather

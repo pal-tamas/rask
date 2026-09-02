@@ -14,6 +14,7 @@
 // side effect — ./globals.ts, which publishes the `window.__rask*` namespaces Rask's own C# wrappers
 // resolve against — is deliberately not re-exported here: a front end never needs it.
 
+export * as badge from "./badge.js";
 export * as battery from "./battery.js";
 export * as broadcastChannel from "./broadcastChannel.js";
 export * as cookies from "./cookies.js";
@@ -33,6 +34,7 @@ export * as mediaQuery from "./mediaQuery.js";
 export * as mediaSession from "./mediaSession.js";
 export * as mutationObserver from "./mutationObserver.js";
 export * as networkInformation from "./networkInformation.js";
+export * as notifications from "./notifications.js";
 export * as originPrivateFileSystem from "./originPrivateFileSystem.js";
 export * as performance from "./performance.js";
 export * as permissions from "./permissions.js";
@@ -40,9 +42,12 @@ export * as pictureInPicture from "./pictureInPicture.js";
 export * as resizeObserver from "./resizeObserver.js";
 export * as screen from "./screen.js";
 export * as screenOrientation from "./screenOrientation.js";
+export * as signaling from "./signaling.js";
 export * as speechRecognition from "./speechRecognition.js";
 export * as speechSynthesis from "./speechSynthesis.js";
 export * as storageManager from "./storageManager.js";
 export * as visualViewport from "./visualViewport.js";
+export * as wakeLock from "./wakeLock.js";
 export * as webAuthn from "./webAuthn.js";
 export * as webLocks from "./webLocks.js";
+export * as webPush from "./webPush.js";

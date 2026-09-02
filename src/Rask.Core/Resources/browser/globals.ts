@@ -20,6 +20,7 @@
 // break — the identifier simply fails to resolve at run time, in the browser, with no compiler
 // anywhere in the path to notice.
 
+import * as badge from "./badge.js";
 import * as battery from "./battery.js";
 import * as broadcastChannel from "./broadcastChannel.js";
 import * as cookies from "./cookies.js";
@@ -39,6 +40,7 @@ import * as mediaQuery from "./mediaQuery.js";
 import * as mediaSession from "./mediaSession.js";
 import * as mutationObserver from "./mutationObserver.js";
 import * as networkInformation from "./networkInformation.js";
+import * as notifications from "./notifications.js";
 import * as opfs from "./originPrivateFileSystem.js";
 import * as performance from "./performance.js";
 import * as permissions from "./permissions.js";
@@ -46,12 +48,15 @@ import * as pictureInPicture from "./pictureInPicture.js";
 import * as resizeObserver from "./resizeObserver.js";
 import * as screenInfo from "./screen.js";
 import * as screenOrientation from "./screenOrientation.js";
+import * as signaling from "./signaling.js";
 import * as speechRecognition from "./speechRecognition.js";
 import * as speechSynthesis from "./speechSynthesis.js";
 import * as storageManager from "./storageManager.js";
 import * as visualViewport from "./visualViewport.js";
+import * as wakeLock from "./wakeLock.js";
 import * as webAuthn from "./webAuthn.js";
 import * as webLocks from "./webLocks.js";
+import * as webPush from "./webPush.js";
 
 window.__raskApi = window.__raskApi || {
     // IGeolocation.GetCurrentPositionAsync. Rejects when unsupported, denied or timed out; the
@@ -256,6 +261,101 @@ window.__raskBattery = window.__raskBattery || (() => {
             }
             stops.delete(id);
             stop();
+        }
+    };
+})();
+
+// The PWA four — IWebPush, INotifications, IBadge, IWakeLock. These used to live in rask-pwa.ts, which
+// is now gone: they are transport-agnostic browser APIs like the rest, and there was no reason for
+// them to sit in a second file with its own import in both entry points.
+window.__raskPush = window.__raskPush || {
+    isSupported: () => webPush.isSupported(),
+    requestPermission: () => webPush.requestPermission(),
+    register: (swUrl: string) => webPush.register(swUrl),
+    subscribe: (vapidPublicKey: string) => webPush.subscribe(vapidPublicKey),
+    getSubscription: () => webPush.getSubscription(),
+    unsubscribe: () => webPush.unsubscribe()
+};
+
+window.__raskNotify = window.__raskNotify || {
+    isSupported: () => notifications.isSupported(),
+    show: (title: string, options?: NotificationOptions) => notifications.show(title, options)
+};
+
+window.__raskBadge = window.__raskBadge || {
+    isSupported: () => badge.isSupported(),
+    set: (count: number | null | undefined) => badge.set(count),
+    clear: () => badge.clear()
+};
+
+// IWakeLock. C# holds an integer id where the module hands back a handle; the re-acquire-on-visible
+// behaviour that makes a lock survive the user glancing at another tab lives in the module, because it
+// is the API's real behaviour rather than anything to do with interop.
+window.__raskWakeLock = window.__raskWakeLock || (() => {
+    const held = new Map<number, wakeLock.WakeLockHandle>();
+    let nextId = 1;
+    return {
+        isSupported: () => wakeLock.isSupported(),
+        request: async () => {
+            const handle = await wakeLock.request();
+            const id = nextId++;
+            held.set(id, handle);
+            return id;
+        },
+        release: async (id: number) => {
+            const handle = held.get(id);
+            if (!handle) {
+                return;
+            }
+            held.delete(id);
+            await handle.release();
+        }
+    };
+})();
+
+// ISignaling. The connection object cannot cross interop, so C# holds an integer id for it. Both
+// callbacks are flattened into one [JSInvokable] because an IJSRuntime call site is cheaper than a
+// second one, not because the relay speaks that way.
+window.__raskSignal = window.__raskSignal || (() => {
+    const conns = new Map<number, signaling.SignalingConnection>();
+
+    const invoke = (method: string, ...args: unknown[]) =>
+        window.DotNet.invokeMethodAsync("Rask.Core", method, ...args);
+
+    return {
+        isSupported: () => signaling.isSupported(),
+        open: async (id: number, path: string) => {
+            // `closed` guards the gap between the socket opening and this map assignment: a relay that
+            // drops the connection in that window would otherwise delete an entry that is not there
+            // yet, and the dead one would be stored a moment later and never removed.
+            let closed = false;
+            const conn = await signaling.open(path, {
+                onMessage: (m) => invoke("RaskSignalMessage", id, m.type, m.peer, m.payload),
+                onClose: () => {
+                    closed = true;
+                    conns.delete(id);
+                    invoke("RaskSignalClosed", id);
+                }
+            });
+            if (!closed) {
+                conns.set(id, conn);
+            }
+            return true;
+        },
+        send: (id: number, json: string) => {
+            const conn = conns.get(id);
+            if (!conn) {
+                throw new Error("Rask signaling: connection " + id + " is closed.");
+            }
+            conn.send(json);
+        },
+        close: (id: number) => {
+            const conn = conns.get(id);
+            if (!conn) {
+                return;
+            }
+            conns.delete(id);
+            conn.close();
         }
     };
 })();
