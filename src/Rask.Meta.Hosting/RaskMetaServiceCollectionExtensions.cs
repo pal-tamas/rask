@@ -41,6 +41,7 @@ public static class RaskMetaServiceCollectionExtensions
         services.TryAddSingleton(options);
         services.TryAddSingleton<MetaPaths>();
         services.TryAddSingleton<NodeReadiness>();
+        services.TryAddSingleton<MetaDrain>();
         services.AddHttpForwarder();
         services.TryAddSingleton<NodeForwarder>();
 

@@ -140,6 +140,40 @@ browser → :3000 (nuxt dev, native HMR)
 In production neither half of that exists: Kestrel owns the port and forwards to the supervised
 process on loopback.
 
+## Readiness
+
+Kestrel answers as soon as it binds — seconds before the framework has finished booting. So a probe
+that only checks the port reports a deploy healthy while every page is a 503:
+
+```csharp
+builder.Services.AddHealthChecks().AddRaskMetaFrontEnd();
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = c => c.Tags.Contains("ready"),
+});
+```
+
+Unhealthy for two distinct reasons, and it says which. **Starting** is expected and resolves itself.
+**Draining** means this instance is shutting down and a load balancer should stop routing at it — the
+same answer to a probe, and very different answers to whoever is reading the log.
+
+## Shutting down
+
+On `SIGTERM` the host stops accepting new forwards, lets the ones in flight finish, and only then
+signals the Node process — `SIGTERM` first, then its process tree once `ShutdownTimeout` is up.
+
+That order is deliberate and not the one you get for free. Hosted services stop in **reverse
+registration order**, and Kestrel's is registered before anything an app adds, so the supervisor stops
+*first* — while Kestrel is still draining. Left alone, the front end dies under every page render in
+flight, on every deploy. The drain is therefore armed from the synchronous `ApplicationStopping`
+callback rather than from the supervisor's own stop, so it holds wherever in the order this service
+lands.
+
+Requests arriving after the drain begins get `503` with `Retry-After` rather than being forwarded into
+a process on its way out. A forward that never finishes is abandoned when the budget runs out and
+logged with a count, because a deploy that hangs on one stuck stream is worse than a dropped response.
+
 ## When the front end will not start
 
 - **No built front end** fails startup with a message naming the path it looked for. It is a

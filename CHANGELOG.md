@@ -7,6 +7,40 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The meta lane killed its front end while Kestrel was still draining, and had no health check at
+  all.** Both were shipped in [#946](https://github.com/pal-tamas/rask/issues/946)'s first landing —
+  one as a bug, the other as a claim the PR body made and the code did not keep.
+
+  **Shutdown ordering.** Hosted services stop in *reverse* registration order, and Kestrel's
+  `GenericWebHostService` is registered before anything an app adds — so `AddRaskMeta`'s supervisor
+  stopped **first**, signalling the Node process while Kestrel was still finishing in-flight requests.
+  Every page render in flight at that moment became a 502, on every deploy. The drain is now armed from
+  the synchronous `ApplicationStopping` callback, exactly as `RaskDrainCoordinator` already does and for
+  exactly the reason it records: it holds regardless of where in the stop order this service sits.
+  Requests arriving after that get `503` + `Retry-After` instead of being forwarded into a process on
+  its way out, which is also what lets the wait terminate — otherwise new arrivals keep topping the
+  in-flight count up. A forward that never finishes is abandoned at `ShutdownTimeout` and logged with a
+  count, because a deploy that hangs on one stuck stream is worse than a dropped response.
+
+  **`AddRaskMetaFrontEnd()`** registers a health check reporting whether the front end is listening.
+  Kestrel answers as soon as it binds — seconds before the framework has booted — so without this an
+  orchestrator routes traffic at an instance that can only return 503 and calls the deploy healthy. It
+  reports *starting* and *draining* as distinct reasons: the same answer to a probe, and very different
+  answers to whoever is reading the log. Tagged `ready`, so
+  `MapHealthChecks("/health/ready", …Tags.Contains("ready"))` is the whole wiring.
+
+  The check is registered through an explicit `HealthCheckRegistration` factory rather than
+  `AddCheck<T>`, because the health-check infrastructure activates through `ActivatorUtilities`, which
+  considers only *public* constructors — `AddCheck<T>` would compile and throw on the first probe.
+  `Rask.Server` hit that once and wrote it down; the note is what saved doing it twice.
+
+  **The first version of the shutdown test was a false green.** It asserted against a running
+  `WebApplication`, and passed with the fix removed — because `StopAsync` also stops Kestrel, and
+  Kestrel drains in-flight requests by itself, so the test measured ASP.NET rather than this package.
+  The replacement drives the supervisor directly and has been checked to fail without the wait.
+
 ### Added
 
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
