@@ -1,0 +1,149 @@
+name: lts-watch
+
+# Notice when Node's Active LTS line moves past the one this repo states, and open an issue saying so.
+#
+# This is NOT a gate. It cannot go red on a branch, it is not a required check, and its worst failure
+# is a notification that does not arrive — which is exactly today's behaviour. That shape is
+# deliberate: docs/repo-administration.md records why main has no required checks (#919, a gate that
+# rode red through three merges), and a job that reaches the network to decide pass/fail would be the
+# same mistake wearing a different hat.
+#
+# Everything else about keeping dependencies current is checked offline, in the local unit gate, by
+# tests that assert the repo's copies of a number agree with each other (NodeRequirementTests,
+# PackagePinFamilyTests, TailwindVersionPinTests). Those cannot know that nodejs.org changed its mind
+# about which line is Active LTS. That single fact is all this workflow supplies.
+on:
+  schedule:
+    # 07:00 UTC on the 1st. Node promotes a line in October and drops one to maintenance at the same
+    # time, so monthly is well inside the resolution that matters.
+    - cron: "0 7 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  node-lts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare the stated Node line against nodejs.org
+        id: compare
+        env:
+          NODE_DIST: https://nodejs.org/dist
+        run: |
+          set -eu
+
+          # Source the installer for its own LTS-selection helper rather than restating it. rask.sh
+          # ships that logic to every user, scripts/tests/install-script.test.sh already drives it
+          # through this guard, and a second copy here is exactly the drift this workflow exists to
+          # report. RASK_INSTALL_LIB_ONLY stops main from running.
+          RASK_INSTALL_LIB_ONLY=1 . ./rask.sh
+
+          # A nodejs.org outage must not look like a moved LTS line. Fail soft: say so and stop.
+          if ! index="$(curl -fsS --max-time 60 "$NODE_DIST/index.json")"; then
+            echo "::warning::Could not reach $NODE_DIST/index.json; skipping this run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          actual="$(printf '%s' "$index" | rask_node_lts_version)"
+          if [ -z "$actual" ]; then
+            echo "::warning::Could not read an LTS version out of the index; skipping this run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # The one place the repo states its line. Every other copy (rask.sh, rask.ps1, the
+          # scaffolded Dockerfile, docs/installation.md) is held to this one by NodeRequirementTests,
+          # so this is the only number worth comparing.
+          stated="$(sed -n 's/.*ScaffoldLine = new(\([0-9]*\), *\([0-9]*\), *\([0-9]*\)).*/\1.\2.\3/p' \
+            src/Rask.Cli/NodeRequirement.cs)"
+          if [ -z "$stated" ]; then
+            echo "::error::Could not read ScaffoldLine out of src/Rask.Cli/NodeRequirement.cs."
+            exit 1
+          fi
+
+          echo "actual=$actual"   >> "$GITHUB_OUTPUT"
+          echo "stated=$stated"   >> "$GITHUB_OUTPUT"
+          echo "skip=false"       >> "$GITHUB_OUTPUT"
+
+          actual_major="${actual%%.*}"
+          stated_major="${stated%%.*}"
+          echo "Active LTS on nodejs.org: $actual (line $actual_major)"
+          echo "Stated in this repo:      $stated (line $stated_major)"
+
+          if [ "$actual_major" -gt "$stated_major" ]; then
+            echo "behind=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "behind=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update the tracking issue
+        if: steps.compare.outputs.skip == 'false' && steps.compare.outputs.behind == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTUAL: ${{ steps.compare.outputs.actual }}
+          STATED: ${{ steps.compare.outputs.stated }}
+          TITLE: "Node Active LTS has moved past the line Rask states"
+        run: |
+          set -eu
+
+          # A QUOTED heredoc: the body is markdown full of backticks, and an unquoted one would treat
+          # every pair as command substitution. The two real values go in afterwards, by placeholder.
+          cat > /tmp/lts-body.template <<'EOF'
+          nodejs.org now calls **Node __ACTUAL__** the Active LTS. This repo states **__STATED__** in
+          `src/Rask.Cli/NodeRequirement.cs` (`ScaffoldLine`).
+
+          Rask's standing rule is to target the latest LTS: a scaffolder is a recommendation every new
+          project inherits, and pinning a maintenance-only line hands users a runtime that stops
+          getting security patches.
+
+          ### What to change
+
+          `ScaffoldLine` is the source of truth. Raise it, then run the unit gate — the tests name
+          every other file that has to follow, so this is one edit plus whatever they report:
+
+          - `src/Rask.Cli/NodeRequirement.cs` — `ScaffoldLine`
+          - `rask.sh` / `rask.ps1` — `RASK_INSTALL_NODE_MIN` / `$NodeMin`
+          - `src/Rask.Cli/Scaffolding/ProjectGenerator.Spa.cs` — the Dockerfile's `setup_NN.x`
+          - `docs/installation.md` — the defaults table and the "Node NN LTS" summary
+          - `tests/Rask.Cli.Tests/DoctorDependencyTests.cs` — the faked versions in the doctor cases
+          - `scripts/tests/install-script.test.sh` — the version literals it checks the floor with
+
+          Leave alone anything quoting **Angular's** floor (`^22.22.3 || ^24.15.0 || >=26.0.0`) — that
+          is a fact about somebody else's CLI, not Rask's line.
+
+          `RaskSpaMinimumNode` / `RaskExternalMinimumNode` are the BUILD FLOOR, a different number on
+          purpose: the oldest Node an existing app still builds on. Raising the scaffold line does not
+          raise those.
+
+          <sub>Opened by `.github/workflows/lts-watch.yml`. It updates this issue rather than opening
+          another; close it once the bump lands.</sub>
+          EOF
+
+          # Template in, body out — rather than `sed -i`, whose in-place flag takes a mandatory
+          # argument on BSD and not on GNU, so the same line means different things on two platforms.
+          sed "s/__ACTUAL__/$ACTUAL/g; s/__STATED__/$STATED/g" \
+            /tmp/lts-body.template > /tmp/lts-body.md
+
+          # Match on the EXACT title so a second run updates rather than duplicates. Compared in awk
+          # rather than inside --jq, so the title never has to survive a round of shell quoting.
+          existing="$(gh issue list --state open --limit 100 --json number,title \
+            --jq '.[] | "\(.number)\t\(.title)"' \
+            | awk -F'\t' -v want="$TITLE" '$2 == want { print $1; exit }')"
+
+          if [ -n "$existing" ]; then
+            echo "Updating issue #$existing"
+            gh issue edit "$existing" --body-file /tmp/lts-body.md
+          else
+            echo "Opening a new issue"
+            gh issue create --title "$TITLE" --body-file /tmp/lts-body.md
+          fi
+
+      - name: Report when nothing needs doing
+        if: steps.compare.outputs.skip == 'false' && steps.compare.outputs.behind != 'true'
+        run: |
+          echo "Up to date: nodejs.org says ${{ steps.compare.outputs.actual }}, repo states ${{ steps.compare.outputs.stated }}."

@@ -7,7 +7,78 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Node's LTS calendar now reaches the repo on its own.** `.github/workflows/lts-watch.yml` runs
+  monthly, asks nodejs.org which line is Active LTS, and opens (or updates) a single issue when it has
+  moved past what `NodeRequirement.ScaffoldLine` states — naming every file the bump has to touch, and
+  which ones deliberately must not move. It reuses `rask.sh`'s own `rask_node_lts_version` through the
+  existing `RASK_INSTALL_LIB_ONLY` guard rather than restating that logic, and it is **not** a gate: it
+  cannot go red on a branch, is not a required check, and a nodejs.org outage makes it say so and stop
+  instead of opening a bogus issue. Node 24 "Krypton" is Active LTS today; 26 takes over on
+  2026-10-28, which is the first thing this will report.
+
+  The standing rule it serves — always the latest LTS — is now written down, in a new
+  **Dependencies** section of `docs/development-workflow.md`: what Dependabot covers, which pins it
+  cannot see and where they live, which tests keep the copies honest, and why a Dependabot PR has to
+  be landed locally rather than merged from the web UI (it is authored server-side, so it never
+  touches `.githooks/`, and `main` has no required checks — a web merge is a version change that
+  nothing built, formatted or tested). The `check-nuget-updates` skill is now
+  **`check-dependency-updates`**, widened to every axis and carrying an explicit do-not-bump list.
+
 ### Fixed
+
+- **A version pinned in two places was held together by a comment, and one of the comments was
+  describing a test that did not exist.** `ProjectGenerator.Wasm.AspNetCoreFrameworkVersion` must match
+  what `Directory.Packages.props` pins, because `Rask.Wasm` references the same two packages and its
+  nuspec demands `>=` that version — scaffold lower and a generated project fails restore with NU1605
+  under warnings-as-errors. The constant's comment had named
+  `ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin` since the day it was
+  written; that test was never added. The last grouped bump hand-edited the constant and got away with
+  it, and nothing would have caught the next one, because this repo's own projects reach those packages
+  through central package management and never read the constant — the failure surfaces only when a
+  *user* runs `rask new --wasm --auth`. The test now exists.
+
+  Four more copies-of-a-number are now asserted rather than commented. `NodeRequirementTests` holds
+  `rask.sh`, `rask.ps1` and `docs/installation.md` to `ScaffoldLine` (carefully **not** the places
+  quoting Angular's own `^22.22.3 || ^24.15.0 || >=26.0.0`, which contains 24.15.0 by coincidence and
+  must not move when Rask's line does), and holds the two Node build floors to each other.
+  `PackagePinFamilyTests` asserts the Spectre pair, the SQLitePCLRaw pair, and that the platform stack
+  is on one version. `TypeScriptCompilesTests` reads the tsgo pin out of `Rask.Core.targets` instead of
+  restating it. The Dockerfile check in `SpaTemplateTests` reads `ScaffoldLine` rather than a literal
+  `>= 24`. Dependabot now groups `Spectre.Console*` and `SQLitePCLRaw.*` so it cannot split either
+  pair in the first place, and its comment no longer sends you to a `global.json` this repo does not
+  have.
+
+- **The CVE hold on SQLitePCLRaw was load-bearing and unenforced.** The 3.x pin exists to escape
+  CVE-2025-6965 in the SQLite that 2.1.11 carries, and it works only because
+  `CentralPackageTransitivePinning` is off and something in each project's graph asks for 3.x
+  *directly*, lifting the rest. Nothing checked that. A new SQLite-touching project naming only
+  `Microsoft.Data.Sqlite` would quietly resolve the vulnerable family, and the build would stay green,
+  because falling back to a transitive default is not a downgrade NuGet reports.
+  `PackagePinFamilyTests` now walks the project-reference closure of every SQLite-touching project —
+  reachability, not a direct reference, because `Rask.Logging` names no `SQLitePCLRaw` and is correct
+  today through `Rask.SQLite`. No project is currently affected; the point is that the next one cannot
+  be, silently.
+
+- **`RaskExternalMinimumNode` was declared, documented, and read by nothing.** Its comment promised a
+  probe that "reports anything older rather than letting vite fail with an engines error nobody
+  reads", and `Rask.External.targets` referenced the property nowhere at all — so setting it insisted
+  on nothing and an old Node went straight to `npm` and failed inside vite with exactly that error.
+  This is the same defect `Rask.Spa.Hosting` had and fixed, down to the wording. Islands now probe for
+  node before installing and fail with **`RASKISLAND001`** naming the version found.
+
+  The floor moves from 20.19.0 to **22.12.0**, matching `RaskSpaMinimumNode`. Both paths run vite, so
+  both take vite's `^20.19.0 || >=22.12.0` — a range with a hole, since 21.x satisfies neither arm, and
+  a numeric floor cannot express it. The old 20.19.0 would have admitted 21.x and let it fail in the
+  bundler anyway, and Node 20 "Iron" is EOL besides. The one behavioural consequence: a project
+  building islands on Node 20.19–21.x is now refused at the probe instead of by vite a moment later.
+
+- **The release skill claimed CI gates a release. It does not.** `cut-release` said `release.yml`
+  "runs the unit gate + sharded E2E matrix"; those jobs went with `ci.yml`/`e2e.yml`, and `release.yml`
+  restores, builds, packs and pushes with no `dotnet test` anywhere. Since a push to nuget.org is
+  permanent, the skill now says plainly that nothing between the tag and nuget.org will catch a
+  regression, and to run the local gates first.
 
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,

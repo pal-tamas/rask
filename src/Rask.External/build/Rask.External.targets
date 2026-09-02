@@ -349,9 +349,50 @@
     </WriteExternalBuildInputsTask>
   </Target>
 
+  <!--
+    Probe for node before npm and vite need it.
+
+    RaskExternalMinimumNode was declared with a comment promising exactly this ("the probe reports
+    anything older rather than letting vite fail with an engines error nobody reads") and then read by
+    nothing at all — the same defect Rask.Spa.Hosting had, and fixed for the same reason. Setting the
+    property insisted on nothing, and an old Node reached `npm` and failed with vite's engines error,
+    which is the message this exists to replace.
+
+    The floor matches RaskSpaMinimumNode, and for the same reason: vite asks for
+    `^20.19.0 || >=22.12.0`, and a numeric floor cannot express a disjoint range — a floor of 20.19.0
+    would ACCEPT 21.x, which vite refuses. 22.12.0 is the lowest version that satisfies vite with no
+    hole beneath it. NodeFloorAgreementTests holds the two files to the same number.
+  -->
+  <Target Name="_RaskExternalProbeNode"
+          Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">
+    <Exec Command="node --version" ContinueOnError="true" IgnoreExitCode="true"
+          StandardOutputImportance="low" ConsoleToMSBuild="true">
+      <Output TaskParameter="ExitCode" PropertyName="_RaskExternalNodeExit"/>
+      <Output TaskParameter="ConsoleOutput" PropertyName="_RaskExternalNodeVersion"/>
+    </Exec>
+
+    <Error Condition="'$(_RaskExternalNodeExit)' != '0'"
+           Code="RASKISLAND001"
+           Text="Rask.External: building the islands in $(MSBuildProjectName) needs Node.js, but 'node --version' did not run. Install Node.js $(RaskExternalMinimumNode) or newer from https://nodejs.org (macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your distro's nodejs package), then build again."/>
+
+    <PropertyGroup Condition="'$(_RaskExternalNodeExit)' == '0'">
+      <_RaskExternalNodeFound>$(_RaskExternalNodeVersion.Trim().TrimStart('v'))</_RaskExternalNodeFound>
+      <_RaskExternalNodeComparable>$([System.Text.RegularExpressions.Regex]::IsMatch($(_RaskExternalNodeFound), '^[0-9]+\.[0-9]+\.[0-9]+$'))</_RaskExternalNodeComparable>
+    </PropertyGroup>
+
+    <!--
+      A version string that is not exactly X.Y.Z (a nightly, a release candidate) is SKIPPED rather
+      than failed: refusing to build on an unparseable version would be a worse failure than the one
+      this prevents. Same call as the SPA probe.
+    -->
+    <Error Condition="'$(_RaskExternalNodeComparable)' == 'true' AND $([MSBuild]::VersionLessThan('$(_RaskExternalNodeFound)', '$(RaskExternalMinimumNode)'))"
+           Code="RASKISLAND001"
+           Text="Rask.External: building the islands in $(MSBuildProjectName) needs Node.js $(RaskExternalMinimumNode) or newer, but 'node --version' reported $(_RaskExternalNodeFound). Vite asks for ^20.19.0 || >=22.12.0, so a 20.19.x or 21.x Node fails inside the bundler instead. Install the current LTS (nvm install --lts, or https://nodejs.org), then build again. Set RaskExternalMinimumNode if you want a different bar."/>
+  </Target>
+
   <!-- Its own target with its own up-to-date check, because it is the expensive one. -->
   <Target Name="_RaskExternalInstall"
-          DependsOnTargets="_RaskExternalWriteInputs"
+          DependsOnTargets="_RaskExternalWriteInputs;_RaskExternalProbeNode"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''"
           Inputs="$(MSBuildProjectDirectory)/package.json"
           Outputs="$(IntermediateOutputPath)rask-external.install.stamp">

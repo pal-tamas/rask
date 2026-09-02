@@ -15,7 +15,11 @@ updates:
       # Rask.Batteries.Generators) must not exceed the compiler shipped with the build SDK — an
       # analyzer that references a newer Roslyn than the running csc fails with CS9057, and it
       # would raise the compiler floor for every downstream Rask consumer. Keep these pinned to
-      # the SDK's Roslyn version; bump them by hand alongside a global.json / SDK-band update.
+      # the SDK's Roslyn version; bump them by hand alongside an SDK-band update.
+      #
+      # There is no global.json in this repo — an earlier version of this comment sent you to one.
+      # The SDK band is stated in .github/actions/setup/action.yml (dotnet-version: 10.0.x) and in
+      # rask.sh (RASK_INSTALL_DOTNET_CHANNEL); that is what "the build SDK" means here.
       #
       # .Features is listed for the same reason even though no generator references it (only the
       # Playground sample and its tests do): it depends on .CSharp of the same version, and central
@@ -42,6 +46,22 @@ updates:
           - "Microsoft.NET.Test.Sdk"
           - "Microsoft.Playwright"
           - "coverlet.*"
+      # Two more must-move-together families, grouped for the same reason as the Roslyn pair above:
+      # ungrouped, dependabot bumps one and opens a PR that leaves its partner behind.
+      #
+      # Spectre.Console.Testing ships doubles built against the exact matching Spectre.Console, and
+      # Directory.Packages.props says to keep the two identical. SQLitePCLRaw's bundle and core are
+      # one release, and are held at 3.x deliberately — ahead of what Microsoft.Data.Sqlite asks for
+      # — to escape CVE-2025-6965. Splitting either pair is the failure; grouping makes it one PR.
+      #
+      # PackagePinFamilyTests asserts both pairs, so a split that gets through anyway fails the gate
+      # rather than shipping.
+      spectre-console:
+        patterns:
+          - "Spectre.Console*"
+      sqlitepclraw:
+        patterns:
+          - "SQLitePCLRaw.*"
 
   # GitHub Actions used by commitlint.yml / release.yml / nightly.yml / pages.yml
   - package-ecosystem: github-actions

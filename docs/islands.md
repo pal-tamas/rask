@@ -355,6 +355,15 @@ through.
 without one runs no npm, probes for no node, and never learns this package has a build step. A Rask app
 with no islands is unaffected, which is most of them.
 
+A project that *does* have both is checked before `npm` runs: too old a Node fails with
+**`RASKISLAND001`** naming the version it found, rather than failing later inside vite with an engines
+error nobody reads. The floor is `RaskExternalMinimumNode`, **22.12.0** — the same number as the SPA
+host's `RaskSpaMinimumNode`, because both run vite and vite asks for `^20.19.0 || >=22.12.0`. That
+range has a hole (21.x satisfies neither arm) and a numeric floor cannot express it, so 22.12.0 is the
+lowest version with nothing unsupported beneath it. A Node whose version is not exactly `X.Y.Z` — a
+nightly, a release candidate — is allowed through rather than refused. Override the bar with
+`-p:RaskExternalMinimumNode=…` if you have a reason to.
+
 ```bash
 npm init -y
 npm install -D vite @vitejs/plugin-react react react-dom          # React (or Preact)
