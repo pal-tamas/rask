@@ -33,6 +33,7 @@ internal sealed partial class NodeForwarder : IDisposable
     private readonly ILogger<NodeForwarder> _logger;
     private readonly MetaHostingOptions _options;
     private readonly NodeReadiness _readiness;
+    private readonly StaticAssets _static;
     private readonly ForwarderRequestConfig _requestConfig;
     private readonly ForwarderRequestConfig _upgradeConfig;
 
@@ -40,12 +41,14 @@ internal sealed partial class NodeForwarder : IDisposable
     // never visible outside the assembly because the type is not.
     public NodeForwarder(
         MetaHostingOptions options,
+        MetaPaths paths,
         NodeReadiness readiness,
         IHttpForwarder forwarder,
         ILogger<NodeForwarder> logger)
     {
         _options = options;
         _readiness = readiness;
+        _static = new StaticAssets(options.Framework, paths.AppDirectory);
         _forwarder = forwarder;
         _logger = logger;
         _destination = string.Create(
@@ -78,11 +81,22 @@ internal sealed partial class NodeForwarder : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => _invoker.Dispose();
+    public void Dispose()
+    {
+        _invoker.Dispose();
+        _static.Dispose();
+    }
 
     /// <summary>Forwards one request, or refuses it while the front end is still starting.</summary>
     internal async Task ForwardAsync(HttpContext context)
     {
+        // Assets first, and before the readiness gate on purpose: they are files on disk and do not
+        // need Node to be up. A page served while the front end is restarting still finds its CSS.
+        if (await _static.TryServeAsync(context).ConfigureAwait(false))
+        {
+            return;
+        }
+
         if (!_readiness.IsReady)
         {
             await WriteStartingAsync(context).ConfigureAwait(false);

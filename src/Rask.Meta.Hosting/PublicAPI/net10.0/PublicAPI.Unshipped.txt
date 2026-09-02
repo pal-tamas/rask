@@ -11,6 +11,10 @@ Rask.Meta.Hosting.MetaFramework.PortVariable.get -> string!
 Rask.Meta.Hosting.MetaFramework.PortVariable.init -> void
 Rask.Meta.Hosting.MetaFramework.ServerEntry.get -> string!
 Rask.Meta.Hosting.MetaFramework.ServerEntry.init -> void
+Rask.Meta.Hosting.MetaFramework.StaticRoots.get -> System.Collections.Generic.IReadOnlyList<Rask.Meta.Hosting.StaticRoot!>!
+Rask.Meta.Hosting.MetaFramework.StaticRoots.init -> void
+Rask.Meta.Hosting.MetaFramework.WorkingSubdirectory.get -> string!
+Rask.Meta.Hosting.MetaFramework.WorkingSubdirectory.init -> void
 Rask.Meta.Hosting.MetaHostingOptions
 Rask.Meta.Hosting.MetaHostingOptions.AppDirectory.get -> string!
 Rask.Meta.Hosting.MetaHostingOptions.AppDirectory.set -> void
@@ -20,9 +24,9 @@ Rask.Meta.Hosting.MetaHostingOptions.BaseUrlVariable.get -> string!
 Rask.Meta.Hosting.MetaHostingOptions.BaseUrlVariable.set -> void
 Rask.Meta.Hosting.MetaHostingOptions.Environment.get -> System.Collections.Generic.IDictionary<string!, string!>!
 Rask.Meta.Hosting.MetaHostingOptions.Framework.get -> Rask.Meta.Hosting.MetaFramework!
+Rask.Meta.Hosting.MetaHostingOptions.Framework.set -> void
 Rask.Meta.Hosting.MetaHostingOptions.HealthyRunThreshold.get -> System.TimeSpan
 Rask.Meta.Hosting.MetaHostingOptions.HealthyRunThreshold.set -> void
-Rask.Meta.Hosting.MetaHostingOptions.Framework.set -> void
 Rask.Meta.Hosting.MetaHostingOptions.MaxRestartAttempts.get -> int
 Rask.Meta.Hosting.MetaHostingOptions.MaxRestartAttempts.set -> void
 Rask.Meta.Hosting.MetaHostingOptions.MetaHostingOptions() -> void
@@ -38,9 +42,21 @@ Rask.Meta.Hosting.MetaHostingOptions.SuperviseNode.get -> bool
 Rask.Meta.Hosting.MetaHostingOptions.SuperviseNode.set -> void
 Rask.Meta.Hosting.RaskMetaEndpointExtensions
 Rask.Meta.Hosting.RaskMetaServiceCollectionExtensions
+Rask.Meta.Hosting.StaticRoot
+Rask.Meta.Hosting.StaticRoot.<Clone>$() -> Rask.Meta.Hosting.StaticRoot!
+Rask.Meta.Hosting.StaticRoot.Deconstruct(out string! RequestPath, out string! Directory) -> void
+Rask.Meta.Hosting.StaticRoot.Directory.get -> string!
+Rask.Meta.Hosting.StaticRoot.Directory.init -> void
+Rask.Meta.Hosting.StaticRoot.Equals(Rask.Meta.Hosting.StaticRoot? other) -> bool
+Rask.Meta.Hosting.StaticRoot.RequestPath.get -> string!
+Rask.Meta.Hosting.StaticRoot.RequestPath.init -> void
+Rask.Meta.Hosting.StaticRoot.StaticRoot(string! RequestPath, string! Directory) -> void
 override Rask.Meta.Hosting.MetaFramework.Equals(object? obj) -> bool
 override Rask.Meta.Hosting.MetaFramework.GetHashCode() -> int
 override Rask.Meta.Hosting.MetaFramework.ToString() -> string!
+override Rask.Meta.Hosting.StaticRoot.Equals(object? obj) -> bool
+override Rask.Meta.Hosting.StaticRoot.GetHashCode() -> int
+override Rask.Meta.Hosting.StaticRoot.ToString() -> string!
 static Rask.Meta.Hosting.MetaFramework.Analog.get -> Rask.Meta.Hosting.MetaFramework!
 static Rask.Meta.Hosting.MetaFramework.Next.get -> Rask.Meta.Hosting.MetaFramework!
 static Rask.Meta.Hosting.MetaFramework.Nuxt.get -> Rask.Meta.Hosting.MetaFramework!
@@ -51,3 +67,5 @@ static Rask.Meta.Hosting.MetaFramework.operator !=(Rask.Meta.Hosting.MetaFramewo
 static Rask.Meta.Hosting.MetaFramework.operator ==(Rask.Meta.Hosting.MetaFramework? left, Rask.Meta.Hosting.MetaFramework? right) -> bool
 static Rask.Meta.Hosting.RaskMetaEndpointExtensions.UseRaskMeta(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
 static Rask.Meta.Hosting.RaskMetaServiceCollectionExtensions.AddRaskMeta(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Meta.Hosting.MetaHostingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Meta.Hosting.StaticRoot.operator !=(Rask.Meta.Hosting.StaticRoot? left, Rask.Meta.Hosting.StaticRoot? right) -> bool
+static Rask.Meta.Hosting.StaticRoot.operator ==(Rask.Meta.Hosting.StaticRoot? left, Rask.Meta.Hosting.StaticRoot? right) -> bool

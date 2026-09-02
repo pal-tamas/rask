@@ -5,10 +5,11 @@ namespace Rask.External;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Covers Preact unchanged. A Preact project aliases <c>react</c> and <c>react-dom</c> to
-///         <c>preact/compat</c> in both tsconfig and the Vite plugin — the same aliasing the TypeScript
-///         SPA lane already relies on — so one adapter serves both and Rask never needs to know which
-///         it got.
+///         Still covers Preact through <c>preact/compat</c> aliasing, for a project already built that
+///         way: aliasing <c>react</c> and <c>react-dom</c> in both tsconfig and the Vite plugin is what
+///         the TypeScript SPA lane relies on, and this adapter cannot tell the difference. New code
+///         should reach for <see cref="PreactComponent" /> instead, which imports Preact directly and
+///         needs no aliasing to be right.
 ///     </para>
 ///     <para>
 ///         The front-end file stays an ordinary React component with no Rask import in it: the build

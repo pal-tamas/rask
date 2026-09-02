@@ -111,7 +111,10 @@ public class ExternalGeneratorTests
 
     [Theory]
     [InlineData("ReactComponent", "./Chart.tsx")]
+    [InlineData("PreactComponent", "./Chart.tsx")]
+    [InlineData("SolidComponent", "./Chart.tsx")]
     [InlineData("LitComponent", "./Chart.ts")]
+    [InlineData("AngularComponent", "./Chart.ts")]
     [InlineData("VueComponent", "./Chart.vue")]
     [InlineData("SvelteComponent", "./Chart.svelte")]
     public void Each_runtime_infers_its_own_sibling_file(string baseClass, string module)
@@ -135,6 +138,43 @@ public class ExternalGeneratorTests
 
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
         Assert.Contains($"\"{module}\"", run.GeneratedSource("Chart"), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("ReactComponent", "react")]
+    [InlineData("PreactComponent", "preact")]
+    [InlineData("SolidComponent", "solid")]
+    [InlineData("LitComponent", "lit")]
+    [InlineData("AngularComponent", "angular")]
+    [InlineData("VueComponent", "vue")]
+    [InlineData("SvelteComponent", "svelte")]
+    public void The_declared_runtime_is_carried_out_of_the_compilation(string baseClass, string runtime)
+    {
+        // Three runtimes share .tsx and two share .ts, so the MSBuild glob that discovers a file can
+        // no longer tell which adapter it belongs to. This carrier is how the base class — the one
+        // place the runtime cannot drift from what actually mounts — reaches the build.
+        //
+        // Without it the build falls back to the extension, and the wrong guess is silent all the way
+        // to the browser: a Solid island handed React's adapter compiles, bundles, ships, loads, and
+        // mounts nothing.
+        var run = Run(
+            $$"""
+              namespace App;
+
+              public sealed partial class Chart : Rask.External.{{baseClass}}
+              {
+                  public int Value { get; set; }
+              }
+              """);
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var carrier = run.GeneratedSource("RaskExternalIslands");
+        Assert.Contains("internal static class RaskExternalIslands", carrier, StringComparison.Ordinal);
+
+        // "runtime|module" in one constant: the reader wants both together, and a single field cannot
+        // go half-missing the way two could.
+        Assert.Contains($"public const string Chart = \"{runtime}|.", carrier, StringComparison.Ordinal);
     }
 
     [Fact]

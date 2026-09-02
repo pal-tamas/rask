@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -28,9 +29,17 @@ public static class RaskMetaServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         var options = new MetaHostingOptions();
+
+        // What the build baked first, then whatever the app says. That order is the contract: naming
+        // the framework in the .csproj is the ordinary way, because the build needs it there anyway to
+        // know what to publish — and configure() stays able to override for a framework this package
+        // has no preset for, or an app that resolves its front end some other way.
+        MetaMetadata.Apply(options, Assembly.GetEntryAssembly());
+
         configure?.Invoke(options);
 
         services.TryAddSingleton(options);
+        services.TryAddSingleton<MetaPaths>();
         services.TryAddSingleton<NodeReadiness>();
         services.AddHttpForwarder();
         services.TryAddSingleton<NodeForwarder>();
