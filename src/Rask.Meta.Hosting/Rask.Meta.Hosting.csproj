@@ -34,4 +34,15 @@
     <InternalsVisibleTo Include="Rask.Meta.Hosting.Tests"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      The build integration, shipped as MSBuild only — there is no task assembly here, so the glob is
+      safe: every file it matches is committed, and none is produced by a build. That is the difference
+      from Rask.Spa.Hosting, which has to name its generated task DLL explicitly because a glob is
+      expanded at project EVALUATION and would silently pack nothing on a tree where the DLL is not yet
+      on disk (#852).
+    -->
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
 </Project>

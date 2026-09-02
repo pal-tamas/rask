@@ -6,7 +6,7 @@ namespace Rask.Meta.Hosting;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Deliberately five fields rather than a class per framework. Six frameworks reduce to three
+///         Deliberately a handful of fields rather than a class per framework. Six frameworks reduce to three
 ///         server shapes — Nitro (<see cref="Nuxt" />, <see cref="TanStackStart" />,
 ///         <see cref="SolidStart" />, <see cref="Analog" />), <c>adapter-node</c>
 ///         (<see cref="SvelteKit" />) and Next's standalone output (<see cref="Next" />) — and all
@@ -45,11 +45,59 @@ public sealed record MetaFramework
     /// </remarks>
     public string HostVariable { get; init; } = "HOST";
 
+    /// <summary>
+    ///     The directory the server entry is run from, relative to
+    ///     <see cref="MetaHostingOptions.AppDirectory" />. Empty means the app directory itself.
+    /// </summary>
+    /// <remarks>
+    ///     Each framework documents its own invocation and they do not agree. Nitro's and SvelteKit's
+    ///     are run from the app root — <c>node .output/server/index.mjs</c> — while Next's standalone
+    ///     output is documented as being copied to the image's working directory and started with
+    ///     <c>node server.js</c> from inside it. Taking the framework's own word for this is safer than
+    ///     assuming any of them resolves paths from <c>__dirname</c>.
+    /// </remarks>
+    public string WorkingSubdirectory { get; init; } = string.Empty;
+
+    /// <summary>
+    ///     The framework's built client assets, served by Kestrel rather than forwarded.
+    /// </summary>
+    /// <remarks>
+    ///     Nitro's four converge again here, on <c>.output/public</c> — the same convergence that makes
+    ///     <see cref="ServerEntry" /> data rather than code. Next is the only one needing two, because
+    ///     its standalone output omits both and they live in different places.
+    /// </remarks>
+    public IReadOnlyList<StaticRoot> StaticRoots { get; init; } = [];
+
+    /// <summary>The client assets of a Nitro build, wherever its output root is.</summary>
+    private static IReadOnlyList<StaticRoot> NitroPublic(string outputRoot) =>
+        [new StaticRoot(string.Empty, outputRoot + "/public")];
+
+    /// <summary>
+    ///     The preset with this <see cref="Name" />, or null when nothing matches.
+    /// </summary>
+    /// <remarks>
+    ///     The other half of the build's framework table: the name written in the <c>.csproj</c> is
+    ///     baked into the assembly, and this is what turns it back into a preset at startup. Kept
+    ///     internal because the string form is the build's business — an app naming a framework in C#
+    ///     has the presets themselves to hand.
+    /// </remarks>
+    internal static MetaFramework? ByName(string name) => name switch
+    {
+        "nuxt" => Nuxt,
+        "tanstack-start" => TanStackStart,
+        "solidstart" => SolidStart,
+        "analog" => Analog,
+        "sveltekit" => SvelteKit,
+        "nextjs" => Next,
+        _ => null,
+    };
+
     /// <summary>Nuxt, built with the default <c>node-server</c> Nitro preset.</summary>
     public static MetaFramework Nuxt { get; } = new()
     {
         Name = "nuxt",
         ServerEntry = ".output/server/index.mjs",
+        StaticRoots = NitroPublic(".output"),
     };
 
     /// <summary>TanStack Start, built with the Vite bundler onto Nitro.</summary>
@@ -62,6 +110,7 @@ public sealed record MetaFramework
     {
         Name = "tanstack-start",
         ServerEntry = ".output/server/index.mjs",
+        StaticRoots = NitroPublic(".output"),
     };
 
     /// <summary>SolidStart v2, on Vite with Nitro's <c>node_server</c> preset.</summary>
@@ -69,6 +118,7 @@ public sealed record MetaFramework
     {
         Name = "solidstart",
         ServerEntry = ".output/server/index.mjs",
+        StaticRoots = NitroPublic(".output"),
     };
 
     /// <summary>AnalogJS — Angular on Vite, with Node as Nitro's default preset.</summary>
@@ -82,6 +132,7 @@ public sealed record MetaFramework
     {
         Name = "analog",
         ServerEntry = "dist/analog/server/index.mjs",
+        StaticRoots = NitroPublic("dist/analog"),
     };
 
     /// <summary>SvelteKit, built with <c>adapter-node</c>.</summary>
@@ -94,28 +145,36 @@ public sealed record MetaFramework
     {
         Name = "sveltekit",
         ServerEntry = "build/index.js",
+        StaticRoots = [new StaticRoot(string.Empty, "build/client")],
     };
 
     /// <summary>Next.js, built with <c>output: 'standalone'</c>.</summary>
     /// <remarks>
     ///     <para>
     ///         Standalone deliberately omits <c>public</c> and <c>.next/static</c> — Next's own docs say
-    ///         those are "ideally served by a CDN". <b>This package does not serve them yet</b>, and
-    ///         nothing else will: the standalone server does not have those directories, so until the
-    ///         build targets land, a Next app needs them copied next to <c>server.js</c> (the <c>cp</c>
-    ///         Next's own Docker guidance gives) or its assets 404.
+    ///         those are "ideally served by a CDN", so its server does not carry them. Under this
+    ///         topology Kestrel already <em>is</em> the thing in front, and it serves both from
+    ///         <see cref="StaticRoots" />. What reads as Next's awkward case elsewhere, needing a
+    ///         hand-written <c>cp</c> in the Dockerfile, is the one place this arrangement suits it
+    ///         better than the CDN it assumes.
     ///     </para>
     ///     <para>
-    ///         Serving them from Kestrel is the plan rather than the state: this topology already puts
-    ///         Kestrel in front with the cache rules to do it well, which is the one place Next's
-    ///         CDN assumption suits this arrangement better than it suits a plain Node deployment.
+    ///         The two roots differ in kind, which is why there are two: <c>public</c> is a source
+    ///         directory served at the site root, and <c>.next/static</c> is build output served under
+    ///         the <c>/_next/static</c> prefix Next's own markup points at.
     ///     </para>
     ///     <para><c>HOSTNAME</c> rather than <c>HOST</c>; see <see cref="HostVariable" />.</para>
     /// </remarks>
     public static MetaFramework Next { get; } = new()
     {
         Name = "nextjs",
-        ServerEntry = "server.js",
+        ServerEntry = ".next/standalone/server.js",
+        WorkingSubdirectory = ".next/standalone",
         HostVariable = "HOSTNAME",
+        StaticRoots =
+        [
+            new StaticRoot(string.Empty, "public"),
+            new StaticRoot("/_next/static", ".next/static"),
+        ],
     };
 }

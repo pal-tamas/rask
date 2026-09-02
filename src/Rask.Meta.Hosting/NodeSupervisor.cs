@@ -29,29 +29,27 @@ internal sealed partial class NodeSupervisor : BackgroundService
     private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<NodeSupervisor> _logger;
     private readonly MetaHostingOptions _options;
+    private readonly MetaPaths _paths;
     private readonly NodeReadiness _readiness;
-    private readonly string _appDirectory;
 
     // Public on an internal type, for the same reason as NodeForwarder: the container resolves only
     // public constructors, and an internal type's members are not public API.
     public NodeSupervisor(
         MetaHostingOptions options,
+        MetaPaths paths,
         NodeReadiness readiness,
-        IHostEnvironment environment,
         IHostApplicationLifetime lifetime,
         ILogger<NodeSupervisor> logger)
     {
         _options = options;
+        _paths = paths;
         _readiness = readiness;
         _lifetime = lifetime;
         _logger = logger;
-        _appDirectory = Path.IsPathRooted(options.AppDirectory)
-            ? options.AppDirectory
-            : Path.Combine(environment.ContentRootPath, options.AppDirectory);
     }
 
     /// <summary>The absolute path of the server entry this supervisor runs.</summary>
-    internal string ServerEntryPath => Path.Combine(_appDirectory, _options.Framework.ServerEntry);
+    internal string ServerEntryPath => _paths.ServerEntry;
 
     /// <summary>
     ///     Refuses to start at all when there is no built front end to run.
@@ -227,7 +225,7 @@ internal sealed partial class NodeSupervisor : BackgroundService
     {
         var info = new ProcessStartInfo(_options.NodeExecutable)
         {
-            WorkingDirectory = _appDirectory,
+            WorkingDirectory = _paths.WorkingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

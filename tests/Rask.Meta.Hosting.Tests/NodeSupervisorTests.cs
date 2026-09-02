@@ -34,7 +34,7 @@ public class NodeSupervisorTests
     }
 
     private static NodeSupervisor Build(MetaHostingOptions options, TestLifetime lifetime) =>
-        new(options, new NodeReadiness(), new TestEnvironment(), lifetime,
+        new(options, new MetaPaths(options, new TestEnvironment()), new NodeReadiness(), lifetime,
             NullLogger<NodeSupervisor>.Instance);
 
     /// <summary>
@@ -84,12 +84,8 @@ public class NodeSupervisorTests
     /// <remarks>
     ///     The defensive path. Startup already refuses a missing entry — see
     ///     <c>SupervisorSeamTests</c> — so this covers the file disappearing after the host came up.
-    /// </remarks>
-    /// <remarks>
-    ///     Retrying would be pure noise: the file is not going to appear, and five rounds of backoff
-    ///     only delay the message that says what is actually wrong. This is the case where the front
-    ///     end was never built, or <see cref="MetaHostingOptions.AppDirectory" /> points somewhere
-    ///     else — both of which a person has to fix.
+    ///     Retrying would be pure noise either way: the file is not going to appear, and five rounds of
+    ///     backoff only delay the message that says what is actually wrong.
     /// </remarks>
     [Fact]
     public async Task A_missing_server_entry_stops_the_application()
@@ -112,14 +108,14 @@ public class NodeSupervisorTests
     {
         var options = new MetaHostingOptions
         {
-            AppDirectory = "frontend",
+            AppDirectory = "Client",
             Framework = MetaFramework.Nuxt,
         };
 
         using var supervisor = Build(options, new TestLifetime());
 
         Assert.Equal(
-            Path.Combine(AppContext.BaseDirectory, "frontend", ".output/server/index.mjs"),
+            Path.Combine(AppContext.BaseDirectory, "Client", ".output/server/index.mjs"),
             supervisor.ServerEntryPath);
     }
 
@@ -143,7 +139,8 @@ public class NodeSupervisorTests
         };
 
         using var supervisor = new NodeSupervisor(
-            options, readiness, new TestEnvironment(), lifetime, NullLogger<NodeSupervisor>.Instance);
+            options, new MetaPaths(options, new TestEnvironment()), readiness, lifetime,
+            NullLogger<NodeSupervisor>.Instance);
         await supervisor.RunAsync(CancellationToken.None);
 
         Assert.False(lifetime.Stopped);

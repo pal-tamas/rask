@@ -1,0 +1,222 @@
+<Project>
+
+  <!--
+    Rask.Meta.Hosting build integration: run the meta framework's own toolchain, then hand the result
+    to the ASP.NET host.
+
+      1. Do nothing at all unless RaskMetaFramework names a framework.
+      2. Probe for node and enforce the floor.
+      3. `npm ci` — its own target with its own stamp, because it is the expensive one.
+      4. `npm run build`, incremental against the app's sources.
+      5. Bake the framework name so AddRaskMeta() needs no argument.
+      6. On publish, copy the framework's build output next to the app.
+
+    Everything is gated on RaskMetaFramework because this file is imported into EVERY project of every
+    consumer. A convention that started probing for node on its own would be intolerable — and unlike
+    the SPA lane, there is no sibling-project naming rule to make an inference safe.
+
+    Two MSBuild rules shape the shapes below, both recorded in Rask.Spa.Hosting.targets and both worth
+    restating because breaking them is silent: item-list references are illegal in a property Condition
+    (MSB4099), and properties are evaluated in an EARLIER pass than items, so a property reading
+    @(SomeItem) at evaluation time reads an empty string rather than failing.
+  -->
+
+  <PropertyGroup>
+    <_RaskMetaDir Condition="'$(RaskMetaFramework)' != ''"
+    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskMetaAppDir)'))</_RaskMetaDir>
+
+    <!-- Design-time builds are excluded: an IDE reloading the project must never shell out to npm. -->
+    <_RaskMetaDoBuild
+      Condition="'$(_RaskMetaDir)' != '' AND '$(RaskMetaBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
+    >true</_RaskMetaDoBuild>
+  </PropertyGroup>
+
+  <!--
+    The framework table, and the only place in the build that knows one framework from another. It is
+    the same table MetaFramework holds in C#, for the same reason: six frameworks, three server shapes,
+    and the differences are data.
+  -->
+  <Choose>
+    <When Condition="'$(RaskMetaFramework)' == 'nuxt' OR '$(RaskMetaFramework)' == 'tanstack-start' OR '$(RaskMetaFramework)' == 'solidstart'">
+      <PropertyGroup>
+        <_RaskMetaEntry>.output/server/index.mjs</_RaskMetaEntry>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(RaskMetaFramework)' == 'analog'">
+      <PropertyGroup>
+        <_RaskMetaEntry>dist/analog/server/index.mjs</_RaskMetaEntry>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(RaskMetaFramework)' == 'sveltekit'">
+      <PropertyGroup>
+        <_RaskMetaEntry>build/index.js</_RaskMetaEntry>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(RaskMetaFramework)' == 'nextjs'">
+      <PropertyGroup>
+        <_RaskMetaEntry>.next/standalone/server.js</_RaskMetaEntry>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <!--
+    Narrow globs on purpose. A `**/*` over the app directory would enumerate node_modules — tens of
+    thousands of files — on every evaluation, costing far more than the build it is trying to skip.
+  -->
+  <ItemGroup Condition="'$(_RaskMetaDir)' != ''">
+    <_RaskMetaInput Include="$(_RaskMetaDir)/*.json;$(_RaskMetaDir)/*.ts;$(_RaskMetaDir)/*.js;$(_RaskMetaDir)/*.mjs;$(_RaskMetaDir)/*.vue;$(_RaskMetaDir)/src/**/*;$(_RaskMetaDir)/app/**/*;$(_RaskMetaDir)/public/**/*"/>
+    <_RaskMetaInstallInput Include="$(_RaskMetaDir)/package.json;$(_RaskMetaDir)/package-lock.json"/>
+  </ItemGroup>
+
+  <!--
+    An unknown framework name is a typo, and it is worth catching here rather than as a missing entry
+    file forty seconds into an npm build.
+  -->
+  <Target Name="_RaskMetaValidate" BeforeTargets="BeforeBuild" Condition="'$(RaskMetaFramework)' != ''">
+    <Error Condition="'$(_RaskMetaEntry)' == ''"
+           Code="RASKMETA001"
+           Text="Rask.Meta.Hosting: RaskMetaFramework is '$(RaskMetaFramework)', which is not a framework this package knows. Use one of: nuxt, tanstack-start, solidstart, analog, sveltekit, nextjs."/>
+    <Error Condition="!Exists('$(_RaskMetaDir)/package.json')"
+           Code="RASKMETA002"
+           Text="Rask.Meta.Hosting: RaskMetaFramework is set but '$(_RaskMetaDir)' has no package.json. Scaffold the front end there, or point RaskMetaAppDir at the directory that holds it."/>
+  </Target>
+
+  <Target Name="_RaskMetaProbeNode" Condition="'$(_RaskMetaDoBuild)' == 'true'">
+    <Exec Command="node --version" ContinueOnError="true" EchoOff="true"
+          StandardOutputImportance="low" ConsoleToMSBuild="true">
+      <Output TaskParameter="ExitCode" PropertyName="_RaskMetaNodeExit"/>
+      <Output TaskParameter="ConsoleOutput" PropertyName="_RaskMetaNodeVersion"/>
+    </Exec>
+    <Error Condition="'$(_RaskMetaNodeExit)' != '0'"
+           Code="RASKMETA003"
+           Text="Rask.Meta.Hosting: building the $(RaskMetaFramework) front end needs Node.js, but 'node --version' did not run. Install Node.js $(RaskMetaMinimumNode) or newer from https://nodejs.org (macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your distro's nodejs package), then build again. To build the server WITHOUT the front end, pass -p:RaskMetaBuild=false."/>
+
+    <!--
+      Skipped rather than failed when the probe prints something this cannot parse — a nightly build
+      carries a prerelease suffix — because a build that works today should not start failing over a
+      version string this package could not read. npm still gets its say.
+    -->
+    <PropertyGroup Condition="'$(_RaskMetaNodeExit)' == '0'">
+      <_RaskMetaNodeFound>$(_RaskMetaNodeVersion.Trim().TrimStart('v'))</_RaskMetaNodeFound>
+      <_RaskMetaNodeComparable>$([System.Text.RegularExpressions.Regex]::IsMatch($(_RaskMetaNodeFound), '^[0-9]+\.[0-9]+\.[0-9]+$'))</_RaskMetaNodeComparable>
+    </PropertyGroup>
+    <Error Condition="'$(_RaskMetaNodeComparable)' == 'true' AND $([MSBuild]::VersionLessThan('$(_RaskMetaNodeFound)', '$(RaskMetaMinimumNode)'))"
+           Code="RASKMETA004"
+           Text="Rask.Meta.Hosting: building the $(RaskMetaFramework) front end needs Node.js $(RaskMetaMinimumNode) or newer, but 'node --version' reported $(_RaskMetaNodeFound). Install the current LTS (nvm install --lts &amp;&amp; nvm alias default 'lts/*'), then build again. Set RaskMetaMinimumNode for a different bar, or pass -p:RaskMetaBuild=false."/>
+  </Target>
+
+  <!--
+    Its own target with its own stamp, because `npm ci` deletes node_modules and costs tens of seconds:
+    it must not re-run for a source edit. node_modules/.package-lock.json is npm's own install marker.
+  -->
+  <Target Name="_RaskMetaInstallDeps"
+          DependsOnTargets="_RaskMetaProbeNode"
+          Condition="'$(_RaskMetaDoBuild)' == 'true'"
+          Inputs="@(_RaskMetaInstallInput)"
+          Outputs="$(_RaskMetaDir)/node_modules/.package-lock.json">
+    <PropertyGroup>
+      <_RaskMetaInstallCmd Condition="Exists('$(_RaskMetaDir)/package-lock.json')">$(RaskMetaInstallCommand)</_RaskMetaInstallCmd>
+      <_RaskMetaInstallCmd Condition="'$(_RaskMetaInstallCmd)' == ''">$(RaskMetaFirstInstallCommand)</_RaskMetaInstallCmd>
+    </PropertyGroup>
+    <Message Importance="high" Text="Rask.Meta.Hosting: $(_RaskMetaInstallCmd) in $(_RaskMetaDir)"/>
+    <!-- IgnoreStandardErrorWarningFormat: npm writes deprecation notices and audit summaries to stderr
+         as a matter of course, and Exec turns any stderr line into MSB3077 even when it exited 0. -->
+    <Exec Command="$(_RaskMetaInstallCmd)" WorkingDirectory="$(_RaskMetaDir)"
+          IgnoreStandardErrorWarningFormat="true"/>
+  </Target>
+
+  <Target Name="_RaskMetaBuildApp"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="_RaskMetaInstallDeps"
+          Condition="'$(_RaskMetaDoBuild)' == 'true'"
+          Inputs="@(_RaskMetaInput)"
+          Outputs="$(_RaskMetaDir)/$(_RaskMetaEntry);$(IntermediateOutputPath)rask-meta.build.stamp">
+    <Message Importance="high" Text="Rask.Meta.Hosting: $(RaskMetaBuildCommand) in $(_RaskMetaDir) ($(Configuration))"/>
+    <Exec Command="$(RaskMetaBuildCommand)" WorkingDirectory="$(_RaskMetaDir)"
+          IgnoreStandardErrorWarningFormat="true"/>
+    <Error Condition="!Exists('$(_RaskMetaDir)/$(_RaskMetaEntry)')"
+           Code="RASKMETA005"
+           Text="Rask.Meta.Hosting: '$(RaskMetaBuildCommand)' finished but '$(_RaskMetaDir)/$(_RaskMetaEntry)' is not there. Check the framework's adapter or preset — this lane needs a Node server build (Nitro's node preset, SvelteKit's adapter-node, or Next's output: 'standalone')."/>
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <Touch Files="$(IntermediateOutputPath)rask-meta.build.stamp" AlwaysCreate="true"/>
+  </Target>
+
+  <!--
+    Baked whenever a framework is named, not only when it was built: `rask dev` skips the build, and the
+    running host still has to know which framework it is fronting.
+  -->
+  <Target Name="_RaskMetaSetMetadata" BeforeTargets="GetAssemblyAttributes" Condition="'$(RaskMetaFramework)' != ''">
+    <ItemGroup>
+      <AssemblyMetadata Include="Rask.MetaFramework" Value="$(RaskMetaFramework)"/>
+      <AssemblyMetadata Include="Rask.MetaAppDir" Value="$(RaskMetaPublishDir)"/>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Publish-time only. Copying a framework's whole build output into bin on every F5 would be pure
+    waste — at runtime the app finds it under `Client/` on the developer's own disk, which is exactly
+    where the source tree already has it. It is the published app that needs its own copy.
+
+    ResolvedFileToPublish, added AFTER ComputeFilesToPublish. Contributing ContentWithTargetPath before
+    it looks equivalent and silently publishes NOTHING: that item is derived from Content during
+    AssignTargetPaths, which has already run by then.
+
+    The roots are spelled out per framework rather than computed. There are at most three, they differ
+    in kind rather than in pattern, and an explicit list is one someone can check against the
+    framework's own deployment docs.
+  -->
+  <Target Name="_RaskMetaCollectPublishAssets"
+          AfterTargets="ComputeFilesToPublish"
+          DependsOnTargets="_RaskMetaBuildApp"
+          Condition="'$(_RaskMetaDir)' != '' AND Exists('$(_RaskMetaDir)')">
+
+    <ItemGroup Condition="'$(RaskMetaFramework)' == 'nuxt' OR '$(RaskMetaFramework)' == 'tanstack-start' OR '$(RaskMetaFramework)' == 'solidstart'">
+      <_RaskMetaPublishFile Include="$(_RaskMetaDir)/.output/**/*" Root=".output"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(RaskMetaFramework)' == 'analog'">
+      <_RaskMetaPublishFile Include="$(_RaskMetaDir)/dist/analog/**/*" Root="dist/analog"/>
+    </ItemGroup>
+
+    <!--
+      SvelteKit is the one output that is not self-contained: adapter-node emits a server that still
+      resolves its production dependencies from node_modules. The manifests travel with it so the image
+      can run a production-only install; node_modules itself is deliberately NOT copied, because publishing a
+      development tree of tens of thousands of files is not a deployment.
+    -->
+    <ItemGroup Condition="'$(RaskMetaFramework)' == 'sveltekit'">
+      <_RaskMetaPublishFile Include="$(_RaskMetaDir)/build/**/*" Root="build"/>
+      <_RaskMetaPublishRootFile Include="$(_RaskMetaDir)/package.json"/>
+      <_RaskMetaPublishRootFile Include="$(_RaskMetaDir)/package-lock.json" Condition="Exists('$(_RaskMetaDir)/package-lock.json')"/>
+    </ItemGroup>
+
+    <!--
+      Three roots, because standalone carries the server and its dependencies but deliberately not the
+      two asset directories. Their source-relative layout is preserved rather than flattened, so the
+      published tree and the development tree are the same shape — which is what lets one AppDirectory
+      default be correct in both.
+    -->
+    <ItemGroup Condition="'$(RaskMetaFramework)' == 'nextjs'">
+      <_RaskMetaPublishFile Include="$(_RaskMetaDir)/.next/standalone/**/*" Root=".next/standalone"/>
+      <_RaskMetaPublishFile Include="$(_RaskMetaDir)/.next/static/**/*" Root=".next/static"/>
+      <_RaskMetaPublishFile Include="$(_RaskMetaDir)/public/**/*" Root="public" Condition="Exists('$(_RaskMetaDir)/public')"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ResolvedFileToPublish Include="@(_RaskMetaPublishFile)">
+        <RelativePath>$(RaskMetaPublishDir)/%(_RaskMetaPublishFile.Root)/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+
+      <!-- Files that belong at the root of the published front end, with no Root segment to join. -->
+      <ResolvedFileToPublish Include="@(_RaskMetaPublishRootFile)">
+        <RelativePath>$(RaskMetaPublishDir)/%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+
+    <Message Importance="high"
+             Text="Rask.Meta.Hosting: publishing @(_RaskMetaPublishFile->Count()) $(RaskMetaFramework) file(s) into $(RaskMetaPublishDir)/"/>
+  </Target>
+
+</Project>
