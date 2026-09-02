@@ -15,20 +15,31 @@
 // resolve against — is deliberately not re-exported here: a front end never needs it.
 
 export * as battery from "./battery.js";
+export * as broadcastChannel from "./broadcastChannel.js";
 export * as cookies from "./cookies.js";
 export * as crypto from "./crypto.js";
 export * as deviceMotion from "./deviceMotion.js";
 export * as deviceOrientation from "./deviceOrientation.js";
+export * as eyeDropper from "./eyeDropper.js";
+export * as fullscreen from "./fullscreen.js";
+export * as gamepad from "./gamepad.js";
 export * as geolocation from "./geolocation.js";
 export * as indexedDb from "./indexedDb.js";
+export * as installPrompt from "./installPrompt.js";
 export * as intersectionObserver from "./intersectionObserver.js";
+export * as mediaDevices from "./mediaDevices.js";
 export * as mediaQuery from "./mediaQuery.js";
+export * as mediaSession from "./mediaSession.js";
+export * as mutationObserver from "./mutationObserver.js";
 export * as networkInformation from "./networkInformation.js";
 export * as performance from "./performance.js";
 export * as permissions from "./permissions.js";
+export * as pictureInPicture from "./pictureInPicture.js";
 export * as resizeObserver from "./resizeObserver.js";
 export * as screen from "./screen.js";
+export * as screenOrientation from "./screenOrientation.js";
 export * as speechRecognition from "./speechRecognition.js";
 export * as speechSynthesis from "./speechSynthesis.js";
 export * as storageManager from "./storageManager.js";
 export * as visualViewport from "./visualViewport.js";
+export * as webLocks from "./webLocks.js";

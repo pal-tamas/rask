@@ -21,23 +21,34 @@
 // anywhere in the path to notice.
 
 import * as battery from "./battery.js";
+import * as broadcastChannel from "./broadcastChannel.js";
 import * as cookies from "./cookies.js";
 import * as crypto from "./crypto.js";
 import * as deviceMotion from "./deviceMotion.js";
 import * as deviceOrientation from "./deviceOrientation.js";
+import * as eyeDropper from "./eyeDropper.js";
+import * as fullscreen from "./fullscreen.js";
+import * as gamepad from "./gamepad.js";
+import * as installPrompt from "./installPrompt.js";
 import * as geolocation from "./geolocation.js";
 import * as indexedDb from "./indexedDb.js";
 import * as intersectionObserver from "./intersectionObserver.js";
+import * as mediaDevices from "./mediaDevices.js";
 import * as mediaQuery from "./mediaQuery.js";
+import * as mediaSession from "./mediaSession.js";
+import * as mutationObserver from "./mutationObserver.js";
 import * as networkInformation from "./networkInformation.js";
 import * as performance from "./performance.js";
 import * as permissions from "./permissions.js";
+import * as pictureInPicture from "./pictureInPicture.js";
 import * as resizeObserver from "./resizeObserver.js";
 import * as screenInfo from "./screen.js";
+import * as screenOrientation from "./screenOrientation.js";
 import * as speechRecognition from "./speechRecognition.js";
 import * as speechSynthesis from "./speechSynthesis.js";
 import * as storageManager from "./storageManager.js";
 import * as visualViewport from "./visualViewport.js";
+import * as webLocks from "./webLocks.js";
 
 window.__raskApi = window.__raskApi || {
     // IGeolocation.GetCurrentPositionAsync. Rejects when unsupported, denied or timed out; the
@@ -236,6 +247,239 @@ window.__raskBattery = window.__raskBattery || (() => {
             return Promise.resolve();
         },
         clear: (id: number) => {
+            const stop = stops.get(id);
+            if (!stop) {
+                return;
+            }
+            stops.delete(id);
+            stop();
+        }
+    };
+})();
+
+// The activation-gated four, plus the install prompt. On the WASM host these back imperative services;
+// on Server they back declarative gesture components, which run the call inside the click's own stack
+// because a WebSocket round trip loses the transient activation these need.
+window.__raskFullscreen = window.__raskFullscreen || {
+    isSupported: () => fullscreen.isSupported(),
+    isActive: () => fullscreen.isActive(),
+    request: (el) => fullscreen.request(el),
+    exit: () => fullscreen.exit()
+};
+
+window.__raskEyeDropper = window.__raskEyeDropper || {
+    isSupported: () => eyeDropper.isSupported(),
+    open: () => eyeDropper.open()
+};
+
+window.__raskOrientation = window.__raskOrientation || {
+    isSupported: () => screenOrientation.isSupported(),
+    get: () => screenOrientation.current(),
+    lock: (type: OrientationLockType) => screenOrientation.lock(type),
+    unlock: () => screenOrientation.unlock()
+};
+
+window.__raskPip = window.__raskPip || {
+    isSupported: () => pictureInPicture.isSupported(),
+    isActive: () => pictureInPicture.isActive(),
+    request: (el: HTMLVideoElement | null) =>
+        el ? pictureInPicture.request(el) : Promise.reject(new Error("no video element")),
+    exit: () => pictureInPicture.exit()
+};
+
+// IInstallPrompt. listen() runs at registration rather than at module import, which is what keeps the
+// module itself side-effect free — the browser fires beforeinstallprompt once, early, so something has
+// to be listening before the app's own code runs.
+installPrompt.listen();
+
+window.__raskInstall = window.__raskInstall || {
+    canInstall: () => installPrompt.canInstall(),
+    isInstalled: () => installPrompt.isInstalled(),
+    prompt: () => installPrompt.prompt()
+};
+
+// IMediaDevices. A MediaStream cannot cross interop, so streams are held here under a JS-minted id.
+// `get` and `adopt` are not part of the C# surface: they are how other framework helpers — __raskRtc
+// sending a captured stream to a peer, or registering a peer's remote stream — trade in the same ids.
+window.__raskMedia = window.__raskMedia || (() => {
+    const streams = new Map<number, MediaStream>();
+    let nextId = 0;
+
+    const put = (stream: MediaStream) => {
+        const id = ++nextId;
+        streams.set(id, stream);
+        return id;
+    };
+
+    return {
+        isSupported: () => mediaDevices.isSupported(),
+        enumerate: () => mediaDevices.enumerate(),
+        getUserMedia: async (c: RaskMediaConstraints) =>
+            put(await mediaDevices.getUserMedia(c)),
+        getDisplayMedia: async () => put(await mediaDevices.getDisplayMedia()),
+        attach: (id: number, video: HTMLVideoElement | null) => {
+            const stream = streams.get(id);
+            if (!stream || !video) {
+                return Promise.resolve();
+            }
+            return mediaDevices.attach(video, stream);
+        },
+        stop: (id: number) => {
+            const stream = streams.get(id);
+            if (!stream) {
+                return;
+            }
+            streams.delete(id);
+            mediaDevices.stop(stream);
+        },
+        get: (id: number) => streams.get(id),
+        adopt: (stream: MediaStream) => put(stream)
+    };
+})();
+
+// IWebLocks. The platform holds a lock for as long as the callback's promise is pending, and C# wants
+// to do its work in C# — so the callback parks on a promise this resolves when release(id) arrives.
+// Nothing of that shape belongs in the module, where `work` is an ordinary async function.
+window.__raskLocks = window.__raskLocks || (() => {
+    const releasers = new Map<number, () => void>();
+    return {
+        isSupported: () => webLocks.isSupported(),
+        request: (id: number, name: string, mode: LockMode, ifAvailable: boolean) =>
+            new Promise<boolean>((granted, failed) => {
+                webLocks.request(
+                    name,
+                    () => {
+                        granted(true);
+                        return new Promise<void>((release) => releasers.set(id, release));
+                    },
+                    {mode: mode || "exclusive", ifAvailable})
+                    .then((result) => {
+                        // null means ifAvailable could not grant it — the callback never ran, so
+                        // nothing resolved `granted` yet.
+                        if (result === null) {
+                            granted(false);
+                        }
+                    })
+                    .catch((e) => {
+                        releasers.delete(id);
+                        failed(e);
+                    });
+            }),
+        release: (id: number) => {
+            const release = releasers.get(id);
+            if (release) {
+                releasers.delete(id);
+                release();
+            }
+        },
+        query: () => webLocks.query()
+    };
+})();
+
+// IMediaSession. The browser holds one handler per action, while C# hands out a disposable per
+// registration — so the id that currently OWNS each action is tracked here. Without that, disposing an
+// older registration would clear a handler a newer one had since installed.
+window.__raskMediaSession = window.__raskMediaSession || (() => {
+    const actions = new Map<number, MediaSessionAction>();
+    const owners = new Map<MediaSessionAction, number>();
+    return {
+        isSupported: () => mediaSession.isSupported(),
+        setMetadata: (m: RaskMediaMetadata) => mediaSession.setMetadata(m),
+        setPlaybackState: (state: MediaSessionPlaybackState) => mediaSession.setPlaybackState(state),
+        setActionHandler: (id: number, action: MediaSessionAction) => {
+            mediaSession.setActionHandler(action, () =>
+                window.DotNet.invokeMethodAsync("Rask.Core", "RaskMediaSessionAction", id));
+            actions.set(id, action);
+            owners.set(action, id);
+        },
+        removeActionHandler: (id: number) => {
+            const action = actions.get(id);
+            if (action === undefined) {
+                return;
+            }
+            actions.delete(id);
+            if (owners.get(action) === id) {
+                owners.delete(action);
+                mediaSession.setActionHandler(action, null);
+            }
+        },
+        clear: () => mediaSession.clear()
+    };
+})();
+
+// IMutationObserver. The seven positional flags are what an IJSRuntime call site can express; the
+// module takes them as one options object.
+window.__raskMutation = window.__raskMutation || (() => {
+    const stops = new Map<number, () => void>();
+    return {
+        observe: (
+            id: number,
+            element: Element | null,
+            childList: boolean,
+            attributes: boolean,
+            characterData: boolean,
+            subtree: boolean,
+            attributeFilter: string[] | null) => {
+            if (!element) {
+                return;
+            }
+            stops.set(id, mutationObserver.observe(
+                element,
+                (change) =>
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskMutationChanged", id, change),
+                {childList, attributes, characterData, subtree, attributeFilter}));
+        },
+        unobserve: (id: number) => {
+            const stop = stops.get(id);
+            if (!stop) {
+                return;
+            }
+            stops.delete(id);
+            stop();
+        }
+    };
+})();
+
+// IBroadcastChannel. C# holds an integer id rather than the channel object, which cannot cross.
+window.__raskBroadcast = window.__raskBroadcast || (() => {
+    const channels = new Map<number, broadcastChannel.Channel>();
+    return {
+        open: (id: number, name: string) => {
+            channels.set(id, broadcastChannel.open(name, (message) =>
+                window.DotNet.invokeMethodAsync("Rask.Core", "RaskBroadcastReceive", id, message)));
+        },
+        post: (id: number, message: string) => {
+            const channel = channels.get(id);
+            if (channel) {
+                channel.post(message);
+            }
+        },
+        close: (id: number) => {
+            const channel = channels.get(id);
+            if (!channel) {
+                return;
+            }
+            channels.delete(id);
+            channel.close();
+        }
+    };
+})();
+
+// IGamepad. Polled at ~12 Hz rather than every animation frame, for the same reason the sensors are
+// throttled: each reading that changes is a frame on the wire. In-page callers poll every frame.
+const GAMEPAD_POLL_MS = 80;
+
+window.__raskGamepad = window.__raskGamepad || (() => {
+    const stops = new Map<number, () => void>();
+    return {
+        isSupported: () => gamepad.isSupported(),
+        watch: (id: number) => {
+            stops.set(id, gamepad.watch(
+                (reading) =>
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, reading),
+                {throttleMs: GAMEPAD_POLL_MS}));
+        },
+        unwatch: (id: number) => {
             const stop = stops.get(id);
             if (!stop) {
                 return;
