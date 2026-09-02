@@ -10,6 +10,17 @@
 // affordance for the whole app, and it buys nothing — the mini-infobar it used to suppress was
 // removed in Chrome 76, and a deferred event replays fine without it.
 
+/** The beforeinstallprompt event, which lib.dom does not declare. */
+interface BeforeInstallPromptEventLike extends Event {
+    prompt(): void;
+    userChoice: Promise<{ outcome: string }>;
+}
+
+/** iOS Safari's standalone flag — the only way to detect an installed PWA there. */
+interface NavigatorWithStandalone extends Navigator {
+    standalone?: boolean;
+}
+
 let deferred: BeforeInstallPromptEventLike | null = null;
 let installed = false;
 let listening = false;
@@ -46,7 +57,7 @@ export function isInstalled(): boolean {
         return false;
     }
     return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
-        || window.navigator.standalone === true;
+        || (window.navigator as NavigatorWithStandalone).standalone === true;
 }
 
 /**

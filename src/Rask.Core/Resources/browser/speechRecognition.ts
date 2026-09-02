@@ -23,8 +23,48 @@ export interface SpeechOptions {
     interimResults?: boolean;
 }
 
-function constructor(): (new() => SpeechRecognitionLike) | undefined {
-    return window.SpeechRecognition || window.webkitSpeechRecognition;
+/**
+ * Web Speech recognition, which lib.dom does not declare — Chromium-family only and still
+ * vendor-prefixed. Only what this module drives is described.
+ */
+interface SpeechRecognitionAlternativeLike {
+    transcript: string;
+    confidence: number;
+}
+
+interface SpeechRecognitionResultLike {
+    readonly length: number;
+    readonly isFinal: boolean;
+    [index: number]: SpeechRecognitionAlternativeLike;
+}
+
+interface SpeechRecognitionEventLike {
+    resultIndex: number;
+    results: { readonly length: number; [index: number]: SpeechRecognitionResultLike };
+}
+
+interface SpeechRecognitionLike {
+    lang: string;
+    continuous: boolean;
+    interimResults: boolean;
+    onresult: ((e: SpeechRecognitionEventLike) => void) | null;
+    onerror: ((e: { error?: string }) => void) | null;
+    onend: (() => void) | null;
+    start(): void;
+    stop(): void;
+}
+
+type SpeechRecognitionCtor = { new(): SpeechRecognitionLike } | undefined;
+
+function constructor(): SpeechRecognitionCtor {
+    if (typeof window === "undefined") {
+        return undefined;
+    }
+    const host = window as unknown as {
+        SpeechRecognition?: SpeechRecognitionCtor;
+        webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    return host.SpeechRecognition || host.webkitSpeechRecognition;
 }
 
 export function isSupported(): boolean {

@@ -17,6 +17,26 @@ export interface FilePickerOptions {
     suggestedName?: string | null;
 }
 
+/**
+ * The pickers, which lib.dom does not declare — Chromium-family only, secure context only.
+ * Only what this module drives is described.
+ */
+interface FilePickers {
+    showOpenFilePicker?(options?: {
+        multiple?: boolean;
+        types?: { description: string; accept: Record<string, string[]> }[];
+    }): Promise<FileSystemFileHandle[]>;
+    showSaveFilePicker?(options?: {
+        suggestedName?: string;
+        types?: { description: string; accept: Record<string, string[]> }[];
+    }): Promise<FileSystemFileHandle>;
+    showDirectoryPicker?(): Promise<FileSystemDirectoryHandle>;
+}
+
+function pickers(): FilePickers | null {
+    return typeof window === "undefined" ? null : window as unknown as FilePickers;
+}
+
 function types(options?: FilePickerOptions | null) {
     if (!options || !options.accept) {
         return undefined;
@@ -29,15 +49,16 @@ function isAbort(e: unknown): boolean {
 }
 
 /** The picker host, or a refusal naming the call rather than a bare TypeError on undefined. */
-function picker(): Window {
-    if (typeof window === "undefined" || !window.showOpenFilePicker) {
+function picker(): FilePickers {
+    const host = pickers();
+    if (!host?.showOpenFilePicker) {
         throw new Error("Rask file system: this browser has no File System Access picker.");
     }
-    return window;
+    return host;
 }
 
 export function isSupported(): boolean {
-    return typeof window !== "undefined" && "showOpenFilePicker" in window;
+    return !!pickers()?.showOpenFilePicker;
 }
 
 /** Ask the user for one file. Null if they cancel. */

@@ -16,11 +16,19 @@ export interface NetworkStatus {
     saveData: boolean;
 }
 
+/** Still vendor-prefixed, and absent from lib.dom, so the three spellings are named here. */
+interface NavigatorWithConnection extends Navigator {
+    connection?: NetworkInformationLike;
+    mozConnection?: NetworkInformationLike;
+    webkitConnection?: NetworkInformationLike;
+}
+
 function connection(): NetworkInformationLike | null {
     if (typeof navigator === "undefined") {
         return null;
     }
-    return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+    const nav = navigator as NavigatorWithConnection;
+    return nav.connection || nav.mozConnection || nav.webkitConnection || null;
 }
 
 /** The shape the prefixed objects share; the platform lib has no single type for all three. */

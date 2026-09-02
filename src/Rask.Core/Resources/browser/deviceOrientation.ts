@@ -5,6 +5,18 @@
 // Compass and tilt. iOS gates this behind a permission that can only be requested from inside a user
 // gesture, which is why `requestPermission` exists and why calling it from a timer silently fails.
 
+/** Safari added `requestPermission` as a static on the event constructor; lib.dom declares neither. */
+interface PermissionGatedEvent {
+    requestPermission?(): Promise<string>;
+}
+
+function gate(name: "DeviceOrientationEvent" | "DeviceMotionEvent"): PermissionGatedEvent | undefined {
+    if (typeof window === "undefined") {
+        return undefined;
+    }
+    return (window as unknown as Record<string, PermissionGatedEvent | undefined>)[name];
+}
+
 export interface OrientationReading {
     /** Compass direction, 0–360. Null when the device cannot tell. */
     alpha: number | null;
@@ -36,7 +48,7 @@ export function isSupported(): boolean {
  * Must be called from within a user gesture on iOS — from a click handler, not after an await.
  */
 export function requestPermission(): Promise<string> {
-    const evt = typeof window === "undefined" ? undefined : window.DeviceOrientationEvent;
+    const evt = gate("DeviceOrientationEvent");
     if (!evt) {
         return Promise.resolve("denied");
     }

@@ -7,6 +7,11 @@ import type {SensorOptions} from "./deviceOrientation.js";
 
 export type {SensorOptions};
 
+/** See ./deviceOrientation.ts — the same iOS gate, declared locally for the same reason. */
+interface PermissionGatedEvent {
+    requestPermission?(): Promise<string>;
+}
+
 export interface MotionReading {
     /** Acceleration excluding gravity, m/s². Undefined where the device has no such sensor. */
     accelerationX: number | null | undefined;
@@ -26,7 +31,9 @@ export function isSupported(): boolean {
 
 /** Ask for permission. See ./deviceOrientation.ts — the iOS gesture requirement is the same. */
 export function requestPermission(): Promise<string> {
-    const evt = typeof window === "undefined" ? undefined : window.DeviceMotionEvent;
+    const evt = typeof window === "undefined"
+        ? undefined
+        : (window as unknown as Record<string, PermissionGatedEvent | undefined>).DeviceMotionEvent;
     if (!evt) {
         return Promise.resolve("denied");
     }

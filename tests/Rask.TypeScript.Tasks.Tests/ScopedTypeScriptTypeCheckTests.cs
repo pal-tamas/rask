@@ -105,6 +105,60 @@ public class ScopedTypeScriptTypeCheckTests
     }
 
     /// <summary>
+    ///     Type-checks the shipped browser layer AS A CONSUMER SEES IT — lib.dom and nothing else.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         These modules are packed into <c>Rask.Spa.Hosting</c> and copied into a TypeScript front
+    ///         end's <c>src/rask/browser/</c>, where the only types available are the ones the browser's
+    ///         own lib provides. The framework compiles them alongside <c>rask-window.d.ts</c>, which
+    ///         declares every vendor shape it needs — <c>BatteryManagerLike</c>, <c>EyeDropper</c>,
+    ///         <c>navigator.getBattery</c>, the speech-recognition constructors — so a module leaning on
+    ///         one of those type-checks perfectly HERE and fails in the consumer's build.
+    ///     </para>
+    ///     <para>
+    ///         Which is exactly what happened, and it is worth recording how it was caught. Nothing in
+    ///         the unit gate saw it; the framework check was green, the packaging test was green, and
+    ///         the failure surfaced at the last possible moment as <c>npm run build</c> exiting 2 inside
+    ///         the CLI build gate, refusing a push. Eight modules were affected. This test is the
+    ///         cheap version of that discovery: same compiler, no DOM shims, milliseconds.
+    ///     </para>
+    ///     <para>
+    ///         <c>globals.ts</c> is excluded because it is the framework's own entry point rather than
+    ///         part of what ships — it publishes the <c>window.__rask*</c> namespaces .NET resolves
+    ///         against, and it is the one file in the directory a front end never receives.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void TheShippedBrowserModules_TypeCheckWithNothingButLibDom()
+    {
+        var root = RepositoryRoot();
+        var tsgo = ResolveTsgo();
+
+        var directory = Path.Combine(root, "src", "Rask.Core", "Resources", "browser");
+        var modules = Directory.EnumerateFiles(directory, "*.ts")
+            .Where(f => Path.GetFileName(f) != "globals.ts")
+            .OrderBy(f => f, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(modules.Count > 1, $"No browser modules under '{directory}' — this checks nothing.");
+
+        // Deliberately NOT passing rask-window.d.ts. That absence is the whole assertion.
+        var arguments = string.Join(" ", modules.Select(m => $"\"{m}\""))
+                        + " --noEmit --strict --noUnusedLocals --target es2020 --module esnext"
+                        + " --moduleResolution bundler --lib es2020,dom";
+
+        var (exitCode, output) = Run(tsgo, arguments);
+
+        Assert.True(
+            exitCode == 0,
+            "The shipped browser modules do not compile against lib.dom alone, so a scaffolded "
+            + "TypeScript client will not build. Declare the vendor shape inside the module that needs "
+            + "it rather than relying on rask-window.d.ts, which never leaves the framework:"
+            + Environment.NewLine + output);
+    }
+
+    /// <summary>
     ///     Type-checks the framework's own client runtimes — the diff codec, the morph, the event
     ///     router, the browser-API shims and both host entry points.
     /// </summary>

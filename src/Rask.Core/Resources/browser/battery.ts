@@ -2,12 +2,41 @@
 //
 // See ./geolocation.ts for the two rules every module in this directory follows.
 //
-// Chromium-only in practice; lib.dom dropped the types, so BatteryManagerLike is declared in
-// rask-window.d.ts. Firefox and Safari removed it deliberately (it was a fingerprinting vector), so
-// treat an unsupported browser as the normal case rather than the exception.
+// Chromium-only in practice. Firefox and Safari removed it deliberately (it was a fingerprinting
+// vector), so treat an unsupported browser as the normal case rather than the exception.
+//
+// The vendor shapes below are declared HERE rather than in a shared .d.ts, and that is the point: a
+// module in this directory ships to front ends that have lib.dom and nothing else. One depending on an
+// ambient declaration the consumer lacks compiles inside the framework and fails in their build — which
+// is exactly how this was found, when the CLI gate refused a push over a scaffolded client that could
+// not compile these files.
 
 /** The four events the manager fires; any of them means "read the snapshot again". */
 const EVENTS = ["levelchange", "chargingchange", "chargingtimechange", "dischargingtimechange"];
+
+/**
+ * lib.dom dropped BatteryManager, so the shape is declared here rather than assumed.
+ *
+ * Locally, and not in a shared .d.ts, because these modules ship to front ends that have only
+ * lib.dom: a module depending on an ambient declaration the consumer does not have compiles here and
+ * fails in their build, which is exactly how this was found — the CLI gate refused a push over a
+ * scaffolded React client that could not compile `browser/battery.ts`.
+ */
+interface BatteryManagerLike extends EventTarget {
+    level: number;
+    charging: boolean;
+    chargingTime: number;
+    dischargingTime: number;
+}
+
+interface NavigatorWithBattery extends Navigator {
+    getBattery?(): Promise<BatteryManagerLike>;
+}
+
+/** The one place the cast happens, so no call site has to know about it. */
+function battery(): NavigatorWithBattery | null {
+    return typeof navigator === "undefined" ? null : navigator as NavigatorWithBattery;
+}
 
 export interface BatteryStatus {
     /** 0–1. */
@@ -33,12 +62,13 @@ function read(b: BatteryManagerLike): BatteryStatus {
 }
 
 export function isSupported(): boolean {
-    return typeof navigator !== "undefined" && typeof navigator.getBattery === "function";
+    return typeof battery()?.getBattery === "function";
 }
 
 /** One snapshot, or null where unsupported. */
 export function getStatus(): Promise<BatteryStatus | null> {
-    return isSupported() ? navigator.getBattery!().then(read) : Promise.resolve(null);
+    const nav = battery();
+    return nav?.getBattery ? nav.getBattery().then(read) : Promise.resolve(null);
 }
 
 /**
@@ -54,8 +84,9 @@ export function watch(onChange: (status: BatteryStatus) => void): () => void {
     let stopped = false;
     let detach: (() => void) | null = null;
 
-    if (isSupported()) {
-        navigator.getBattery!().then((b: BatteryManagerLike) => {
+    const nav = battery();
+    if (nav?.getBattery) {
+        nav.getBattery().then((b: BatteryManagerLike) => {
             if (stopped) {
                 return;
             }

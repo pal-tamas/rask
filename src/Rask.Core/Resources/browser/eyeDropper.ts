@@ -3,8 +3,21 @@
 // See ./geolocation.ts for the two rules every module in this directory follows.
 // Chromium-only, secure context, and needs transient user activation — see ./fullscreen.ts.
 
+/** lib.dom does not declare EyeDropper: it is Chromium-family only. */
+interface EyeDropperLike {
+    open(): Promise<{ sRGBHex: string }>;
+}
+
+type EyeDropperCtor = { new(): EyeDropperLike } | undefined;
+
+function constructor(): EyeDropperCtor {
+    return typeof globalThis === "undefined"
+        ? undefined
+        : (globalThis as unknown as { EyeDropper?: EyeDropperCtor }).EyeDropper;
+}
+
 export function isSupported(): boolean {
-    return typeof EyeDropper !== "undefined" && !!EyeDropper;
+    return !!constructor();
 }
 
 /**
@@ -15,9 +28,8 @@ export function isSupported(): boolean {
  * if, not a try.
  */
 export function open(): Promise<string | null> | null {
-    // Bound to a local so the narrowing survives: EyeDropper is declared as possibly undefined, and a
-    // support helper cannot narrow a global for the type checker.
-    const ctor = typeof EyeDropper === "undefined" ? undefined : EyeDropper;
+    // Bound to a local so the narrowing survives: a support helper cannot narrow for the checker.
+    const ctor = constructor();
     if (!ctor) {
         return null;
     }

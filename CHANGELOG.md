@@ -137,6 +137,18 @@ them until tagged releases begin.
   directory the scaffold itself gitignores. Verified by putting the path back and watching it fail,
   naming the file.
 
+- **The shipped browser modules did not compile in a consumer's project.** Eight of them leaned on
+  ambient declarations from `rask-window.d.ts` — `BatteryManagerLike`, `EyeDropper`,
+  `SpeechRecognitionLike`, `navigator.getBattery`, `window.showOpenFilePicker`, the vendor-prefixed
+  `connection` spellings, iOS's `requestPermission` statics — and that file never leaves the framework.
+  They compiled here, the packaging test passed, and the failure surfaced only when a scaffolded React
+  and Angular client ran `npm run build`, as an MSBuild error carrying an npm exit code.
+
+  Each module declares the vendor shape it needs now, so it is droppable into any TypeScript project.
+  And the missing gate exists: the shipped modules are type-checked against `lib.dom` and nothing else,
+  with the framework's declarations deliberately withheld — verified by deleting one local interface
+  and watching the consumer check fail while the framework's own stayed green.
+
 - **Two build gates were green over code they never read.** The framework's own TypeScript is
   type-checked from a list of files, guarded against going stale by an enumeration that used
   `SearchOption.TopDirectoryOnly` — so a file in a SUBDIRECTORY was in neither the list nor the guard,
