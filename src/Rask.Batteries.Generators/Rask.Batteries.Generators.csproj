@@ -49,6 +49,7 @@
     <Compile Include="..\Rask.Generators.Shared\DiagnosticHelp.cs" Link="Shared\DiagnosticHelp.cs"/>
     <Compile Include="..\Rask.Generators.Shared\IsExternalInit.cs" Link="Shared\IsExternalInit.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireShape.cs" Link="Shared\WireShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WireCodecEmitter.cs" Link="Shared\WireCodecEmitter.cs"/>
     <Compile Include="..\Rask.Generators.Shared\TypeScriptEmitter.cs" Link="Shared\TypeScriptEmitter.cs"/>
   </ItemGroup>
 

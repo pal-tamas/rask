@@ -65,6 +65,9 @@ jobs:
       - name: Pack Rask.Api
         run: dotnet pack src/Rask.Api/Rask.Api.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Api.Client
+        run: dotnet pack src/Rask.Api.Client/Rask.Api.Client.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Cqrs
         run: dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release --no-build -o ./artifacts
 

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Api.Client</PackageId>
+    <Title>Rask.Api.Client — Typed Clients Generated From Your Endpoints</Title>
+    <Description>Call your own API controllers and minimal API endpoints from C# with no URL string at the call site. A source generator reads the endpoint declarations and emits one typed client per controller, with reflection-free JSON codecs, so the route, the verb, the request shape and the response shape cannot drift from the server. Publishes clean under the WASM/AOT trimmer.</Description>
+    <PackageTags>aspnetcore api client typed-client source-generator reflection-free aot trimming dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Api.Client;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

@@ -9,6 +9,32 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Api.Client` — a typed client generated from your own controllers, so a call site carries no
+  URL.** The server declaration is the source of truth: an ordinary `[ApiController]` is read for its
+  routes, verbs, parameters and response types, and one client class per controller is generated from
+  it. `PostsController` becomes `PostsClient`, and a component writes `await posts.Get(3)` rather than
+  `http.GetFromJsonAsync<Post>($"/api/posts/{id}")`. Rename the route on the server and the call site
+  fails at compile time instead of at 404 time.
+
+  Reflection-free throughout — the JSON codecs come from the same `WireCodecEmitter` the CQRS wire
+  uses, so a shape means the same thing on either — and `AddRaskApiClient()` registers every generated
+  client from a module initializer, so this package never has to name types that live in your
+  compilation.
+
+  **The round-trip suite found two bugs a compile-only generator test cannot see**, which is the whole
+  reason it hosts the real controllers and calls them over HTTP rather than asserting on emitted text:
+
+  1. An action returning `string` answers **`text/plain`**, not JSON — ASP.NET's `StringOutputFormatter`
+     wins content negotiation — so `return "ok"` arrived as `ok` and the decoder failed on a perfectly
+     valid response. The client now says `Accept: application/json`.
+  2. Optional parameters were emitted as `= default`, so calling `List()` sent `page=0` and **silently
+     overrode the action's own `page = 1`** with a zero that type-checks on both sides. The generator
+     now emits the action's real default.
+
+  Four diagnostics, RASK067–RASK070: no wire encoding, endpoint skipped (with the reason — a silent
+  skip reads as a broken generator), two endpoints claiming one client method, and a response type that
+  is not statically known.
+
 - **`Rask.Api` — API controllers and minimal API endpoints, hosted properly.** `AddRaskApi()` +
   `MapRaskApi()`. Controllers are mapped (nothing in `src/` referenced MVC before this), and a request
   under the API prefix that matches **nothing** now answers 404 with an RFC 9457 problem document.

@@ -1,9 +1,8 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Rask.Generators.Shared;
 
-namespace Rask.Cqrs.Generators;
+namespace Rask.Generators.Shared;
 
 /// <summary>
 ///     Turns a <see cref="WireType" /> tree into the C# that reads and writes it.

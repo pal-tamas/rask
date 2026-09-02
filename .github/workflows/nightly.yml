@@ -45,6 +45,7 @@ jobs:
           dotnet pack src/Rask.External/Rask.External.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wire/Rask.Wire.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Api/Rask.Api.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Api.Client/Rask.Api.Client.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Query/Rask.Query.csproj -c Release -o ./artifacts

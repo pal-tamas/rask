@@ -1,0 +1,40 @@
+#nullable enable
+Rask.Api.Client.ApiCall
+Rask.Api.Client.ApiClientOptions
+Rask.Api.Client.ApiClientOptions.ApiClientOptions() -> void
+Rask.Api.Client.ApiClientOptions.BaseAddress.get -> System.Uri?
+Rask.Api.Client.ApiClientOptions.BaseAddress.set -> void
+Rask.Api.Client.ApiClientOptions.ConfigureRequestAsync.get -> System.Func<System.Net.Http.HttpRequestMessage!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
+Rask.Api.Client.ApiClientOptions.ConfigureRequestAsync.set -> void
+Rask.Api.Client.ApiClientOptions.Timeout.get -> System.TimeSpan
+Rask.Api.Client.ApiClientOptions.Timeout.set -> void
+Rask.Api.Client.ApiClientRegistration
+Rask.Api.Client.ApiClientRegistration.ApiClientRegistration() -> void
+Rask.Api.Client.ApiClientRegistration.ApiClientRegistration(System.Type! ClientType, System.Func<System.Net.Http.HttpClient!, Rask.Api.Client.ApiClientOptions!, object!>! Factory) -> void
+Rask.Api.Client.ApiClientRegistration.ClientType.get -> System.Type!
+Rask.Api.Client.ApiClientRegistration.ClientType.init -> void
+Rask.Api.Client.ApiClientRegistration.Deconstruct(out System.Type! ClientType, out System.Func<System.Net.Http.HttpClient!, Rask.Api.Client.ApiClientOptions!, object!>! Factory) -> void
+Rask.Api.Client.ApiClientRegistration.Equals(Rask.Api.Client.ApiClientRegistration other) -> bool
+Rask.Api.Client.ApiClientRegistration.Factory.get -> System.Func<System.Net.Http.HttpClient!, Rask.Api.Client.ApiClientOptions!, object!>!
+Rask.Api.Client.ApiClientRegistration.Factory.init -> void
+Rask.Api.Client.ApiClientRegistry
+Rask.Api.Client.ApiException
+Rask.Api.Client.ApiException.ApiException(string! message, string! method, string! path, int? statusCode = null, string? problemType = null, string? detail = null, System.Exception? innerException = null) -> void
+Rask.Api.Client.ApiException.Detail.get -> string?
+Rask.Api.Client.ApiException.Method.get -> string!
+Rask.Api.Client.ApiException.Path.get -> string!
+Rask.Api.Client.ApiException.ProblemType.get -> string?
+Rask.Api.Client.ApiException.StatusCode.get -> int?
+Rask.Api.Client.ApiUri
+Rask.Api.Client.RaskApiClientServiceCollectionExtensions
+override Rask.Api.Client.ApiClientRegistration.GetHashCode() -> int
+static Rask.Api.Client.ApiCall.SendAsync(System.Net.Http.HttpClient! http, Rask.Api.Client.ApiClientOptions! options, System.Net.Http.HttpMethod! method, string! path, byte[]? body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]?>!
+static Rask.Api.Client.ApiClientRegistration.operator !=(Rask.Api.Client.ApiClientRegistration left, Rask.Api.Client.ApiClientRegistration right) -> bool
+static Rask.Api.Client.ApiClientRegistration.operator ==(Rask.Api.Client.ApiClientRegistration left, Rask.Api.Client.ApiClientRegistration right) -> bool
+static Rask.Api.Client.ApiClientRegistry.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Api.Client.ApiClientRegistration>!
+static Rask.Api.Client.ApiClientRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.Api.Client.ApiClientRegistration>! clients) -> void
+static Rask.Api.Client.ApiUri.Query(params (string! Name, object? Value)[]! parameters) -> string!
+static Rask.Api.Client.ApiUri.Segment(object? value) -> string!
+static Rask.Api.Client.RaskApiClientServiceCollectionExtensions.AddRaskApiClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Api.Client.ApiClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+~override Rask.Api.Client.ApiClientRegistration.Equals(object obj) -> bool
+~override Rask.Api.Client.ApiClientRegistration.ToString() -> string
