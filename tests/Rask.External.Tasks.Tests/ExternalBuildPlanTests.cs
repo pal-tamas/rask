@@ -482,8 +482,8 @@ public class ExternalBuildPlanTests
         // The PAGE is served by ASP.NET and the modules by Vite, so every island import is
         // cross-origin: without cors the browser refuses the module script outright, and without an
         // explicit origin Vite writes relative URLs that resolve against the HOST and come back as the
-        // app's own HTML.
-        Assert.Contains("cors: true", config, StringComparison.Ordinal);
+        // app's own HTML. The allow-list itself is pinned separately, below.
+        Assert.Contains("cors: {", config, StringComparison.Ordinal);
         Assert.Contains("origin: 'http://localhost:5174'", config, StringComparison.Ordinal);
 
         // The port is baked into the manifest at build time. Letting Vite fall forward to the next
@@ -491,6 +491,32 @@ public class ExternalBuildPlanTests
         // symptom would be islands that never appear.
         Assert.Contains("port: 5174", config, StringComparison.Ordinal);
         Assert.Contains("strictPort: true", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_dev_server_answers_loopback_origins_only()
+    {
+        var config = ExternalBuildPlan.ViteConfig(
+            [new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.tsx", Runtime = "react" }],
+            "/obj/entries",
+            "/app/wwwroot/_rask/external",
+            "/app/wwwroot/_rask/external/manifest.json",
+            "/_rask/external/",
+            null,
+            "http://localhost:5174");
+
+        // `cors: true` answers EVERY origin with `Access-Control-Allow-Origin: *`, and this server also
+        // serves /@fs/<absolute path> — so any website open in the developer's browser while `rask dev`
+        // runs could fetch files from under their workspace root and read the response. Measured before
+        // the fix: an `Origin: https://evil.example` request came back 200 with `*`. After it, the same
+        // request gets no allow-origin header at all while `http://localhost:5000` gets its own back.
+        //
+        // Vite has had to close this same class of hole more than once; a loopback allow-list costs
+        // nothing here, because the only legitimate caller IS the app on localhost.
+        Assert.DoesNotContain("cors: true", config, StringComparison.Ordinal);
+        Assert.Contains("cors: { origin: /^https?:", config, StringComparison.Ordinal);
+        Assert.Contains("localhost", config, StringComparison.Ordinal);
+        Assert.Contains("127", config, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -518,6 +544,76 @@ public class ExternalBuildPlanTests
 
         // A trailing slash on the URL must not produce a doubled one in the middle of every import.
         Assert.DoesNotContain("5174//", manifest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_windows_entry_path_still_produces_a_usable_at_fs_url()
+    {
+        // "/@fs" + the path happens to work on Unix, where the path starts with "/", and produces
+        // "/@fsC:/app/..." on Windows — every island 404s under `rask dev` and nothing mounts. Vite's
+        // own form is "/@fs/" + the path without its leading slash.
+        var manifest = ExternalBuildPlan.DevManifest(
+            [new ExternalEntry { Name = "Chart", Source = @"C:\app\Chart.tsx", Runtime = "react" }],
+            @"C:\app\obj\rask-external\entries",
+            "http://localhost:5174");
+
+        Assert.Contains(
+            "\"Chart\": \"http://localhost:5174/@fs/C:/app/obj/rask-external/entries/Chart.entry.ts\"",
+            manifest,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain("/@fsC:", manifest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_unix_entry_path_is_not_double_slashed()
+    {
+        var manifest = ExternalBuildPlan.DevManifest(
+            [new ExternalEntry { Name = "Chart", Source = "/app/Chart.tsx", Runtime = "react" }],
+            "/app/obj/rask-external/entries",
+            "http://localhost:5174");
+
+        Assert.Contains("/@fs/app/obj/", manifest, StringComparison.Ordinal);
+        Assert.DoesNotContain("/@fs//", manifest, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("http://localhost:5174/islands")]
+    [InlineData("not-a-url")]
+    [InlineData("ftp://localhost:5174")]
+    public void A_dev_server_url_that_cannot_be_served_from_is_refused(string url)
+    {
+        // Falling back to a default port here is the worst outcome available: the config would pin
+        // strictPort to one port while `origin` and the manifest named another, so Vite would come up
+        // on a port nothing imports from and the only symptom would be islands that never appear.
+        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.ViteConfig(
+            [new ExternalEntry { Name = "Chart", Source = "/app/Chart.tsx", Runtime = "react" }],
+            "/obj/entries",
+            "/app/wwwroot/_rask/external",
+            "/app/wwwroot/_rask/external/manifest.json",
+            "/_rask/external/",
+            null,
+            url));
+
+        Assert.Contains(url, ex.Message, StringComparison.Ordinal);
+        Assert.Contains("RaskExternalDevServerUrl", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_url_with_no_explicit_port_uses_the_scheme_default()
+    {
+        var config = ExternalBuildPlan.ViteConfig(
+            [new ExternalEntry { Name = "Chart", Source = "/app/Chart.tsx", Runtime = "react" }],
+            "/obj/entries",
+            "/app/wwwroot/_rask/external",
+            "/app/wwwroot/_rask/external/manifest.json",
+            "/_rask/external/",
+            null,
+            "http://islands.local");
+
+        // 80, not a guess — the port the page will actually import from.
+        Assert.Contains("port: 80", config, StringComparison.Ordinal);
+        Assert.DoesNotContain("port: 5173", config, StringComparison.Ordinal);
     }
 
     private static string Config(IReadOnlyList<ExternalEntry> islands) =>

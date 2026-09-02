@@ -146,6 +146,20 @@ public class DevIslandsTests
     }
 
     [Fact]
+    public void Running_once_does_not_stamp_the_dev_server_on_the_page_either()
+    {
+        // The URL is handed in exactly as a real --once run would hand it in — the project HAS islands.
+        // What must suppress it is `once`, and nothing else: the property is already withheld there, so
+        // stamping the page anyway would leave it importing @vite/client from a port nothing is
+        // listening on, and a stale dev.json from an earlier session could point it somewhere worse.
+        var env = DevCommand.BuildEnvironment(
+            DevTemplateKind.Server, restartOnRudeEdit: false, urls: null, readEnv: _ => null,
+            islandDevServerUrl: "http://localhost:5174", once: true);
+
+        Assert.False(env.ContainsKey("RASK_ISLANDS_DEV"));
+    }
+
+    [Fact]
     public void A_run_without_islands_sets_no_dev_server_variable()
     {
         var env = DevCommand.BuildEnvironment(

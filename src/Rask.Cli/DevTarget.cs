@@ -100,15 +100,19 @@ internal sealed record DevTarget(
         var (url, launchesBrowser) = ReadLaunchProfile(fileSystem, directory);
         var kind = Classify(fileSystem, csproj);
         var client = kind == DevTemplateKind.SpaHosted ? SpaClientDirectory(fileSystem, resolved) : null;
+
+        // Once. It walks the project tree, and the tree it walks contains node_modules — which for a
+        // project with islands is tens of thousands of files. Calling it from two initialisers walked
+        // it twice on every `rask dev` startup.
+        var islands = HasIslandSources(fileSystem, directory);
+
         return new DevTarget(kind, resolved, directory, url, launchesBrowser)
         {
             ClientDirectory = client,
             ClientDevServerUrl = client is null ? null : ReadDevServerUrl(fileSystem, csproj),
             ClientDevScript = client is null ? null : ReadDevScript(fileSystem, client),
-            HasIslands = HasIslandSources(fileSystem, directory),
-            IslandDevServerUrl = HasIslandSources(fileSystem, directory)
-                ? ReadIslandDevServerUrl(fileSystem, csproj)
-                : null,
+            HasIslands = islands,
+            IslandDevServerUrl = islands ? ReadIslandDevServerUrl(fileSystem, csproj) : null,
         };
     }
 
@@ -135,30 +139,42 @@ internal sealed record DevTarget(
             return false;
         }
 
-        foreach (var pattern in new[] { "*.tsx", "*.jsx", "*.vue", "*.svelte" })
+        try
         {
-            foreach (var file in fileSystem.ListFilesRecursive(projectDirectory, pattern))
+            foreach (var pattern in new[] { "*.tsx", "*.jsx", "*.vue", "*.svelte" })
             {
-                if (!IsBuildOutput(projectDirectory, file))
+                foreach (var file in fileSystem.ListFilesRecursive(projectDirectory, pattern))
+                {
+                    if (!IsBuildOutput(projectDirectory, file))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // A .ts counts only beside a .cs of the same name — the Lit and Angular pairing rule.
+            // Without that filter every piece of scoped TypeScript in the project would start a dev
+            // server.
+            foreach (var file in fileSystem.ListFilesRecursive(projectDirectory, "*.ts"))
+            {
+                if (IsBuildOutput(projectDirectory, file)
+                    || file.EndsWith(".d.ts", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (fileSystem.FileExists(Path.ChangeExtension(file, ".cs")))
                 {
                     return true;
                 }
             }
         }
-
-        // A .ts counts only beside a .cs of the same name — the Lit and Angular pairing rule. Without
-        // that filter every piece of scoped TypeScript in the project would start a dev server.
-        foreach (var file in fileSystem.ListFilesRecursive(projectDirectory, "*.ts"))
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
-            if (IsBuildOutput(projectDirectory, file) || file.EndsWith(".d.ts", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (fileSystem.FileExists(Path.ChangeExtension(file, ".cs")))
-            {
-                return true;
-            }
+            // One unreadable directory anywhere under the project must not stop `rask dev` from
+            // running the app. Losing hot reload for the islands is the right failure here; refusing
+            // to start is not.
+            return false;
         }
 
         return false;

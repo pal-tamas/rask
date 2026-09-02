@@ -41,6 +41,12 @@ them until tagged releases begin.
   have no refresh integration upstream and fall back to a page reload — still with no C# rebuild.
   Resolution stays one path in dev and production; only the manifest's contents differ.
 
+  The island dev server answers **loopback origins only**. It serves `/@fs/<path>`, so an
+  allow-everything CORS policy — which is what `cors: true` is — would let any website open in the
+  developer's browser fetch files from under their workspace root while `rask dev` runs, the same
+  class of hole Vite itself has had to close more than once. An app served on a non-loopback address
+  in development will not load its islands.
+
   Angular's plugin needs `@angular/compiler-cli` and `@angular/build` installed beside it — it imports
   both and depends on neither — pins TypeScript below 6.1, and must be pointed at a tsconfig Rask
   writes: the app's own sets `noEmit`, which leaves ngtsc emitting nothing and every `.ts` island

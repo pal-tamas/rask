@@ -432,6 +432,13 @@ listens on **5174** — not Vite's 5173, which belongs to the [SPA lane's](spa.m
 with both does not have two dev servers fighting for one port. Override it with
 `<RaskExternalDevServerPort>` if something else is already there.
 
+**It answers loopback origins only** — `localhost`, `127.0.0.1`, `[::1]`. Not a default worth
+loosening: the dev server also serves `/@fs/<path>`, so an allow-everything CORS policy would let any
+website open in your browser fetch files from under your workspace root while `rask dev` is running.
+The cost is that an app you serve on a non-loopback address in development (a LAN IP, a custom
+hostname) will not load its islands; run it on localhost, or bundle normally with a plain
+`dotnet run`.
+
 What changes during a dev session is one step: the production `vite build` is skipped, because it
 would rebuild every island in the project on every save and nothing would read the result. Everything
 else still runs — the entry modules, the prop types, the type-check — and the manifest is still

@@ -47,13 +47,17 @@ function devServer() {
  * rebuild of the C# app.
  *
  * Failure is not fatal: without it the island still loads from the dev server, it just will not
- * hot-replace.
+ * hot-replace. It is also not remembered — the cache is CLEARED on failure, because the likeliest
+ * failure is a race rather than a misconfiguration: `rask dev` waits for the build to name the dev
+ * server's config before starting Vite, and the app is already serving pages by then. A page loaded
+ * in that window would otherwise never hot-replace for the rest of its life.
  */
 function ensureHmrClient(origin) {
     hmrClient ??= import(/* @vite-ignore */ origin + "/@vite/client").catch((error) => {
+        hmrClient = null;
         console.warn(
             "Rask islands: the dev server is configured but @vite/client did not load, so islands " +
-            "will not hot-replace. Is `rask dev` still running?", error);
+            "will not hot-replace yet. Is `rask dev` still starting?", error);
     });
 
     return hmrClient;

@@ -110,7 +110,8 @@ internal sealed class DevCommand(
 
         var environment = BuildEnvironment(
             target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable,
-            target.IslandDevServerUrl);
+            target.IslandDevServerUrl,
+            once);
 
         // The environment overlay is not incidental here (see the remarks on this class): the MSBuild
         // property that stops a rude edit blocking on an interactive prompt travels through it, so a dry
@@ -161,7 +162,7 @@ internal sealed class DevCommand(
         // then serves a stale client against a new server and looks like a Rask bug.
         using var clientTokens = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var client = StartClientDevServer(target, clientTokens.Token);
-        var islands = StartIslandDevServer(target, clientTokens.Token);
+        var islands = once ? Task.CompletedTask : StartIslandDevServer(target, clientTokens.Token);
 
         var exit = status is null
             ? await _process
@@ -461,7 +462,8 @@ internal sealed class DevCommand(
         bool restartOnRudeEdit,
         string? urls,
         Func<string, string?> readEnv,
-        string? islandDevServerUrl = null)
+        string? islandDevServerUrl = null,
+        bool once = false)
     {
         var env = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -497,7 +499,12 @@ internal sealed class DevCommand(
         // over its modules. Stamped onto <body> by the server as data-rask-islands-dev, and only in
         // development — a production page carrying a localhost URL would have every visitor's browser
         // open a websocket to their own machine.
-        if (islandDevServerUrl is { Length: > 0 })
+        //
+        // Never under --once. BuildDotnetArguments already withholds the MSBuild property there, so
+        // that mode serves a real bundle with no dev server beside it; stamping the page anyway would
+        // leave it importing @vite/client from a port nothing is listening on. Decided HERE rather
+        // than at the call site so the rule is pinned by a test.
+        if (!once && islandDevServerUrl is { Length: > 0 })
         {
             env["RASK_ISLANDS_DEV"] = islandDevServerUrl;
         }

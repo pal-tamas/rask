@@ -282,10 +282,16 @@ public sealed class WriteExternalPropTypesTask : Task
             p => IsTypeScript(p) && !Is(runtimes, p, "solid") && !Is(runtimes, p, "preact")
                  && !Is(runtimes, p, "angular"),
             ref written,
-            ["\"jsx\": \"react-jsx\""]);
+            ReactJsx);
 
-        HasVueConfig = WriteConfigFor(VueConfigPath, directory, p => HasExtension(p, ".vue"), ref written);
-        HasSvelteConfig = WriteConfigFor(SvelteConfigPath, directory, p => HasExtension(p, ".svelte"), ref written);
+        // Vue and Svelte keep the JSX setting every config used to carry unconditionally. Their own
+        // checkers read it: a .vue with `lang="tsx"` or a JSX render function, or a .svelte whose
+        // program pulls in a TSX helper, would otherwise be checked under TypeScript's default `jsx`
+        // and fail on code that checked cleanly before.
+        HasVueConfig = WriteConfigFor(
+            VueConfigPath, directory, p => HasExtension(p, ".vue"), ref written, ReactJsx);
+        HasSvelteConfig = WriteConfigFor(
+            SvelteConfigPath, directory, p => HasExtension(p, ".svelte"), ref written, ReactJsx);
 
         return written;
     }
@@ -378,6 +384,9 @@ public sealed class WriteExternalPropTypesTask : Task
 
         return true;
     }
+
+    /// <summary>The JSX setting every checker but Solid's and Angular's uses.</summary>
+    private static readonly string[] ReactJsx = ["\"jsx\": \"react-jsx\""];
 
     /// <summary>Whether a front-end file's C# class declared the given runtime.</summary>
     private static bool Is(IReadOnlyDictionary<string, string> runtimes, string path, string runtime) =>

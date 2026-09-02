@@ -244,6 +244,15 @@ internal static class ExternalBuildPlan
     ///         host and fetches as the app's own HTML.
     ///     </para>
     ///     <para>
+    ///         <strong>CORS is restricted to loopback, never <c>true</c>.</strong> <c>cors: true</c>
+    ///         answers every origin with <c>Access-Control-Allow-Origin: *</c>, and this server also
+    ///         serves <c>/@fs/&lt;absolute path&gt;</c> — so any website open in the developer's browser
+    ///         while <c>rask dev</c> runs could fetch files off their machine and read the response.
+    ///         That is the same class of hole Vite itself has had to close more than once. A loopback
+    ///         allow-list costs nothing here, because the only legitimate caller IS the app on
+    ///         localhost.
+    ///     </para>
+    ///     <para>
     ///         <c>strictPort</c> because the port is baked into the manifest at build time. Letting
     ///         Vite pick the next free one would leave the page importing from a port nothing is
     ///         listening on, and the only symptom would be islands that never mount.
@@ -262,26 +271,55 @@ internal static class ExternalBuildPlan
               server: {
                 port: {{port}},
                 strictPort: true,
-                cors: true,
+                // Loopback only. Allowing every origin would answer them all with a wildcard, and
+                // this server also serves /@fs/<absolute path> — so any page open in the developer's
+                // browser could read files from under their workspace root.
+                cors: { origin: /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/ },
                 origin: {{Literal(devServerUrl!.TrimEnd('/'))}},
               },
 
             """;
     }
 
-    /// <summary>The port from a dev-server URL, or Vite's default when it has none.</summary>
+    /// <summary>
+    ///     The port the dev server must listen on, taken from the URL the page will import from.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Parsed with <see cref="Uri" /> rather than by hand. A hand-rolled scan cannot tell
+    ///         <c>http://localhost:5174/islands</c> or <c>http://islands.local</c> from the shape it
+    ///         expects, and falling back to a default there is the worst outcome available: the config
+    ///         would pin <c>strictPort</c> to one port while <c>origin</c> and the manifest named
+    ///         another, so Vite would come up on a port nothing imports from and the only symptom
+    ///         would be islands that never appear — the exact failure <c>strictPort</c> exists to
+    ///         prevent.
+    ///     </para>
+    ///     <para>
+    ///         So an unusable URL is refused by name instead. It can only come from someone setting
+    ///         <c>RaskExternalDevServerUrl</c> by hand, which is a mistake worth reporting rather than
+    ///         absorbing.
+    ///     </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The URL is not one this can serve from.</exception>
     private static string Port(string url)
     {
-        var scheme = url.IndexOf("://", StringComparison.Ordinal);
-        var authority = scheme < 0 ? url : url.Substring(scheme + 3);
-        var colon = authority.LastIndexOf(':');
-        if (colon < 0)
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var parsed)
+            || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
         {
-            return "5173";
+            throw new InvalidOperationException(
+                $"Rask islands: '{url}' is not a usable dev-server URL. RaskExternalDevServerUrl has to "
+                + "be an absolute http(s) URL naming the port the islands are served from, e.g. "
+                + "http://localhost:5174.");
         }
 
-        var port = authority.Substring(colon + 1).TrimEnd('/');
-        return port.Length > 0 && port.All(char.IsDigit) ? port : "5173";
+        if (parsed.AbsolutePath.Trim('/').Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"Rask islands: '{url}' carries a path. The dev server is addressed by origin only, so "
+                + "RaskExternalDevServerUrl has to stop at the port — e.g. http://localhost:5174.");
+        }
+
+        return parsed.Port.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
@@ -311,9 +349,12 @@ internal static class ExternalBuildPlan
         var ordered = islands.OrderBy(i => i.Name, StringComparer.Ordinal).ToList();
         for (var i = 0; i < ordered.Count; i++)
         {
-            var entry = Posix(Path.Combine(entryDirectory, ordered[i].Name + ".entry.ts"));
+            // "/@fs/" + the path WITHOUT its leading slash, which is Vite's own form. Concatenating
+            // "/@fs" with the path directly happens to work on Unix, where the path starts with "/",
+            // and produces "/@fsC:/app/..." on Windows — every island 404s and nothing mounts.
+            var entry = Posix(Path.Combine(entryDirectory, ordered[i].Name + ".entry.ts")).TrimStart('/');
             json.Append("  \"").Append(ordered[i].Name).Append("\": \"")
-                .Append(origin).Append("/@fs").Append(entry).Append('"')
+                .Append(origin).Append("/@fs/").Append(entry).Append('"')
                 .AppendLine(i == ordered.Count - 1 ? string.Empty : ",");
         }
 
