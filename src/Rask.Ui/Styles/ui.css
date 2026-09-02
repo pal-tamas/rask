@@ -6,8 +6,8 @@
   ships as a compiled assembly, so an app's own Tailwind build cannot see these class names and would emit
   none of them, leaving every component rendered as unstyled HTML with nothing reporting it.
 
-  The output is embedded and inlined by the consuming surface, so there is no stylesheet to serve, no
-  static web assets, and nothing for a host to map.
+  The output is embedded and inlined by the consuming surface (UiStylesheet.Css), so there is no
+  stylesheet to serve, no static web assets, and nothing for a host to map.
 
   NO PREFLIGHT, and no html/body rules — the one place this deliberately differs from Rask.Dashboard's
   sheet. The console may ship a global reset because it is a mounted application that owns its own
@@ -16,20 +16,20 @@
   and usually runs its own Tailwind besides. A second reset arriving from a library is that same bug with
   a wider blast radius, and re-creates the multi-sheet stack where cascade ORDER decides the outcome that
   #914 removed. Utilities only: the app keeps its own reset and its own base layer.
+
+  THE PALETTE IS INLINE BELOW, and it has to be. Moving it to a sibling ui.tokens.css and pulling it back
+  with `@import` compiled without error and emitted a sheet of the right size — with ZERO ui-* utilities
+  in it. A `@theme` reached through an import after the Tailwind entry points is not interpreted as
+  theme; the tokens simply are not there when utilities are generated, and every component silently
+  loses its colour while the build stays green. Keep it here.
+
+  An app that writes its own ui-* classes needs these tokens in ITS @theme for the same reason — Tailwind
+  emits a utility only where it can see the token. Copy the block into your own stylesheet; see
+  docs/ui-kit.md. The showcase does exactly that, and UiPaletteTests asserts its copy matches this one.
 */
 @import "tailwindcss/theme.css";
 @import "tailwindcss/utilities.css";
 
-/*
-  The palette, as tokens rather than literals, so a consuming app re-skins the kit by redefining these in
-  its own @theme instead of overriding rules. Rask.Dashboard does exactly that to keep the console's
-  near-white operator palette.
-
-  Every name here is load-bearing beyond this file: UiStylesheetTests asserts the compiled output still
-  contains each one, because a rename is the kind of change whose only symptom is an unstyled page nobody
-  notices. Tailwind only emits a token something references, so that test is also the check that no token
-  here is decorative — add one and it fails until a utility uses it.
-*/
 @theme {
   /* Neutrals — a near-white ladder, not a grey one. The steps are deliberately close together: depth
      comes from hairlines, not from contrast between surfaces. */
@@ -44,6 +44,9 @@
 
   /* Accent — links, focus rings, the active tab. */
   --color-ui-brand: oklch(0.55 0.2 265);
+  /* The accent as TEXT on a light ground, for the same reason ok-ink and warn-ink exist below: the fill
+     above is chosen to read as a fill, and body text has to clear 4.5:1. */
+  --color-ui-brand-ink: oklch(0.48 0.2 265);
 
   /* Status FILLS — dots, tinted badge grounds, and text on the dark toast. Green is teal-leaning on
      purpose: a pure green reads as decorative beside the amber and the rose, and these three have to stay

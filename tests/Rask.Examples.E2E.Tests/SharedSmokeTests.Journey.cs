@@ -1163,14 +1163,22 @@ public abstract partial class SharedSmokeTests
         // read — poll for each rather than asserting once.
         await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // The brand palette is applied: --accent is the violet the showcase publishes, and its exact
-        // shade tracks the active theme — dark #8b5cf6 / light #7c3aed. Assert it is one of the two
-        // rather than a single hard-coded value, and normalise whitespace and case so the browser's
-        // own spelling of the colour does not matter.
+        // The brand palette is applied, and it is the SHARED one. --accent used to be a violet the
+        // showcase published on its own, asserted as one of two hard-coded hexes that tracked the theme
+        // toggle. Both are gone: the showcase draws from Rask.Ui's palette now, so --accent is an alias
+        // for --color-ui-brand and the useful claim is that the alias resolves to it — a hex would only
+        // pin whichever colour the kit happens to ship today, and would go red on a re-skin that is
+        // working perfectly.
+        //
+        // Both are read and compared in the browser so the comparison is of COMPUTED values, whatever
+        // spelling it uses for the colour. Non-empty is asserted too: two undefined custom properties
+        // both read as "" and would otherwise compare equal, which is exactly the "silently gone
+        // palette" this step exists to catch.
         await Page.WaitForFunctionAsync(
-            "() => { const a = getComputedStyle(document.documentElement)"
-            + ".getPropertyValue('--accent').replace(/\\s+/g, '').toLowerCase();"
-            + " return a === '#8b5cf6' || a === '#7c3aed'; }",
+            "() => { const s = getComputedStyle(document.documentElement);"
+            + " const norm = n => s.getPropertyValue(n).replace(/\\s+/g, '').toLowerCase();"
+            + " const accent = norm('--accent'), brand = norm('--color-ui-brand');"
+            + " return accent.length > 0 && accent === brand; }",
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 

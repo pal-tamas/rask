@@ -5,6 +5,38 @@
 @import "tailwindcss";
 
 /*
+  The kit's palette, so THIS project's Tailwind can emit the ui-* utilities this project writes.
+
+  Rask.Ui ships a compiled sheet carrying the utilities the KIT's own components use, and that is not
+  the same set: Tw.cs writes `bg-ui-brand/10`, `ring-ui-line/40`, `text-ui-warn-ink` and more, which
+  are this app's class names, compiled here, against this @theme.
+
+  COPIED rather than imported, and that is not a preference. A `@theme` reached through an `@import`
+  after the Tailwind entry points is not interpreted as theme: a literal `@theme { … }` survives into
+  the output, which a browser ignores, and the ui-* namespace is never registered — so every utility
+  naming it silently vanishes while this file still looks right and the build stays green. It emptied
+  the kit's own sheet the same way before it was put back inline there.
+
+  UiPaletteTests asserts these values are identical to src/Rask.Ui/Styles/ui.css, so the copy cannot
+  drift.
+*/
+@theme {
+  --color-ui-bg: oklch(1 0 0);
+  --color-ui-panel: oklch(0.993 0 0);
+  --color-ui-well: oklch(0.979 0 0);
+  --color-ui-line: oklch(0.909 0 0);
+  --color-ui-ink: oklch(0.22 0 0);
+  --color-ui-muted: oklch(0.52 0 0);
+  --color-ui-brand: oklch(0.55 0.2 265);
+  --color-ui-brand-ink: oklch(0.48 0.2 265);
+  --color-ui-ok: oklch(0.6 0.11 175);
+  --color-ui-warn: oklch(0.77 0.16 70);
+  --color-ui-danger: oklch(0.55 0.2 20);
+  --color-ui-ok-ink: oklch(0.55 0.1 175);
+  --color-ui-warn-ink: oklch(0.57 0.13 70);
+}
+
+/*
   The islands' front-end files, which live in the HOST apps rather than here.
 
   Tailwind v4 detects sources by scanning the project it is run from, so a `.vue`, `.tsx` or
@@ -16,70 +48,28 @@
 @source "../../Rask.Example.Wasm/Features/Islands";
 
 /*
-  The design tokens. These lived in Rask.Bootstrap's tokens.css, which every showcase stylesheet
-  referenced through var(--accent) / var(--ink) / var(--panel) and which went with the package — so
-  global.css and GuideChrome.css were resolving 22 custom properties that nothing defined. A CSS
-  variable with no definition is silent: the declaration is simply dropped, the page keeps rendering,
-  and the palette is just gone.
+  The showcase's older design tokens — var(--accent), var(--ink), var(--panel) and friends, which
+  global.css, GuideChrome.css and a number of demo stylesheets still reference.
 
-  Values are the originals, recovered verbatim. Dark-first, because that is how the showcase is seen:
-  the bare :root is dark, the media query is the light DEVIATION, and the two [data-theme] blocks let
-  the navbar toggle win over both.
+  These used to be dark-first, with a light deviation under a media query and two [data-theme] blocks
+  for the navbar toggle to win over. The toggle is gone and the showcase is light, drawn from the same
+  palette as the operator console and the landing site, so there is ONE set of values now and they are
+  defined in terms of the kit's tokens rather than repeating hexes that would drift from it.
+
+  They remain as an alias layer rather than being deleted: ~100 demo files still name them, and
+  re-pointing them here is what let the whole showcase change palette without editing those files.
+  Each per-area PR retires the ones its pages use.
 */
 :root {
-  --ground: #0b0b12;
-  --panel: #14141f;
-  --panel-2: #1b1b2a;
-  --line: rgba(139, 92, 246, 0.14);
-  --grid: rgba(139, 92, 246, 0.05);
-  --ink: #e9e9f2;
-  --ink-soft: #c3c2d6;
-  --muted: #8a8aa4;
-  --accent: #8b5cf6;
-  --accent-2: #7c3aed;
-  --accent-ink: #c4b5fd;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --ground: #fbfbfe;
-    --panel: #f3f2fa;
-    --panel-2: #ececf6;
-    --line: rgba(124, 58, 237, 0.16);
-    --grid: rgba(124, 58, 237, 0.05);
-    --ink: #17131f;
-    --ink-soft: #3a3450;
-    --muted: #6b6683;
-    --accent: #7c3aed;
-    --accent-2: #6d28d9;
-    --accent-ink: #6d28d9;
-  }
-}
-
-:root[data-theme="dark"] {
-  --ground: #0b0b12;
-  --panel: #14141f;
-  --panel-2: #1b1b2a;
-  --line: rgba(139, 92, 246, 0.14);
-  --grid: rgba(139, 92, 246, 0.05);
-  --ink: #e9e9f2;
-  --ink-soft: #c3c2d6;
-  --muted: #8a8aa4;
-  --accent: #8b5cf6;
-  --accent-2: #7c3aed;
-  --accent-ink: #c4b5fd;
-}
-
-:root[data-theme="light"] {
-  --ground: #fbfbfe;
-  --panel: #f3f2fa;
-  --panel-2: #ececf6;
-  --line: rgba(124, 58, 237, 0.16);
-  --grid: rgba(124, 58, 237, 0.05);
-  --ink: #17131f;
-  --ink-soft: #3a3450;
-  --muted: #6b6683;
-  --accent: #7c3aed;
-  --accent-2: #6d28d9;
-  --accent-ink: #6d28d9;
+  --ground: var(--color-ui-well);
+  --panel: var(--color-ui-bg);
+  --panel-2: var(--color-ui-panel);
+  --line: var(--color-ui-line);
+  --grid: color-mix(in oklab, var(--color-ui-line) 40%, transparent);
+  --ink: var(--color-ui-ink);
+  --ink-soft: var(--color-ui-ink);
+  --muted: var(--color-ui-muted);
+  --accent: var(--color-ui-brand);
+  --accent-2: var(--color-ui-brand-ink);
+  --accent-ink: var(--color-ui-brand-ink);
 }

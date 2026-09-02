@@ -10,6 +10,14 @@
     <Nullable>enable</Nullable>
     <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsAotCompatible>
     <IsPackable>true</IsPackable>
+    <!--
+      This project has no scoped CSS. Rask.Core's auto-include globs every .css outside wwwroot as
+      scoped CSS, and _RaskTailwindExcludeInputFromScopedCss exempts only $(RaskTailwindInput), so any
+      second global stylesheet added here would be RASK015, "no matching component class". Opting out
+      costs nothing: a kit component wanting scoped CSS would be a component whose styling its consumers
+      cannot re-skin through the palette, which is not a component this package should have.
+    -->
+    <RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>
 
     <PackageId>Rask.Ui</PackageId>
     <Title>Rask — UI Kit</Title>
@@ -28,6 +36,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Ui.Tests"/>
   </ItemGroup>
+
 
   <ItemGroup>
     <!-- PrivateAssets="all": Rask.Core and Rask.Html are IsPackable=false and ship transitively from
