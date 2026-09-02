@@ -45,8 +45,9 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
   server-side into the FIRST response via `OnPropsChangedAsync` + quiescence; params cross as live C# objects
   (no serialization). The hosted component's own `@onclick` works with NO circuit — `BlazorFrameWriter` rewrites
   Blazor's handler ids as `data-rask-on-*` over the existing socket. **NOT opaque when static** (opaque ⇒
-  `FrameDiffer` skips children ⇒ island freezes after first paint). `net10.0` only, enforced by the graph
-  (NU1201), never in the meta-package. Compiling `.razor`→chain was rejected: Razor's syntax layer is `internal`
+  `FrameDiffer` skips children ⇒ island freezes after first paint). **Both hosts, trimmed publish included** —
+  `BlazorComponent<T>`'s type parameter is DAM-annotated, or the trimmer eats the hosted `[Parameter]` setters
+  and the island renders EMPTY with a green build; never in the meta-package. Compiling `.razor`→chain was rejected: Razor's syntax layer is `internal`
   in every version and the .NET 10 SDK compiler is closed (23 IVT friends) — see `docs/blazor-components.md`.
 - `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
   `partial` class from `ReactComponent`/`VueComponent`/`SvelteComponent`/`LitComponent` (the base class IS the
