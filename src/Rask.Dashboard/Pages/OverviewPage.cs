@@ -67,9 +67,9 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
         return Div.Role("alert")
             .Class(
-                "mb-4 flex items-start gap-3 rounded-xl border border-ops-danger/30 bg-ops-danger/5 px-4 py-3 "
-                + "text-sm text-ops-danger sm:mb-6")[
-            OpsIcon.Name(OpsIconName.Warning).Class("mt-0.5 size-5 shrink-0"),
+                "mb-4 flex items-start gap-3 rounded-xl border border-ui-danger/30 bg-ui-danger/5 px-4 py-3 "
+                + "text-sm text-ui-danger sm:mb-6")[
+            UiIcon.Name(UiIconName.Warning).Class("mt-0.5 size-5 shrink-0"),
             Span.Class("min-w-0 break-words")[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
                 Span[string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}"))],
@@ -107,21 +107,21 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         return NavLink
             .Key(panel.Slug)
             .Href(Routes.QueuePage(panel.Slug))
-            .Class($"{Ops.Card} block no-underline transition-colors hover:bg-ops-well")[
+            .Class($"{Ops.Card} block no-underline transition-colors hover:bg-ui-well")[
             Div.Class("flex items-center gap-2")[
-                OpsIcon.Name(panel.Icon).Class("size-5 shrink-0 text-ops-muted"),
-                Span.Class("truncate font-medium text-ops-ink")[panel.Title],
+                UiIcon.Name(panel.Icon).Class("size-5 shrink-0 text-ui-muted"),
+                Span.Class("truncate font-medium text-ui-ink")[panel.Title],
                 Div.Class("ml-auto shrink-0")[
-                    OpsStatusDot
+                    UiStatusDot
                         .Label(failing ? $"{counts.Failed} failed" : "healthy")
-                        .Tone(failing ? "danger" : "ok")
+                        .Tone(failing ? UiTone.Danger : UiTone.Ok)
                 ]
             ],
             Div.Class("mt-4 flex items-baseline gap-6")[
                 Figure("Outstanding", counts.Outstanding, tone: null),
                 Figure("Failed", counts.Failed, tone: failing ? "danger" : null)
             ],
-            Div.Class("mt-2 truncate text-xs text-ops-muted")[
+            Div.Class("mt-2 truncate text-xs text-ui-muted")[
                 counts.Delayed > 0
                     ? $"{counts.Delayed} waiting on a retry · dead after {panel.MaxAttempts} attempts"
                     : $"nothing waiting · dead after {panel.MaxAttempts} attempts"
@@ -132,9 +132,9 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
     // Named Figure, not Stat or Metric: both of those are chain entries on this markup host.
     private Component Figure(string label, int value, string? tone) =>
         Div[
-            Div.Class("text-xs font-medium text-ops-muted")[label],
+            Div.Class("text-xs font-medium text-ui-muted")[label],
             Div.Class("mt-0.5 text-2xl font-semibold tabular-nums tracking-tight "
-                      + (tone == "danger" ? "text-ops-danger" : "text-ops-ink"))[
+                      + (tone == "danger" ? "text-ui-danger" : "text-ui-ink"))[
                 value.ToString()
             ]
         ];

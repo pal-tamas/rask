@@ -15,7 +15,7 @@ public sealed partial class ElementsSectionsDemo : Component
             ]
         ],
         Search.Class("my-2")[
-            Input.Value<string>(null).Type(InputType.Search).Class(Ui.Input).Placeholder("Search…")
+            Input.Value<string>(null).Type(InputType.Search).Class(Tw.Input).Placeholder("Search…")
         ],
         Div.Class("grid grid-cols-12 gap-4")[
             Main.Class("col-span-8")[

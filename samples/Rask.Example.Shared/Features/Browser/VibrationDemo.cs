@@ -8,17 +8,17 @@ public sealed partial class VibrationDemo(IVibration vibration) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("vibrate-buzz")
                         .OnClickAsync(Buzz)["Buzz"],
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("vibrate-pattern")
                         .OnClickAsync(Pattern)[
                         "Pattern"],
-                    Button.Type("button").Class(Ui.BtnOutlineDanger)
+                    Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("vibrate-cancel")
                         .OnClickAsync(Cancel)["Cancel"]
                 ],

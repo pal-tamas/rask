@@ -21,7 +21,7 @@ public sealed partial class DownloadDemo(Navigator nav) : Component
 
     protected override Component? Render() =>
         Div[
-            Button.Type("button").Class(Ui.BtnPrimary).Id("download-report").OnClick(DownloadReport)[
+            Button.Type("button").Class(Tw.BtnPrimary).Id("download-report").OnClick(DownloadReport)[
                 Icon.Name(IconName.FileEarmarkText).Class("me-2"),
                 "Download report"
             ],

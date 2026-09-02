@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Tables: table, caption, colgroup/col, thead/tbody/tfoot, tr, th (scope), td (colspan).
 public sealed partial class ElementsTablesDemo : Component
 {
-    protected override Component? Render() => Table.Class($"{Ui.Table} text-sm [&_td]:border [&_th]:border mb-0")[
+    protected override Component? Render() => Table.Class($"{Tw.Table} text-sm [&_td]:border [&_th]:border mb-0")[
         Caption.Class("caption-top")["Quarterly results"],
         Colgroup[Col.Span(1).Class("bg-slate-100"), Col.Span(2)],
         Thead[

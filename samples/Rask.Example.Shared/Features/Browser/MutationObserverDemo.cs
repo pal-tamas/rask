@@ -46,16 +46,16 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    Button.Class(Ui.BtnPrimary).Id("mo-add").OnClick(() => _items++)["Add item"],
+                    Button.Class(Tw.BtnPrimary).Id("mo-add").OnClick(() => _items++)["Add item"],
                     Button
-                        .Class(Ui.BtnOutlinePrimary)
+                        .Class(Tw.BtnOutlinePrimary)
                         .Id("mo-remove")
                         .OnClick(() => { if (_items > 0) _items--; })["Remove item"],
                     Button
-                        .Class(Ui.BtnOutlineSecondary)
+                        .Class(Tw.BtnOutlineSecondary)
                         .Id("mo-toggle")
                         .OnClick(() => _highlight = !_highlight)["Toggle attribute"]
                 ],

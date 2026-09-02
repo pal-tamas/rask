@@ -50,18 +50,18 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 !_supported
                     ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("rtc-state")[
                         "This browser has no WebRTC support."]
                     : Div[
                         Div.Class("flex gap-2 mb-2")[
-                            Button.Type("button").Class(Ui.BtnPrimary)
+                            Button.Type("button").Class(Tw.BtnPrimary)
                                 .Id("rtc-connect")
                                 .Disabled(_connecting)
                                 .OnClickAsync(ConnectAsync)["Connect the two peers"],
-                            Button.Type("button").Class(Ui.BtnSecondary)
+                            Button.Type("button").Class(Tw.BtnSecondary)
                                 .Id("rtc-send")
                                 .Disabled(!_everConnected)
                                 .OnClickAsync(SendAsync)["Send a message"]

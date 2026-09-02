@@ -214,8 +214,8 @@ public sealed partial class LogsPage(
         return Select
             .Value(Category ?? "")
             .Class(
-                "min-h-11 w-full rounded-lg border border-ops-line bg-ops-bg px-2.5 py-1.5 text-sm text-ops-ink "
-                + "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ops-brand "
+                "min-h-11 w-full rounded-lg border border-ui-line bg-ui-bg px-2.5 py-1.5 text-sm text-ui-ink "
+                + "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-brand "
                 + "sm:min-h-0 sm:w-auto")
             .Aria(new Dictionary<string, string?> { ["label"] = "Filter by category" })
             .OnChangeAsync(CategoryChangedAsync)[options];
@@ -228,7 +228,7 @@ public sealed partial class LogsPage(
     }
 
     private Component SearchBox() =>
-        OpsSearch
+        UiSearch
             .Placeholder("Search message or exception")
             .Label("Search stored log entries")
             .Value(Query)
@@ -295,7 +295,7 @@ public sealed partial class LogsPage(
         // which is where thumbs are.
         return Div.Class("mt-4 flex items-center justify-between gap-3")[
             PagerLink("Previous", page - 1, page <= 1),
-            Span.Class("text-center text-xs text-ops-muted")[
+            Span.Class("text-center text-xs text-ui-muted")[
                 Span[$"Page {page} of {_history.PageCount}"],
                 Span.Class("hidden sm:inline")[$" — {_history.TotalCount} entries"]
             ],
@@ -325,7 +325,7 @@ public sealed partial class LogsPage(
         OpsTable[
             // The message is the column an operator came for, so it is the one that survives a narrow
             // screen; when, level and category fold in above it rather than scrolling off to the right.
-            Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
+            Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                 Tr[
                     Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["When"],
                     Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Level"],
@@ -333,28 +333,28 @@ public sealed partial class LogsPage(
                     Th.Class("px-3 py-2 font-medium")["Message"]
                 ]
             ],
-            Tbody[rows.Select(r => Tr.Key(r.Key).Class("border-b border-ops-line/60 last:border-0")[
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
+            Tbody[rows.Select(r => Tr.Key(r.Key).Class("border-b border-ui-line/60 last:border-0")[
+                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted sm:table-cell")
                     .Title(r.Timestamp.UtcDateTime.ToString("u"))[
                     DashboardParts.Ago(r.Timestamp.UtcDateTime, now)
                 ],
                 Td.Class("hidden px-3 py-2 align-top sm:table-cell")[LevelBadge(r.Level)],
-                Td.Class($"hidden px-3 py-2 align-top lg:table-cell {Ops.Mono} text-ops-muted")[r.Category],
+                Td.Class($"hidden px-3 py-2 align-top lg:table-cell {Ops.Mono} text-ui-muted")[r.Category],
                 Td.Class("w-full max-w-0 px-3 py-2 align-top")[
                     Div.Class("mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden")[
                         LevelBadge(r.Level),
-                        Span.Class("text-xs text-ops-muted").Title(r.Timestamp.UtcDateTime.ToString("u"))[
+                        Span.Class("text-xs text-ui-muted").Title(r.Timestamp.UtcDateTime.ToString("u"))[
                             DashboardParts.Ago(r.Timestamp.UtcDateTime, now)
                         ]
                     ],
-                    Div.Class("break-words text-ops-ink")[r.Message],
+                    Div.Class("break-words text-ui-ink")[r.Message],
                     // The category is worth keeping on a phone, just not in a column of its own.
-                    Div.Class($"mt-0.5 break-all text-ops-muted lg:hidden {Ops.Mono}")[r.Category],
+                    Div.Class($"mt-0.5 break-all text-ui-muted lg:hidden {Ops.Mono}")[r.Category],
                     // The stack trace is the reason an error entry is worth surfacing at all, but it would
                     // drown the table, so it renders muted beneath rather than in a separate view.
                     r.Exception is { } ex
                         ? Pre.Class(
-                            $"mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-all {Ops.Mono} text-ops-muted")[
+                            $"mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-all {Ops.Mono} text-ui-muted")[
                             ex
                         ]
                         : null,

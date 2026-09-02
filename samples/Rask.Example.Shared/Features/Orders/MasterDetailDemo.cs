@@ -44,9 +44,9 @@ public sealed partial class MasterDetailDemo : Component
     {
         var orders = SortOrders(_orders, _orderSort);
 
-        return Div.Class($"{Ui.Card} shadow-sm border-0")[
+        return Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class("overflow-x-auto")[
-                Table.Id("md-orders").Class($"{Ui.Table} [&_tbody_tr:hover]:bg-slate-50 align-middle mb-0")[
+                Table.Id("md-orders").Class($"{Tw.Table} [&_tbody_tr:hover]:bg-slate-50 align-middle mb-0")[
                     Thead.Class("bg-slate-100")[
                         Tr[_orderColumns.Select(c =>
                             c.Sortable
@@ -69,7 +69,7 @@ public sealed partial class MasterDetailDemo : Component
             rows.Add(Tr.Key(order.Id).Class("md-row")[
                 Td.Style("width:44px;")[
                     Button
-                        .Class($"{Ui.BtnLink} p-0 no-underline")
+                        .Class($"{Tw.BtnLink} p-0 no-underline")
                         .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
                         .OnClick(() => Toggle(order.Id))[
                         Icon.Name(open ? IconName.ChevronDown : IconName.ChevronRight)
@@ -106,7 +106,7 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Table.Class($"{Ui.Table} text-sm [&_tbody_tr:nth-child(odd)]:bg-slate-50 align-middle mb-0 bg-white")[
+        return Table.Class($"{Tw.Table} text-sm [&_tbody_tr:nth-child(odd)]:bg-slate-50 align-middle mb-0 bg-white")[
             Thead[
                 Tr[_itemColumns.Select(c =>
                     SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))]
@@ -211,7 +211,7 @@ public sealed partial class MasterDetailDemo : Component
         return Th.Scope("col").Key(columnId)[
             Button
                 .Type("button")
-                .Class($"{Ui.BtnLink} p-0 no-underline text-slate-900 dark:text-slate-100 font-semibold inline-flex" +
+                .Class($"{Tw.BtnLink} p-0 no-underline text-slate-900 dark:text-slate-100 font-semibold inline-flex" +
                        "items-center gap-1")
                 .OnClick(() => toggle(columnId))[
                 Span[header],
@@ -222,11 +222,11 @@ public sealed partial class MasterDetailDemo : Component
 
     private static string StatusBadge(string status) => status switch
     {
-        "Shipped" => Ui.BadgeSuccess,
-        "Processing" => Ui.BadgePrimary,
-        "Pending" => Ui.BadgeWarning,
-        "Cancelled" => Ui.BadgeDanger,
-        _ => Ui.BadgeSecondary
+        "Shipped" => Tw.BadgeSuccess,
+        "Processing" => Tw.BadgePrimary,
+        "Pending" => Tw.BadgeWarning,
+        "Cancelled" => Tw.BadgeDanger,
+        _ => Tw.BadgeSecondary
     };
 
     private static Order[] BuildOrders()

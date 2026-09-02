@@ -50,10 +50,10 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Ui.BtnPrimary).Id("battery-read").OnClickAsync(Read)[
+                    Button.Type("button").Class(Tw.BtnPrimary).Id("battery-read").OnClickAsync(Read)[
                         "Read now"]
                 ],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[

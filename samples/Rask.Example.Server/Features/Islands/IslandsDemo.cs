@@ -40,8 +40,8 @@ public sealed partial class IslandsDemo : Component
 
     protected override Component? Render() =>
     [
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Vue island that calls back into C#"],
                 P.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "The bars are rendered by ", Code["VueChart.vue"],
@@ -61,8 +61,8 @@ public sealed partial class IslandsDemo : Component
             ]
         ],
 
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A React island, and a Lit one, side by side"],
                 P.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "Four runtimes on one page, in one tree. The React counter keeps a ", Code["useState"],
@@ -85,8 +85,8 @@ public sealed partial class IslandsDemo : Component
             ]
         ],
 
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Svelte island that keeps its own state"],
                 P.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "C# owns the reading. The nudge counter belongs to ", Code["SvelteMeter.svelte"],
@@ -97,8 +97,8 @@ public sealed partial class IslandsDemo : Component
                 SvelteMeter.Value(_reading).Label("Capacity"),
 
                 Div.Class("flex gap-2 mt-3")[
-                    Button.Class(Ui.BtnPrimary).Id("island-raise").OnClick(Raise)["Raise the reading"],
-                    Button.Class(Ui.BtnOutlinePrimary).Id("island-reset").OnClick(Reset)["Reset"]
+                    Button.Class(Tw.BtnPrimary).Id("island-raise").OnClick(Raise)["Raise the reading"],
+                    Button.Class(Tw.BtnOutlinePrimary).Id("island-reset").OnClick(Reset)["Reset"]
                 ]
             ]
         ]

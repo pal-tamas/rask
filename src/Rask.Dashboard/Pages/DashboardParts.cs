@@ -54,41 +54,41 @@ internal static class DashboardParts
 internal static class Ops
 {
     /// <summary>A panel: hairline border, no shadow, and padding that tightens on a phone.</summary>
-    public const string Card = "rounded-xl border border-ops-line bg-ops-panel p-4 sm:p-5";
+    public const string Card = "rounded-xl border border-ui-line bg-ui-panel p-4 sm:p-5";
 
     /// <summary>The small muted label above a value.</summary>
-    public const string Label = "text-xs font-medium tracking-wide text-ops-muted";
+    public const string Label = "text-xs font-medium tracking-wide text-ui-muted";
 
     /// <summary>A headline number. Tabular figures so a polling value does not jitter as digits change.</summary>
-    public const string Value = "mt-2 text-2xl font-semibold tabular-nums tracking-tight text-ops-ink sm:text-3xl";
+    public const string Value = "mt-2 text-2xl font-semibold tabular-nums tracking-tight text-ui-ink sm:text-3xl";
 
     /// <summary>The quiet line under a value.</summary>
-    public const string Caption = "mt-1 text-xs text-ops-muted";
+    public const string Caption = "mt-1 text-xs text-ui-muted";
 
     /// <summary>A page's own heading.</summary>
-    public const string Heading = "text-base font-semibold tracking-tight text-ops-ink sm:text-lg";
+    public const string Heading = "text-base font-semibold tracking-tight text-ui-ink sm:text-lg";
 
     // min-h-11 below sm on every control: 44px is the smallest reliable touch target, and these are all
     // text-xs. The height relaxes from sm up, where there is a pointer.
 
     /// <summary>A secondary action.</summary>
     public const string Button =
-        "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-ops-line "
-        + "bg-ops-bg px-3 text-xs font-medium text-ops-ink transition-colors hover:bg-ops-well "
+        "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-ui-line "
+        + "bg-ui-bg px-3 text-xs font-medium text-ui-ink transition-colors hover:bg-ui-well "
         + "disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 "
-        + "focus-visible:outline-offset-2 focus-visible:outline-ops-brand sm:min-h-0 sm:py-1.5";
+        + "focus-visible:outline-offset-2 focus-visible:outline-ui-brand sm:min-h-0 sm:py-1.5";
 
     /// <summary>An action that destroys or re-runs work — the only colour on the console.</summary>
     public const string Danger =
-        "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-ops-line "
-        + "bg-ops-bg px-3 text-xs font-medium text-ops-danger transition-colors hover:border-ops-danger/40 "
-        + "hover:bg-ops-danger/5 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 "
-        + "focus-visible:outline-offset-2 focus-visible:outline-ops-brand sm:min-h-0 sm:py-1.5";
+        "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-ui-line "
+        + "bg-ui-bg px-3 text-xs font-medium text-ui-danger transition-colors hover:border-ui-danger/40 "
+        + "hover:bg-ui-danger/5 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 "
+        + "focus-visible:outline-offset-2 focus-visible:outline-ui-brand sm:min-h-0 sm:py-1.5";
 
     /// <summary>A borderless control: a dismiss, a close.</summary>
     public const string Quiet =
-        "inline-flex min-h-11 items-center rounded-lg px-2 text-xs text-ops-muted hover:bg-ops-well "
-        + "hover:text-ops-ink sm:min-h-0 sm:py-1";
+        "inline-flex min-h-11 items-center rounded-lg px-2 text-xs text-ui-muted hover:bg-ui-well "
+        + "hover:text-ui-ink sm:min-h-0 sm:py-1";
 
     /// <summary>Monospace, for ids and payloads.</summary>
     public const string Mono = "font-mono text-xs";
@@ -130,7 +130,7 @@ internal sealed partial class OpsStat : Component
     // NULLABLE, not defaulted. A property with an initialiser is excluded from the chain altogether, and
     // one that is non-nullable without an initialiser becomes a REQUIRED step (RASK001) — so an optional
     // step is spelled by making the property nullable, and only that.
-    public OpsIconName? Icon { get; set; }
+    public UiIconName? Icon { get; set; }
 
     public string? Caption { get; set; }
 
@@ -152,8 +152,8 @@ internal sealed partial class OpsStat : Component
     {
         var tone = Tone switch
         {
-            "danger" => "text-ops-danger",
-            "warn" => "text-ops-warn-ink",
+            "danger" => "text-ui-danger",
+            "warn" => "text-ui-warn-ink",
             _ => null,
         };
 
@@ -163,14 +163,14 @@ internal sealed partial class OpsStat : Component
                 Div.Class(tone is null ? Ops.Value : $"{Ops.Value} {tone}")[Value],
                 Caption is null ? null : Div.Class(Ops.Caption)[Caption]
             ],
-            OpsIcon.Name(Icon ?? OpsIconName.Overview)
-                .Class($"size-5 shrink-0 {tone ?? "text-ops-muted"}")
+            UiIcon.Name(Icon ?? UiIconName.Overview)
+                .Class($"size-5 shrink-0 {tone ?? "text-ui-muted"}")
         ];
 
         // A tile that leads somewhere is a link, so it is reachable by keyboard and says where it goes —
         // rather than a div with a click handler, which is neither.
         return Href is { } href
-            ? NavLink.Href(href).Class($"{Ops.Card} block no-underline transition-colors hover:bg-ops-well")[body]
+            ? NavLink.Href(href).Class($"{Ops.Card} block no-underline transition-colors hover:bg-ui-well")[body]
             : Div.Class(Ops.Card)[body];
     }
 }
@@ -185,14 +185,14 @@ internal sealed partial class OpsHeader : Component
     public Component? Actions { get; set; }
 
     /// <summary>Shown before the heading, so a queue page is recognisable at a glance.</summary>
-    public OpsIconName? Icon { get; set; }
+    public UiIconName? Icon { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class("mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 sm:mb-5")[
-            Icon is { } icon ? OpsIcon.Name(icon).Class("size-5 shrink-0 text-ops-muted") : null,
+            Icon is { } icon ? UiIcon.Name(icon).Class("size-5 shrink-0 text-ui-muted") : null,
             H1.Class(Ops.Heading)[Heading],
-            Caption is null ? null : Span.Class("text-xs text-ops-muted")[Caption],
+            Caption is null ? null : Span.Class("text-xs text-ui-muted")[Caption],
             // Full width on its own line below sm, so a row of actions never squeezes the heading to
             // nothing; trailing-aligned beside it from sm up.
             Actions is null ? null : Div.Class("flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto")[Actions]
@@ -235,17 +235,17 @@ internal sealed partial class OpsTab : Component
         NavLink
             .Href(Href)
             .Class(Active == true
-                ? "flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-ops-line "
-                  + "bg-ops-well px-3 text-sm font-medium text-ops-ink no-underline sm:min-h-0 sm:py-1.5"
+                ? "flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-ui-line "
+                  + "bg-ui-well px-3 text-sm font-medium text-ui-ink no-underline sm:min-h-0 sm:py-1.5"
                 : "flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-transparent "
-                  + "px-3 text-sm text-ops-muted no-underline hover:bg-ops-well hover:text-ops-ink sm:min-h-0 "
+                  + "px-3 text-sm text-ui-muted no-underline hover:bg-ui-well hover:text-ui-ink sm:min-h-0 "
                   + "sm:py-1.5")[
             Span[Label],
             Count is null
                 ? null
                 : Span.Class(Alarm == true
-                    ? "rounded bg-ops-danger/10 px-1.5 py-0.5 text-xs tabular-nums text-ops-danger"
-                    : "rounded bg-ops-well px-1.5 py-0.5 text-xs tabular-nums text-ops-muted")[Count]
+                    ? "rounded bg-ui-danger/10 px-1.5 py-0.5 text-xs tabular-nums text-ui-danger"
+                    : "rounded bg-ui-well px-1.5 py-0.5 text-xs tabular-nums text-ui-muted")[Count]
         ];
 }
 
@@ -264,10 +264,10 @@ internal sealed partial class OpsNotice : Component
 
     private string Palette() => Tone switch
     {
-        "danger" => "border-ops-danger/30 bg-ops-danger/5 text-ops-danger",
-        "warn" => "border-ops-warn/40 bg-ops-warn/10 text-ops-ink",
-        "info" => "border-ops-brand/30 bg-ops-brand/5 text-ops-ink",
-        _ => "border-ops-line bg-ops-well text-ops-muted",
+        "danger" => "border-ui-danger/30 bg-ui-danger/5 text-ui-danger",
+        "warn" => "border-ui-warn/40 bg-ui-warn/10 text-ui-ink",
+        "info" => "border-ui-brand/30 bg-ui-brand/5 text-ui-ink",
+        _ => "border-ui-line bg-ui-well text-ui-muted",
     };
 }
 
@@ -290,11 +290,11 @@ internal sealed partial class OpsBadge : Component
 
     private string Palette() => Tone switch
     {
-        "danger" => "bg-ops-danger/10 text-ops-danger",
-        "warn" => "bg-ops-warn/15 text-ops-warn-ink",
-        "info" => "bg-ops-brand/10 text-ops-brand",
-        "ok" => "bg-ops-ok/10 text-ops-ok-ink",
-        _ => "bg-ops-well text-ops-muted",
+        "danger" => "bg-ui-danger/10 text-ui-danger",
+        "warn" => "bg-ui-warn/15 text-ui-warn-ink",
+        "info" => "bg-ui-brand/10 text-ui-brand",
+        "ok" => "bg-ui-ok/10 text-ui-ok-ink",
+        _ => "bg-ui-well text-ui-muted",
     };
 }
 
@@ -315,7 +315,7 @@ internal sealed partial class OpsTable : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("overflow-x-auto rounded-xl border border-ops-line bg-ops-panel")[
+        Div.Class("overflow-x-auto rounded-xl border border-ui-line bg-ui-panel")[
             Table.Class("w-full border-collapse text-left text-sm")[Children ?? []]
         ];
 }
@@ -333,9 +333,9 @@ internal sealed partial class DashboardLoading : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("flex items-center gap-2 py-8 text-sm text-ops-muted")[
+        Div.Class("flex items-center gap-2 py-8 text-sm text-ui-muted")[
             // A pure-CSS spinner: one more reason this package ships no assets.
-            Span.Class("size-4 animate-spin rounded-full border-2 border-ops-line border-t-ops-muted")
+            Span.Class("size-4 animate-spin rounded-full border-2 border-ui-line border-t-ui-muted")
                 .Attributes(("aria-hidden", "true")),
             Span["Reading…"]
         ];
@@ -352,8 +352,8 @@ internal sealed partial class DashboardEmpty : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class($"{Ops.Card} text-center")[
-            Div.Class("text-base font-medium text-ops-ink")[Heading],
-            Div.Class("mt-1 text-sm text-ops-muted")[Detail]
+            Div.Class("text-base font-medium text-ui-ink")[Heading],
+            Div.Class("mt-1 text-sm text-ui-muted")[Detail]
         ];
 }
 
@@ -372,9 +372,9 @@ internal sealed partial class DashboardError : Component
             ? null
             : Div.Role("alert")
                 .Class(
-                    "mb-4 flex items-start gap-3 rounded-xl border border-ops-danger/30 bg-ops-danger/5 px-4 py-3 "
-                    + "text-sm text-ops-danger")[
-                OpsIcon.Name(OpsIconName.Warning).Class("mt-0.5 size-5 shrink-0"),
+                    "mb-4 flex items-start gap-3 rounded-xl border border-ui-danger/30 bg-ui-danger/5 px-4 py-3 "
+                    + "text-sm text-ui-danger")[
+                UiIcon.Name(UiIconName.Warning).Class("mt-0.5 size-5 shrink-0"),
                 Span.Class("min-w-0 break-words")["Couldn't read: ", Message]
             ];
 }
@@ -392,7 +392,7 @@ internal sealed partial class DashboardParked : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Parked
-            ? Div.Class("mt-4 flex flex-wrap items-center gap-3 text-xs text-ops-muted")[
+            ? Div.Class("mt-4 flex flex-wrap items-center gap-3 text-xs text-ui-muted")[
                 Span["Live updates paused to keep the database free."],
                 Button.Type("button").Class(Ops.Button).OnClickAsync(ResumeAsync)["Resume"]
             ]

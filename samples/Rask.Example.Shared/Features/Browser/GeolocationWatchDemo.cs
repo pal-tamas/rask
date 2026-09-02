@@ -17,13 +17,13 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     _watch is null
-                        ? Button.Class(Ui.BtnPrimary).Id("geowatch-start").OnClickAsync(Start)[
+                        ? Button.Class(Tw.BtnPrimary).Id("geowatch-start").OnClickAsync(Start)[
                             "Start watching"]
-                        : Button.Class(Ui.BtnOutlineDanger).Id("geowatch-stop").OnClickAsync(Stop)[
+                        : Button.Class(Tw.BtnOutlineDanger).Id("geowatch-stop").OnClickAsync(Stop)[
                             "Stop"]
                 ],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400")[

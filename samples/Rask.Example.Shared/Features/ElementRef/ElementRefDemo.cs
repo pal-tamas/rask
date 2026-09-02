@@ -18,12 +18,12 @@ public sealed partial class ElementRefDemo : Component
         Div[
             Input.Value<string>(null)
                 .Type(InputType.Text)
-                .Class($"{Ui.Input} mb-2")
+                .Class($"{Tw.Input} mb-2")
                 .Placeholder("Focus me from C#")
                 .Ref(_input),
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Button.Type("button").Class(Ui.BtnPrimary).OnClickAsync(FocusInput)["Focus the input"],
-                Button.Type("button").Class(Ui.BtnOutlineSecondary).OnClickAsync(MeasureBox)["Measure the box"]
+                Button.Type("button").Class(Tw.BtnPrimary).OnClickAsync(FocusInput)["Focus the input"],
+                Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClickAsync(MeasureBox)["Measure the box"]
             ],
             Div.Ref(_box).Class("border rounded p-3 bg-slate-100")[
                 "A box carrying an ElementRef — its width is read by passing the ref to JS."

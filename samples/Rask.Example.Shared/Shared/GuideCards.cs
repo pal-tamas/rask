@@ -36,8 +36,8 @@ public sealed partial class GuideCards : Component
     private static Component Card(GuideEntry g) =>
         Div.Class("md:col-span-6 lg:col-span-4").Key(g.Slug)[
             NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("no-underline")[
-                Div.Class($"{Ui.Card} h-full border-0 shadow-sm feature-card")[
-                    Div.Class($"{Ui.CardBody} p-4")[
+                Div.Class($"{Tw.Card} h-full border-0 shadow-sm feature-card")[
+                    Div.Class($"{Tw.CardBody} p-4")[
                         Div.Class("feature-icon mb-3")[Icon.Name(g.Icon).Class("text-2xl")],
                         H3.Class("font-semibold mb-2 text-base text-slate-900 dark:text-slate-100")[g.Title],
                         P.Class("text-slate-500 mb-0 text-sm")[g.Blurb]

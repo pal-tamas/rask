@@ -32,6 +32,7 @@
         <Project Path="src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj"/>
         <Project Path="src/Rask.Cqrs.Server/Rask.Cqrs.Server.csproj"/>
         <Project Path="src/Rask.Dashboard/Rask.Dashboard.csproj"/>
+        <Project Path="src/Rask.Ui/Rask.Ui.csproj"/>
         <Project Path="src/Rask.Data/Rask.Data.csproj"/>
         <Project Path="src/Rask.Jobs/Rask.Jobs.csproj"/>
         <Project Path="src/Rask.Logging/Rask.Logging.csproj"/>

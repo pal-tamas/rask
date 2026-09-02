@@ -88,8 +88,8 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Class("app-brand font-semibold inline-flex items-center gap-2")[
                 RaskLogo.Size(24).GradientId("brandBolt"),
                 Span["Rask"],
-                Span.Class($"{Ui.BadgeSecondary} rask-badge")["showcase"],
-                Span.Class(Ui.BadgeSecondary)[$"v{RaskVersion.Current}"]
+                Span.Class($"{Tw.BadgeSecondary} rask-badge")["showcase"],
+                Span.Class(Tw.BadgeSecondary)[$"v{RaskVersion.Current}"]
             ],
             Div.Class("flex items-center gap-2 ms-auto")[
                 PathDisplay,
@@ -101,14 +101,14 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     .Href("https://rask.sh/playground/")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Class(Ui.BtnPrimary)[Icon.Name(IconName.PlayFill), "Playground"],
+                    .Class(Tw.BtnPrimary)[Icon.Name(IconName.PlayFill), "Playground"],
                 A
                     .Href("https://github.com/pal-tamas/rask")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Class(Ui.BtnOutlineLight)[Icon.Name(IconName.Github), "GitHub"],
+                    .Class(Tw.BtnOutlineLight)[Icon.Name(IconName.Github), "GitHub"],
                 // Light/dark theme toggle — flips data-theme via the scoped module.
-                Button.Type("button").Class(Ui.BtnOutlineLight)
+                Button.Type("button").Class(Tw.BtnOutlineLight)
                     .OnClickAsync(ToggleThemeAsync)
                     .Aria(ThemeToggleAria)[
                     Icon.Name(IconName.CircleHalf)]
@@ -145,7 +145,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Value(_filter)
                 .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…")
-                .Class($"side-nav-filter {Ui.Input}")
+                .Class($"side-nav-filter {Tw.Input}")
         ],
         Div.Class("side-nav-scroll")[BuildSections()]
     ];

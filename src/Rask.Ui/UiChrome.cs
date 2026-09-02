@@ -1,28 +1,28 @@
 using Rask.Core.Routing;
 
-// Rask.Dashboard.Pages, not .Ui: OpsIcon already sits in Pages/ under the root namespace, so this
-// project's folders group files rather than name namespaces. Keeping the console's one namespace means a
-// page composes this kit without a using, and a component can move between folders without a churn diff.
-namespace Rask.Dashboard.Pages;
+// One namespace for the whole kit, with files grouping components rather than naming namespaces: a
+// consuming page composes the kit from a single using, and a component can move between files without a
+// churn diff at every call site.
+namespace Rask.Ui;
 
 /// <summary>
-/// The console's frame: a well, and the surface the console is drawn on.
+/// The surface's frame: a well, and the panel the surface is drawn on.
 /// </summary>
 /// <remarks>
 /// Full-bleed on a phone and a bordered card from <c>sm</c> up. That is the whole responsive story for the
 /// outer shell — on a 360px screen the margins and the rounded corner cost about 8% of the usable width and
 /// buy nothing, so below <c>sm</c> the console simply IS the page.
 /// </remarks>
-internal sealed partial class OpsShell : Component
+public sealed partial class UiShell : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
         // .rask-ops is a hook, not a fence. It was a fence while these pages rendered inside the host
         // application's document and every rule had to be scoped under it; the console is now a mounted
         // application with its own document (RaskMountedApp), so the stylesheet is free to be ordinary.
-        Div.Class("rask-ops min-h-screen bg-ops-well text-ops-ink")[
+        Div.Class("rask-ops min-h-screen bg-ui-well text-ui-ink")[
             Div.Class("mx-auto w-full max-w-[110rem] sm:p-4 lg:p-6")[
-                Div.Class("bg-ops-bg sm:overflow-hidden sm:rounded-2xl sm:border sm:border-ops-line")[
+                Div.Class("bg-ui-bg sm:overflow-hidden sm:rounded-2xl sm:border sm:border-ui-line")[
                     Children ?? []
                 ]
             ]
@@ -30,42 +30,56 @@ internal sealed partial class OpsShell : Component
 }
 
 /// <summary>The breadcrumb bar: what you are looking at, and how to get to a sibling of it.</summary>
-internal sealed partial class OpsTopBar : Component
+public sealed partial class UiTopBar : Component
 {
     /// <summary>Pushed to the trailing edge — links, never state an operator has to act on.</summary>
     public Component? Trailing { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Header.Class("flex items-center gap-1 border-b border-ops-line px-2 py-2 sm:gap-2 sm:px-4 sm:py-2.5")[
+        Header.Class("flex items-center gap-1 border-b border-ui-line px-2 py-2 sm:gap-2 sm:px-4 sm:py-2.5")[
             Children ?? [],
             Trailing is null ? null : Div.Class("ml-auto flex items-center gap-1 pl-2 sm:gap-3")[Trailing]
         ];
 }
 
-/// <summary>The console's mark and name. Goes home.</summary>
-internal sealed partial class OpsBrand : Component
+/// <summary>The surface's mark and name. Goes home.</summary>
+/// <remarks>
+/// The destination and the wordmark are the caller's, not the kit's — this component used to name the
+/// operator console's own overview route and print "Ops", which is exactly the coupling that kept the kit
+/// inside one application.
+/// </remarks>
+public sealed partial class UiBrand : Component
 {
+    /// <summary>The wordmark. Hidden below <c>sm</c>, so it is never the only thing naming the page.</summary>
+    public required string Label { get; set; }
+
+    /// <summary>Where the mark goes. Home, for whatever this surface calls home.</summary>
+    public required RouteUrl Href { get; set; }
+
+    /// <summary>The mark itself. The overview glyph unless said otherwise.</summary>
+    public UiIconName? Icon { get; set; }
+
     /// <inheritdoc />
     protected override Component? Render() =>
         NavLink
-            .Href(Routes.OverviewPage())
+            .Href(Href)
             .Class(
                 "flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-1.5 text-sm font-semibold tracking-tight "
-                + "text-ops-ink no-underline hover:bg-ops-well sm:min-h-0 sm:py-1.5")[
-            OpsIcon.Name(OpsIconName.Overview).Class("size-5 shrink-0"),
+                + "text-ui-ink no-underline hover:bg-ui-well sm:min-h-0 sm:py-1.5")[
+            UiIcon.Name(Icon ?? UiIconName.Overview).Class("size-5 shrink-0"),
             // The wordmark is the first thing to go: on a phone the crumb beside it says where you are,
-            // which is the part an operator actually needs.
-            Span.Class("hidden sm:inline")["Ops"]
+            // which is the part someone actually needs.
+            Span.Class("hidden sm:inline")[Label]
         ];
 }
 
 /// <summary>The rule between two crumbs.</summary>
-internal sealed partial class OpsCrumbSeparator : Component
+public sealed partial class UiCrumbSeparator : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Span.Class("select-none text-sm text-ops-line").Attributes(("aria-hidden", "true"))["/"];
+        Span.Class("select-none text-sm text-ui-line").Attributes(("aria-hidden", "true"))["/"];
 }
 
 /// <summary>
@@ -76,19 +90,19 @@ internal sealed partial class OpsCrumbSeparator : Component
 /// of registered batteries changes, which moves the content under an operator's thumb between one
 /// deployment and the next; a scrolling one is always exactly one row tall.
 /// </remarks>
-internal sealed partial class OpsNav : Component
+public sealed partial class UiNav : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
         Nav.Class(
-            "flex items-stretch gap-4 overflow-x-auto border-b border-ops-line px-3 sm:gap-6 sm:px-5 "
+            "flex items-stretch gap-4 overflow-x-auto border-b border-ui-line px-3 sm:gap-6 sm:px-5 "
             + "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden")[
             Children ?? []
         ];
 }
 
 /// <summary>One section tab.</summary>
-internal sealed partial class OpsNavTab : Component
+public sealed partial class UiNavTab : Component
 {
     public required string Label { get; set; }
 
@@ -108,8 +122,8 @@ internal sealed partial class OpsNavTab : Component
             .Class(
                 "-mb-px flex min-h-11 shrink-0 items-center whitespace-nowrap border-b-2 pb-2.5 pt-2.5 text-sm "
                 + "no-underline " + (active
-                    ? "border-ops-ink font-medium text-ops-ink"
-                    : "border-transparent text-ops-muted hover:border-ops-line hover:text-ops-ink"));
+                    ? "border-ui-ink font-medium text-ui-ink"
+                    : "border-transparent text-ui-muted hover:border-ui-line hover:text-ui-ink"));
 
         // Added only when it is true, rather than as one half of a ternary that has to yield a tuple either
         // way. The else branch of that shape ships a meaningless data-inactive on every inactive tab of
@@ -139,7 +153,7 @@ internal sealed partial class OpsNavTab : Component
 /// means there is no button to press and nothing to forget to press.
 /// </para>
 /// </remarks>
-internal sealed partial class OpsCrumbSwitcher : Component
+public sealed partial class UiCrumbSwitcher : Component
 {
     /// <summary>The accessible name. There is no visible label — the crumb's position is the label.</summary>
     public required string Label { get; set; }
@@ -151,7 +165,7 @@ internal sealed partial class OpsCrumbSwitcher : Component
 
     public Func<string, Task>? OnSelect { get; set; }
 
-    public OpsIconName? Icon { get; set; }
+    public UiIconName? Icon { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -172,8 +186,8 @@ internal sealed partial class OpsCrumbSwitcher : Component
             // reference puts it; the select underneath is otherwise completely ordinary.
             .Class(
                 "min-h-11 w-full cursor-pointer appearance-none truncate rounded-lg border border-transparent "
-                + "bg-transparent py-1.5 pr-7 text-sm text-ops-ink hover:bg-ops-well focus-visible:outline-2 "
-                + "focus-visible:outline-offset-2 focus-visible:outline-ops-brand sm:min-h-0 "
+                + "bg-transparent py-1.5 pr-7 text-sm text-ui-ink hover:bg-ui-well focus-visible:outline-2 "
+                + "focus-visible:outline-offset-2 focus-visible:outline-ui-brand sm:min-h-0 "
                 + (Icon is null ? "pl-2" : "pl-8"));
 
         if (OnSelect is { } select_)
@@ -183,18 +197,18 @@ internal sealed partial class OpsCrumbSwitcher : Component
 
         return Div.Class("relative flex min-w-0 max-w-[9rem] items-center sm:max-w-[16rem]")[
             Icon is { } icon
-                ? OpsIcon.Name(icon).Class("pointer-events-none absolute left-2 size-4 shrink-0 text-ops-muted")
+                ? UiIcon.Name(icon).Class("pointer-events-none absolute left-2 size-4 shrink-0 text-ui-muted")
                 : null,
             select[options],
-            OpsIcon
-                .Name(OpsIconName.ChevronUpDown)
-                .Class("pointer-events-none absolute right-2 size-4 shrink-0 text-ops-muted")
+            UiIcon
+                .Name(UiIconName.ChevronUpDown)
+                .Class("pointer-events-none absolute right-2 size-4 shrink-0 text-ui-muted")
         ];
     }
 }
 
 /// <summary>A link out of the console, in the top bar's trailing edge.</summary>
-internal sealed partial class OpsTopLink : Component
+public sealed partial class UiTopLink : Component
 {
     public required string Label { get; set; }
 
@@ -208,16 +222,16 @@ internal sealed partial class OpsTopLink : Component
             .Target("_blank")
             .Rel("noopener noreferrer")
             .Class(
-                "flex min-h-11 items-center rounded-lg px-2 text-sm text-ops-muted no-underline "
-                + "hover:bg-ops-well hover:text-ops-ink sm:min-h-0 sm:py-1.5")[
+                "flex min-h-11 items-center rounded-lg px-2 text-sm text-ui-muted no-underline "
+                + "hover:bg-ui-well hover:text-ui-ink sm:min-h-0 sm:py-1.5")[
             Label
         ];
 }
 
 /// <summary>The console's content column, inside the frame.</summary>
-internal sealed partial class OpsMain : Component
+public sealed partial class UiMain : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Main.Class("bg-ops-well px-3 py-4 sm:px-5 sm:py-6")[Children ?? []];
+        Main.Class("bg-ui-well px-3 py-4 sm:px-5 sm:py-6")[Children ?? []];
 }

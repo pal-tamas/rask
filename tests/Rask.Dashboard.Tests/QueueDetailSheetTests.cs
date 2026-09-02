@@ -102,7 +102,7 @@ public sealed class QueueDetailSheetTests
         return page;
     }
 
-    // Found by label rather than by a test-only hook: these are OpsButtons with no distinguishing class,
+    // Found by label rather than by a test-only hook: these are UiButtons with no distinguishing class,
     // and adding a data-testid to production markup to make a test easier would be the wrong trade.
     private static Task ClickAsync(RenderedComponent<QueuePage> page, string label)
     {

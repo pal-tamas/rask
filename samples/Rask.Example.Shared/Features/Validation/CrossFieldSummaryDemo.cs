@@ -10,7 +10,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         entries.Count == 0
             ? null
-            : Div.Class($"{Ui.AlertDanger} text-sm mb-0")[
+            : Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
                 Ul.Class("mb-0 ps-3")[
                     entries.Select((e, i) => Li.Key(i)[
                         e.Field.Length == 0
@@ -31,20 +31,20 @@ public sealed partial class CrossFieldSummaryDemo : Component
                     : new[] { "Return date must be after departure." })[
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Label.For("v5-depart").Class($"{Ui.Label} text-sm mb-1")["Departure"],
-                Input.Bind(() => _model.Depart).Id("v5-depart").Class(Ui.Input)
+                Label.For("v5-depart").Class($"{Tw.Label} text-sm mb-1")["Departure"],
+                Input.Bind(() => _model.Depart).Id("v5-depart").Class(Tw.Input)
             ],
             Div[
-                Label.For("v5-return").Class($"{Ui.Label} text-sm mb-1")["Return"],
-                Input.Bind(() => _model.Return).Id("v5-return").Class(Ui.Input)
+                Label.For("v5-return").Class($"{Tw.Label} text-sm mb-1")["Return"],
+                Input.Bind(() => _model.Return).Id("v5-return").Class(Tw.Input)
             ],
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Airplane).Class("me-1"), "Book"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.Airplane).Class("me-1"), "Book"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

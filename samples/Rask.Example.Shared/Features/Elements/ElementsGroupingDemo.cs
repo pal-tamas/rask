@@ -6,7 +6,7 @@ public sealed partial class ElementsGroupingDemo : Component
     protected override Component? Render() => Div.Class("flex flex-col gap-3")[
         P["A paragraph of flow content, grouped in a ", Code["Div"], "."],
         Pre.Class("bg-slate-100 border rounded p-2 mb-0")["  preformatted\n  text  keeps   spacing"],
-        Blockquote.Class($"{Ui.Blockquote} text-base border-l ps-3").Cite("https://example.com")[
+        Blockquote.Class($"{Tw.Blockquote} text-base border-l ps-3").Cite("https://example.com")[
             "A small DSL, an honest day's HTML."],
         Hr,
         Div.Class("grid grid-cols-12 gap-4")[
@@ -30,7 +30,7 @@ public sealed partial class ElementsGroupingDemo : Component
         ],
         Figure.Class("mb-0")[
             Pre.Class("bg-slate-900 text-slate-100 rounded p-2")["Div()[Span()[\"hi\"]]"],
-            Figcaption.Class(Ui.FigureCaption)["Figure: a tiny component tree."]
+            Figcaption.Class(Tw.FigureCaption)["Figure: a tiny component tree."]
         ]
     ];
 }

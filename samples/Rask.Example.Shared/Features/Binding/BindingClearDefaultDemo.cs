@@ -7,16 +7,16 @@ public sealed partial class BindingClearDefaultDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Label.For("bind-clear-age").Class($"{Ui.Label} text-sm")["Age (non-nullable int) — clear → 0"],
+            Label.For("bind-clear-age").Class($"{Tw.Label} text-sm")["Age (non-nullable int) — clear → 0"],
             Input.Bind(() => _model.Age)
                 .Id("bind-clear-age")
-                .Class(Ui.Input)
+                .Class(Tw.Input)
         ],
         Div.Class("mb-3")[
-            Label.For("bind-clear-optage").Class($"{Ui.Label} text-sm")["Optional age (int?) — clear → null"],
+            Label.For("bind-clear-optage").Class($"{Tw.Label} text-sm")["Optional age (int?) — clear → null"],
             Input.Bind(() => _model.OptionalAge)
                 .Id("bind-clear-optage")
-                .Class(Ui.Input)
+                .Class(Tw.Input)
                 .Placeholder("leave empty for null")
         ],
         Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[

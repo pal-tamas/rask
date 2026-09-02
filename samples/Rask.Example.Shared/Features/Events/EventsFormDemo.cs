@@ -12,13 +12,13 @@ public sealed partial class EventsFormDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_fields).OnSubmit(OnSubmit).Class("mb-2")[
-            Div.Class(Ui.InputGroup)[
+            Div.Class(Tw.InputGroup)[
                 Input.Value<string>(null)
                     .Type(InputType.Text)
                     .Name("name")
-                    .Class(Ui.Input)
+                    .Class(Tw.Input)
                     .Placeholder("Your name"),
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Send).Class("me-1"), "Send"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.Send).Class("me-1"), "Send"]
             ]
         ],
         P.Class("text-sm mb-0")["Last submitted: ", Strong[_submitted]]

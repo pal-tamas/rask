@@ -149,6 +149,8 @@ public static class GuideCatalog
             IconName.Translate, "Integration"),
         new("dashboard", "Dashboard", "An operator dashboard over every battery's table.",
             IconName.Speedometer2, "Integration"),
+        new("ui-kit", "UI kit", "The components the framework's own surfaces are drawn with.",
+            IconName.UiChecksGrid, "Integration"),
         new("logging", "Logging", "A durable log store in a database of its own.",
             IconName.JournalText, "Integration"),
         new("observability", "Observability", "Logging, tracing, diagnostics.",

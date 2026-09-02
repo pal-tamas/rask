@@ -8,7 +8,7 @@ public sealed partial class BindingTextareaDemo : Component
     [
         Textarea.Bind(() => _model.Notes)
             .Id("bind-textarea")
-            .Class($"{Ui.Input} mb-2")
+            .Class($"{Tw.Input} mb-2")
             .Rows(3)
             .Placeholder("Jot something down…"),
         Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[

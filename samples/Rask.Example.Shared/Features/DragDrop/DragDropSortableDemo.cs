@@ -44,7 +44,7 @@ public sealed partial class DragDropSortableDemo : Component
             ]);
         }
 
-        return Ul.Class($"{Ui.ListGroup} dd-list").Id("dd-fruit-list")[rows];
+        return Ul.Class($"{Tw.ListGroup} dd-list").Id("dd-fruit-list")[rows];
     }
 
     // Direction-aware: dragging down lands after the target, dragging up lands before it.

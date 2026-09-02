@@ -35,15 +35,15 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")[
                     "Observed size: ",
                     Code.Id("resize-value")[
                         _width > 0 ? $"{_width.ToString("0", Inv)} × {_height.ToString("0", Inv)} px" : "(measuring…)"]
                 ],
                 Button
-                    .Class($"{Ui.BtnOutlinePrimary} mb-2")
+                    .Class($"{Tw.BtnOutlinePrimary} mb-2")
                     .Id("resize-toggle")
                     .OnClick(() => _wide = !_wide)["Toggle width"],
                 Div

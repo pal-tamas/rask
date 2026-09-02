@@ -26,7 +26,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
 
     public abstract string Title { get; }
 
-    public abstract OpsIconName Icon { get; }
+    public abstract UiIconName Icon { get; }
 
     public abstract int MaxAttempts { get; }
 

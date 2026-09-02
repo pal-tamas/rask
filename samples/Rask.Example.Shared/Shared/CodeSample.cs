@@ -99,10 +99,10 @@ public sealed partial class CodeSample : Component
     protected override Component? Render()
     {
         var (_, activeSource, activeLanguage, codeClass) = Pane(_active);
-        return Div.Class($"{Ui.Card} shadow-sm border-0 mb-4 sample-card")[
+        return Div.Class($"{Tw.Card} shadow-sm border-0 mb-4 sample-card")[
             Title is null && Notes is null
                 ? null
-                : Div.Class($"{Ui.CardHeader} bg-white border-b")[
+                : Div.Class($"{Tw.CardHeader} bg-white border-b")[
                     Title is null ? null : H5.Class("mb-0 font-semibold")[Title],
                     Notes is null
                         ? null

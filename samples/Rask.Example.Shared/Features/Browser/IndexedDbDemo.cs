@@ -18,27 +18,27 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
     private async Task<IKeyValueStore> StoreAsync() => _store ??= await indexedDb.OpenStoreAsync("rask-demo");
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("grid grid-cols-12 gap-4 mb-2")[
                     Div.Class("sm:col-span-4")[
                         Input
                             .Value(_key)
                             .Id("idb-key")
-                            .Class(Ui.Input)
+                            .Class(Tw.Input)
                             .OnInput(v => _key = v)],
                     Div.Class("sm:col-span-8")[
                         Input
                             .Value(_value)
                             .Id("idb-value")
-                            .Class(Ui.Input)
+                            .Class(Tw.Input)
                             .OnInput(v => _value = v)]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Class(Ui.BtnPrimary).Id("idb-set").OnClickAsync(Set)["Set"],
-                    Button.Class(Ui.BtnOutlinePrimary).Id("idb-get").OnClickAsync(Get)["Get"],
-                    Button.Class(Ui.BtnOutlineSecondary).Id("idb-keys").OnClickAsync(Keys)["List keys"],
-                    Button.Class(Ui.BtnOutlineDanger).Id("idb-clear").OnClickAsync(Clear)["Clear"]
+                    Button.Class(Tw.BtnPrimary).Id("idb-set").OnClickAsync(Set)["Set"],
+                    Button.Class(Tw.BtnOutlinePrimary).Id("idb-get").OnClickAsync(Get)["Get"],
+                    Button.Class(Tw.BtnOutlineSecondary).Id("idb-keys").OnClickAsync(Keys)["List keys"],
+                    Button.Class(Tw.BtnOutlineDanger).Id("idb-clear").OnClickAsync(Clear)["Clear"]
                 ],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],

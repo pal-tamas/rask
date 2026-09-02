@@ -46,15 +46,15 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")[
                     "Connected pads: ", Code.Id("gamepad-count")[_pads.Count.ToString()]],
                 _pads.Count == 0
                     ? Div.Class("text-slate-500 dark:text-slate-400 text-sm")["No controllers connected."]
-                    : Ul.Class($"{Ui.ListGroup} divide-y divide-slate-200 dark:divide-slate-700")[
-                        _pads.Values.Select(p => (Component)Li.Class($"{Ui.ListGroupItem} px-0").Key(p.Index)[
+                    : Ul.Class($"{Tw.ListGroup} divide-y divide-slate-200 dark:divide-slate-700")[
+                        _pads.Values.Select(p => (Component)Li.Class($"{Tw.ListGroupItem} px-0").Key(p.Index)[
                             Div.Class("text-sm font-semibold")[$"#{p.Index} — {p.Id}"],
                             Div.Class("text-sm text-slate-500 dark:text-slate-400")[
                                 $"axes [{string.Join(", ", p.Axes.Select(a => a.ToString("0.00")))}] · "

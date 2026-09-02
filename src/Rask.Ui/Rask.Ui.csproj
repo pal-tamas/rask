@@ -1,0 +1,111 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Both faces, unlike Rask.Dashboard. The console is single-targeted net10.0 on purpose — its
+         panels read a DbContext and a browser app has no database — but this kit is markup and nothing
+         else, and the apps that need it most (the landing site, the docs showcase) are browser-WASM.
+         The browser face also carries the trim/AOT annotations those apps publish under. -->
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsAotCompatible>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Ui</PackageId>
+    <Title>Rask — UI Kit</Title>
+    <Description>The Rask component kit: the chrome, controls, data display and overlays the framework's own surfaces are built from — shell, top bar, breadcrumb switcher, tab bar, buttons, search, status dots, metric rows, detail lists, code blocks, sheets and toasts. Mobile-first, Tailwind v4 only, and ships no JavaScript. The stylesheet is compiled here and embedded, so a consuming app needs no Tailwind configuration to render it.</Description>
+    <PackageTags>web component framework net10 ui kit components tailwind design-system mobile-first</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README instead of the shared framework overview Directory.Build.props
+       packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md"/>
+    <None Remove="NUGET.md"/>
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Ui.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all": Rask.Core and Rask.Html are IsPackable=false and ship transitively from
+         the host packages, so listing them as nuspec dependencies would reference packages that exist
+         on no feed and make Rask.Ui unrestorable. Guarded by PackageDependencyTests. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
+
+    <!-- Emits this assembly's own Generated.* factories, so a consuming app can open a chain on
+         UiButton, UiMetric and the rest exactly as it does on a tag. -->
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+
+    <!-- Build-order edge only: it puts Rask.Tailwind.Tasks.dll in Rask.Tailwind's build/ folder before
+         the import loads it with <UsingTask>. Nothing is referenced and nothing flows. -->
+    <!-- UndefineProperties="TargetFramework", which Rask.Dashboard's copy of this reference does not
+         need: this project multi-targets, so each inner build carries TargetFramework as a GLOBAL
+         property and hands it to everything it references. Rask.Tailwind is netstandard2.0 and has no
+         net10.0-browser target, so the inner builds asked it for a face it does not have (NETSDK1005)
+         before a line of this kit compiled. -->
+    <ProjectReference Include="..\Rask.Tailwind\Rask.Tailwind.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework"/>
+  </ItemGroup>
+
+  <!--
+    THE KIT'S OWN STYLESHEET, compiled here rather than by the consuming app.
+
+    Tailwind is a compiler: it scans the project it runs in for the class names actually written. This
+    kit ships as a compiled assembly, so an app's own Tailwind build cannot see these class names and
+    would emit none of them — leaving every component rendered as unstyled HTML with nothing reporting
+    it. Compiling here binds the stylesheet to the markup that needs it. Same arrangement as
+    Rask.Dashboard, for the same reason.
+
+    Unlike the console's, this sheet carries NO preflight and no html/body rules — see Styles/ui.css.
+    The console can ship a global reset because it is a mounted application owning its own document;
+    an app consuming this kit owns its own, and a second reset landing on it is how a shared stylesheet
+    quietly restyles somebody else's pages.
+
+    The output path is spelled out rather than taken from $(IntermediateOutputPath): that property is
+    computed by the SDK's bottom import, which has not run when this PropertyGroup is evaluated, so it
+    expands to nothing and the stylesheet lands in the PROJECT ROOT — where the scoped-CSS glob picks it
+    up and RASK015 fails the build for a component named "ui.generated". It carries $(TargetFramework)
+    because this project multi-targets and the two inner builds would otherwise write one file.
+
+    THE WHOLE GROUP IS CONDITIONED ON AN INNER BUILD. A multi-targeted project is evaluated once more
+    with NO TargetFramework — the outer pass that dispatches to the inner ones — and there this path
+    would read `obj//ui.generated.css`. Build never noticed, because the outer pass compiles nothing;
+    PACK did, with `NU5019: File not found: obj/ui.generated.css`, since packing starts from that same
+    TFM-less evaluation. Leaving the input unset there means the Tailwind compiler has nothing to
+    compile, so it skips, so the target below never runs and never contributes a resource that does not
+    exist. `dotnet build` and `dotnet pack` disagree about this, which is why both are run before this
+    project is called finished.
+  -->
+  <PropertyGroup Condition=" '$(TargetFramework)' != '' ">
+    <RaskTailwindInput>Styles/ui.css</RaskTailwindInput>
+    <RaskTailwindOutput>obj/$(TargetFramework)/ui.generated.css</RaskTailwindOutput>
+    <RaskTailwindMinify>true</RaskTailwindMinify>
+  </PropertyGroup>
+
+  <!--
+    Added from a TARGET rather than a static ItemGroup. A static item's Condition is evaluated when the
+    project is EVALUATED, which is before any target runs — so on the first build in a fresh clone the
+    generated stylesheet does not exist yet, the item is silently absent, and the package ships with no
+    stylesheet at all. Nothing fails the build; components just render unstyled, and a SECOND build
+    embeds it, which is why every incremental tree looks fine (#916).
+  -->
+  <Target Name="EmbedRaskUiStylesheet"
+          AfterTargets="_RaskTailwindBuild"
+          BeforeTargets="PrepareResourceNames">
+    <Error Condition="!Exists('$(RaskTailwindOutput)')"
+           Text="Rask.Ui: $(RaskTailwindOutput) was not produced. The kit's stylesheet is compiled by _RaskTailwindBuild from $(RaskTailwindInput) and embedded here; shipping without it renders every component unstyled."/>
+    <ItemGroup>
+      <EmbeddedResource Include="$(RaskTailwindOutput)" LogicalName="Rask.Ui.ui.css"/>
+    </ItemGroup>
+  </Target>
+
+</Project>

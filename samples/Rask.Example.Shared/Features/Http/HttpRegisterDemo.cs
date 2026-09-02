@@ -15,8 +15,8 @@ public sealed partial class HttpRegisterDemo : Component
         new() { BaseAddress = new Uri(baseAddress()) };
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} border-0 bg-slate-100")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} border-0 bg-slate-100")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("text-sm text-slate-500 dark:text-slate-400 uppercase mb-1")["Configured HttpClient"],
                 P.Class("mb-0 text-sm")[
                     "BaseAddress: ", Code[CreateClient(() => "https://localhost/").BaseAddress!.ToString()],

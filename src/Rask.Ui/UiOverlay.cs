@@ -1,4 +1,4 @@
-namespace Rask.Dashboard.Pages;
+namespace Rask.Ui;
 
 /// <summary>
 /// A detail sheet: the whole story about one row, without leaving the list it came from.
@@ -16,7 +16,7 @@ namespace Rask.Dashboard.Pages;
 /// focus is free to leave the sheet. A trap needs a key listener, and the console ships no JavaScript.
 /// </para>
 /// </remarks>
-internal sealed partial class OpsModal : Component
+public sealed partial class UiModal : Component
 {
     public required string Heading { get; set; }
 
@@ -35,14 +35,14 @@ internal sealed partial class OpsModal : Component
             Div.Role("dialog")
                 .Aria(new Dictionary<string, string?> { ["modal"] = "true", ["label"] = Heading })
                 .Class(
-                    "relative flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-ops-line bg-ops-bg "
+                    "relative flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-ui-line bg-ui-bg "
                     + "shadow-xl sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl")[
-                Div.Class("flex items-start gap-3 border-b border-ops-line px-4 py-3 sm:px-5")[
-                    H2.Class("min-w-0 grow break-words text-base font-semibold tracking-tight text-ops-ink")[Heading],
-                    OpsButton
+                Div.Class("flex items-start gap-3 border-b border-ui-line px-4 py-3 sm:px-5")[
+                    H2.Class("min-w-0 grow break-words text-base font-semibold tracking-tight text-ui-ink")[Heading],
+                    UiButton
                         .Label("Close")
-                        .Tone("quiet")
-                        .Icon(OpsIconName.Close)
+                        .Tone(UiTone.Quiet)
+                        .Icon(UiIconName.Close)
                         .Class("!px-2")
                         .OnClick(Dismiss)
                 ],
@@ -51,7 +51,7 @@ internal sealed partial class OpsModal : Component
                 Footer is null
                     ? null
                     : Div.Class(
-                        "flex flex-col-reverse gap-2 border-t border-ops-line px-4 py-3 sm:flex-row "
+                        "flex flex-col-reverse gap-2 border-t border-ui-line px-4 py-3 sm:flex-row "
                         + "sm:justify-end sm:px-5")[
                         Footer
                     ]
@@ -76,12 +76,12 @@ internal sealed partial class OpsModal : Component
 /// so it should be announced politely rather than interrupting.
 /// </para>
 /// </remarks>
-internal sealed partial class OpsToast : Component
+public sealed partial class UiToast : Component
 {
     public required string Message { get; set; }
 
-    /// <summary><c>danger</c> when the action failed. Anything else reads as done.</summary>
-    public string? Tone { get; set; }
+    /// <summary><see cref="UiTone.Danger" /> when the action failed. Anything else reads as done.</summary>
+    public UiTone? Tone { get; set; }
 
     public Action? Dismiss { get; set; }
 
@@ -89,23 +89,23 @@ internal sealed partial class OpsToast : Component
     protected override Component? Render() =>
         Div.Role("status")
             .Class(
-                "fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-lg items-center gap-3 rounded-xl bg-ops-ink "
-                + "px-4 py-3 text-sm text-ops-bg shadow-lg sm:inset-x-0")[
+                "fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-lg items-center gap-3 rounded-xl bg-ui-ink "
+                + "px-4 py-3 text-sm text-ui-bg shadow-lg sm:inset-x-0")[
             // The FILL tokens, not the -ink twins, and amber rather than rose for the failure: this sits on
             // the near-black toast, where the light-ground text colours invert the problem they solve —
-            // ops-danger on this ground is the low-contrast one. The icon shape (Warning vs Check) is what
+            // ui-danger on this ground is the low-contrast one. The icon shape (Warning vs Check) is what
             // actually carries the outcome; the colour only reinforces it.
-            OpsIcon
-                .Name(Tone == "danger" ? OpsIconName.Warning : OpsIconName.Check)
-                .Class($"size-5 shrink-0 {(Tone == "danger" ? "text-ops-warn" : "text-ops-ok")}"),
+            UiIcon
+                .Name(Tone == UiTone.Danger ? UiIconName.Warning : UiIconName.Check)
+                .Class($"size-5 shrink-0 {(Tone == UiTone.Danger ? "text-ui-warn" : "text-ui-ok")}"),
             Span.Class("min-w-0 grow break-words")[Message],
             Dismiss is null
                 ? null
                 : Button
                     .Type("button")
                     .Class(
-                        "-mr-1 shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium text-ops-bg/70 "
-                        + "hover:bg-ops-bg/10 hover:text-ops-bg")
+                        "-mr-1 shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium text-ui-bg/70 "
+                        + "hover:bg-ui-bg/10 hover:text-ui-bg")
                     .Aria(new Dictionary<string, string?> { ["label"] = "Dismiss" })
                     .OnClick(Dismiss)["Dismiss"]
         ];

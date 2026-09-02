@@ -16,7 +16,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Label.For("bind-async-track").Class($"{Ui.Label} text-sm")["Track"],
+            Label.For("bind-async-track").Class($"{Tw.Label} text-sm")["Track"],
             Select.Bind(() => _model.Track)
                 .AfterBindAsync(async track =>
                 {
@@ -52,7 +52,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                     _loading = false;
                 })
                 .Id("bind-async-track")
-                .Class(Ui.Select)[
+                .Class(Tw.Select)[
                 // Placeholder matching the empty initial Track. Without it the <select>
                 // visually defaults to "Frontend" while the model is still "" — and
                 // re-picking the already-shown first option fires no change event, so the
@@ -65,12 +65,12 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
             ]
         ],
         Div.Class("mb-3")[
-            Label.For("bind-async-lang").Class($"{Ui.Label} text-sm")[
+            Label.For("bind-async-lang").Class($"{Tw.Label} text-sm")[
                 _loading ? "Language (loading…)" : "Language"
             ],
             Select.Bind(() => _model.Language)
                 .Id("bind-async-lang")
-                .Class(Ui.Select)
+                .Class(Tw.Select)
                 .Disabled(_loading || _languages.Length == 0)[
                 _languages.Length == 0
                     ? [Option.Value("")["— pick a track —"]]

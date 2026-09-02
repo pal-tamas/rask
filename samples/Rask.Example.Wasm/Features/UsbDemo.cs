@@ -17,18 +17,18 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Ui.BtnPrimary).Id("usb-request").OnClickAsync(RequestDevice)[
+                    Button.Class(Tw.BtnPrimary).Id("usb-request").OnClickAsync(RequestDevice)[
                         Icon.Name(IconName.UsbDrive).Class("me-1"), "Pair device"],
                     Button
-                        .Class(Ui.BtnOutlinePrimary)
+                        .Class(Tw.BtnOutlinePrimary)
                         .Id("usb-open")
                         .Disabled(_device is null || _open)
                         .OnClickAsync(Open)["Open"],
                     Button
-                        .Class(Ui.BtnOutlineDanger)
+                        .Class(Tw.BtnOutlineDanger)
                         .Id("usb-close")
                         .Disabled(_device is null)
                         .OnClickAsync(Release)["Release"]

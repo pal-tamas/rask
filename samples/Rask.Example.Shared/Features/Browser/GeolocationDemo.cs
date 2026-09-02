@@ -10,9 +10,9 @@ public sealed partial class GeolocationDemo(IGeolocation geolocation) : Componen
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
-                Button.Class($"{Ui.BtnOutlinePrimary} mb-2").Type("button")
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
+                Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("geo-get")
                     .OnClickAsync(Get)[
                     "Get current position"],

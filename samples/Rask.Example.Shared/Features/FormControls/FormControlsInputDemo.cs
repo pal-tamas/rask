@@ -12,11 +12,11 @@ public sealed partial class FormControlsInputDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("md:col-span-6")[
-                Label.Class($"{Ui.Label} font-semibold")["Controlled (Value + OnChange)"],
+                Label.Class($"{Tw.Label} font-semibold")["Controlled (Value + OnChange)"],
                 Input
                     .Value(_controlled)
                     .OnChange(v => _controlled = v)
-                    .Class($"{Ui.Input} mb-2")
+                    .Class($"{Tw.Input} mb-2")
                     .Placeholder("Type, then blur…")
                     .Id("fc-input-controlled"),
                 P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-input-controlled-out")[
@@ -24,10 +24,10 @@ public sealed partial class FormControlsInputDemo : Component
                 ]
             ],
             Div.Class("md:col-span-6")[
-                Label.Class($"{Ui.Label} font-semibold")["Bound (two-way)"],
+                Label.Class($"{Tw.Label} font-semibold")["Bound (two-way)"],
                 Form.Model(_model)[
                     Input.Bind(() => _model.Text)
-                        .Class($"{Ui.Input} mb-2")
+                        .Class($"{Tw.Input} mb-2")
                         .Placeholder("Type…")
                         .Id("fc-input-bound")
                 ],

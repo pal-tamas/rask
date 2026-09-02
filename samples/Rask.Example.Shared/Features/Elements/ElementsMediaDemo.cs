@@ -21,12 +21,12 @@ public sealed partial class ElementsMediaDemo : Component
                         .Height(96)
                         .Class("rounded border")
                 ],
-                Figcaption.Class(Ui.FigureCaption)["picture / source / img"]
+                Figcaption.Class(Tw.FigureCaption)["picture / source / img"]
             ],
             Figure.Class("m-0")[
                 // <canvas> is a JS drawing surface; shown here as the (empty) element.
                 Canvas.Width(96).Height(96).Class("border rounded"),
-                Figcaption.Class(Ui.FigureCaption)["canvas"]
+                Figcaption.Class(Tw.FigureCaption)["canvas"]
             ],
             Figure.Class("m-0")[
                 Iframe
@@ -34,17 +34,17 @@ public sealed partial class ElementsMediaDemo : Component
                     .Width(180)
                     .Height(96)
                     .Class("border rounded"),
-                Figcaption.Class(Ui.FigureCaption)["iframe (srcdoc)"]
+                Figcaption.Class(Tw.FigureCaption)["iframe (srcdoc)"]
             ]
         ],
         Div.Class("flex gap-3 items-start flex-wrap items-center")[
             Figure.Class("m-0")[
                 Embed.Src(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width(96).Height(96),
-                Figcaption.Class(Ui.FigureCaption)["embed"]
+                Figcaption.Class(Tw.FigureCaption)["embed"]
             ],
             Figure.Class("m-0")[
                 HtmlObject.DataUrl(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width(96).Height(96),
-                Figcaption.Class(Ui.FigureCaption)["object"]
+                Figcaption.Class(Tw.FigureCaption)["object"]
             ],
             Figure.Class("m-0")[
                 // <img usemap> + <map>/<area>: a clickable region.
@@ -56,7 +56,7 @@ public sealed partial class ElementsMediaDemo : Component
                     .UseMap("#regions")
                     .Class("border rounded"),
                 Map.Name("regions")[Area.Shape("rect").Coords("0,0,48,96").Href("#").Alt("left half")],
-                Figcaption.Class(Ui.FigureCaption)["img usemap / map / area"]
+                Figcaption.Class(Tw.FigureCaption)["img usemap / map / area"]
             ]
         ],
         Div.Class("grid grid-cols-12 gap-4")[

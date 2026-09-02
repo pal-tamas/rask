@@ -33,7 +33,7 @@ public sealed partial class UploadDemo : Component
             Input.Value<string>(null)
                 .Id("upload-input")
                 .Type(InputType.File)
-                .Class($"{Ui.Input} mb-3")
+                .Class($"{Tw.Input} mb-3")
                 .OnFiles(OnFiles),
             _name is null
                 ? (Component)Div.Class("text-slate-500 dark:text-slate-400 text-sm")["No file selected yet."]

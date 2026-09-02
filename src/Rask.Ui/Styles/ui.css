@@ -1,0 +1,62 @@
+/*
+  The kit's own stylesheet, compiled by Rask.Tailwind at THIS project's build.
+
+  Tailwind is a compiler: it scans the project it runs in for the class names actually written and emits
+  only those utilities. That is why this lives here rather than being left to the consuming app — the kit
+  ships as a compiled assembly, so an app's own Tailwind build cannot see these class names and would emit
+  none of them, leaving every component rendered as unstyled HTML with nothing reporting it.
+
+  The output is embedded and inlined by the consuming surface, so there is no stylesheet to serve, no
+  static web assets, and nothing for a host to map.
+
+  NO PREFLIGHT, and no html/body rules — the one place this deliberately differs from Rask.Dashboard's
+  sheet. The console may ship a global reset because it is a mounted application that owns its own
+  document (RaskMountedApp); it learned that the hard way, when the reset landed on the host application's
+  own pages for as long as an operator had the console open. An app consuming this kit owns its document,
+  and usually runs its own Tailwind besides. A second reset arriving from a library is that same bug with
+  a wider blast radius, and re-creates the multi-sheet stack where cascade ORDER decides the outcome that
+  #914 removed. Utilities only: the app keeps its own reset and its own base layer.
+*/
+@import "tailwindcss/theme.css";
+@import "tailwindcss/utilities.css";
+
+/*
+  The palette, as tokens rather than literals, so a consuming app re-skins the kit by redefining these in
+  its own @theme instead of overriding rules. Rask.Dashboard does exactly that to keep the console's
+  near-white operator palette.
+
+  Every name here is load-bearing beyond this file: UiStylesheetTests asserts the compiled output still
+  contains each one, because a rename is the kind of change whose only symptom is an unstyled page nobody
+  notices. Tailwind only emits a token something references, so that test is also the check that no token
+  here is decorative — add one and it fails until a utility uses it.
+*/
+@theme {
+  /* Neutrals — a near-white ladder, not a grey one. The steps are deliberately close together: depth
+     comes from hairlines, not from contrast between surfaces. */
+  --color-ui-bg: oklch(1 0 0);
+  --color-ui-panel: oklch(0.993 0 0);
+  --color-ui-well: oklch(0.979 0 0);
+  --color-ui-line: oklch(0.909 0 0);
+  --color-ui-ink: oklch(0.22 0 0);
+  /* 0.52, not lighter: this is body text on white and has to clear 4.5:1, which a true grey-500 does
+     not. Secondary does not mean unreadable. */
+  --color-ui-muted: oklch(0.52 0 0);
+
+  /* Accent — links, focus rings, the active tab. */
+  --color-ui-brand: oklch(0.55 0.2 265);
+
+  /* Status FILLS — dots, tinted badge grounds, and text on the dark toast. Green is teal-leaning on
+     purpose: a pure green reads as decorative beside the amber and the rose, and these three have to stay
+     distinguishable at the size of a 6px status dot. */
+  --color-ui-ok: oklch(0.6 0.11 175);
+  --color-ui-warn: oklch(0.77 0.16 70);
+  --color-ui-danger: oklch(0.55 0.2 20);
+
+  /* Status TEXT on a light ground. Separate tokens rather than darker ones, because the same two colours
+     are read on two different grounds: the fills above are correct on the near-black toast and fail as
+     text on white (amber measures 2.13:1, teal 3.73:1 — nowhere near the 4.5:1 this file demands two
+     comments up), while these clear it and would in turn be too dark on the toast. Rose already passes
+     at 5.39:1 and needs no twin. Verified by computing the ratios, not by eye. */
+  --color-ui-ok-ink: oklch(0.55 0.1 175);
+  --color-ui-warn-ink: oklch(0.57 0.13 70);
+}

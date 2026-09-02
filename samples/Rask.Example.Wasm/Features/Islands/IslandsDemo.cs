@@ -38,8 +38,8 @@ public sealed partial class IslandsDemo : Component
 
     protected override Component? Render() =>
     [
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
                 P.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "The same ", Code["VueChart.vue"], " the Server showcase builds. Clicking a bar ",
@@ -59,8 +59,8 @@ public sealed partial class IslandsDemo : Component
             ]
         ],
 
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["React and Svelte keeping their own state"],
                 P.Class("text-sm text-slate-500 dark:text-slate-400")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
@@ -75,8 +75,8 @@ public sealed partial class IslandsDemo : Component
                 ],
 
                 Div.Class("flex gap-2 mt-3")[
-                    Button.Class(Ui.BtnPrimary).Id("island-raise").OnClick(Raise)["Raise the reading"],
-                    Button.Class(Ui.BtnOutlinePrimary).Id("island-reset").OnClick(Reset)["Reset"]
+                    Button.Class(Tw.BtnPrimary).Id("island-raise").OnClick(Raise)["Raise the reading"],
+                    Button.Class(Tw.BtnOutlinePrimary).Id("island-reset").OnClick(Reset)["Reset"]
                 ],
 
                 P.Class("text-sm mt-3 mb-0")[

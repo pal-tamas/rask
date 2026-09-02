@@ -14,8 +14,8 @@ public sealed partial class FloatingTextarea<TProp> : Component
     protected override Component? Render()
     {
         var (id, label) = FloatingField.Resolve(Bind);
-        return Div.Class($"{Ui.FormFloating} mb-3")[
-            Textarea.Bind(Bind).Id(id).Placeholder(label).Class(Ui.Input).Style("height: 6rem"),
+        return Div.Class($"{Tw.FormFloating} mb-3")[
+            Textarea.Bind(Bind).Id(id).Placeholder(label).Class(Tw.Input).Style("height: 6rem"),
             Label.For(id)[label],
             ValidationMessage.Template(msgs => Div.Class("field-error mt-1 text-sm text-red-600 dark:text-red-400")[msgs[0]]).For(Bind)
         ];

@@ -67,9 +67,9 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
-                Button.Class($"{Ui.BtnPrimary} mb-3").Id("sensor-start").OnClickAsync(Start)["Start"],
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
+                Button.Class($"{Tw.BtnPrimary} mb-3").Id("sensor-start").OnClickAsync(Start)["Start"],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")["Status: ", Code.Id("sensor-status")[_status]],
                 Div.Class("grid grid-cols-12 gap-4")[
                     Div.Class("sm:col-span-6")[

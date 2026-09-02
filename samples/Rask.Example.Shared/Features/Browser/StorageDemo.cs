@@ -15,17 +15,17 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("mb-2 flex gap-2")[
                     Input.Value(_input)
-                        .Class(Ui.Input)
+                        .Class(Tw.Input)
                         .Id("storage-input")
                         .Placeholder("Value to persist")
                         .OnInput(v => _input = v),
-                    Button.Type("button").Class(Ui.BtnPrimary).Id("storage-set").OnClickAsync(Set)["Set"],
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("storage-read").OnClickAsync(Read)["Read"],
-                    Button.Type("button").Class(Ui.BtnOutlineDanger).Id("storage-remove").OnClickAsync(Remove)["Remove"]
+                    Button.Type("button").Class(Tw.BtnPrimary).Id("storage-set").OnClickAsync(Set)["Set"],
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("storage-read").OnClickAsync(Read)["Read"],
+                    Button.Type("button").Class(Tw.BtnOutlineDanger).Id("storage-remove").OnClickAsync(Remove)["Remove"]
                 ],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]

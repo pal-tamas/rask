@@ -42,17 +42,17 @@ public sealed partial class GanttDemo : Component
                         Button
                             .Key(mode.ToString())
                             .Type("button")
-                            .Class(_viewMode == mode ? Ui.BtnPrimary : Ui.BtnOutlineSecondary)
+                            .Class(_viewMode == mode ? Tw.BtnPrimary : Tw.BtnOutlineSecondary)
                             .OnClick(() => _viewMode = mode)[ViewModeLabel(mode)])
                 ],
                 // Add/remove push a new task list at the library — the prop-change path.
-                Button.Type("button").Class(Ui.BtnOutlinePrimary).OnClick(AddTask)[
+                Button.Type("button").Class(Tw.BtnOutlinePrimary).OnClick(AddTask)[
                     Icon.Name(IconName.Plus), " Add task"],
                 // Disabled at one task rather than rendered conditionally: a component's identity is its
                 // (type, position) among its parent's children, so a sibling that disappears shifts every
                 // later child's position by one. The Gantt below would be matched against the wrong slot
                 // and rebuilt from scratch — remounting the chart on an unrelated click.
-                Button.Type("button").Class(Ui.BtnOutlineDanger)
+                Button.Type("button").Class(Tw.BtnOutlineDanger)
                     .Disabled(_tasks.Count <= 1)
                     .OnClick(RemoveLast)["Remove last"]
             ],
@@ -67,8 +67,8 @@ public sealed partial class GanttDemo : Component
                 .OnDateChange(TaskMoved)
                 .OnProgressChange(ProgressChanged),
 
-            Div.Class($"{Ui.Card} gantt-log")[
-                Div.Class($"{Ui.CardBody} py-2")[
+            Div.Class($"{Tw.Card} gantt-log")[
+                Div.Class($"{Tw.CardBody} py-2")[
                     Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Events from the chart:"],
                     _log.Count == 0
                         ? Div.Class("text-sm italic text-slate-500 dark:text-slate-400")[
@@ -88,7 +88,7 @@ public sealed partial class GanttDemo : Component
                             Td[t.Name],
                             Td.Class("font-mono text-sm")[t.Start.ToString("yyyy-MM-dd")],
                             Td.Class("font-mono text-sm")[t.End.ToString("yyyy-MM-dd")],
-                            Td.Class("text-right")[Span.Class(Ui.BadgeSecondary)[$"{t.Progress:F0}%"]]
+                            Td.Class("text-right")[Span.Class(Tw.BadgeSecondary)[$"{t.Progress:F0}%"]]
                         ])
                 ]
             ]

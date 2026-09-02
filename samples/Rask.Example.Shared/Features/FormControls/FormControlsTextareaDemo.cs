@@ -12,11 +12,11 @@ public sealed partial class FormControlsTextareaDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("md:col-span-6")[
-                Label.Class($"{Ui.Label} font-semibold")["Controlled (Value + OnChange)"],
+                Label.Class($"{Tw.Label} font-semibold")["Controlled (Value + OnChange)"],
                 Textarea
                     .Value(_controlled)
                     .OnChange(v => _controlled = v)
-                    .Class($"{Ui.Input} mb-2")
+                    .Class($"{Tw.Input} mb-2")
                     .Rows(3)
                     .Placeholder("Type, then blur…")
                     .Id("fc-textarea-controlled"),
@@ -25,10 +25,10 @@ public sealed partial class FormControlsTextareaDemo : Component
                 ]
             ],
             Div.Class("md:col-span-6")[
-                Label.Class($"{Ui.Label} font-semibold")["Bound (two-way)"],
+                Label.Class($"{Tw.Label} font-semibold")["Bound (two-way)"],
                 Form.Model(_model)[
                     Textarea.Bind(() => _model.Bio)
-                        .Class($"{Ui.Input} mb-2")
+                        .Class($"{Tw.Input} mb-2")
                         .Rows(3)
                         .Placeholder("Type…")
                         .Id("fc-textarea-bound")

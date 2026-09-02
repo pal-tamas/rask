@@ -1,0 +1,405 @@
+#nullable enable
+Rask.Ui.RaskPending_UiBrand_Href
+Rask.Ui.RaskPending_UiBrand_Href.Key(object? key) -> Rask.Ui.RaskPending_UiBrand_Href
+Rask.Ui.RaskPending_UiBrand_Href.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiBrand!>
+Rask.Ui.RaskPending_UiBrand_Href.RaskPending_UiBrand_Href() -> void
+Rask.Ui.RaskPending_UiBrand_Label
+Rask.Ui.RaskPending_UiBrand_Label.Href(Rask.Core.Routing.RouteUrl Href) -> Rask.Core.Build<Rask.Ui.UiBrand!>
+Rask.Ui.RaskPending_UiBrand_Label.Key(object? key) -> Rask.Ui.RaskPending_UiBrand_Label
+Rask.Ui.RaskPending_UiBrand_Label.RaskPending_UiBrand_Label() -> void
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices.Key(object? key) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Choices
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices.Label(string! Label) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Label
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices.RaskPending_UiCrumbSwitcher_Choices() -> void
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices.Value(string! Value) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Label
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Label.Key(object? key) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Label
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Label.RaskPending_UiCrumbSwitcher_Choices_Label() -> void
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Label.Value(string! Value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Value.Key(object? key) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Value.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Value.RaskPending_UiCrumbSwitcher_Choices_Value() -> void
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label.Choices(System.Collections.Generic.IReadOnlyList<(string! Value, string! Text)>! Choices) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Label
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label.Key(object? key) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Label
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label.RaskPending_UiCrumbSwitcher_Label() -> void
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label.Value(string! Value) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Label_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label_Value.Choices(System.Collections.Generic.IReadOnlyList<(string! Value, string! Text)>! Choices) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label_Value.Key(object? key) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Label_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Label_Value.RaskPending_UiCrumbSwitcher_Label_Value() -> void
+Rask.Ui.RaskPending_UiCrumbSwitcher_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Value.Choices(System.Collections.Generic.IReadOnlyList<(string! Value, string! Text)>! Choices) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Choices_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Value.Key(object? key) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Value.Label(string! Label) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Label_Value
+Rask.Ui.RaskPending_UiCrumbSwitcher_Value.RaskPending_UiCrumbSwitcher_Value() -> void
+Rask.Ui.RaskPending_UiDetailRow_Label
+Rask.Ui.RaskPending_UiDetailRow_Label.Key(object? key) -> Rask.Ui.RaskPending_UiDetailRow_Label
+Rask.Ui.RaskPending_UiDetailRow_Label.RaskPending_UiDetailRow_Label() -> void
+Rask.Ui.RaskPending_UiDetailRow_Label.Value(string! Value) -> Rask.Core.Build<Rask.Ui.UiDetailRow!>
+Rask.Ui.RaskPending_UiDetailRow_Value
+Rask.Ui.RaskPending_UiDetailRow_Value.Key(object? key) -> Rask.Ui.RaskPending_UiDetailRow_Value
+Rask.Ui.RaskPending_UiDetailRow_Value.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiDetailRow!>
+Rask.Ui.RaskPending_UiDetailRow_Value.RaskPending_UiDetailRow_Value() -> void
+Rask.Ui.RaskPending_UiMetric_Label
+Rask.Ui.RaskPending_UiMetric_Label.Key(object? key) -> Rask.Ui.RaskPending_UiMetric_Label
+Rask.Ui.RaskPending_UiMetric_Label.RaskPending_UiMetric_Label() -> void
+Rask.Ui.RaskPending_UiMetric_Label.Value(string! Value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
+Rask.Ui.RaskPending_UiMetric_Value
+Rask.Ui.RaskPending_UiMetric_Value.Key(object? key) -> Rask.Ui.RaskPending_UiMetric_Value
+Rask.Ui.RaskPending_UiMetric_Value.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiMetric!>
+Rask.Ui.RaskPending_UiMetric_Value.RaskPending_UiMetric_Value() -> void
+Rask.Ui.RaskPending_UiNavTab_Href
+Rask.Ui.RaskPending_UiNavTab_Href.Key(object? key) -> Rask.Ui.RaskPending_UiNavTab_Href
+Rask.Ui.RaskPending_UiNavTab_Href.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiNavTab!>
+Rask.Ui.RaskPending_UiNavTab_Href.RaskPending_UiNavTab_Href() -> void
+Rask.Ui.RaskPending_UiNavTab_Label
+Rask.Ui.RaskPending_UiNavTab_Label.Href(Rask.Core.Routing.RouteUrl Href) -> Rask.Core.Build<Rask.Ui.UiNavTab!>
+Rask.Ui.RaskPending_UiNavTab_Label.Key(object? key) -> Rask.Ui.RaskPending_UiNavTab_Label
+Rask.Ui.RaskPending_UiNavTab_Label.RaskPending_UiNavTab_Label() -> void
+Rask.Ui.RaskPending_UiSearch_Label
+Rask.Ui.RaskPending_UiSearch_Label.Key(object? key) -> Rask.Ui.RaskPending_UiSearch_Label
+Rask.Ui.RaskPending_UiSearch_Label.Placeholder(string! Placeholder) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+Rask.Ui.RaskPending_UiSearch_Label.RaskPending_UiSearch_Label() -> void
+Rask.Ui.RaskPending_UiSearch_Placeholder
+Rask.Ui.RaskPending_UiSearch_Placeholder.Key(object? key) -> Rask.Ui.RaskPending_UiSearch_Placeholder
+Rask.Ui.RaskPending_UiSearch_Placeholder.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+Rask.Ui.RaskPending_UiSearch_Placeholder.RaskPending_UiSearch_Placeholder() -> void
+Rask.Ui.RaskPending_UiTopLink_Href
+Rask.Ui.RaskPending_UiTopLink_Href.Key(object? key) -> Rask.Ui.RaskPending_UiTopLink_Href
+Rask.Ui.RaskPending_UiTopLink_Href.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiTopLink!>
+Rask.Ui.RaskPending_UiTopLink_Href.RaskPending_UiTopLink_Href() -> void
+Rask.Ui.RaskPending_UiTopLink_Label
+Rask.Ui.RaskPending_UiTopLink_Label.Href(string! Href) -> Rask.Core.Build<Rask.Ui.UiTopLink!>
+Rask.Ui.RaskPending_UiTopLink_Label.Key(object? key) -> Rask.Ui.RaskPending_UiTopLink_Label
+Rask.Ui.RaskPending_UiTopLink_Label.RaskPending_UiTopLink_Label() -> void
+Rask.Ui.RaskSeed_UiBrand
+Rask.Ui.RaskSeed_UiBrand.Href(Rask.Core.Routing.RouteUrl Href) -> Rask.Ui.RaskPending_UiBrand_Href
+Rask.Ui.RaskSeed_UiBrand.Key(object? key) -> Rask.Ui.RaskSeed_UiBrand
+Rask.Ui.RaskSeed_UiBrand.Label(string! Label) -> Rask.Ui.RaskPending_UiBrand_Label
+Rask.Ui.RaskSeed_UiBrand.RaskSeed_UiBrand() -> void
+Rask.Ui.RaskSeed_UiButton
+Rask.Ui.RaskSeed_UiButton.Key(object? key) -> Rask.Ui.RaskSeed_UiButton
+Rask.Ui.RaskSeed_UiButton.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiButton!>
+Rask.Ui.RaskSeed_UiButton.RaskSeed_UiButton() -> void
+Rask.Ui.RaskSeed_UiCode
+Rask.Ui.RaskSeed_UiCode.Content(string! Content) -> Rask.Core.Build<Rask.Ui.UiCode!>
+Rask.Ui.RaskSeed_UiCode.Key(object? key) -> Rask.Ui.RaskSeed_UiCode
+Rask.Ui.RaskSeed_UiCode.RaskSeed_UiCode() -> void
+Rask.Ui.RaskSeed_UiCrumbSwitcher
+Rask.Ui.RaskSeed_UiCrumbSwitcher.Choices(System.Collections.Generic.IReadOnlyList<(string! Value, string! Text)>! Choices) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Choices
+Rask.Ui.RaskSeed_UiCrumbSwitcher.Key(object? key) -> Rask.Ui.RaskSeed_UiCrumbSwitcher
+Rask.Ui.RaskSeed_UiCrumbSwitcher.Label(string! Label) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Label
+Rask.Ui.RaskSeed_UiCrumbSwitcher.RaskSeed_UiCrumbSwitcher() -> void
+Rask.Ui.RaskSeed_UiCrumbSwitcher.Value(string! Value) -> Rask.Ui.RaskPending_UiCrumbSwitcher_Value
+Rask.Ui.RaskSeed_UiDetailRow
+Rask.Ui.RaskSeed_UiDetailRow.Key(object? key) -> Rask.Ui.RaskSeed_UiDetailRow
+Rask.Ui.RaskSeed_UiDetailRow.Label(string! Label) -> Rask.Ui.RaskPending_UiDetailRow_Label
+Rask.Ui.RaskSeed_UiDetailRow.RaskSeed_UiDetailRow() -> void
+Rask.Ui.RaskSeed_UiDetailRow.Value(string! Value) -> Rask.Ui.RaskPending_UiDetailRow_Value
+Rask.Ui.RaskSeed_UiIcon
+Rask.Ui.RaskSeed_UiIcon.Key(object? key) -> Rask.Ui.RaskSeed_UiIcon
+Rask.Ui.RaskSeed_UiIcon.Name(Rask.Ui.UiIconName Name) -> Rask.Core.Build<Rask.Ui.UiIcon!>
+Rask.Ui.RaskSeed_UiIcon.RaskSeed_UiIcon() -> void
+Rask.Ui.RaskSeed_UiMetric
+Rask.Ui.RaskSeed_UiMetric.Key(object? key) -> Rask.Ui.RaskSeed_UiMetric
+Rask.Ui.RaskSeed_UiMetric.Label(string! Label) -> Rask.Ui.RaskPending_UiMetric_Label
+Rask.Ui.RaskSeed_UiMetric.RaskSeed_UiMetric() -> void
+Rask.Ui.RaskSeed_UiMetric.Value(string! Value) -> Rask.Ui.RaskPending_UiMetric_Value
+Rask.Ui.RaskSeed_UiModal
+Rask.Ui.RaskSeed_UiModal.Heading(string! Heading) -> Rask.Core.Build<Rask.Ui.UiModal!>
+Rask.Ui.RaskSeed_UiModal.Key(object? key) -> Rask.Ui.RaskSeed_UiModal
+Rask.Ui.RaskSeed_UiModal.RaskSeed_UiModal() -> void
+Rask.Ui.RaskSeed_UiNavTab
+Rask.Ui.RaskSeed_UiNavTab.Href(Rask.Core.Routing.RouteUrl Href) -> Rask.Ui.RaskPending_UiNavTab_Href
+Rask.Ui.RaskSeed_UiNavTab.Key(object? key) -> Rask.Ui.RaskSeed_UiNavTab
+Rask.Ui.RaskSeed_UiNavTab.Label(string! Label) -> Rask.Ui.RaskPending_UiNavTab_Label
+Rask.Ui.RaskSeed_UiNavTab.RaskSeed_UiNavTab() -> void
+Rask.Ui.RaskSeed_UiSearch
+Rask.Ui.RaskSeed_UiSearch.Key(object? key) -> Rask.Ui.RaskSeed_UiSearch
+Rask.Ui.RaskSeed_UiSearch.Label(string! Label) -> Rask.Ui.RaskPending_UiSearch_Label
+Rask.Ui.RaskSeed_UiSearch.Placeholder(string! Placeholder) -> Rask.Ui.RaskPending_UiSearch_Placeholder
+Rask.Ui.RaskSeed_UiSearch.RaskSeed_UiSearch() -> void
+Rask.Ui.RaskSeed_UiStatusDot
+Rask.Ui.RaskSeed_UiStatusDot.Key(object? key) -> Rask.Ui.RaskSeed_UiStatusDot
+Rask.Ui.RaskSeed_UiStatusDot.Label(string! Label) -> Rask.Core.Build<Rask.Ui.UiStatusDot!>
+Rask.Ui.RaskSeed_UiStatusDot.RaskSeed_UiStatusDot() -> void
+Rask.Ui.RaskSeed_UiToast
+Rask.Ui.RaskSeed_UiToast.Key(object? key) -> Rask.Ui.RaskSeed_UiToast
+Rask.Ui.RaskSeed_UiToast.Message(string! Message) -> Rask.Core.Build<Rask.Ui.UiToast!>
+Rask.Ui.RaskSeed_UiToast.RaskSeed_UiToast() -> void
+Rask.Ui.RaskSeed_UiTopLink
+Rask.Ui.RaskSeed_UiTopLink.Href(string! Href) -> Rask.Ui.RaskPending_UiTopLink_Href
+Rask.Ui.RaskSeed_UiTopLink.Key(object? key) -> Rask.Ui.RaskSeed_UiTopLink
+Rask.Ui.RaskSeed_UiTopLink.Label(string! Label) -> Rask.Ui.RaskPending_UiTopLink_Label
+Rask.Ui.RaskSeed_UiTopLink.RaskSeed_UiTopLink() -> void
+Rask.Ui.UiBrand
+Rask.Ui.UiBrand.Href.get -> Rask.Core.Routing.RouteUrl
+Rask.Ui.UiBrand.Href.set -> void
+Rask.Ui.UiBrand.Icon.get -> Rask.Ui.UiIconName?
+Rask.Ui.UiBrand.Icon.set -> void
+Rask.Ui.UiBrand.Label.get -> string!
+Rask.Ui.UiBrand.Label.set -> void
+Rask.Ui.UiBrand.UiBrand() -> void
+Rask.Ui.UiButton
+Rask.Ui.UiButton.Class.get -> string?
+Rask.Ui.UiButton.Class.set -> void
+Rask.Ui.UiButton.Disabled.get -> bool?
+Rask.Ui.UiButton.Disabled.set -> void
+Rask.Ui.UiButton.Icon.get -> Rask.Ui.UiIconName?
+Rask.Ui.UiButton.Icon.set -> void
+Rask.Ui.UiButton.Label.get -> string!
+Rask.Ui.UiButton.Label.set -> void
+Rask.Ui.UiButton.OnClick.get -> System.Action?
+Rask.Ui.UiButton.OnClick.set -> void
+Rask.Ui.UiButton.OnClickAsync.get -> System.Func<System.Threading.Tasks.Task!>?
+Rask.Ui.UiButton.OnClickAsync.set -> void
+Rask.Ui.UiButton.Tone.get -> Rask.Ui.UiTone?
+Rask.Ui.UiButton.Tone.set -> void
+Rask.Ui.UiButton.UiButton() -> void
+Rask.Ui.UiCode
+Rask.Ui.UiCode.Content.get -> string!
+Rask.Ui.UiCode.Content.set -> void
+Rask.Ui.UiCode.Tone.get -> Rask.Ui.UiTone?
+Rask.Ui.UiCode.Tone.set -> void
+Rask.Ui.UiCode.UiCode() -> void
+Rask.Ui.UiCrumbSeparator
+Rask.Ui.UiCrumbSeparator.UiCrumbSeparator() -> void
+Rask.Ui.UiCrumbSwitcher
+Rask.Ui.UiCrumbSwitcher.Choices.get -> System.Collections.Generic.IReadOnlyList<(string! Value, string! Text)>!
+Rask.Ui.UiCrumbSwitcher.Choices.set -> void
+Rask.Ui.UiCrumbSwitcher.Icon.get -> Rask.Ui.UiIconName?
+Rask.Ui.UiCrumbSwitcher.Icon.set -> void
+Rask.Ui.UiCrumbSwitcher.Label.get -> string!
+Rask.Ui.UiCrumbSwitcher.Label.set -> void
+Rask.Ui.UiCrumbSwitcher.OnSelect.get -> System.Func<string!, System.Threading.Tasks.Task!>?
+Rask.Ui.UiCrumbSwitcher.OnSelect.set -> void
+Rask.Ui.UiCrumbSwitcher.UiCrumbSwitcher() -> void
+Rask.Ui.UiCrumbSwitcher.Value.get -> string!
+Rask.Ui.UiCrumbSwitcher.Value.set -> void
+Rask.Ui.UiDetailList
+Rask.Ui.UiDetailList.UiDetailList() -> void
+Rask.Ui.UiDetailRow
+Rask.Ui.UiDetailRow.Label.get -> string!
+Rask.Ui.UiDetailRow.Label.set -> void
+Rask.Ui.UiDetailRow.Mono.get -> bool?
+Rask.Ui.UiDetailRow.Mono.set -> void
+Rask.Ui.UiDetailRow.Tone.get -> Rask.Ui.UiTone?
+Rask.Ui.UiDetailRow.Tone.set -> void
+Rask.Ui.UiDetailRow.UiDetailRow() -> void
+Rask.Ui.UiDetailRow.Value.get -> string!
+Rask.Ui.UiDetailRow.Value.set -> void
+Rask.Ui.UiIcon
+Rask.Ui.UiIcon.Class.get -> string?
+Rask.Ui.UiIcon.Class.set -> void
+Rask.Ui.UiIcon.Name.get -> Rask.Ui.UiIconName
+Rask.Ui.UiIcon.Name.set -> void
+Rask.Ui.UiIcon.UiIcon() -> void
+Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Archive = 6 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Check = 18 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.ChevronRight = 16 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.ChevronUpDown = 15 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Clock = 4 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Close = 14 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Database = 2 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Envelope = 3 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Gear = 8 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Outbox = 7 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Overview = 0 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Queue = 1 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Retry = 5 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Search = 13 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.ShieldOk = 11 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.ShieldWarning = 12 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Storage = 9 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Trash = 17 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Warning = 10 -> Rask.Ui.UiIconName
+Rask.Ui.UiMain
+Rask.Ui.UiMain.UiMain() -> void
+Rask.Ui.UiMetric
+Rask.Ui.UiMetric.Active.get -> bool?
+Rask.Ui.UiMetric.Active.set -> void
+Rask.Ui.UiMetric.Caption.get -> string?
+Rask.Ui.UiMetric.Caption.set -> void
+Rask.Ui.UiMetric.Href.get -> string?
+Rask.Ui.UiMetric.Href.set -> void
+Rask.Ui.UiMetric.Label.get -> string!
+Rask.Ui.UiMetric.Label.set -> void
+Rask.Ui.UiMetric.Tone.get -> Rask.Ui.UiTone?
+Rask.Ui.UiMetric.Tone.set -> void
+Rask.Ui.UiMetric.UiMetric() -> void
+Rask.Ui.UiMetric.Value.get -> string!
+Rask.Ui.UiMetric.Value.set -> void
+Rask.Ui.UiMetricRow
+Rask.Ui.UiMetricRow.Columns.get -> int?
+Rask.Ui.UiMetricRow.Columns.set -> void
+Rask.Ui.UiMetricRow.UiMetricRow() -> void
+Rask.Ui.UiModal
+Rask.Ui.UiModal.Close.get -> System.Action?
+Rask.Ui.UiModal.Close.set -> void
+Rask.Ui.UiModal.Footer.get -> Rask.Core.Component?
+Rask.Ui.UiModal.Footer.set -> void
+Rask.Ui.UiModal.Heading.get -> string!
+Rask.Ui.UiModal.Heading.set -> void
+Rask.Ui.UiModal.UiModal() -> void
+Rask.Ui.UiNav
+Rask.Ui.UiNav.UiNav() -> void
+Rask.Ui.UiNavTab
+Rask.Ui.UiNavTab.Active.get -> bool?
+Rask.Ui.UiNavTab.Active.set -> void
+Rask.Ui.UiNavTab.Href.get -> Rask.Core.Routing.RouteUrl
+Rask.Ui.UiNavTab.Href.set -> void
+Rask.Ui.UiNavTab.Label.get -> string!
+Rask.Ui.UiNavTab.Label.set -> void
+Rask.Ui.UiNavTab.UiNavTab() -> void
+Rask.Ui.UiSearch
+Rask.Ui.UiSearch.Class.get -> string?
+Rask.Ui.UiSearch.Class.set -> void
+Rask.Ui.UiSearch.Label.get -> string!
+Rask.Ui.UiSearch.Label.set -> void
+Rask.Ui.UiSearch.OnSearch.get -> System.Func<string!, System.Threading.Tasks.Task!>?
+Rask.Ui.UiSearch.OnSearch.set -> void
+Rask.Ui.UiSearch.Placeholder.get -> string!
+Rask.Ui.UiSearch.Placeholder.set -> void
+Rask.Ui.UiSearch.UiSearch() -> void
+Rask.Ui.UiSearch.Value.get -> string?
+Rask.Ui.UiSearch.Value.set -> void
+Rask.Ui.UiShell
+Rask.Ui.UiShell.UiShell() -> void
+Rask.Ui.UiStatusDot
+Rask.Ui.UiStatusDot.Label.get -> string!
+Rask.Ui.UiStatusDot.Label.set -> void
+Rask.Ui.UiStatusDot.Tone.get -> Rask.Ui.UiTone?
+Rask.Ui.UiStatusDot.Tone.set -> void
+Rask.Ui.UiStatusDot.UiStatusDot() -> void
+Rask.Ui.UiToast
+Rask.Ui.UiToast.Dismiss.get -> System.Action?
+Rask.Ui.UiToast.Dismiss.set -> void
+Rask.Ui.UiToast.Message.get -> string!
+Rask.Ui.UiToast.Message.set -> void
+Rask.Ui.UiToast.Tone.get -> Rask.Ui.UiTone?
+Rask.Ui.UiToast.Tone.set -> void
+Rask.Ui.UiToast.UiToast() -> void
+Rask.Ui.UiTone
+Rask.Ui.UiTone.Busy = 6 -> Rask.Ui.UiTone
+Rask.Ui.UiTone.Danger = 5 -> Rask.Ui.UiTone
+Rask.Ui.UiTone.Neutral = 0 -> Rask.Ui.UiTone
+Rask.Ui.UiTone.Ok = 3 -> Rask.Ui.UiTone
+Rask.Ui.UiTone.Primary = 1 -> Rask.Ui.UiTone
+Rask.Ui.UiTone.Quiet = 2 -> Rask.Ui.UiTone
+Rask.Ui.UiTone.Warn = 4 -> Rask.Ui.UiTone
+Rask.Ui.UiTopBar
+Rask.Ui.UiTopBar.Trailing.get -> Rask.Core.Component?
+Rask.Ui.UiTopBar.Trailing.set -> void
+Rask.Ui.UiTopBar.UiTopBar() -> void
+Rask.Ui.UiTopLink
+Rask.Ui.UiTopLink.Href.get -> string!
+Rask.Ui.UiTopLink.Href.set -> void
+Rask.Ui.UiTopLink.Label.get -> string!
+Rask.Ui.UiTopLink.Label.set -> void
+Rask.Ui.UiTopLink.UiTopLink() -> void
+RaskBuilderSettersRask_Ui
+RaskEntriesRask_Ui
+static RaskBuilderSettersRask_Ui.Active(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
+static RaskBuilderSettersRask_Ui.Active(this Rask.Core.Build<Rask.Ui.UiNavTab!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiNavTab!>
+static RaskBuilderSettersRask_Ui.Caption(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
+static RaskBuilderSettersRask_Ui.Choices(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, System.Collections.Generic.IReadOnlyList<(string! Value, string! Text)>! value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiButton!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
+static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiIcon!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiIcon!>
+static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+static RaskBuilderSettersRask_Ui.Close(this Rask.Core.Build<Rask.Ui.UiModal!> __b, System.Action? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
+static RaskBuilderSettersRask_Ui.Columns(this Rask.Core.Build<Rask.Ui.UiMetricRow!> __b, int? value) -> Rask.Core.Build<Rask.Ui.UiMetricRow!>
+static RaskBuilderSettersRask_Ui.Content(this Rask.Core.Build<Rask.Ui.UiCode!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiCode!>
+static RaskBuilderSettersRask_Ui.Disabled(this Rask.Core.Build<Rask.Ui.UiButton!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
+static RaskBuilderSettersRask_Ui.Dismiss(this Rask.Core.Build<Rask.Ui.UiToast!> __b, System.Action? value) -> Rask.Core.Build<Rask.Ui.UiToast!>
+static RaskBuilderSettersRask_Ui.Footer(this Rask.Core.Build<Rask.Ui.UiModal!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
+static RaskBuilderSettersRask_Ui.Heading(this Rask.Core.Build<Rask.Ui.UiModal!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiModal!>
+static RaskBuilderSettersRask_Ui.Href(this Rask.Core.Build<Rask.Ui.UiBrand!> __b, Rask.Core.Routing.RouteUrl value) -> Rask.Core.Build<Rask.Ui.UiBrand!>
+static RaskBuilderSettersRask_Ui.Href(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
+static RaskBuilderSettersRask_Ui.Href(this Rask.Core.Build<Rask.Ui.UiNavTab!> __b, Rask.Core.Routing.RouteUrl value) -> Rask.Core.Build<Rask.Ui.UiNavTab!>
+static RaskBuilderSettersRask_Ui.Href(this Rask.Core.Build<Rask.Ui.UiTopLink!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiTopLink!>
+static RaskBuilderSettersRask_Ui.Icon(this Rask.Core.Build<Rask.Ui.UiBrand!> __b, Rask.Ui.UiIconName? value) -> Rask.Core.Build<Rask.Ui.UiBrand!>
+static RaskBuilderSettersRask_Ui.Icon(this Rask.Core.Build<Rask.Ui.UiButton!> __b, Rask.Ui.UiIconName? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
+static RaskBuilderSettersRask_Ui.Icon(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, Rask.Ui.UiIconName? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiBrand!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiBrand!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiButton!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiButton!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiDetailRow!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiDetailRow!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiNavTab!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiNavTab!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiStatusDot!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiStatusDot!>
+static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiTopLink!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiTopLink!>
+static RaskBuilderSettersRask_Ui.Message(this Rask.Core.Build<Rask.Ui.UiToast!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiToast!>
+static RaskBuilderSettersRask_Ui.Mono(this Rask.Core.Build<Rask.Ui.UiDetailRow!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiDetailRow!>
+static RaskBuilderSettersRask_Ui.Name(this Rask.Core.Build<Rask.Ui.UiIcon!> __b, Rask.Ui.UiIconName value) -> Rask.Core.Build<Rask.Ui.UiIcon!>
+static RaskBuilderSettersRask_Ui.OnClick(this Rask.Core.Build<Rask.Ui.UiButton!> __b, System.Action? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
+static RaskBuilderSettersRask_Ui.OnClickAsync(this Rask.Core.Build<Rask.Ui.UiButton!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
+static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+static RaskBuilderSettersRask_Ui.Placeholder(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+static RaskBuilderSettersRask_Ui.Tone(this Rask.Core.Build<Rask.Ui.UiButton!> __b, Rask.Ui.UiTone? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
+static RaskBuilderSettersRask_Ui.Tone(this Rask.Core.Build<Rask.Ui.UiCode!> __b, Rask.Ui.UiTone? value) -> Rask.Core.Build<Rask.Ui.UiCode!>
+static RaskBuilderSettersRask_Ui.Tone(this Rask.Core.Build<Rask.Ui.UiDetailRow!> __b, Rask.Ui.UiTone? value) -> Rask.Core.Build<Rask.Ui.UiDetailRow!>
+static RaskBuilderSettersRask_Ui.Tone(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, Rask.Ui.UiTone? value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
+static RaskBuilderSettersRask_Ui.Tone(this Rask.Core.Build<Rask.Ui.UiStatusDot!> __b, Rask.Ui.UiTone? value) -> Rask.Core.Build<Rask.Ui.UiStatusDot!>
+static RaskBuilderSettersRask_Ui.Tone(this Rask.Core.Build<Rask.Ui.UiToast!> __b, Rask.Ui.UiTone? value) -> Rask.Core.Build<Rask.Ui.UiToast!>
+static RaskBuilderSettersRask_Ui.Trailing(this Rask.Core.Build<Rask.Ui.UiTopBar!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Ui.UiTopBar!>
+static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiDetailRow!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiDetailRow!>
+static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
+static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiBrand(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiButton(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiCode(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiCrumbSwitcher(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiDetailRow(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiIcon(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiMetric(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiMetricRow(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiModal(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiNavTab(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiSearch(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiStatusDot(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiToast(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiTopBar(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiTopLink(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiBrand(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiButton(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiCode(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiCrumbSwitcher(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiDetailRow(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiIcon(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiMetric(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiMetricRow(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiModal(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiNavTab(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiSearch(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiStatusDot(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiToast(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiTopBar(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiTopLink(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskEntriesRask_Ui.UiBrand.get -> Rask.Ui.RaskSeed_UiBrand
+static RaskEntriesRask_Ui.UiButton.get -> Rask.Ui.RaskSeed_UiButton
+static RaskEntriesRask_Ui.UiCode.get -> Rask.Ui.RaskSeed_UiCode
+static RaskEntriesRask_Ui.UiCrumbSeparator.get -> Rask.Core.Build<Rask.Ui.UiCrumbSeparator!>
+static RaskEntriesRask_Ui.UiCrumbSwitcher.get -> Rask.Ui.RaskSeed_UiCrumbSwitcher
+static RaskEntriesRask_Ui.UiDetailList.get -> Rask.Core.Build<Rask.Ui.UiDetailList!>
+static RaskEntriesRask_Ui.UiDetailRow.get -> Rask.Ui.RaskSeed_UiDetailRow
+static RaskEntriesRask_Ui.UiIcon.get -> Rask.Ui.RaskSeed_UiIcon
+static RaskEntriesRask_Ui.UiMain.get -> Rask.Core.Build<Rask.Ui.UiMain!>
+static RaskEntriesRask_Ui.UiMetric.get -> Rask.Ui.RaskSeed_UiMetric
+static RaskEntriesRask_Ui.UiMetricRow.get -> Rask.Core.Build<Rask.Ui.UiMetricRow!>
+static RaskEntriesRask_Ui.UiModal.get -> Rask.Ui.RaskSeed_UiModal
+static RaskEntriesRask_Ui.UiNav.get -> Rask.Core.Build<Rask.Ui.UiNav!>
+static RaskEntriesRask_Ui.UiNavTab.get -> Rask.Ui.RaskSeed_UiNavTab
+static RaskEntriesRask_Ui.UiSearch.get -> Rask.Ui.RaskSeed_UiSearch
+static RaskEntriesRask_Ui.UiShell.get -> Rask.Core.Build<Rask.Ui.UiShell!>
+static RaskEntriesRask_Ui.UiStatusDot.get -> Rask.Ui.RaskSeed_UiStatusDot
+static RaskEntriesRask_Ui.UiToast.get -> Rask.Ui.RaskSeed_UiToast
+static RaskEntriesRask_Ui.UiTopBar.get -> Rask.Core.Build<Rask.Ui.UiTopBar!>
+static RaskEntriesRask_Ui.UiTopLink.get -> Rask.Ui.RaskSeed_UiTopLink
+Rask.Ui.UiStylesheet
+static Rask.Ui.UiStylesheet.Css.get -> string!

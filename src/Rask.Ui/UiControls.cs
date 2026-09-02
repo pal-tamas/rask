@@ -1,4 +1,4 @@
-namespace Rask.Dashboard.Pages;
+namespace Rask.Ui;
 
 /// <summary>
 /// A button, in one of the console's four weights.
@@ -15,16 +15,17 @@ namespace Rask.Dashboard.Pages;
 /// mis-tap. The height relaxes from <c>sm</c> up where there is a pointer.
 /// </para>
 /// </remarks>
-internal sealed partial class OpsButton : Component
+public sealed partial class UiButton : Component
 {
     public required string Label { get; set; }
 
     /// <summary>
-    /// One of <c>primary</c>, <c>danger</c>, <c>quiet</c>. Anything else is the ordinary bordered button.
+    /// <see cref="UiTone.Primary" />, <see cref="UiTone.Danger" /> or <see cref="UiTone.Quiet" />.
+    /// Anything else is the ordinary bordered button.
     /// </summary>
-    public string? Tone { get; set; }
+    public UiTone? Tone { get; set; }
 
-    public OpsIconName? Icon { get; set; }
+    public UiIconName? Icon { get; set; }
 
     public Action? OnClick { get; set; }
 
@@ -37,7 +38,7 @@ internal sealed partial class OpsButton : Component
     private const string Base =
         "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-medium "
         + "transition-colors disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 "
-        + "focus-visible:outline-offset-2 focus-visible:outline-ops-brand sm:min-h-0 sm:py-1.5";
+        + "focus-visible:outline-offset-2 focus-visible:outline-ui-brand sm:min-h-0 sm:py-1.5";
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -59,17 +60,17 @@ internal sealed partial class OpsButton : Component
         }
 
         return button[
-            Icon is { } icon ? OpsIcon.Name(icon).Class("size-4 shrink-0") : null,
+            Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null,
             Span[Label]
         ];
     }
 
     private string Palette() => Tone switch
     {
-        "primary" => "bg-ops-ink text-ops-bg hover:bg-ops-ink/90",
-        "danger" => "border border-ops-line bg-ops-bg text-ops-danger hover:border-ops-danger/40 hover:bg-ops-danger/5",
-        "quiet" => "text-ops-muted hover:bg-ops-well hover:text-ops-ink",
-        _ => "border border-ops-line bg-ops-bg text-ops-ink hover:bg-ops-well",
+        UiTone.Primary => "bg-ui-ink text-ui-bg hover:bg-ui-ink/90",
+        UiTone.Danger => "border border-ui-line bg-ui-bg text-ui-danger hover:border-ui-danger/40 hover:bg-ui-danger/5",
+        UiTone.Quiet => "text-ui-muted hover:bg-ui-well hover:text-ui-ink",
+        _ => "border border-ui-line bg-ui-bg text-ui-ink hover:bg-ui-well",
     };
 }
 
@@ -82,7 +83,7 @@ internal sealed partial class OpsButton : Component
 /// operator with no results for everything they type is worse than no box. So it lives on the three pages
 /// that really do filter — logs, cache and a queue's dead letters — and searches what it sits above.
 /// </remarks>
-internal sealed partial class OpsSearch : Component
+public sealed partial class UiSearch : Component
 {
     public required string Placeholder { get; set; }
 
@@ -104,9 +105,9 @@ internal sealed partial class OpsSearch : Component
             .Placeholder(Placeholder)
             .Aria(new Dictionary<string, string?> { ["label"] = Label })
             .Class(
-                "min-h-11 w-full rounded-lg border border-ops-line bg-ops-bg py-1.5 pl-9 pr-3 text-sm text-ops-ink "
-                + "placeholder:text-ops-muted focus-visible:outline-2 focus-visible:outline-offset-2 "
-                + "focus-visible:outline-ops-brand sm:min-h-0");
+                "min-h-11 w-full rounded-lg border border-ui-line bg-ui-bg py-1.5 pl-9 pr-3 text-sm text-ui-ink "
+                + "placeholder:text-ui-muted focus-visible:outline-2 focus-visible:outline-offset-2 "
+                + "focus-visible:outline-ui-brand sm:min-h-0");
 
         if (OnSearch is { } search)
         {
@@ -116,8 +117,8 @@ internal sealed partial class OpsSearch : Component
         // Full width on a phone, a sane column from sm up: on a 360px screen a fixed-width search box either
         // overflows the row or leaves the rest of it stranded.
         return Div.Class($"relative w-full sm:w-72 {Class}")[
-            OpsIcon.Name(OpsIconName.Search)
-                .Class("pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ops-muted"),
+            UiIcon.Name(UiIconName.Search)
+                .Class("pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ui-muted"),
             input
         ];
     }
@@ -130,26 +131,29 @@ internal sealed partial class OpsSearch : Component
 /// The label is required rather than optional. Colour alone is not a status: an operator who cannot
 /// distinguish the teal from the amber would otherwise be reading an unlabelled dot.
 /// </remarks>
-internal sealed partial class OpsStatusDot : Component
+public sealed partial class UiStatusDot : Component
 {
     public required string Label { get; set; }
 
-    /// <summary>One of <c>ok</c>, <c>warn</c>, <c>danger</c>, <c>busy</c>. Anything else reads as idle.</summary>
-    public string? Tone { get; set; }
+    /// <summary>
+    /// <see cref="UiTone.Ok" />, <see cref="UiTone.Warn" />, <see cref="UiTone.Danger" /> or
+    /// <see cref="UiTone.Busy" />. Anything else reads as idle.
+    /// </summary>
+    public UiTone? Tone { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Span.Class("inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-ops-muted")[
+        Span.Class("inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-ui-muted")[
             Span.Class($"size-1.5 shrink-0 rounded-full {Palette()}").Attributes(("aria-hidden", "true")),
             Span[Label]
         ];
 
     private string Palette() => Tone switch
     {
-        "ok" => "bg-ops-ok",
-        "warn" => "bg-ops-warn",
-        "danger" => "bg-ops-danger",
-        "busy" => "bg-ops-brand",
-        _ => "bg-ops-line",
+        UiTone.Ok => "bg-ui-ok",
+        UiTone.Warn => "bg-ui-warn",
+        UiTone.Danger => "bg-ui-danger",
+        UiTone.Busy => "bg-ui-brand",
+        _ => "bg-ui-line",
     };
 }

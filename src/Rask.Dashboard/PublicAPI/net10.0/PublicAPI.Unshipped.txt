@@ -28,26 +28,6 @@ Rask.Dashboard.Logging.DashboardLogEntry.Sequence.get -> long
 Rask.Dashboard.Logging.DashboardLogEntry.Sequence.init -> void
 Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.get -> System.DateTimeOffset
 Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.init -> void
-Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Archive = 6 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Check = 18 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.ChevronRight = 16 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.ChevronUpDown = 15 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Clock = 4 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Close = 14 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Database = 2 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Envelope = 3 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Gear = 8 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Outbox = 7 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Overview = 0 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Queue = 1 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Retry = 5 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Search = 13 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.ShieldOk = 11 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.ShieldWarning = 12 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Storage = 9 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Trash = 17 -> Rask.Dashboard.OpsIconName
-Rask.Dashboard.OpsIconName.Warning = 10 -> Rask.Dashboard.OpsIconName
 Rask.Dashboard.Pages.CachePage
 Rask.Dashboard.Pages.CachePage.CachePage(Rask.Dashboard.Panels.ICachePanelReader! cache, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
 Rask.Dashboard.Pages.CachePage.Search.get -> string?
@@ -195,7 +175,7 @@ Rask.Dashboard.Panels.IQueueActions.RetryAllAsync(System.Threading.CancellationT
 Rask.Dashboard.Panels.IQueueActions.RetryAsync(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
 Rask.Dashboard.Panels.IQueuePanel
 Rask.Dashboard.Panels.IQueuePanel.CountsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.QueueCounts>!
-Rask.Dashboard.Panels.IQueuePanel.Icon.get -> Rask.Dashboard.OpsIconName
+Rask.Dashboard.Panels.IQueuePanel.Icon.get -> Rask.Ui.UiIconName
 Rask.Dashboard.Panels.IQueuePanel.IsAvailable.get -> bool
 Rask.Dashboard.Panels.IQueuePanel.MaxAttempts.get -> int
 Rask.Dashboard.Panels.IQueuePanel.PageAsync(Rask.Dashboard.Panels.QueueFilter filter, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.QueueRow!>! Rows, int Total)>!

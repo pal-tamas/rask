@@ -14,7 +14,7 @@ namespace Rask.Example.Shared;
 /// <c>BsSize.Sm</c> was ever used across the whole showcase, so size is not a dimension here.
 /// </para>
 /// </remarks>
-public static class Ui
+public static class Tw
 {
     /// <summary>The shared shape of every button: the size, radius and focus behaviour.</summary>
     private const string BtnBase =

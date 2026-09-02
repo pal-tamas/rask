@@ -28,14 +28,14 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
     private int _sent;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 mb-2")[
-                    Button.Type("button").Class(Ui.BtnPrimary)
+                    Button.Type("button").Class(Tw.BtnPrimary)
                         .Id("signal-join")
                         .Disabled(_joining)
                         .OnClickAsync(JoinAsync)["Join the room twice"],
-                    Button.Type("button").Class(Ui.BtnSecondary)
+                    Button.Type("button").Class(Tw.BtnSecondary)
                         .Id("signal-send")
                         .Disabled(_secondId is null)
                         .OnClickAsync(SendAsync)["Relay a payload"]

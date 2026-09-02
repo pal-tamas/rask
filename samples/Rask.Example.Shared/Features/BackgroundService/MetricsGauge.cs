@@ -27,11 +27,11 @@ public sealed partial class MetricsGauge(IMetricsFeed feed) : Component
     protected override Component? Render()
     {
         var s = feed.State.Current;
-        return Div.Class($"{Ui.Card} shadow-sm border-0 h-full")[
-            Div.Class(Ui.CardBody)[
+        return Div.Class($"{Tw.Card} shadow-sm border-0 h-full")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex justify-between items-baseline flex-wrap items-center mb-3")[
                     H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mb-0")["System metrics"],
-                    Span.Class(Ui.BadgeSecondary).Id("metrics-tick")[
+                    Span.Class(Tw.BadgeSecondary).Id("metrics-tick")[
                         $"tick {s.Tick.ToString(Inv)}"]
                 ],
                 Div.Class("grid grid-cols-12 gap-4 text-center")[

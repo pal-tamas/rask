@@ -1,4 +1,4 @@
-namespace Rask.Dashboard.Pages;
+namespace Rask.Ui;
 
 /// <summary>
 /// The row of headline numbers at the top of a page.
@@ -14,7 +14,7 @@ namespace Rask.Dashboard.Pages;
 /// of registered batteries changes; a lined background is correct for any count at any breakpoint.
 /// </para>
 /// </remarks>
-internal sealed partial class OpsMetricRow : Component
+public sealed partial class UiMetricRow : Component
 {
     /// <summary>How many across from <c>sm</c> up. Four unless said otherwise; two on a phone regardless.</summary>
     /// <remarks>
@@ -27,7 +27,7 @@ internal sealed partial class OpsMetricRow : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class(
-            "grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-ops-line bg-ops-line " + (Columns switch
+            "grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-ui-line bg-ui-line " + (Columns switch
             {
                 // An odd number of tiles in two columns leaves the last slot empty, and because the
                 // hairlines are the container's own background showing through the gaps, an empty slot is
@@ -42,7 +42,7 @@ internal sealed partial class OpsMetricRow : Component
 }
 
 /// <summary>
-/// One number in an <see cref="OpsMetricRow" />, optionally the control that selects it.
+/// One number in an <see cref="UiMetricRow" />, optionally the control that selects it.
 /// </summary>
 /// <remarks>
 /// Giving a tile an <see cref="Href" /> turns the row into a filter: the reference shows metrics above a
@@ -50,17 +50,17 @@ internal sealed partial class OpsMetricRow : Component
 /// screen is worse than either. A tile that filters is a real link with a real URL, so the selection stays
 /// shareable and reachable by keyboard.
 /// </remarks>
-internal sealed partial class OpsMetric : Component
+public sealed partial class UiMetric : Component
 {
     public required string Label { get; set; }
 
     public required string Value { get; set; }
 
     /// <summary>
-    /// <c>danger</c> for a number an operator must act on, <c>warn</c> for one that is merely unproven.
-    /// Anything else reads as neutral.
+    /// <see cref="UiTone.Danger" /> for a number someone must act on, <see cref="UiTone.Warn" /> for one
+    /// that is merely unproven. Anything else reads as neutral.
     /// </summary>
-    public string? Tone { get; set; }
+    public UiTone? Tone { get; set; }
 
     public string? Caption { get; set; }
 
@@ -75,25 +75,25 @@ internal sealed partial class OpsMetric : Component
     {
         var tone = Tone switch
         {
-            "danger" => "text-ops-danger",
-            "warn" => "text-ops-warn-ink",
-            _ => "text-ops-ink",
+            UiTone.Danger => "text-ui-danger",
+            UiTone.Warn => "text-ui-warn-ink",
+            _ => "text-ui-ink",
         };
 
         Component body =
             // Stacked on a phone, label-and-value on one line from sm up. Side by side inside a 150px cell
             // truncates one or the other, and the label is the half that stops making sense truncated.
             Div.Class("flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2")[
-                Span.Class("truncate text-xs font-medium text-ops-muted")[Label],
+                Span.Class("truncate text-xs font-medium text-ui-muted")[Label],
                 // Tabular figures so a polling value does not jitter its neighbours as digits change.
                 Span.Class($"text-xl font-semibold tabular-nums tracking-tight sm:text-2xl {tone}")[Value]
             ];
 
-        Component? caption = Caption is null ? null : Div.Class("mt-1 truncate text-xs text-ops-muted")[Caption];
+        Component? caption = Caption is null ? null : Div.Class("mt-1 truncate text-xs text-ui-muted")[Caption];
 
         if (Href is not { } href)
         {
-            return Div.Class("bg-ops-panel p-3 sm:p-4")[body, caption];
+            return Div.Class("bg-ui-panel p-3 sm:p-4")[body, caption];
         }
 
         var selected = Active == true;
@@ -105,10 +105,10 @@ internal sealed partial class OpsMetric : Component
             // the cell's bounds, which sit flush against the row's own border and clipped edge: it rendered
             // as a box slightly out of register with the tile it was meant to mark.
             .Class("block p-3 no-underline transition-colors sm:p-4 " + (selected
-                ? "bg-ops-well shadow-[inset_0_-2px_0_0_var(--color-ops-ink)]"
-                : "bg-ops-panel hover:bg-ops-well"));
+                ? "bg-ui-well shadow-[inset_0_-2px_0_0_var(--color-ui-ink)]"
+                : "bg-ui-panel hover:bg-ui-well"));
 
-        // Only when true — see OpsNavTab. A ternary here would ship a meaningless attribute on every
+        // Only when true — see UiNavTab. A ternary here would ship a meaningless attribute on every
         // unselected tile.
         if (selected)
         {
@@ -120,11 +120,11 @@ internal sealed partial class OpsMetric : Component
 }
 
 /// <summary>The key-and-value list a detail sheet is made of.</summary>
-internal sealed partial class OpsDetailList : Component
+public sealed partial class UiDetailList : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("divide-y divide-ops-line")[Children ?? []];
+        Div.Class("divide-y divide-ui-line")[Children ?? []];
 }
 
 /// <summary>
@@ -136,7 +136,7 @@ internal sealed partial class OpsDetailList : Component
 /// <c>sm</c> the pair stacks and the leader is hidden outright, which is what it would have degenerated
 /// into anyway.
 /// </remarks>
-internal sealed partial class OpsDetailRow : Component
+public sealed partial class UiDetailRow : Component
 {
     public required string Label { get; set; }
 
@@ -146,23 +146,24 @@ internal sealed partial class OpsDetailRow : Component
     public bool? Mono { get; set; }
 
     /// <summary>
-    /// <c>danger</c> or <c>warn</c> to colour the value. Anything else reads as neutral.
+    /// <see cref="UiTone.Danger" /> or <see cref="UiTone.Warn" /> to colour the value. Anything else
+    /// reads as neutral.
     /// </summary>
-    public string? Tone { get; set; }
+    public UiTone? Tone { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
     {
         var tone = Tone switch
         {
-            "danger" => "text-ops-danger",
-            "warn" => "text-ops-warn-ink",
-            _ => "text-ops-ink",
+            UiTone.Danger => "text-ui-danger",
+            UiTone.Warn => "text-ui-warn-ink",
+            _ => "text-ui-ink",
         };
 
         return Div.Class("flex flex-col gap-0.5 py-2.5 sm:flex-row sm:items-baseline sm:gap-3")[
-            Span.Class("shrink-0 text-sm text-ops-muted")[Label],
-            Span.Class("hidden min-w-4 grow translate-y-[-0.2rem] border-b border-dashed border-ops-line sm:block")
+            Span.Class("shrink-0 text-sm text-ui-muted")[Label],
+            Span.Class("hidden min-w-4 grow translate-y-[-0.2rem] border-b border-dashed border-ui-line sm:block")
                 .Attributes(("aria-hidden", "true")),
             Span.Class((Mono == true
                 ? "break-all font-mono text-xs sm:shrink-0 sm:text-right "
@@ -176,21 +177,22 @@ internal sealed partial class OpsDetailRow : Component
 /// </summary>
 /// <remarks>
 /// Scrolls on its own and wraps on overflow, because the alternative is a 400-character exception message
-/// making the whole page scroll sideways. <c>danger</c> for anything that is the reason a job is dead.
+/// making the whole page scroll sideways. <see cref="UiTone.Danger" /> for anything that is the reason
+/// something failed.
 /// </remarks>
-internal sealed partial class OpsCode : Component
+public sealed partial class UiCode : Component
 {
     // Not `Text`: that name is the Text component's builder entry, inherited from Component (CS0108).
     public required string Content { get; set; }
 
-    /// <summary><c>danger</c> to read it as a failure. Anything else is neutral machine output.</summary>
-    public string? Tone { get; set; }
+    /// <summary><see cref="UiTone.Danger" /> to read it as a failure. Anything else is neutral machine output.</summary>
+    public UiTone? Tone { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
         Pre.Class(
-            "max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-ops-line bg-ops-well "
-            + "p-3 font-mono text-xs " + (Tone == "danger" ? "text-ops-danger" : "text-ops-muted"))[
+            "max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-ui-line bg-ui-well "
+            + "p-3 font-mono text-xs " + (Tone == UiTone.Danger ? "text-ui-danger" : "text-ui-muted"))[
             Content
         ];
 }

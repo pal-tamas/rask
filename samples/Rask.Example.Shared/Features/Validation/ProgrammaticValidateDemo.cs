@@ -29,21 +29,21 @@ public sealed partial class ProgrammaticValidateDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
             Div[
-                Label.For("v6-title").Class($"{Ui.Label} text-sm mb-1")["Title"],
-                Input.Bind(() => _model.Title).Id("v6-title").Class(Ui.Input),
+                Label.For("v6-title").Class($"{Tw.Label} text-sm mb-1")["Title"],
+                Input.Bind(() => _model.Title).Id("v6-title").Class(Tw.Input),
                 ValidatingIndicator.Template(Checking).For(() => _model.Title),
                 ValidationMessage.Template(FieldError).For(() => _model.Title)
             ],
             Div.Class("flex gap-2 flex-wrap items-center")[
-                Button.Type("button").Class(Ui.BtnOutlineSecondary).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[
+                Button.Type("button").Class(Tw.BtnOutlineSecondary).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[
                     Icon.Name(IconName.Search).Class("me-1"), "Validate now"
                 ],
-                Button.Class(Ui.BtnPrimary).Type("submit").Id("v6-submit").Disabled(_ctx.IsValidatingAny)[Icon.Name(IconName.Check2Circle).Class("me-1"), "Save"]
+                Button.Class(Tw.BtnPrimary).Type("submit").Id("v6-submit").Disabled(_ctx.IsValidatingAny)[Icon.Name(IconName.Check2Circle).Class("me-1"), "Save"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

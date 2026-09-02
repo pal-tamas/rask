@@ -14,19 +14,19 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Ui.BtnPrimary).Id("orientation-read").OnClickAsync(Read)["Read current"],
+                    Button.Class(Tw.BtnPrimary).Id("orientation-read").OnClickAsync(Read)["Read current"],
                     Button
-                        .Class(Ui.BtnOutlinePrimary)
+                        .Class(Tw.BtnOutlinePrimary)
                         .Id("orientation-portrait")
                         .OnClickAsync(() => Lock(OrientationLock.Portrait))["Lock portrait"],
                     Button
-                        .Class(Ui.BtnOutlinePrimary)
+                        .Class(Tw.BtnOutlinePrimary)
                         .Id("orientation-landscape")
                         .OnClickAsync(() => Lock(OrientationLock.Landscape))["Lock landscape"],
-                    Button.Class(Ui.BtnOutlineDanger).Id("orientation-unlock").OnClickAsync(Unlock)[
+                    Button.Class(Tw.BtnOutlineDanger).Id("orientation-unlock").OnClickAsync(Unlock)[
                         "Unlock"]
                 ],
                 Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[

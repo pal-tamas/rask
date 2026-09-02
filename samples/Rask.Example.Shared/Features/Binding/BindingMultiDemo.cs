@@ -11,28 +11,28 @@ public sealed partial class BindingMultiDemo : Component
         Div.Class("mb-3 flex items-center gap-2")[
             Input.Bind(() => _model.Subscribe)
                 .Id("bind-subscribe")
-                .Class(Ui.CheckInput),
-            Label.For("bind-subscribe").Class($"{Ui.CheckLabel} ms-1")["Subscribe to the newsletter"]
+                .Class(Tw.CheckInput),
+            Label.For("bind-subscribe").Class($"{Tw.CheckLabel} ms-1")["Subscribe to the newsletter"]
         ],
         Div.Class("mb-3")[
-            Label.For("bind-age").Class($"{Ui.Label} text-sm")["Age"],
+            Label.For("bind-age").Class($"{Tw.Label} text-sm")["Age"],
             Input.Bind(() => _model.Age)
                 .Id("bind-age")
-                .Class(Ui.Input)
+                .Class(Tw.Input)
                 .Min("0")
                 .Max("120")
         ],
         Div.Class("mb-3")[
-            Label.For("bind-start").Class($"{Ui.Label} text-sm")["Start date"],
+            Label.For("bind-start").Class($"{Tw.Label} text-sm")["Start date"],
             Input.Bind(() => _model.StartDate)
                 .Id("bind-start")
-                .Class(Ui.Input)
+                .Class(Tw.Input)
         ],
         Div.Class("mb-3")[
-            Label.For("bind-favorite").Class($"{Ui.Label} text-sm")["Favourite colour"],
+            Label.For("bind-favorite").Class($"{Tw.Label} text-sm")["Favourite colour"],
             Select.Bind(() => _model.Favorite)
                 .Id("bind-favorite")
-                .Class(Ui.Select)[
+                .Class(Tw.Select)[
                 Option.Value("Red")["Red"],
                 Option.Value("Green")["Green"],
                 Option.Value("Blue")["Blue"]

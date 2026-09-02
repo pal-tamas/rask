@@ -110,6 +110,9 @@ jobs:
       - name: Pack Rask.Dashboard
         run: dotnet pack src/Rask.Dashboard/Rask.Dashboard.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Ui
+        run: dotnet pack src/Rask.Ui/Rask.Ui.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Testing
         run: dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release --no-build -o ./artifacts
 

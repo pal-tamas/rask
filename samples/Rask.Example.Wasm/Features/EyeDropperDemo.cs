@@ -13,10 +13,10 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex items-center gap-3 mb-2")[
-                    Button.Class(Ui.BtnPrimary).Id("eyedropper-pick").OnClickAsync(Pick)[
+                    Button.Class(Tw.BtnPrimary).Id("eyedropper-pick").OnClickAsync(Pick)[
                         Icon.Name(IconName.Eyedropper).Class("me-1"), "Pick a color"],
                     _hex is null
                         ? (Component)Span.Class("text-slate-500 dark:text-slate-400 text-sm")["No color picked yet"]

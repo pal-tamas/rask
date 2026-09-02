@@ -1,7 +1,7 @@
 namespace Rask.Example.Shared;
 
 // The title + lead block every showcase page opens with. A component rather than a static helper: it
-// returns markup and nothing else, which is the framework's own idiom (it is what Div.Class(Ui.Card) is), and only a
+// returns markup and nothing else, which is the framework's own idiom (it is what Div.Class(Tw.Card) is), and only a
 // component can reach the builder surface — entries are inherited members, so a static class sees none
 // of them.
 internal sealed partial class PageHeader : Component

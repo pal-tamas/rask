@@ -96,7 +96,7 @@ public sealed partial class TodosPage : Component
                 Span.Class("text-slate-500 dark:text-slate-400 text-sm")[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
-                Button.Type("button").Class(Ui.BtnPrimary).OnClick(OpenAdd)[
+                Button.Type("button").Class(Tw.BtnPrimary).OnClick(OpenAdd)[
                     Icon.Name(IconName.PlusLg).Class("me-1"), "New todo"
                 ]
             ],
@@ -118,12 +118,12 @@ public sealed partial class TodosPage : Component
                         // Icon-only, so the glyph is the whole button: without an accessible name a
                         // screen reader announces "button" and nothing else. Bootstrap Icons carried no
                         // name either -- the label is what the icon was always standing in for.
-                        Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                        Button.Type("button").Class(Tw.BtnOutlineSecondary)
                             .Aria(new Dictionary<string, string?> { ["label"] = $"Edit {item.Title}" })
                             .OnClick(() => OpenEdit(item))[
                             Icon.Name(IconName.Pencil)
                         ],
-                        Button.Type("button").Class(Ui.BtnOutlineDanger)
+                        Button.Type("button").Class(Tw.BtnOutlineDanger)
                             .Aria(new Dictionary<string, string?> { ["label"] = $"Delete {item.Title}" })
                             .OnClick(() => Delete(item))[
                             Icon.Name(IconName.Trash)
@@ -202,11 +202,11 @@ public sealed partial class TodoFormDialog : Component
                     // parse, where browsers ignore the attribute, so that path still needs a click.
                     // Reliable focus-on-open would need ElementRef + IJSRuntime; this page is a routed
                     // CRUD flow, not a dialog implementation.
-                    Input.Bind(() => Model.Title).Id("todo-title").Autofocus(true).Class(Ui.Input),
+                    Input.Bind(() => Model.Title).Id("todo-title").Autofocus(true).Class(Tw.Input),
                     ValidationMessage.Template(FieldError).For(() => Model.Title),
                     Div.Class("flex justify-end gap-2")[
-                        Button.Type("button").Class(Ui.BtnOutlineSecondary).OnClick(OnCancel)["Cancel"],
-                        Button.Class(Ui.BtnPrimary).Type("submit")[
+                        Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClick(OnCancel)["Cancel"],
+                        Button.Class(Tw.BtnPrimary).Type("submit")[
                             Icon.Name(IconName.Check2Circle).Class("me-1"),
                             IsAdding ? "Add" : "Save"
                         ]

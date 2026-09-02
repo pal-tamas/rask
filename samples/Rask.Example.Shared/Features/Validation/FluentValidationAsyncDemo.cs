@@ -24,18 +24,18 @@ public sealed partial class FluentValidationAsyncDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
             FluentValidationValidator.Validator(new TicketValidator()),
             Div[
-                Label.For("v9-code").Class($"{Ui.Label} text-sm mb-1")["Ticket code"],
-                Input.Bind(() => _model.Code).Id("v9-code").Class(Ui.Input),
+                Label.For("v9-code").Class($"{Tw.Label} text-sm mb-1")["Ticket code"],
+                Input.Bind(() => _model.Code).Id("v9-code").Class(Tw.Input),
                 ValidatingIndicator.Template(Checking).For(() => _model.Code),
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.TicketPerforated).Class("me-1"), "Reserve"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.TicketPerforated).Class("me-1"), "Reserve"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

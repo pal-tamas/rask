@@ -12,19 +12,19 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("notif-permission")
                         .OnClickAsync(RequestPermission)["Request permission"],
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("notif-show")
                         .OnClickAsync(Notify)["Notify"],
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("badge-set")
                         .OnClickAsync(SetBadge)["Set badge 3"],
-                    Button.Type("button").Class(Ui.BtnOutlineDanger)
+                    Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("badge-clear")
                         .OnClickAsync(ClearBadge)["Clear badge"]
                 ],

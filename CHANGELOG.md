@@ -7,6 +7,50 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Rask.Ui` — the component kit, out of the console and into a package of its own.** The operator
+  console was rebuilt on an internal kit, and it stayed internal: the landing site and the docs showcase
+  could look at it and not use it. It is now a package, so the three surfaces the framework ships are
+  drawn with one vocabulary instead of three sets of utility strings that drift.
+
+  Nineteen components — chrome (`UiShell`, `UiTopBar`, `UiBrand`, `UiNav`, `UiNavTab`,
+  `UiCrumbSwitcher`, `UiCrumbSeparator`, `UiTopLink`, `UiMain`), controls (`UiButton`, `UiSearch`,
+  `UiStatusDot`), data (`UiMetricRow`, `UiMetric`, `UiDetailList`, `UiDetailRow`, `UiCode`) and overlays
+  (`UiModal`, `UiToast`) — plus `UiIcon`/`UiIconName` and `UiStylesheet`. It **moved** rather than being
+  copied, so there is one source and nothing to keep in step. Multi-targets `net10.0;net10.0-browser`,
+  unlike `Rask.Dashboard`, which stays server-only because its panels read a `DbContext`; this is markup
+  and nothing else, and the surfaces that need it most run in the browser.
+
+  Two changes came with going public. `Tone` is a **`UiTone` enum** rather than a string: a string tone
+  has no discoverable set of values and no wrong value, so every misspelling silently selected the
+  neutral branch and read on screen as the component ignoring you. And `UiBrand` no longer names the
+  console's own route and prints "Ops" — the wordmark and the destination are required properties, which
+  is the coupling that kept the kit inside one application.
+
+  **The stylesheet ships with the package.** Tailwind scans the project it runs in, so a compiled
+  library's class names are invisible to a consuming app's build and it would emit none of them —
+  leaving every component unstyled with nothing reporting it. The kit compiles its own sheet and exposes
+  it as `UiStylesheet.Css` to inline. Unlike the console's, it carries **no preflight and no
+  `html`/`body` rules**: the console may ship a global reset because it is a mounted application owning
+  its own document, and it learned that the hard way when the reset landed on host applications' pages.
+  A library has no such licence. Inline it *before* the app's own sheet — the `--color-ui-*` palette is
+  how a surface re-skins the kit, and an override only wins while it is read last.
+
+  The `Ui` prefix is load-bearing rather than stylistic: in a markup host a bare `X` is the chain's
+  `Build<X>` entry, so `Shell` would collide with `Component.Shell` and `Nav`/`Button`/`Select`/`Search`
+  with the Rask.Html tags — and RASK040 then gives *neither* type an entry across the whole compilation.
+  The namespace carries the same hazard from the other side: `Rask.Ui` is an enclosing namespace of
+  every `Rask.*` compilation, so C# resolves a bare `Ui` to it before looking at imports. The samples'
+  Tailwind class-constants holder was called `Ui` and is now **`Tw`**, which is what it always was.
+
+  Adding it also found a hole in the CLI build gate's own coverage guard. That guard asks which packages
+  a *template* references and checks the local feed packs them — but NuGet restores a package's
+  **dependencies** too, and a scaffolded project never names those. So the moment `Rask.Dashboard`
+  depended on `Rask.Ui`, every existing assertion stayed green and the gate died on `NU1101` for a
+  package no template mentions. The feed is now asserted to be closed over its own packages'
+  dependencies, read off the project files rather than a second hand-written list.
+
 ### Fixed
 
 - **A prerendered WebAssembly page could never boot, and every guard around it said the publish had

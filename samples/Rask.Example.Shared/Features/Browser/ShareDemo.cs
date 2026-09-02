@@ -12,8 +12,8 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class ShareDemo : Component
 {
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     // Headless: we render our own button; Shareable just supplies the share attribute.
                     Shareable
@@ -25,7 +25,7 @@ public sealed partial class ShareDemo : Component
                         })
                         .Template(share => Button
                             .Type("button")
-                            .Class(Ui.BtnPrimary)
+                            .Class(Tw.BtnPrimary)
                             .Id("share-btn")
                             .Data(share)["Share this page"])
                 ],

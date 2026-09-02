@@ -19,18 +19,18 @@ public sealed partial class OriginPrivateFileSystemDemo(
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex flex-wrap gap-2 mb-2")[
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("opfs-write")
                         .OnClickAsync(Write)[
                         "Write at 4096"],
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("opfs-read")
                         .OnClickAsync(Read)[
                         "Read back"],
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("opfs-persist")
                         .OnClickAsync(Persist)[
                         "Request persistence"]

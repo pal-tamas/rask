@@ -196,8 +196,8 @@ public sealed partial class LiveTicker : Component
         var changeClass = change >= 0 ? "text-success" : "text-danger";
         var changeSign = change >= 0 ? "+" : string.Empty;
 
-        return Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        return Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex justify-between items-baseline flex-wrap items-center mb-3")[
                     H3.Class("text-xl font-semibold mb-0").Id("ticker-symbol")[Symbol],
                     Span.Class("text-slate-500 dark:text-slate-400 text-sm")[
@@ -220,7 +220,7 @@ public sealed partial class LiveTicker : Component
                 ],
                 _error is null
                     ? null
-                    : Div.Class($"{Ui.AlertWarning} py-2 px-3 text-sm mb-3").Id("ticker-error")[
+                    : Div.Class($"{Tw.AlertWarning} py-2 px-3 text-sm mb-3").Id("ticker-error")[
                         Icon.Name(IconName.ExclamationTriangle).Class("me-2"), $"Feed error: {_error}"
                     ],
                 // The chart is a server-rendered SVG drawn straight from the rolling buffer —

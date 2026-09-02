@@ -19,10 +19,10 @@ public sealed partial class FirstErrorWinsDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission = $"Activated: {m.Code}").Class("flex flex-col gap-3")[
             DataAnnotationsValidator,
             Div[
-                Label.For("v8-code").Class($"{Ui.Label} text-sm mb-1")["License code"],
+                Label.For("v8-code").Class($"{Tw.Label} text-sm mb-1")["License code"],
                 Input.Bind(() => _model.Code)
                     .Id("v8-code")
-                    .Class(Ui.Input)
+                    .Class(Tw.Input)
                     .Validate(v =>
                         string.IsNullOrWhiteSpace(v)
                             ? new[] { "Code is required." }
@@ -30,12 +30,12 @@ public sealed partial class FirstErrorWinsDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Unlock).Class("me-1"), "Activate"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.Unlock).Class("me-1"), "Activate"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

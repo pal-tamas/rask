@@ -18,18 +18,18 @@ public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Ui.BtnPrimary).Id("hid-request").OnClickAsync(RequestDevice)[
+                    Button.Class(Tw.BtnPrimary).Id("hid-request").OnClickAsync(RequestDevice)[
                         Icon.Name(IconName.Controller).Class("me-1"), "Pair device"],
                     Button
-                        .Class(Ui.BtnOutlinePrimary)
+                        .Class(Tw.BtnOutlinePrimary)
                         .Id("hid-watch")
                         .Disabled(_device is null || _watch is not null)
                         .OnClickAsync(Watch)["Open & watch"],
                     Button
-                        .Class(Ui.BtnOutlineDanger)
+                        .Class(Tw.BtnOutlineDanger)
                         .Id("hid-close")
                         .Disabled(_device is null)
                         .OnClickAsync(Release)["Release"]

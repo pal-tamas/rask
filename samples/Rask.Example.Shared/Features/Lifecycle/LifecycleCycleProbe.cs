@@ -26,7 +26,7 @@ public sealed partial class LifecycleCycleProbe : Component
 
     protected override Component? Render() =>
         Div.Class("flex gap-2 items-center flex-wrap items-center")[
-            Span.Class(Ui.BadgeSuccess)[$"#{InstanceId} alive"],
+            Span.Class(Tw.BadgeSuccess)[$"#{InstanceId} alive"],
             Span.Class("text-slate-500 dark:text-slate-400 text-sm")["Unmount me to fire OnUnmount / OnUnmountAsync."]
         ];
 }
