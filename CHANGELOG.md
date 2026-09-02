@@ -7,6 +7,21 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A scaffolded app could not register anybody.** Landing the auth battery broke `rask new` in a way
+  nothing said out loud: `AddRaskAuth` registers Identity's EF stores against the application context,
+  but the scaffolded `OnModelCreating` did not map the account tables. The app booted with auth wired
+  and then failed at the *first* registration, on a missing `AspNetUsers`.
+
+  Mapped unconditionally rather than behind a flag, because the battery is on by default. It stays
+  mapped when an app writes `c.Auth.Off()`, which is the documented behaviour for every
+  database-backed battery — turning one off must not produce a destructive migration.
+
+  All 1071 CLI tests passed before the fix, which is the point: nothing covered the mapping. The new
+  test asserts on the generated context and is not conditional on any battery, because the failure it
+  guards is not conditional either.
+
 ### Added
 
 - **`Rask.Auth` — accounts, and the first two thirds of "auth is on by default".** Rask shipped the

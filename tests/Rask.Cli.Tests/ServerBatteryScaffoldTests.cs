@@ -48,6 +48,29 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Theory]
+    [InlineData("data")]
+    [InlineData("jobs")]
+    [InlineData("cache")]
+    public void Every_app_with_a_database_maps_the_account_tables(string flag)
+    {
+        // Not conditional on any flag, unlike the pillars above. The auth battery is ON by default in
+        // the Rask package, and AddRaskAuth registers Identity's EF stores against this context — so an
+        // app whose context does not map them boots happily and then fails at the FIRST registration on
+        // a missing AspNetUsers. Nothing else in the scaffold would say so.
+        var files = Generate(flag);
+
+        Assert.Contains(
+            "modelBuilder.AddRaskAuth();",
+            files["Features/Shared/AppDbContext.cs"],
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "using Rask.Auth;",
+            files["Features/Shared/AppDbContext.cs"],
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("outbox")]
     [InlineData("data")]
     public void AddRaskData_is_scaffolded_bare_whether_or_not_the_outbox_is_on(string flag)
