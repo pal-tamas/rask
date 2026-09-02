@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask new --auth` produced an app that would not start.** Registering an authentication scheme
+  twice is not a no-op — `AuthenticationOptions.AddScheme` throws "Scheme already exists" — and with
+  auth on by default the battery's cookie scheme collided with the hand-written
+  `AddAuthentication().AddCookie()` the `--auth` template scaffolds. The same collision hit any app
+  bringing its own OIDC or JWT scheme, which is the pattern `docs/authentication-providers.md`
+  recommends.
+
+  The battery now registers a scheme only when the app has not, keyed on the
+  `IAuthenticationSchemeProvider` that `AddAuthentication` leaves behind — the same marker `RaskApp`
+  already reads to decide whether to call `UseAuthentication`. Deferring is complete rather than
+  partial: an app's own `LoginPath` and cookie settings are left alone, because half-applying the
+  battery's options over somebody else's scheme would be worse than either alone.
+
+  Verified by removing the guard and watching two of the three new tests fail, rather than by assuming
+  a passing test would have caught it.
+
 - **A scaffolded app could not register anybody.** Landing the auth battery broke `rask new` in a way
   nothing said out loud: `AddRaskAuth` registers Identity's EF stores against the application context,
   but the scaffolded `OnModelCreating` did not map the account tables. The app booted with auth wired
