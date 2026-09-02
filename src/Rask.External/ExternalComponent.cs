@@ -118,15 +118,6 @@ public abstract partial class ExternalComponent : Component
     /// </remarks>
     protected sealed override Component? Render() => null;
 
-    /// <summary>Groups children into the slot templates the adapter mounts them from.</summary>
-    /// <remarks>
-    ///     Reached because an opaque component takes the serializer's virtual children walk rather than
-    ///     its <c>ChildrenArray</c> fast path — that path skips <c>RenderChildren</c> entirely, and the
-    ///     indexer produces exactly the array it fast-paths on.
-    /// </remarks>
-    protected sealed override IEnumerable<Component?> RenderChildren() =>
-        ExternalSlots.Wrap(Children);
-
     /// <summary>The props, as the JSON the client runtime hands to the adapter. Generated.</summary>
     protected abstract string WriteProps();
 

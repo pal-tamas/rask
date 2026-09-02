@@ -161,3 +161,7 @@ src/Rask.Wasm/Browser/rask-sw.js
 # tree is a build artifact: committing it means a stale stylesheet can be served by a checkout that never
 # ran the build, and every build shows up as a diff.
 **/wwwroot/css/app.css
+
+# Written by WasmWatchAppFixture during the WASM hot-reload E2E and deleted afterwards. Tracking it
+# makes every gate run delete a tracked file and leaves the sample with a permanent probe route.
+samples/Rask.Example.Wasm/Features/HotReloadProbePage.cs

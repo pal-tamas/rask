@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK060)
+# Rask diagnostics (RASK001–RASK066)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -95,6 +95,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK058](#rask058) | Error | External component name collision |
 | [RASK059](#rask059) | Error | Module override must be a constant string |
 | [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
+| [RASK061](#rask061) | Error | Blazor island must be partial |
+| [RASK062](#rask062) | Error | An island takes no children |
+| [RASK064](#rask064) | Error | Blazor island name collision |
+| [RASK066](#rask066) | Warning | Hosted Blazor component's parameters cannot be verified |
 
 ---
 
@@ -1315,3 +1319,86 @@ with **none**. It is worse than a plain no-op: `AddRaskCulture` still flips the 
 same method body on the same receiver as written**, so a test file that builds one `ServiceCollection`
 per case — or a method configuring two collections side by side — is left alone. See
 [configuration](configuration.md) and [localization](localization.md).
+
+## RASK061
+
+**Blazor island must be partial** · Error
+
+A `BlazorComponent<T>` is completed by a second part of the class — the chain steps taken from the
+hosted component's `[Parameter]`s, and the reflection-free writer that maps them onto it. Without
+`partial` there is nowhere to put any of it.
+
+```csharp
+// ✗ RASK061 — nothing can be generated into it
+public sealed class Chart : BlazorComponent<MudChart> { }
+
+// ✓
+public sealed partial class Chart : BlazorComponent<MudChart> { }
+```
+
+Reported against the declaration rather than left to the compiler, which would otherwise report a
+missing `WriteParameters` the author never wrote and should not have to know about.
+
+## RASK062
+
+**An island takes no children** · Error
+
+An island renders markup a foreign renderer owns — a hosted Blazor component, a React tree, a Lit
+element — and nothing else. It is a leaf.
+
+```csharp
+// ✗ RASK062 — the children would compile and never render
+Chart.Series(_series)[ H2["Revenue"] ]
+
+// ✓ compose the other way round
+Div.Class("rounded-xl border p-4")[ H2["Revenue"], Chart.Series(_series) ]
+```
+
+Rask children would have to cross the diff boundary, and no crossing is right for every component. A
+hosted Blazor component may have no `RenderFragment` parameter at all, one under a name only it knows
+(`Content`, `Body`), or several (`HeaderContent`, `RowTemplate`); a `.tsx` or Lit component takes the
+nodes and then owns them, so once its framework has moved them every DOM path Rask holds is wrong and
+the content goes dead after its first paint.
+
+This is an error rather than a convention because it cannot be one. The children indexer lives on
+`Component` and `Build<T>`, so it is available on every chain and cannot be withheld from a single
+type — without the diagnostic the children bind, compile, and silently render nothing.
+
+Applies to both island families: `BlazorComponent<T>` (see [Blazor
+components](blazor-components.md#an-island-takes-no-children)) and `ReactComponent`/`LitComponent`
+(see [islands](islands.md#an-island-takes-no-children)).
+
+## RASK064
+
+**Blazor island name collision** · Error
+
+An island's simple name identifies it in the rendered markup (`<rask-blazor name="Chart">`), so two
+islands sharing one is ambiguous in the page and in anything reading it.
+
+```csharp
+// ✗ RASK064 — both are "Chart"
+namespace Dashboard { public sealed partial class Chart : BlazorComponent<MudChart> { } }
+namespace Reports   { public sealed partial class Chart : BlazorComponent<MudChart> { } }
+```
+
+**Fix:** rename one. The namespace does not disambiguate, because the name is written into HTML.
+
+## RASK066
+
+**Hosted Blazor component's parameters cannot be verified** · Warning
+
+The island's chain steps are read from the hosted component's `[Parameter]` properties. That works
+for a type from a **referenced** project or package, but not for a `.razor` in the *same* project:
+that class is produced by the Razor source generator, and one source generator never sees another's
+output — so Rask's generator cannot resolve its parameters and emits no chain steps for them.
+
+The island still renders. What is lost is compile-time checking of what you pass it.
+
+```csharp
+// ⚠ RASK066 — Widget.razor is in this project
+public sealed partial class WidgetIsland : BlazorComponent<Widget> { }
+```
+
+**Fix:** move the `.razor` into a Razor Class Library and reference it. That is also where a Blazor
+component belongs if anything else will ever use it — and it is why hosting MudBlazor or Radzen,
+which are referenced packages, is fully checked with no warning at all.

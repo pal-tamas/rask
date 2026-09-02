@@ -50,13 +50,11 @@ function makeEl(tagName, attrs) {
             el.parentNode = null;
         },
         querySelectorAll: (sel) => {
-            // Enough for the runtime's two queries: a tag name, or template[data-rask-slot].
-            const wantTemplate = sel.startsWith("template");
+            // Enough for the runtime's one query: a tag name.
             const out = [];
             const walk = (n) => {
                 for (const k of n._kids || []) {
-                    if (wantTemplate ? (k.tagName === "TEMPLATE" && k.hasAttribute("data-rask-slot"))
-                                     : k.tagName === sel.toUpperCase()) out.push(k);
+                    if (k.tagName === sel.toUpperCase()) out.push(k);
                     walk(k);
                 }
             };
@@ -95,13 +93,10 @@ const log = [];
 let mountedProps = null;
 let handleSeq = 0;
 
-let mountedSlots = null;
-
 const adapter = {
-    mount(element, props, slots) {
+    mount(element, props) {
         log.push("mount");
         mountedProps = props;
-        mountedSlots = slots;
         return {id: ++handleSeq};
     },
     update(handle, props) {
@@ -141,9 +136,6 @@ const island = makeEl("rask-external", {
     module: "./Chart.tsx",
     props: JSON.stringify({heading: "Revenue", onPointClick: {$h: "c7:3"}}),
 });
-const slotTemplate = makeEl("template", {"data-rask-slot": "footer"});
-slotTemplate.content = {_kids: [makeEl("BUTTON", {}, "Save")]};
-island.appendChild(slotTemplate);
 body.appendChild(island);
 
 const stop = runtime.start(globalThis.document);
@@ -180,8 +172,4 @@ process.stdout.write(JSON.stringify({
     headingAfterUpdate: mountedProps && mountedProps.heading,
     dispatched,
     requested,
-    // Slots must reach the adapter by name, and the template must be GONE from the DOM afterwards —
-    // left behind, it would show the same content twice the moment the framework rendered its own.
-    slotNames: mountedSlots ? Object.keys(mountedSlots) : [],
-    templateRemoved: island._kids.every((k) => k.tagName !== "TEMPLATE"),
 }) + "\n");

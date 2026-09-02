@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The sibling test project for src/Rask.Blazor. These tests declare REAL islands over REAL Blazor
+    components and render them through Rask, rather than asserting on generator output as text: what
+    has to work is the whole seam — the hosted component mounts, its async lifecycle finishes before
+    the first paint, its HTML lands inside the host element, and a prop change reaches the browser.
+    A test over generated source would pass while any one of those was broken.
+
+    The fixture components are hand-written ComponentBase subclasses overriding BuildRenderTree —
+    exactly what the Razor SDK compiles a .razor into — so this project needs no Razor SDK while
+    exercising the identical path.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Core"/>
+    <Using Include="Rask.Core.Components"/>
+    <Using Include="Rask.Html.Components"/>
+    <Using Include="Rask.Blazor"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Blazor\Rask.Blazor.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+    <!--
+      A REAL Razor Class Library, so the headline path is exercised: a hosted component from a
+      REFERENCED assembly, whose [Parameter]s are read out of metadata. The hand-written ComponentBase
+      fixtures in this project cannot show that — they live in this compilation, where the symbols
+      come from source.
+    -->
+    <ProjectReference Include="..\Rask.Blazor.Library.Fixture\Rask.Blazor.Library.Fixture.csproj"/>
+    <!-- The generator has to RUN here: markup-host entries are injected per compilation, so without
+         it the fixture islands below cannot be written as a chain at all. -->
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

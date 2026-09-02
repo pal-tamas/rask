@@ -10,21 +10,11 @@ Rask.External.ExternalHydration.Idle = 1 -> Rask.External.ExternalHydration
 Rask.External.ExternalHydration.Load = 0 -> Rask.External.ExternalHydration
 Rask.External.ExternalHydration.None = 3 -> Rask.External.ExternalHydration
 Rask.External.ExternalHydration.Visible = 2 -> Rask.External.ExternalHydration
-Rask.External.ExternalSlot
-Rask.External.ExternalSlot.ExternalSlot() -> void
-Rask.External.ExternalSlot.Named.get -> string!
-Rask.External.ExternalSlot.Named.set -> void
-Rask.External.ExternalSlots
 Rask.External.LitComponent
 Rask.External.LitComponent.LitComponent() -> void
-Rask.External.RaskSeed_ExternalSlot
-Rask.External.RaskSeed_ExternalSlot.Key(object? key) -> Rask.External.RaskSeed_ExternalSlot
-Rask.External.RaskSeed_ExternalSlot.Named(string! Named) -> Rask.Core.Build<Rask.External.ExternalSlot!>
-Rask.External.RaskSeed_ExternalSlot.RaskSeed_ExternalSlot() -> void
 Rask.External.ReactComponent
 Rask.External.ReactComponent.ReactComponent() -> void
 RaskBuilderSettersRask_External
-RaskEntriesRask_External
 abstract Rask.External.ExternalComponent.ComponentName.get -> string!
 abstract Rask.External.ExternalComponent.Module.get -> string!
 abstract Rask.External.ExternalComponent.Runtime.get -> string!
@@ -36,20 +26,12 @@ const Rask.External.ExternalDefaults.NameAttribute = "name" -> string!
 const Rask.External.ExternalDefaults.PropsAttribute = "props" -> string!
 const Rask.External.ExternalDefaults.RuntimeAttribute = "runtime" -> string!
 const Rask.External.ExternalDefaults.RuntimeScriptUrl = "/_content/Rask.External/rask-external.js" -> string!
-const Rask.External.ExternalSlots.DefaultSlot = "default" -> string!
-const Rask.External.ExternalSlots.SlotAttribute = "data-rask-slot" -> string!
 override Rask.External.ExternalComponent.HeadAssets.get -> Rask.Core.Component?
 override sealed Rask.External.ExternalComponent.OpaqueSubtree.get -> bool
 override sealed Rask.External.ExternalComponent.Render() -> Rask.Core.Component?
-override sealed Rask.External.ExternalComponent.RenderChildren() -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>!
 override sealed Rask.External.ExternalComponent.TagName.get -> string?
 override sealed Rask.External.ExternalComponent.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override sealed Rask.External.LitComponent.Runtime.get -> string!
 override sealed Rask.External.ReactComponent.Runtime.get -> string!
 static Rask.External.ExternalDefaults.Wire(Rask.External.ExternalHydration hydration) -> string?
 static Rask.External.ExternalHandlers.Register(Rask.Core.Component! owner, System.Delegate! handler) -> string!
-static Rask.External.ExternalSlots.Wrap(System.Collections.Generic.IEnumerable<Rask.Core.Component?>? children) -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>!
-static RaskBuilderSettersRask_External.Named(this Rask.Core.Build<Rask.External.ExternalSlot!> __b, string! value) -> Rask.Core.Build<Rask.External.ExternalSlot!>
-static RaskBuilderSettersRask_External.__RaskResetEager_Rask_External_ExternalSlot(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_External.__RaskResetPending_Rask_External_ExternalSlot(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskEntriesRask_External.ExternalSlot.get -> Rask.External.RaskSeed_ExternalSlot

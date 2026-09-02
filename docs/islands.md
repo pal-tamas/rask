@@ -228,42 +228,30 @@ Chart.Series(_points).Hydration(ExternalHydration.Visible)
 | `Visible` | On `IntersectionObserver` — the chunk is not even **fetched** until the component is scrolled to. |
 | `None` | Never. Server markup only, and no JavaScript is requested at all. |
 
-## Slots
+## An island takes no children
 
-An island can wrap Rask-rendered content, so replacing a component in the middle of a tree does not
-strand its descendants:
+An island is a leaf. Writing children into one is a **compile error** —
+[RASK062](diagnostics.md#rask062) — rather than something that binds, compiles and then quietly stops
+tracking what you gave it:
 
 ```csharp
-Panel.Heading("Sales")[
-    ExternalSlot.Named("footer")[ BsButton["Save"] ],
-    Table.Rows(_rows),                              // the default slot
+Panel.Heading("Sales")[ Table.Rows(_rows) ]   // RASK062
+```
+
+Children would have to be handed across the diff boundary below, and once a front-end framework has
+moved those nodes into its own tree every path Rask holds into them is wrong — the diff addresses DOM
+nodes by `childNodes` index from the document. Content placed that way is placed once and then goes
+dead, which looks like composition and is not.
+
+Compose the other way round instead. It costs nothing, and everything on the Rask side stays live:
+
+```csharp
+BsCard[
+    Panel.Heading("Sales"),
+    Table.Rows(_rows),
+    BsButton.OnClick(Save)["Save"],
 ]
 ```
-
-Anything not assigned to a named slot goes to `default`, which the front end receives as `children`:
-
-```tsx
-export default function Panel({ heading, children, footer }: PanelProps) {
-  return <section><h2>{heading}</h2>{children}<footer>{footer}</footer></section>
-}
-```
-
-It is called `ExternalSlot`, not `Slot`, because `Slot` is already the HTML `<slot>` element in
-`Rask.Html.Components` and a colliding name does not compile.
-
-**How the content travels.** The server renders each slot into an inert
-`<template data-rask-slot="…">`, so Rask-owned nodes cannot flash on screen between first paint and
-the component mounting. On mount the client lifts each template into a fragment, removes it, and hands
-it to the adapter — which decides where its framework wants the nodes. React renders an empty
-container and adopts into it via a ref, so React has no children to reconcile there. Lit needs no
-trick at all: a custom element projects its light-DOM children through `<slot>` natively.
-
-> **Slot content is placed once, at mount.** If the C# that produced it re-renders, the component keeps
-> showing what it was given. That is the genuinely hard half: the diff addresses DOM nodes by
-> `childNodes` index from the document, so once an adapter has moved slot nodes into its own tree,
-> every path Rask holds into them is wrong. Making it live needs slot updates addressed by marker
-> rather than by path — a subtree morph scoped to `[data-rask-slot]` — which is not built yet. Until
-> then, prefer props for anything that changes, and slots for structure that does not.
 
 ## The diff boundary
 
@@ -347,9 +335,10 @@ what to create — a custom element registers its own tag and nothing about the 
 
 ## What is not here yet
 
-- **Live slot updates.** Slot content is placed once, at mount. When the C# that produced it
-  re-renders, the component does not yet see the new content — see [Slots](#slots) for why that is the
-  hard half.
+- **Children inside an island.** An island is a leaf ([RASK062](diagnostics.md#rask062)). Handing
+  Rask-owned nodes to a framework that then owns them needs updates addressed by MARKER rather than by
+  DOM path, since `EditOp` paths are positional `childNodes` indices — see
+  [children](#an-island-takes-no-children).
 - **Vue, Svelte, Angular.** The adapter seam is three functions wide and the client runtime imports no
   framework, so these are additive. Angular is viable through standalone components plus
   `createApplication()`, which needs no root component and no NgModule; its build is the real cost,
