@@ -14,12 +14,21 @@
 // side effect — ./globals.ts, which publishes the `window.__rask*` namespaces Rask's own C# wrappers
 // resolve against — is deliberately not re-exported here: a front end never needs it.
 
+export * as battery from "./battery.js";
 export * as cookies from "./cookies.js";
+export * as crypto from "./crypto.js";
+export * as deviceMotion from "./deviceMotion.js";
+export * as deviceOrientation from "./deviceOrientation.js";
 export * as geolocation from "./geolocation.js";
+export * as indexedDb from "./indexedDb.js";
+export * as intersectionObserver from "./intersectionObserver.js";
 export * as mediaQuery from "./mediaQuery.js";
 export * as networkInformation from "./networkInformation.js";
+export * as performance from "./performance.js";
 export * as permissions from "./permissions.js";
+export * as resizeObserver from "./resizeObserver.js";
 export * as screen from "./screen.js";
+export * as speechRecognition from "./speechRecognition.js";
 export * as speechSynthesis from "./speechSynthesis.js";
 export * as storageManager from "./storageManager.js";
 export * as visualViewport from "./visualViewport.js";
