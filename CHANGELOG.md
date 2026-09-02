@@ -31,9 +31,23 @@ them until tagged releases begin.
      overrode the action's own `page = 1`** with a zero that type-checks on both sides. The generator
      now emits the action's real default.
 
+  **Minimal API endpoints get the same treatment**, read from the `MapGet`/`MapPost`/… invocations
+  themselves. They have no controller to be named after — and most live in a `Program.cs` whose
+  enclosing type is `Program`, which would tell a reader nothing — so they group by route instead:
+  everything under `/api/widgets` lands on `WidgetsClient`. The method name is derived from the verb and
+  the route (`GET /api/widgets/{id}` → `GetById`), and a chained `.WithName("…")` overrides it, which is
+  ASP.NET's own way of naming an endpoint rather than a Rask invention.
+
+  `TypedResults` is read properly: `Ok<T>`, `Results<Ok<T>, NotFound>` and `NoContent` all carry their
+  response type in the signature, and the first alternative with a body supplies the client's return
+  type. Without that, the entire style Microsoft recommends for minimal APIs would have reported as
+  having no statically known response type and got no client at all.
+
   Four diagnostics, RASK067–RASK070: no wire encoding, endpoint skipped (with the reason — a silent
   skip reads as a broken generator), two endpoints claiming one client method, and a response type that
-  is not statically known.
+  is not statically known. They are RASK067–070 rather than the 061–064 first written, because those
+  were free on `main` and already taken on this branch's base — the collision CLAUDE.md warns about,
+  hit again. Its note now says **four** assemblies allocate in that space.
 
 - **`Rask.Api` — API controllers and minimal API endpoints, hosted properly.** `AddRaskApi()` +
   `MapRaskApi()`. Controllers are mapped (nothing in `src/` referenced MVC before this), and a request

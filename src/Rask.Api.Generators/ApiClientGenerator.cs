@@ -85,35 +85,68 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 static (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol)
             .Collect();
 
-        context.RegisterSourceOutput(controllers.Combine(baked), static (spc, pair) =>
-        {
-            var (types, isBaked) = pair;
+        var minimal = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                static (node, _) => MinimalApi.IsCandidate(node),
+                static (ctx, _) => MinimalApi.Read(ctx.SemanticModel, (InvocationExpressionSyntax)ctx.Node))
+            .Where(static registration => registration is not null)
+            .Collect();
 
-            // The browser companion compiles the client that was baked out of the server assembly. If
-            // this generator also emitted one there, every client type would be declared twice (CS0101).
-            if (isBaked || types.IsDefaultOrEmpty)
+        var assembly = context.CompilationProvider.Select(
+            static (compilation, _) => compilation.AssemblyName ?? "RaskGeneratedClients");
+
+        context.RegisterSourceOutput(
+            controllers.Combine(minimal).Combine(assembly).Combine(baked),
+            static (spc, input) =>
             {
-                return;
-            }
+                var (((types, registrations), assemblyName), isBaked) = input;
 
-            Emit(spc, types);
-        });
+                // The browser companion compiles the client that was baked out of the server assembly.
+                // If this generator also emitted one there, every client type would be declared twice
+                // (CS0101).
+                if (isBaked)
+                {
+                    return;
+                }
+
+                Emit(spc, types, registrations, assemblyName);
+            });
     }
 
-    private static void Emit(SourceProductionContext spc, ImmutableArray<INamedTypeSymbol> controllers)
+    private static void Emit(
+        SourceProductionContext spc,
+        ImmutableArray<INamedTypeSymbol> controllers,
+        ImmutableArray<MinimalApiRegistration?> registrations,
+        string assemblyName)
     {
         var endpoints = new List<ApiEndpoint>();
 
-        foreach (var controller in controllers.Distinct(SymbolEqualityComparer.Default).Cast<INamedTypeSymbol>())
+        if (!controllers.IsDefaultOrEmpty)
         {
-            if (!DerivesFromControllerBase(controller))
+            foreach (var controller in controllers.Distinct(SymbolEqualityComparer.Default).Cast<INamedTypeSymbol>())
             {
-                continue;
-            }
+                if (!DerivesFromControllerBase(controller))
+                {
+                    continue;
+                }
 
-            foreach (var endpoint in Describe(spc, controller))
+                foreach (var endpoint in Describe(spc, controller))
+                {
+                    endpoints.Add(endpoint);
+                }
+            }
+        }
+
+        if (!registrations.IsDefaultOrEmpty)
+        {
+            foreach (var registration in registrations)
             {
-                endpoints.Add(endpoint);
+                var endpoint = Describe(spc, registration!, assemblyName);
+
+                if (endpoint is not null)
+                {
+                    endpoints.Add(endpoint);
+                }
             }
         }
 
@@ -189,6 +222,49 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         }
     }
 
+    /// <summary>Reads one minimal API registration into the same model a controller action produces.</summary>
+    private static ApiEndpoint? Describe(
+        SourceProductionContext spc,
+        MinimalApiRegistration registration,
+        string assemblyName)
+    {
+        var where = registration.Pattern.Length == 0
+            ? registration.Verb + " (route not a constant)"
+            : registration.Verb + " " + registration.Pattern;
+
+        if (registration.Pattern.Length == 0)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(
+                EndpointSkipped, registration.Site, where,
+                "its route pattern is not a compile-time constant, so no client method can name it"));
+            return null;
+        }
+
+        if (registration.Handler is null)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(
+                EndpointSkipped, registration.Site, where,
+                "its handler's parameter types are not declared. Give the lambda typed parameters, or "
+                + "pass a method group"));
+            return null;
+        }
+
+        var route = registration.Pattern.StartsWith("/", StringComparison.Ordinal)
+            ? registration.Pattern
+            : "/" + registration.Pattern;
+
+        return Compose(
+            spc,
+            registration.Handler,
+            route,
+            registration.Verb,
+            MinimalApi.ClientName(route),
+            assemblyName,
+            registration.Name ?? MinimalApi.MethodName(registration.Verb, route),
+            where,
+            registration.Site);
+    }
+
     private static ApiEndpoint? Build(
         SourceProductionContext spc,
         INamedTypeSymbol controller,
@@ -202,10 +278,34 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         var declaredBy = controller.Name + "." + action.Name;
         var route = RouteTemplate.Combine(prefix, template, controller, action);
 
+        return Compose(
+            spc, action, route, verb, clientName, clientNamespace, action.Name, declaredBy, At(action));
+    }
+
+    /// <summary>
+    ///     Turns a handler and a resolved route into a client method, or reports why it cannot.
+    /// </summary>
+    /// <remarks>
+    ///     Shared by both front doors on purpose. A controller action and a minimal API lambda bind their
+    ///     parameters by nearly the same rules, and two copies of that logic would drift — with the drift
+    ///     showing up as a wrong URL rather than as a build error.
+    /// </remarks>
+    private static ApiEndpoint? Compose(
+        SourceProductionContext spc,
+        IMethodSymbol action,
+        string route,
+        string verb,
+        string clientName,
+        string clientNamespace,
+        string methodName,
+        string declaredBy,
+        Location site)
+    {
+
         if (route.Contains("{*"))
         {
             spc.ReportDiagnostic(Diagnostic.Create(
-                EndpointSkipped, At(action), declaredBy,
+                EndpointSkipped, site, declaredBy,
                 "its route has a catch-all segment, which a typed client cannot fill from a parameter"));
             return null;
         }
@@ -250,7 +350,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             if (binding is null)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    EndpointSkipped, At(action), declaredBy,
+                    EndpointSkipped, site, declaredBy,
                     $"parameter '{parameter.Name}' would be a second request body, and a request has one"));
                 return null;
             }
@@ -273,14 +373,14 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     string.Equals(p.WireName, token, StringComparison.OrdinalIgnoreCase)))
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    EndpointSkipped, At(action), declaredBy,
+                    EndpointSkipped, site, declaredBy,
                     $"its route names '{{{token}}}' but no parameter supplies it"));
                 return null;
             }
         }
 
         return new ApiEndpoint(
-            verb, route, clientName, clientNamespace, action.Name, parameters, resultType, resultFqn, declaredBy);
+            verb, route, clientName, clientNamespace, methodName, parameters, resultType, resultFqn, declaredBy);
     }
 
     private static bool TryResult(
@@ -301,7 +401,19 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             return true;
         }
 
-        if (IsUntypedResult(returned))
+        // TypedResults — Ok<T>, Results<Ok<T>, NotFound>, NoContent — carry the response type in the
+        // signature, which is the whole reason they exist. Reading them is what keeps the idiomatic
+        // minimal API style from being reported as untyped.
+        if (TryTypedResult(returned, out var body))
+        {
+            if (body is null)
+            {
+                return true;
+            }
+
+            returned = body;
+        }
+        else if (IsUntypedResult(returned))
         {
             var declared = ProducesResponseType(action);
 
@@ -358,6 +470,60 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
             return named;
         }
+    }
+
+    /// <summary>
+    ///     Reads a <c>Microsoft.AspNetCore.Http.HttpResults</c> type: true when it is one, with
+    ///     <paramref name="body" /> set to what it answers with, or null when it answers with nothing.
+    /// </summary>
+    /// <remarks>
+    ///     <c>Results&lt;Ok&lt;Post&gt;, NotFound&gt;</c> is the shape an author reaches for when they
+    ///     want both a typed body and a real 404, so the first alternative carrying a body wins and the
+    ///     empty ones are ignored. Without this, the entire <c>TypedResults</c> style — the one Microsoft
+    ///     recommends for minimal APIs — would report as having no statically known response type.
+    /// </remarks>
+    private static bool TryTypedResult(ITypeSymbol type, out ITypeSymbol? body)
+    {
+        body = null;
+
+        if (type.ContainingNamespace?.ToDisplayString() != "Microsoft.AspNetCore.Http.HttpResults" ||
+            type is not INamedTypeSymbol named)
+        {
+            return false;
+        }
+
+        if (named.Name == "Results" && named.TypeArguments.Length > 0)
+        {
+            var recognised = false;
+
+            foreach (var alternative in named.TypeArguments)
+            {
+                if (!TryTypedResult(alternative, out var candidate))
+                {
+                    continue;
+                }
+
+                recognised = true;
+
+                if (candidate is not null && body is null)
+                {
+                    body = candidate;
+                }
+            }
+
+            return recognised;
+        }
+
+        // The carriers that hold a value. Anything else in the namespace — NotFound, NoContent,
+        // BadRequest, Unauthorized — is recognised as answering with nothing.
+        if (named.TypeArguments.Length == 1 &&
+            named.Name is "Ok" or "Created" or "CreatedAtRoute" or "Accepted" or "AcceptedAtRoute"
+                or "JsonHttpResult" or "Conflict" or "BadRequest" or "NotFound" or "UnprocessableEntity")
+        {
+            body = named.TypeArguments[0];
+        }
+
+        return true;
     }
 
     private static bool IsUntypedResult(ITypeSymbol type) =>
