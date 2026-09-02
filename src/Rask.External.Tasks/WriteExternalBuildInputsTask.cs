@@ -53,6 +53,16 @@ public sealed class WriteExternalBuildInputsTask : Task
 
 
 
+    /// <summary>
+    ///     Where <c>rask dev</c> serves the islands from, or empty for an ordinary build.
+    /// </summary>
+    /// <remarks>
+    ///     Present, the manifest is written HERE with dev-server URLs instead of by the bundler with
+    ///     hashed chunk paths — the bundler does not run at all under <c>rask dev</c>. Same file, same
+    ///     shape, so the client runtime resolves an island one way in both modes.
+    /// </remarks>
+    public string DevServerUrl { get; set; } = string.Empty;
+
     /// <summary>The generated Vite config, for the target that invokes the bundler.</summary>
     [Output]
     public string ConfigPath { get; private set; } = string.Empty;
@@ -155,7 +165,8 @@ public sealed class WriteExternalBuildInputsTask : Task
         try
         {
             config = ExternalBuildPlan.ViteConfig(
-                islands, entryDirectory, OutputDirectory, ManifestPath, PublicBase, angularTsConfig);
+                islands, entryDirectory, OutputDirectory, ManifestPath, PublicBase, angularTsConfig,
+                string.IsNullOrEmpty(DevServerUrl) ? null : DevServerUrl);
         }
         catch (InvalidOperationException ex)
         {
@@ -168,6 +179,18 @@ public sealed class WriteExternalBuildInputsTask : Task
         }
 
         written += ExternalBuildPlan.WriteIfDifferent(ConfigPath, config) ? 1 : 0;
+
+        // Under `rask dev` the bundler never runs, so nothing else would write the manifest the client
+        // resolves through. Written here instead, pointing at the dev server rather than at chunks
+        // that do not exist.
+        if (!string.IsNullOrEmpty(DevServerUrl))
+        {
+            written += ExternalBuildPlan.WriteIfDifferent(
+                ManifestPath,
+                ExternalBuildPlan.DevManifest(islands, entryDirectory, DevServerUrl))
+                ? 1
+                : 0;
+        }
 
         Log.LogMessage(
             written > 0 ? MessageImportance.High : MessageImportance.Low,

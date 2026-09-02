@@ -1,4 +1,5 @@
 using Rask.Cli.Dev;
+using System.Text.Json;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Commands;
@@ -104,10 +105,12 @@ internal sealed class DevCommand(
 
         var dotnetArgs = BuildDotnetArguments(
             target.ProjectPath, once, parsed.HasFlag("no-hot-reload"),
-            parsed.Option("launch-profile"), nonInteractive, parsed.Passthrough, target.Kind);
+            parsed.Option("launch-profile"), nonInteractive, parsed.Passthrough, target.Kind,
+            target.HasIslands);
 
         var environment = BuildEnvironment(
-            target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable);
+            target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable,
+            target.IslandDevServerUrl);
 
         // The environment overlay is not incidental here (see the remarks on this class): the MSBuild
         // property that stops a rude edit blocking on an interactive prompt travels through it, so a dry
@@ -158,6 +161,7 @@ internal sealed class DevCommand(
         // then serves a stale client against a new server and looks like a Rask bug.
         using var clientTokens = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var client = StartClientDevServer(target, clientTokens.Token);
+        var islands = StartIslandDevServer(target, clientTokens.Token);
 
         var exit = status is null
             ? await _process
@@ -170,6 +174,7 @@ internal sealed class DevCommand(
 
         await clientTokens.CancelAsync().ConfigureAwait(false);
         await client.ConfigureAwait(false);
+        await islands.ConfigureAwait(false);
         await opening.ConfigureAwait(false);
         return exit;
     }
@@ -231,6 +236,124 @@ internal sealed class DevCommand(
     }
 
     /// <summary>
+    ///     Serves this project's islands from a Vite dev server, so editing a <c>.tsx</c> or a
+    ///     <c>.svelte</c> hot-replaces instead of rebuilding.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Without this an island edit goes through the whole MSBuild path: <c>dotnet watch</c> sees
+    ///         the file, rebuilds, and runs a production <c>vite build</c> over every island in the
+    ///         project. Correct, and far too slow to work in — and the page reloads, so whatever state
+    ///         the island held is gone.
+    ///     </para>
+    ///     <para>
+    ///         The config it runs is the one the BUILD generated, which is why this waits for it rather
+    ///         than computing a path: only MSBuild knows which configuration and target framework were
+    ///         chosen, and the pointer file it drops at the stable <c>obj/rask-external/</c> path is how
+    ///         it says so. Waiting is also correct on the first run of a clean clone, where the config
+    ///         does not exist until the build that is starting right now has written it.
+    ///     </para>
+    ///     <para>
+    ///         A failure here is reported and let go, exactly as for the SPA client: the host is the
+    ///         process this command is really running, and losing hot reload is not a reason to take the
+    ///         app down with it.
+    ///     </para>
+    /// </remarks>
+    private async Task StartIslandDevServer(DevTarget target, CancellationToken cancellationToken)
+    {
+        if (!target.HasIslands)
+        {
+            return;
+        }
+
+        var pointer = Path.Combine(target.ProjectDirectory, "obj", "rask-external", "dev.json");
+
+        var config = await WaitForIslandConfig(pointer, cancellationToken).ConfigureAwait(false);
+        if (config is null)
+        {
+            return;
+        }
+
+        Console.WriteLine($"Serving islands from {config.Value.Url} (hot reload)…", ConsoleStyle.Dim);
+
+        try
+        {
+            await _process
+                .RunAsync(
+                    "npx",
+                    ["--no-install", "vite", "--config", config.Value.Config],
+                    target.ProjectDirectory,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The host exited and took this with it. Expected, every time.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Console.WriteErrorLine(
+                "npx is not available, so the island dev server did not start. The app is still running, "
+                + "but islands will not hot-reload. Install Node.js from https://nodejs.org.",
+                ConsoleStyle.Error);
+        }
+    }
+
+    /// <summary>
+    ///     Waits for the build to drop the island dev-server pointer, or gives up.
+    /// </summary>
+    /// <remarks>
+    ///     Polled rather than watched: the file appears exactly once per session, within the first build,
+    ///     and a FileSystemWatcher for that is more moving parts than the thing it replaces. The timeout
+    ///     is generous because the first build of a clean clone restores and compiles first — and giving
+    ///     up quietly is right, since the app itself is running by then and the only thing lost is hot
+    ///     reload the user can still get by restarting.
+    /// </remarks>
+    private static async Task<(string Url, string Config)?> WaitForIslandConfig(
+        string pointer, CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddMinutes(3);
+
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return null;
+            }
+
+            if (File.Exists(pointer))
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(File.ReadAllText(pointer));
+                    var url = document.RootElement.GetProperty("url").GetString();
+                    var config = document.RootElement.GetProperty("config").GetString();
+
+                    if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(config) && File.Exists(config))
+                    {
+                        return (url!, config!);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or JsonException or KeyNotFoundException)
+                {
+                    // Half-written, or written by an older Rask. Fall through and look again.
+                }
+            }
+
+            try
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Build the <c>dotnet watch/run</c> argument list. Pure and deterministic, so it is unit-tested directly.
     /// </summary>
     /// <remarks>
@@ -244,7 +367,8 @@ internal sealed class DevCommand(
         string? launchProfile,
         bool nonInteractive,
         IReadOnlyList<string> passthrough,
-        DevTemplateKind kind = DevTemplateKind.Server)
+        DevTemplateKind kind = DevTemplateKind.Server,
+        bool islands = false)
     {
         var args = new List<string>();
 
@@ -300,6 +424,17 @@ internal sealed class DevCommand(
             {
                 args.Add("--property:RaskSpaBuild=false");
             }
+
+            // Islands are served by their own Vite dev server for this session, so the production
+            // bundle would be a full rebuild of every island on every save that nothing then reads.
+            //
+            // NOT RaskExternalBuild=false, which turns the feature off outright — no entry modules, no
+            // manifest, no prop types, and islands that never mount. This skips exactly the bundling
+            // step and leaves the manifest being written, pointing at the dev server.
+            if (islands)
+            {
+                args.Add("--property:RaskExternalDevServer=true");
+            }
         }
 
         if (once && launchProfile is { Length: > 0 })
@@ -325,7 +460,8 @@ internal sealed class DevCommand(
         DevTemplateKind kind,
         bool restartOnRudeEdit,
         string? urls,
-        Func<string, string?> readEnv)
+        Func<string, string?> readEnv,
+        string? islandDevServerUrl = null)
     {
         var env = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -355,6 +491,15 @@ internal sealed class DevCommand(
         if (urls is { Length: > 0 })
         {
             env["ASPNETCORE_URLS"] = urls;
+        }
+
+        // Where the page should load @vite/client from, so each framework's own hot replacement takes
+        // over its modules. Stamped onto <body> by the server as data-rask-islands-dev, and only in
+        // development — a production page carrying a localhost URL would have every visitor's browser
+        // open a websocket to their own machine.
+        if (islandDevServerUrl is { Length: > 0 })
+        {
+            env["RASK_ISLANDS_DEV"] = islandDevServerUrl;
         }
 
         return env;

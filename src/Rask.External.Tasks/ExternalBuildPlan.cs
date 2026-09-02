@@ -76,7 +76,12 @@ internal static class ExternalBuildPlan
     /// <param name="outputDirectory">Where the built chunks land.</param>
     /// <param name="manifestPath">The manifest file <c>rask-external.js</c> fetches.</param>
     /// <param name="publicBase">The URL prefix the built files are served from.</param>
-    /// <param name="tsConfigPath">The app's tsconfig, for the one plugin that needs to be told. May be null.</param>
+    /// <param name="tsConfigPath">The Angular plugin's tsconfig, which Rask writes. May be null.</param>
+    /// <param name="devServerUrl">
+    ///     Where <c>rask dev</c> will serve the islands from, or null for an ordinary build. Present, it
+    ///     adds the <c>server</c> block the same config serves both roles through — <c>vite build</c>
+    ///     ignores it, so there is no second file to keep in step with this one.
+    /// </param>
     /// <exception cref="InvalidOperationException">
     ///     The islands name a combination no config can express — see <see cref="Refuse" />.
     /// </exception>
@@ -86,7 +91,8 @@ internal static class ExternalBuildPlan
         string outputDirectory,
         string manifestPath,
         string publicBase,
-        string? tsConfigPath = null)
+        string? tsConfigPath = null,
+        string? devServerUrl = null)
     {
         var input = new StringBuilder();
         foreach (var island in islands)
@@ -110,6 +116,7 @@ internal static class ExternalBuildPlan
 
         var pluginImports = string.Concat(used.Select(r => $"import {r.PluginImport}\n"));
         var pluginCalls = string.Concat(used.Select(r => $"{PluginCall(r, present, islands, tsConfigPath)}, "));
+        var server = ServerBlock(devServerUrl);
 
         return $$"""
             {{Header}}
@@ -143,7 +150,7 @@ internal static class ExternalBuildPlan
 
             export default defineConfig({
               plugins: [{{pluginCalls}}raskIslandManifest()],
-              build: {
+            {{server}}  build: {
                 outDir: {{Literal(Posix(outputDirectory))}},
                 emptyOutDir: true,
                 rollupOptions: {
@@ -223,6 +230,95 @@ internal static class ExternalBuildPlan
         return options.Count == 0
             ? $"{runtime.PluginFactory}()"
             : $"{runtime.PluginFactory}({{ {string.Join(", ", options)} }})";
+    }
+
+    /// <summary>
+    ///     The <c>server</c> block for <c>rask dev</c>, or nothing for an ordinary build.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>cors</c> and <c>origin</c> are the load-bearing pair. The PAGE is served by the
+    ///         ASP.NET host and the island modules by Vite, so every import is cross-origin: without
+    ///         CORS the browser refuses the module script, and without an explicit origin Vite writes
+    ///         relative URLs into the modules it serves, which the browser then resolves against the
+    ///         host and fetches as the app's own HTML.
+    ///     </para>
+    ///     <para>
+    ///         <c>strictPort</c> because the port is baked into the manifest at build time. Letting
+    ///         Vite pick the next free one would leave the page importing from a port nothing is
+    ///         listening on, and the only symptom would be islands that never mount.
+    ///     </para>
+    /// </remarks>
+    private static string ServerBlock(string? devServerUrl)
+    {
+        if (string.IsNullOrEmpty(devServerUrl))
+        {
+            return string.Empty;
+        }
+
+        var port = Port(devServerUrl!);
+
+        return $$"""
+              server: {
+                port: {{port}},
+                strictPort: true,
+                cors: true,
+                origin: {{Literal(devServerUrl!.TrimEnd('/'))}},
+              },
+
+            """;
+    }
+
+    /// <summary>The port from a dev-server URL, or Vite's default when it has none.</summary>
+    private static string Port(string url)
+    {
+        var scheme = url.IndexOf("://", StringComparison.Ordinal);
+        var authority = scheme < 0 ? url : url.Substring(scheme + 3);
+        var colon = authority.LastIndexOf(':');
+        if (colon < 0)
+        {
+            return "5173";
+        }
+
+        var port = authority.Substring(colon + 1).TrimEnd('/');
+        return port.Length > 0 && port.All(char.IsDigit) ? port : "5173";
+    }
+
+    /// <summary>
+    ///     The manifest for <c>rask dev</c>: island name to a module the Vite dev server serves.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The same shape and the same path the built manifest uses, so the client runtime resolves
+    ///         an island exactly one way in dev and in production. A second code path there would be a
+    ///         branch only dev exercises, which is the kind that rots unnoticed until production needs
+    ///         it.
+    ///     </para>
+    ///     <para>
+    ///         <c>/@fs/</c> because the generated entry modules live under <c>obj/</c>, outside any root
+    ///         Vite would serve from. That is Vite's own escape hatch for a file outside the root, and
+    ///         the reason the config does not try to set <c>root</c> to something that would contain
+    ///         both <c>obj/</c> and the author's source tree.
+    ///     </para>
+    /// </remarks>
+    public static string DevManifest(
+        IReadOnlyList<ExternalEntry> islands, string entryDirectory, string devServerUrl)
+    {
+        var origin = devServerUrl.TrimEnd('/');
+        var json = new StringBuilder();
+        json.AppendLine("{");
+
+        var ordered = islands.OrderBy(i => i.Name, StringComparer.Ordinal).ToList();
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            var entry = Posix(Path.Combine(entryDirectory, ordered[i].Name + ".entry.ts"));
+            json.Append("  \"").Append(ordered[i].Name).Append("\": \"")
+                .Append(origin).Append("/@fs").Append(entry).Append('"')
+                .AppendLine(i == ordered.Count - 1 ? string.Empty : ",");
+        }
+
+        json.AppendLine("}");
+        return json.ToString();
     }
 
     /// <summary>

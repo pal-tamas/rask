@@ -18,6 +18,47 @@ const mounted = new WeakMap();
 /** Cached manifest fetch. One request per page however many islands are on it. */
 let manifest = null;
 
+/** Cached @vite/client import. One per page, and only under `rask dev`. */
+let hmrClient = null;
+
+/**
+ * Where the islands' Vite dev server is, or null outside `rask dev`.
+ *
+ * Stamped on <body> by the server, the same way data-rask-dev-status and data-rask-wasm are. Read
+ * lazily rather than at module scope: this file is a module in <head>, so <body> may not exist yet.
+ */
+function devServer() {
+    return (typeof document !== "undefined" && document.body
+        && document.body.getAttribute("data-rask-islands-dev")) || null;
+}
+
+/**
+ * Loads Vite's HMR client, once, when `rask dev` is running an island dev server.
+ *
+ * This is the whole of Rask's involvement in hot module replacement, and deliberately so. Once
+ * @vite/client is on the page and the island chunks are being served BY the dev server, each
+ * framework's own refresh integration takes over the modules it owns — React Fast Refresh, Solid's
+ * refresh transform, Vue's and Svelte's plugin HMR. Rask replacing a mounted island itself would
+ * fight those and lose: they preserve component state, and a remount is exactly what the diff
+ * boundary exists to avoid.
+ *
+ * A runtime with no refresh integration — Lit, whose custom elements cannot be re-registered, and
+ * Angular — falls back to the full page reload @vite/client performs on its own. Slower, still no
+ * rebuild of the C# app.
+ *
+ * Failure is not fatal: without it the island still loads from the dev server, it just will not
+ * hot-replace.
+ */
+function ensureHmrClient(origin) {
+    hmrClient ??= import(/* @vite-ignore */ origin + "/@vite/client").catch((error) => {
+        console.warn(
+            "Rask islands: the dev server is configured but @vite/client did not load, so islands " +
+            "will not hot-replace. Is `rask dev` still running?", error);
+    });
+
+    return hmrClient;
+}
+
 /**
  * How an island name becomes a module. Overridable so the runtime can be driven with no bundler and
  * no network — which is what the node fixture does, and what a test harness would do.
@@ -29,6 +70,14 @@ function resolver() {
 async function defaultResolve(name) {
     manifest ??= fetch(MANIFEST_URL, {credentials: "same-origin"})
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`islands manifest: HTTP ${r.status}`))));
+
+    // ONE resolution path in dev and in production. The manifest is the only thing that differs: under
+    // `rask dev` the build writes absolute dev-server URLs into it instead of hashed chunk paths, so
+    // nothing here has to branch, and the branch that would have existed cannot rot in production.
+    const origin = devServer();
+    if (origin) {
+        await ensureHmrClient(origin);
+    }
 
     const table = await manifest;
     const url = table[name];
@@ -250,7 +299,7 @@ export function start(doc = document) {
 }
 
 // Exported for tests and for a host that wants to drive the runtime itself.
-export const __internals = {revive, schedule, readProps, hydrate, update, unmount, sweep, teardown};
+export const __internals = {revive, schedule, readProps, hydrate, update, unmount, sweep, teardown, devServer};
 
 if (typeof document !== "undefined" && !globalThis.__raskExternalManual) {
     start();

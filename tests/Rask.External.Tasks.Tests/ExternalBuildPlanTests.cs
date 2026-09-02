@@ -457,6 +457,69 @@ public class ExternalBuildPlanTests
         Assert.Contains(plugin, Config([island]), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void An_ordinary_build_gets_no_dev_server_block()
+    {
+        // `vite build` ignores a server block, so leaving one in would be harmless and still wrong: it
+        // would put a localhost port into a file whose whole job is to be reproducible.
+        Assert.DoesNotContain("server: {", Config([
+            new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.tsx", Runtime = "react" },
+        ]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_dev_server_block_pins_its_port_and_allows_cross_origin_imports()
+    {
+        var config = ExternalBuildPlan.ViteConfig(
+            [new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.tsx", Runtime = "react" }],
+            "/obj/entries",
+            "/app/wwwroot/_rask/external",
+            "/app/wwwroot/_rask/external/manifest.json",
+            "/_rask/external/",
+            null,
+            "http://localhost:5174");
+
+        // The PAGE is served by ASP.NET and the modules by Vite, so every island import is
+        // cross-origin: without cors the browser refuses the module script outright, and without an
+        // explicit origin Vite writes relative URLs that resolve against the HOST and come back as the
+        // app's own HTML.
+        Assert.Contains("cors: true", config, StringComparison.Ordinal);
+        Assert.Contains("origin: 'http://localhost:5174'", config, StringComparison.Ordinal);
+
+        // The port is baked into the manifest at build time. Letting Vite fall forward to the next
+        // free one would leave the page importing from a port nothing is listening on, and the only
+        // symptom would be islands that never appear.
+        Assert.Contains("port: 5174", config, StringComparison.Ordinal);
+        Assert.Contains("strictPort: true", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_dev_manifest_points_every_island_at_the_dev_server()
+    {
+        var manifest = ExternalBuildPlan.DevManifest(
+            [
+                new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.tsx", Runtime = "react" },
+                new ExternalEntry { Name = "Badge", Source = "/app/Islands/Badge.ts", Runtime = "lit" },
+            ],
+            "/app/obj/rask-external/entries",
+            "http://localhost:5174/");
+
+        // Same shape and same path as the built manifest, so the client runtime resolves an island
+        // exactly one way in dev and in production. A second code path there would be a branch only
+        // dev exercises — the kind that rots unnoticed until production needs it.
+        //
+        // /@fs because the generated entries live under obj/, outside any root Vite serves from.
+        Assert.Contains(
+            "\"Chart\": \"http://localhost:5174/@fs/app/obj/rask-external/entries/Chart.entry.ts\"",
+            manifest,
+            StringComparison.Ordinal);
+
+        Assert.Contains("\"Badge\":", manifest, StringComparison.Ordinal);
+
+        // A trailing slash on the URL must not produce a doubled one in the middle of every import.
+        Assert.DoesNotContain("5174//", manifest, StringComparison.Ordinal);
+    }
+
     private static string Config(IReadOnlyList<ExternalEntry> islands) =>
         ExternalBuildPlan.ViteConfig(
             islands,
