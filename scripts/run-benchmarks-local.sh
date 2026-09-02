@@ -59,6 +59,23 @@ dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor --no-build -
 # file three times the size. Measuring that would report a spectacular regression that does not exist.
 echo
 echo "==> Client bundle-size gate (rask.js, rask.wasm.js)"
+
+# DELETE the WASM bundle before rebuilding it, and not out of caution. Browser/rask.wasm.js is a
+# SOURCE-directory output shared by both configurations, while the target's up-to-date stamp lives
+# under obj/<config>/. So: build Release (stamp fresh, minified file written) -> anything builds Debug
+# (file overwritten, unminified, three times the size) -> build Release again and MSBuild skips it,
+# because its own stamp still looks current. The file measured is then the Debug one.
+#
+# That is not hypothetical: this gate's first run inside the pre-push hook reported rask.wasm.js at
+# 160,881 bytes against an 86,174 baseline — a 74 KB regression that did not exist, because the E2E
+# lane above had built Debug in between.
+#
+# It is the STAMP that has to go, not the bundle. _RaskBundleClientJs declares its Outputs as
+# obj/<config>/rask-bundles/rask.wasm.stamp — the .js is not listed — so deleting the bundle is
+# invisible to MSBuild and the target still skips. Deleting the bundle as well is belt and braces: it
+# turns a silently-skipped rebuild into a missing file the report refuses by name.
+rm -f src/Rask.Wasm/Browser/rask.wasm.js
+rm -f src/Rask.Wasm/obj/Release/net10.0-browser/rask-bundles/rask.wasm.stamp
 dotnet build src/Rask.Server/Rask.Server.csproj -c Release -p:MinVerSkip=true >/dev/null
 dotnet build src/Rask.Wasm/Rask.Wasm.csproj -c Release -p:MinVerSkip=true >/dev/null
 dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- client-bundle-size --check || status=1

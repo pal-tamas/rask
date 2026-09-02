@@ -91,9 +91,12 @@ them until tagged releases begin.
   boundaries to work with — and "about the same, surely" is not a measurement. The numbers today are
   85,073 and 86,042 bytes.
 
-  Release only, and the script builds both hosts in Release before measuring: a Debug bundle is
-  unminified, so a comment would move the number, and `rask.wasm.js` is written into a *source*
-  directory that a Debug build overwrites with a file three times the size. Tolerance is ±2% rather
+  Release only: a Debug bundle is unminified, so a comment would move the number. Getting that
+  right took two attempts and both are now part of the gate. `rask.wasm.js` is written into a
+  *source* directory both configurations share, while MSBuild's up-to-date stamp is
+  per-configuration — so a Release build after a Debug one is SKIPPED and the file measured is the
+  Debug one. The script deletes the stamp before rebuilding, and the report refuses to measure a
+  bundle that is not minified rather than reporting the 74 KB regression that is not real. Tolerance is ±2% rather
   than byte-exact, because esbuild's output shifts a little on a minifier bump nobody here chose, while
   the regression worth catching is far larger. Verified by moving the baseline and watching it exit 1.
 

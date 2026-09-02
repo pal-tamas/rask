@@ -75,6 +75,26 @@ internal static class ClientBundleSizeReport
                 return 1;
             }
 
+            // A Debug bundle is unminified, and rask.wasm.js is written to a SOURCE directory both
+            // configurations share — so the file on disk is whichever one built last, no matter which
+            // configuration was asked for a moment ago. Measuring that reports a regression of tens of
+            // kilobytes which does not exist, and the first version of this gate did exactly that
+            // inside the pre-push hook, after the E2E lane built Debug in between.
+            //
+            // esbuild --minify emits one line. Refusing here turns a confusing phantom regression into
+            // a sentence naming the cause.
+            if (!IsMinified(path))
+            {
+                Console.Error.WriteLine($"::error::{bundle.Name} is not minified, so it is a DEBUG build.");
+                Console.Error.WriteLine(
+                    "    Delete it and rebuild in Release — scripts/run-benchmarks-local.sh does that, and");
+                Console.Error.WriteLine(
+                    "    the deletion is required: MSBuild's up-to-date stamp is per-configuration while");
+                Console.Error.WriteLine(
+                    "    this output path is not, so a Release build after a Debug one is skipped.");
+                return 1;
+            }
+
             measured.Add((bundle.Name, new FileInfo(path).Length));
         }
 
@@ -164,6 +184,26 @@ internal static class ClientBundleSizeReport
         }
 
         return 0;
+    }
+
+    /// <summary>
+    ///     Whether a bundle looks like esbuild's minified output rather than a Debug build.
+    /// </summary>
+    /// <remarks>
+    ///     Line count, because that is the difference that cannot be faked by a comment: <c>--minify</c>
+    ///     emits the whole bundle on one line. A couple of lines are tolerated for a trailing newline or
+    ///     a sourcemap comment; a Debug bundle has thousands.
+    /// </remarks>
+    private static bool IsMinified(string path)
+    {
+        var lines = 0;
+        using var reader = new StreamReader(path);
+        while (reader.ReadLine() is not null && lines < 8)
+        {
+            lines++;
+        }
+
+        return lines < 8;
     }
 
     private static Dictionary<string, long> ParseBaseline(string path)

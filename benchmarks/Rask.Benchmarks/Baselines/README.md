@@ -17,10 +17,13 @@ render path should compare against these and quote the delta in its description.
 > downloads: the client runtimes themselves, `rask.js` and `rask.wasm.js`. Nothing gated those before —
 > `BundleSizeReport` prints a table of a published WASM `_framework/` and has no committed numbers at
 > all, so the runtime script could double with every check in the repository still green. It is
-> measured in **Release**, because a Debug bundle is unminified and a comment would move the number,
-> and the script builds both hosts in Release first: `rask.wasm.js` is written into a *source*
-> directory that a Debug build overwrites with an unminified file, and measuring that reports a
-> spectacular regression which does not exist. The tolerance is ±2% rather than byte-exact — esbuild's
+> measured in **Release**, because a Debug bundle is unminified and a comment would move the number.
+> `rask.wasm.js` is written into a *source* directory both configurations share, while MSBuild's
+> up-to-date **stamp** is per-configuration — so a Release build after a Debug one is SKIPPED and
+> the file measured is the Debug one, three times the size. The script therefore deletes
+> `obj/Release/net10.0-browser/rask-bundles/rask.wasm.stamp` before rebuilding, and the report
+> refuses outright to measure a bundle that is not minified. Both exist because the gate's first
+> run inside the pre-push hook reported a 74 KB regression that was not real. The tolerance is ±2% rather than byte-exact — esbuild's
 > output can shift a few bytes on a minifier bump nobody here chose, while the regression worth
 > catching (a module pulled into the wrong bundle, tree-shaking quietly stopping) is far larger.
 
