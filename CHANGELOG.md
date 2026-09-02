@@ -70,6 +70,62 @@ them until tagged releases begin.
   nothing built, formatted or tested). The `check-nuget-updates` skill is now
   **`check-dependency-updates`**, widened to every axis and carrying an explicit do-not-bump list.
 
+### Changed
+
+- **The gates now share this machine by a slot budget instead of one all-or-nothing lane, so several
+  worktrees can test at once without lying to each other.** Eight worktrees run on one box here, and
+  the old arrangement went wrong in both directions at the same time.
+
+  Too much at once: nothing throttled `run-unit-local.sh`. It was the only gate in the repo without an
+  `-m` cap, so each run took every core, and three of them running from three worktrees put **35
+  MSBuild worker nodes on 14 cores, load average 98 at 0.0% idle, 41 of 48 GB resident**. That is not
+  merely slow — under load this repo's timing-sensitive tests fail in ways indistinguishable from real
+  bugs, so the standing rule is that a green under contention is trustworthy and a red is not. Every
+  contended run costs a re-run at minimum, and one previously cost an investigation into a test the
+  change under review could not reach (#850).
+
+  Too little at once: `run-e2e-local.sh` took the whole machine from its *first line* — before the
+  build. Measured on a live run, **9m30s of its first 10m12s was build and publish**, roughly a
+  quarter of the ~40m norm, during which it blocked every other worktree while using a single core
+  (that build is `-m:1`, and stays that way: three targets files shell out to nested `dotnet publish`
+  of the same projects, so raising it races on output paths).
+
+  Now the box publishes **10 slots** — the performance cores, not all 14, so the efficiency cores stay
+  free and no timing-sensitive test lands somewhere slower than the run that set its timeout — and
+  each gate claims against them:
+
+  - **The unit gate never waits.** It takes whatever is left, floor 2, and shrinks into it: `-m` on
+    the build and on `dotnet test` follow the number, and it prints the size it chose. `pre-commit`
+    decided long ago that a blocked commit costs more than a slow one, and that still holds — the gate
+    just gets smaller on a busy box.
+  - **The browser gate's build and publishes take a partial claim**, so several worktrees may build
+    concurrently. Only the suite itself serialises, and a gate queued for it has already built.
+
+  Precisely what that buys: two browser suites never overlap. It does *not* mean an empty machine — a
+  unit gate that started while the browser gate was building is younger than it, so it is not waited
+  for and keeps its slots. That follows from the unit gate never blocking a commit; making the suite
+  wait for unit gates too would let a stream of commits starve it, since unit gates never queue.
+
+  Ordering is unchanged from #934 and now covers every gate: you wait only for claims *older* than
+  yours, which is what stops two waiters deadlocking (a waiter is itself a gate process) and what
+  stops anything starving (a gate's age only grows, so nobody can be inserted ahead of you). Claims
+  are processes rather than files, for the reason this repo has always given — a file survives
+  `kill -9` and a laptop sleep and then wedges every gate until someone works out what to delete. A
+  gate *queued* for the suite publishes its claim **before** it waits, because it has not started
+  `dotnet test` yet and nothing in its process tree would otherwise say what it is about to need.
+
+  The per-assembly half is a new shared `tests/xunit.runner.json`: xUnit's default is a thread per
+  core, so bounding assemblies alone still allowed 14 × 14. The gate now spends half its slots across
+  assemblies and half inside them. `tests/Rask.Examples.E2E.Tests` keeps its own file — a browser
+  collection is a published host plus a Chromium page, tuned against the exclusive claim that suite
+  takes.
+
+  `RASK_LANE_SLOTS` sets the budget; `RASK_LANE_DISABLE=1` switches the whole thing off. Every
+  existing knob still works, and `RASK_E2E_ALLOW_CONCURRENT=1` is now strictly better than it was: the
+  claim stays published, so other gates account for the load it adds. `rask_e2e_lane_holders` is gone,
+  replaced by the budget's ordering — two copies of an ordering rule that must agree is a bug waiting
+  for the day they stop agreeing.
+
 ### Fixed
 
 - **A version pinned in two places was held together by a comment, and one of the comments was
@@ -123,6 +179,27 @@ them until tagged releases begin.
   restores, builds, packs and pushes with no `dotnet test` anywhere. Since a push to nuget.org is
   permanent, the skill now says plainly that nothing between the tag and nuget.org will catch a
   regression, and to run the local gates first.
+
+- **`scripts/run-watch-e2e.sh` deleted packages out of the machine-global NuGet cache, which another
+  worktree's build could be restoring at that moment.** It exports `RASK_CLI_BUILD_E2E=1` to share the
+  CLI gate's packed feed, and that switch also arms `CliBuildE2E.EvictFromGlobalCache`, which removes
+  `~/.nuget/packages/<pkg>/<version>` for all 22 `Rask.*` packages. The eviction itself is
+  load-bearing — without it a restore silently reuses a cached nupkg of the same version and the gate
+  tests stale bits (#534). But MinVer stamps the *same* version for the same commit in every worktree,
+  so the deletion reached straight out of this gate's sandbox into every other one.
+
+  `run-cli-build-e2e.sh` was given a gate-private `NUGET_PACKAGES` for exactly this reason and
+  documents it at length; the watch gate shares its switch and its feed and was simply missed, because
+  the eviction lives in the fixture rather than in either script. It now points at the same private
+  directory, which also means the two gates share what they have already downloaded.
+
+- **Two E2E suites running from different worktrees published different commits into one directory.**
+  The on-demand publish fallback in `ExampleAppFixture` resolved to
+  `$TMPDIR/rask-e2e-publish/<app>` — keyed on the app alone, so every checkout on the machine shared
+  it. The code comment already stated that two processes writing one MSBuild output directory corrupts
+  it, and guarded against it with a `lock`; a lock only reaches the fixtures inside one process, and
+  each worktree's suite is its own process. The path now carries a hash of the checkout's absolute
+  path as well, since the lock cannot be made to reach and the path can.
 
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,

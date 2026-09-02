@@ -205,74 +205,9 @@ etime "empty (pid already exited)"    0      ""
 etime "garbage"                       0      "not-a-time"
 etime "partial garbage"               0      "12:ab"
 
-echo
-echo "==> rask_e2e_lane_holders (the FIFO that makes waiting safe)"
-
-# The failure this ordering exists to prevent: a WAITING gate is itself a run-e2e-local.sh process, so
-# it is indistinguishable from the run holding the machine. Two waiters that each "wait until no other
-# gate exists" deadlock; two that each proceed when the holder exits start simultaneously, which is the
-# contention the guard was written to stop. Waiting only for OLDER gates orders them without shared
-# state, so exactly one is released at a time.
-lane() {
-  name="$1"
-  expected="$2"
-  self="$3"
-  actual="$(rask_e2e_lane_holders "$self" 0 | tr '\n' ' ' | sed 's/ *$//')"
-  checked=$((checked + 1))
-  if [ "$actual" = "$expected" ]; then
-    printf '  ok   %-52s -> [%s]\n' "$name" "$actual"
-  else
-    printf '  FAIL %-52s -> [%s] (expected [%s])\n' "$name" "$actual" "$expected" >&2
-    failures=$((failures + 1))
-  fi
-}
-
-export RASK_E2E_COMMAND_STUB=1
-
-# A holder running 5m, and us just started: we wait for it.
-export RASK_E2E_PGREP_OVERRIDE="400"
-export RASK_E2E_CMD_400="bash /repo/scripts/run-e2e-local.sh"
-export RASK_E2E_ETIME_400="05:00"
-export RASK_E2E_ETIME_500="00:02"
-lane "a younger gate waits for the holder" "400" 500
-
-# The holder exits; we are alone. Our turn.
-export RASK_E2E_PGREP_OVERRIDE=""
-lane "nothing older means it is our turn" "" 500
-
-# Two waiters behind one holder. The OLDER waiter (500, 2m) waits only for the holder; the YOUNGER
-# waiter (600, 10s) waits for both. So when the holder exits exactly one is released.
-export RASK_E2E_PGREP_OVERRIDE="400 500 600"
-export RASK_E2E_CMD_500="bash /repo/scripts/run-e2e-local.sh"
-export RASK_E2E_CMD_600="bash /repo/scripts/run-e2e-local.sh"
-export RASK_E2E_ETIME_500="02:00"
-export RASK_E2E_ETIME_600="00:10"
-lane "senior waiter waits only for the holder" "400" 500
-lane "junior waiter waits for holder and senior" "400 500" 600
-
-# Holder gone: the senior is released, the junior still waits for the senior. This is the row that
-# would fail if the ordering were "wait until no other gate exists" (both hang) or "proceed when the
-# holder exits" (both start at once).
-export RASK_E2E_PGREP_OVERRIDE="500 600"
-lane "senior is released when the holder exits" "" 500
-lane "junior still waits for the senior" "500" 600
-
-# A tie on the whole second is plausible when a merge train fires several pushes at once. It breaks on
-# pid so the order is TOTAL — without a tiebreak each would see the other as not-older and both start.
-export RASK_E2E_PGREP_OVERRIDE="700"
-export RASK_E2E_CMD_700="bash /repo/scripts/run-e2e-local.sh"
-export RASK_E2E_ETIME_700="01:00"
-export RASK_E2E_ETIME_800="01:00"
-lane "equal age: lower pid wins" "700" 800
-export RASK_E2E_ETIME_650="01:00"
-lane "equal age: higher pid does not block us" "" 650
-
-# A process that merely mentions the gate is not a holder, so the queue inherits the argv-position
-# rule rather than re-deriving it — an editor open on the script must not stall a push for 90 minutes.
-export RASK_E2E_PGREP_OVERRIDE="900"
-export RASK_E2E_CMD_900="vim /repo/scripts/run-e2e-local.sh"
-export RASK_E2E_ETIME_900="30:00"
-lane "an editor is not a lane holder" "" 500
+# The FIFO ordering rows that used to live here moved to scripts/tests/machine-lane.test.sh along
+# with rask_e2e_lane_holders itself, when the gates moved from one lane to a slot budget. They test
+# rask_lane_senior_gates now -- same rule, same rows, against the implementation that is still live.
 
 unset RASK_E2E_COMMAND_STUB RASK_E2E_PGREP_OVERRIDE
 
