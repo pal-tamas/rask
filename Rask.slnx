@@ -24,6 +24,7 @@
         <Project Path="samples/Rask.Example.Wasm/Rask.Example.Wasm.csproj"/>
     </Folder>
     <Folder Name="/src/">
+        <Project Path="src/Rask.Auth/Rask.Auth.csproj"/>
         <Project Path="src/Rask.Cache/Rask.Cache.csproj"/>
         <Project Path="src/Rask.Cli/Rask.Cli.csproj"/>
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
@@ -67,6 +68,7 @@
         <Project Path="src/Rask.Wasm/Rask.Wasm.csproj"/>
     </Folder>
     <Folder Name="/tests/">
+        <Project Path="tests/Rask.Auth.Tests/Rask.Auth.Tests.csproj"/>
         <Project Path="tests/Rask.Cache.Tests/Rask.Cache.Tests.csproj"/>
         <Project Path="tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj"/>
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>

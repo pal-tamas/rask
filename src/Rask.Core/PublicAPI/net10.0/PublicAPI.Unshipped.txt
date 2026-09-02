@@ -16,6 +16,15 @@ Rask.Core.Authentication.AnonymousUserProvider.Current.get -> System.Security.Cl
 Rask.Core.Authentication.AuthAction
 Rask.Core.Authentication.AuthAction.SignIn = 0 -> Rask.Core.Authentication.AuthAction
 Rask.Core.Authentication.AuthAction.SignOut = 1 -> Rask.Core.Authentication.AuthAction
+Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.DuplicateAccount = 3 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.FirstRunTokenRequired = 5 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.InvalidCredentials = 1 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.InvalidEmail = 7 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.LockedOut = 2 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.None = 0 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.NotAllowed = 6 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.WeakPassword = 4 -> Rask.Core.Authentication.AuthError
 Rask.Core.Authentication.AuthInstruction
 Rask.Core.Authentication.AuthInstruction.<Clone>$() -> Rask.Core.Authentication.AuthInstruction!
 Rask.Core.Authentication.AuthInstruction.AuthInstruction(string! Ticket, string? ReturnUrl) -> void
@@ -25,10 +34,25 @@ Rask.Core.Authentication.AuthInstruction.ReturnUrl.get -> string?
 Rask.Core.Authentication.AuthInstruction.ReturnUrl.init -> void
 Rask.Core.Authentication.AuthInstruction.Ticket.get -> string!
 Rask.Core.Authentication.AuthInstruction.Ticket.init -> void
+Rask.Core.Authentication.AuthResult
+Rask.Core.Authentication.AuthResult.<Clone>$() -> Rask.Core.Authentication.AuthResult!
+Rask.Core.Authentication.AuthResult.AuthResult(bool Succeeded, Rask.Core.Authentication.AuthError Error = Rask.Core.Authentication.AuthError.None, string? Message = null) -> void
+Rask.Core.Authentication.AuthResult.Deconstruct(out bool Succeeded, out Rask.Core.Authentication.AuthError Error, out string? Message) -> void
+Rask.Core.Authentication.AuthResult.Equals(Rask.Core.Authentication.AuthResult? other) -> bool
+Rask.Core.Authentication.AuthResult.Error.get -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthResult.Error.init -> void
+Rask.Core.Authentication.AuthResult.Message.get -> string?
+Rask.Core.Authentication.AuthResult.Message.init -> void
+Rask.Core.Authentication.AuthResult.Succeeded.get -> bool
+Rask.Core.Authentication.AuthResult.Succeeded.init -> void
 Rask.Core.Authentication.AuthSignIn
 Rask.Core.Authentication.AuthSignIn.AuthSignIn() -> void
 Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.AuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuth
+Rask.Core.Authentication.IAuth.RegisterAsync(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn
 Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
@@ -2715,6 +2739,9 @@ const Rask.Core.ScopedAssets.ScopedAssetRegistry.HashHexLength = 12 -> int
 override Rask.Core.Authentication.AuthInstruction.Equals(object? obj) -> bool
 override Rask.Core.Authentication.AuthInstruction.GetHashCode() -> int
 override Rask.Core.Authentication.AuthInstruction.ToString() -> string!
+override Rask.Core.Authentication.AuthResult.Equals(object? obj) -> bool
+override Rask.Core.Authentication.AuthResult.GetHashCode() -> int
+override Rask.Core.Authentication.AuthResult.ToString() -> string!
 override Rask.Core.Authentication.PendingAuth.Equals(object? obj) -> bool
 override Rask.Core.Authentication.PendingAuth.GetHashCode() -> int
 override Rask.Core.Authentication.PendingAuth.ToString() -> string!
@@ -2960,6 +2987,10 @@ override Rask.Core.Virtualization.VirtualItem<T>.GetHashCode() -> int
 override Rask.Core.Virtualization.VirtualItem<T>.ToString() -> string!
 static Rask.Core.Authentication.AuthInstruction.operator !=(Rask.Core.Authentication.AuthInstruction? left, Rask.Core.Authentication.AuthInstruction? right) -> bool
 static Rask.Core.Authentication.AuthInstruction.operator ==(Rask.Core.Authentication.AuthInstruction? left, Rask.Core.Authentication.AuthInstruction? right) -> bool
+static Rask.Core.Authentication.AuthResult.Fail(Rask.Core.Authentication.AuthError error, string? message = null) -> Rask.Core.Authentication.AuthResult!
+static Rask.Core.Authentication.AuthResult.Success.get -> Rask.Core.Authentication.AuthResult!
+static Rask.Core.Authentication.AuthResult.operator !=(Rask.Core.Authentication.AuthResult? left, Rask.Core.Authentication.AuthResult? right) -> bool
+static Rask.Core.Authentication.AuthResult.operator ==(Rask.Core.Authentication.AuthResult? left, Rask.Core.Authentication.AuthResult? right) -> bool
 static Rask.Core.Authentication.PendingAuth.operator !=(Rask.Core.Authentication.PendingAuth? left, Rask.Core.Authentication.PendingAuth? right) -> bool
 static Rask.Core.Authentication.PendingAuth.operator ==(Rask.Core.Authentication.PendingAuth? left, Rask.Core.Authentication.PendingAuth? right) -> bool
 static Rask.Core.Authorization.RouteAuthorizationGuard.EvaluateAsync(System.IServiceProvider! services, System.Collections.Generic.IReadOnlyList<System.Type!>! chain, System.Security.Claims.ClaimsPrincipal! user) -> System.Threading.Tasks.Task<Rask.Core.Authorization.RouteAuthorizationResult!>!

@@ -1,3 +1,5 @@
+using Rask.Core;
+
 namespace Rask.Server.Tests.Security;
 
 // M5: redeem tickets and live-session ids are bearer secrets, so they come from a CSPRNG

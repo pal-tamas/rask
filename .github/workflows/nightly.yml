@@ -57,6 +57,7 @@ jobs:
           dotnet pack src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Data/Rask.Data.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Outbox/Rask.Outbox.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Auth/Rask.Auth.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Mail/Rask.Mail.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cache/Rask.Cache.csproj -c Release -o ./artifacts

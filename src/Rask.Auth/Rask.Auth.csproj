@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Auth</PackageId>
+    <Title>Rask.Auth — accounts, sign-in, and the three flows</Title>
+    <Description>Register, sign in and sign out for a Rask app, on by default. Accounts are backed by ASP.NET Core Identity (versioned password hashing, lockout, security stamps) and exposed through Rask's own host-neutral surface — the same IUserProvider, Authorize component and [Authorize] routes work unchanged on the Server, WebAssembly, island, SPA and meta-framework hosts. Ships built-in overridable /login, /register and /logout pages plus the matching /api/auth endpoints, so a TypeScript front end gets the same three flows. The first account to register becomes the admin.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — this is the accounts/sign-in half. -->
+    <PackageTags>authentication authorization identity login register aspnet-identity cookie-auth claims dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <!-- SignInManager, the cookie handler and the authorization services are in the shared framework,
+       not in the Identity EF stores package. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!-- The Microsoft.Extensions.* abstractions (DI, hosting, logging) come with the framework
+       reference above; naming them here as well is what NU1510 rejects. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+  </ItemGroup>
+
+  <!-- The pages and the host-neutral auth surface (IUserProvider, IAuthSignIn, Authorize) live in
+       Core and Html. PrivateAssets="all" mirrors Rask.Dashboard: this package renders components, but
+       a consumer gets Core through the host package rather than transitively through this one.
+       Deliberately NOT Rask.Server — no battery references it, which is what keeps the meta-package
+       free of reference cycles. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Auth.Tests"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Auth;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

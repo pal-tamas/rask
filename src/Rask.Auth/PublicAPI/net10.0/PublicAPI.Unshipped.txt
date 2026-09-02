@@ -1,0 +1,68 @@
+#nullable enable
+Rask.Auth.AuthInstanceClaim
+Rask.Auth.AuthInstanceClaim.AdminUserId.get -> string!
+Rask.Auth.AuthInstanceClaim.AdminUserId.set -> void
+Rask.Auth.AuthInstanceClaim.AuthInstanceClaim() -> void
+Rask.Auth.AuthInstanceClaim.ClaimedUtc.get -> System.DateTime
+Rask.Auth.AuthInstanceClaim.ClaimedUtc.set -> void
+Rask.Auth.AuthInstanceClaim.Id.get -> int
+Rask.Auth.AuthInstanceClaim.Id.set -> void
+Rask.Auth.AuthInstanceClaimConfiguration
+Rask.Auth.AuthInstanceClaimConfiguration.AuthInstanceClaimConfiguration() -> void
+Rask.Auth.AuthInstanceClaimConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Auth.AuthInstanceClaim!>! entity) -> void
+Rask.Auth.AuthModelBuilderExtensions
+Rask.Auth.AuthOptions
+Rask.Auth.AuthOptions.AccessDeniedPath.get -> string!
+Rask.Auth.AuthOptions.AccessDeniedPath.set -> void
+Rask.Auth.AuthOptions.ApiPrefix.get -> string!
+Rask.Auth.AuthOptions.ApiPrefix.set -> void
+Rask.Auth.AuthOptions.AuthOptions() -> void
+Rask.Auth.AuthOptions.Bearer.get -> bool
+Rask.Auth.AuthOptions.Bearer.set -> void
+Rask.Auth.AuthOptions.CookieName.get -> string!
+Rask.Auth.AuthOptions.CookieName.set -> void
+Rask.Auth.AuthOptions.ExpireTimeSpan.get -> System.TimeSpan
+Rask.Auth.AuthOptions.ExpireTimeSpan.set -> void
+Rask.Auth.AuthOptions.FirstRunToken.get -> string?
+Rask.Auth.AuthOptions.FirstRunToken.set -> void
+Rask.Auth.AuthOptions.FirstUserIsAdmin.get -> bool
+Rask.Auth.AuthOptions.FirstUserIsAdmin.set -> void
+Rask.Auth.AuthOptions.LockoutDuration.get -> System.TimeSpan
+Rask.Auth.AuthOptions.LockoutDuration.set -> void
+Rask.Auth.AuthOptions.LoginPath.get -> string!
+Rask.Auth.AuthOptions.LoginPath.set -> void
+Rask.Auth.AuthOptions.LogoutPath.get -> string!
+Rask.Auth.AuthOptions.LogoutPath.set -> void
+Rask.Auth.AuthOptions.MaxFailedAccessAttempts.get -> int
+Rask.Auth.AuthOptions.MaxFailedAccessAttempts.set -> void
+Rask.Auth.AuthOptions.MinimumPasswordLength.get -> int
+Rask.Auth.AuthOptions.MinimumPasswordLength.set -> void
+Rask.Auth.AuthOptions.Pages.get -> bool
+Rask.Auth.AuthOptions.Pages.set -> void
+Rask.Auth.AuthOptions.RegisterPath.get -> string!
+Rask.Auth.AuthOptions.RegisterPath.set -> void
+Rask.Auth.AuthOptions.RequireFirstRunToken.get -> bool
+Rask.Auth.AuthOptions.RequireFirstRunToken.set -> void
+Rask.Auth.AuthOptions.RequireMixedCasePasswords.get -> bool
+Rask.Auth.AuthOptions.RequireMixedCasePasswords.set -> void
+Rask.Auth.AuthOptions.SlidingExpiration.get -> bool
+Rask.Auth.AuthOptions.SlidingExpiration.set -> void
+Rask.Auth.FirstRunToken
+Rask.Auth.FirstRunToken.FirstRunToken() -> void
+Rask.Auth.FirstRunToken.IsPending.get -> bool
+Rask.Auth.FirstRunToken.Matches(string? candidate) -> bool
+Rask.Auth.FirstRunToken.Value.get -> string?
+Rask.Auth.RaskAuthServiceCollectionExtensions
+Rask.Auth.RaskRoles
+Rask.Auth.RaskUser
+Rask.Auth.RaskUser.CreatedUtc.get -> System.DateTime
+Rask.Auth.RaskUser.CreatedUtc.set -> void
+Rask.Auth.RaskUser.RaskUser() -> void
+const Rask.Auth.AuthInstanceClaim.SingletonId = 1 -> int
+const Rask.Auth.RaskRoles.Admin = "admin" -> string!
+const Rask.Auth.RaskRoles.User = "user" -> string!
+static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth<TUser>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext, TUser>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Auth.RaskRoles.All.get -> System.Collections.Generic.IReadOnlyList<string!>!

@@ -7,6 +7,53 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Rask.Auth` — accounts, and the first two thirds of "auth is on by default".** Rask shipped the
+  sign-in *plumbing* (`IUserProvider`, `IAuthSignIn`, the `Authorize` component, route guards) but no
+  account store: `rask new --auth` scaffolded a demo credential store whose passwords were compared as
+  plaintext, and there was no registration at all. This adds the store, backed by **ASP.NET Core
+  Identity** rather than a hand-rolled one — versioned password hashing, lockout, security stamps and
+  token providers are exactly the things that are dangerous to write twice, and the repo's own rule is
+  to prefer the standard .NET API.
+
+  The surface an app writes against is new but small: **`IAuth`** in `Rask.Core.Authentication`, with
+  `RegisterAsync` / `SignInAsync` / `SignOutAsync`. It lives in Core, beside `IUserProvider`, precisely
+  so the *same* injected type means the same thing on every host — the server implementation validates
+  against the store and then hands the principal to the existing `IAuthSignIn` ticket relay, adding no
+  second handshake.
+
+  **The first account to register becomes the administrator**, every one after it an ordinary user.
+  That removes the worst step in self-hosting — "it is deployed, now how do I make an admin?" — without
+  a seeding migration or a create-admin command.
+
+  Two things about it are load-bearing, and both are the reason it is not simply a count of the users
+  table:
+
+  1. **It is a single-winner guarantee, not a race.** Counting and then inserting is two statements,
+     and whether a concurrent pair can interleave depends on the provider's isolation level and, on
+     SQLite, on whether the transaction took its write lock early — a contended `COMMIT` can roll
+     itself back. Instead one row in `RaskAuthInstanceClaim` has a **constant primary key**, so the
+     second insert fails at the database. That means the same thing on every provider.
+  2. **The test for it had to be built twice.** Racing several `RegisterAsync` calls passes even
+     against a deliberately broken read-then-write store — creating an account is slow enough that the
+     first racer commits before the second reads. That was verified by breaking the store and watching
+     the test stay green. The test with teeth calls the claim store directly, straight after a barrier,
+     and does fail against the broken one.
+
+  A deployed app with an empty user table and an open registration page is a land-grab, so the **first**
+  registration — and only the first — needs a one-time token, generated while the instance is unclaimed
+  and written to the log. Missing and wrong are one answer carrying no detail, and the comparison is
+  fixed-time. Sign-in hashes even for an unknown address, so it cannot be used as an
+  account-existence oracle.
+
+  `SecureToken` moved from `Rask.Server` to `Rask.Core`: the auth battery needs the same CSPRNG
+  guarantee, and no battery may reference `Rask.Server` — that is what keeps the meta-package free of
+  reference cycles.
+
+  Not yet wired: the `/api/auth` endpoints, the built-in pages, the battery slot on `RaskAppOptions`,
+  the browser half, and the `--auth` flag removal. The store and its guarantees land first.
+
 ### Fixed
 
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package

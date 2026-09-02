@@ -78,6 +78,7 @@ dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (quer
 dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM client
 dotnet add package Rask.Query             # cache, dedup and invalidate dispatched queries per session
 dotnet add package Rask.Cqrs.Server       # host the endpoint those clients dispatch to
+dotnet add package Rask.Auth             # accounts: register, sign in, sign out
 dotnet add package Rask.Jobs              # durable background jobs
 dotnet add package Rask.Mail              # transactional email queue
 dotnet add package Rask.Cache             # read-through cache

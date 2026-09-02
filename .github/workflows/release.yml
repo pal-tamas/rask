@@ -101,6 +101,9 @@ jobs:
       - name: Pack Rask.Jobs
         run: dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Auth
+        run: dotnet pack src/Rask.Auth/Rask.Auth.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Mail
         run: dotnet pack src/Rask.Mail/Rask.Mail.csproj -c Release --no-build -o ./artifacts
 
