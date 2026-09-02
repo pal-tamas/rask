@@ -48,6 +48,53 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Meta.Hosting` — a meta framework front end and your C# in one container.** The first landing
+  of [#946](https://github.com/pal-tamas/rask/issues/946): `AddRaskMeta()` supervises the framework's
+  own Node server, and `UseRaskMeta()` forwards to it everything Kestrel did not answer itself.
+
+  This is a third lane, not a change to either existing one. `Rask.Spa.Hosting` serves a static bundle
+  and needs no Node at runtime; islands put a `.tsx` inside a Rask page. Here the meta framework owns
+  the **whole** front end — routing, rendering, its own server — and Rask is the backend it integrates
+  with. Kestrel keeps the public port, so ASP.NET authentication, rate limiting, logging and health
+  still sit in front of every request, and `rask deploy` still ships one container on one port.
+
+  Six frameworks reduce to **three server shapes**, which is why the adapter is data rather than a class
+  per framework: `MetaFramework.Nuxt`, `.TanStackStart` and `.SolidStart` share `.output/server/index.mjs`
+  (Nitro), `.Analog` is Nitro under `dist/analog/server`, `.SvelteKit` is `adapter-node`'s
+  `build/index.js`, and `.Next` is standalone's `server.js` — which reads `HOSTNAME` where every other
+  one reads `HOST`. Each preset is a record, so `MetaFramework.Next with { ServerEntry = … }` adjusts one
+  field and keeps the rest. Every value is pinned by a test, because each was read out of the framework's
+  current documentation and none of it is checkable anywhere else.
+
+  All six expose a single directly executable entry, so the supervisor runs `node <entry>` and never
+  `npm start` — npm spawns the real server as a grandchild, and killing npm would orphan it. The process
+  binds `127.0.0.1` only, never `0.0.0.0`, so publishing the container's ports cannot expose an
+  unauthenticated renderer beside the app. Its stdout and stderr both arrive as `Information`, since a
+  great deal of Node tooling writes ordinary progress to stderr; the exit code is what signals a fault.
+
+  Before the port answers, requests get **503 with `Retry-After`** rather than being forwarded into a
+  closed socket and surfacing as 502 — for the first seconds of a container's life that state is normal
+  and genuinely temporary. A crash is retried with capped exponential backoff, and when the budget is
+  spent the **host stops** rather than serving errors indefinitely: an orchestrator restarting the
+  container is a better supervisor than this loop, and an exit is visible where a degraded process is
+  not. On shutdown the process gets `SIGTERM` and a grace period before its tree is killed.
+
+  Forwarding is YARP's `IHttpForwarder` — the direct-forwarding API only, no route table or config
+  model. That is the package's one external dependency and a deliberate one: it already gets right
+  WebSocket upgrade, hop-by-hop header handling, and **unbuffered response streaming**, which is the
+  property the whole lane rests on. React Server Components and streaming SSR send a page over many
+  flushes, and a proxy that waits for the last byte turns a streaming page into a slow blank one while
+  every other test still passes — so a test holds the backend open until the client has already read the
+  first chunk, and cannot pass if anything starts buffering.
+
+  `UseRaskMeta()` registers a **fallback**, so mapped endpoints still win — but map your API first; the
+  symptom of getting it wrong is an API call answered with a rendered page. `SuperviseNode = false`
+  forwards to a front end you are running yourself.
+
+  Not here yet, and tracked on the epic: the build and publish targets, the Node-bearing runtime image,
+  the generated server-side contract client that lets SSR call back carrying the visitor's cookie, and
+  `rask new` templates. Until those land this package is usable but unwired.
+
 - **Tailwind reaches inside an island.** A utility written in a `.vue`, `.tsx` or `.svelte` now
   survives into the emitted stylesheet, and editing one rebuilds it.
 
