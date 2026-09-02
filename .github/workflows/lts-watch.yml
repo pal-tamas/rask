@@ -145,5 +145,13 @@ jobs:
 
       - name: Report when nothing needs doing
         if: steps.compare.outputs.skip == 'false' && steps.compare.outputs.behind != 'true'
+        # Through env rather than `${{ }}` inside the script. `actual` is derived from a fetched HTTP
+        # response, and expression interpolation splices it into the shell BEFORE the shell parses it.
+        # It cannot bite here — the sed that produces it captures only digits and dots — but a value
+        # that came off the network has no business being pasted into a command line, and the habit is
+        # what stops the next one being unsafe.
+        env:
+          ACTUAL: ${{ steps.compare.outputs.actual }}
+          STATED: ${{ steps.compare.outputs.stated }}
         run: |
-          echo "Up to date: nodejs.org says ${{ steps.compare.outputs.actual }}, repo states ${{ steps.compare.outputs.stated }}."
+          echo "Up to date: nodejs.org says $ACTUAL, repo states $STATED."
