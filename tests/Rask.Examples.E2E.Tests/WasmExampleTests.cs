@@ -213,4 +213,49 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IMediaDevices",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
+
+    // A real Blazor component (samples/Rask.Example.Razor's PriceTicker.razor, compiled by the Razor
+    // SDK in a referenced class library) hosted as a Rask island — on browser-WebAssembly.
+    //
+    // This test exists because of a failure with NO build warning, NO console error and NO exception:
+    // the showcase publishes TRIMMED, and a hosted component's parameters are assigned by reflection
+    // inside Microsoft.AspNetCore.Components, on a type Rask does not own. Without the
+    // DynamicallyAccessedMembers annotation on BlazorComponent<TComponent> the trimmer removes those
+    // property setters and the island renders EMPTY — <rask-blazor></rask-blazor> and nothing else.
+    // So every assertion below is on the hosted component's own OUTPUT: an empty island is exactly
+    // what a presence check would pass on.
+    [Fact]
+    public Task BlazorIslandExample_RendersHostedComponentAndRoundTripsItsOwnEvents() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Blazor island");
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Blazor island",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        // The parameters crossed: Symbol and Price are C# values the island handed the hosted
+        // component, and they only appear if the trimmer left its setters alone.
+        await Expect(Page.Locator("[data-testid=ticker-symbol]")).ToHaveTextAsync("RASK",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("[data-testid=ticker-price]")).ToContainTextAsync("12.50",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // The HOSTED component's own @onclick, with no Blazor circuit: Blazor mints the handler id
+        // during the static render and the island writes Rask's data-rask-on-click in its place, so
+        // the click travels the same channel every other event on this page uses.
+        await Page.ClickAsync("[data-testid=ticker-watch]");
+        await Expect(Page.Locator("[data-testid=ticker-watches]")).ToContainTextAsync("watching: 1",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // ...and its @bind, which travels the INPUT channel instead — the one that carries a value.
+        await Page.FillAsync("[data-testid=ticker-note]", "live bind");
+        await Expect(Page.Locator("[data-testid=ticker-note-echo]")).ToContainTextAsync("live bind",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // The page's Rask half is still Rask's: the island owns its own subtree and nothing more.
+        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("BlazorComponent",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
 }

@@ -79,6 +79,13 @@
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
     <PackageVersion Include="System.Reflection.Metadata" Version="10.0.11" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.85" />
+    <!--
+      Rask.Meta.Hosting's only external dependency, and only for IHttpForwarder — YARP's direct
+      forwarding API, with no route table or config model attached. It is what puts WebSocket upgrade,
+      unbuffered response streaming and hop-by-hop header handling on a supported implementation
+      rather than a hand-rolled one; Microsoft-published, same family as the ASP.NET packages above.
+    -->
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
   </ItemGroup>

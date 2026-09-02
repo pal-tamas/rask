@@ -37,7 +37,7 @@ Read this table before anything else — it is the whole shape of the feature.
 | `OnAfterRender`, `IJSRuntime`, `ElementReference` | ❌ |
 | Its own `@onkeydown`, `@onsubmit`, `@onmouseover` | ❌ — see [events](#events) |
 | `@bind` writing a value back | ✅ (see [binding](#binding)) |
-| WebAssembly | ✅ — untrimmed, see [both hosts](#both-hosts) |
+| WebAssembly, published **trimmed** | ✅ — see [both hosts](#both-hosts) |
 
 ## A worked example
 
@@ -329,15 +329,39 @@ capability gap, and a no-op would leave it looking correct while being subtly wr
 as a server. The only difference is where the renderer comes from — the ASP.NET shared framework on
 the server, the `Microsoft.AspNetCore.Components.Web` package in the browser.
 
-**A WASM app hosting a Blazor component must publish untrimmed.** `[Parameter]` discovery reflects
-inside `Microsoft.AspNetCore.Components`, on types Rask does not own, and no component library
-(MudBlazor, Radzen) is trim-annotated — so the trimmer removes properties the renderer then cannot
-find. This is the same rule [Rask.SQLite.Browser](data-access.md) already carries, for the same
-reason.
+**Trimmed, which is the default a WASM app publishes with.** That took an annotation rather than a
+caveat, and the reason is worth stating: `[Parameter]` discovery reflects inside
+`Microsoft.AspNetCore.Components`, on the hosted type — so the trimmer removes the very property
+setters `ParameterView` is about to call, and **nothing reports it**. The trim analyser has nothing to
+point at (the reflection is in someone else's assembly), the build stays green, no exception is
+thrown, and the island renders as an empty `<rask-blazor>` element. `BlazorComponent<TComponent>`
+therefore annotates its type parameter:
+
+```csharp
+public abstract partial class BlazorComponent<
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TComponent>
+```
+
+which moves the requirement to the one place that knows the concrete type — your island's own
+declaration — and the trimmer keeps those properties in whatever assembly the component lives in.
+Nothing to configure.
+
+What that does **not** cover is a component library reaching for members by name beyond its
+parameters — reflection Rask cannot see and cannot annotate for. If a hosted component from a large
+library renders wrong only after publishing, confirm it by publishing once with:
 
 ```xml
 <PublishTrimmed>false</PublishTrimmed>
 ```
+
+and, if that is the difference, root the library with a `TrimmerRootAssembly` rather than turning
+trimming off for the whole app.
+
+The trimmed path is gated rather than asserted: `samples/Rask.Example.Wasm` hosts a real `.razor` from
+`samples/Rask.Example.Razor` on its **Blazor island** page, the showcase publishes trimmed on every
+build, and the browser E2E over that page checks the hosted component's *output* — its parameters,
+its own `@onclick`, its `@bind` — because an empty island is exactly what a "the element is there"
+check would pass on.
 
 It is deliberately **not** in the `Rask` meta-package on either framework. Everything there is
 referenced by every app on that framework, and an app that wants nothing to do with Blazor should not

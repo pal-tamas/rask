@@ -48,6 +48,44 @@ them until tagged releases begin.
 
   The Server showcase now runs six runtimes on one page. See [docs/islands.md](docs/islands.md).
 
+### Fixed
+
+- **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
+  claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,
+  no publish, no browser. Hosting one in a real WASM app found three separate failures on the way to
+  a working page.
+
+  The one that matters is silent. `ParameterView.SetParameterProperties` assigns a hosted component's
+  parameters by reflecting over its public properties, inside `Microsoft.AspNetCore.Components`, on a
+  type Rask does not own — so with `PublishTrimmed` (a WASM app's default) the trimmer removes the
+  setters and the island renders as an empty `<rask-blazor>` element. There is **no** trim-analyser
+  warning, because the reflection is in another assembly; no exception; nothing in the console; and
+  the page around the island renders perfectly. `BlazorComponent<TComponent>` now annotates its type
+  parameter `[DynamicallyAccessedMembers(PublicProperties)]`, which states the requirement where the
+  concrete type is known — the island's own declaration — so the trimmer keeps those properties in
+  whatever assembly the component lives in. Nothing to configure, and
+  `docs/blazor-components.md` no longer tells WASM apps to publish untrimmed.
+
+  The other two stopped the build outright, in the consuming app rather than here, because a WASM app
+  publishes trimmed under warnings-as-errors: `Activator.CreateInstance` over the type
+  `GetEventArgsType` hands back is IL2072 (now a switch over the closed set
+  `Microsoft.AspNetCore.Components.Web` defines, which also ROOTS those types so a handler reading
+  `e.ClientX` keeps working), and `RaskBlazorJSRuntime.InvokeAsync<TValue>` dropped the
+  `DynamicallyAccessedMembers` its interface declares, which is IL2095 — for a method that only ever
+  throws.
+
+  Gated three ways now, because the failure mode is invisible to any one of them: the WASM showcase
+  hosts a real `.razor` (from the new `samples/Rask.Example.Razor` class library) on its **Blazor
+  island** page and publishes trimmed on every build; a browser E2E asserts the hosted component's
+  *output* — its parameters, its own `@onclick`, its `@bind` — rather than that the element exists,
+  since an empty island passes a presence check; and `TrimmingContractTests` fails in the unit gate,
+  in milliseconds, if either annotation is removed. The annotation was verified by deleting it and
+  watching the showcase island go blank with a green build.
+
+- **`Rask.Blazor`'s package description promised children.** It said Rask children placed inside a
+  hosted component keep working handlers, which the same release made a compile error
+  ([RASK062](docs/diagnostics.md#rask062)).
+
 ### Removed
 
 - **An island takes no children, in either island family — and saying so is now a compile error
@@ -88,6 +126,69 @@ them until tagged releases begin.
   were once blind.
 
 ### Added
+
+- **`Rask.Meta.Hosting` — a meta framework front end and your C# in one container.** The first landing
+  of [#946](https://github.com/pal-tamas/rask/issues/946): `AddRaskMeta()` supervises the framework's
+  own Node server, and `UseRaskMeta()` forwards to it everything Kestrel did not answer itself.
+
+  This is a third lane, not a change to either existing one. `Rask.Spa.Hosting` serves a static bundle
+  and needs no Node at runtime; islands put a `.tsx` inside a Rask page. Here the meta framework owns
+  the **whole** front end — routing, rendering, its own server — and Rask is the backend it integrates
+  with. Kestrel keeps the public port, so ASP.NET authentication, rate limiting, logging and health
+  still sit in front of every request, and `rask deploy` still ships one container on one port.
+
+  Six frameworks reduce to **three server shapes**, which is why the adapter is data rather than a class
+  per framework: `MetaFramework.Nuxt`, `.TanStackStart` and `.SolidStart` share `.output/server/index.mjs`
+  (Nitro), `.Analog` is Nitro under `dist/analog/server`, `.SvelteKit` is `adapter-node`'s
+  `build/index.js`, and `.Next` is standalone's `server.js` — which reads `HOSTNAME` where every other
+  one reads `HOST`. Each preset is a record, so `MetaFramework.Next with { ServerEntry = … }` adjusts one
+  field and keeps the rest. Every value is pinned by a test, because each was read out of the framework's
+  current documentation and none of it is checkable anywhere else.
+
+  All six expose a single directly executable entry, so the supervisor runs `node <entry>` and never
+  `npm start` — npm spawns the real server as a grandchild, and killing npm would orphan it. The process
+  binds `127.0.0.1` only, never `0.0.0.0`, so publishing the container's ports cannot expose an
+  unauthenticated renderer beside the app. Its stdout and stderr both arrive as `Information`, since a
+  great deal of Node tooling writes ordinary progress to stderr; the exit code is what signals a fault.
+
+  Before the port answers, requests get **503 with `Retry-After`** rather than being forwarded into a
+  closed socket and surfacing as 502 — for the first seconds of a container's life that state is normal
+  and genuinely temporary. A crash is retried with capped exponential backoff, and when the budget is
+  spent the **host stops** rather than serving errors indefinitely: an orchestrator restarting the
+  container is a better supervisor than this loop, and an exit is visible where a degraded process is
+  not. That budget counts **consecutive** failures — a run that stayed up past
+  `HealthyRunThreshold` resets it, so a server that crashes once a month is never mistaken for one that
+  will not start. On shutdown the process gets `SIGTERM` and a grace period before its tree is killed.
+
+  **No built front end fails startup**, with a message naming the path it looked for and the option
+  that moves it. Detecting it in the supervision loop instead would also have ended the process, but by
+  cancelling Kestrel's own bind mid-startup — so the app died with `TaskCanceledException`, which says
+  nothing about the front end and buries the line that did.
+
+  Forwarding is YARP's `IHttpForwarder` — the direct-forwarding API only, no route table or config
+  model. That is the package's one external dependency and a deliberate one: it already gets right
+  WebSocket upgrade, hop-by-hop header handling, and **unbuffered response streaming**, which is the
+  property the whole lane rests on. React Server Components and streaming SSR send a page over many
+  flushes, and a proxy that waits for the last byte turns a streaming page into a slow blank one while
+  every other test still passes — so a test holds the backend open until the client has already read the
+  first chunk, and cannot pass if anything starts buffering. An **upgraded connection gets no idle
+  cap**: the request timeout is an idle one and applies to WebSockets too, so leaving it on would drop
+  any socket quiet for 100 seconds and show the client a disconnect with no cause.
+
+  Asset URLs forward like everything else. That is worth stating because the obvious spelling of the
+  fallback — `MapFallback(handler)` — maps `{*path:nonfile}` and silently matches **nothing with a dot
+  in its last segment**, so every hashed chunk, `favicon.ico` and `robots.txt` would 404 and the page
+  would load with no JS and no CSS. `Rask.Spa.Hosting` leans on that same behaviour deliberately,
+  because there a static-file middleware serves the assets; here the Node server is the origin for its
+  own, so nothing else can.
+
+  `UseRaskMeta()` registers a **fallback**, so mapped endpoints still win — but map your API first; the
+  symptom of getting it wrong is an API call answered with a rendered page. `SuperviseNode = false`
+  forwards to a front end you are running yourself.
+
+  Not here yet, and tracked on the epic: the build and publish targets, the Node-bearing runtime image,
+  the generated server-side contract client that lets SSR call back carrying the visitor's cookie, and
+  `rask new` templates. Until those land this package is usable but unwired.
 
 - **Tailwind reaches inside an island.** A utility written in a `.vue`, `.tsx` or `.svelte` now
   survives into the emitted stylesheet, and editing one rebuilds it.

@@ -20,6 +20,7 @@ feature tour; the **auth** samples are focused, production-shaped login flows; a
 | [`Rask.Example.Server`](Rask.Example.Server) | The showcase served **server-side** over the WebSocket live runtime. | `dotnet run --project samples/Rask.Example.Server` |
 | [`Rask.Example.Wasm`](Rask.Example.Wasm) | The same showcase compiled to **browser-WASM** (standalone SPA). Published, then served by the host below. | (published) |
 | [`Rask.Example.Wasm.Host`](Rask.Example.Wasm.Host) | ASP.NET static-file host that serves the published WASM showcase. | `dotnet run --project samples/Rask.Example.Wasm.Host` |
+| [`Rask.Example.Razor`](Rask.Example.Razor) | A real Razor Class Library — one `.razor`, no Rask reference — hosted by the WASM showcase's **Blazor island** page. It is what makes `Rask.Blazor`'s browser-WASM half a gated path: the showcase publishes trimmed, and a hosted component's parameters cross by reflection. | — |
 
 The same `Rask.Example.Shared` components run unchanged under both the Server and WASM
 transports — that is the point of the pairing.
