@@ -10,6 +10,19 @@
     <StaticWebAssetBasePath>_content/Rask.Example.Shared</StaticWebAssetBasePath>
   </PropertyGroup>
 
+  <!--
+    The islands' front-end files, which this project does not contain. Styles/app.css names the same two
+    directories in `@source`, and that is a TAILWIND-side path — nothing hands it to MSBuild, so without
+    this the sheet is built from them once and then never rebuilt when one changes.
+
+    The two have to be stated together: `@source` decides what Tailwind SCANS, this decides what the
+    build WATCHES, and a file in one but not the other goes stale silently.
+  -->
+  <ItemGroup>
+    <RaskTailwindSource Include="../Rask.Example.Server/Features/Islands/**/*.vue;../Rask.Example.Server/Features/Islands/**/*.tsx;../Rask.Example.Server/Features/Islands/**/*.svelte;../Rask.Example.Server/Features/Islands/**/*.ts"/>
+    <RaskTailwindSource Include="../Rask.Example.Wasm/Features/Islands/**/*.vue;../Rask.Example.Wasm/Features/Islands/**/*.tsx;../Rask.Example.Wasm/Features/Islands/**/*.svelte"/>
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>
     <!-- Build-order edge only. The Tailwind wiring itself arrives from Directory.Build.{props,targets}

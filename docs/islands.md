@@ -180,7 +180,8 @@ error TS2339: Property 'level' does not exist on type 'DialProps'.
 ```
 
 Turn it off with `<RaskExternalTypeCheck>false</RaskExternalTypeCheck>` — for a deliberately red front
-end mid-refactor, say. It costs roughly 0.2s.
+end mid-refactor, say. tsgo costs roughly 0.2s; the single-file checkers below are seconds each,
+and none of the three has an up-to-date check — they run on every build.
 
 ### A single-file component needs its framework's own checker
 
@@ -300,14 +301,27 @@ project as your stylesheet needs nothing:
 <div class="flex h-32 items-end gap-2">
 ```
 
-**An island in a different project needs `@source`.** Tailwind scans one project; a front-end file in
-a sibling one is invisible to it, and every utility used there would be dropped from the sheet with
-the island rendering unstyled and nothing reporting why. Name the directory:
+**An island in a different project needs two statements, not one.** Tailwind scans one project, so a
+front-end file in a sibling one is invisible to it — every utility used there would be dropped from the
+sheet, with the island rendering unstyled and nothing reporting why. Name the directory in the
+stylesheet:
 
 ```css
 @import "tailwindcss";
 @source "../../Shop.Web/Features/Islands";
 ```
+
+And name it again to the build, which cannot read that line:
+
+```xml
+<ItemGroup>
+  <RaskTailwindSource Include="../Shop.Web/Features/Islands/**/*.vue"/>
+</ItemGroup>
+```
+
+`@source` decides what Tailwind **scans**; `RaskTailwindSource` decides what the build **watches**. With
+only the first, the sheet is built from those files once and then never rebuilt when one changes — the
+same staleness as before, one project further out.
 
 > **A Lit island is the exception, and it is Lit's rule rather than Rask's.** A `LitElement` renders
 > into a shadow root, and page-level CSS does not cross that boundary — so the app's Tailwind sheet

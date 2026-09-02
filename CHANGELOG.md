@@ -58,9 +58,13 @@ them until tagged releases begin.
   CSS kept the previous utility, silently, until something unrelated forced a rebuild — the page renders
   and only the styling is a version behind.
 
-  An island whose files live in a *sibling* project needs `@source` in the stylesheet as well; that is a
-  path Tailwind cannot infer, and `docs/islands.md` says so. The showcase uses it, because its islands
-  live in the host apps while its stylesheet lives in the shared library.
+  An island whose files live in a *sibling* project needs **two** statements, not one, and they are
+  easy to mistake for each other. `@source` in the stylesheet decides what Tailwind SCANS; the new
+  `RaskTailwindSource` item decides what the build WATCHES. Naming a directory in only the first is the
+  same staleness one level out — it is scanned on a full build and never watched again — which is
+  exactly how the showcase was left when this was first written, and what the fix now covers. The
+  showcase needs both, because its islands live in the host apps while its stylesheet lives in the
+  shared library.
 
 
 - **Vue and Svelte join React and Lit as island runtimes.** An island is an ordinary Rask component

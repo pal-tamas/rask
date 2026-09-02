@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Examples.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -88,6 +89,30 @@ public sealed class IslandsExampleTests(ServerExampleAppFixture app, PlaywrightF
         // page would look any different — which is why it needs pinning in a browser.
         await Expect(Page.GetByTestId("meter-nudges")).ToHaveTextAsync("2");
         await Expect(Page.GetByTestId("react-total")).ToHaveTextAsync("1");
+    });
+
+    [Fact]
+    public Task EverySourceTabOnThePageActuallyOpens() => RunAsync(async () =>
+    {
+        // CodeSample reads only the ACTIVE tab's source, so a file listed in Files() but never embedded
+        // is an exception nothing notices until somebody clicks it — the first tab renders and the page
+        // looks perfect. That is exactly how a missing `.ts` in the embed glob shipped here: every other
+        // assertion in this class passed over a page whose Lit tab threw.
+        await Page.GotoAsync("/islands");
+
+        var tabs = Page.Locator(".sample-tab");
+        var count = await tabs.CountAsync();
+        Assert.True(count >= 5, $"expected the islands sample to list its sources, saw {count} tabs");
+
+        for (var i = 0; i < count; i++)
+        {
+            await tabs.Nth(i).ClickAsync();
+
+            // A tab whose source cannot be read throws inside the render, so the live update never
+            // lands and the clicked tab never becomes the active one. Asserting that is what makes this
+            // catch the unembedded file rather than merely exercising the click.
+            await Expect(tabs.Nth(i)).ToHaveClassAsync(new Regex("active"));
+        }
     });
 
     [Fact]

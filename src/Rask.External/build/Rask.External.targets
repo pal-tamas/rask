@@ -166,7 +166,7 @@
           DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles"
           Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'
                      AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')"
-          Inputs="@(IntermediateAssembly)"
+          Inputs="@(IntermediateAssembly);@(_RaskExternalFile)"
           Outputs="$(_RaskExternalObj)types.stamp">
     <WriteExternalPropTypesTask AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
                                 OutputDirectory="$(_RaskExternalTypes)"
