@@ -14,18 +14,36 @@ import type { AngularTickerProps } from '@rask/AngularTicker.props'
 @Component({
   selector: 'app-angular-ticker',
   standalone: true,
+  // Tailwind, like every other island here. Angular's own encapsulated styles would work too, but an
+  // island is an ordinary part of the page and should reach the same design system the C# markup
+  // around it uses.
   template: `
-    <div class="angular-ticker" data-testid="angular-ticker">
-      <div class="caption">{{ symbol }}</div>
-
-      <span class="quote">
-        quote <strong data-testid="angular-quote">{{ quote }}</strong>
+    <div class="flex flex-wrap items-center gap-3" data-testid="angular-ticker">
+      <span class="rounded bg-slate-800 px-2 py-1 font-mono text-xs text-white dark:bg-slate-200 dark:text-slate-900">
+        {{ symbol }}
       </span>
 
-      <button type="button" data-testid="angular-refresh" (click)="refresh()">refresh</button>
+      <span class="text-sm text-slate-500 dark:text-slate-400">
+        quote
+        <strong class="tabular-nums text-slate-900 dark:text-slate-100" data-testid="angular-quote">
+          {{ quote }}
+        </strong>
+      </span>
 
-      <span class="ticks">
-        ticks <strong data-testid="angular-ticks">{{ ticks }}</strong>
+      <button
+        type="button"
+        class="cursor-pointer rounded border border-slate-300 px-2 py-1 text-sm transition-colors hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
+        data-testid="angular-refresh"
+        (click)="refresh()"
+      >
+        refresh
+      </button>
+
+      <span class="text-sm text-slate-500 dark:text-slate-400">
+        ticks
+        <strong class="tabular-nums text-slate-900 dark:text-slate-100" data-testid="angular-ticks">
+          {{ ticks }}
+        </strong>
       </span>
     </div>
   `,
