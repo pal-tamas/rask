@@ -55,23 +55,6 @@ internal static class RepoPins
         return version!;
     }
 
-    /// <summary>An MSBuild property's default value, read from a shipped props or targets file.</summary>
-    /// <param name="relativePath">Repo-relative path, e.g. <c>src/Rask.Core/build/Rask.Core.targets</c>.</param>
-    /// <param name="property">The property's element name, e.g. <c>RaskTsgoVersion</c>.</param>
-    public static string MsBuildProperty(string relativePath, string property)
-    {
-        var path = Path.Combine(CliBuildE2E.FindRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));
-        var value = XDocument.Load(path)
-            .Descendants()
-            .FirstOrDefault(e => e.Name.LocalName == property)?.Value;
-
-        Assert.True(
-            value is not null,
-            $"<{property}> is no longer declared in {relativePath}.");
-
-        return value!.Trim();
-    }
-
     /// <summary>The whole text of a repo file, for the pins that live in shell, docs or C# rather than XML.</summary>
     public static string Text(string relativePath) =>
         File.ReadAllText(Path.Combine(

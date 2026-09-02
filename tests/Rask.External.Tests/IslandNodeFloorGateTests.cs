@@ -41,33 +41,73 @@ public sealed class IslandNodeFloorGateTests
     }
 
     /// <summary>The negative control: a satisfied floor is silent.</summary>
+    /// <remarks>
+    ///     A silent pass is also what a SKIPPED target looks like, so this asserts the probe actually ran
+    ///     rather than only that nothing complained. If the target's Condition ever stops holding for the
+    ///     throwaway project — the package.json gate moves, the <c>**/*.tsx</c> glob gains an Exclude —
+    ///     MSBuild exits 0 having done nothing and both of the other assertions here would still pass.
+    /// </remarks>
     [SkippableFact]
     public async Task A_node_above_the_floor_is_accepted()
     {
         Skip.If(await NodeVersion() is null, "node is not on PATH, so the floor gate was never exercised.");
 
-        var (exit, output) = await Probe("0.0.1");
+        var (exit, output) = await Probe("0.0.1", verbose: true);
 
         Assert.True(exit == 0, $"a Node above the islands floor was refused.\n{output}");
         Assert.DoesNotContain("RASKISLAND001", output, StringComparison.Ordinal);
+
+        Assert.Contains(
+            "_RaskExternalProbeNode",
+            output,
+            StringComparison.Ordinal);
     }
 
     /// <summary>
     ///     The shipped default accepts the Node this machine runs, so a developer who can build the repo
     ///     can build an island in it.
     /// </summary>
+    /// <remarks>
+    ///     The skip is measured against the SHIPPED floor, read from the props, not against a major
+    ///     written here. A literal `Major &lt; 22` would let a machine on 22.0–22.11 through the guard and
+    ///     then fail the assertion — reporting "the shipped floor refuses Node 22.5.0" as a defect when
+    ///     the floor is doing exactly its job. A test whose whole subject is "a copy of a number is a
+    ///     third place for it to be wrong" must not keep a copy of the number.
+    ///     <para>
+    ///         An unparseable version (a nightly, an RC) skips rather than throwing, because the probe
+    ///         itself deliberately lets those through — the test has to tolerate what production tolerates.
+    ///     </para>
+    /// </remarks>
     [SkippableFact]
     public async Task The_shipped_default_floor_accepts_the_current_lts()
     {
         var node = await NodeVersion();
         Skip.If(node is null, "node is not on PATH.");
+
+        var floor = ShippedFloor();
         Skip.If(
-            Version.Parse(node!).Major < 22,
-            $"this machine runs Node {node}, below every supported line; the default cannot be judged here.");
+            !Version.TryParse(node, out var running),
+            $"node reports '{node}', which the probe itself skips rather than comparing.");
+        Skip.If(
+            running < floor,
+            $"this machine runs Node {node}, below the shipped floor ({floor}); it cannot judge the default.");
 
         var (exit, output) = await Probe(minimum: null);
 
-        Assert.True(exit == 0, $"the shipped islands floor refuses Node {node}.\n{output}");
+        Assert.True(exit == 0, $"the shipped islands floor ({floor}) refuses Node {node}.\n{output}");
+    }
+
+    /// <summary>The floor <c>Rask.External.props</c> actually ships, read rather than restated.</summary>
+    private static Version ShippedFloor()
+    {
+        var props = File.ReadAllText(Path.Combine(
+            RepoRoot(), "src", "Rask.External", "build", "Rask.External.props"));
+
+        var declared = System.Text.RegularExpressions.Regex.Match(
+            props, @"<RaskExternalMinimumNode[^>]*>([0-9.]+)</RaskExternalMinimumNode>");
+
+        Assert.True(declared.Success, "RaskExternalMinimumNode is no longer declared in Rask.External.props.");
+        return Version.Parse(declared.Groups[1].Value);
     }
 
     /// <summary>
@@ -79,7 +119,7 @@ public sealed class IslandNodeFloorGateTests
     ///     glob). Both are written into the throwaway directory so the probe is reachable at all — without
     ///     them the target is skipped and every assertion above would pass by running nothing.
     /// </remarks>
-    private static async Task<(int Exit, string Output)> Probe(string? minimum)
+    private static async Task<(int Exit, string Output)> Probe(string? minimum, bool verbose = false)
     {
         var build = Path.Combine(RepoRoot(), "src", "Rask.External", "build");
         var temp = Path.Combine(Path.GetTempPath(), "rask-island-floor", Guid.NewGuid().ToString("N"));
@@ -101,7 +141,12 @@ public sealed class IslandNodeFloorGateTests
                  """);
 
             var floor = minimum is null ? string.Empty : $" -p:RaskExternalMinimumNode={minimum}";
-            return await Run("dotnet", $"msbuild \"{project}\" -t:_RaskExternalProbeNode -nologo{floor}", temp);
+
+            // Normal verbosity does not name the targets it ran, so the reachability assertion needs -v:n.
+            var verbosity = verbose ? " -v:n" : string.Empty;
+
+            return await Run(
+                "dotnet", $"msbuild \"{project}\" -t:_RaskExternalProbeNode -nologo{floor}{verbosity}", temp);
         }
         finally
         {
@@ -129,20 +174,33 @@ public sealed class IslandNodeFloorGateTests
         }
     }
 
+    /// <remarks>
+    ///     Both pipes are drained CONCURRENTLY — the reads are started and only awaited after the process
+    ///     exits. Awaiting stdout to completion first deadlocks whenever the child fills the stderr pipe
+    ///     buffer (~64 KB) while the parent is still blocked on stdout: the child blocks writing, never
+    ///     exits, and stdout never closes. `dotnet msbuild` on a cold agent — NuGet output, first-run
+    ///     messages, and the failing-build path this class exists to exercise — is exactly the shape that
+    ///     produces that much stderr. <c>NodeFloorGateTests.Run</c> does it this way for the same reason.
+    /// </remarks>
     private static async Task<(int Exit, string Output)> Run(string file, string arguments, string workingDirectory)
     {
-        using var process = Process.Start(new ProcessStartInfo(file, arguments)
+        using var process = new Process
         {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            WorkingDirectory = workingDirectory,
-        })!;
+            StartInfo = new ProcessStartInfo(file, arguments)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                WorkingDirectory = workingDirectory,
+            },
+        };
 
-        var stdout = await process.StandardOutput.ReadToEndAsync();
-        var stderr = await process.StandardError.ReadToEndAsync();
+        process.Start();
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
 
-        return (process.ExitCode, stdout + stderr);
+        return (process.ExitCode, await stdout + await stderr);
     }
 
     private static string RepoRoot()

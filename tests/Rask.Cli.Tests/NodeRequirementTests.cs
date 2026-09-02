@@ -157,15 +157,32 @@ public sealed class NodeRequirementTests
     {
         var docs = RepoPins.Text("docs/installation.md");
 
-        var tabled = Regex.Match(docs, @"RASK_INSTALL_NODE_MIN`\s*\|\s*`([0-9.]+)`");
-        Assert.True(tabled.Success, "docs/installation.md no longer tables the RASK_INSTALL_NODE_MIN default.");
+        // The defaults table has a column per platform — Unix and Windows — mirroring rask.sh and
+        // rask.ps1 respectively. Checking only the first would let a bump land in the Unix column, pass
+        // here and in both installer tests, and leave the Windows column of the docs lying.
+        var tabled = Regex.Match(
+            docs, @"RASK_INSTALL_NODE_MIN`\s*\|\s*`([0-9.]+)`\s*\|\s*`([0-9.]+)`");
+        Assert.True(tabled.Success, "docs/installation.md no longer tables the RASK_INSTALL_NODE_MIN defaults.");
         Assert.Equal(NodeRequirement.ScaffoldLine, Version.Parse(tabled.Groups[1].Value));
+        Assert.Equal(NodeRequirement.ScaffoldLine, Version.Parse(tabled.Groups[2].Value));
 
-        var summarised = Regex.Match(docs, @"Node (\d+) LTS");
-        Assert.True(summarised.Success, "docs/installation.md no longer names the Node LTS line it installs.");
+        // The sentence a reader actually consults, in the "what the installer does" table. Two
+        // components, not three — it names the line, not a patch.
+        var prose = Regex.Match(docs, @"`node --version` is ≥ (\d+)\.(\d+)");
+        Assert.True(prose.Success, "docs/installation.md no longer says which Node it leaves alone.");
+        Assert.Equal(NodeRequirement.ScaffoldLine.Major, int.Parse(prose.Groups[1].Value, CultureInfo.InvariantCulture));
+        Assert.Equal(NodeRequirement.ScaffoldLine.Minor, int.Parse(prose.Groups[2].Value, CultureInfo.InvariantCulture));
+
+        // Unanchored, so a second "Node NN LTS" added anywhere earlier would silently become the one
+        // under test. Assert there is exactly one before trusting it.
+        var summarised = Regex.Matches(docs, @"Node (\d+) LTS");
+        Assert.True(
+            summarised.Count == 1,
+            $"expected exactly one 'Node NN LTS' in docs/installation.md, found {summarised.Count} — "
+            + "this check reads the first match, so a second one makes it test the wrong line.");
         Assert.Equal(
             NodeRequirement.ScaffoldLine.Major,
-            int.Parse(summarised.Groups[1].Value, CultureInfo.InvariantCulture));
+            int.Parse(summarised[0].Groups[1].Value, CultureInfo.InvariantCulture));
     }
 
     private static string RepositoryRoot()

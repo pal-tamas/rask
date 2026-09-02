@@ -361,12 +361,13 @@
     The floor matches RaskSpaMinimumNode, and for the same reason: vite asks for
     `^20.19.0 || >=22.12.0`, and a numeric floor cannot express a disjoint range — a floor of 20.19.0
     would ACCEPT 21.x, which vite refuses. 22.12.0 is the lowest version that satisfies vite with no
-    hole beneath it. NodeFloorAgreementTests holds the two files to the same number.
+    hole beneath it. NodeRequirementTests.The_islands_floor_matches_the_spa_floor holds the two files to the
+    same number.
   -->
   <Target Name="_RaskExternalProbeNode"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">
     <Exec Command="node --version" ContinueOnError="true" IgnoreExitCode="true"
-          StandardOutputImportance="low" ConsoleToMSBuild="true">
+          StandardOutputImportance="low" StandardErrorImportance="low" ConsoleToMSBuild="true">
       <Output TaskParameter="ExitCode" PropertyName="_RaskExternalNodeExit"/>
       <Output TaskParameter="ConsoleOutput" PropertyName="_RaskExternalNodeVersion"/>
     </Exec>

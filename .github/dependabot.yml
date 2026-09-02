@@ -63,7 +63,7 @@ updates:
         patterns:
           - "SQLitePCLRaw.*"
 
-  # GitHub Actions used by commitlint.yml / release.yml / nightly.yml / pages.yml
+  # GitHub Actions used by commitlint.yml / release.yml / nightly.yml / pages.yml / lts-watch.yml
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

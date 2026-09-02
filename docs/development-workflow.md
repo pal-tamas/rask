@@ -316,14 +316,25 @@ for every downstream consumer.
 scaffold line (`NodeRequirement.ScaffoldLine`), and the npm caret ranges the SPA templates write. The
 `check-dependency-updates` skill walks all of them.
 
-**What keeps the copies honest.** A version stated twice is a version that can drift, so each pair is
-asserted by an offline unit test rather than by a comment: `NodeRequirementTests` (the scaffold line
-vs. `rask.sh`, `rask.ps1` and the docs; the two build floors), `PackagePinFamilyTests` (the Spectre
-and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach
-the patched SQLitePCLRaw), `TailwindVersionPinTests`, and
-`ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin`. They need no network and run
-in the ordinary unit gate — which `pre-commit` already triggers for any `Directory.` path, so the gate
-that fires for a version bump is the one that checks the bump was complete.
+**What keeps the copies honest.** A version stated twice is a version that can drift, so the pairs that
+matter most are asserted by an offline unit test rather than by a comment:
+
+| Test | Holds together |
+| --- | --- |
+| `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary); and the two build floors, `RaskSpaMinimumNode` vs. `RaskExternalMinimumNode` |
+| `PackagePinFamilyTests` | the Spectre and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach the patched SQLitePCLRaw |
+| `TailwindVersionPinTests` | `RaskTailwindVersion` vs. the SPA templates' caret range |
+| `ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin` | the WASM scaffold's framework version vs. `Directory.Packages.props` |
+| `TypeScriptCompilesTests`, `ResolveTypeScriptToolTaskTests` | read `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
+
+They need no network and run in the ordinary unit gate — which `pre-commit` already triggers for any
+`Directory.` path, so the gate that fires for a version bump is the one that checks it was complete.
+
+**Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
+line elsewhere — `docs/spa.md`'s "Active LTS (24 'Krypton')", the `22.12` build-floor figures quoted in
+`docs/spa.md` and `docs/islands.md`, and the codename in `NodeRequirement`'s own doc comment — are
+still only prose. `lts-watch.yml`'s issue lists the files to change; treat that list, not this table, as
+the checklist when the line moves.
 
 **Landing a Dependabot PR.** Merge it locally, not from the web UI. Dependabot authors server-side, so
 its PRs never touch `.githooks/`, and `main` has no required checks — a web merge is a version change

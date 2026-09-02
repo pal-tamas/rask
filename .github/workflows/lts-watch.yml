@@ -2,8 +2,10 @@ name: lts-watch
 
 # Notice when Node's Active LTS line moves past the one this repo states, and open an issue saying so.
 #
-# This is NOT a gate. It cannot go red on a branch, it is not a required check, and its worst failure
-# is a notification that does not arrive — which is exactly today's behaviour. That shape is
+# This is NOT a gate. It cannot go red on a branch and it is not a required check. A nodejs.org outage
+# warns and stops rather than opening a bogus issue; the one case that does fail the run is
+# ScaffoldLine having become unreadable, which means the repo changed shape and the watcher is now
+# lying by staying green. That shape is
 # deliberate: docs/repo-administration.md records why main has no required checks (#919, a gate that
 # rode red through three merges), and a job that reaches the network to decide pass/fail would be the
 # same mistake wearing a different hat.
@@ -33,6 +35,10 @@ jobs:
         id: compare
         env:
           NODE_DIST: https://nodejs.org/dist
+        # Do NOT add `shell: bash` to this step. That switches GitHub's default `bash -e {0}` to
+        # `bash -eo pipefail`, and rask_node_lts_version is a `tr | grep | head -n1 | sed` pipeline whose
+        # own comment notes that `head` closing the pipe early is harmless — under pipefail that SIGPIPE
+        # becomes exit 141 and fails the step.
         run: |
           set -eu
 
@@ -106,10 +112,18 @@ jobs:
           `ScaffoldLine` is the source of truth. Raise it, then run the unit gate — the tests name
           every other file that has to follow, so this is one edit plus whatever they report:
 
+          **Held by a test** — change `ScaffoldLine`, run the unit gate, and it names the rest:
+
           - `src/Rask.Cli/NodeRequirement.cs` — `ScaffoldLine`
           - `rask.sh` / `rask.ps1` — `RASK_INSTALL_NODE_MIN` / `$NodeMin`
+          - `docs/installation.md` — both columns of the defaults table, the `≥ NN.NN` sentence, and the
+            "Node NN LTS" summary
           - `src/Rask.Cli/Scaffolding/ProjectGenerator.Spa.cs` — the Dockerfile's `setup_NN.x`
-          - `docs/installation.md` — the defaults table and the "Node NN LTS" summary
+
+          **Held by nothing — check these by hand:**
+
+          - `src/Rask.Cli/NodeRequirement.cs` — the codename in the `ScaffoldLine` doc comment
+          - `docs/spa.md` — "the current Active LTS (NN 'Codename')"
           - `tests/Rask.Cli.Tests/DoctorDependencyTests.cs` — the faked versions in the doctor cases
           - `scripts/tests/install-script.test.sh` — the version literals it checks the floor with
 
@@ -129,10 +143,23 @@ jobs:
           sed "s/__ACTUAL__/$ACTUAL/g; s/__STATED__/$STATED/g" \
             /tmp/lts-body.template > /tmp/lts-body.md
 
-          # Match on the EXACT title so a second run updates rather than duplicates. Compared in awk
-          # rather than inside --jq, so the title never has to survive a round of shell quoting.
-          existing="$(gh issue list --state open --limit 100 --json number,title \
-            --jq '.[] | "\(.number)\t\(.title)"' \
+          # Search server-side by title, so this does not depend on the issue being inside the first
+          # page of an unfiltered list. `--state all`, not `--state open`: someone closing the issue
+          # without bumping must not cause a fresh duplicate every month — reopening the same thread is
+          # the honest behaviour.
+          #
+          # The gh call is captured on its own line first. Piping it straight into awk would hand the
+          # pipeline awk's exit status (the default GHA shell is `bash -e {0}`, without pipefail), so a
+          # transient API failure would read as "no existing issue" and open a duplicate.
+          if ! listed="$(gh issue list --state all --limit 100 --search "in:title \"$TITLE\"" \
+              --json number,title)"; then
+            echo "::warning::Could not list issues; skipping rather than risking a duplicate."
+            exit 0
+          fi
+
+          # Compared in awk rather than inside --jq, so the title never has to survive shell quoting.
+          existing="$(printf '%s' "$listed" \
+            | jq -r '.[] | "\(.number)\t\(.title)"' \
             | awk -F'\t' -v want="$TITLE" '$2 == want { print $1; exit }')"
 
           if [ -n "$existing" ]; then
