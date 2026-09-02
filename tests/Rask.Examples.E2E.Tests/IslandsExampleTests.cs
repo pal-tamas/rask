@@ -34,8 +34,10 @@ public sealed class IslandsExampleTests(ServerExampleAppFixture app, PlaywrightF
         await Expect(Page.GetByTestId("lit-badge")).ToBeVisibleAsync();
 
         // The props crossed as JSON and arrived as data: the Vue chart drew one bar per C# record.
-        await Expect(Page.Locator("[data-testid=vue-chart] .bar")).ToHaveCountAsync(4);
-        await Expect(Page.Locator("[data-testid=vue-chart] .bar[data-label=Jan]")).ToHaveCountAsync(1);
+        // Selected by data-label rather than by a class — the classes here are Tailwind utilities and
+        // are free to change with the styling; the attribute is what the props actually produced.
+        await Expect(Page.Locator("[data-testid=vue-chart] button[data-label]")).ToHaveCountAsync(4);
+        await Expect(Page.Locator("[data-testid=vue-chart] button[data-label=Jan]")).ToHaveCountAsync(1);
 
         // Lit assigns props as PROPERTIES rather than attributes; an attribute would have stringified
         // the number and shown "[object Object]" for anything richer.
@@ -52,7 +54,7 @@ public sealed class IslandsExampleTests(ServerExampleAppFixture app, PlaywrightF
 
         // The click happens inside Vue's own subtree, on a node Rask never rendered. It reaches C#
         // through the same WebSocket every DOM handler uses — the island opens no channel of its own.
-        await Page.Locator("[data-testid=vue-chart] .bar[data-label=Apr]").ClickAsync();
+        await Page.Locator("[data-testid=vue-chart] button[data-label=Apr]").ClickAsync();
 
         await Expect(Page.Locator("#island-last-clicked")).ToHaveTextAsync("82");
         await Expect(Page.Locator("#island-clicks")).ToHaveTextAsync("1");

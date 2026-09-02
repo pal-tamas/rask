@@ -2,6 +2,9 @@ using Rask.External.Generated;
 
 namespace Rask.External.Tests;
 
+/// <summary>An island that declares nothing at all — the empty end of the props range.</summary>
+public sealed partial class Bare : ReactComponent;
+
 // The typed boundary, which is the whole differentiator: every islands implementation can embed
 // React, but this is the one where renaming a C# property stops the front end compiling.
 //
@@ -80,7 +83,7 @@ public class GeneratedPropTypesTests
     {
         // So the .tsx can import the same name whatever the component declares, and adding the first
         // prop is not also a change of import.
-        Assert.Contains("export interface PanelProps {", RaskExternalGeneratedTypeScript.Panel,
+        Assert.Contains("export interface BareProps {", RaskExternalGeneratedTypeScript.Bare,
             StringComparison.Ordinal);
     }
 

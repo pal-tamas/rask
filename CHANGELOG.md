@@ -7,7 +7,38 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+
+- **An island no longer takes children.** `ExternalSlot`, `ExternalSlots`, the
+  `<template data-rask-slot>` emission, the client runtime's slot lifting and the `adopt()` code in
+  every adapter are gone; `RenderChildren()` returns nothing and an island is strictly a leaf.
+
+  This is a breaking removal of API that shipped with islands, and the reason is the one the feature
+  documented against itself from the start. An island's subtree belongs to another renderer — that is
+  what the diff boundary *is* — so Rask-rendered content handed inside one stays content Rask owns and
+  updates in nodes it can no longer address: the diff reaches DOM by `childNodes` index from the
+  document, and every path it holds is wrong the moment the adapter relocates those nodes. Slot content
+  was therefore placed once, at mount, and silently stopped tracking its source. "Children that quietly
+  go stale" is worse to offer than no children, so the answer is to compose the other way round — the
+  island goes inside the Rask markup, and anything it must show crosses as a prop, where a change is a
+  reconcile and keeps working.
+
 ### Added
+
+- **Tailwind reaches inside an island.** A utility written in a `.vue`, `.tsx` or `.svelte` now
+  survives into the emitted stylesheet, and editing one rebuilds it.
+
+  Tailwind v4 was already *scanning* those files — it detects sources from the project it runs in, and
+  a single-file component is an ordinary source to it — so a clean build looked right. What was missing
+  is the other half: the build's up-to-date check listed only `.cs`, `.razor` and `.html`, so a file
+  that was scanned but not listed was one whose EDIT did not rebuild. Change a class in a `.vue` and the
+  CSS kept the previous utility, silently, until something unrelated forced a rebuild — the page renders
+  and only the styling is a version behind.
+
+  An island whose files live in a *sibling* project needs `@source` in the stylesheet as well; that is a
+  path Tailwind cannot infer, and `docs/islands.md` says so. The showcase uses it, because its islands
+  live in the host apps while its stylesheet lives in the shared library.
+
 
 - **Vue and Svelte join React and Lit as island runtimes.** An island is an ordinary Rask component
   whose markup a front-end framework produces, and it now covers four of them: derive from

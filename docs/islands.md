@@ -265,42 +265,55 @@ Chart.Series(_points).Hydration(ExternalHydration.Visible)
 | `Visible` | On `IntersectionObserver` — the chunk is not even **fetched** until the component is scrolled to. |
 | `None` | Never. Server markup only, and no JavaScript is requested at all. |
 
-## Slots
+## An island is a leaf
 
-An island can wrap Rask-rendered content, so replacing a component in the middle of a tree does not
-strand its descendants:
+An island takes **props, and nothing else**. There is no way to nest Rask-rendered content inside one,
+and that is a decision rather than a gap.
+
+Its subtree belongs to another renderer — that is exactly what the diff boundary says. Content Rask
+rendered and then handed over would still be content Rask owns and updates, in nodes it can no longer
+address: the diff reaches DOM nodes by `childNodes` index from the document, so every path it holds
+into them is wrong the moment the adapter moves them. The honest version of that feature needs updates
+addressed by marker rather than by path, and until it exists, "children that silently stop updating"
+is a worse thing to offer than no children at all.
+
+So compose the other way round — put the island *inside* the Rask markup, not the markup inside the
+island:
 
 ```csharp
-Panel.Heading("Sales")[
-    ExternalSlot.Named("footer")[ BsButton["Save"] ],
-    Table.Rows(_rows),                              // the default slot
+BsCard[
+    H2["Revenue"],
+    Chart.Series(_points),      // the island, as a leaf
+    Table.Rows(_rows),          // still Rask's, still updating
 ]
 ```
 
-Anything not assigned to a named slot goes to `default`, which the front end receives as `children`:
+Anything the island needs to display goes across as a prop, where a change is a reconcile and keeps
+working.
 
-```tsx
-export default function Panel({ heading, children, footer }: PanelProps) {
-  return <section><h2>{heading}</h2>{children}<footer>{footer}</footer></section>
-}
+## Tailwind
+
+A utility written inside an island works like any other. Tailwind v4 detects sources from the project
+it runs in, and a `.vue`, `.tsx` or `.svelte` is an ordinary source to it, so an island in the same
+project as your stylesheet needs nothing:
+
+```vue
+<div class="flex h-32 items-end gap-2">
 ```
 
-It is called `ExternalSlot`, not `Slot`, because `Slot` is already the HTML `<slot>` element in
-`Rask.Html.Components` and a colliding name does not compile.
+**An island in a different project needs `@source`.** Tailwind scans one project; a front-end file in
+a sibling one is invisible to it, and every utility used there would be dropped from the sheet with
+the island rendering unstyled and nothing reporting why. Name the directory:
 
-**How the content travels.** The server renders each slot into an inert
-`<template data-rask-slot="…">`, so Rask-owned nodes cannot flash on screen between first paint and
-the component mounting. On mount the client lifts each template into a fragment, removes it, and hands
-it to the adapter — which decides where its framework wants the nodes. React renders an empty
-container and adopts into it via a ref, so React has no children to reconcile there. Lit needs no
-trick at all: a custom element projects its light-DOM children through `<slot>` natively.
+```css
+@import "tailwindcss";
+@source "../../Shop.Web/Features/Islands";
+```
 
-> **Slot content is placed once, at mount.** If the C# that produced it re-renders, the component keeps
-> showing what it was given. That is the genuinely hard half: the diff addresses DOM nodes by
-> `childNodes` index from the document, so once an adapter has moved slot nodes into its own tree,
-> every path Rask holds into them is wrong. Making it live needs slot updates addressed by marker
-> rather than by path — a subtree morph scoped to `[data-rask-slot]` — which is not built yet. Until
-> then, prefer props for anything that changes, and slots for structure that does not.
+> **A Lit island is the exception, and it is Lit's rule rather than Rask's.** A `LitElement` renders
+> into a shadow root, and page-level CSS does not cross that boundary — so the app's Tailwind sheet
+> cannot reach inside one. Style it with Lit's own `static styles`, or render to light DOM by
+> overriding `createRenderRoot()`.
 
 ## The diff boundary
 
@@ -429,9 +442,8 @@ socket; nothing in the front-end file knows which.
 
 ## What is not here yet
 
-- **Live slot updates.** Slot content is placed once, at mount. When the C# that produced it
-  re-renders, the component does not yet see the new content — see [Slots](#slots) for why that is the
-  hard half.
+- **Children inside an island.** An island is a leaf; see [An island is a leaf](#an-island-is-a-leaf)
+  for why, and what would have to be built first.
 - **Angular.** The adapter seam is three functions wide and the client runtime imports no framework, so
   it is additive the way Vue and Svelte were. Angular is viable through standalone components plus
   `createApplication()`, which needs no root component and no NgModule; its build is the real cost,

@@ -118,14 +118,25 @@ public abstract partial class ExternalComponent : Component
     /// </remarks>
     protected sealed override Component? Render() => null;
 
-    /// <summary>Groups children into the slot templates the adapter mounts them from.</summary>
+    /// <summary>Nothing. An island is a LEAF: its subtree is created in the browser.</summary>
     /// <remarks>
-    ///     Reached because an opaque component takes the serializer's virtual children walk rather than
-    ///     its <c>ChildrenArray</c> fast path — that path skips <c>RenderChildren</c> entirely, and the
-    ///     indexer produces exactly the array it fast-paths on.
+    ///     <para>
+    ///         Children are deliberately not a thing an island has. Its whole subtree belongs to
+    ///         another renderer — that is what the diff boundary says — so Rask-rendered content placed
+    ///         inside one would be content Rask owns, updates, and cannot address once the adapter has
+    ///         moved it: the diff reaches DOM nodes by <c>childNodes</c> index from the document, and
+    ///         every path it holds into those nodes is wrong the moment they are relocated.
+    ///     </para>
+    ///     <para>
+    ///         Pass data instead. Props cross as JSON and a change to one is a reconcile, which is the
+    ///         thing that actually works.
+    ///     </para>
+    ///     <para>
+    ///         Reached because an opaque component takes the serializer's virtual children walk rather
+    ///         than its <c>ChildrenArray</c> fast path.
+    ///     </para>
     /// </remarks>
-    protected sealed override IEnumerable<Component?> RenderChildren() =>
-        ExternalSlots.Wrap(Children);
+    protected sealed override IEnumerable<Component?> RenderChildren() => [];
 
     /// <summary>The props, as the JSON the client runtime hands to the adapter. Generated.</summary>
     protected abstract string WriteProps();
