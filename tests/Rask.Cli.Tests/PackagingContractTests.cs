@@ -36,6 +36,97 @@ public sealed class PackagingContractTests
     public static TheoryData<string> HostPackages() => new() { "Rask.Server", "Rask.Wasm" };
 
     [Fact]
+    public void Every_generator_assembly_is_packed_by_someone()
+    {
+        // A generator that no package ships reaches no consumer. The in-repo build hides this
+        // completely: every project and test that wants one names it as an explicit
+        // OutputItemType="Analyzer" ProjectReference, and analyzers do NOT flow through a
+        // ProjectReference — so the generator runs everywhere in this repo and nowhere outside it.
+        //
+        // Rask.Api shipped exactly that: hosting with no typed client, green across the whole solution,
+        // caught only by a browser-rung publish that restored the real package 95 seconds in.
+        //
+        // Deliberately NOT "a project referencing an analyzer must pack it" — 17 projects reference one
+        // without packing it, correctly, because they receive it transitively through a package
+        // dependency or through RaskAnalyzerPack.targets. The invariant is about the generator, not
+        // about its consumers.
+        var packed = new List<string>();
+
+        foreach (var file in Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories)
+                     .Concat(Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.targets", SearchOption.AllDirectories)))
+        {
+            var doc = TryLoad(file);
+
+            if (doc is null)
+            {
+                continue;
+            }
+
+            packed.AddRange(doc.Descendants("None")
+                .Where(n => n.Attribute("PackagePath")?.Value.Replace('\\', '/')
+                    .StartsWith("analyzers/", StringComparison.OrdinalIgnoreCase) == true)
+                .Select(n => n.Attribute("Include")?.Value ?? string.Empty));
+        }
+
+        var orphans = SourceProjects()
+            .Where(p => p.Key.EndsWith(".Generators", StringComparison.Ordinal)
+                || p.Key.EndsWith(".CodeFixes", StringComparison.Ordinal))
+            .Where(p => !packed.Any(include =>
+                include.Replace('\\', '/').EndsWith("/" + p.Key + ".dll", StringComparison.Ordinal)))
+            .Select(p => p.Key)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            orphans.Count == 0,
+            "These generator assemblies are packed by no package, so a consumer restoring from NuGet "
+            + "gets the runtime with none of the code generation — invisible in-repo, because a "
+            + "ProjectReference hands the analyzer over and a package dependency is the only thing that "
+            + "does so for real consumers:\n  " + string.Join("\n  ", orphans));
+    }
+
+    [Fact]
+    public void Every_file_a_project_packs_by_name_exists()
+    {
+        // NU5019 is a PACK-time error, so a csproj naming a file it does not have builds, tests and
+        // runs perfectly — and then fails the one gate that packs, minutes into a publish, with a path
+        // rather than an explanation. Rask.Api.Client shipped exactly that: the readme-pack block was
+        // copied in and the NUGET.md was never written.
+        //
+        // Only literal Includes are checked. A glob that matches nothing is a different (and quieter)
+        // failure, already guarded for the analyzer payload by the _RaskVerify…Packed targets.
+        var offenders = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (var (name, path) in SourceProjects())
+        {
+            var directory = Path.GetDirectoryName(path)!;
+
+            foreach (var none in XDocument.Load(path).Descendants("None"))
+            {
+                var include = none.Attribute("Include")?.Value;
+
+                if (include is null ||
+                    none.Attribute("Pack")?.Value.Equals("true", StringComparison.OrdinalIgnoreCase) != true ||
+                    include.Contains('*', StringComparison.Ordinal) ||
+                    include.Contains('$', StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!File.Exists(Path.Combine(directory, include.Replace('\\', Path.DirectorySeparatorChar))))
+                {
+                    offenders.Add($"{name} packs '{include}', which does not exist");
+                }
+            }
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "These projects name a file to pack that is not on disk, so `dotnet pack` fails NU5019 — "
+            + "invisible to build and test:\n  " + string.Join("\n  ", offenders));
+    }
+
+    [Fact]
     public void The_local_feed_carries_what_its_own_packages_depend_on()
     {
         // A packable ProjectReference becomes a real <dependency> in the nuspec, so a package in the

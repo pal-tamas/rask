@@ -109,6 +109,29 @@ nothing checks them against the server. Rename the route on the controller and t
 The codecs are the reflection-free ones the CQRS wire uses, so a shape means the same thing on either,
 and the client publishes clean under the WASM/AOT trimmer.
 
+### In a one-project `--wasm` app
+
+The client reaches the browser bundle on its own. That is worth spelling out, because the controller it
+was generated from cannot: `Server/` is excluded from the bundle by design, so the generator running in
+the browser half would see no controllers at all.
+
+What crosses instead is the **file** the server's own generator wrote. `EmitCompilerGeneratedFiles`
+puts it on disk, and the companion project compiles that exact file — so the two halves cannot disagree
+about the client, because there is only one of it. The client runtime (`Rask.Api.Client`) is added to
+the companion automatically when that file exists; you do not declare it twice.
+
+Deliberately unlike [`Rask.Cqrs.Client`](cqrs.md), which must be kept *out* of the server: that split
+exists because `AddRaskCqrsClient()` rewrites a process-wide registry, so a server holding it would
+bounce its own messages straight back out. A typed API client has no such property — it dials routes
+that are public anyway — and the server half genuinely needs it, since a component that calls its API
+renders on both.
+
+> **The shapes that cross the wire live outside `Server/`.** A request or response type declared
+> *inside* `Server/` is invisible to the bundle, so the generated client returns a type the browser half
+> cannot compile — and you meet it as `CS0246` inside generated code you never wrote. Same rule as a
+> CQRS message record: the **handler** is server-only, the **shape** is shared. In practice: keep
+> `Post`, `NewPost` and friends beside your components, and only `PostsController` under `Server/`.
+
 ### Failures
 
 A call that does not succeed throws `ApiException`. `StatusCode` is `null` when the request never

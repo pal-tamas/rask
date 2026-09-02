@@ -34,6 +34,8 @@ internal static class CliBuildE2E
         "Rask.Wasm.Hosting",                // the --wasm one-project build
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Wire",                        // Rask.Cqrs depends on it: the wire primitives its codecs call
+        "Rask.Api",                         // API hosting + the client generator (server half)
+        "Rask.Api.Client",                  // the runtime the generated client calls, on both halves
         "Rask.Query",                       // wired by default wherever --cqrs is
         "Rask.Cqrs.Client",                 // --wasm --cqrs: the browser half of remote dispatch
         "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half

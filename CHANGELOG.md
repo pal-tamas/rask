@@ -43,6 +43,30 @@ them until tagged releases begin.
   type. Without that, the entire style Microsoft recommends for minimal APIs would have reported as
   having no statically known response type and got no client at all.
 
+  **The client reaches the WASM bundle on its own.** A controller lives under `Server/`, which the
+  browser companion does not compile — so a generator running in the browser half sees no controllers at
+  all. What crosses instead is the *file* the server's generator wrote: `EmitCompilerGeneratedFiles`
+  puts it on disk and the companion compiles that exact file, so the two halves cannot disagree about
+  the client because there is only one of it. `Rask.Api.Client` is added to the companion automatically
+  when that file exists.
+
+  Not the shape `Rask.Cqrs` uses for its TypeScript, deliberately: there the text has to travel as a
+  string constant inside the assembly because a `.ts` cannot be compiled into one, and a task lifts it
+  back out of the PE metadata. C# needs none of that — no task assembly, no escaping, no copy of the
+  client embedded in every server assembly forever, and no staleness, since the file is an output of
+  `CoreCompile`.
+
+  Nor is it the `Rask.Cqrs.Client` split, and for a reason worth stating: that split exists because
+  `AddRaskCqrsClient()` rewrites a process-wide registry, so a server holding it bounces its own
+  messages back out. A typed API client has no such property — it dials routes that are public anyway —
+  and the server half genuinely needs it, since a component that calls its API renders on both.
+
+  One rule this makes real: **the shapes that cross the wire live outside `Server/`**, exactly as a CQRS
+  message record does. A response type declared inside `Server/` is invisible to the bundle, and the
+  author meets it as `CS0246` inside generated code they never wrote. Documented, and pinned by
+  `The_bundle_can_call_an_API_controller_that_only_the_server_compiles` — a real `--wasm` publish, which
+  is the only thing that can tell.
+
   Four diagnostics, RASK067–RASK070: no wire encoding, endpoint skipped (with the reason — a silent
   skip reads as a broken generator), two endpoints claiming one client method, and a response type that
   is not statically known. They are RASK067–070 rather than the 061–064 first written, because those
@@ -93,6 +117,21 @@ them until tagged releases begin.
   `The_local_feed_carries_what_its_own_packages_depend_on` now answers the same question from the
   csproj graph in milliseconds, naming the missing package and what depends on it. Verified by
   deleting the entry and watching it go red — a guard that has never failed is not known to work.
+
+- **Two more pack-time-only failures now fail fast.** Both were found by the browser-rung publish gate,
+  minutes in, and both were invisible to `dotnet build` and to all 6,700 unit tests:
+
+  `Rask.Api` **shipped no generator at all** — a consumer would have installed it, followed the docs and
+  got hosting with no typed client. Every in-repo test passed because they name the generator as an
+  explicit `OutputItemType="Analyzer"` ProjectReference, and analyzers do **not** flow through one; a
+  package dependency is the only thing that carries them to a real consumer.
+  `Every_generator_assembly_is_packed_by_someone` now asserts each `*.Generators`/`*.CodeFixes` assembly
+  is packed by *some* package. Deliberately not "a project referencing an analyzer must pack it" — 17
+  projects correctly do the opposite, receiving it transitively.
+
+  `Rask.Api.Client` named a `NUGET.md` it did not have, which is `NU5019` at pack time and silence
+  everywhere else. `Every_file_a_project_packs_by_name_exists` checks every literal `Pack="true"`
+  include against disk, and reports *"Rask.Api.Client packs 'NUGET.md', which does not exist"* in 81ms.
 
 ### Fixed
 
