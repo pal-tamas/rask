@@ -45,6 +45,13 @@ them until tagged releases begin.
   `globals.ts` is excluded from that copy: it exists for .NET's dotted identifiers and a front end has
   no use for it. See [TypeScript front ends → Browser APIs](docs/spa.md#browser-apis).
 
+  The [capability matrix](docs/browser-capabilities.md) gains a third column, because a React developer
+  reading two columns of C# interfaces would reasonably conclude none of it was theirs. Each row now
+  says either the module to import or "the platform" — and the notes say why the 🟡 and ⬜ rows are not
+  restrictions there: those are properties of the SERVER transport, which loses transient user
+  activation over a round trip, so a TypeScript front end calling inside the click's own stack has the
+  complete surface.
+
 ### Fixed
 
 - **A hosted Blazor component's `[Inject]` never ran, so every injected service was silently null
