@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Live;
+using Web = Microsoft.AspNetCore.Components.Web;
 
 namespace Rask.Blazor;
 
@@ -39,9 +41,26 @@ namespace Rask.Blazor;
 ///         <c>BsCard[ Chart.Series(points) ]</c> — rather than to inherit both.
 ///     </para>
 /// </remarks>
-public abstract partial class BlazorComponent<TComponent> : Component
+public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(HostedMembers)] TComponent> : Component
     where TComponent : IComponent, new()
 {
+    /// <summary>
+    ///     What the trimmer must keep on the hosted component, and why it is not optional.
+    /// </summary>
+    /// <remarks>
+    ///     Blazor assigns a hosted component's parameters through
+    ///     <c>ParameterView.SetParameterProperties</c>, which reflects over its public properties —
+    ///     inside <c>Microsoft.AspNetCore.Components</c>, on a type this package does not own. So under
+    ///     <c>PublishTrimmed</c>, which is a WASM app's default, the trimmer removes the very setters
+    ///     the renderer is about to call and the island renders EMPTY: no analyser warning (there is
+    ///     nothing in this assembly for it to point at), no exception, nothing in the console, and a
+    ///     green build. Annotating the type parameter states the requirement in the one place that
+    ///     knows the concrete type — the island's own declaration — so the trimmer keeps those
+    ///     properties in whatever assembly the component lives in.
+    /// </remarks>
+    private const DynamicallyAccessedMemberTypes HostedMembers =
+        DynamicallyAccessedMemberTypes.PublicProperties;
+
     private BlazorIslandRenderer? _renderer;
     private TComponent? _instance;
     private int _componentId = -1;
@@ -262,15 +281,58 @@ public abstract partial class BlazorComponent<TComponent> : Component
         // bare EventArgs and cast-fail at the worst moment.
         try
         {
-            var type = renderer.ArgsTypeFor(handlerId);
-            return type == typeof(EventArgs)
-                ? EventArgs.Empty
-                : (EventArgs)Activator.CreateInstance(type)!;
+            return Empty(renderer.ArgsTypeFor(handlerId));
         }
         catch (Exception)
         {
             return EventArgs.Empty;
         }
+    }
+
+    /// <summary>An empty instance of the event-args type Blazor asked for.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         A switch over the closed set <c>Microsoft.AspNetCore.Components.Web</c> defines, rather
+    ///         than <c>Activator.CreateInstance(type)</c>. The activator form is IL2072 under the trim
+    ///         analyser — <c>GetEventArgsType</c> returns a bare <see cref="Type" /> with no
+    ///         <c>DynamicallyAccessedMembers</c> annotation to promise a constructor survives — and
+    ///         the warning is not pedantry: a WASM app publishes trimmed by default, and the removed
+    ///         constructor would surface as a <c>MissingMethodException</c> on the first click rather
+    ///         than at build time.
+    ///     </para>
+    ///     <para>
+    ///         Naming each type here also ROOTS it, which is what keeps the cast on the other side
+    ///         (a component's <c>@onclick="e => e.ClientX"</c>) working in a trimmed app.
+    ///     </para>
+    /// </remarks>
+    private static EventArgs Empty(Type type)
+    {
+        if (type == typeof(EventArgs))
+        {
+            return EventArgs.Empty;
+        }
+
+        // Exact type equality, never `is`: PointerEventArgs derives from MouseEventArgs, and a
+        // subtype test would hand a handler expecting the derived one an instance of its base. That
+        // also makes the order below presentation only.
+        return type switch
+        {
+            _ when type == typeof(ChangeEventArgs) => new ChangeEventArgs(),
+            _ when type == typeof(Web.ClipboardEventArgs) => new Web.ClipboardEventArgs(),
+            _ when type == typeof(Web.DragEventArgs) => new Web.DragEventArgs(),
+            _ when type == typeof(Web.ErrorEventArgs) => new Web.ErrorEventArgs(),
+            _ when type == typeof(Web.FocusEventArgs) => new Web.FocusEventArgs(),
+            _ when type == typeof(Web.KeyboardEventArgs) => new Web.KeyboardEventArgs(),
+            _ when type == typeof(Web.WheelEventArgs) => new Web.WheelEventArgs(),
+            _ when type == typeof(Web.PointerEventArgs) => new Web.PointerEventArgs(),
+            _ when type == typeof(Web.MouseEventArgs) => new Web.MouseEventArgs(),
+            _ when type == typeof(Web.ProgressEventArgs) => new Web.ProgressEventArgs(),
+            _ when type == typeof(Web.TouchEventArgs) => new Web.TouchEventArgs(),
+            // A type outside the set above is one this package does not know how to build without
+            // reflection. An empty base is what the handler gets, which is what it got before any of
+            // the web event args existed — never a crash on the click.
+            _ => EventArgs.Empty,
+        };
     }
 
     /// <summary>Releases the hosted component and its renderer.</summary>

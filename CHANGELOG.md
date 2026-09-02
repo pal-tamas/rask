@@ -7,6 +7,44 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
+  claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,
+  no publish, no browser. Hosting one in a real WASM app found three separate failures on the way to
+  a working page.
+
+  The one that matters is silent. `ParameterView.SetParameterProperties` assigns a hosted component's
+  parameters by reflecting over its public properties, inside `Microsoft.AspNetCore.Components`, on a
+  type Rask does not own — so with `PublishTrimmed` (a WASM app's default) the trimmer removes the
+  setters and the island renders as an empty `<rask-blazor>` element. There is **no** trim-analyser
+  warning, because the reflection is in another assembly; no exception; nothing in the console; and
+  the page around the island renders perfectly. `BlazorComponent<TComponent>` now annotates its type
+  parameter `[DynamicallyAccessedMembers(PublicProperties)]`, which states the requirement where the
+  concrete type is known — the island's own declaration — so the trimmer keeps those properties in
+  whatever assembly the component lives in. Nothing to configure, and
+  `docs/blazor-components.md` no longer tells WASM apps to publish untrimmed.
+
+  The other two stopped the build outright, in the consuming app rather than here, because a WASM app
+  publishes trimmed under warnings-as-errors: `Activator.CreateInstance` over the type
+  `GetEventArgsType` hands back is IL2072 (now a switch over the closed set
+  `Microsoft.AspNetCore.Components.Web` defines, which also ROOTS those types so a handler reading
+  `e.ClientX` keeps working), and `RaskBlazorJSRuntime.InvokeAsync<TValue>` dropped the
+  `DynamicallyAccessedMembers` its interface declares, which is IL2095 — for a method that only ever
+  throws.
+
+  Gated three ways now, because the failure mode is invisible to any one of them: the WASM showcase
+  hosts a real `.razor` (from the new `samples/Rask.Example.Razor` class library) on its **Blazor
+  island** page and publishes trimmed on every build; a browser E2E asserts the hosted component's
+  *output* — its parameters, its own `@onclick`, its `@bind` — rather than that the element exists,
+  since an empty island passes a presence check; and `TrimmingContractTests` fails in the unit gate,
+  in milliseconds, if either annotation is removed. The annotation was verified by deleting it and
+  watching the showcase island go blank with a green build.
+
+- **`Rask.Blazor`'s package description promised children.** It said Rask children placed inside a
+  hosted component keep working handlers, which the same release made a compile error
+  ([RASK062](docs/diagnostics.md#rask062)).
+
 ### Removed
 
 - **An island takes no children, in either island family — and saying so is now a compile error

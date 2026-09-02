@@ -62,6 +62,19 @@
          nothing. Measured: Rask.dll and Rask.Query were absent from the published bundle entirely. -->
     <TrimmerRootAssembly Include="Rask"/>
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+    <!--
+      The Blazor island page, and the reason it lives in the TRIMMED showcase rather than in a fixture.
+      A hosted Blazor component's parameters are assigned by reflection inside
+      Microsoft.AspNetCore.Components, so under PublishTrimmed above the trimmer can remove the setters
+      and the island renders EMPTY — with no analyser warning, no exception and nothing in the console.
+      Publishing it here on every build, with a browser E2E asserting the hosted component's own output,
+      is what makes that a red gate instead of a discovery in someone's app.
+
+      Rask.Blazor is deliberately outside the Rask meta-package on both frameworks, so an app that hosts
+      a Blazor component names it — as this one does.
+    -->
+    <ProjectReference Include="..\..\src\Rask.Blazor\Rask.Blazor.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Razor\Rask.Example.Razor.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

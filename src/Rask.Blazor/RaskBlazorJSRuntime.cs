@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
 
 namespace Rask.Blazor;
@@ -13,10 +14,27 @@ namespace Rask.Blazor;
 /// </remarks>
 internal sealed class RaskBlazorJSRuntime : IJSRuntime
 {
-    public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
+    /// <summary>
+    ///     What <see cref="IJSRuntime" /> declares on <c>TValue</c>, repeated verbatim.
+    /// </summary>
+    /// <remarks>
+    ///     An override must carry the SAME <c>DynamicallyAccessedMembers</c> as the member it
+    ///     implements or the trim analyser reports IL2095 — which, in a WASM app publishing trimmed
+    ///     under warnings-as-errors, is a build error in the consuming app for a method that only ever
+    ///     throws. The value is the one JSInterop uses for a JSON-serialized result: the members its
+    ///     serializer would need if this implementation ever returned one.
+    /// </remarks>
+    private const DynamicallyAccessedMemberTypes JsonSerialized =
+        DynamicallyAccessedMemberTypes.PublicConstructors
+        | DynamicallyAccessedMemberTypes.PublicFields
+        | DynamicallyAccessedMemberTypes.PublicProperties;
+
+    public ValueTask<TValue> InvokeAsync<[DynamicallyAccessedMembers(JsonSerialized)] TValue>(
+        string identifier,
+        object?[]? args) =>
         throw Unsupported(identifier);
 
-    public ValueTask<TValue> InvokeAsync<TValue>(
+    public ValueTask<TValue> InvokeAsync<[DynamicallyAccessedMembers(JsonSerialized)] TValue>(
         string identifier,
         CancellationToken cancellationToken,
         object?[]? args) =>
