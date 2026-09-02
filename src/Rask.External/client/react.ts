@@ -19,7 +19,7 @@ import type { ExternalAdapter, ExternalProps } from './adapter'
  */
 export function reactComponent<P extends object>(Component: ComponentType<P>): ExternalAdapter<Root> {
   const render = (root: Root, props: ExternalProps) =>
-    root.render(createElement(Component, { ...props } as unknown as P))
+    root.render(createElement(Component, props as unknown as P))
 
   return {
     mount(element, props) {

@@ -168,3 +168,7 @@ src/Rask.Wasm/Browser/rask-sw.js
 
 # The tsconfig fragment Rask writes for the @rask/* prop-type mapping. Generated, never committed.
 **/obj/rask-external/
+
+# Written by WasmWatchAppFixture during the WASM hot-reload E2E and deleted afterwards. Tracking it
+# makes every gate run delete a tracked file and leaves the sample with a permanent probe route.
+samples/Rask.Example.Wasm/Features/HotReloadProbePage.cs

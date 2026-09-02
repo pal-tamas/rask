@@ -98,3 +98,9 @@ public class GeneratedPropTypesTests
             StringComparison.Ordinal);
     }
 }
+
+/// <summary>
+///     A propless island. It used to live in the slot tests; it stays because the "no props still gets
+///     an interface" claim needs a component that genuinely declares none.
+/// </summary>
+public sealed partial class Panel : ReactComponent;

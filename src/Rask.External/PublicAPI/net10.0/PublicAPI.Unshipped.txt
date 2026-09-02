@@ -33,7 +33,6 @@ const Rask.External.ExternalDefaults.RuntimeScriptUrl = "/_content/Rask.External
 override Rask.External.ExternalComponent.HeadAssets.get -> Rask.Core.Component?
 override sealed Rask.External.ExternalComponent.OpaqueSubtree.get -> bool
 override sealed Rask.External.ExternalComponent.Render() -> Rask.Core.Component?
-override sealed Rask.External.ExternalComponent.RenderChildren() -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>!
 override sealed Rask.External.ExternalComponent.TagName.get -> string?
 override sealed Rask.External.ExternalComponent.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override sealed Rask.External.LitComponent.Runtime.get -> string!

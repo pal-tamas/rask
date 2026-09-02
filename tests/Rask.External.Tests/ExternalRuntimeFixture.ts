@@ -50,7 +50,7 @@ function makeEl(tagName, attrs) {
             el.parentNode = null;
         },
         querySelectorAll: (sel) => {
-            // Enough for the runtime's one query: the host tag name.
+            // Enough for the runtime's one query: a tag name.
             const out = [];
             const walk = (n) => {
                 for (const k of n._kids || []) {

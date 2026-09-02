@@ -40,6 +40,14 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
+- `src/Rask.Blazor` — a REAL Blazor component as an ordinary Rask component: derive a `partial` class from
+  `BlazorComponent<T>` (T from an RCL/MudBlazor/Radzen — the Razor SDK compiles `.razor` untouched). Rendered
+  server-side into the FIRST response via `OnPropsChangedAsync` + quiescence; params cross as live C# objects
+  (no serialization). The hosted component's own `@onclick` works with NO circuit — `BlazorFrameWriter` rewrites
+  Blazor's handler ids as `data-rask-on-*` over the existing socket. **NOT opaque when static** (opaque ⇒
+  `FrameDiffer` skips children ⇒ island freezes after first paint). `net10.0` only, enforced by the graph
+  (NU1201), never in the meta-package. Compiling `.razor`→chain was rejected: Razor's syntax layer is `internal`
+  in every version and the .NET 10 SDK compiler is closed (23 IVT friends) — see `docs/blazor-components.md`.
 - `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
   `partial` class from `ReactComponent`/`VueComponent`/`SvelteComponent`/`LitComponent` (the base class IS the
   declaration — no attribute; one `ExternalRuntime` table drives extension, adapter and Vite plugin), front-end
@@ -92,14 +100,14 @@ dotnet run --project samples/Rask.Example.Server
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–059, RASK030/032/034/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–066, RASK030/032/034/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–060 are documented in `docs/diagnostics.md`
-  (RASK030/032/034/042/047/048/049/050 are retired and never recycled; the next free id is RASK061). **Grep `src/`
+  (RASK030/032/034/042/047/048/049/050 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK067). **Grep `src/`
   for the id before you claim it, AND again before you merge** — three assemblies allocate in this space and
   RS1019 only checks one compilation, so this line goes stale silently. This has now bitten four times on one
   branch: #865 took RASK054, #871 took RASK055, and #864 took RASK056–059 out from under #880's own RASK056,

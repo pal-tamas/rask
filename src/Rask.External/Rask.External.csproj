@@ -51,7 +51,7 @@
     <!--
       The generator has to RUN here, not merely be available to consumers. A referenced library's
       components cannot be reached from a chain unless that library publishes its own
-      RaskEntries{Assembly} class — which is what this emits. Without it ExternalSlot compiles, ships,
+      RaskEntries{Assembly} class — which is what this emits. Without it a component compiles, ships,
       and is simply unreachable at every call site, with nothing reporting why.
 
       It also publishes the required-property assembly attributes RASK038 reads across an assembly

@@ -46,6 +46,7 @@ dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
 dotnet add package Rask.Spa.Hosting       # host a built TypeScript SPA on ASP.NET
 dotnet add package Rask.External           # a .tsx/.vue/.svelte/Lit component as a Rask component (needs Node)
+dotnet add package Rask.Blazor             # a real Blazor component (MudBlazor, an RCL) as a Rask component
 ```
 
 Tailwind is not on that list because it is not a package: the compiler ships inside `Rask` /

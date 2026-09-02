@@ -265,31 +265,30 @@ Chart.Series(_points).Hydration(ExternalHydration.Visible)
 | `Visible` | On `IntersectionObserver` — the chunk is not even **fetched** until the component is scrolled to. |
 | `None` | Never. Server markup only, and no JavaScript is requested at all. |
 
-## An island is a leaf
+## An island takes no children
 
-An island takes **props, and nothing else**. There is no way to nest Rask-rendered content inside one,
-and that is a decision rather than a gap.
+An island is a leaf. Writing children into one is a **compile error** —
+[RASK062](diagnostics.md#rask062) — rather than something that binds, compiles and then quietly stops
+tracking what you gave it:
 
-Its subtree belongs to another renderer — that is exactly what the diff boundary says. Content Rask
-rendered and then handed over would still be content Rask owns and updates, in nodes it can no longer
-address: the diff reaches DOM nodes by `childNodes` index from the document, so every path it holds
-into them is wrong the moment the adapter moves them. The honest version of that feature needs updates
-addressed by marker rather than by path, and until it exists, "children that silently stop updating"
-is a worse thing to offer than no children at all.
+```csharp
+Panel.Heading("Sales")[ Table.Rows(_rows) ]   // RASK062
+```
 
-So compose the other way round — put the island *inside* the Rask markup, not the markup inside the
-island:
+Children would have to be handed across the diff boundary below, and once a front-end framework has
+moved those nodes into its own tree every path Rask holds into them is wrong — the diff addresses DOM
+nodes by `childNodes` index from the document. Content placed that way is placed once and then goes
+dead, which looks like composition and is not.
+
+Compose the other way round instead. It costs nothing, and everything on the Rask side stays live:
 
 ```csharp
 BsCard[
-    H2["Revenue"],
-    Chart.Series(_points),      // the island, as a leaf
-    Table.Rows(_rows),          // still Rask's, still updating
+    Panel.Heading("Sales"),
+    Table.Rows(_rows),
+    BsButton.OnClick(Save)["Save"],
 ]
 ```
-
-Anything the island needs to display goes across as a prop, where a change is a reconcile and keeps
-working.
 
 ## Tailwind
 
@@ -442,8 +441,10 @@ socket; nothing in the front-end file knows which.
 
 ## What is not here yet
 
-- **Children inside an island.** An island is a leaf; see [An island is a leaf](#an-island-is-a-leaf)
-  for why, and what would have to be built first.
+- **Children inside an island.** An island is a leaf ([RASK062](diagnostics.md#rask062)). Handing
+  Rask-owned nodes to a framework that then owns them needs updates addressed by MARKER rather than by
+  DOM path, since `EditOp` paths are positional `childNodes` indices — see
+  [children](#an-island-takes-no-children).
 - **Angular.** The adapter seam is three functions wide and the client runtime imports no framework, so
   it is additive the way Vue and Svelte were. Angular is viable through standalone components plus
   `createApplication()`, which needs no root component and no NgModule; its build is the real cost,

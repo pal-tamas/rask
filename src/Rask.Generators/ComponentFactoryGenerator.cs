@@ -3607,6 +3607,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
+        // A Blazor island's properties come from the component it hosts, so they are not members yet —
+        // they are generated into a second part of this same class. Without them here, a hosted
+        // parameter named after a component (Label, Title, Form, Select — ordinary names for a UI
+        // library) would land beside the entry injected under that same name, in the same class:
+        // CS0102, and nothing able to hide it. Naming them now makes the injection skip them, through
+        // the collision check that already exists for every other member.
+        foreach (var step in Blazor.BlazorParameters.StepNames(symbol))
+        {
+            names.Add(step);
+        }
+
         return new EquatableArray<string>(names.ToArray());
     }
 
@@ -4491,6 +4502,62 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     IsSharedSurfaceType(current),
                     HasDerivedSetter(prop),
                     SummaryOf(prop)));
+            }
+        }
+
+        // A Blazor island's chain steps come from the component it HOSTS rather than from anything it
+        // declares — not redeclaring the hosted component's surface is the point of the feature.
+        //
+        // Appended HERE, in the generator that emits the setters, rather than generated as properties
+        // by BlazorGenerator and picked up on some later pass: one source generator never sees
+        // another's output, so a property written there would be invisible to this and would get no
+        // chain step at all. Both read BlazorParameters.Read so the list cannot diverge — whatever
+        // emits a property must be matched by whatever emits its setter.
+        if (Blazor.BlazorParameters.HostedTypeOf(symbol) is { } hostedComponent)
+        {
+            var islandRef = symbol.DeclaringSyntaxReferences.FirstOrDefault();
+            var islandPath = islandRef?.SyntaxTree.FilePath ?? string.Empty;
+            var islandStart = islandRef?.Span.Start ?? 0;
+            var islandLength = islandRef?.Span.Length ?? 0;
+
+            foreach (var hosted in Blazor.BlazorParameters.Read(symbol, hostedComponent))
+            {
+                // Against what was actually PRODUCED, not against `seen`. That set records every
+                // property name walked, including ones immediately skipped for being static — and the
+                // chain entries inherited from RaskMarkup are static members named after components,
+                // so consulting it would silently drop a parameter called Text, Table, Form or Label.
+                // Those are ordinary names for a UI library, and the failure would be no step, no
+                // diagnostic, and no way to pass a value the component plainly declares.
+                if (result.Any(p => string.Equals(p.Name, hosted.Name, StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                result.Add(new PropInfo(
+                    hosted.Name,
+                    hosted.ChainTypeFqn,
+                    // Optional unless the hosted component said otherwise. Defaulting to nullable is
+                    // what keeps every call site from having to supply every parameter the component
+                    // happens to declare; [EditorRequired] is Blazor's own way of saying a parameter
+                    // is mandatory, so it maps onto Rask's required step and nothing else does.
+                    IsNullable: !hosted.IsRequired,
+                    HasInitializer: false,
+                    UserMarkedRequired: hosted.IsRequired,
+                    InheritanceDepth: 0,
+                    islandPath,
+                    islandStart,
+                    islandLength,
+                    // An EventCallback becomes a plain delegate, and a callback prop on a non-Element
+                    // component is auto-wrapped so invoking it re-renders the owning parent.
+                    IsAutoRerenderDelegate: hosted.IsEventCallback,
+                    IsTypeParameter: false,
+                    IsBoundInterfaceProp: false,
+                    IsDelegate: hosted.IsEventCallback,
+                    InitializerDefault: null,
+                    IsInitOnly: false,
+                    IsSharedSurfaceProp: false,
+                    HasDerivedSetter: false,
+                    $"Feeds the hosted component's <c>{hosted.Parameter}</c> parameter."));
             }
         }
 
