@@ -19,6 +19,7 @@ Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCo
 Rask.RaskAppOptions
 Rask.RaskAppOptions.BehindProxy.get -> bool
 Rask.RaskAppOptions.BehindProxy.set -> void
+Rask.RaskAppOptions.Api.get -> Rask.Battery<Rask.Api.ApiOptions!>!
 Rask.RaskAppOptions.Cache.get -> Rask.Battery<Rask.Cache.CacheOptions!>!
 Rask.RaskAppOptions.ConnectionString.get -> string?
 Rask.RaskAppOptions.ConnectionString.set -> void

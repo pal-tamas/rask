@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Api;
 using Rask.Core;
 using Rask.Server;
 using Rask.Wasm.Hosting;
@@ -228,6 +229,14 @@ public sealed class RaskApp
         {
             app.UseAuthentication();
             app.UseAuthorization();
+        }
+
+        // Controllers, and the 404 that keeps a wrong URL under the API prefix from being answered with
+        // the app. Mapped for the same reason every other battery is wired here: an app that writes a
+        // controller should not also have to know the line that makes it reachable.
+        if (_options.Api.Enabled)
+        {
+            app.MapRaskApi();
         }
 
         foreach (var map in _endpoints)

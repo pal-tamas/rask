@@ -13,6 +13,14 @@ public sealed record Post(int Id, string Title, IReadOnlyList<string> Tags);
 /// <param name="Tags">The tags.</param>
 public sealed record NewPost(string Title, IReadOnlyList<string> Tags);
 
+/// <summary>A body whose one member is required, so validation has something to enforce.</summary>
+public sealed class Checked
+{
+    /// <summary>The name. Required.</summary>
+    [System.ComponentModel.DataAnnotations.Required]
+    public string? Name { get; set; }
+}
+
 /// <summary>The store the controllers read and write, so a round trip has something to observe.</summary>
 public sealed class PostStore
 {
@@ -97,4 +105,12 @@ public sealed class HealthController : ControllerBase
     /// <summary>A string route value, so escaping has something to get wrong.</summary>
     [HttpGet("echo/{value}")]
     public ActionResult<string> Echo(string value) => value;
+
+    /// <summary>
+    ///     A body with a [Required] member, so the registration's validation can be observed rather than
+    ///     assumed. AddRaskApi uses AddMvcCore().AddDataAnnotations() rather than AddControllers(), and
+    ///     dropping DataAnnotations would make this endpoint quietly accept what it used to reject.
+    /// </summary>
+    [HttpPost("checked")]
+    public ActionResult<string> Checked(Checked body) => body.Name!;
 }

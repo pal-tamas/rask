@@ -182,6 +182,19 @@ public sealed class RoundTripTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_required_member_is_still_enforced_by_the_lean_registration()
+    {
+        // AddRaskApi registers AddMvcCore().AddDataAnnotations() rather than AddControllers(), to keep
+        // the API explorer, CORS services and formatter mappings out of an app that never asked for
+        // them. DataAnnotations is kept because dropping it changes BEHAVIOUR rather than only weight —
+        // this endpoint would start accepting what it used to reject, silently. That claim is only
+        // worth making if something checks it.
+        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked()));
+
+        Assert.Equal(400, error.StatusCode);
+    }
+
+    [Fact]
     public async Task AddRaskApiClient_registers_every_generated_client()
     {
         var services = new ServiceCollection();

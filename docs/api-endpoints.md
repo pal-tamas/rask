@@ -18,16 +18,15 @@ generates a typed client so *your* code never writes the URL twice.
 
 ## Hosting
 
+There is nothing to wire. Like every other battery, referencing the framework is what turns this on —
+write a controller and it answers:
+
 ```csharp
 var app = RaskApp.Create(args);
-
-app.Services.AddRaskApi();
-app.MapEndpoints(e => e.MapRaskApi());
-
 app.Run<App>();
 ```
 
-Nothing about the endpoint itself is Rask-specific:
+Nothing about the endpoint itself is Rask-specific either:
 
 ```csharp
 [ApiController]
@@ -58,16 +57,35 @@ That guard is an ordinary endpoint rather than a fallback, deliberately: a fallb
 `/{**path}` — and loses in turn to every real route beneath it.
 
 ```csharp
-app.Services.AddRaskApi(o =>
+app.Configure(c =>
 {
-    o.Prefix = "/services";   // where this app's endpoints live
-    o.NotFound = false;       // answer for unmatched paths yourself
-    o.Controllers = false;    // minimal APIs only; never discover a controller
+    c.Api.Off();                       // no HTTP endpoints in this app at all
+    c.Api.Configure(o =>
+    {
+        o.Prefix = "/services";        // where this app's endpoints live
+        o.NotFound = false;            // answer for unmatched paths yourself
+        o.Controllers = false;         // minimal APIs only; never discover a controller
+    });
 });
 ```
 
-`MapRaskApi()` returns the endpoint group, so rate limiting, CORS or output caching attach to the whole
-API in one line: `app.MapEndpoints(e => e.MapRaskApi().RequireRateLimiting("api"));`
+An app assembled by hand, without the `Rask` meta-package, calls `AddRaskApi()` and `MapRaskApi()`
+itself. `MapRaskApi()` returns the endpoint group, so rate limiting, CORS or output caching attach to
+the whole API in one line: `app.MapEndpoints(e => e.MapRaskApi().RequireRateLimiting("api"));`
+
+### What gets registered
+
+`AddMvcCore().AddDataAnnotations()`, not `AddControllers()`. An API controller needs the core —
+routing, model binding, the JSON formatters, the `[ApiController]` conventions — while `AddControllers`
+layers on the API explorer, CORS services and formatter mappings: machinery for OpenAPI documents,
+cross-origin policies and `.json`-style URL suffixes that an app gets whether it asks or not.
+
+DataAnnotations is the one addition, because dropping it changes **behaviour** rather than weight: a
+`[Required]` on a request body silently stops being enforced, and an endpoint that quietly accepts what
+it used to reject is worse than a heavier registration. (Checked by
+`A_required_member_is_still_enforced_by_the_lean_registration`, which goes red without it.) An app that
+wants CORS or an OpenAPI document adds `AddCors()` or `AddApiExplorer()` — a line it would have written
+anyway.
 
 ---
 

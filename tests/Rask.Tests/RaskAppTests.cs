@@ -177,6 +177,85 @@ public sealed class RaskAppTests
         }
     }
 
+    // MVC discovers controllers from the ENTRY assembly, which under a test runner is testhost rather
+    // than this one — a fact about the harness, not about the framework: a real app's entry assembly is
+    // the app. Naming it is the whole adaptation; everything else about these apps is a default one.
+    private static RaskApp NewApiApp(Action<RaskApp>? arrange = null)
+    {
+        // Through args rather than WebHost.UseSetting: the application name is host configuration, and
+        // changing it after the builder exists throws ("Changing the host configuration using
+        // WebApplicationBuilder.WebHost is not supported"). CreateBuilder(args) reads it before that.
+        var app = RaskApp.Create(
+            ["--applicationName", typeof(ProbeController).Assembly.GetName().Name!],
+            b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+
+        arrange?.Invoke(app);
+        return app;
+    }
+
+    [Fact]
+    public async Task An_API_controller_answers_with_no_wiring_at_all()
+    {
+        // The batteries claim: referencing Rask is what turns a battery on. The app below configures
+        // nothing — no AddRaskApi, no MapRaskApi, no AddControllers — and the controller answers.
+        var app = NewApiApp().Build<TestApp>();
+        await app.StartAsync();
+
+        try
+        {
+            var response = await GetAsync(app, "/api/probe/7");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("{\"value\":7}", await response.Content.ReadAsStringAsync());
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task An_unmatched_api_path_answers_404_rather_than_the_app()
+    {
+        // The half of the battery that is easy to get wrong by hand. Without it this request reaches
+        // the catch-all and renders the app with a 200, and the caller's JSON parse fails a long way
+        // from the cause.
+        var app = NewApiApp().Build<TestApp>();
+        await app.StartAsync();
+
+        try
+        {
+            var response = await GetAsync(app, "/api/nothing-here");
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task The_API_battery_can_be_turned_off_like_any_other()
+    {
+        var app = NewApiApp(a => a.Configure(c => c.Api.Off())).Build<TestApp>();
+        await app.StartAsync();
+
+        try
+        {
+            // No controller, and no guard either — the request falls through to the app.
+            var response = await GetAsync(app, "/api/probe/7");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Contains("DOCTYPE", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
     [Fact]
     public async Task An_endpoint_mapped_after_UseRask_still_runs()
     {

@@ -33,7 +33,18 @@ public static class RaskApiServiceCollectionExtensions
 
         if (options.Controllers)
         {
-            services.AddControllers();
+            // AddMvcCore, not AddControllers. What an API controller needs is the core: routing,
+            // model binding, the JSON formatters and the [ApiController] conventions. AddControllers
+            // layers on the API explorer, CORS services and formatter mappings — machinery for
+            // OpenAPI documents, cross-origin policies and `.json`-style URL suffixes that an app
+            // gets whether or not it ever asks for any of them.
+            //
+            // DataAnnotations is the one addition, because leaving it out changes behaviour rather
+            // than only weight: a [Required] or [Range] on a request body would silently stop being
+            // enforced, and an endpoint that quietly accepts what it used to reject is worse than a
+            // heavier registration. An app wanting CORS or an OpenAPI document adds AddCors() or
+            // AddApiExplorer() itself, which is a line it would have written anyway.
+            services.AddMvcCore().AddDataAnnotations();
         }
 
         return services;

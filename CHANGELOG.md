@@ -73,6 +73,23 @@ them until tagged releases begin.
   were free on `main` and already taken on this branch's base — the collision CLAUDE.md warns about,
   hit again. Its note now says **four** assemblies allocate in that space.
 
+- **HTTP endpoints are a battery, so there is nothing to wire.** `Rask.Api` and `Rask.Api.Client` are
+  in the `Rask` meta-package like every other battery — referencing the framework is what turns them on.
+  Write a controller and it answers; no `AddRaskApi()`, no `MapRaskApi()`, no `AddControllers()`. An app
+  without endpoints says `c.Api.Off()`, and one that wants a different prefix says
+  `c.Api.Configure(o => o.Prefix = "/services")`.
+
+  Registered as **`AddMvcCore().AddDataAnnotations()`**, not `AddControllers()`. An API controller needs
+  the core — routing, model binding, the JSON formatters, the `[ApiController]` conventions — while
+  `AddControllers` layers on the API explorer, CORS services and formatter mappings that an app gets
+  whether it asks or not. DataAnnotations stays because dropping it changes *behaviour* rather than
+  weight: a `[Required]` on a request body silently stops being enforced. Measured, not assumed —
+  removing it turns `A_required_member_is_still_enforced_by_the_lean_registration` red with a 200 where
+  a 400 belongs.
+
+  Wired above the database early-return, deliberately: HTTP endpoints have nothing to do with EF Core,
+  and putting them beside the pillars would have given an app with no `DbContext` no API at all.
+
 - **`Rask.Api` — API controllers and minimal API endpoints, hosted properly.** `AddRaskApi()` +
   `MapRaskApi()`. Controllers are mapped (nothing in `src/` referenced MVC before this), and a request
   under the API prefix that matches **nothing** now answers 404 with an RFC 9457 problem document.
