@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Meta.Hosting</RootNamespace>
+
+    <PackageId>Rask.Meta.Hosting</PackageId>
+    <Title>Rask — Meta Framework Host</Title>
+    <Description>ASP.NET host for a meta framework front end — Nuxt, TanStack Start, SolidStart, SvelteKit, Analog or Next.js — running beside your C# in ONE container. Kestrel owns the public port and answers /_rask itself; the framework's own Node server is a supervised child on loopback, and everything else is forwarded to it with WebSocket upgrade and unbuffered streaming intact. Pairs with Rask.Cqrs.Server, which gives server-side rendering a typed wire back into your C#. Distinct from Rask.Spa.Hosting, which serves a static bundle and needs no Node at runtime.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The one external dependency in this package, and a deliberate one. IHttpForwarder is YARP's
+      low-level "direct forwarding" surface — no route table, no config model, just
+      SendAsync(context, destination, invoker, config, transformer). It is the piece that already gets
+      right the three things a hand-rolled HttpClient proxy gets wrong, and all three are mandatory
+      here rather than nice to have: WebSocket (and HTTP/2 CONNECT) upgrade, UNBUFFERED response
+      streaming — React Server Components and streaming SSR are the entire reason to adopt a meta
+      framework, and buffering deletes the feature while every test still passes — and hop-by-hop
+      header stripping. Reimplementing that is exactly the "prefer standard .NET APIs, don't reinvent"
+      this repo warns against, and the package is Microsoft-published.
+    -->
+    <PackageReference Include="Yarp.ReverseProxy"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Meta.Hosting.Tests"/>
+  </ItemGroup>
+
+</Project>
