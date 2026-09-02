@@ -46,6 +46,9 @@ jobs:
       - name: Pack Rask.Spa.Hosting
         run: dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Blazor
+        run: dotnet pack src/Rask.Blazor/Rask.Blazor.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.External
         run: dotnet pack src/Rask.External/Rask.External.csproj -c Release --no-build -o ./artifacts
 

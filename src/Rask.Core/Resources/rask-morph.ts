@@ -566,9 +566,7 @@ export function morph(fromNode: Node, toNode: Node): void {
     //
     // The two sides genuinely disagree here, permanently and by design, which is why this cannot be
     // softened into a smarter walk. `from` holds whatever the framework rendered; `to` holds the
-    // server's idea of it — an empty element, or one still carrying the <template data-rask-slot>
-    // children the client lifted out and deleted at mount. A positional walk would trim every mounted
-    // node, and re-inserting the templates would hand the adapter its slot content a second time.
+    // server's idea of it, which is an empty element. A positional walk would trim every mounted node.
     //
     // Distinct from data-rask-managed, which skips a node as a sibling; this one keeps the node and
     // stops at its border.

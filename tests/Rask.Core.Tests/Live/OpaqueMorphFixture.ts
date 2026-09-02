@@ -3,9 +3,8 @@
 //
 // The scenario is the one that silently corrupts. What a foreign renderer put in the DOM and what the
 // server thinks is there permanently disagree: the children below the host were created in the
-// browser by React/Lit/Blazor after mount, and the server's HTML either has none of them or still
-// carries the <template data-rask-slot> the client lifted out and deleted. So on any full-document
-// morph — scoped-CSS delivery, a reconnect, any untrusted structural op — a positional walk trims
+// browser by React/Lit/Blazor after mount, and the server's HTML has none of them. So on any
+// full-document morph — scoped-CSS delivery, a reconnect, any untrusted structural op — a positional walk trims
 // every mounted node, and the component goes blank until something re-mounts it.
 //
 // Attributes must still sync across the boundary: that is how a changed `props` reaches the adapter.

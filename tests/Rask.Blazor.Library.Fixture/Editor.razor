@@ -1,0 +1,18 @@
+@* Real two-way binding, compiled by the Razor SDK. @bind lowers to `value=` plus an onchange
+   handler that reads ChangeEventArgs.Value — so this only works if the browser's value reaches
+   the hosted component. *@
+
+<div class="editor">
+    <input @bind="Text" />
+    <p>echo: @Text</p>
+</div>
+
+@code {
+    /// <summary>The bound text. Two-way: typing into the input assigns it.</summary>
+    [Parameter]
+    public string? Text { get; set; }
+
+    /// <summary>Raised when the bound value changes, so a host can follow it.</summary>
+    [Parameter]
+    public EventCallback<string?> TextChanged { get; set; }
+}

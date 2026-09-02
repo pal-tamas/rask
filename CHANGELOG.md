@@ -7,6 +7,45 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+
+- **An island takes no children, in either island family — and saying so is now a compile error
+  ([RASK062](docs/diagnostics.md#rask062)).** Both kinds offered a way in and neither could keep its
+  promise past the first paint, which is the failure this repository treats as worse than the missing
+  feature: it looks like composition, and it silently stops tracking.
+
+  The hosted Blazor island wrote children to a parameter named literally `"ChildContent"`. A component
+  with no such parameter made `ParameterView.FromDictionary` throw at RENDER time, naming an identifier
+  the author never typed; a component naming its fragment `Content` or `Body` could never be given
+  children at all; and a component with several (`HeaderContent`, `ToolBarContent`, `RowTemplate` — most
+  of MudBlazor's and Radzen's compositional surface) had every one of them silently dropped by the
+  generator, with no step, no property and no diagnostic. There is no crossing that is right for all
+  four shapes, and guessing among them is how an island ends up looking composable while discarding
+  what it was handed.
+
+  The `.tsx`/Lit island's slots — `ExternalSlot.Named("footer")`, the inert `<template data-rask-slot>`
+  the client lifted at mount, React's ref-adoption container, Lit's native light-DOM projection — worked
+  exactly as designed and were still the same trap one layer down. Slot content was placed ONCE. When
+  the C# that produced it re-rendered, the component kept showing what it was given, because `EditOp`
+  paths are positional `childNodes` indices and the adapter had moved the nodes by then. Making it live
+  needs updates addressed by MARKER rather than by path, and that was never built.
+
+  So the rule is now one rule, stated once and enforced by the compiler: **an island is a leaf.** It
+  has to be a diagnostic rather than a convention — the children indexer lives on `Component` and
+  `Build<T>`, so it exists on every chain and cannot be withheld from a single type. Without it the
+  children bind, compile, and render nothing.
+
+  Compose the other way round, which costs nothing and keeps every Rask node live:
+  `Div[ H2["Revenue"], Chart.Series(_series) ]` rather than `Chart.Series(_series)[ H2["Revenue"] ]`.
+
+  **Removed:** `ExternalSlot`, `ExternalSlots`, `ExternalComponent.RenderChildren`, the `slots` argument
+  on the client adapter contract's `mount`, and the template lifting in `rask-external.js`. A
+  `RenderFragment` parameter on a hosted Blazor component is skipped whatever its name — kept on the
+  `Ticker` fixture deliberately, so a hosted component owning one is pinned to render rather than throw.
+  The analyzer is verified against the CHAIN spelling as well as the direct one: the receiver of a
+  children indexer is `Build<T>`, never the component, which is how seven analyzers in this repository
+  were once blind.
+
 ### Changed
 
 - **The operator console is rebuilt light, mobile-first, and on a component kit.** `/_rask` was a dark
@@ -91,6 +130,103 @@ them until tagged releases begin.
   so that a `_content` plumbing failure cannot be mistaken for this one.
 
 ### Added
+
+- **`Rask.Blazor` hosts a real Blazor component as a Rask island.** Derive a `partial` class from
+  `BlazorComponent<T>` — where `T` is a type from a Razor Class Library, MudBlazor, Radzen, anything
+  the Razor SDK already compiled — and it renders inside a Rask page. The Razor SDK is neither
+  replaced nor configured: it compiles `.razor` exactly as it always has, and Rask hosts the result.
+  This is the `.tsx`/Lit island contract with a different runtime behind it.
+
+  **Nothing is redeclared — the island body is empty.** A Blazor component already states its
+  surface, so `public sealed partial class Chart : BlazorComponent<MudChart>;` is the whole
+  declaration and the chain steps are read from `MudChart`'s own `[Parameter]` properties. Each
+  becomes an optional step, and an `EventCallback<T>` becomes a plain `Action<T>?`, because Rask has
+  no callback wrapper type. `[BlazorParameter("Name")]` renames one whose call-site name you want
+  changed.
+
+  **`[EditorRequired]` becomes a required chain step.** Blazor already has a word for "mandatory", so
+  it maps onto Rask's own rather than everything being optional — the call site cannot omit it, and it
+  is taken before the optional steps. Not applied to an `EventCallback`: "you must handle this event"
+  is not something the chain can usefully insist on.
+
+  A parameter named after an HTML tag — `Label`, `Title`, `Form`, `Select`, all ordinary names for a
+  UI library — used to be CS0102, because the generated property landed in the same class as the chain
+  entry injected under that name. The hosted parameter names now feed the collision check that entry
+  injection already ran for every other member.
+
+  That needed both generators: `BlazorGenerator` writes the properties and the parameter writer, and
+  `ComponentFactoryGenerator` writes their chain setters. It cannot be done in one, because a source
+  generator never sees another's output — a property written by the first would be invisible to the
+  second and would get no chain step at all. They read one shared list (`BlazorParameters.Read`) so
+  the two cannot drift into emitting a setter for a property that does not exist.
+
+  **It is server-rendered, so the component is complete in the FIRST response.** The work runs from
+  `OnPropsChangedAsync`, whose task lands in the ambient quiescence scope, so a hosted component that
+  awaits in `OnInitializedAsync` has finished before the page is sent rather than appearing a frame
+  later. Parameters cross as live C# objects through `ParameterView` — no serialization, so no wire
+  vocabulary to violate, unlike a `.tsx` island's JSON props.
+
+  **The hosted component's own event handlers work, with no Blazor circuit.** Blazor assigns a real
+  handler id to every `@onclick` even in a static render; its own HTML writer simply drops them.
+  `BlazorFrameWriter` walks the render tree and writes Rask's `data-rask-on-*` instead, so a click
+  travels the WebSocket that is already open and comes back through `DispatchEventAsync`. No SignalR,
+  no `blazor.web.js`, no second connection — the same channel the React and Lit islands use.
+
+  **`@bind` works, write-back included**, and it travels a different channel from a click — which is
+  exactly why it works. `change` and `input` are deliberately absent from Rask's DOM-event table
+  because a value-carrying event goes through Rask's *input* channel, the one that ships the element's
+  value alongside the handler id. A bound input therefore renders with `data-rask-on-input`, and the
+  island turns the string back into the `ChangeEventArgs` the binder `@bind` generated is waiting for.
+
+  Three things had to be right for that, and each was wrong first. Handler ids belong to the render
+  that minted them, so they are registered from `Render()` rather than the async hook, which the next
+  walk discarded. A self-render now re-reads the hosted markup — calling `StateHasChanged` alone made
+  Rask faithfully re-render the previous string, so a timer, an injected service's event, or the
+  write-back half of a binding left the island looking alive and showing stale content. And the island
+  bypasses the render cache, since a cached replay skips `Render()` and nothing re-registers.
+
+  **A statically rendered island is deliberately NOT opaque.** `ExternalComponent` seals
+  `OpaqueSubtree` true because React genuinely owns those nodes; here nothing in the browser does.
+  `FrameDiffer` skips an opaque element's children, so an opaque static island would render new HTML
+  on the server and never ship it — painting once and silently freezing. Opacity is reserved for a
+  future circuit mode, where the subtree really would belong to Blazor.
+
+  **Both hosts, one code path.** `net10.0` and `net10.0-browser`, with no `#if`: a hosted component
+  renders to markup in process, which browser-WebAssembly does as readily as a server. Only the
+  renderer's source differs — the ASP.NET shared framework on one, the
+  `Microsoft.AspNetCore.Components.Web` package on the other. A WASM app hosting one must publish
+  **untrimmed**, because `[Parameter]` discovery reflects inside `Microsoft.AspNetCore.Components` on
+  types Rask does not own and no component library is trim-annotated — the same rule
+  `Rask.SQLite.Browser` already carries. Deliberately absent from the `Rask` meta-package on both
+  frameworks, so an app that wants nothing to do with Blazor never carries its renderer.
+
+  **Only the events Rask can actually route emit an attribute.** Rask matches an inbound event to a
+  handler by the delegate's shape and refuses a mismatch, so `click`, the focus and drag families,
+  `select`/`invalid`/`reset`, and `change`/`input` are wired — and anything else (`keydown`,
+  `submit`, `mouseover`) emits nothing rather than rendering a component that looks wired and does
+  nothing on the first click.
+
+  **`AddRaskBlazor()`** registers what a hosted component resolves: a `NavigationManager` bound to the
+  app's base URI — most component libraries inject one and Blazor's base class throws without it — and
+  an `IJSRuntime` that throws with a message naming the fix rather than no-opping, because a silent
+  no-op turns a real capability gap into a component that looks right and is subtly wrong.
+
+  The documented example is compiled, not printed: its `.razor` is a real file in the fixture library,
+  its island and the output the page claims are asserted by `DocExampleTests`, and a third test pins
+  the document against the file so the two cannot drift. That guard was proved by breaking it.
+
+  **Tailwind in a hosted component is documented, because the failure is silent.** Tailwind emits only
+  the classes it can see and detects sources from the project directory it runs in, so a class library
+  — the layout this feature recommends, since it is what makes parameters verifiable — is not scanned
+  by the app's compile. Either the library compiles its own stylesheet and ships it at `_content/`
+  (how `samples/Rask.Example.Shared` already works), or the app's sheet adds `@source`. A `.razor` in
+  the app's own project needs neither.
+
+  Compiling `.razor` into the chain was investigated and rejected. The Razor syntax layer is
+  `internal` in every shipped version, the .NET 10 SDK compiler exposes neither the intermediate
+  document nor a way to register a pass — its 23 `InternalsVisibleTo` friends reach those instead —
+  and the last public extension API is `Microsoft.AspNetCore.Razor.Language` 6.0.36, a .NET 6-era
+  package out of support since November 2024. Hosting the SDK's own output costs nothing that rots.
 
 - **The Counter sample is pinned across its three front doors.** It is written in `README.md`, in
   `NUGET.md` (packed into every package, so the nuget.org page) and in the landing site's hero, and

@@ -84,35 +84,6 @@ function revive(value, cache) {
     return value;
 }
 
-/**
- * Lifts the island's slot templates into fragments the adapter can place.
- *
- * The server renders slot content into `<template data-rask-slot="…">` because a template's content is
- * inert — parsed, never rendered — so Rask-owned children cannot flash on screen in the window between
- * first paint and the island mounting, and cannot be moved by anything before the adapter decides where
- * they go.
- *
- * The templates are REMOVED as they are lifted. Leaving them would show the same content twice the
- * moment a framework rendered its own copy of the slot, and would give the morph a second thing to
- * reconcile inside a subtree it is meant to leave alone.
- */
-function readSlots(element) {
-    const slots = {};
-    const templates = element.querySelectorAll?.("template[data-rask-slot]") ?? [];
-
-    for (const template of [...templates]) {
-        // Only this island's own slots. A nested island's templates belong to IT, and lifting them here
-        // would hand one island's content to another's adapter.
-        if (template.closest?.(HOST_TAG.toLowerCase()) !== element) continue;
-
-        const name = template.getAttribute("data-rask-slot") || "default";
-        slots[name] = template.content ?? document.createDocumentFragment();
-        template.remove();
-    }
-
-    return slots;
-}
-
 function readProps(element, cache) {
     const raw = element.getAttribute("props");
     if (!raw) return {};
@@ -203,7 +174,7 @@ async function hydrate(element) {
             // Slots are read ONCE, at mount, and before props: lifting removes the templates, and the
             // adapter needs them in hand when it first renders so it can place its containers rather
             // than reflow after the fact.
-            entry.handle = adapter.mount(element, readProps(element, cache), readSlots(element));
+            entry.handle = adapter.mount(element, readProps(element, cache));
         } catch (error) {
             mounted.delete(element);
             console.error(`Rask islands: '${name}' failed to mount.`, error);

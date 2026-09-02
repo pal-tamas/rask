@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    A REAL Razor Class Library, compiled from a real .razor by the Razor SDK — which is the whole
+    point of it existing. Every other fixture in Rask.Blazor.Tests is a hand-written ComponentBase in
+    the test assembly itself, and that cannot exercise the path the feature actually promises: a
+    hosted type from a REFERENCED assembly, whose [Parameter]s are read out of metadata rather than
+    out of source in the same compilation.
+
+    Deliberately not MudBlazor. Adding it would put a large third-party dependency in every
+    developer's restore graph to prove a mechanism this project proves offline and deterministically.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.Blazor.Library.Fixture</RootNamespace>
+
+    <!-- Rask's own conventions do not apply to a Blazor component: it is not a Rask component, has no
+         chain, and its .razor is compiled by the Razor SDK's generator rather than by ours. -->
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+</Project>

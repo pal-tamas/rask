@@ -37,6 +37,7 @@
         <Project Path="src/Rask.Mail/Rask.Mail.csproj"/>
         <Project Path="src/Rask.Outbox/Rask.Outbox.csproj"/>
         <Project Path="src/Rask.Html/Rask.Html.csproj"/>
+        <Project Path="src/Rask.Blazor/Rask.Blazor.csproj"/>
         <Project Path="src/Rask.External/Rask.External.csproj"/>
         <Project Path="src/Rask.External.Tasks/Rask.External.Tasks.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
@@ -76,6 +77,8 @@
         <Project Path="tests/Rask.Dashboard.Tests/Rask.Dashboard.Tests.csproj"/>
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj"/>
         <Project Path="tests/Rask.Html.Tests/Rask.Html.Tests.csproj"/>
+        <Project Path="tests/Rask.Blazor.Library.Fixture/Rask.Blazor.Library.Fixture.csproj"/>
+        <Project Path="tests/Rask.Blazor.Tests/Rask.Blazor.Tests.csproj"/>
         <Project Path="tests/Rask.External.Tests/Rask.External.Tests.csproj"/>
         <Project Path="tests/Rask.External.Tasks.Tests/Rask.External.Tasks.Tests.csproj"/>
         <Project Path="tests/Rask.Jobs.Tests/Rask.Jobs.Tests.csproj"/>
