@@ -13,7 +13,7 @@ Committed, shareable playbooks for the recurring Rask workflows. They auto-surfa
 | [`rask-review`](rask-review/SKILL.md) | Reviewing a diff/PR for security, performance, memory, and .NET/C# best practices. |
 | [`open-pr`](open-pr/SKILL.md) | Opening a PR (branch off main, Conventional-Commit, no AI attribution, delete branch after merge). |
 | [`cut-release`](cut-release/SKILL.md) | Publishing a version (CHANGELOG promote + `vX.Y.Z` tag → `release.yml`). |
-| [`check-nuget-updates`](check-nuget-updates/SKILL.md) | Auditing/bumping NuGet dependencies (complements Dependabot). |
+| [`check-dependency-updates`](check-dependency-updates/SKILL.md) | Auditing/bumping every dependency axis — NuGet, the Node LTS line, and the pins Dependabot cannot see. |
 
 `rask-ship` is the orchestrator; the scaffolding skills (`add-html-tag`, `add-diagnostic`) hand
 off to it. Each skill is self-contained so it works on a fresh clone.

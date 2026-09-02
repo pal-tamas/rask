@@ -295,5 +295,52 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 - `commitlint.yml` — Conventional Commits check on PRs.
 - `nightly.yml` — prerelease publish on `main`.
 - `release.yml` — tag-triggered stable publish.
-- Dependencies are kept current by `.github/dependabot.yml` (NuGet + Actions, weekly) and the
-  `check-nuget-updates` skill.
+- `lts-watch.yml` — monthly; opens an issue when Node's Active LTS line moves past the one the repo
+  states. Not a gate: it cannot go red on a branch and blocks nothing.
+
+## Dependencies
+
+The standing rule is **the latest LTS** — Node, .NET, and the front-end toolchains. A scaffolder is a
+recommendation every new project inherits, so a maintenance-only pin hands users a runtime that has
+stopped getting security patches.
+
+**What updates itself.** `.github/dependabot.yml` covers NuGet and GitHub Actions weekly. Families
+that must move together are grouped (`microsoft-extensions`, `test-tooling`, `spectre-console`,
+`sqlitepclraw`); the three `Microsoft.CodeAnalysis.CSharp*` packages are ignored on purpose, because
+an analyzer referencing a newer Roslyn than the running `csc` is CS9057 and raises the compiler floor
+for every downstream consumer.
+
+**What does not.** Several pins are invisible to Dependabot because they are not `PackageReference`s:
+`RaskEsbuildVersion` and `RaskTsgoVersion` (`Rask.Core.targets`), `RaskTailwindVersion`
+(`Rask.Tailwind.props`), the Node floors (`RaskSpaMinimumNode`, `RaskExternalMinimumNode`), the Node
+scaffold line (`NodeRequirement.ScaffoldLine`), and the npm caret ranges the SPA templates write. The
+`check-dependency-updates` skill walks all of them.
+
+**What keeps the copies honest.** A version stated twice is a version that can drift, so the pairs that
+matter most are asserted by an offline unit test rather than by a comment:
+
+| Test | Holds together |
+| --- | --- |
+| `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary); and the two build floors, `RaskSpaMinimumNode` vs. `RaskExternalMinimumNode` |
+| `PackagePinFamilyTests` | the Spectre and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach the patched SQLitePCLRaw |
+| `TailwindVersionPinTests` | `RaskTailwindVersion` vs. the SPA templates' caret range |
+| `ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin` | the WASM scaffold's framework version vs. `Directory.Packages.props` |
+| `TypeScriptCompilesTests`, `ResolveTypeScriptToolTaskTests` | read `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
+
+They need no network and run in the ordinary unit gate — which `pre-commit` already triggers for any
+`Directory.` path, so the gate that fires for a version bump is the one that checks it was complete.
+
+**Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
+line elsewhere — `docs/spa.md`'s "Active LTS (24 'Krypton')", the `22.12` build-floor figures quoted in
+`docs/spa.md` and `docs/islands.md`, and the codename in `NodeRequirement`'s own doc comment — are
+still only prose. `lts-watch.yml`'s issue lists the files to change; treat that list, not this table, as
+the checklist when the line moves.
+
+**Landing a Dependabot PR.** Merge it locally, not from the web UI. Dependabot authors server-side, so
+its PRs never touch `.githooks/`, and `main` has no required checks — a web merge is a version change
+that nothing built, formatted or tested. Check the branch out and push it so `pre-commit` and
+`pre-push` run. Note that `Directory.Packages.props` is in `pre-push`'s `generator_paths`, so the CLI
+build gate runs too.
+
+**Vulnerability scanning is manual.** `dotnet list Rask.slnx package --vulnerable --include-transitive`
+is the only scan that runs anywhere; the CI job that used to do it went with `ci.yml` in #923.

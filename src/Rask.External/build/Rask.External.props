@@ -106,9 +106,15 @@
          so the project does not have to carry a script whose name Rask would then depend on. -->
     <RaskExternalBuildCommand Condition="'$(RaskExternalBuildCommand)' == ''">npx --no-install vite build --config</RaskExternalBuildCommand>
 
-    <!-- Vite's own floor. The probe reports anything older rather than letting vite fail with an
-         engines error nobody reads. -->
-    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">20.19.0</RaskExternalMinimumNode>
+    <!-- The floor _RaskExternalProbeNode enforces as RASKISLAND001, so an old Node is reported here
+         rather than failing inside vite with an engines error nobody reads.
+
+         22.12.0, matching RaskSpaMinimumNode. Both paths run vite, so both take vite's requirement:
+         `^20.19.0 || >=22.12.0`. That range has a HOLE — 21.x satisfies neither arm — and a numeric
+         floor cannot express it, so a floor of 20.19.0 (what this said while nothing read it) would
+         have admitted 21.x and let it fail in the bundler anyway. 22.12.0 is the lowest version with
+         no hole beneath it, and Node 20 "Iron" is EOL besides. -->
+    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">22.12.0</RaskExternalMinimumNode>
   </PropertyGroup>
 
 </Project>
