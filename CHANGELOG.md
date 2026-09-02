@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A scaffolded app had accounts mapped but never registered.** The battery slot alone reached no
+  `rask new` project: a generated `Program.cs` is `WebApplication.CreateBuilder` + `AddRask()` with
+  individual package references, not `RaskApp.Create`, so `RaskBatteryWiring` never runs there. The
+  scaffold now registers `AddRaskAuth<AppDbContext>()` itself, and both that and
+  `UseAuthentication`/`UseAuthorization` follow the **database** rather than the old `--auth` flag —
+  emitted once for either reason, since `--auth` adds its own scheme on top.
+
+  Turning auth on by default had to touch four separate seams in the scaffold, and a compiler would
+  have flagged only one: the model mapping, the package reference, the entry in the CLI gate's packed
+  feed, and the registration plus middleware. Missing any one of them produced an app that looked
+  fine and was not.
+
 - **`rask new --auth` produced an app that would not start.** Registering an authentication scheme
   twice is not a no-op — `AuthenticationOptions.AddScheme` throws "Scheme already exists" — and with
   auth on by default the battery's cookie scheme collided with the hand-written

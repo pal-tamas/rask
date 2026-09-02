@@ -68,6 +68,14 @@ public sealed class ServerBatteryScaffoldTests
             "using Rask.Auth;",
             files["Features/Shared/AppDbContext.cs"],
             StringComparison.Ordinal);
+
+        // And the reference that makes that using compile. Asserting the mapping alone was not enough:
+        // a scaffold test reads generated TEXT, so it cannot see that the text does not build. The
+        // missing package reference got through this test and was caught by the build E2E instead.
+        Assert.Contains(
+            $"""<PackageReference Include="Rask.Auth" Version="{Version}"/>""",
+            files["App.csproj"],
+            StringComparison.Ordinal);
     }
 
     [Theory]

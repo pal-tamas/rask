@@ -77,6 +77,17 @@ internal static partial class ProjectGenerator
                         : "", StringComparison.Ordinal));
         }
 
+        if (batteries.Data)
+        {
+            Block(sb, """
+                // Accounts: register, sign in, sign out. Backed by ASP.NET Core Identity, reached through
+                // Rask's own IAuth so the same call works on the Server host, in WebAssembly and inside an
+                // island. The FIRST account to register becomes the administrator; while none exists, that
+                // registration needs the one-time token written to the startup log.
+                builder.Services.AddRaskAuth<AppDbContext>();
+                """);
+        }
+
         if (batteries.Jobs)
         {
             Block(sb, """

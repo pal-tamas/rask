@@ -105,6 +105,11 @@ internal static partial class ProjectGenerator
             // inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
             // one-env-var path from "single copy on one disk" to "the box is disposable".
             packages.Add("Rask.SQLite.Litestream");
+
+            // Accounts. Paired with the database rather than with a flag, because AppDbContextCs maps
+            // the account tables whenever there is a context — the two have to move together or the
+            // generated `using Rask.Auth;` does not compile.
+            packages.Add("Rask.Auth");
         }
 
         if (batteries.Outbox)
@@ -554,7 +559,10 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
-        if (batteries.Auth)
+        // Emitted once for either reason. An app with a database has accounts (the auth battery is on by
+        // default), and --auth adds its own cookie scheme on top; emitting this twice would run the
+        // middleware twice.
+        if (batteries.Data || batteries.Auth)
         {
             sb.Append("// Must precede UseRask so HttpContext.User is populated on the GET and the WS upgrade.\n");
             sb.Append("app.UseAuthentication();\n");
