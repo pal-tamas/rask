@@ -97,6 +97,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Doc | What it covers |
 |-----|----------------|
+| [**Data flow: from a click to SQLite and back**](architecture/data-flow.md) | The whole architecture in one animated map — every package from the browser to the database — then the five journeys across it: a server round trip, the WASM takeover, the two kinds of island, the SPA lane, and the work that outlives the request. |
 | [Live rendering & the diff codec](architecture/live-rendering.md) | How the render walk, frame stream, edit-op diff, keyed reconciliation, and the two transports (Server WS / WASM JSImport) work. |
 
 ---

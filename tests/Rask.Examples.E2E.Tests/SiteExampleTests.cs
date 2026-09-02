@@ -65,13 +65,32 @@ public sealed class SiteExampleTests
             await Expect(page.Locator(".install-foot").First)
                 .ToContainTextAsync("irm https://rask.sh/rask.ps1 | iex");
 
-            // The page opens on the chain animation, before it says anything about the framework. The
+            // The page opens on the architecture map, before it says anything about the framework. The
             // adjacent-sibling selector is the assertion: it only matches if the animation's box comes
             // immediately before the grid that holds the headline, so a future edit cannot quietly demote
             // it below the fold. Rendered inline (not through <img>) so it inherits the theme tokens —
             // which is also why the <svg> element itself is reachable from the DOM at all.
             await Expect(page.Locator(".hero-anim svg")).ToHaveCountAsync(1);
             await Expect(page.Locator(".hero-anim + .hero-grid h1")).ToHaveCountAsync(1);
+
+            // The hero cycles every journey by itself; the deeper section pins one. Two different
+            // renderings of the same component, which is the claim worth pinning.
+            await Expect(page.Locator(".hero-anim svg.rf-auto")).ToHaveCountAsync(1);
+
+            // Inline in an HTML document an SVG <style> is NOT scoped — its rules apply to the whole
+            // page. Two copies of the diagram are now on this page, so the prefixing that makes that safe
+            // is load-bearing rather than tidy, and an id would collide outright.
+            await Expect(page.Locator(".flow-pinned svg [id]")).ToHaveCountAsync(0);
+
+            // The scenario picker is ordinary Rask state: click → diff → re-render. The assertion is on
+            // the class the pinned variant carries, because that single attribute is the entire payload —
+            // if the diff shipped it, the picker works.
+            var pinned = page.Locator(".flow-pinned svg");
+            await Expect(pinned).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\brf-only0\b"));
+            await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Islands" }).ClickAsync();
+            await Expect(pinned).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\brf-only2\b"));
+            await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "After the response" }).ClickAsync();
+            await Expect(pinned).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\brf-only4\b"));
 
             // The front door links into the nested docs + playground sub-apps, and names them for what
             // they are — the site is three apps, and calling /docs/ "the live demo" left the docs unnamed.

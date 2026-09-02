@@ -197,7 +197,7 @@ public sealed partial class Markdown : Component
         });
 
     private static string RewriteLinks(string html) =>
-        DocLinkRegex().Replace(html, m =>
+        RewriteImages(DocLinkRegex().Replace(html, m =>
         {
             var path = m.Groups["path"].Value;
             var fragment = m.Groups["frag"].Value;
@@ -209,6 +209,29 @@ public sealed partial class Markdown : Component
 
             var slug = path[(path.LastIndexOf('/') + 1)..^".md".Length];
             return $"href=\"/guides/{slug}{fragment}\" data-rask-nav";
+        }));
+
+    // A guide's images live in the repository, not in this app's wwwroot — the docs are read on GitHub
+    // too, where the relative path is the correct one. Served here, that same path resolves against the
+    // SPA route (/guides/data-flow) and 404s, so it is rewritten to raw.githubusercontent the way a `../`
+    // link is already rewritten to github.com/blob.
+    //
+    // Climbing out of docs/ lands at the repository root, so stripping the `../` segments yields a
+    // root-relative path directly; an image path that does NOT climb is relative to the guide, and every
+    // guide lives under docs/.
+    private static string RewriteImages(string html) =>
+        ImageSourceRegex().Replace(html, m =>
+        {
+            var path = m.Groups["path"].Value;
+            var climbs = path.Contains("../", StringComparison.Ordinal);
+
+            while (path.StartsWith("../", StringComparison.Ordinal))
+            {
+                path = path[3..];
+            }
+
+            var rooted = climbs ? path : $"docs/{path}";
+            return $"src=\"https://raw.githubusercontent.com/pal-tamas/rask/main/{rooted}\"";
         });
 
     // A guide heading surfaced in the Chapters TOC / on-this-page rail: its level (2 or 3), plain text,
@@ -274,6 +297,11 @@ public sealed partial class Markdown : Component
     // Matches href="…something.md" with an optional "#fragment", excluding absolute/remote URLs.
     [GeneratedRegex("href=\"(?!https?:|/)(?<path>[^\"#]+\\.md)(?<frag>#[^\"]*)?\"")]
     private static partial Regex DocLinkRegex();
+
+    // Matches a repository-relative image source, excluding absolute/remote and site-rooted URLs — the
+    // latter because an image this app really does serve itself must be left alone.
+    [GeneratedRegex("src=\"(?!https?:|/|data:)(?<path>[^\"]+\\.(?:svg|png|jpe?g|gif|webp))\"")]
+    private static partial Regex ImageSourceRegex();
 
     // Markdig fenced-code output: <pre><code class="language-{info}">{HTML-encoded body}</code></pre>.
     // Non-greedy body; the body is HTML-encoded so a literal </code> can never appear inside it.

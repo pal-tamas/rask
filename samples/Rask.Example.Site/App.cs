@@ -16,6 +16,10 @@ public partial class App : Component
     private readonly IJSRuntime _js;
     private readonly ElementRef _canvas = ElementRef.New();
 
+    // Which journey the architecture map is holding. State on the page, not in the SVG: switching it
+    // re-renders and ships one changed class attribute.
+    private FlowScene _scene = FlowScene.ServerRoundTrip;
+
     public App(IJSRuntime js) => _js = js;
 
     protected override Component? HeadAssets =>
@@ -80,6 +84,7 @@ public partial class App : Component
         CounterSection(),
         BytesSection(),
         HostsSection(),
+        HowItFitsSection(),
         FeaturesSection(),
         WholeBackEndSection(),
         InstallSection(),
@@ -290,6 +295,47 @@ public partial class App : Component
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
                     Host("Rask.Wasm.Hosting", "Static host", "AddRaskWasmHosting()",
                         "Serves a published WASM bundle from an ASP.NET host, with the right content types and pre-compressed variants.")
+                ]
+            ]
+        ];
+
+    // ---- the architecture map, one journey at a time ----
+    //
+    // The hero runs the same diagram unpinned, cycling every journey by itself. Here a reader who has
+    // decided which one they care about can hold it still.
+    //
+    // The picker is the framework demonstrating itself and nothing more elaborate: a private field, a
+    // plain delegate on OnClick, and a re-render. The class attribute that changes on the <svg> is the
+    // only thing that goes over the wire.
+    private static readonly (FlowScene Scene, string Label)[] Journeys =
+    [
+        (FlowScene.ServerRoundTrip, "Server round trip"),
+        (FlowScene.WasmTakeover, "WASM takeover"),
+        (FlowScene.Islands, "Islands"),
+        (FlowScene.Spa, "SPA lane"),
+        (FlowScene.Durable, "After the response"),
+    ];
+
+    private Component HowItFitsSection() =>
+        Section.Class(SectionPad)[
+            Div.Class(Wrap)[
+                SecHead("Every battery, from the UI to the database",
+                    "How it all fits together.",
+                    "One map, five journeys. Pick one and it stays put — the highlight follows that path "
+                    + "through the packages it actually touches."),
+                Div.Class("reveal")[
+                    Div.Class("mb-6 flex flex-wrap gap-2")[
+                        Journeys.Select(j =>
+                            Button
+                                .Key(j.Label)
+                                .Type("button")
+                                .OnClick(() => _scene = j.Scene)
+                                .Class(_scene == j.Scene ? BtnPrimary + " !px-4 !py-2" : BtnGhost + " !px-4 !py-2")
+                                [j.Label]).ToList()
+                    ],
+                    Div.Class($"{Card} flow-pinned overflow-x-auto p-3")[
+                        FlowAnimation.Pinned(_scene)
+                    ]
                 ]
             ]
         ];

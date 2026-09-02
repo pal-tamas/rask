@@ -60,6 +60,30 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
         Assert.Contains("href=\"https://github.com/pal-tamas/rask/blob/main/README.md\"",
             Markdown.Source("[readme](../README.md)").ToHtml());
 
+    // A guide's images live in the repository, because the same markdown is read on GitHub where the
+    // relative path is the correct one. Served here, that path would resolve against the SPA route and
+    // 404 — silently, as a broken image rather than a failing request, which is why this is pinned.
+    [Fact]
+    public void Markdown_RewritesRepoRelativeImage_ToRawGitHub()
+    {
+        // Climbing out of docs/ lands at the repository root.
+        Assert.Contains("src=\"https://raw.githubusercontent.com/pal-tamas/rask/main/assets/rask-flow.svg\"",
+            Markdown.Source("![map](../../assets/rask-flow.svg)").ToHtml());
+
+        // A path that does not climb is relative to the guide, and every guide lives under docs/.
+        Assert.Contains("src=\"https://raw.githubusercontent.com/pal-tamas/rask/main/docs/apis/x.png\"",
+            Markdown.Source("![x](apis/x.png)").ToHtml());
+    }
+
+    // An image this app really does serve must be left alone, or rewriting would break the one case
+    // that already worked.
+    [Fact]
+    public void Markdown_LeavesAbsoluteAndRootedImages_Alone()
+    {
+        Assert.Contains("src=\"/icon.svg\"", Markdown.Source("![i](/icon.svg)").ToHtml());
+        Assert.Contains("src=\"https://example.com/a.png\"", Markdown.Source("![a](https://example.com/a.png)").ToHtml());
+    }
+
     [Fact]
     public void Markdown_LeavesExternalAndAnchorLinksUntouched()
     {

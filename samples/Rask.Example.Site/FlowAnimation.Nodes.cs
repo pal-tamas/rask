@@ -46,10 +46,14 @@ internal sealed partial class FlowAnimation
         // the only place the reader can SEE the result land.
         new("browser", 196, 84, 300, 126, "localhost:5000/orders", "the page a visitor sees",
             "screen", [], AllScenes),
-        // Row labels. Only the island row carries a package, because only the island row IS one.
-        new("lane-rask", 516, 88, 118, 28, "Rask — C#", null, "lane", [], [SceneServer, SceneWasm, SceneDurable]),
-        new("lane-island", 516, 124, 118, 28, "Islands", "Rask.External", "lane", ["Rask.External"], [SceneIslands]),
-        new("lane-spa", 516, 160, 118, 28, "SPA lane", null, "lane", [], [SceneSpa]),
+        // Row labels. Only the island row carries packages, because only the island row IS one — and it
+        // carries TWO, because the two kinds of island are implemented by different packages:
+        // Rask.External hosts a runtime that owns its own DOM, Rask.Blazor renders .razor itself.
+        // Wider than the label needs so the two-package sub-label clears the chips that follow.
+        new("lane-rask", 500, 88, 134, 28, "Rask — C#", null, "lane", [], [SceneServer, SceneWasm, SceneDurable]),
+        new("lane-island", 500, 124, 134, 28, "Islands", "Rask.External · Rask.Blazor",
+            "lane", ["Rask.External", "Rask.Blazor"], [SceneIslands]),
+        new("lane-spa", 500, 160, 134, 28, "SPA lane", null, "lane", [], [SceneSpa]),
 
         new("chain", 640, 88, 396, 28, "Component chain — Rask.Core · Rask.Html", null,
             "chip-wide", ["Rask.Core", "Rask.Html"], [SceneServer, SceneWasm, SceneIslands, SceneDurable]),
@@ -189,8 +193,11 @@ internal sealed partial class FlowAnimation
         new("React", "chip"),
         new("Preact", "chip"),
         new("Lit", "chip"),
+        // Landing, not landed: these two are still on a branch. Dashed until they merge.
         new("Vue", "chip-soon"),
         new("Svelte", "chip-soon"),
+        // Shipped, and marked differently because it is a different KIND, not a different vendor:
+        // Rask renders the .razor component itself, so its subtree is diffed rather than left opaque.
         new("Blazor", "chip-blazor"),
     ];
 

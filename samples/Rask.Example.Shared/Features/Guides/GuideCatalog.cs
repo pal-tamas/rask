@@ -248,6 +248,8 @@ public static class GuideCatalog
             IconName.Github, "Contributing & internals"),
         new("ai-agents", "Building with AI assistants", "Conventions for AI coding agents working on Rask.",
             IconName.Robot, "Contributing & internals"),
+        new("data-flow", "Data flow — UI to database", "The whole architecture in one map, and the five journeys across it.",
+            IconName.CpuFill, "Contributing & internals", "architecture/data-flow.md"),
         new("live-rendering", "Live-rendering internals", "The diff codec and the live-render pipeline.",
             IconName.CpuFill, "Contributing & internals", "architecture/live-rendering.md"),
         new("live-rendering-codec", "Live rendering — walk & codec", "Parallel HTML+frame walk, the edit-op diff codec, keyed reconciliation.",

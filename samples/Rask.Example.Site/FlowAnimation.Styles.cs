@@ -117,7 +117,7 @@ internal sealed partial class FlowAnimation
         /* Landing, not landed: dashed until the branch merges. */
         .rf-chip-soon { fill: none; stroke: var(--rf-accent); stroke-dasharray: 4 3; }
         /* A Blazor island is a different KIND -- Rask renders it, so its subtree is never opaque. */
-        .rf-chip-blazor { fill: var(--rf-panel); stroke: var(--rf-signal); stroke-dasharray: 4 3; }
+        .rf-chip-blazor { fill: var(--rf-panel2); stroke: var(--rf-signal); stroke-width: 1.5; }
         /* Declared but not implemented: setting it throws at host build. */
         .rf-rung-off { fill: none; stroke: var(--rf-muted); stroke-dasharray: 2 4; }
         .rf-rung { fill: var(--rf-panel2); stroke: var(--rf-line); }
@@ -131,7 +131,7 @@ internal sealed partial class FlowAnimation
         .rf-click { fill: none; stroke: var(--rf-accent); stroke-width: 1; opacity: 0; }
 
         .rf-sw-lit { fill: var(--rf-panel2); stroke: var(--rf-accent); }
-        .rf-sw-blazor { fill: var(--rf-panel); stroke: var(--rf-signal); stroke-dasharray: 3 2; }
+        .rf-sw-blazor { fill: var(--rf-panel2); stroke: var(--rf-signal); stroke-width: 1.5; }
         .rf-sw-soon { fill: none; stroke: var(--rf-accent); stroke-dasharray: 3 2; }
         .rf-sw-off { fill: none; stroke: var(--rf-muted); stroke-dasharray: 2 3; }
 

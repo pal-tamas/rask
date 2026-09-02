@@ -50,6 +50,13 @@ dotnet add package Rask
 Pick one per project — all three sit on the same C# back end. Islands also compose *inside* a Rask
 component tree, so those two mix freely.
 
+<img alt="How a Rask app fits together, from a click in the browser down to SQLite and back" src="assets/rask-flow.svg" width="100%">
+
+<sup>Every package in this repository, from the browser to the database. The packet traces one journey
+at a time — a click reaching SQLite and returning as a diff, the same components moving into
+WebAssembly, the two kinds of island, the SPA lane, and the work that outlives the request. →
+[Data flow](docs/architecture/data-flow.md)</sup>
+
 ### Rask components
 
 C# components, server-rendered, with every state change streaming to the browser as a minimal diff
@@ -91,6 +98,11 @@ public sealed partial class Chart : ReactComponent
     public required IReadOnlyList<Point> Series { get; set; }
 }
 ```
+
+A `.razor` component works the same way, from `Rask.Blazor` — `partial class Chart : BlazorComponent<MudChart>;`
+is the whole declaration, and the chain steps come from the hosted component's own `[Parameter]`
+properties. That one is rendered by Rask rather than by a runtime in the browser, so unlike the others
+its subtree is diffed like any other markup.
 
 → [Islands](docs/islands.md)
 

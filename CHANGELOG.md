@@ -7,6 +7,34 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **An architecture map, from a click in the browser down to SQLite and back
+  ([data flow](docs/architecture/data-flow.md)).** The repository had no diagram of itself. The only
+  picture of how anything fitted together was an ASCII sketch of the render walk, and the batteries
+  were a prose table — so the shape of the thing existed only in the heads of people who already knew
+  it.
+
+  `FlowAnimation` draws every package under `src/` in bands from the browser to `app.db`, with a
+  packet tracing one journey at a time and the mock browser window gaining a row when the resulting
+  diff lands. Five journeys share the map: a server round trip, the WASM takeover, the two kinds of
+  island, the SPA lane, and the durable work that outlives the request.
+
+  It is a Rask component built from the typed SVG family, baked to `assets/rask-flow.svg`, so the
+  site, the README and the docs share one source that cannot drift. It replaces the hero typing
+  animation, and `assets/rask-chain.svg` goes with it — an asset nothing referenced.
+
+  Two of its tests are the point over time, because a hand-drawn diagram goes stale silently and is
+  only ever found stale by somebody reading it. One walks `src/` for directories containing a
+  `.csproj` and fails when a package has no box; it caught `Rask.Blazor` within minutes of that
+  package landing. The other pins the SPA chips to the template list `rask new --template` advertises,
+  in both directions.
+
+  The diagram also states three things the prose kept implying: there are **two** render engines, not
+  five; islands come in two kinds with **opposite** diff semantics (a React island owns its DOM so its
+  subtree is opaque, a Blazor island is rendered by Rask so it is diffed like any other markup); and
+  the SPA lane is not a render mode at all, since `Rask.Spa.Hosting` references no other Rask package.
+
 ### Removed
 
 - **An island takes no children, in either island family — and saying so is now a compile error
