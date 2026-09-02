@@ -37,6 +37,12 @@ internal sealed class BlazorIslandRenderer : StaticHtmlRenderer
     /// <summary>Adopts a component instance and returns the id every later call addresses it by.</summary>
     public int Attach(IComponent component) => AssignRootComponentId(component);
 
+    /// <summary>SPIKE: build the hosted component the way Blazor does, so [Inject] runs.</summary>
+    public IComponent Build(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] Type componentType) =>
+        InstantiateComponent(componentType);
+
     /// <summary>Mounts or updates the root with a new parameter set.</summary>
     /// <remarks>
     ///     Must be awaited on <c>Dispatcher</c>. Never block on it from Rask's

@@ -148,7 +148,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         {
             if (_componentId < 0)
             {
-                _instance = Create();
+                _instance = (TComponent)renderer.Build(typeof(TComponent));
                 _componentId = renderer.Attach(_instance);
             }
 
