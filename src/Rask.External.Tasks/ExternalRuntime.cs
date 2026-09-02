@@ -87,18 +87,28 @@ internal sealed class ExternalRuntime
     /// <remarks>
     ///     Only Angular has any. Its plugin looks for <c>tsconfig.app.json</c> by default and merely
     ///     WARNS when that is missing before going on to build — so leaving it unset is a green build
-    ///     with the compiler configured by nothing.
+    ///     with the compiler configured by nothing, and a warning line on every build besides.
     /// </remarks>
     public string? PluginOptions { get; }
 
     /// <summary>
-    ///     The front-end extensions this runtime's plugin claims.
+    ///     The extensions this runtime's plugin has to be CONFINED to when another runtime competes
+    ///     for them. Empty for a plugin that must never be confined.
     /// </summary>
     /// <remarks>
-    ///     What decides whether the plugin has to be SCOPED. An extension used to identify a runtime;
-    ///     with seven of them it identifies a family — <c>.tsx</c> belongs to React, Preact and Solid
-    ///     alike, and <c>.ts</c> to Lit and Angular. When two runtimes that claim the same extension
-    ///     are both present, each plugin is confined to the directories its own islands live in.
+    ///     <para>
+    ///         Only the three JSX runtimes have any. They install general JSX transforms over the same
+    ///         <c>.tsx</c>, so with two of them present each plugin is scoped by directory — measured,
+    ///         and measured at the level of the emitted chunk rather than the exit code.
+    ///     </para>
+    ///     <para>
+    ///         <strong>Angular is deliberately absent, though it shares <c>.ts</c> with Lit.</strong>
+    ///         It does not need confining: unscoped, the plugin compiles the Angular island ahead of
+    ///         time and passes ordinary TypeScript through untouched, so a Lit element sits beside one
+    ///         without either losing anything — verified with both in one bundle, by checking the Lit
+    ///         chunk still registers its tag and the Angular chunk still carries
+    ///         <c>ɵɵdefineComponent</c>. Scoping it would be a rule invented rather than measured.
+    ///     </para>
     /// </remarks>
     public IReadOnlyList<string> Extensions { get; }
 
@@ -107,7 +117,7 @@ internal sealed class ExternalRuntime
     ///     contract is that the module default-exports that name. Importing it also runs the
     ///     registration side effect. Needs no Vite plugin: it is ordinary TypeScript.
     /// </summary>
-    public static ExternalRuntime Lit { get; } = new("lit", "tag", "litComponent", extensions: [".ts"]);
+    public static ExternalRuntime Lit { get; } = new("lit", "tag", "litComponent");
 
     /// <summary>React, and a Preact project that aliases <c>react</c> to <c>preact/compat</c>.</summary>
     public static ExternalRuntime React { get; } =
@@ -155,8 +165,7 @@ internal sealed class ExternalRuntime
             "Component",
             "vueComponent",
             "vue from '@vitejs/plugin-vue'",
-            "vue",
-            extensions: [".vue"]);
+            "vue");
 
     /// <summary>A single-file component, compiled by a Vite plugin rather than its own compiler.</summary>
     public static ExternalRuntime Svelte { get; } =
@@ -166,18 +175,29 @@ internal sealed class ExternalRuntime
             "svelteComponent",
             "{ svelte } from '@sveltejs/vite-plugin-svelte'",
             "svelte",
-            adapterModule: "svelte.svelte",
-            extensions: [".svelte"]);
+            adapterModule: "svelte.svelte");
 
     /// <summary>
     ///     Angular, compiled ahead of time by the Analog plugin.
     /// </summary>
     /// <remarks>
-    ///     Its <c>.ts</c> is the same extension Lit's islands use, so in a project holding both, each
-    ///     plugin is scoped to its own islands' directories. The build also needs
-    ///     <c>@angular/compiler-cli</c> and <c>@angular/build</c> beside the plugin — it imports both
-    ///     and depends on neither — and a TypeScript under 6.1, which <c>@angular/compiler-cli</c>
-    ///     pins.
+    ///     <para>
+    ///         Shares <c>.ts</c> with Lit and is still never scoped — see <see cref="Extensions" />.
+    ///         The plugin compiles the Angular island ahead of time and hands ordinary TypeScript
+    ///         through untouched, which is what lets a Lit element sit beside one.
+    ///     </para>
+    ///     <para>
+    ///         What it MUST be told is a tsconfig, and not the app's: that one carries
+    ///         <c>"noEmit": true</c>, which makes ngtsc emit nothing and leaves every <c>.ts</c> island
+    ///         in the project without a default export — reported as
+    ///         <c>"default" is not exported by …</c> against files that plainly have one.
+    ///         <see cref="ExternalBuildPlan.AngularTsConfig" /> writes one that exists to emit.
+    ///     </para>
+    ///     <para>
+    ///         The build needs <c>@angular/compiler-cli</c> and <c>@angular/build</c> beside the plugin
+    ///         — it imports both and depends on neither — and a TypeScript under 6.1, which
+    ///         <c>@angular/compiler-cli</c> pins.
+    ///     </para>
     /// </remarks>
     public static ExternalRuntime Angular { get; } =
         new(
@@ -186,7 +206,6 @@ internal sealed class ExternalRuntime
             "angularComponent",
             "angular from '@analogjs/vite-plugin-angular'",
             "angular",
-            extensions: [".ts"],
             pluginOptions: "jit: false");
 
     /// <summary>
@@ -217,7 +236,17 @@ internal sealed class ExternalRuntime
     /// <summary>Every key, for an error message that can name the alternatives.</summary>
     public static string KeyList => string.Join(", ", All.Select(r => r.Key).OrderBy(k => k, StringComparer.Ordinal));
 
-    /// <summary>Whether this runtime and <paramref name="other" /> compete for the same source files.</summary>
+    /// <summary>
+    ///     Whether this runtime and <paramref name="other" /> compete for the same source files AND can
+    ///     both be confined to a directory.
+    /// </summary>
+    /// <remarks>
+    ///     A runtime with no <see cref="Extensions" /> never competes here, however much its plugin
+    ///     reads: Angular shares <c>.ts</c> with Lit and is left alone because confining it is what
+    ///     breaks it.
+    /// </remarks>
     public bool SharesExtensionWith(ExternalRuntime other) =>
-        !ReferenceEquals(this, other) && Extensions.Any(e => other.Extensions.Contains(e, StringComparer.Ordinal));
+        !ReferenceEquals(this, other)
+        && Extensions.Count > 0
+        && Extensions.Any(e => other.Extensions.Contains(e, StringComparer.Ordinal));
 }

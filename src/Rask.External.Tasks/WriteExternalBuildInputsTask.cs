@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Build.Framework;
-using Rask.Spa.Tasks;
 using Task = Microsoft.Build.Utilities.Task;
 
 namespace Rask.External.Tasks;
@@ -18,10 +17,6 @@ namespace Rask.External.Tasks;
 /// </remarks>
 public sealed class WriteExternalBuildInputsTask : Task
 {
-    private const string IslandNamespace = "Rask.External.Generated";
-    private const string IslandTypeName = "RaskExternalIslands";
-
-
     /// <summary>The island front-end files, each carrying an <c>IslandName</c> and <c>Runtime</c>.</summary>
     [Required]
     public ITaskItem[] Islands { get; set; } = [];
@@ -56,8 +51,7 @@ public sealed class WriteExternalBuildInputsTask : Task
     /// </remarks>
     public string AssemblyPath { get; set; } = string.Empty;
 
-    /// <summary>The app's tsconfig, for the one plugin that has to be told where it is.</summary>
-    public string TsConfigPath { get; set; } = string.Empty;
+
 
     /// <summary>The generated Vite config, for the target that invokes the bundler.</summary>
     [Output]
@@ -145,13 +139,23 @@ public sealed class WriteExternalBuildInputsTask : Task
                 : 0;
         }
 
+        // The Angular plugin has to be told which tsconfig to compile against, and it has to be one
+        // Rask writes: the app's own carries "noEmit", which makes ngtsc emit nothing and every .ts
+        // island lose its default export. Written before the config that names it.
+        string? angularTsConfig = null;
+        if (ExternalBuildPlan.AngularTsConfig(islands, IntermediateDirectory.TrimEnd('/', '\\')) is { } ngConfig)
+        {
+            angularTsConfig = Path.Combine(IntermediateDirectory, "tsconfig.angular.build.json");
+            written += ExternalBuildPlan.WriteIfDifferent(angularTsConfig, ngConfig) ? 1 : 0;
+        }
+
         ConfigPath = Path.Combine(IntermediateDirectory, "vite.islands.config.mjs");
 
         string config;
         try
         {
             config = ExternalBuildPlan.ViteConfig(
-                islands, entryDirectory, OutputDirectory, ManifestPath, PublicBase, TsConfigPath);
+                islands, entryDirectory, OutputDirectory, ManifestPath, PublicBase, angularTsConfig);
         }
         catch (InvalidOperationException ex)
         {
@@ -176,33 +180,15 @@ public sealed class WriteExternalBuildInputsTask : Task
     ///     Each island's runtime as its C# class declared it, keyed by component name.
     /// </summary>
     /// <remarks>
-    ///     <para>
-    ///         The generator carries these out of the compilation as string constants — the same
-    ///         arrangement the prop types already ride out on — and this lifts them back out of the PE
-    ///         metadata without loading the assembly (#650).
-    ///     </para>
-    ///     <para>
-    ///         Empty is not an error. A project can have a front-end file before it has the component,
-    ///         and a hand-written <c>&lt;RaskExternal&gt;</c> item never has one; those keep the
-    ///         runtime the item declared.
-    ///     </para>
+    ///     Empty is not an error. A project can have a front-end file before it has the component, and
+    ///     a hand-written <c>&lt;RaskExternal&gt;</c> item never has one; those keep the runtime the
+    ///     item declared.
     /// </remarks>
     private Dictionary<string, string> Runtimes()
     {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrEmpty(AssemblyPath) || !File.Exists(AssemblyPath))
-        {
-            return map;
-        }
-
         try
         {
-            foreach (var pair in GeneratedTypeScript.Read(AssemblyPath, IslandNamespace, IslandTypeName))
-            {
-                // "runtime|module". One constant rather than two fields, so it cannot go half-missing.
-                var separator = pair.Value.IndexOf('|');
-                map[pair.Key] = separator < 0 ? pair.Value : pair.Value.Substring(0, separator);
-            }
+            return ExternalIslandMetadata.Runtimes(AssemblyPath);
         }
         catch (Exception ex)
         {
@@ -213,8 +199,8 @@ public sealed class WriteExternalBuildInputsTask : Task
             Log.LogWarning(
                 $"Rask islands: could not read the declared runtimes from '{AssemblyPath}' ({ex.Message}). "
                 + "Falling back to the file extension, which cannot tell React, Preact and Solid apart.");
-        }
 
-        return map;
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
     }
 }

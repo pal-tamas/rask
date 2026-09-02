@@ -183,6 +183,10 @@
                                 CheckConfigPath="$(_RaskExternalObj)tsconfig.check.json"
                                 VueConfigPath="$(_RaskExternalObj)tsconfig.vue.json"
                                 SvelteConfigPath="$(_RaskExternalObj)tsconfig.svelte.json"
+                                SolidConfigPath="$(_RaskExternalObj)tsconfig.solid.json"
+                                PreactConfigPath="$(_RaskExternalObj)tsconfig.preact.json"
+                                AngularConfigPath="$(_RaskExternalObj)tsconfig.angular.json"
+                                IslandAssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
                                 FrontEndFiles="@(_RaskExternalFile)"
                                 ProjectDirectory="$(MSBuildProjectDirectory)"/>
     <MakeDir Directories="$(_RaskExternalObj)"/>
@@ -255,8 +259,15 @@
              Condition="'$(_RaskExternalDepsMissing)' == 'true'"
              Text="Rask.External: skipping the prop type-check — this project has a package.json but no node_modules, so its imports cannot resolve. Run the install to enable it."/>
 
+    <!-- Resolved when ANY tsgo config exists. Gated on tsconfig.check.json alone, a project whose only
+         islands are Solid or Angular resolved no tool, and every Exec below was skipped silently — a
+         green build that checked nothing. -->
     <ResolveTypeScriptToolTask Tool="tsgo"
-                               Condition="'$(RaskTsgoVersion)' != '' AND '$(_RaskExternalDepsMissing)' != 'true' AND Exists('$(_RaskExternalObj)tsconfig.check.json')"
+                               Condition="'$(RaskTsgoVersion)' != '' AND '$(_RaskExternalDepsMissing)' != 'true'
+                                          AND (Exists('$(_RaskExternalObj)tsconfig.check.json')
+                                               OR Exists('$(_RaskExternalObj)tsconfig.solid.json')
+                                               OR Exists('$(_RaskExternalObj)tsconfig.preact.json')
+                                               OR Exists('$(_RaskExternalObj)tsconfig.angular.json'))"
                                Version="$(RaskTsgoVersion)"
                                CacheRoot="$(RaskTypeScriptCacheRoot)"
                                Registry="$(RaskTypeScriptRegistry)"
@@ -264,8 +275,38 @@
       <Output TaskParameter="ToolPath" PropertyName="_RaskExternalTsgoPath"/>
     </ResolveTypeScriptToolTask>
 
+    <!--
+      One tsgo run per JSX dialect, not one for all of them.
+
+      Solid, Preact and React each need a different `jsx`/`jsxImportSource`, and Angular's decorators
+      need `experimentalDecorators` that Lit 3's standard decorators need OFF — so a single config
+      cannot describe them. Merged into one, the check does not get weaker: it reports errors that are
+      not in the author's code (Solid's `class=` under React's JSX types, Preact's hooks resolving to
+      React's) and fails a build whose TypeScript is fine.
+
+      Each config is written only when an island of that runtime exists, and the Exists() guard is what
+      keeps a React-only project running exactly one check.
+    -->
     <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.check.json&quot;"
           Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.check.json')"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"
+          CustomErrorRegularExpression="error TS[0-9]+"/>
+
+    <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.solid.json&quot;"
+          Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.solid.json')"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"
+          CustomErrorRegularExpression="error TS[0-9]+"/>
+
+    <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.preact.json&quot;"
+          Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.preact.json')"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"
+          CustomErrorRegularExpression="error TS[0-9]+"/>
+
+    <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.angular.json&quot;"
+          Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.angular.json')"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           IgnoreStandardErrorWarningFormat="true"
           CustomErrorRegularExpression="error TS[0-9]+"/>
@@ -355,14 +396,6 @@
           AfterTargets="CoreCompile"
           DependsOnTargets="ResolveProjectReferences;_RaskExternalVendorAdapters"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">
-    <PropertyGroup>
-      <!-- The Angular plugin looks for tsconfig.app.json, WARNS when it is missing, and then builds
-           anyway with the compiler configured by nothing. Naming the app's own config is the
-           difference between a type-checked island and a green build that checked none. Left empty
-           when there is no tsconfig.json, which is the state of a Lit-only project with no npm at
-           all — nothing reads it there. -->
-      <_RaskExternalTsConfig Condition="Exists('$(MSBuildProjectDirectory)/tsconfig.json')">$(MSBuildProjectDirectory)/tsconfig.json</_RaskExternalTsConfig>
-    </PropertyGroup>
     <!-- AssemblyPath is what makes the C# base class, not the file extension, decide the runtime.
          React, Preact and Solid all write .tsx and Lit and Angular both write .ts, so the glob that
          found the file cannot tell which runtime owns it — and the wrong guess is silent. -->
@@ -372,8 +405,7 @@
                                 OutputDirectory="$(_RaskExternalOut)"
                                 ManifestPath="$(_RaskExternalManifest)"
                                 PublicBase="$(RaskExternalPublicBase)"
-                                AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
-                                TsConfigPath="$(_RaskExternalTsConfig)">
+                                AssemblyPath="@(IntermediateAssembly->'%(FullPath)')">
       <Output TaskParameter="ConfigPath" PropertyName="_RaskExternalConfig"/>
     </WriteExternalBuildInputsTask>
   </Target>

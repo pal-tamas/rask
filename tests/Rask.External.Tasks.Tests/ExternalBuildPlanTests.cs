@@ -299,16 +299,20 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
-    public void Angular_and_lit_scope_their_plugins_because_both_own_dot_ts()
+    public void The_angular_plugin_is_never_scoped_even_beside_a_lit_island()
     {
         var config = Config([
             new ExternalEntry { Name = "Gauge", Source = "/app/Islands/lit/Gauge.ts", Runtime = "lit" },
             new ExternalEntry { Name = "Chart", Source = "/app/Islands/ng/Chart.ts", Runtime = "angular" },
         ]);
 
-        // Lit needs no plugin, so only Angular's has to be confined — but confined it must be, or the
-        // Angular compiler is handed a Lit element written with standard decorators.
-        Assert.Contains("include: ['/app/Islands/ng/**/*.ts']", config, StringComparison.Ordinal);
+        // Angular needs no confining: unscoped, the plugin compiles the Angular island ahead of time
+        // and passes ordinary TypeScript through untouched, so the Lit element beside it is unharmed.
+        // Measured with both in one bundle, by checking the Lit chunk still registers its tag and the
+        // Angular chunk still carries the AOT marker. Scoping it would be a rule invented rather than
+        // measured.
+        Assert.DoesNotContain("include:", config, StringComparison.Ordinal);
+        Assert.Contains("angular({ jit: false })", config, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -320,12 +324,41 @@ public class ExternalBuildPlanTests
             "/app/wwwroot/_rask/external",
             "/app/wwwroot/_rask/external/manifest.json",
             "/_rask/external/",
-            "/app/tsconfig.json");
+            "/obj/tsconfig.angular.build.json");
 
         // Left unset the plugin looks for tsconfig.app.json, WARNS that it is missing, and then builds
-        // anyway with the compiler configured by nothing. A green build that type-checked no island.
-        Assert.Contains("tsconfig: '/app/tsconfig.json'", config, StringComparison.Ordinal);
+        // anyway with the compiler configured by nothing.
+        Assert.Contains("tsconfig: '/obj/tsconfig.angular.build.json'", config, StringComparison.Ordinal);
         Assert.Contains("jit: false", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_generated_angular_tsconfig_never_says_noEmit()
+    {
+        var json = ExternalBuildPlan.AngularTsConfig(
+            [new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.ts", Runtime = "angular" }],
+            "/obj/rask-external");
+
+        Assert.NotNull(json);
+
+        // The bug this pins cost a real debugging round. Pointed at the app's own tsconfig — which
+        // sets noEmit for its type-check — ngtsc emits nothing, and rolldown then reports
+        // `"default" is not exported by <island>.ts` for EVERY .ts island in the project, naming files
+        // that plainly export one and mentioning neither Angular nor noEmit.
+        Assert.DoesNotContain("noEmit", json, StringComparison.Ordinal);
+
+        // Angular's decorators are the TypeScript 4 form; Lit 3's standard decorators need this off,
+        // which is why this config lists the Angular islands only.
+        Assert.Contains("\"experimentalDecorators\": true", json, StringComparison.Ordinal);
+        Assert.Contains("/app/Islands/Chart.ts", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_project_with_no_angular_island_gets_no_angular_tsconfig()
+    {
+        Assert.Null(ExternalBuildPlan.AngularTsConfig(
+            [new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.tsx", Runtime = "react" }],
+            "/obj/rask-external"));
     }
 
     [Fact]
@@ -378,18 +411,19 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
-    public void Angular_and_lit_may_not_share_a_directory_either()
+    public void Angular_and_lit_may_share_a_directory()
     {
-        // Not only a JSX problem. Angular's plugin is scoped by directory too, and it compiles .ts —
-        // so a Lit element sitting beside an Angular island would be handed to the Angular compiler.
-        var ex = Assert.Throws<InvalidOperationException>(() => Config([
+        // The directory rule is about SCOPED plugins, and Angular's never is. Refusing this pair would
+        // have been a rule invented rather than measured — they build correctly side by side, verified
+        // on the emitted chunks.
+        var config = Config([
             new ExternalEntry { Name = "Badge", Source = "/app/Islands/Badge.ts", Runtime = "lit" },
             new ExternalEntry { Name = "Quote", Source = "/app/Islands/Quote.ts", Runtime = "angular" },
-        ]));
+        ]);
 
-        Assert.Contains("Badge", ex.Message, StringComparison.Ordinal);
-        Assert.Contains("Quote", ex.Message, StringComparison.Ordinal);
-        Assert.Contains(".ts", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("@analogjs/vite-plugin-angular", config, StringComparison.Ordinal);
+        Assert.Contains("'Badge': ", config, StringComparison.Ordinal);
+        Assert.Contains("'Quote': ", config, StringComparison.Ordinal);
     }
 
     [Fact]
