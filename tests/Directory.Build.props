@@ -1,0 +1,36 @@
+<Project>
+
+  <!-- MUST come first, and must not be deleted as redundant. MSBuild stops at the NEAREST
+       Directory.Build.props, so without this import every test project silently loses the repo-root
+       one — warnings-as-errors, the analyzer set, the target framework, all of it — and the build goes
+       green while checking far less than it did. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFileName)$(MSBuildThisFileExtension), $(MSBuildThisFileDirectory)../))" />
+
+  <!-- Bound how many tests one assembly runs at once.
+
+       This is the second half of the machine's slot budget (scripts/lib/machine-lane.sh). That budget
+       caps how many ASSEMBLIES are in flight, via -m on the gate's `dotnet test`; without a cap in
+       here, each of those assemblies is still free to start a thread per core. xUnit's default
+       maxParallelThreads is the processor count, so the product on this 14-core box was 14 x 14, and
+       three worktrees running the gate at once reached load average 98 at 0.0% idle — at which point
+       every timing-sensitive test in all three runs was untrustworthy.
+
+       Two, not one: the gate halves its slot count for -m and leaves the other half here, so
+       (assemblies in flight) x (threads each) lands back on the budget. One would have serialised the
+       large suites — Rask.Core.Tests alone is ~1,780 facts — and spent the whole gate waiting on its
+       tail. It is a static number because xunit.runner.json is read from beside the assembly, long
+       after the gate has chosen its size; the dynamic half is the -m the gate passes.
+
+       'conservative' matches what tests/Rask.Examples.E2E.Tests already chose: it does not spin up
+       extra threads when a test blocks, which is the behaviour that makes the ceiling mean something.
+
+       Skipped for any project that ships its own file, so the E2E suite keeps its 4 — a browser
+       collection is a published host plus a Chromium page, and it is tuned against the exclusive claim
+       that suite takes rather than against this budget. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != '' And !Exists('$(MSBuildProjectDirectory)/xunit.runner.json')">
+    <None Include="$(MSBuildThisFileDirectory)xunit.runner.json"
+          Link="xunit.runner.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

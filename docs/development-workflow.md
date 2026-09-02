@@ -152,37 +152,75 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   `RASK_E2E_FILTER='FullyQualifiedName~PlaygroundExampleTests' scripts/run-e2e-local.sh`. It says loudly
   that the run was filtered, because a narrowed green is not the gate.
 
-  **Only one browser gate runs at a time — and the second one queues.** Two suites on one machine
-  contend for resources, and that shows up as a plausible-looking red minutes later with nothing in the
-  log pointing back at it. So the gate names the other run (pid, elapsed, worktree) and then **waits for
-  it**, starting automatically when the lane frees. If you are working across several worktrees, this is
-  what stops you diagnosing a failure that was never in your branch — without costing you the push.
+  **The machine has a slot budget, and every gate claims against it.** Several worktrees share one
+  box, and the two things that go wrong there pull in opposite directions: too much work at once
+  (nothing used to throttle the unit gate — three of them ran together and put 35 MSBuild worker nodes
+  on 14 cores, load average 98 at 0.0% idle), and too little (the browser gate used to take the whole
+  machine for its *whole run*, including a build that uses one core). Both are fixed by the same
+  mechanism, in `scripts/lib/machine-lane.sh`.
+
+  The box publishes **10 slots** — the performance cores, deliberately not all 14, so the efficiency
+  cores stay free for your editor and no timing-sensitive test gets scheduled somewhere slower than
+  the run that set its timeout. A gate then asks one of two questions:
+
+  | gate | what it does | blocks? |
+  |---|---|---|
+  | `run-unit-local.sh` | takes whatever is left, floor 2, and **shrinks into it** — `-m` on the build and on `dotnet test` follow the number, and it prints the size it chose | **never** |
+  | `run-e2e-local.sh` — preflight, build, publishes | a partial claim; several worktrees may build at once | **never** |
+  | `run-e2e-local.sh` — the browser suite | claims the whole budget | **yes** — see the exact guarantee below |
+
+  **What "exclusive" does and does not promise.** Two browser suites never overlap: whichever gate is
+  older is waited for, and a younger one finds the budget fully claimed and waits in turn. What it does
+  *not* promise is an empty machine. A unit gate that started while the browser gate was still building
+  is **younger** than it, so the browser gate does not count it and does not wait for it — that unit
+  gate keeps the slots it sized itself to and runs alongside the suite. That is a deliberate
+  consequence of the unit gate never blocking a commit, not an oversight: making the suite wait for
+  every unit gate as well would let a steady stream of commits starve the browser gate indefinitely,
+  since unit gates never queue. If you need a genuinely quiet machine for a suspicious red, check with
+  `ps -Ao pid,etime,command | grep -E '[r]un-(e2e|unit)-local'` and re-run alone.
+
+  So a commit is never delayed — `.githooks/pre-commit` decided that a blocked commit costs more than
+  a slow one, and that still holds; the gate just gets smaller on a busy box. And a browser gate no
+  longer blocks seven worktrees while it builds: on a measured run, 9m30s of its first 10m12s was
+  build and publish, roughly a quarter of the ~40m norm, spent holding a machine it was using one core
+  of. Only the suite itself is exclusive now, and a gate queued for it has already finished building.
 
   The queue is ordered by process age: a gate waits only for gates *older* than itself, so the run
   holding the machine is ahead of everyone and each waiter is ahead of the ones that arrived later.
-  Exactly one is released at a time. That ordering is load-bearing rather than decorative — a waiting
-  gate is itself a `run-e2e-local.sh` process, so "wait until no other gate exists" would deadlock two
-  waiters against each other, and "start when the holder exits" would release them simultaneously into
-  the very contention the guard prevents.
+  Exactly one is released at a time, and nothing starves — a gate's age only grows and a new gate
+  starts at zero, so nobody can ever be inserted ahead of you. That ordering is load-bearing rather
+  than decorative: a waiting gate is itself a gate process, so "wait until no other gate exists" would
+  deadlock two waiters against each other, and "start when the holder exits" would release them
+  simultaneously into the very contention this prevents.
+
+  Claims are processes, not files (`scripts/lib/lane-claim.sh`) — a file survives `kill -9` and a
+  laptop sleep and then wedges every gate on the box until someone works out what to delete, whereas a
+  claim whose owner is gone stops counting the moment `ps` forgets it. A gate that is *queued* for the
+  browser suite publishes its claim **before** it waits: it has not started `dotnet test` yet, so
+  nothing in its process tree would otherwise say what it is about to need, and a junior would start
+  work the waiter is about to need the whole machine for.
 
   | variable | effect |
   |---|---|
-  | `RASK_E2E_QUEUE_TIMEOUT` | seconds to wait before giving up (default `5400`, 90m). Past it the gate exits 1 and names what still holds the lane — a run past the ~40m norm is usually wedged, not busy. |
+  | `RASK_LANE_SLOTS` | the budget (default `10`). |
+  | `RASK_LANE_DISABLE=1` | switch the whole mechanism off: every gate gets its maximum and nothing waits. |
+  | `RASK_E2E_QUEUE_TIMEOUT` | seconds to wait before giving up (default `5400`, 90m). Past it the gate exits 1 and names what still holds the slots — a run past the ~40m norm is usually wedged, not busy. |
   | `RASK_E2E_QUEUE_POLL` | seconds between checks (default `20`). |
-  | `RASK_E2E_QUEUE=0` | do not wait; refuse immediately, as this gate did before. |
-  | `RASK_E2E_ALLOW_CONCURRENT=1` | do not wait; run alongside. Treat anything it reports as suspect until re-run alone. |
+  | `RASK_E2E_QUEUE=0` | do not wait; refuse immediately. |
+  | `RASK_E2E_ALLOW_CONCURRENT=1` | do not wait; run alongside. The claim is still published, so others account for the load — but treat anything the run reports as suspect until re-run alone. |
 
   Worth knowing when you read a red: contention produces boot timeouts and dead fixtures, never a false
   assertion pass. **A green under contention is trustworthy; a red is not.**
 
-  **What that guard does not cover.** It detects its own kind — a second browser gate. The commoner
-  collision is everything else competing with a live suite: a `pre-commit` hook, a plain `dotnet
-  build`, a `dotnet publish`, the CLI build gate. None of those is a browser gate, so nothing refuses
-  and nothing warns. Two things soften it now, both hints rather than decisions ([#850]):
-  `pre-commit` says so before it starts when a browser gate is live (it never refuses — a blocked
-  commit is worse than a slow one), and a red suite that finds a heavy build still running names it
-  and asks you to re-run alone before investigating. Neither claims your failure is not real; they
-  say the run was not clean enough to conclude that it is.
+  **What the budget does not cover.** Only the two gates above claim against it. The rest —
+  `run-benchmarks-local.sh`, `run-cli-build-e2e.sh`, the watch and deploy and install gates — and any
+  plain `dotnet build` you run by hand are invisible to it, so the accounting is *incomplete* rather
+  than wrong: work exists that nobody counted. A gate that goes unseen costs some over-subscription,
+  which is the safe direction; the alternative, a phantom gate, would shrink everyone else for as long
+  as it was believed in. Two older hints still soften the uncounted cases ([#850]): `pre-commit` says
+  so before it starts when a browser gate is live (it never refuses), and a red suite that finds a
+  heavy build still running names it and asks you to re-run alone before investigating. Neither claims
+  your failure is not real; they say the run was not clean enough to conclude that it is.
 
 - **Every gate says whether it ran.** The path-filtered gates — CLI build, watch hot-reload, deploy,
   install — used to take a silent branch when nothing in the push matched their paths, printing

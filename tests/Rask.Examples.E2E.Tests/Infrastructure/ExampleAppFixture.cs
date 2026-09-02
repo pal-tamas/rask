@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Rask.Examples.E2E.Tests.Infrastructure;
@@ -237,17 +238,39 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         }
 
         // Local-dev fallback: no CI prebuild present, so publish the host on demand into a temp folder.
-        // Keyed on the app alone — it used to carry the port too, which was harmless while ports were
+        // Keyed on the app — it used to carry the port too, which was harmless while ports were
         // constants and would now leave a fresh multi-hundred-megabyte publish behind on every run. Two
         // fixtures booting the same app therefore share one folder, so the publish is serialised: MSBuild
         // writing the same output directory from two processes corrupts it.
-        var publishDir = Path.Combine(Path.GetTempPath(), "rask-e2e-publish", appName);
+        //
+        // And keyed on the WORKTREE as well, because that serialisation is a `lock` and a lock only
+        // reaches the fixtures inside one process. Several worktrees run this suite on one machine, each
+        // its own process, all previously resolving to the same $TMPDIR/rask-e2e-publish/<app> — so the
+        // corruption the comment above rules out within a run was reachable across two runs, publishing
+        // different commits into one directory. The path is what has to differ, since the lock cannot.
+        var publishDir = Path.Combine(Path.GetTempPath(), "rask-e2e-publish", WorktreeKey(repoRoot), appName);
         lock (PublishLocks.GetOrAdd(appName, static _ => new Lock()))
         {
             PublishInto(repoRoot, publishDir);
         }
 
         return RunPublishedDllStartInfo(publishDir, appName);
+    }
+
+    // A short, stable name for the checkout this suite is running from, so two worktrees never share a
+    // publish directory. Hashed rather than derived from the folder name: worktree names are chosen by
+    // whoever created them and can repeat across clones, while the absolute path cannot. Eight hex
+    // characters is far more than enough to separate the handful of checkouts on one machine, and keeps
+    // the path short enough to stay readable when someone goes looking in $TMPDIR.
+    internal static string WorktreeKey(string repoRoot)
+    {
+        // TrimEndingDirectorySeparator before hashing: Path.GetFullPath PRESERVES a trailing separator,
+        // so "/x/Rask" and "/x/Rask/" would otherwise hash differently and one checkout would publish
+        // into two directories. Today's only caller hands over a DirectoryInfo.FullName and never
+        // trails, which is exactly why this would have gone unnoticed until a second caller appeared.
+        var normalized = Path.TrimEndingDirectorySeparator(Path.GetFullPath(repoRoot));
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
+        return Convert.ToHexStringLower(digest)[..8];
     }
 
     // Always re-publishes rather than reusing whatever is in the folder: `dotnet publish` is incremental,
