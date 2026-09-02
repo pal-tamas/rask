@@ -61,8 +61,9 @@ dotnet format Rask.slnx --verify-no-changes --no-restore
 #
 # Cached under artifacts/, so the install is a one-off rather than a per-run download.
 # The generated TypeScript is compiled by tsgo, which the test fetches as a checksum-verified binary at
-# a pinned version, cached per user. This whole gate needs no node — the build passes
-# -p:RaskSpaBuild=false — and now neither does the type check, so it always runs. What must not happen
+# a pinned version, cached per user. The type check needs no node, so it always runs. The GATE does
+# need node, since the showcase gained islands: it carries a package.json, so the solution build runs
+# npm and Vite for it (pass -p:RaskExternalBuild=false to build it without). What must not happen
 # is a test that quietly reports success without ever having run a type-checker, which is how a
 # generator emitting malformed TypeScript would ship green.
 # Nothing to exclude any more: the check fetches tsgo itself, as a checksum-verified binary, the same

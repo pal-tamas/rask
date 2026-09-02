@@ -113,9 +113,13 @@ public class ExternalBuildPlanTests
             return;
         }
 
+        // Every runtime at once, which is the case with the most generated text in it: four plugin
+        // imports, two of them shaped differently from the others.
         var config = Config([
             new ExternalEntry { Name = "Chart", Source = "/a/c.tsx", Runtime = "react" },
             new ExternalEntry { Name = "Gauge", Source = "/a/g.ts", Runtime = "lit" },
+            new ExternalEntry { Name = "Panel", Source = "/a/p.vue", Runtime = "vue" },
+            new ExternalEntry { Name = "Dial", Source = "/a/d.svelte", Runtime = "svelte" },
         ]);
 
         var path = Path.Combine(Path.GetTempPath(), $"rask-external-{Guid.NewGuid():N}.mjs");
@@ -140,6 +144,125 @@ public class ExternalBuildPlanTests
         {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void A_vue_entry_wraps_the_component_with_its_adapter()
+    {
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "Chart", Source = "/app/Features/Chart.vue", Runtime = "vue" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import Component from '/app/Features/Chart.vue'", entry, StringComparison.Ordinal);
+        Assert.Contains("import { vueComponent } from '/obj/rask-external/rask/vue'", entry, StringComparison.Ordinal);
+        Assert.Contains("export default vueComponent(Component)", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_svelte_entry_points_at_the_runes_adapter_module()
+    {
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "Chart", Source = "/app/Features/Chart.svelte", Runtime = "svelte" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import Component from '/app/Features/Chart.svelte'", entry, StringComparison.Ordinal);
+        Assert.Contains("export default svelteComponent(Component)", entry, StringComparison.Ordinal);
+
+        // Not 'rask/svelte'. The adapter keeps props reactive with a $state proxy, and a rune is a
+        // COMPILER feature — it does not exist in a file the Svelte plugin does not compile. Resolving
+        // to a plain .ts would leave the adapter unable to update, so every prop change would remount
+        // the component and throw away its own state.
+        Assert.Contains(
+            "import { svelteComponent } from '/obj/rask-external/rask/svelte.svelte'",
+            entry,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_unknown_runtime_is_refused_rather_than_defaulted_to_react()
+    {
+        // It used to fall through to React, so a typo generated a React entry for a Vue component:
+        // the build succeeded, the bundle shipped, the chunk loaded, and nothing mounted.
+        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "Chart", Source = "/app/Chart.vue", Runtime = "vue3" },
+            "/obj/rask-external/rask"));
+
+        Assert.Contains("vue3", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
+
+        // Names the alternatives, so the message is actionable without opening Rask's source.
+        Assert.Contains("svelte", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Each_plugin_is_imported_only_when_its_own_runtime_is_used()
+    {
+        var vueOnly = Config([new ExternalEntry { Name = "Chart", Source = "/a/c.vue", Runtime = "vue" }]);
+
+        Assert.Contains("@vitejs/plugin-vue", vueOnly, StringComparison.Ordinal);
+        Assert.Contains("vue(), ", vueOnly, StringComparison.Ordinal);
+
+        // A Vue-only app is not asked to install React's plugin, or Svelte's, to build.
+        Assert.DoesNotContain("@vitejs/plugin-react", vueOnly, StringComparison.Ordinal);
+        Assert.DoesNotContain("vite-plugin-svelte", vueOnly, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_svelte_plugin_is_imported_as_a_named_export()
+    {
+        var svelteOnly = Config([new ExternalEntry { Name = "Chart", Source = "/a/c.svelte", Runtime = "svelte" }]);
+
+        // The shape differs per plugin and getting it wrong is a build error in generated code:
+        // Svelte's is a NAMED export where React's and Vue's are defaults.
+        Assert.Contains(
+            "import { svelte } from '@sveltejs/vite-plugin-svelte'",
+            svelteOnly,
+            StringComparison.Ordinal);
+        Assert.Contains("svelte(), ", svelteOnly, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Single_file_compilers_are_registered_before_the_jsx_transform()
+    {
+        var config = Config([
+            new ExternalEntry { Name = "Chart", Source = "/a/c.tsx", Runtime = "react" },
+            new ExternalEntry { Name = "Panel", Source = "/a/p.vue", Runtime = "vue" },
+            new ExternalEntry { Name = "Dial", Source = "/a/d.svelte", Runtime = "svelte" },
+        ]);
+
+        var vue = config.IndexOf("vue()", StringComparison.Ordinal);
+        var svelte = config.IndexOf("svelte()", StringComparison.Ordinal);
+        var react = config.IndexOf("react()", StringComparison.Ordinal);
+
+        Assert.True(vue >= 0 && svelte >= 0 && react >= 0);
+
+        // Not cosmetic. A Vue or Svelte plugin claims one extension it alone understands; the React
+        // plugin installs a GENERAL JSX transform. Registered the other way round, a .vue reaches the
+        // JSX parser and the build dies with "Unexpected JSX expression" at line 1 — an error naming
+        // neither Vue nor the plugin that should have handled it. Cost a real debugging round.
+        Assert.True(vue < react, "the Vue plugin must be registered before the React one");
+        Assert.True(svelte < react, "the Svelte plugin must be registered before the React one");
+    }
+
+    [Fact]
+    public void The_plugin_order_does_not_depend_on_the_order_islands_were_discovered()
+    {
+        var one = Config([
+            new ExternalEntry { Name = "A", Source = "/a/a.vue", Runtime = "vue" },
+            new ExternalEntry { Name = "B", Source = "/a/b.tsx", Runtime = "react" },
+        ]);
+
+        var other = Config([
+            new ExternalEntry { Name = "B", Source = "/a/b.tsx", Runtime = "react" },
+            new ExternalEntry { Name = "A", Source = "/a/a.vue", Runtime = "vue" },
+        ]);
+
+        // The config is a bundler input, compared against what is on disk and rewritten only when it
+        // differs. An order that tracked discovery would rewrite it on some builds and not others,
+        // restarting the dev server's dependency graph for no reason.
+        Assert.Equal(
+            one[..one.IndexOf("const input", StringComparison.Ordinal)],
+            other[..other.IndexOf("const input", StringComparison.Ordinal)]);
     }
 
     private static string Config(IReadOnlyList<ExternalEntry> islands) =>

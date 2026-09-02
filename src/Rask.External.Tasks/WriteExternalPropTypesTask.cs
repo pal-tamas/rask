@@ -55,9 +55,23 @@ public sealed class WriteExternalPropTypesTask : Task
     /// <summary>Where the type-check's own tsconfig goes.</summary>
     public string CheckConfigPath { get; set; } = string.Empty;
 
+    /// <summary>Where the Vue checker's tsconfig goes. <c>vue-tsc</c> reads it; tsgo cannot.</summary>
+    public string VueConfigPath { get; set; } = string.Empty;
+
+    /// <summary>Where the Svelte checker's tsconfig goes. <c>svelte-check</c> reads it.</summary>
+    public string SvelteConfigPath { get; set; } = string.Empty;
+
     /// <summary>Whether the check config was written, so the caller knows there is one to run.</summary>
     [Output]
     public bool HasCheckConfig { get; private set; }
+
+    /// <summary>Whether any Vue island was found, so the caller knows to run <c>vue-tsc</c>.</summary>
+    [Output]
+    public bool HasVueConfig { get; private set; }
+
+    /// <summary>Whether any Svelte island was found, so the caller knows to run <c>svelte-check</c>.</summary>
+    [Output]
+    public bool HasSvelteConfig { get; private set; }
 
     /// <inheritdoc />
     public override bool Execute()
@@ -205,6 +219,52 @@ public sealed class WriteExternalPropTypesTask : Task
         }
 
         var directory = Path.GetDirectoryName(CheckConfigPath) ?? ProjectDirectory;
+        var written = false;
+
+        // Split by what can actually READ the file, not by runtime. tsgo parses TypeScript and JSX and
+        // nothing else — a single .vue reaching its "files" array is not a weaker check, it is a build
+        // that stops working. So each checker gets a config listing only its own files, and the
+        // targets run the ones that have something in them.
+        HasCheckConfig = WriteConfigFor(CheckConfigPath, directory, IsTypeScript, ref written);
+        HasVueConfig = WriteConfigFor(VueConfigPath, directory, p => HasExtension(p, ".vue"), ref written);
+        HasSvelteConfig = WriteConfigFor(SvelteConfigPath, directory, p => HasExtension(p, ".svelte"), ref written);
+
+        return written;
+    }
+
+    /// <summary>Writes one checker's config over the files it can read, or removes a stale one.</summary>
+    private bool WriteConfigFor(string configPath, string directory, Func<string, bool> matches, ref bool written)
+    {
+        if (configPath.Length == 0)
+        {
+            return false;
+        }
+
+        var files = new List<string>();
+        foreach (var item in FrontEndFiles)
+        {
+            var full = item.GetMetadata("FullPath");
+            if (matches(full))
+            {
+                files.Add(Relative(directory, full));
+            }
+        }
+
+        if (files.Count == 0)
+        {
+            // Deleted rather than left behind. A config listing files that are gone would have the
+            // checker fail on a project whose last Vue island was removed — and the targets decide
+            // whether to run a checker by whether its config exists.
+            if (File.Exists(configPath))
+            {
+                File.Delete(configPath);
+                written = true;
+            }
+
+            return false;
+        }
+
+        files.Sort(StringComparer.Ordinal);
 
         var json = new StringBuilder();
         json.AppendLine("{");
@@ -226,19 +286,30 @@ public sealed class WriteExternalPropTypesTask : Task
         json.AppendLine("  },");
         json.AppendLine("  \"files\": [");
 
-        for (var i = 0; i < FrontEndFiles.Length; i++)
+        for (var i = 0; i < files.Count; i++)
         {
-            var path = Relative(directory, FrontEndFiles[i].GetMetadata("FullPath"));
-            json.Append("    \"").Append(path).Append('"')
-                .AppendLine(i == FrontEndFiles.Length - 1 ? string.Empty : ",");
+            json.Append("    \"").Append(files[i]).Append('"')
+                .AppendLine(i == files.Count - 1 ? string.Empty : ",");
         }
 
         json.AppendLine("  ]");
         json.AppendLine("}");
 
-        HasCheckConfig = true;
-        return GeneratedTypeScript.WriteIfDifferent(CheckConfigPath, json.ToString());
+        if (GeneratedTypeScript.WriteIfDifferent(configPath, json.ToString()))
+        {
+            written = true;
+        }
+
+        return true;
     }
+
+    /// <summary>Whether tsgo can read this file at all.</summary>
+    private static bool IsTypeScript(string path) =>
+        HasExtension(path, ".ts") || HasExtension(path, ".tsx") || HasExtension(path, ".js")
+        || HasExtension(path, ".jsx");
+
+    private static bool HasExtension(string path, string extension) =>
+        path.EndsWith(extension, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     ///     <paramref name="to" /> expressed relative to the directory <paramref name="from" />, always

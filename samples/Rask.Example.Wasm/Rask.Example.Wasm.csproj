@@ -47,6 +47,14 @@
          that path. WASM apps that DO mark methods [JSInvokable] should add a
          [DynamicDependency] on those methods (standard Blazor WASM mitigation). -->
     <NoWarn>$(NoWarn);IL2104</NoWarn>
+    <!--
+      This app has scoped TypeScript (PictureInPictureDemo.ts) AND islands, and a Lit island is
+      spelled exactly like a scoped file: `Name.ts` beside `Name.cs`. Left on, convention-pairing
+      offers every scoped file to the bundler as a Lit island and the build dies on a module that
+      never default-exported a tag name. There are no Lit islands here — the Server showcase
+      carries that case — so turning the pairing off costs nothing and says what is true.
+    -->
+    <RaskExternalLitAutoPair>false</RaskExternalLitAutoPair>
   </PropertyGroup>
 
   <ItemGroup>
@@ -62,6 +70,9 @@
          nothing. Measured: Rask.dll and Rask.Query were absent from the published bundle entirely. -->
     <TrimmerRootAssembly Include="Rask"/>
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+    <!-- The islands showcase. Same front-end files as the Server sample, bundled here because the
+         client runtime resolves the manifest app-rooted at /_rask/external/manifest.json. -->
+    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
@@ -79,7 +90,7 @@
        raksrc/{leaf}; Program.cs registers this app assembly with EmbeddedSource so the lookup
        finds them. A .cs stays compiled too; this only adds its text as a manifest resource. -->
   <ItemGroup>
-    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.js;Features/**/*.css">
+    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.js;Features/**/*.css;Features/**/*.tsx;Features/**/*.vue;Features/**/*.svelte">
       <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>

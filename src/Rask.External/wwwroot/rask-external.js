@@ -171,9 +171,6 @@ async function hydrate(element) {
             }
 
             entry.adapter = adapter;
-            // Slots are read ONCE, at mount, and before props: lifting removes the templates, and the
-            // adapter needs them in hand when it first renders so it can place its containers rather
-            // than reflow after the fact.
             entry.handle = adapter.mount(element, readProps(element, cache));
         } catch (error) {
             mounted.delete(element);

@@ -14,6 +14,10 @@ Rask.External.LitComponent
 Rask.External.LitComponent.LitComponent() -> void
 Rask.External.ReactComponent
 Rask.External.ReactComponent.ReactComponent() -> void
+Rask.External.SvelteComponent
+Rask.External.SvelteComponent.SvelteComponent() -> void
+Rask.External.VueComponent
+Rask.External.VueComponent.VueComponent() -> void
 RaskBuilderSettersRask_External
 abstract Rask.External.ExternalComponent.ComponentName.get -> string!
 abstract Rask.External.ExternalComponent.Module.get -> string!
@@ -33,5 +37,7 @@ override sealed Rask.External.ExternalComponent.TagName.get -> string?
 override sealed Rask.External.ExternalComponent.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override sealed Rask.External.LitComponent.Runtime.get -> string!
 override sealed Rask.External.ReactComponent.Runtime.get -> string!
+override sealed Rask.External.SvelteComponent.Runtime.get -> string!
+override sealed Rask.External.VueComponent.Runtime.get -> string!
 static Rask.External.ExternalDefaults.Wire(Rask.External.ExternalHydration hydration) -> string?
 static Rask.External.ExternalHandlers.Register(Rask.Core.Component! owner, System.Delegate! handler) -> string!

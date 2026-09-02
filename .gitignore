@@ -162,6 +162,13 @@ src/Rask.Wasm/Browser/rask-sw.js
 # ran the build, and every build shows up as a diff.
 **/wwwroot/css/app.css
 
+# Island bundles. Vite writes them into wwwroot so the SDK publishes them with no publish target
+# of its own — but they are build output, regenerated on every build, and the chunk names are hashed.
+**/wwwroot/_rask/external/
+
+# The tsconfig fragment Rask writes for the @rask/* prop-type mapping. Generated, never committed.
+**/obj/rask-external/
+
 # Written by WasmWatchAppFixture during the WASM hot-reload E2E and deleted afterwards. Tracking it
 # makes every gate run delete a tracked file and leaves the sample with a permanent probe route.
 samples/Rask.Example.Wasm/Features/HotReloadProbePage.cs

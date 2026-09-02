@@ -57,6 +57,40 @@
     <_RaskTailwindSource Include="$(_RaskTailwindInput)"/>
     <_RaskTailwindSource Include="$(MSBuildProjectDirectory)/**/*.cs;$(MSBuildProjectDirectory)/**/*.razor;$(MSBuildProjectDirectory)/**/*.html"
                         Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*"/>
+    <!--
+      Island front-end files. Tailwind v4 already SCANS these — it detects sources from the project it
+      is run in, and a .vue or .svelte is an ordinary source to it — so the utilities land in the sheet
+      on a clean build and everything looks right.
+
+      What was missing is the other half: this list is the target's up-to-date check, and a file that
+      is scanned but not listed here is one whose EDIT does not rebuild. Change a class in a .vue and
+      the CSS keeps the old utility, silently, until something unrelated forces a rebuild — the worst
+      shape of staleness, because the page renders and only the styling is a version behind.
+
+      An island whose files live in a SIBLING project needs `@source` in the stylesheet as well; that
+      is a Tailwind-side path it cannot infer, and it is documented in docs/islands.md.
+    -->
+    <_RaskTailwindSource Include="$(MSBuildProjectDirectory)/**/*.tsx;$(MSBuildProjectDirectory)/**/*.jsx;$(MSBuildProjectDirectory)/**/*.vue;$(MSBuildProjectDirectory)/**/*.svelte"
+                        Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*"/>
+
+    <!--
+      Anything the stylesheet reaches with Tailwind's `@source` but this project does not contain.
+
+      `@source` is read by TAILWIND, out of the CSS, and nothing hands those paths to MSBuild — so a
+      file outside the project is scanned on a full build and then never watched again: edit a class in
+      it and the sheet keeps the old utility until something else forces a rebuild. The globs above
+      cannot cover it, because they are anchored to $(MSBuildProjectDirectory) by design.
+
+      So the two have to be stated together. Add the same directory here that the stylesheet names:
+
+        <ItemGroup>
+          <RaskTailwindSource Include="../Shop.Web/Features/Islands/**/*.vue"/>
+        </ItemGroup>
+
+      The commonest reason to need it is an island: its front-end file lives in the app that bundles it,
+      which is not always the project that owns the stylesheet.
+    -->
+    <_RaskTailwindSource Include="@(RaskTailwindSource)"/>
   </ItemGroup>
 
   <!--
