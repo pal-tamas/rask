@@ -1,5 +1,5 @@
-using Rask.Cli.Dev;
 using System.Text.Json;
+using Rask.Cli.Dev;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Commands;
