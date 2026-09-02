@@ -1,0 +1,17 @@
+# The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify).
+#
+# Measured on the commit that finished splitting the browser layer out of rask-api.ts into one module
+# per API — 37 modules, from a file that was 1975 lines. That split is exactly the change a size gate
+# should have been watching and nothing was: BundleSizeReport prints a table of a published WASM
+# _framework/ and has no committed numbers, so this file could have doubled with every check green.
+#
+# Refresh with:
+#   dotnet build src/Rask.Server -c Release -p:MinVerSkip=true
+#   dotnet build src/Rask.Wasm   -c Release -p:MinVerSkip=true
+#   dotnet run -c Release --project benchmarks/Rask.Benchmarks -- client-bundle-size
+#
+# Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
+# overwrites it with an unminified file — measuring that reports a regression that is not real.
+bundle,bytes
+rask.js,85073
+rask.wasm.js,86042

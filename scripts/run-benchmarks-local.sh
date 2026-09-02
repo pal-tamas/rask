@@ -53,6 +53,16 @@ echo
 echo "==> Payload-bytes gate (vs Blazor)"
 dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor --no-build -- payload-bytes --check || status=1
 
+# The client runtimes every visitor downloads. Measured in RELEASE, because the Debug bundles are
+# unminified and a comment would move the number — and built here rather than assumed present, since
+# rask.wasm.js is written into a SOURCE directory that a Debug build overwrites with an unminified
+# file three times the size. Measuring that would report a spectacular regression that does not exist.
+echo
+echo "==> Client bundle-size gate (rask.js, rask.wasm.js)"
+dotnet build src/Rask.Server/Rask.Server.csproj -c Release -p:MinVerSkip=true >/dev/null
+dotnet build src/Rask.Wasm/Rask.Wasm.csproj -c Release -p:MinVerSkip=true >/dev/null
+dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- client-bundle-size --check || status=1
+
 # The live-session capacity reports, smoke-sized. They answer "how many sessions fit in a box", they
 # are documented in docs/scaling.md and docs/configuration.md as the way to size a host — and until
 # now NOTHING ran them. The nightly job that did was deleted when GitHub was cut back to publishing,

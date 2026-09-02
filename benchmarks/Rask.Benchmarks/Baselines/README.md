@@ -13,6 +13,17 @@ render path should compare against these and quote the delta in its description.
 > the gate keeps tracking reality. `FullPayloadBytes` is informational only (it moves
 > whenever the scenario markup or runtime script changes) and is **not** gated.
 
+> **`client-bundle-size.csv` is enforced the same way**, and measures the other thing every visitor
+> downloads: the client runtimes themselves, `rask.js` and `rask.wasm.js`. Nothing gated those before —
+> `BundleSizeReport` prints a table of a published WASM `_framework/` and has no committed numbers at
+> all, so the runtime script could double with every check in the repository still green. It is
+> measured in **Release**, because a Debug bundle is unminified and a comment would move the number,
+> and the script builds both hosts in Release first: `rask.wasm.js` is written into a *source*
+> directory that a Debug build overwrites with an unminified file, and measuring that reports a
+> spectacular regression which does not exist. The tolerance is ±2% rather than byte-exact — esbuild's
+> output can shift a few bytes on a minifier bump nobody here chose, while the regression worth
+> catching (a module pulled into the wrong bundle, tree-shaking quietly stopping) is far larger.
+
 Hardware: Apple M4 (Arm64), .NET 10, Concurrent Server GC. The gated columns
 (`DiffPayloadBytes`, `DiffOpCount`) are machine-independent — they're exact byte counts of
 a deterministic payload, so the CI runner reproduces them regardless of hardware.

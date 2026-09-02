@@ -79,6 +79,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **The client runtimes are size-gated at last.** `rask.js` and `rask.wasm.js` are what every visitor
+  downloads, and nothing measured them: `BundleSizeReport` prints a table of a published WASM
+  `_framework/` and has no committed numbers, so the runtime script could have doubled with every check
+  in the repository still green. `client-bundle-size --check` compares both against
+  `Baselines/client-bundle-size.csv` and runs from `scripts/run-benchmarks-local.sh`, which the
+  pre-push hook already enforces.
+
+  It exists because of this release's own change: splitting the browser layer out of `rask-api.ts` into
+  37 modules is exactly the edit that moves a bundle — in either direction, since tree-shaking now has
+  boundaries to work with — and "about the same, surely" is not a measurement. The numbers today are
+  85,073 and 86,042 bytes.
+
+  Release only, and the script builds both hosts in Release before measuring: a Debug bundle is
+  unminified, so a comment would move the number, and `rask.wasm.js` is written into a *source*
+  directory that a Debug build overwrites with a file three times the size. Tolerance is ±2% rather
+  than byte-exact, because esbuild's output shifts a little on a minifier bump nobody here chose, while
+  the regression worth catching is far larger. Verified by moving the baseline and watching it exit 1.
+
 - **A hosted Blazor component can now run `OnAfterRenderAsync`.** `StaticHtmlRenderer` never fires it,
   so before this a component could only reach a browser API from its own event handler — which ruled
   out the ordinary case of reading one when the island appears. Rask drives it, once, after the
