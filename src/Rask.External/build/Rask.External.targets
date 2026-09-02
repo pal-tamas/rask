@@ -90,6 +90,15 @@
     nothing from npm and checks cleanly with nothing installed. Gating discovery on the bundler would
     have left the guarantee dormant in exactly the projects the no-npm path exists for.
   -->
+  <!--
+    A note on %(Runtime) below: it is a FALLBACK, not the answer.
+
+    An extension used to identify a runtime. It no longer does — React, Preact and Solid all write
+    .tsx, and Angular writes the same .ts Lit does — so what these globs establish is the FAMILY, and
+    the C# base class settles which member of it. WriteExternalBuildInputsTask reads the declared
+    runtime out of the compiled assembly and overrides what is written here; the value survives only
+    for a front-end file no component has claimed yet, or a hand-written <RaskExternal> item.
+  -->
   <ItemGroup>
     <_RaskExternalFile Include="$(MSBuildProjectDirectory)/**/*.tsx;$(MSBuildProjectDirectory)/**/*.jsx"
                      Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
@@ -313,6 +322,13 @@
           IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
+  <!--
+    Pairs each candidate .ts with a .cs of the same name. This is the discovery path for BOTH runtimes
+    that write a plain .ts — Lit and Angular — even though the fallback metadata says lit: the C# base
+    class is what decides, and the assembly read in _RaskExternalWriteInputs overrides this. So a
+    project that turns RaskExternalLitAutoPair off loses its Angular islands too, and has to declare
+    them with <RaskExternal Include="…" Runtime="angular"/>.
+  -->
   <Target Name="_RaskExternalPairLitFiles" Condition="'$(RaskExternalLitAutoPair)' != 'false'">
     <ItemGroup>
       <_RaskExternalFile Include="@(_RaskExternalLitCandidate)" Condition="Exists('%(_RaskExternalLitCandidate.Sibling)')">
@@ -339,12 +355,25 @@
           AfterTargets="CoreCompile"
           DependsOnTargets="ResolveProjectReferences;_RaskExternalVendorAdapters"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">
+    <PropertyGroup>
+      <!-- The Angular plugin looks for tsconfig.app.json, WARNS when it is missing, and then builds
+           anyway with the compiler configured by nothing. Naming the app's own config is the
+           difference between a type-checked island and a green build that checked none. Left empty
+           when there is no tsconfig.json, which is the state of a Lit-only project with no npm at
+           all — nothing reads it there. -->
+      <_RaskExternalTsConfig Condition="Exists('$(MSBuildProjectDirectory)/tsconfig.json')">$(MSBuildProjectDirectory)/tsconfig.json</_RaskExternalTsConfig>
+    </PropertyGroup>
+    <!-- AssemblyPath is what makes the C# base class, not the file extension, decide the runtime.
+         React, Preact and Solid all write .tsx and Lit and Angular both write .ts, so the glob that
+         found the file cannot tell which runtime owns it — and the wrong guess is silent. -->
     <WriteExternalBuildInputsTask Islands="@(_RaskExternalFile)"
                                 IntermediateDirectory="$(_RaskExternalObj)"
                                 AdapterDirectory="$(_RaskExternalAdapters)"
                                 OutputDirectory="$(_RaskExternalOut)"
                                 ManifestPath="$(_RaskExternalManifest)"
-                                PublicBase="$(RaskExternalPublicBase)">
+                                PublicBase="$(RaskExternalPublicBase)"
+                                AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
+                                TsConfigPath="$(_RaskExternalTsConfig)">
       <Output TaskParameter="ConfigPath" PropertyName="_RaskExternalConfig"/>
     </WriteExternalBuildInputsTask>
   </Target>

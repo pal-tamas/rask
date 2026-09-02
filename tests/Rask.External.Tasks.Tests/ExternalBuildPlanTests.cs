@@ -113,13 +113,17 @@ public class ExternalBuildPlanTests
             return;
         }
 
-        // Every runtime at once, which is the case with the most generated text in it: four plugin
-        // imports, two of them shaped differently from the others.
+        // Every runtime that can share a project, which is the case with the most generated text in
+        // it: six plugin imports, one shaped differently from the others, and two of them carrying
+        // scoping options. React is left out because it cannot coexist with Preact — and Preact
+        // standing in for it also proves a SCOPED JSX plugin parses.
         var config = Config([
-            new ExternalEntry { Name = "Chart", Source = "/a/c.tsx", Runtime = "react" },
-            new ExternalEntry { Name = "Gauge", Source = "/a/g.ts", Runtime = "lit" },
+            new ExternalEntry { Name = "Chart", Source = "/a/preact/c.tsx", Runtime = "preact" },
+            new ExternalEntry { Name = "Gauge", Source = "/a/lit/g.ts", Runtime = "lit" },
             new ExternalEntry { Name = "Panel", Source = "/a/p.vue", Runtime = "vue" },
             new ExternalEntry { Name = "Dial", Source = "/a/d.svelte", Runtime = "svelte" },
+            new ExternalEntry { Name = "Meter", Source = "/a/solid/m.tsx", Runtime = "solid" },
+            new ExternalEntry { Name = "Card", Source = "/a/ng/card.ts", Runtime = "angular" },
         ]);
 
         var path = Path.Combine(Path.GetTempPath(), $"rask-external-{Guid.NewGuid():N}.mjs");
@@ -263,6 +267,160 @@ public class ExternalBuildPlanTests
         Assert.Equal(
             one[..one.IndexOf("const input", StringComparison.Ordinal)],
             other[..other.IndexOf("const input", StringComparison.Ordinal)]);
+    }
+
+    [Fact]
+    public void Two_jsx_runtimes_scope_their_plugins_to_their_own_directories()
+    {
+        var config = Config([
+            new ExternalEntry { Name = "Gauge", Source = "/app/Islands/solid/Gauge.tsx", Runtime = "solid" },
+            new ExternalEntry { Name = "Chart", Source = "/app/Islands/react/Chart.tsx", Runtime = "react" },
+        ]);
+
+        // Scoped by DIRECTORY, not by file — measured, not reasoned about. A file-level include
+        // transforms the island and leaves every module it IMPORTS to the other plugin: a Solid island
+        // importing a Row.tsx beside it built green and shipped a Preact vnode into Solid's renderer.
+        Assert.Contains("solid({ include: ['/app/Islands/solid/**/*.{jsx,tsx}'] })", config, StringComparison.Ordinal);
+        Assert.Contains("react({ include: ['/app/Islands/react/**/*.{jsx,tsx}'] })", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void One_jsx_runtime_alone_is_left_unscoped()
+    {
+        var config = Config([
+            new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.tsx", Runtime = "react" },
+            new ExternalEntry { Name = "Panel", Source = "/app/Islands/Panel.vue", Runtime = "vue" },
+        ]);
+
+        // Nothing competes for a .tsx here, so there is nothing to disambiguate. An include would only
+        // be one more thing that can be subtly wrong, and it would break the moment an island moved.
+        Assert.Contains("react(), ", config, StringComparison.Ordinal);
+        Assert.DoesNotContain("react({", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Angular_and_lit_scope_their_plugins_because_both_own_dot_ts()
+    {
+        var config = Config([
+            new ExternalEntry { Name = "Gauge", Source = "/app/Islands/lit/Gauge.ts", Runtime = "lit" },
+            new ExternalEntry { Name = "Chart", Source = "/app/Islands/ng/Chart.ts", Runtime = "angular" },
+        ]);
+
+        // Lit needs no plugin, so only Angular's has to be confined — but confined it must be, or the
+        // Angular compiler is handed a Lit element written with standard decorators.
+        Assert.Contains("include: ['/app/Islands/ng/**/*.ts']", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_angular_plugin_is_told_which_tsconfig_to_read()
+    {
+        var config = ExternalBuildPlan.ViteConfig(
+            [new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.ts", Runtime = "angular" }],
+            "/obj/entries",
+            "/app/wwwroot/_rask/external",
+            "/app/wwwroot/_rask/external/manifest.json",
+            "/_rask/external/",
+            "/app/tsconfig.json");
+
+        // Left unset the plugin looks for tsconfig.app.json, WARNS that it is missing, and then builds
+        // anyway with the compiler configured by nothing. A green build that type-checked no island.
+        Assert.Contains("tsconfig: '/app/tsconfig.json'", config, StringComparison.Ordinal);
+        Assert.Contains("jit: false", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void React_and_preact_in_one_project_are_refused_by_name()
+    {
+        // Not a rule Rask chose: @vitejs/plugin-react resolves Babel 8 and @preact/preset-vite pins a
+        // @babel/core@"7.x" peer, so npm refuses the install outright. Left to npm the failure is an
+        // ERESOLVE tree naming four Babel packages and neither island.
+        var ex = Assert.Throws<InvalidOperationException>(() => Config([
+            new ExternalEntry { Name = "Chart", Source = "/app/a/Chart.tsx", Runtime = "react" },
+            new ExternalEntry { Name = "Gauge", Source = "/app/b/Gauge.tsx", Runtime = "preact" },
+        ]));
+
+        Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Gauge", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("preact/compat", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Two_jsx_runtimes_in_one_directory_are_refused()
+    {
+        // They can share a project but not a folder: the scope IS the directory, so a shared one
+        // leaves both plugins claiming the same files and one island compiled by the wrong transform.
+        var ex = Assert.Throws<InvalidOperationException>(() => Config([
+            new ExternalEntry { Name = "Chart", Source = "/app/Islands/Chart.tsx", Runtime = "solid" },
+            new ExternalEntry { Name = "Gauge", Source = "/app/Islands/Gauge.tsx", Runtime = "react" },
+        ]));
+
+        Assert.Contains("/app/Islands", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Gauge", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("react", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("solid", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_nested_island_directory_counts_as_the_same_tree()
+    {
+        // The case that looks fine and is not. React's scope becomes 'Features/Islands/**', which
+        // CONTAINS Features/Islands/Solid — so the two globs overlap and React's plugin claims the
+        // Solid island. Equality alone would have let this through.
+        var ex = Assert.Throws<InvalidOperationException>(() => Config([
+            new ExternalEntry { Name = "Chart", Source = "/app/Features/Islands/Chart.tsx", Runtime = "react" },
+            new ExternalEntry { Name = "Gauge", Source = "/app/Features/Islands/Solid/Gauge.tsx", Runtime = "solid" },
+        ]));
+
+        Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Gauge", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("do not nest", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Angular_and_lit_may_not_share_a_directory_either()
+    {
+        // Not only a JSX problem. Angular's plugin is scoped by directory too, and it compiles .ts —
+        // so a Lit element sitting beside an Angular island would be handed to the Angular compiler.
+        var ex = Assert.Throws<InvalidOperationException>(() => Config([
+            new ExternalEntry { Name = "Badge", Source = "/app/Islands/Badge.ts", Runtime = "lit" },
+            new ExternalEntry { Name = "Quote", Source = "/app/Islands/Quote.ts", Runtime = "angular" },
+        ]));
+
+        Assert.Contains("Badge", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Quote", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(".ts", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Two_jsx_runtimes_in_separate_directories_are_allowed()
+    {
+        var config = Config([
+            new ExternalEntry { Name = "Chart", Source = "/app/Islands/solid/Chart.tsx", Runtime = "solid" },
+            new ExternalEntry { Name = "Gauge", Source = "/app/Islands/react/Gauge.tsx", Runtime = "react" },
+        ]);
+
+        Assert.Contains("vite-plugin-solid", config, StringComparison.Ordinal);
+        Assert.Contains("@vitejs/plugin-react", config, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("preact", "preactComponent", "@preact/preset-vite")]
+    [InlineData("solid", "solidComponent", "vite-plugin-solid")]
+    [InlineData("angular", "angularComponent", "@analogjs/vite-plugin-angular")]
+    public void Each_new_runtime_gets_its_own_entry_and_plugin(string runtime, string factory, string plugin)
+    {
+        // The failure this pins is silent: a runtime the entry generator knows and the config does not
+        // builds a chunk with no plugin to compile it, which is a parse error naming a line in
+        // someone else's node_modules.
+        var extension = runtime == "angular" ? "ts" : "tsx";
+        var island = new ExternalEntry { Name = "Chart", Source = $"/app/Islands/Chart.{extension}", Runtime = runtime };
+
+        var entry = ExternalBuildPlan.EntryModule(island, "/obj/rask-external/rask");
+        Assert.Contains($"import {{ {factory} }} from '/obj/rask-external/rask/{runtime}'", entry, StringComparison.Ordinal);
+        Assert.Contains($"export default {factory}(Component)", entry, StringComparison.Ordinal);
+
+        Assert.Contains(plugin, Config([island]), StringComparison.Ordinal);
     }
 
     private static string Config(IReadOnlyList<ExternalEntry> islands) =>

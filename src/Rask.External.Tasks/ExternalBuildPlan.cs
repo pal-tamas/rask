@@ -76,12 +76,17 @@ internal static class ExternalBuildPlan
     /// <param name="outputDirectory">Where the built chunks land.</param>
     /// <param name="manifestPath">The manifest file <c>rask-external.js</c> fetches.</param>
     /// <param name="publicBase">The URL prefix the built files are served from.</param>
+    /// <param name="tsConfigPath">The app's tsconfig, for the one plugin that needs to be told. May be null.</param>
+    /// <exception cref="InvalidOperationException">
+    ///     The islands name a combination no config can express — see <see cref="Refuse" />.
+    /// </exception>
     public static string ViteConfig(
         IReadOnlyList<ExternalEntry> islands,
         string entryDirectory,
         string outputDirectory,
         string manifestPath,
-        string publicBase)
+        string publicBase,
+        string? tsConfigPath = null)
     {
         var input = new StringBuilder();
         foreach (var island in islands)
@@ -95,13 +100,16 @@ internal static class ExternalBuildPlan
         // Ordered by the table rather than by the islands, so the config is byte-identical whatever
         // order the components were discovered in: this file is a bundler input compared against what
         // is already on disk, and rewriting it restarts the dev server's dependency graph.
-        var used = ExternalRuntime.All
-            .Where(r => r.PluginImport is not null)
+        var present = ExternalRuntime.All
             .Where(r => islands.Any(i => string.Equals(i.Runtime, r.Key, StringComparison.Ordinal)))
             .ToList();
 
+        Refuse(islands, present);
+
+        var used = present.Where(r => r.PluginImport is not null).ToList();
+
         var pluginImports = string.Concat(used.Select(r => $"import {r.PluginImport}\n"));
-        var pluginCalls = string.Concat(used.Select(r => $"{r.PluginCall}, "));
+        var pluginCalls = string.Concat(used.Select(r => $"{PluginCall(r, present, islands, tsConfigPath)}, "));
 
         return $$"""
             {{Header}}
@@ -153,6 +161,171 @@ internal static class ExternalBuildPlan
 
             """;
     }
+
+    /// <summary>
+    ///     One plugin's call expression, scoped to its own islands when another runtime competes for
+    ///     the same files.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Scoped by DIRECTORY, never by file, and that distinction was measured rather than
+    ///         reasoned about. A file-level <c>include</c> naming the island itself transforms the
+    ///         island correctly and leaves every module it IMPORTS to whichever plugin claims the rest
+    ///         of the tree: a Solid island importing a <c>Row.tsx</c> beside it built green, emitted a
+    ///         shared <c>jsxRuntime</c> chunk, and shipped a Preact vnode into Solid's renderer. A
+    ///         directory scope covers the helpers, because that is where they live.
+    ///     </para>
+    ///     <para>
+    ///         Only applied when it is needed. With one JSX runtime in the project there is nothing to
+    ///         disambiguate, and an unscoped plugin is both simpler to read and safe — it sees files
+    ///         no other plugin wants.
+    ///     </para>
+    /// </remarks>
+    private static string PluginCall(
+        ExternalRuntime runtime,
+        IReadOnlyList<ExternalRuntime> present,
+        IReadOnlyList<ExternalEntry> islands,
+        string? tsConfigPath)
+    {
+        var options = new List<string>();
+
+        if (runtime.PluginOptions is { Length: > 0 } baseline)
+        {
+            options.Add(baseline);
+        }
+
+        // The Angular plugin looks for tsconfig.app.json and only WARNS when it is missing, then
+        // builds anyway with the compiler configured by nothing. Naming the app's own config is the
+        // difference between a type-checked island and a green build that never checked one.
+        if (ReferenceEquals(runtime, ExternalRuntime.Angular) && tsConfigPath is { Length: > 0 })
+        {
+            options.Add($"tsconfig: {Literal(Posix(tsConfigPath))}");
+        }
+
+        if (present.Any(runtime.SharesExtensionWith))
+        {
+            var globs = Directories(islands, runtime)
+                .Select(d => Literal(d + "/**/*" + Extensions(runtime)))
+                .ToList();
+
+            if (globs.Count > 0)
+            {
+                options.Add("include: [" + string.Join(", ", globs) + "]");
+            }
+        }
+
+        return options.Count == 0
+            ? $"{runtime.PluginFactory}()"
+            : $"{runtime.PluginFactory}({{ {string.Join(", ", options)} }})";
+    }
+
+    /// <summary>The distinct directories a runtime's islands live in, sorted so the config is stable.</summary>
+    private static IEnumerable<string> Directories(IReadOnlyList<ExternalEntry> islands, ExternalRuntime runtime) =>
+        islands
+            .Where(i => string.Equals(i.Runtime, runtime.Key, StringComparison.Ordinal))
+            .Select(i => Posix(Path.GetDirectoryName(i.Source) ?? string.Empty))
+            .Where(d => d.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(d => d, StringComparer.Ordinal);
+
+    /// <summary>A runtime's extensions as one brace expansion, e.g. <c>.{jsx,tsx}</c>.</summary>
+    private static string Extensions(ExternalRuntime runtime)
+    {
+        var bare = runtime.Extensions
+            .Select(e => e.TrimStart('.'))
+            .OrderBy(e => e, StringComparer.Ordinal)
+            .ToList();
+
+        return bare.Count == 1 ? "." + bare[0] : ".{" + string.Join(",", bare) + "}";
+    }
+
+    /// <summary>
+    ///     Refuses the island combinations no generated config could build correctly.
+    /// </summary>
+    /// <remarks>
+    ///     Both of these used to be possible to express and impossible to notice. Named here, at the
+    ///     point the config would have been written, so the message can name the islands rather than
+    ///     leaving npm or the browser to describe the symptom.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The combination cannot be built.</exception>
+    private static void Refuse(IReadOnlyList<ExternalEntry> islands, IReadOnlyList<ExternalRuntime> present)
+    {
+        // React and Preact cannot be INSTALLED together, let alone configured: @vitejs/plugin-react
+        // resolves Babel 8 and @preact/preset-vite pins a @babel/core@"7.x" peer. Left to npm, the
+        // failure is an ERESOLVE tree that names four Babel packages and neither island.
+        if (present.Contains(ExternalRuntime.React) && present.Contains(ExternalRuntime.Preact))
+        {
+            throw new InvalidOperationException(
+                "Rask islands: this project has both React and Preact islands ("
+                + Naming(islands, ExternalRuntime.React) + " and " + Naming(islands, ExternalRuntime.Preact)
+                + "), and their Vite plugins cannot be installed side by side — @vitejs/plugin-react "
+                + "resolves Babel 8 while @preact/preset-vite pins @babel/core 7. Pick one for the "
+                + "project. A Preact island can also be rendered by ReactComponent if the app aliases "
+                + "react to preact/compat.");
+        }
+
+        // Two runtimes that claim the same extension CAN share a project, but not a directory tree:
+        // each plugin is confined to the directories its own islands live in, so overlapping trees
+        // leave both claiming the same files. Whichever loses compiles the other's island — and every
+        // helper beside it — with the wrong transform, which builds, ships, and mounts nothing.
+        //
+        // Ancestry counts, not just equality. A React island in Features/Islands and a Solid one in
+        // Features/Islands/Solid look like different directories and are not: React's scope is
+        // 'Features/Islands/**', which contains Solid's islands whole.
+        foreach (var a in present)
+        {
+            foreach (var b in present)
+            {
+                if (string.CompareOrdinal(a.Key, b.Key) >= 0 || !a.SharesExtensionWith(b))
+                {
+                    continue;
+                }
+
+                foreach (var left in Directories(islands, a))
+                {
+                    foreach (var right in Directories(islands, b))
+                    {
+                        if (!Overlaps(left, right))
+                        {
+                            continue;
+                        }
+
+                        throw new InvalidOperationException(
+                            $"Rask islands: the {a.Key} island(s) in '{left}' ({Naming(islands, a, left)}) and "
+                            + $"the {b.Key} island(s) in '{right}' ({Naming(islands, b, right)}) share a "
+                            + "directory tree, and both runtimes compile "
+                            + string.Join("/", a.Extensions.Where(e => b.Extensions.Contains(e, StringComparer.Ordinal)))
+                            + ". Each plugin is scoped to the directories its own islands live in, so "
+                            + "overlapping trees leave one of them compiling the other's island — and the "
+                            + "helper modules beside it — with the wrong transform. That builds, ships, and "
+                            + "then mounts nothing. Give each runtime a folder of its own, and do not nest "
+                            + "one inside the other.");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>Whether two island directories are the same, or one contains the other.</summary>
+    private static bool Overlaps(string left, string right) =>
+        string.Equals(left, right, StringComparison.Ordinal)
+        || left.StartsWith(right + "/", StringComparison.Ordinal)
+        || right.StartsWith(left + "/", StringComparison.Ordinal);
+
+    /// <summary>The islands of one runtime, named for an error message. Optionally one directory's.</summary>
+    private static string Naming(
+        IReadOnlyList<ExternalEntry> islands, ExternalRuntime runtime, string? directory = null) =>
+        string.Join(
+            ", ",
+            islands
+                .Where(i => string.Equals(i.Runtime, runtime.Key, StringComparison.Ordinal))
+                .Where(i => directory is null
+                            || string.Equals(
+                                Posix(Path.GetDirectoryName(i.Source) ?? string.Empty),
+                                directory,
+                                StringComparison.Ordinal))
+                .Select(i => i.Name)
+                .OrderBy(n => n, StringComparer.Ordinal));
 
     /// <summary>
     ///     Forward slashes, always.
