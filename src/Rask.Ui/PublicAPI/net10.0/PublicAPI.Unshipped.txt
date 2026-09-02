@@ -198,22 +198,39 @@ Rask.Ui.UiIcon.Name.set -> void
 Rask.Ui.UiIcon.UiIcon() -> void
 Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Archive = 6 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.ArrowsRightLeft = 23 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Bell = 28 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Bolt = 19 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Check = 18 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.ChevronRight = 16 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.ChevronUpDown = 15 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Clipboard = 21 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Clock = 4 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Close = 14 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Cube = 25 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Database = 2 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Envelope = 3 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.ExternalLink = 32 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Gear = 8 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Globe = 30 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Lock = 22 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Outbox = 7 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Overview = 0 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.PaintBrush = 20 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Phone = 24 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Puzzle = 34 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Queue = 1 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Retry = 5 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Rocket = 27 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Search = 13 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Server = 29 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.ShieldOk = 11 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.ShieldWarning = 12 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Sparkles = 35 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Stack = 26 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Star = 33 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Storage = 9 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Terminal = 31 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Trash = 17 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Warning = 10 -> Rask.Ui.UiIconName
 Rask.Ui.UiMain
@@ -274,6 +291,7 @@ Rask.Ui.UiStatusDot.Label.set -> void
 Rask.Ui.UiStatusDot.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiStatusDot.Tone.set -> void
 Rask.Ui.UiStatusDot.UiStatusDot() -> void
+Rask.Ui.UiStylesheet
 Rask.Ui.UiToast
 Rask.Ui.UiToast.Dismiss.get -> System.Action?
 Rask.Ui.UiToast.Dismiss.set -> void
@@ -302,6 +320,7 @@ Rask.Ui.UiTopLink.Label.set -> void
 Rask.Ui.UiTopLink.UiTopLink() -> void
 RaskBuilderSettersRask_Ui
 RaskEntriesRask_Ui
+static Rask.Ui.UiStylesheet.Css.get -> string!
 static RaskBuilderSettersRask_Ui.Active(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
 static RaskBuilderSettersRask_Ui.Active(this Rask.Core.Build<Rask.Ui.UiNavTab!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiNavTab!>
 static RaskBuilderSettersRask_Ui.Caption(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
@@ -401,5 +420,3 @@ static RaskEntriesRask_Ui.UiStatusDot.get -> Rask.Ui.RaskSeed_UiStatusDot
 static RaskEntriesRask_Ui.UiToast.get -> Rask.Ui.RaskSeed_UiToast
 static RaskEntriesRask_Ui.UiTopBar.get -> Rask.Core.Build<Rask.Ui.UiTopBar!>
 static RaskEntriesRask_Ui.UiTopLink.get -> Rask.Ui.RaskSeed_UiTopLink
-Rask.Ui.UiStylesheet
-static Rask.Ui.UiStylesheet.Css.get -> string!

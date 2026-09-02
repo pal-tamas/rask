@@ -28,6 +28,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <!-- The linked page draws with the kit — its icons, metrics and status dots — so the sources under
+         test only compile here with it referenced. -->
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
@@ -40,9 +43,13 @@
        with no IJSRuntime or host dependency can be linked: they compile and render here unchanged, and
        the generator emits their factories into this compilation. -->
   <ItemGroup>
-    <Compile Include="..\..\samples\Rask.Example.Site\ChainAnimation.cs"
-             LinkBase="Site"/>
     <Compile Include="..\..\samples\Rask.Example.Site\InstallTabs.cs"
+             LinkBase="Site"/>
+    <Compile Include="..\..\samples\Rask.Example.Site\LiveCounter.cs"
+             LinkBase="Site"/>
+    <!-- The page itself, linkable since the landing app stopped injecting IJSRuntime: its markup, its
+         claims and its structure get render tests here rather than only through a browser E2E run. -->
+    <Compile Include="..\..\samples\Rask.Example.Site\Pages\HomePage.cs"
              LinkBase="Site"/>
   </ItemGroup>
 

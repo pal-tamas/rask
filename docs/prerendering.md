@@ -169,6 +169,12 @@ var result = await RaskPrerender.RenderDocumentAsync(app, services, TimeSpan.Fro
 because the caller is what holds the route table. **Check `result.Faulted` and `result.TimedOut`
 before writing anything to disk** — for the reason above, both return ordinary-looking HTML.
 
+## In this repo
+
+`samples/Rask.Example.Site` — the landing page at [rask.sh](https://rask.sh) — is the in-repo
+consumer, and `SiteWasmAppFixture` asserts on its published output that the page carries both the
+rendered markup and the boot script before the browser journeys run.
+
 ## Limits
 
 - WASM only. A Server app already renders every request, and `RenderModes` covers serving a page

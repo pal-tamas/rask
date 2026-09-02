@@ -7,6 +7,47 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The landing site is prerendered, light, and ships no JavaScript.** `rask.sh` served a spinner. It
+  is a WebAssembly app, so the first thing every visitor and every crawler received was the boot
+  shell — the real markup did not exist until megabytes of runtime had downloaded, on the page whose
+  whole job is to explain the framework. It now sets `<RaskPrerender>true</RaskPrerender>` and is
+  served as real HTML that the bundle then takes over.
+
+  Prerendering is why several other things had to change, rather than a coincidence that they did:
+
+  - **The page needed a route.** The plan is built from the registered route table, and this app had
+    no `[Route]` anywhere — its root component rendered the sections itself. The page moved to
+    `HomePage` behind `[Route("/")]` and `App` renders the `Router`. Without that the pass writes
+    nothing at all.
+  - **The scroll reveals had to go.** `.reveal` was `opacity: 0` until an `IntersectionObserver` said
+    otherwise. On a prerendered page that ships every section invisible to anyone who never runs the
+    script — including the crawler the prerender is for.
+  - **So did the hero animation.** `ChainAnimation` was 499 lines of generated SVG, and
+    `assets/rask-chain.svg` was baked from it and pinned byte-for-byte by a test. Nothing embedded that
+    asset any anymore. Both are deleted; the hero now leads with the component's own source beside the
+    running component.
+
+  The whole `App.ts` module went with them — the hero canvas, the growing benchmark bars and the theme
+  toggle — and with it the hand-written `@layer components` block that existed only to serve it. The
+  bars in particular were drawn by script from a `data-` attribute, so with no script they were all
+  zero: a chart of nothing, under the page's central claim. They are a table now.
+
+  It is **light**, on the palette `Rask.Ui` declares, so the console, the site and the docs are one
+  visual language rather than three. It draws with the kit where the kit fits — `UiMetricRow`,
+  `UiStatusDot`, `UiIcon` — and keeps its own marketing sections, because a landing page has no tab bar
+  to put in a `UiNav`. **Every feature card is now a link into the guide about it**, and each slug is
+  asserted against the repo's own `docs/` directory, since a front door full of 404s is exactly the rot
+  nothing else would report.
+
+  Content caught up too: 60+ diagnostics rather than "30+", the benchmark host named correctly (Apple
+  M4 **Pro**, .NET 10.0.5), the footer CTA that still said "Open the live demo" after the hero's was
+  renamed, and cards for the operator console, islands, prerendering and render modes, durable logs,
+  WebRTC signaling and object storage — all shipped, none previously mentioned. The bundle also drops
+  ~2.6 MB of ICU data it never needed: the opt-in arrived with a comment describing the *docs* app
+  ("this app hosts the guides"), copied along with the csproj, and nothing contradicted it.
+
 ### Added
 
 - **`Rask.Ui` — the component kit, out of the console and into a package of its own.** The operator
@@ -50,6 +91,11 @@ them until tagged releases begin.
   depended on `Rask.Ui`, every existing assertion stayed green and the gate died on `NU1101` for a
   package no template mentions. The feed is now asserted to be closed over its own packages'
   dependencies, read off the project files rather than a second hand-written list.
+
+  The kit's icon set grew with the landing site, from thirteen to thirty. The originals were an
+  operations vocabulary — queues, retries, dead letters — which is right for a console and covers
+  almost nothing a page describing the framework needs to say. Same source and same style as the rest:
+  Heroicons v2 outline, MIT, vendored as path data.
 
 ### Fixed
 
