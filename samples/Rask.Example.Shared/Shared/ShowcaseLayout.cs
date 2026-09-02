@@ -1,30 +1,25 @@
-using Microsoft.JSInterop;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 using Rask.Html.Components;
+using Rask.Ui;
 
 namespace Rask.Example.Shared;
 
 [Route("/")]
-public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav, IJSRuntime js)
+public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav)
     : Component
 {
-    private static readonly IReadOnlyDictionary<string, string?> ThemeToggleAria =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle light / dark theme" };
+    private static readonly IReadOnlyDictionary<string, string?> DrawerAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle navigation" };
 
-    // Flip the color theme via the scoped module (sets data-theme + data-bs-theme on <html> and persists
-    // the choice). Client-only; a torn-down transport just no-ops.
-    private async Task ToggleThemeAsync()
-    {
-        try
-        {
-            await js.InvokeVoidAsync("Rask.ShowcaseLayout.toggleTheme");
-        }
-        catch (JSDisconnectedException)
-        {
-            // The circuit went away — nothing to toggle.
-        }
-    }
+    /// <summary>The shape of the two actions in the top bar's trailing edge.</summary>
+    /// <remarks>
+    /// <c>min-h-11</c> below <c>sm</c>: 44px is the smallest reliable touch target, and these are
+    /// <c>text-sm</c>. The height relaxes from <c>sm</c> up, where there is a pointer.
+    /// </remarks>
+    private const string TopAction =
+        "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium no-underline "
+        + "transition-colors sm:min-h-0 sm:py-1.5";
 
     // MatchPrefix: optional section prefix for parameterised links. When set, the
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
@@ -73,23 +68,30 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     protected override Component? Render() =>
     [
+        // The top bar is the kit's, so the showcase, the operator console and the landing site share one
+        // piece of chrome rather than three near-identical ones. What is NOT the kit's is the sidebar
+        // below: UiNav is a five-tab bar for a console, and this app has eighty guides in a filterable,
+        // grouped rail. Forcing one into the other would have been worse than sharing neither.
         Nav.Class(
-            "app-navbar sticky top-0 z-40 flex items-center gap-3 border-b border-slate-700 "
-            + "bg-slate-900 px-3 py-2 text-slate-100 shadow-sm")[
+            "app-navbar sticky top-0 z-40 flex items-center gap-3 border-b border-ui-line "
+            + "bg-ui-bg px-3 py-2 text-ui-ink")[
             Button
                 .Type("button")
-                .Class("hamburger-btn md:hidden")
+                .Class(
+                    "hamburger-btn inline-flex min-h-11 items-center rounded-lg px-2 text-ui-muted "
+                    + "hover:bg-ui-well hover:text-ui-ink md:hidden")
+                .Aria(DrawerAria)
                 .OnClick(() => _drawerOpen = !_drawerOpen)[
-                Icon.Name(_drawerOpen ? IconName.XLg : IconName.List)
+                UiIcon.Name(_drawerOpen ? UiIconName.Close : UiIconName.Menu).Class("size-5 shrink-0")
             ],
             NavLink
                 .Href(Features.Routes.GuidesIndexPage())
                 .ActiveClass("")
-                .Class("app-brand font-semibold inline-flex items-center gap-2")[
+                .Class("app-brand font-semibold inline-flex items-center gap-2 text-ui-ink no-underline")[
                 RaskLogo.Size(24).GradientId("brandBolt"),
                 Span["Rask"],
-                Span.Class($"{Tw.BadgeSecondary} rask-badge")["showcase"],
-                Span.Class(Tw.BadgeSecondary)[$"v{RaskVersion.Current}"]
+                Span.Class("rask-badge rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted")["showcase"],
+                Span.Class("rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted")[$"v{RaskVersion.Current}"]
             ],
             Div.Class("flex items-center gap-2 ms-auto")[
                 PathDisplay,
@@ -101,17 +103,19 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     .Href("https://rask.sh/playground/")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Class(Tw.BtnPrimary)[Icon.Name(IconName.PlayFill), "Playground"],
+                    .Class(TopAction + " bg-ui-ink text-ui-bg hover:bg-ui-ink/90")[
+                    UiIcon.Name(UiIconName.Play).Class("size-4 shrink-0"), "Playground"
+                ],
                 A
                     .Href("https://github.com/pal-tamas/rask")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Class(Tw.BtnOutlineLight)[Icon.Name(IconName.Github), "GitHub"],
-                // Light/dark theme toggle — flips data-theme via the scoped module.
-                Button.Type("button").Class(Tw.BtnOutlineLight)
-                    .OnClickAsync(ToggleThemeAsync)
-                    .Aria(ThemeToggleAria)[
-                    Icon.Name(IconName.CircleHalf)]
+                    .Class(TopAction + " border border-ui-line bg-ui-bg text-ui-ink hover:bg-ui-well")[
+                    UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"), "GitHub"
+                ]
+                // The light/dark toggle is gone. The showcase is light now, on the palette Rask.Ui
+                // declares, so there is no second theme to flip to — and with it went the only reason
+                // this layout injected IJSRuntime at all.
             ]
         ],
         Div.Class("flex app-shell")[
@@ -119,8 +123,8 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             // closes it. The open state was already Rask state — the drawer never needed script.
             Aside
                 .Class(_drawerOpen
-                    ? "side-nav flex fixed inset-y-0 left-0 z-50 w-72 bg-white p-4 "
-                      + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none dark:bg-slate-900"
+                    ? "side-nav flex fixed inset-y-0 left-0 z-50 w-72 bg-ui-bg p-4 "
+                      + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none"
                     : "side-nav hidden w-64 p-4 md:flex")[
                 SidebarBody()
             ],
@@ -206,7 +210,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
         if (children.Count == 0)
         {
-            children.Add(Div.Class("side-nav-empty text-slate-500 dark:text-slate-400 text-sm")["Nothing matches that filter."]);
+            children.Add(Div.Class("side-nav-empty text-sm text-ui-muted")["Nothing matches that filter."]);
         }
 
         return children;

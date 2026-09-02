@@ -11,21 +11,25 @@ public partial class App : Component
     // (<title>, <base>) so the latest contributor wins, and auto-appends the
     // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
     // the scoped-css link, so a page's own stylesheet still wins over them.
-    // Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
-    // across the site/docs/playground on the same origin) or the OS preference, BEFORE any stylesheet
-    // matches — so there's no flash of the wrong theme. Also re-applies the SAVED choice from
-    // window.raskAfterMorph, because a full-document morph strips these attributes off <html> (the
-    // framework renders <html lang> and nothing else); a no-choice visitor stays attribute-less and
-    // auto-follows the OS theme.
-    // On Server this runs in the SSR'd <head>; on WASM the same snippet lives in index.html for pre-boot
-    // (the morphed-in copy here doesn't re-execute, but re-registers the same idempotent hook).
+    // Theme init: stamp data-theme + data-bs-theme = "light" on <html> before any stylesheet matches.
+    //
+    // It used to read a saved choice or the OS preference and default to DARK. Both are gone with the
+    // navbar's toggle: the chrome is drawn from Rask.Ui now, whose palette is light, and a dark page
+    // inside a light shell is worse than either on its own. This app's own stylesheet is still
+    // dark-first at :root, so the attribute is what selects its light block — the pages have not been
+    // ported yet, and this is what keeps them agreeing with the chrome in the meantime.
+    //
+    // Still a script rather than a literal attribute on <html>: a full-document morph strips attributes
+    // off <html> (the framework renders <html lang> and nothing else), so the hook below re-applies it
+    // after every one. On Server this runs in the SSR'd <head>; on WASM the same snippet lives in
+    // index.html for pre-boot (the morphed-in copy does not re-execute, but re-registers the same
+    // idempotent hook).
     private const string ThemeInitJs =
         "(function(){var d=document.documentElement;" +
-        "function apply(t){d.setAttribute('data-theme',t);d.setAttribute('data-bs-theme',t);}" +
-        "var saved=localStorage.getItem('rask-theme');" +
-        "apply(saved||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));" +
+        "function apply(){d.setAttribute('data-theme','light');d.setAttribute('data-bs-theme','light');}" +
+        "apply();" +
         "var prev=window.raskAfterMorph;" +
-        "window.raskAfterMorph=function(){var s=localStorage.getItem('rask-theme');if(s)apply(s);" +
+        "window.raskAfterMorph=function(){apply();" +
         "if(typeof prev==='function')prev();};})();";
 
     protected override Component? HeadAssets =>

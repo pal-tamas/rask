@@ -51,7 +51,7 @@ public sealed partial class SystemPage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            OpsHeader.Heading("System"),
+            UiHeader.Heading("System"),
             DashboardError.Message(LoadError),
             DatabaseCard(),
             BackupCard(now),
@@ -70,7 +70,7 @@ public sealed partial class SystemPage(
         // A leader list rather than four tiles. These are four short scalars an operator reads once to
         // confirm the deployment is configured the way they think — a headline number's worth of weight
         // each was three times the space and none of the extra meaning.
-        return OpsCard.Heading("Database").Class("mb-4 sm:mb-6")[
+        return UiCard.Heading("Database").Class("mb-4 sm:mb-6")[
             UiDetailList[
                 UiDetailRow
                     .Key("size")
@@ -111,10 +111,10 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return OpsCard.Heading("Backup").Class("mb-6")[
+        return UiCard.Heading("Backup").Class("mb-6")[
             _replication is { } r
                 ? Div.Class("mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    OpsStat
+                    UiStat
                         .Key("replication")
                         .Value(r.IsReplicating ? "running" : "stopped")
                         .Label("Continuous replication")
@@ -123,7 +123,7 @@ public sealed partial class SystemPage(
                             ? $"since {DashboardParts.Ago(started.UtcDateTime, now)}"
                             : "never started")
                         .Icon(UiIconName.Retry),
-                    OpsStat
+                    UiStat
                         .Key("restarts")
                         .Value(r.RestartCount.ToString())
                         .Label("Restarts")
@@ -136,7 +136,7 @@ public sealed partial class SystemPage(
             // nothing about whether what it wrote can be read back.
             _verification is { } v
                 ? Div.Class("mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    OpsStat
+                    UiStat
                         .Key("verification")
                         .Value(v.Level == BackupVerificationLevel.Verified
                             ? "restorable"
@@ -165,7 +165,7 @@ public sealed partial class SystemPage(
     private Component SnapshotList(DateTime now) =>
         _snapshots.Count == 0
             ? Div.Class("text-xs text-ui-muted")["No snapshots stored."]
-            : OpsTable[
+            : UiTable[
                 Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                     Tr[
                         Th.Class("px-3 py-2 font-medium")["Snapshot"],
@@ -175,7 +175,7 @@ public sealed partial class SystemPage(
                 ],
                 Tbody[_snapshots.Take(10).Select(s => Tr.Key(s.Name)
                     .Class("border-b border-ui-line/60 last:border-0")[
-                    Td.Class($"w-full max-w-0 px-3 py-2 align-top {Ops.Mono}")[
+                    Td.Class($"w-full max-w-0 px-3 py-2 align-top {UiStyles.Mono}")[
                         Div.Class("break-all")[s.Name],
                         Div.Class("mt-1 flex flex-wrap gap-x-2 font-sans text-xs text-ui-muted sm:hidden")[
                             Span.Class("tabular-nums")[DashboardParts.Bytes(s.SizeBytes)],
@@ -199,8 +199,8 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return OpsCard.Heading("Recurring jobs")[
-            OpsTable[
+        return UiCard.Heading("Recurring jobs")[
+            UiTable[
                 Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                     Tr[
                         Th.Class("px-3 py-2 font-medium")["Name"],
@@ -210,13 +210,13 @@ public sealed partial class SystemPage(
                 ],
                 Tbody[_recurring.Select(r => Tr.Key(r.Name)
                     .Class("border-b border-ui-line/60 last:border-0")[
-                    Td.Class($"w-full max-w-0 px-3 py-2 align-top {Ops.Mono}")[
+                    Td.Class($"w-full max-w-0 px-3 py-2 align-top {UiStyles.Mono}")[
                         Div.Class("break-all")[r.Name],
                         Div.Class("mt-1 flex flex-wrap items-center gap-x-2 font-sans text-xs text-ui-muted sm:hidden")[
                             Span[$"every {DashboardParts.Duration(r.Interval)}"],
                             r.LastEnqueuedAt is { } lastSmall
                                 ? Span.Title(lastSmall.ToString("u"))[DashboardParts.Ago(lastSmall, now)]
-                                : OpsBadge.Label("never")
+                                : UiBadge.Label("never")
                         ]
                     ],
                     Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[DashboardParts.Duration(r.Interval)],
@@ -226,7 +226,7 @@ public sealed partial class SystemPage(
                                 DashboardParts.Ago(last, now)
                             ]
                             // Declared but never fired: either the app just started, or this one is stuck.
-                            : OpsBadge.Label("never")
+                            : UiBadge.Label("never")
                     ]
                 ])]
             ]

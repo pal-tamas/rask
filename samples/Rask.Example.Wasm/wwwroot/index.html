@@ -43,25 +43,24 @@
           type="image/svg+xml"/>
     <!-- PWA: the <link rel="manifest"> + <meta name="theme-color"> are injected at boot from the typed
          WebAppManifest (host.UseManifest in Program.cs). The service worker is registered below. -->
-    <!-- Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
-         across the site/docs/playground on this origin) or the OS preference, BEFORE the boot screen or
-         any stylesheet paints — so there's no flash of the wrong theme. The WASM full-document morph
-         (boot AND every cross-route nav) strips these attributes off <html>, so we also re-apply the
-         SAVED choice from window.raskAfterMorph; a no-choice visitor is left attribute-less so the page
-         keeps auto-following the OS theme via prefers-color-scheme. Mirrors App.cs's SSR snippet. -->
+    <!-- Theme init: stamp data-theme + data-bs-theme = "light" on <html> before the boot screen or any
+         stylesheet paints, so there is no flash of the wrong theme. It used to read a saved choice or
+         the OS preference and default to DARK; both went with the navbar's toggle, because the chrome
+         is drawn from Rask.Ui now and its palette is light. This app's own stylesheet is still
+         dark-first at :root, so the attribute is what selects its light block until the pages are
+         ported. The WASM full-document morph (boot AND every cross-route nav) strips these attributes
+         off <html>, hence the raskAfterMorph hook. Mirrors App.cs's SSR snippet. -->
     <script>
         (function () {
             var d = document.documentElement;
-            function apply(t) {
-                d.setAttribute('data-theme', t);
-                d.setAttribute('data-bs-theme', t);
+            function apply() {
+                d.setAttribute('data-theme', 'light');
+                d.setAttribute('data-bs-theme', 'light');
             }
-            var saved = localStorage.getItem('rask-theme');
-            apply(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+            apply();
             var prev = window.raskAfterMorph;
             window.raskAfterMorph = function () {
-                var s = localStorage.getItem('rask-theme');
-                if (s) apply(s);
+                apply();
                 if (typeof prev === 'function') prev();
             };
         })();

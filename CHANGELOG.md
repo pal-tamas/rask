@@ -9,6 +9,39 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The docs showcase is prerendered, light, and finally says how to install Rask.** `rask.sh/docs/`
+  opened straight into guide cards, so a visitor who landed there was never told how to get a project —
+  the marketing site had the commands and the documentation site did not. The guides index now opens
+  with the installer, `rask new MyApp` and `rask dev`, plus the Windows one-liner and the
+  `--template wasm` / `--auth` switches.
+
+  The two copies cannot share a constant — the landing site deliberately references none of the
+  showcase, being a size-tuned marketing bundle — so `scripts/tests/install-script.test.sh` pins this
+  one alongside the other seven, and additionally asserts that **both sites scaffold with the same
+  command**. Carrying a URL each is not the same as agreeing with each other.
+
+  The showcase is **not** prerendered yet, and the attempt is what found the two prerender defects
+  below. Only 5 of its 20 routes can be: the browser-API demos have nothing to bind to off a browser
+  and are skipped by design. That leaves a mixture, and the mixture is the problem — a static host
+  answers an un-prerendered deep link with its SPA fallback, which is the root `index.html`, and once
+  the root is prerendered that fallback stops being a neutral boot shell and becomes a fully rendered
+  guides index. The landing site does not hit this because it is a single route: everything it serves
+  is prerendered, so there is no fallback to get wrong.
+
+  The chrome is the kit's now, so the console, the landing site and the docs share one top bar instead
+  of three near-identical ones, and it is **light** on the `--color-ui-*` palette. The light/dark
+  toggle went with that decision, which removed the only reason this layout injected `IJSRuntime` — and
+  orphaned its scoped `ShowcaseLayout.ts`, whose sole export was `toggleTheme`. Both are deleted.
+
+  The sidebar stayed local rather than being forced into `UiNav`: the kit's nav is a five-tab console
+  bar and this app has eighty guides in a filterable, grouped rail. Sharing chrome that does not fit
+  would have been worse than sharing none.
+
+  Nine generic primitives moved out of `Rask.Dashboard` into the kit with this — `UiCard`, `UiStat`,
+  `UiHeader`, `UiTabs`, `UiTab`, `UiNotice`, `UiBadge`, `UiTable`, `UiGrid` — along with the
+  class-name constants they share, now `UiStyles`. The console's 88 tests pass unchanged, which is what
+  says the move was behaviour-preserving.
+
 - **The landing site is prerendered, light, and ships no JavaScript.** `rask.sh` served a spinner. It
   is a WebAssembly app, so the first thing every visitor and every crawler received was the boot
   shell — the real markup did not exist until megabytes of runtime had downloaded, on the page whose
@@ -98,6 +131,13 @@ them until tagged releases begin.
   Heroicons v2 outline, MIT, vendored as path data.
 
 ### Fixed
+
+- **A prerendered page under a sub-path asked the origin root for its own assets.** A browser boot
+  reads the URL prefix off the document's `<base href>`; a prerender pass has no document, so every
+  `LiveOptions.PathBase`-prefixed URL was baked against an empty prefix — `/_rask/a/x.css` rather than
+  `/docs/_rask/a/x.css`. A `<base href>` cannot rescue those: it applies to *relative* URLs only, and a
+  leading slash means the origin root. The build now passes `RASK_PRERENDER_PATH_BASE` to the pass, and
+  an explicit `PathBase` set in `Program.cs` still wins over it, matching the browser boot's precedence.
 
 - **A prerendered WebAssembly page could never boot, and every guard around it said the publish had
   worked.** `<RaskPrerender>true</RaskPrerender>` writes a document per route into the published

@@ -144,7 +144,7 @@ public sealed partial class LogsPage(
         }
 
         return [
-            OpsHeader.Heading("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
+            UiHeader.Heading("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
             DashboardError.Message(LoadError),
             Filters(),
             IsHistory ? HistoryBody() : LiveBody(),
@@ -162,13 +162,13 @@ public sealed partial class LogsPage(
         : $"at most {options.LogBufferSize} entries, {options.LogMinimumLevel} and above, in memory only";
 
     private Component ModeTabs() =>
-        OpsTabs[
+        UiTabs[
             ModeTab(null, "Live"),
             ModeTab("history", "History")
         ];
 
     private Component ModeTab(string? view, string label) =>
-        OpsTab
+        UiTab
             .Key(label)
             .Href(Routes.LogsPage(View: view, Level: Level, Category: Category))
             .Label(label)
@@ -178,7 +178,7 @@ public sealed partial class LogsPage(
     // them too narrow to read the value it is set to, which is the only thing a filter has to show.
     private Component Filters() =>
         Div.Class("mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center")[
-            OpsTabs[
+            UiTabs[
                 LevelPill(null, "All"),
                 LevelPill(LogLevel.Information, "Info+"),
                 LevelPill(LogLevel.Warning, "Warning+"),
@@ -189,7 +189,7 @@ public sealed partial class LogsPage(
         ];
 
     private Component LevelPill(LogLevel? level, string label) =>
-        OpsTab
+        UiTab
             .Key(label)
             .Href(Link(level: level?.ToString(), category: Category))
             .Label(label)
@@ -308,8 +308,8 @@ public sealed partial class LogsPage(
     // a link that goes nowhere should not be focusable.
     private Component PagerLink(string label, int page, bool disabled) =>
         disabled
-            ? Span.Class($"{Ops.Button} pointer-events-none opacity-40")[label]
-            : NavLink.Href(Link(Level, Category, page)).Class($"{Ops.Button} no-underline")[label];
+            ? Span.Class($"{UiStyles.Button} pointer-events-none opacity-40")[label]
+            : NavLink.Href(Link(Level, Category, page)).Class($"{UiStyles.Button} no-underline")[label];
 
     // One row shape for both surfaces, so the two modes cannot drift into rendering an entry differently.
     // The live tail has no scopes: it is the in-memory ring buffer, which predates the store and captures
@@ -322,7 +322,7 @@ public sealed partial class LogsPage(
         record.Scopes);
 
     private static Component LogTable(IEnumerable<LogRow> rows, DateTime now) =>
-        OpsTable[
+        UiTable[
             // The message is the column an operator came for, so it is the one that survives a narrow
             // screen; when, level and category fold in above it rather than scrolling off to the right.
             Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
@@ -339,7 +339,7 @@ public sealed partial class LogsPage(
                     DashboardParts.Ago(r.Timestamp.UtcDateTime, now)
                 ],
                 Td.Class("hidden px-3 py-2 align-top sm:table-cell")[LevelBadge(r.Level)],
-                Td.Class($"hidden px-3 py-2 align-top lg:table-cell {Ops.Mono} text-ui-muted")[r.Category],
+                Td.Class($"hidden px-3 py-2 align-top lg:table-cell {UiStyles.Mono} text-ui-muted")[r.Category],
                 Td.Class("w-full max-w-0 px-3 py-2 align-top")[
                     Div.Class("mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden")[
                         LevelBadge(r.Level),
@@ -349,12 +349,12 @@ public sealed partial class LogsPage(
                     ],
                     Div.Class("break-words text-ui-ink")[r.Message],
                     // The category is worth keeping on a phone, just not in a column of its own.
-                    Div.Class($"mt-0.5 break-all text-ui-muted lg:hidden {Ops.Mono}")[r.Category],
+                    Div.Class($"mt-0.5 break-all text-ui-muted lg:hidden {UiStyles.Mono}")[r.Category],
                     // The stack trace is the reason an error entry is worth surfacing at all, but it would
                     // drown the table, so it renders muted beneath rather than in a separate view.
                     r.Exception is { } ex
                         ? Pre.Class(
-                            $"mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-all {Ops.Mono} text-ui-muted")[
+                            $"mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-all {UiStyles.Mono} text-ui-muted")[
                             ex
                         ]
                         : null,
@@ -372,13 +372,13 @@ public sealed partial class LogsPage(
             : Div.Class("mt-1.5 flex flex-wrap gap-1")[
                 // break-all, because a scope value is a request id: one unbreakable 40-character token is
                 // enough to push the whole table wider than a phone.
-                scopes.Select(s => OpsBadge
+                scopes.Select(s => UiBadge
                     .Key(s.Key)
                     .Label($"{s.Key}={s.Value}")
-                    .Class($"max-w-full break-all {Ops.Mono}"))
+                    .Class($"max-w-full break-all {UiStyles.Mono}"))
             ];
 
-    private static Component LevelBadge(LogLevel level) => OpsBadge
+    private static Component LevelBadge(LogLevel level) => UiBadge
         .Label(level.ToString())
         .Tone(level switch
         {

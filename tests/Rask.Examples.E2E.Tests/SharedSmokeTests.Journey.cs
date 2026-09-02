@@ -63,21 +63,17 @@ public abstract partial class SharedSmokeTests
         // reload happened and the SPA context survived).
         await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
 
-        // Theme toggle: the navbar toggle flips BOTH data-theme and data-bs-theme on <html> together (the
-        // raw-token layer + the Bootstrap bridge stay in lockstep). Toggle, assert the flip, then toggle
-        // back so the rest of the journey runs at the original theme.
-        var themeToggle = Page.Locator("nav button[aria-label='Toggle light / dark theme']").First;
-        var themeBefore = await Page.EvaluateAsync<string>(
-            "() => document.documentElement.getAttribute('data-bs-theme') || ''");
-        await themeToggle.ClickAsync();
-        await Page.WaitForFunctionAsync(
-            "p => { const t = document.documentElement.getAttribute('data-bs-theme');"
-            + " return t && t !== p && document.documentElement.getAttribute('data-theme') === t; }",
-            themeBefore, new PageWaitForFunctionOptions { Timeout = 15_000 });
-        await themeToggle.ClickAsync();
-        await Page.WaitForFunctionAsync(
-            "p => document.documentElement.getAttribute('data-bs-theme') === p",
-            themeBefore, new PageWaitForFunctionOptions { Timeout = 15_000 });
+        // There is no theme toggle any more. The showcase is light, on the palette Rask.Ui declares, so
+        // that the operator console, the landing site and these pages are one visual language rather
+        // than three — and with the second theme went the only reason ShowcaseLayout injected
+        // IJSRuntime, and its scoped module, whose sole export flipped the attribute this used to
+        // assert on.
+        //
+        // Asserted rather than deleted: a toggle reappearing is a change worth noticing, and so is the
+        // chrome quietly going dark again. The navigation is the kit's now, so it carries the kit's ink
+        // token — a hardcoded slate-* would mean the layout drifted back off the shared palette.
+        await Expect(Page.Locator("nav button[aria-label='Toggle light / dark theme']")).ToHaveCountAsync(0);
+        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-ui-ink\b"));
 
         await TestSidebarNavAsync();
         await WalkUserComponentsGuideAsync();

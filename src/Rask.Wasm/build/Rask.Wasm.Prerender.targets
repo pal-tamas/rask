@@ -142,9 +142,16 @@
       per-route log visible in a normal build, as it was before it was captured — a capture that also
       silenced the skip list would trade one blind spot for another.
     -->
+    <!--
+      RaskPathBase travels with it. A browser boot reads the prefix off <base href>; there is no
+      document here, so without this the pass renders every PathBase-prefixed URL against an empty
+      prefix and bakes root-relative paths — `/_rask/a/x.css` rather than `/docs/_rask/a/x.css`. A
+      <base href> cannot rescue those: it only applies to RELATIVE URLs, and a leading slash means the
+      origin root. Under a sub-path deploy the page then loads none of its own scoped assets.
+    -->
     <Exec Command="dotnet &quot;$(RaskPrerenderCompanionOutput)$(RaskPrerenderCompanionName).dll&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
-          EnvironmentVariables="RASK_PRERENDER_OUT=$(PublishDir)wwwroot"
+          EnvironmentVariables="RASK_PRERENDER_OUT=$(PublishDir)wwwroot;RASK_PRERENDER_PATH_BASE=$(RaskPathBase)"
           ConsoleToMSBuild="true"
           StandardOutputImportance="high">
       <Output TaskParameter="ConsoleOutput" ItemName="_RaskPrerenderLog"/>

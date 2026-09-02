@@ -38,6 +38,19 @@ public static class WasmPrerender
     internal static string? RequestedOutput => Environment.GetEnvironmentVariable(OutputVariable);
 
     /// <summary>
+    ///     The URL prefix the bundle will be published under, set by the build from
+    ///     <c>$(RaskPathBase)</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A browser boot reads this off the document's <c>&lt;base href&gt;</c>; a prerender pass has no
+    ///     document, so the build has to say. Without it every <c>LiveOptions.PathBase</c>-prefixed URL
+    ///     is baked against an empty prefix — root-relative, which a <c>&lt;base href&gt;</c> cannot
+    ///     redirect because it only applies to relative URLs. A sub-path deploy then serves pages that
+    ///     ask the origin root for their own scoped assets.
+    /// </remarks>
+    public const string PathBaseVariable = "RASK_PRERENDER_PATH_BASE";
+
+    /// <summary>
     ///     Renders every prerenderable route into <paramref name="outputDirectory" />.
     /// </summary>
     /// <returns>How many pages were written.</returns>
@@ -49,6 +62,8 @@ public static class WasmPrerender
         TimeSpan budget)
         where TApp : Component
     {
+        ApplyPathBase();
+
         var plan = RaskPrerender.PlanRoutes();
 
         // Said out loud rather than logged at debug, and said even when the list is empty. A pass that
@@ -127,6 +142,37 @@ public static class WasmPrerender
     ///     Marks the machine-readable summary line. Read by <c>RaskPrerenderPages</c>.
     /// </summary>
     internal const string SummaryPrefix = "[Rask.Prerender] result ";
+
+    /// <summary>
+    ///     Seeds <see cref="LiveOptions.PathBase" /> from the build, for the pages about to render.
+    /// </summary>
+    /// <remarks>
+    ///     Only when nothing has set it already: a host that was configured with an explicit
+    ///     <c>PathBase</c> in <c>Program.cs</c> has said something more specific than the publish flag,
+    ///     and this must not overrule it. That matches the browser boot, where an explicit value also
+    ///     wins over the <c>&lt;base href&gt;</c> auto-detect.
+    /// </remarks>
+    internal static void ApplyPathBase()
+    {
+        if (LiveOptions.PathBase.Length > 0)
+        {
+            return;
+        }
+
+        if (Environment.GetEnvironmentVariable(PathBaseVariable) is not { Length: > 0 } raw)
+        {
+            return;
+        }
+
+        var normalized = RaskPath.Normalize(raw);
+        if (normalized.Length == 0)
+        {
+            return;
+        }
+
+        LiveOptions.PathBase = normalized;
+        Console.WriteLine($"[Rask.Prerender] rendering under path base {normalized}");
+    }
 
     /// <summary>
     ///     The published boot shell, or <c>null</c> when there is none to splice into.

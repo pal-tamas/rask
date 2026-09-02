@@ -11,6 +11,25 @@
     <!-- Rask WASM marker: gates the framework's build/Rask.Wasm.targets (wwwroot staging +
          scoped-asset bake). Replaces the old WasmGenerateAppBundle marker. -->
     <RaskWasm>true</RaskWasm>
+    <!--
+      NOT prerendered yet, deliberately — see the note below before turning it on.
+
+      Only 5 of this app's 20 routes can be prerendered: the browser-API demos (media devices,
+      fullscreen, serial, USB, HID, Bluetooth…) have nothing to bind to off a browser, throw during the
+      pass, and are skipped by design. That leaves the bundle serving a MIXTURE, and the mixture is the
+      problem: a static host answers an un-prerendered deep link with its SPA fallback, which is the
+      root index.html — and once the root is prerendered, that fallback stops being a neutral boot shell
+      and becomes a fully rendered guides index. Deep-linking into one of the fifteen then misroutes.
+
+      The landing site does not hit this because it is a single route: everything it serves is
+      prerendered, so there is no mixture and no fallback to get wrong.
+
+      Turning this on needs the un-prerendered-route story settled first — most likely a fallback
+      document that is still the boot shell rather than any one rendered page. The framework fix that
+      this attempt did surface (RASK_PRERENDER_PATH_BASE, so a sub-path publish bakes prefixed asset
+      URLs) is landed separately and is a prerequisite for it.
+    -->
+    <!-- <RaskPrerender>true</RaskPrerender> -->
     <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders
          at publish (Microsoft.NET.Sdk.WebAssembly). Makes static-host redeploys cache-safe. -->
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>

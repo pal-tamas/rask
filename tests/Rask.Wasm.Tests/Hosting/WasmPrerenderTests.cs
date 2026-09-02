@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Wasm;
 
@@ -111,6 +112,55 @@ public class WasmPrerenderTests
         finally
         {
             try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public void APathBaseFromTheBuildReachesTheRenderedUrls()
+    {
+        // A browser boot reads the prefix off the document's <base href>. A prerender pass has no
+        // document, so without the build saying, every PathBase-prefixed URL is baked against an empty
+        // prefix — `/_rask/a/x.css` rather than `/docs/_rask/a/x.css`. A <base href> cannot rescue
+        // those: it applies to RELATIVE URLs only, and a leading slash means the origin root. A sub-path
+        // deploy then serves pages that ask the origin root for their own scoped assets, which is how
+        // this was found — every WASM sub-path journey went red at once.
+        var previous = LiveOptions.PathBase;
+        try
+        {
+            LiveOptions.PathBase = "";
+            Environment.SetEnvironmentVariable(WasmPrerender.PathBaseVariable, "/docs");
+
+            WasmPrerender.ApplyPathBase();
+
+            Assert.Equal("/docs", LiveOptions.PathBase);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.PathBaseVariable, null);
+            LiveOptions.PathBase = previous;
+        }
+    }
+
+    [Fact]
+    public void AnExplicitPathBaseIsNotOverruledByTheBuild()
+    {
+        // A host configured with an explicit PathBase in Program.cs has said something more specific
+        // than a publish flag. This matches the browser boot, where an explicit value also wins over
+        // the <base href> auto-detect.
+        var previous = LiveOptions.PathBase;
+        try
+        {
+            LiveOptions.PathBase = "/chosen";
+            Environment.SetEnvironmentVariable(WasmPrerender.PathBaseVariable, "/docs");
+
+            WasmPrerender.ApplyPathBase();
+
+            Assert.Equal("/chosen", LiveOptions.PathBase);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.PathBaseVariable, null);
+            LiveOptions.PathBase = previous;
         }
     }
 

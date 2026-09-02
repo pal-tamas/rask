@@ -87,7 +87,7 @@ public sealed class ShowcaseLayoutTests
     public void IsActive_RootHref_TrueOnlyForRootPaths(string path, bool expected)
     {
         var routeState = new RouteState { Path = path };
-        var layout = new ShowcaseLayout(routeState, [], new FakeJsRuntime());
+        var layout = new ShowcaseLayout(routeState, []);
         Assert.Equal(expected, InvokePrivateIsActive(layout, "/"));
     }
 
@@ -99,7 +99,7 @@ public sealed class ShowcaseLayoutTests
     public void IsActive_NonRootHref_MatchesPathIgnoringCaseAndTrailingSlash(string path, string href, bool expected)
     {
         var routeState = new RouteState { Path = path };
-        var layout = new ShowcaseLayout(routeState, [], new FakeJsRuntime());
+        var layout = new ShowcaseLayout(routeState, []);
         Assert.Equal(expected, InvokePrivateIsActive(layout, href));
     }
 
@@ -122,7 +122,7 @@ public sealed class ShowcaseLayoutTests
         string path, string href, string? matchPrefix, bool expected)
     {
         var routeState = new RouteState { Path = path };
-        var layout = new ShowcaseLayout(routeState, [], new FakeJsRuntime());
+        var layout = new ShowcaseLayout(routeState, []);
         Assert.Equal(expected, InvokePrivateIsActive(layout, href, matchPrefix));
     }
 
@@ -137,7 +137,7 @@ public sealed class ShowcaseLayoutTests
         // RouteState.Changed instead, so it only re-renders when the route changes
         // (not on every keystroke in a child form).
         var routeState = new RouteState { Path = "/" };
-        var layout = new ShowcaseLayout(routeState, [], new FakeJsRuntime());
+        var layout = new ShowcaseLayout(routeState, []);
         var prop = typeof(Component).GetProperty("BypassRenderCache",
             BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(prop);

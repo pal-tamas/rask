@@ -78,7 +78,7 @@ public sealed partial class QueuePage(
         }
 
         return [
-            OpsHeader
+            UiHeader
                 .Heading(_panel.Title)
                 .Icon(_panel.Icon)
                 .Actions(Div.Class("flex flex-wrap gap-2")[QueueActionButtons()]),
@@ -131,10 +131,10 @@ public sealed partial class QueuePage(
     private Component RowsTable()
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        return OpsTable[
+        return UiTable[
             // The secondary columns are dropped below sm rather than scrolled to. A table an operator has to
             // swipe sideways has hidden the column they came for; the primary cell carries the same facts
-            // stacked underneath instead, so nothing is lost — see the remarks on OpsTable.
+            // stacked underneath instead, so nothing is lost — see the remarks on UiTable.
             Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                 Tr[
                     Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["#"],
@@ -159,13 +159,13 @@ public sealed partial class QueuePage(
         return Tr.Key(row.Id).Class(isDead
             ? "border-b border-ui-line/60 bg-ui-danger/5 last:border-0"
             : "border-b border-ui-line/60 last:border-0")[
-            Td.Class($"hidden whitespace-nowrap px-3 py-2 align-top text-ui-muted sm:table-cell {Ops.Mono}")[row.Id.ToString()],
+            Td.Class($"hidden whitespace-nowrap px-3 py-2 align-top text-ui-muted sm:table-cell {UiStyles.Mono}")[row.Id.ToString()],
             Td.Class("w-full max-w-0 px-3 py-2 align-top")[
                 Div.Class("min-w-0")[
                     Div.Class("truncate sm:max-w-[28rem]").Title(row.Type)[row.Type],
                     // What the hidden columns were carrying, folded under the one cell that survives.
                     Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ui-muted sm:hidden")[
-                        Span.Class(Ops.Mono)[$"#{row.Id}"],
+                        Span.Class(UiStyles.Mono)[$"#{row.Id}"],
                         Span.Title(row.CreatedAt.ToString("u"))[DashboardParts.Ago(row.CreatedAt, now)],
                         StatusBadge(row, isDead, now)
                     ]
@@ -201,11 +201,11 @@ public sealed partial class QueuePage(
 
     private Component StatusBadge(QueueRow row, bool isDead, DateTime now) => row switch
     {
-        { ProcessedAt: not null } => OpsBadge.Label("done").Tone("ok"),
-        _ when isDead => OpsBadge.Label("dead letter").Tone("danger"),
+        { ProcessedAt: not null } => UiBadge.Label("done").Tone("ok"),
+        _ when isDead => UiBadge.Label("dead letter").Tone("danger"),
         _ when row.RunAt > now =>
-            OpsBadge.Label($"retries in {DashboardParts.Duration(row.RunAt - now)}"),
-        _ => OpsBadge.Label("due").Tone("info"),
+            UiBadge.Label($"retries in {DashboardParts.Duration(row.RunAt - now)}"),
+        _ => UiBadge.Label("due").Tone("info"),
     };
 
     /// <summary>
@@ -292,7 +292,7 @@ public sealed partial class QueuePage(
             yield return Button
                 .Key("retry-all")
                 .Type("button")
-                .Class(Ops.Danger)
+                .Class(UiStyles.Danger)
                 .OnClickAsync(() => RunAsync(
                     $"Retry all {_counts.Failed} dead letters?",
                     async ct => $"Re-queued {await _panel!.RetryAllAsync(ct).ConfigureAwait(false)}."))[
@@ -306,7 +306,7 @@ public sealed partial class QueuePage(
             yield return Button
                 .Key("purge")
                 .Type("button")
-                .Class(Ops.Button)
+                .Class(UiStyles.Button)
                 .OnClickAsync(() => RunAsync(
                     "Delete processed rows older than 7 days? Outstanding work and dead letters are kept.",
                     async ct => $"Purged {await _panel!.PurgeProcessedAsync(TimeSpan.FromDays(7), ct).ConfigureAwait(false)}."))[
@@ -322,7 +322,7 @@ public sealed partial class QueuePage(
             yield return Button
                 .Key("retry")
                 .Type("button")
-                .Class(Ops.Danger)
+                .Class(UiStyles.Danger)
                 .OnClickAsync(() => RunAsync(
                     null,   // retrying one dead letter is reversible enough not to need a confirmation
                     async ct => await _panel!.RetryAsync(row.Id, ct).ConfigureAwait(false) > 0
@@ -335,7 +335,7 @@ public sealed partial class QueuePage(
             yield return Button
                 .Key("delete")
                 .Type("button")
-                .Class(Ops.Danger)
+                .Class(UiStyles.Danger)
                 .OnClickAsync(() => RunAsync(
                     $"Delete #{row.Id}? The work is discarded and cannot be recovered.",
                     async ct => await _panel!.DeleteAsync(row.Id, ct).ConfigureAwait(false) > 0
@@ -388,7 +388,7 @@ public sealed partial class QueuePage(
     // The question, in the flow, where it cannot be missed.
     private Component? ConfirmPrompt() =>
         _pending is { } pending
-            ? OpsNotice.Tone("warn")[
+            ? UiNotice.Tone("warn")[
                 Span.Class("min-w-0 grow break-words")[pending.Prompt],
                 UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Danger)
                     .OnClickAsync(() => ExecuteAsync(pending.Action)),

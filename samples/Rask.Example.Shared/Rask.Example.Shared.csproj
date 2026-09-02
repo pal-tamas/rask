@@ -38,6 +38,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <!-- The component kit the operator console and the landing site are drawn with. The showcase takes
+         its top bar and its icons; the sidebar stays local, because UiNav is a five-tab console bar and
+         this app has eighty guides in a filterable rail. -->
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.DataAnnotations\Rask.Validation.DataAnnotations.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>

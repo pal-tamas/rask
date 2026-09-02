@@ -46,10 +46,10 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         }
 
         return [
-            OpsHeader.Heading("Overview").Caption(StateLine()),
+            UiHeader.Heading("Overview").Caption(StateLine()),
             DashboardError.Message(LoadError),
             FailureBanner(),
-            OpsGrid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
+            UiGrid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
@@ -107,7 +107,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         return NavLink
             .Key(panel.Slug)
             .Href(Routes.QueuePage(panel.Slug))
-            .Class($"{Ops.Card} block no-underline transition-colors hover:bg-ui-well")[
+            .Class($"{UiStyles.Card} block no-underline transition-colors hover:bg-ui-well")[
             Div.Class("flex items-center gap-2")[
                 UiIcon.Name(panel.Icon).Class("size-5 shrink-0 text-ui-muted"),
                 Span.Class("truncate font-medium text-ui-ink")[panel.Title],

@@ -62,7 +62,7 @@ public sealed partial class CachePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            OpsHeader.Heading("Cache").Actions(FlushButton()),
+            UiHeader.Heading("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
             ConfirmPrompt(),
             Div.Class("mb-4 sm:mb-5")[
@@ -105,7 +105,7 @@ public sealed partial class CachePage(
     }
 
     private Component KeyTable(DateTime now) =>
-        OpsTable[
+        UiTable[
             Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                 Tr[
                     Th.Class("px-3 py-2 font-medium")["Key"],
@@ -121,12 +121,12 @@ public sealed partial class CachePage(
                 : "border-b border-ui-line/60 last:border-0")[
                 Td.Class("w-full max-w-0 px-3 py-2 align-top")[
                     Div.Class("min-w-0")[
-                        Div.Class($"truncate sm:max-w-[28rem] {Ops.Mono}").Title(r.Key)[r.Key],
+                        Div.Class($"truncate sm:max-w-[28rem] {UiStyles.Mono}").Title(r.Key)[r.Key],
                         // Size and expiry follow the key down when their own columns are gone.
                         Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ui-muted sm:hidden")[
                             Span.Class("tabular-nums")[DashboardParts.Bytes(r.Bytes)],
                             r.ExpiresAt <= now
-                                ? OpsBadge.Label("expired")
+                                ? UiBadge.Label("expired")
                                 : Span.Title(r.ExpiresAt.ToString("u"))[
                                     $"expires {DashboardParts.Ago(r.ExpiresAt, now)}"
                                 ]
@@ -140,7 +140,7 @@ public sealed partial class CachePage(
                 ],
                 Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs sm:table-cell").Title(r.ExpiresAt.ToString("u"))[
                     r.ExpiresAt <= now
-                        ? OpsBadge.Label("expired")
+                        ? UiBadge.Label("expired")
                         : Span.Class("text-ui-muted")[DashboardParts.Ago(r.ExpiresAt, now)]
                 ],
                 Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted lg:table-cell")[
@@ -189,7 +189,7 @@ public sealed partial class CachePage(
 
     private Component? ConfirmPrompt() =>
         _confirmFlush
-            ? OpsNotice.Tone("warn")[
+            ? UiNotice.Tone("warn")[
                 Span.Class("min-w-0 grow break-words")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],

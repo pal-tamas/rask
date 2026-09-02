@@ -124,6 +124,15 @@ public enum UiIconName
 
     /// <summary>Something produced ahead of time.</summary>
     Sparkles,
+
+    /// <summary>Open the navigation on a small screen.</summary>
+    Menu,
+
+    /// <summary>Run it.</summary>
+    Play,
+
+    /// <summary>Documentation.</summary>
+    Book,
 }
 
 /// <summary>
@@ -356,6 +365,17 @@ public sealed partial class UiIcon : Component
             + "20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423"
             + "-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1."
             + "423Z"),
+
+        UiIconName.Menu => SvgPath.D("M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"),
+
+        UiIconName.Play => SvgPath.D(
+            "M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 "
+            + "1.125 0 0 1-1.667-.986V5.653Z"),
+
+        UiIconName.Book => SvgPath.D(
+            "M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 "
+            + "4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 "
+            + "0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"),
 
         // Unreachable for a declared name. A new enum member without a shape would otherwise draw an empty
         // box and read as a styling fault rather than a missing case.
