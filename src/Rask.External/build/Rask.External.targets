@@ -33,6 +33,20 @@
     <!-- Where the generated prop types land. Under obj/ because they are build output: a generated
          file in the source tree is one somebody edits by hand and loses on the next build. -->
     <_RaskExternalTypes>$(_RaskExternalObj)types\</_RaskExternalTypes>
+    <!--
+      The ONE path an author writes by hand, so it cannot carry the configuration in it.
+
+      Everything else here lives under $(IntermediateOutputPath) — obj/Debug/net10.0/... — which is
+      correct for build inputs and wrong for this one file: `tsconfig.json` is committed, it names a
+      single `extends`, and that name has to mean the same thing in Debug and in Release. Pointed at
+      the intermediate path it resolves in whichever configuration was built last and fails in the
+      other, which on Vite is not a warning — esbuild refuses a tsconfig whose extends is missing, so
+      the BUNDLE dies rather than the type-check degrading.
+
+      The mapping inside it still points into the configuration's own types directory; only the file
+      naming it is stable.
+    -->
+    <_RaskExternalStableObj>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/obj/rask-external'))\</_RaskExternalStableObj>
     <_RaskExternalOut>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskExternalOutputDir)'))</_RaskExternalOut>
     <_RaskExternalManifest>$(_RaskExternalOut)\manifest.json</_RaskExternalManifest>
 
@@ -81,6 +95,21 @@
                      Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
       <IslandName>%(Filename)</IslandName>
       <Runtime>react</Runtime>
+    </_RaskExternalFile>
+
+    <!-- A single-file component needs no .cs-sibling filter the way a Lit .ts does: the extension is
+         the framework's own and belongs to nothing else in a .NET project, so the glob is already as
+         narrow as the pairing rule would make it. -->
+    <_RaskExternalFile Include="$(MSBuildProjectDirectory)/**/*.vue"
+                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
+      <IslandName>%(Filename)</IslandName>
+      <Runtime>vue</Runtime>
+    </_RaskExternalFile>
+
+    <_RaskExternalFile Include="$(MSBuildProjectDirectory)/**/*.svelte"
+                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
+      <IslandName>%(Filename)</IslandName>
+      <Runtime>svelte</Runtime>
     </_RaskExternalFile>
 
     <!-- .d.ts carries no code, and its %(Filename) still ends in '.d' — so it would pair with nothing
@@ -137,12 +166,14 @@
           DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles"
           Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'
                      AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')"
-          Inputs="@(IntermediateAssembly)"
+          Inputs="@(IntermediateAssembly);@(_RaskExternalFile)"
           Outputs="$(_RaskExternalObj)types.stamp">
     <WriteExternalPropTypesTask AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
                                 OutputDirectory="$(_RaskExternalTypes)"
-                                TsConfigPath="$(_RaskExternalObj)tsconfig.paths.json"
+                                TsConfigPath="$(_RaskExternalStableObj)tsconfig.paths.json"
                                 CheckConfigPath="$(_RaskExternalObj)tsconfig.check.json"
+                                VueConfigPath="$(_RaskExternalObj)tsconfig.vue.json"
+                                SvelteConfigPath="$(_RaskExternalObj)tsconfig.svelte.json"
                                 FrontEndFiles="@(_RaskExternalFile)"
                                 ProjectDirectory="$(MSBuildProjectDirectory)"/>
     <MakeDir Directories="$(_RaskExternalObj)"/>
@@ -225,13 +256,64 @@
     </ResolveTypeScriptToolTask>
 
     <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.check.json&quot;"
-          Condition="'$(_RaskExternalTsgoPath)' != ''"
+          Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.check.json')"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           IgnoreStandardErrorWarningFormat="true"
           CustomErrorRegularExpression="error TS[0-9]+"/>
+
+    <!--
+      Single-file components need their FRAMEWORK'S checker, not tsgo. tsgo parses TypeScript and JSX;
+      a .vue or a .svelte is neither, and there is no plugin seam to teach it one — so this is the
+      second and third toolchain the "Why Vite, and only Vite" argument declined for BUNDLERS. It is
+      accepted here because the alternative is not a weaker check, it is no check: there is no single
+      tool that reads all four file types, and the two-way contract is the whole point of the feature.
+
+      Run from the project's own node_modules, at the version its package.json pinned. Rask does not
+      fetch these the way it fetches tsgo: they are the same packages the front end already builds
+      with, and a second copy on a different version would disagree with the bundler about the same
+      file.
+
+      A missing checker SKIPS LOUDLY. Both configs exist only when an island of that runtime does, so
+      silence here would mean a project whose Vue components are checked by nothing while the build
+      still says it type-checked the islands.
+    -->
+    <PropertyGroup>
+      <_RaskVueTsc Condition="'$(_RaskVueTsc)' == ''">$(MSBuildProjectDirectory)/node_modules/.bin/vue-tsc</_RaskVueTsc>
+      <_RaskSvelteCheck Condition="'$(_RaskSvelteCheck)' == ''">$(MSBuildProjectDirectory)/node_modules/.bin/svelte-check</_RaskSvelteCheck>
+      <_RaskVueTsc Condition="'$(OS)' == 'Windows_NT'">$(_RaskVueTsc).cmd</_RaskVueTsc>
+      <_RaskSvelteCheck Condition="'$(OS)' == 'Windows_NT'">$(_RaskSvelteCheck).cmd</_RaskSvelteCheck>
+    </PropertyGroup>
+
+    <Message Importance="high"
+             Condition="Exists('$(_RaskExternalObj)tsconfig.vue.json') AND '$(_RaskExternalDepsMissing)' != 'true'
+                        AND !Exists('$(_RaskVueTsc)')"
+             Text="Rask.External: skipping the Vue prop type-check — this project has .vue islands but no vue-tsc in node_modules. Add it as a devDependency to enable it."/>
+
+    <Exec Command="&quot;$(_RaskVueTsc)&quot; --noEmit --project &quot;$(_RaskExternalObj)tsconfig.vue.json&quot;"
+          Condition="Exists('$(_RaskExternalObj)tsconfig.vue.json') AND '$(_RaskExternalDepsMissing)' != 'true'
+                     AND Exists('$(_RaskVueTsc)')"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"
+          CustomErrorRegularExpression="error TS[0-9]+"/>
+
+    <Message Importance="high"
+             Condition="Exists('$(_RaskExternalObj)tsconfig.svelte.json') AND '$(_RaskExternalDepsMissing)' != 'true'
+                        AND !Exists('$(_RaskSvelteCheck)')"
+             Text="Rask.External: skipping the Svelte prop type-check — this project has .svelte islands but no svelte-check in node_modules. Add it as a devDependency to enable it."/>
+
+    <!--
+      svelte-check reports on stdout and exits non-zero on error, but its output is not in MSBuild's
+      diagnostic shape, so the exit code is what fails the build rather than a matched line. Machine
+      output keeps the error text one-per-line and parseable by eye.
+    -->
+    <Exec Command="&quot;$(_RaskSvelteCheck)&quot; --tsconfig &quot;$(_RaskExternalObj)tsconfig.svelte.json&quot; --output machine"
+          Condition="Exists('$(_RaskExternalObj)tsconfig.svelte.json') AND '$(_RaskExternalDepsMissing)' != 'true'
+                     AND Exists('$(_RaskSvelteCheck)')"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
-  <Target Name="_RaskExternalPairLitFiles">
+  <Target Name="_RaskExternalPairLitFiles" Condition="'$(RaskExternalLitAutoPair)' != 'false'">
     <ItemGroup>
       <_RaskExternalFile Include="@(_RaskExternalLitCandidate)" Condition="Exists('%(_RaskExternalLitCandidate.Sibling)')">
         <IslandName>%(Filename)</IslandName>

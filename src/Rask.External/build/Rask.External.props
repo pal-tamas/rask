@@ -25,10 +25,29 @@
       compiles, the islands still render their host elements, and the client runtime reports the
       missing chunk rather than the page failing.
 
-      The repo's own unit gate passes false, so a machine with no node can still build a solution that
-      contains islands. Same shape as RaskSpaBuild and RaskWasmDevBundle.
+      Same shape as RaskSpaBuild and RaskWasmDevBundle.
+
+      Note the repo's own unit gate does NOT pass false: since the showcase gained islands it carries a
+      package.json, so `dotnet build Rask.slnx` runs npm and Vite for it and the gate needs node. A
+      machine without node builds a solution containing islands by passing this false explicitly.
     -->
     <RaskExternalBuild Condition="'$(RaskExternalBuild)' == ''">true</RaskExternalBuild>
+
+    <!--
+      Whether a `.ts` beside a `.cs` of the same name is assumed to be a LIT island.
+
+      That rule is what lets a Lit component be found by convention — and it is character-for-character
+      the rule Rask's SCOPED TypeScript already uses. Nothing in MSBuild can separate them: the only
+      difference is whether the C# class derives from LitComponent, which Roslyn knows and a glob does
+      not. So in a project holding both, every scoped `.ts` is also offered to the bundler as a Lit
+      island, and the build fails on a module that never default-exported a tag name.
+
+      A project with scoped TypeScript and no Lit islands sets this false and loses nothing. A project
+      with both sets it false and declares its Lit islands explicitly, which is what
+      <RaskExternal Include="widgets/gauge.ts" Runtime="lit"/> has always been for. The other three
+      runtimes have extensions of their own and are never ambiguous.
+    -->
+    <RaskExternalLitAutoPair Condition="'$(RaskExternalLitAutoPair)' == ''">true</RaskExternalLitAutoPair>
 
     <!--
       Where the built chunks land. Under wwwroot on purpose: the SDK already publishes wwwroot, so the

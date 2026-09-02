@@ -63,7 +63,7 @@ public sealed class WriteExternalBuildInputsTask : Task
 
             // The browser resolves a module by this name, so two islands sharing one would collide in
             // the manifest — silently, and differently depending on build order. The generator reports
-            // the same collision as RASK057 against the C# declarations; this catches the case where
+            // the same collision as RASK058 against the C# declarations; this catches the case where
             // two front-end files collide before any class has claimed them.
             if (seen.TryGetValue(name, out var already))
             {
@@ -77,11 +77,28 @@ public sealed class WriteExternalBuildInputsTask : Task
             seen[name] = source;
 
             var runtime = item.GetMetadata("Runtime");
+            if (string.IsNullOrEmpty(runtime))
+            {
+                runtime = ExternalRuntime.React.Key;
+            }
+
+            // Refused rather than defaulted. An unknown runtime used to fall through to React, which
+            // meant a typo in a hand-written <RaskExternal Runtime="vue3"/> generated a React entry
+            // for a Vue component: the build succeeds, the bundle ships, the chunk loads, and nothing
+            // mounts — with the browser reporting a failure that names none of this.
+            if (ExternalRuntime.Find(runtime) is null)
+            {
+                Log.LogError(
+                    $"Rask islands: '{source}' declares the runtime '{runtime}', which Rask has no adapter for. "
+                    + $"Known runtimes: {ExternalRuntime.KeyList}.");
+                return false;
+            }
+
             islands.Add(new ExternalEntry
             {
                 Name = name,
                 Source = source,
-                Runtime = string.IsNullOrEmpty(runtime) ? "react" : runtime,
+                Runtime = runtime,
             });
         }
 

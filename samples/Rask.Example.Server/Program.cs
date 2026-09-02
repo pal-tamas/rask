@@ -50,6 +50,9 @@ builder.Services.AddRaskPwa(new WebAppManifest
 builder.Services.AddPushDemo(builder.Configuration);
 // The Server-only PWA showcase page contributes its sidebar entry to the shared ShowcaseLayout.
 builder.Services.AddSingleton(new ShowcaseNavEntry("/server-pwa", "Server PWA", IconName.Phone, "PWA"));
+// The islands showcase lives on this host because it is the sample carrying a package.json — a Vue or
+// Svelte component is an npm package, and needing one is inherent to asking for it.
+builder.Services.AddSingleton(new ShowcaseNavEntry("/islands", "Islands", IconName.UiChecksGrid, "Islands"));
 // Live-session capacity health check (Healthy / Degraded ≥80% / Unhealthy at cap), surfaced at
 // /health below. Pairs with the OpenTelemetry-ready "Rask.Server" meter + activity source — see
 // docs/observability.md.

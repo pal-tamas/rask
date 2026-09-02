@@ -5,6 +5,17 @@
 @import "tailwindcss";
 
 /*
+  The islands' front-end files, which live in the HOST apps rather than here.
+
+  Tailwind v4 detects sources by scanning the project it is run from, so a `.vue`, `.tsx` or
+  `.svelte` in a sibling project is invisible to it — every utility used inside an island would be
+  dropped from this sheet, and the island would render unstyled with nothing reporting why. `@source`
+  is v4's answer for exactly that: an extra directory to scan, resolved relative to this file.
+*/
+@source "../../Rask.Example.Server/Features/Islands";
+@source "../../Rask.Example.Wasm/Features/Islands";
+
+/*
   The design tokens. These lived in Rask.Bootstrap's tokens.css, which every showcase stylesheet
   referenced through var(--accent) / var(--ink) / var(--panel) and which went with the package — so
   global.css and GuideChrome.css were resolving 22 custom properties that nothing defined. A CSS

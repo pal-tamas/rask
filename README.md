@@ -79,11 +79,12 @@ rask new Shop --template react
 
 ### Islands
 
-A `.tsx` or Lit file as an *ordinary* Rask component. Derive from `ReactComponent`, drop `Chart.tsx`
-beside it, and place it anywhere the chain goes — a leaf inside a card, or a whole route. Props are
-declared in C#, callbacks re-enter C# over the channel every handler already uses, and the live diff
-leaves the subtree alone because its own renderer owns it. This is the one pillar `Rask` does not
-bring on its own: add `Rask.External`, and Node, because your React does.
+A `.tsx`, `.vue`, `.svelte` or Lit file as an *ordinary* Rask component. Derive from
+`ReactComponent`, `VueComponent`, `SvelteComponent` or `LitComponent`, drop the front-end file beside
+it, and place it anywhere the chain goes — a leaf inside a card, or a whole route. Props are declared
+in C#, callbacks re-enter C# over the channel every handler already uses, and the live diff leaves the
+subtree alone because its own renderer owns it. This is the one pillar `Rask` does not bring on its
+own: add `Rask.External`, and Node, because your React does.
 
 ```csharp
 public sealed partial class Chart : ReactComponent

@@ -48,8 +48,10 @@ host.UsePwa(new WebAppManifest
 });
 // WASM-only example pages — contribute their sidebar entries to the shared ShowcaseLayout. These APIs
 // can't run on the Server transport, so they live in the WASM host rather than the shared showcase.
-host.Services.AddSingleton(new ShowcaseNavEntry("/blazor-island", "Blazor island", IconName.Braces, "Islands"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", IconName.Phone, "PWA"));
+// The islands showcase: the same .vue/.tsx/.svelte the Server host builds, mounted client-side.
+host.Services.AddSingleton(new ShowcaseNavEntry("/islands", "Islands", IconName.UiChecksGrid, "Islands"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/blazor-island", "Blazor island", IconName.Braces, "Islands"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/install", "Install prompt", IconName.Download, "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", IconName.Display, "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", IconName.PhoneLandscape, "PWA"));
