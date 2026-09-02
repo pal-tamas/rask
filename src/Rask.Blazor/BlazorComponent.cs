@@ -58,12 +58,43 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///     knows the concrete type — the island's own declaration — so the trimmer keeps those
     ///     properties in whatever assembly the component lives in.
     /// </remarks>
-    private const DynamicallyAccessedMemberTypes HostedMembers =
-        DynamicallyAccessedMemberTypes.PublicProperties;
+    /// <remarks>
+    ///     <para>
+    ///         <c>All</c>, and not by preference. The hosted component is built through the renderer's
+    ///         own <c>InstantiateComponent</c> — the only path that runs Blazor's <c>[Inject]</c>
+    ///         property injection and honours a registered <c>IComponentActivator</c> — and that method
+    ///         is annotated <c>LinkerFlags.Component</c>, which IS
+    ///         <c>DynamicallyAccessedMemberTypes.All</c>. Anything narrower here is IL2087 at the call
+    ///         site: a build error in a consuming WASM app, which publishes trimmed under
+    ///         warnings-as-errors.
+    ///     </para>
+    ///     <para>
+    ///         Suppressing that rather than satisfying it would reproduce #945 with a second face.
+    ///         Injection reflects over <c>[Inject]</c> properties including NON-PUBLIC ones, so a
+    ///         narrower annotation lets the trimmer remove the very properties the activator is about
+    ///         to assign — and the island then renders perfectly with every injected service null,
+    ///         which is the failure mode this package has already been bitten by once.
+    ///     </para>
+    /// </remarks>
+    private const DynamicallyAccessedMemberTypes HostedMembers = DynamicallyAccessedMemberTypes.All;
 
     private BlazorIslandRenderer? _renderer;
     private TComponent? _instance;
     private int _componentId = -1;
+
+    /// <summary>
+    ///     1 once the hosted component's after-render hook has been claimed. See <see cref="OnRenderedAsync" />.
+    /// </summary>
+    /// <remarks>
+    ///     An <c>int</c> through <c>Interlocked</c> rather than a <c>bool</c>, because the claim is not
+    ///     made on one thread. The hook awaits a hop to the renderer's dispatcher, so a second
+    ///     <c>OnRenderedAsync</c> can arrive on a different thread and read a plain field that has not
+    ///     been published yet — which is exactly what happened: one hosted component, two calls.
+    /// </remarks>
+    private int _afterRendered;
+
+    /// <summary>Whether that hook is on the stack right now — see the self-render callback.</summary>
+    private bool _inAfterRender;
     // The hosted markup and the handlers its placeholders stand for, as ONE value.
     //
     // Two fields would be a data race rather than a tidiness question: RewriteHtml runs on the
@@ -115,8 +146,27 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     /// </remarks>
     protected abstract void WriteParameters(Dictionary<string, object?> into);
 
-    /// <summary>Creates the hosted component. Never reflective — the type argument is known.</summary>
-    protected virtual TComponent Create() => new();
+    /// <summary>
+    ///     Builds the hosted component the way Blazor does, so that <c>[Inject]</c> runs.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This replaced a <c>protected virtual TComponent Create() => new()</c>, and the change is
+    ///         the whole of #956. Constructing the component here and handing the finished instance to
+    ///         <c>AssignRootComponentId</c> skipped <c>ComponentFactory</c>, which is where Blazor
+    ///         performs property injection — so every <c>[Inject]</c> on a hosted component stayed
+    ///         null, silently, until the first use threw somewhere that named nothing. Constructor
+    ///         injection was never available either: the <c>new()</c> constraint rules it out.
+    ///     </para>
+    ///     <para>
+    ///         There is no <c>Create()</c> hook any more, and nothing lost with it: the seam for
+    ///         controlling construction is Blazor's own, an <c>IComponentActivator</c> in the app's
+    ///         container, which <c>InstantiateComponent</c> honours. A hook here would have had to
+    ///         re-implement injection to be useful, which is exactly the mistake being fixed.
+    ///     </para>
+    /// </remarks>
+    private TComponent Build(BlazorIslandRenderer renderer) =>
+        (TComponent)renderer.Build(typeof(TComponent));
 
     /// <summary>
     ///     Mounts the hosted component and re-renders it whenever a Rask prop changes.
@@ -148,7 +198,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         {
             if (_componentId < 0)
             {
-                _instance = (TComponent)renderer.Build(typeof(TComponent));
+                _instance = Build(renderer);
                 _componentId = renderer.Attach(_instance);
             }
 
@@ -162,6 +212,73 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             _live = context is not null;
             RewriteHtml();
         });
+    }
+
+    /// <summary>
+    ///     Runs the hosted component's <c>OnAfterRenderAsync</c>, once the island has painted.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>StaticHtmlRenderer</c> never fires this hook, so before it a hosted component could
+    ///         only reach a browser API from its own event handler — which rules out the ordinary case
+    ///         of reading something when the island appears. Rask knows when the island has been
+    ///         delivered, so it is Rask that calls it.
+    ///     </para>
+    ///     <para>
+    ///         What works from here is <c>IJSRuntime</c> — the host's own, injected now that #956 is
+    ///         fixed, and on Server the call escalates the page to a live session through the existing
+    ///         path. What still does NOT work is anything taking an <c>ElementReference</c>:
+    ///         <c>BlazorFrameWriter</c> discards element-reference captures, so the reference a
+    ///         component library wants to hand to its own JavaScript was never recorded. That is the
+    ///         line, and <c>docs/blazor-components.md</c> draws it rather than leaving it to be found.
+    ///     </para>
+    ///     <para>
+    ///         ONCE per island, after its first paint — deliberately not Blazor's "after every render",
+    ///         and the difference is load-bearing rather than a simplification. A Rask render walk is
+    ///         not a Blazor render: the island is walked whenever anything on the page changes, so
+    ///         "every render" here would fire far more often than a <c>.razor</c> author expects, and
+    ///         for reasons that have nothing to do with the component.
+    ///     </para>
+    ///     <para>
+    ///         It also loops. A component calling <c>StateHasChanged</c> from this hook drives
+    ///         <c>UpdateDisplayAsync</c> → <c>RewriteHtml</c> → a Rask re-render → the hook again, and
+    ///         because each turn COMPLETES before the next begins, an in-flight guard never sees it —
+    ///         the first attempt at this was exactly that guard, and the test that redraws from the
+    ///         hook took the renderer into unbounded <c>ProcessRenderQueue</c> recursion. Firing once
+    ///         removes the cycle rather than trying to detect it.
+    ///     </para>
+    ///     <para>
+    ///         A component that needs to react to later changes has <c>OnParametersSet</c>, which runs
+    ///         on every prop change and is the hook that actually corresponds to one.
+    ///     </para>
+    /// </remarks>
+    protected override async Task OnRenderedAsync(bool firstRender)
+    {
+        if (_instance is not IHandleAfterRender handler || _renderer is not { } renderer)
+        {
+            return;
+        }
+
+        // Claimed BEFORE the await, and atomically: the hook is free to call StateHasChanged, and the
+        // re-render that causes arrives back here while this call is still on the stack — possibly on
+        // another thread, since the hook itself hops to the renderer's dispatcher.
+        if (Interlocked.Exchange(ref _afterRendered, 1) == 1)
+        {
+            return;
+        }
+
+        // Rask's firstRender is deliberately NOT forwarded: IHandleAfterRender takes no argument, and
+        // ComponentBase does that bookkeeping itself — it flips its own flag on the first call and hands
+        // the hosted component the `firstRender` its own base class computed.
+        _inAfterRender = true;
+        try
+        {
+            await renderer.Dispatcher.InvokeAsync(handler.OnAfterRenderAsync);
+        }
+        finally
+        {
+            _inAfterRender = false;
+        }
     }
 
     /// <summary>
@@ -388,6 +505,21 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         {
             // Re-read BEFORE telling Rask to repaint, or the repaint ships the previous markup.
             RewriteHtml();
+
+            // …but do NOT ask for a repaint while the after-render hook is running. A hosted component
+            // calling StateHasChanged from that hook lands here, and an immediate Rask re-render from
+            // inside the hook drives the island's own render again, which lands here again: the cycle
+            // that took ProcessRenderQueue into unbounded recursion.
+            //
+            // Rask already solved this for its own components. OnRenderedAsync returning an incomplete
+            // task gets a continuation that requests a publishOnly render, and publishOnly deliberately
+            // skips OnRendered on anything that has already rendered (Component.RaiseOnRendered) — so
+            // the markup written just above still reaches the page, once, without re-entering anything.
+            if (_inAfterRender)
+            {
+                return;
+            }
+
             StateHasChanged();
         });
     }

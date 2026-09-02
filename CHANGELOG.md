@@ -47,6 +47,45 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A hosted Blazor component's `[Inject]` never ran, so every injected service was silently null
+  ([#956](https://github.com/pal-tamas/rask/issues/956)).** `BlazorComponent` constructed the hosted
+  component with `new()` and handed the finished instance to `AssignRootComponentId`, which skips
+  `ComponentFactory` — the only place Blazor performs property injection. Constructor injection was
+  never available either (the `new()` constraint rules it out), so a hosted component had no way to
+  reach a service at all. It surfaced as an `ArgumentNullException` or an NRE from inside the
+  component, naming nothing that pointed at the cause.
+
+  The whole service story was inert as a result, including what this package deliberately registers:
+  `NavigationManager` is registered precisely because MudBlazor and Radzen inject it, and it could
+  never be delivered. So could nothing else — `IJSRuntime`, or any of Rask's typed browser APIs.
+
+  Built through the renderer's own `InstantiateComponent` now, which runs injection and honours a
+  registered `IComponentActivator`. The `Create()` hook is gone with it: a hook there would have had
+  to re-implement injection to be useful, and Blazor's activator is the seam that already exists.
+
+  `BlazorComponent<TComponent>`'s annotation widens from `PublicProperties` to `All`, and not by
+  preference — `InstantiateComponent` declares `LinkerFlags.Component`, which IS `All`, so anything
+  narrower is IL2087 in every consuming WASM app. Injection also reflects over NON-public `[Inject]`
+  properties, so a narrower annotation would reproduce #945 with a second face: an island that
+  renders perfectly with every injected service null. Gated the way #945 was — the trimmed WASM
+  showcase publishes clean, and `TrimmingContractTests` fails in milliseconds if the annotation moves.
+
+### Added
+
+- **A hosted Blazor component can now run `OnAfterRenderAsync`.** `StaticHtmlRenderer` never fires it,
+  so before this a component could only reach a browser API from its own event handler — which ruled
+  out the ordinary case of reading one when the island appears. Rask drives it, once, after the
+  island's first paint.
+
+  Once rather than after every render, deliberately. A Rask render walk is not a Blazor render: the
+  island is walked whenever anything on the page changes. Firing per walk would surprise a `.razor`
+  author, and it loops — a component calling `StateHasChanged` from the hook feeds the render that
+  fires it, which took the renderer into unbounded `ProcessRenderQueue` recursion while this was being
+  built. `docs/blazor-components.md` says so, next to Blazor's own warning about the same trap.
+
+  `ElementReference` still does not work, and the capability table now says which half is which: the
+  frame writer discards element-reference captures, so interop that needs one has nothing to pass.
+
 - **A `--push` client lost its push code on a fresh clone ([#957](https://github.com/pal-tamas/rask/issues/957)).**
   `rask new --push` wrote `push.ts` into the client's `src/rask/` — the directory the same scaffolder
   adds to `.gitignore`, because everything else in it is regenerated from the package on every build.

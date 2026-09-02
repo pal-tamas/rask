@@ -34,7 +34,9 @@ Read this table before anything else — it is the whole shape of the feature.
 | Reacts to a Rask prop change, keeping its own state | ✅ |
 | Its own `@onclick` / `EventCallback` firing from the browser | ✅ (see [events](#events)) |
 | Rask children inside it | ❌ — a compile error ([RASK062](#an-island-takes-no-children)) |
-| `OnAfterRender`, `IJSRuntime`, `ElementReference` | ❌ |
+| `[Inject]` services — `IJSRuntime`, `NavigationManager`, Rask's browser APIs | ✅ (see [services](#services)) |
+| `OnAfterRenderAsync` | ✅ — **once**, after the first paint (see [services](#services)) |
+| `ElementReference`, and anything that takes one | ❌ — captures are discarded |
 | Its own `@onkeydown`, `@onsubmit`, `@onmouseover` | ❌ — see [events](#events) |
 | `@bind` writing a value back | ✅ (see [binding](#binding)) |
 | WebAssembly, published **trimmed** | ✅ — see [both hosts](#both-hosts) |
@@ -315,12 +317,51 @@ neither — it ships its own CSS, which you add through `HeadAssets` the same wa
 
 ## Services
 
-Call `AddRaskBlazor()` in `Program.cs`. It registers what a library component will demand of its
-constructor — most notably `NavigationManager`, which many components inject and throw without.
+Call `AddRaskBlazor()` in `Program.cs`. It registers what a library component will demand — most
+notably `NavigationManager`, which many components inject and throw without.
 
-`IJSRuntime` is registered as a runtime that **throws with a message naming the fix**, rather than a
-silent no-op: a component calling into JavaScript in a statically rendered island has hit a real
-capability gap, and a no-op would leave it looking correct while being subtly wrong.
+**`[Inject]` works, and resolves out of your app's own container.** The island builds its hosted
+component through Blazor's own activator, so anything you registered is available — `IJSRuntime`,
+your own services, and Rask's typed browser APIs:
+
+```csharp
+@inject IMediaQuery Media
+
+@code {
+    private bool _dark;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _dark = await Media.PrefersDarkAsync();
+        StateHasChanged();
+    }
+}
+```
+
+This did not work before [#956](https://github.com/pal-tamas/rask/issues/956): the component was
+constructed with `new()`, which skips the injection path entirely, so every `[Inject]` property was
+null until the first use threw somewhere that named nothing. If you want to control construction
+yourself, register an `IComponentActivator` — Blazor's own seam, which the island honours.
+
+**`OnAfterRenderAsync` fires once, after the island's first paint.** Rask drives it, because
+`StaticHtmlRenderer` never does. Once rather than after every render, deliberately: a Rask render
+walk is not a Blazor render — the island is walked whenever anything on the page changes — so "after
+every render" would fire far more often than a `.razor` author expects, for reasons that have nothing
+to do with the component. Use `OnParametersSet` to react to later prop changes.
+
+> **Do not call `StateHasChanged` from `OnAfterRenderAsync`.** This is Blazor's own documented trap —
+> the hook feeds the render that fires it — and hosted in an island it recurses through the renderer
+> rather than merely spinning, because this path is synchronous. Read what you need, assign it, and
+> let the single repaint Rask performs after the hook carry it to the page.
+
+`IJSRuntime` only falls back to a runtime that **throws with a message naming the fix** when the app
+registered none of its own. Both hosts register a real one, so in practice you get that.
+
+**What still does not work is `ElementReference`.** `BlazorFrameWriter` discards element-reference
+captures, so `JS.InvokeVoidAsync("thing.init", elementRef)` — the shape most component libraries use
+to bootstrap themselves against their own JavaScript — has no reference to pass. Interop that does
+not need one works.
 
 ## Both hosts
 
@@ -369,8 +410,10 @@ carry its renderer.
 
 ## What is not here yet
 
-- **`OnAfterRender`, `IJSRuntime`, `ElementReference`.** These need a browser-side renderer.
-  A component whose behaviour *is* JavaScript — a menu, a dialog, an autocomplete — renders inert.
+- **`ElementReference`, and interop that needs one.** Element-reference captures are discarded by the
+  frame writer, so a component that hands its own JavaScript a reference to bootstrap against — which
+  is how most menus, dialogs and autocompletes work — still renders inert. `[Inject]`,
+  `IJSRuntime` and `OnAfterRenderAsync` do work now; see [services](#services).
 - **A prop change replaces the island's DOM.** The update ships as a subtree replace rather than a
   fine diff, so scroll position and text selection inside the island are lost when a prop changes.
 - **No `RenderFragment` parameter gets a chain step** — not `ChildContent`, not a named one, not a

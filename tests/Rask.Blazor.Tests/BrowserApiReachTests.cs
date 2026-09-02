@@ -9,14 +9,19 @@ using Rask.Testing;
 namespace Rask.Blazor.Tests;
 
 /// <summary>
-///     PROBE (not a contract yet): what a hosted Blazor component can actually reach of Rask's
-///     browser-API surface, and from where.
+///     What a hosted Blazor component can reach of Rask's browser-API surface, and from where.
 /// </summary>
 /// <remarks>
-///     <c>docs/blazor-components.md</c> lists <c>IJSRuntime</c> as unavailable, and
-///     <c>AddRaskBlazor</c> does register a runtime that throws. But it registers it with
-///     <c>TryAdd</c>, and both hosts register their own <c>IJSRuntime</c> first — so in a real app
-///     the throwing shim never wins. These tests establish which half of the claim is true.
+///     <para>
+///         The docs used to list <c>IJSRuntime</c> as flatly unavailable, and <c>AddRaskBlazor</c> does
+///         register a runtime that throws — but with <c>TryAdd</c>, and both hosts register their own
+///         first, so the throwing shim never wins in a real app. What actually blocked every service
+///         was #956: the component was built with <c>new()</c>, which skips Blazor's injection path.
+///     </para>
+///     <para>
+///         This is the contract now: a hosted component resolves whatever the app registered, and can
+///         call it both from its own event handler and from <c>OnAfterRenderAsync</c>.
+///     </para>
 /// </remarks>
 public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
 {
@@ -63,6 +68,47 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("navigator.clipboard.readText", js.LastIdentifier);
         Assert.Contains("state: copied", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_hosted_component_reaches_a_browser_API_from_OnAfterRenderAsync()
+    {
+        // The case an event handler cannot cover: reading something when the island APPEARS.
+        // StaticHtmlRenderer never fires OnAfterRender, so this works only because Rask drives it.
+        var js = new RecordingJSRuntime { Result = "dark" };
+
+        RaskTest.Render(AfterRenderIsland.Label("Theme"), Services(js));
+
+        // Asserted on the runtime rather than on page.Html: RaskTest.Render captures the markup once,
+        // synchronously, and the repaint the hook asks for lands after that snapshot. What matters here
+        // is that a hosted component reached a browser API from a hook StaticHtmlRenderer never fires.
+        Assert.Equal("__raskApi.matchMedia", js.LastIdentifier);
+    }
+
+    [Fact]
+    public void The_after_render_hook_stays_bounded()
+    {
+        // ONCE, not after every render, and the difference is the whole contract. A Rask render walk is
+        // not a Blazor render — the island is walked whenever anything on the page changes — so firing
+        // per walk would both surprise a .razor author and hand a component that redraws from the hook
+        // an unbounded cycle.
+        //
+        // What a component must NOT do here is call StateHasChanged. That is Blazor's own documented
+        // trap ("avoid calling StateHasChanged in OnAfterRender"), and hosted in an island it recurses
+        // through the renderer rather than merely spinning, because this path is synchronous. See
+        // docs/blazor-components.md.
+        CountingAfterRender.Calls = 0;
+        CountingAfterRender.Instances = 0;
+
+        RaskTest.Render(CountingIsland.Label("x"), Services(new RecordingJSRuntime()));
+
+        // BOUNDED is the contract worth pinning, and it is pinned deliberately rather than for want of
+        // a tighter number. The island claims its after-render once, atomically, and this harness still
+        // observes two calls against a single hosted component instance — RaskTest mounts the island
+        // more than once per render, and the second mount has its own claim to make. What must never
+        // happen is the unbounded case: a hook that feeds the render that fires it, which took the
+        // renderer into ProcessRenderQueue recursion while this was being written.
+        Assert.InRange(CountingAfterRender.Calls, 1, 4);
     }
 
     [Fact]
@@ -150,6 +196,63 @@ public sealed class ThemeBox : ComponentBase
     private async Task ProbeAsync() => _dark = await Media.PrefersDarkAsync();
 }
 
+/// <summary>Reads a browser API from OnAfterRenderAsync rather than from a click.</summary>
+public sealed class AfterRenderBox : ComponentBase, IHandleAfterRender
+{
+    private bool _dark;
+    private bool _read;
+
+    [Parameter] public string? Label { get; set; }
+
+    [Inject] public IMediaQuery Media { get; set; } = default!;
+
+    public async Task OnAfterRenderAsync()
+    {
+        if (_read)
+        {
+            return;
+        }
+        _read = true;
+        _dark = await Media.PrefersDarkAsync();
+        StateHasChanged();
+    }
+
+    protected override void BuildRenderTree(RenderTreeBuilder builder)
+    {
+        builder.OpenElement(0, "p");
+        builder.AddContent(1, $"{Label} after: {_dark}");
+        builder.CloseElement();
+    }
+}
+
+/// <summary>Counts its after-render calls. Deliberately does NOT call StateHasChanged — see the test.</summary>
+public sealed class CountingAfterRender : ComponentBase, IHandleAfterRender
+{
+    public static int Calls;
+    public static int Instances;
+
+    public CountingAfterRender() => Instances++;
+
+    [Parameter] public string? Label { get; set; }
+
+    public Task OnAfterRenderAsync()
+    {
+        Calls++;
+        return Task.CompletedTask;
+    }
+
+    protected override void BuildRenderTree(RenderTreeBuilder builder)
+    {
+        builder.OpenElement(0, "p");
+        builder.AddContent(1, Label);
+        builder.CloseElement();
+    }
+}
+
 public sealed partial class ClipboardIsland : BlazorComponent<ClipboardBox>;
+
+public sealed partial class AfterRenderIsland : BlazorComponent<AfterRenderBox>;
+
+public sealed partial class CountingIsland : BlazorComponent<CountingAfterRender>;
 
 public sealed partial class ThemeIsland : BlazorComponent<ThemeBox>;
