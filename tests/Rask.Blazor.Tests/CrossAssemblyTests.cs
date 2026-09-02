@@ -168,19 +168,25 @@ public partial class CrossAssemblyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Rask_children_render_inside_the_referenced_component()
+    public void The_island_wires_the_hosted_components_own_handler_and_nothing_else()
     {
-        var html = RaskTest
-            .Render(TickerIsland.Symbol("RASK")[Button.OnClick(() => { })["Buy"]], Services())
-            .Html;
+        var html = RaskTest.Render(TickerIsland.Symbol("RASK"), Services()).Html;
 
-        Assert.Contains("Buy", html, StringComparison.Ordinal);
+        // Exactly ONE, and the count is the point rather than mere presence: Ticker wires its own
+        // @onclick, and an island is a leaf (RASK062), so nothing of Rask's can be inside it to add a
+        // second. Asserting that "data-rask-on-click" merely appears would pass either way.
+        Assert.Equal(1, Occurrences(html, "data-rask-on-click="));
+    }
 
-        // TWO click handlers, and the count is the whole point: Ticker wires its own @onclick, so
-        // asserting that "data-rask-on-click" appears at all would pass with the child's handler
-        // dropped entirely. The child's is Rask's own, delegated from document, and survives the
-        // island — that is the claim.
-        Assert.Equal(2, Occurrences(html, "data-rask-on-click="));
+    [Fact]
+    public void A_fragment_parameter_gets_no_chain_step()
+    {
+        // Ticker declares `[Parameter] RenderFragment? ChildContent`. It is skipped rather than turned
+        // into a step that could not be satisfied — and, kept on the fixture deliberately, it also pins
+        // that a hosted component owning one still renders instead of throwing on an unmatched key.
+        Assert.Null(typeof(TickerIsland).GetProperty("ChildContent"));
+        Assert.Contains("RASK", RaskTest.Render(TickerIsland.Symbol("RASK"), Services()).Html,
+            StringComparison.Ordinal);
     }
 }
 

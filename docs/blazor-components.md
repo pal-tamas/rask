@@ -33,7 +33,7 @@ Read this table before anything else — it is the whole shape of the feature.
 | `OnInitialized`, `OnInitializedAsync`, `OnParametersSet`, `BuildRenderTree` | ✅ |
 | Reacts to a Rask prop change, keeping its own state | ✅ |
 | Its own `@onclick` / `EventCallback` firing from the browser | ✅ (see [events](#events)) |
-| Rask children inside it, with working handlers | ✅ (captured per prop change — see [limits](#what-is-not-here-yet)) |
+| Rask children inside it | ❌ — a compile error ([RASK062](#an-island-takes-no-children)) |
 | `OnAfterRender`, `IJSRuntime`, `ElementReference` | ❌ |
 | Its own `@onkeydown`, `@onsubmit`, `@onmouseover` | ❌ — see [events](#events) |
 | `@bind` writing a value back | ✅ (see [binding](#binding)) |
@@ -55,7 +55,6 @@ SDK, with nothing in it that knows Rask exists:
 <div class="price-tag @Tone">
     <strong>@Symbol</strong>
     <span>@Price.ToString("0.00", CultureInfo.InvariantCulture)</span>
-    @ChildContent
 </div>
 
 @code {
@@ -67,9 +66,6 @@ SDK, with nothing in it that knows Rask exists:
 
     [Parameter]
     public string? Tone { get; set; }
-
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
 }
 ```
 
@@ -92,9 +88,7 @@ builder.Services.AddRaskBlazor();
 ```csharp
 Div.Class("grid")[
     H1["Watchlist"],
-    Quote.Symbol("RASK").Price(12.5m).Tone("up")[
-        Span["watching"]
-    ],
+    Quote.Symbol("RASK").Price(12.5m).Tone("up"),
 ]
 ```
 
@@ -105,7 +99,6 @@ Div.Class("grid")[
   <div class="price-tag up">
     <strong>RASK</strong>
     <span>12.50</span>
-    <span>watching</span>
   </div>
 </rask-blazor>
 ```
@@ -115,9 +108,8 @@ Three things in that are worth naming:
 - **`Symbol` opened the chain** because `PriceTag` marked it `[EditorRequired]`. `Price` and `Tone`
   are ordinary optional steps, and omitting `Tone` leaves the component's own default alone rather
   than passing null.
-- **`Span["watching"]` is Rask's**, rendered by Rask inside the hosted component's `ChildContent`.
-  Give it an `.OnClick(…)` and the handler works — it reaches the page through the same delegated
-  channel as any other Rask element.
+- **The island is a leaf.** `Quote[ … ]` would be a compile error: an island renders the markup of
+  the component it hosts and takes no Rask children — see [children](#an-island-takes-no-children).
 - **`12.50` is in the first response**, not painted in later. Had `PriceTag` awaited in
   `OnInitializedAsync`, that would be finished too.
 
@@ -256,21 +248,37 @@ sends the value, Rask hands it to the island as a string, and the island turns i
 
 Typing updates `Text` inside the hosted component and the echo follows, with no circuit involved.
 
-## Rask children keep working
+## An island takes no children
 
-Children placed inside an island cross as the hosted component's `ChildContent`, and because Rask
-delegates events from `document`, **their handlers stay live**:
+An island renders the markup of the component it hosts, and nothing else. Writing children into one is
+a **compile error** — [RASK062](diagnostics.md#rask062) — rather than something that binds, compiles
+and then silently renders nothing:
 
 ```csharp
-MudCard.Title("Revenue")[
-    Chart.ChartSeries(_series),
-    Button.OnClick(Refresh)["Refresh"],   // a real Rask handler
+Chart.Series(_series)[ H2["Revenue"] ]   // RASK062
+```
+
+Children would have to cross as a `RenderFragment`, and there is no answer that is right for every
+component. The hosted type may have no fragment parameter at all, one under a name only it knows
+(`Content`, `Body`), or several of them (`HeaderContent`, `ToolBarContent`, `RowTemplate`). Picking
+among those is how an island ends up looking composable while quietly dropping what it was given —
+and a silent drop is the one failure this package is built to avoid.
+
+Compose the other way round instead. It costs nothing, and it reads better:
+
+```csharp
+Div.Class("rounded-xl border p-4")[
+    H2["Revenue"],
+    Chart.Series(_series),
+    Button.OnClick(Refresh)["Refresh"],
 ]
 ```
 
-This is strictly better than a `.tsx` island, whose slot content is placed once at mount and then goes
-dead. The useful shape is to let the Blazor component be chrome and keep the interactive parts in
-Rask.
+The Rask markup stays Rask's — ordinary elements, ordinary handlers, an ordinary diff — and the island
+stays a leaf that owns exactly the DOM its hosted component wrote.
+
+> The `.tsx`/Lit island holds the same line for the same reason — see
+> [islands.md](islands.md#an-island-takes-no-children). One rule, both island families.
 
 ## Tailwind
 
@@ -341,16 +349,14 @@ carry its renderer.
   A component whose behaviour *is* JavaScript — a menu, a dialog, an autocomplete — renders inert.
 - **A prop change replaces the island's DOM.** The update ships as a subtree replace rather than a
   fine diff, so scroll position and text selection inside the island are lost when a prop changes.
-- **Templated parameters** (`RenderFragment<T>`) get no chain step.
-- **Rask children are captured when a prop changes**, not on every render. A page re-render caused by
-  something else — another component's state — leaves the island showing the children it captured
-  last. Pass the changing value as a *parameter* rather than as a child and it updates normally.
+- **No `RenderFragment` parameter gets a chain step** — not `ChildContent`, not a named one, not a
+  templated `RenderFragment<T>`. See [children](#an-island-takes-no-children).
 - **Events beyond the set above** emit no attribute, so a hosted `@onkeydown` is inert.
 - **Circuit mode.** `BlazorInteractivity.Circuit` is reserved in the enum and not implemented.
 
 ## Diagnostics
 
-[RASK061](diagnostics.md#rask061) · [RASK064](diagnostics.md#rask064) ·
+[RASK061](diagnostics.md#rask061) · [RASK062](diagnostics.md#rask062) · [RASK064](diagnostics.md#rask064) ·
 [RASK066](diagnostics.md#rask066)
 
 ## Why `.razor` is not compiled into the chain

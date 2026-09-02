@@ -11,16 +11,6 @@
 export type ExternalProps = Record<string, unknown>
 
 /**
- * Rask-rendered content the island is expected to place, keyed by slot name (`default` for anything
- * unassigned).
- *
- * These are LIVE nodes lifted out of the server's markup, already carrying Rask's handler ids and DOM
- * state — not markup to reparse. Whatever an adapter does with them, it must not let its framework
- * reconcile inside them: they belong to Rask, and it is still updating them.
- */
-export type ExternalSlots = Record<string, DocumentFragment>
-
-/**
  * One runtime's binding, over whatever handle that runtime uses to represent a mounted component.
  *
  * `THandle` is opaque to Rask: a React root, a Lit element, an Angular ComponentRef. It is handed
@@ -33,7 +23,7 @@ export interface ExternalAdapter<THandle = unknown> {
    * Everything below `element` belongs to this runtime from here on — Rask's live diff treats the
    * subtree as opaque and will never patch inside it.
    */
-  mount(element: Element, props: ExternalProps, slots?: ExternalSlots): THandle
+  mount(element: Element, props: ExternalProps): THandle
 
   /**
    * Applies new props to an already-mounted island.

@@ -170,16 +170,17 @@ internal static class BlazorParameters
                     continue;
                 }
 
-                // ChildContent reaches the component through the indexer, as Rask children.
-                if (prop.Name == "ChildContent" || !taken.Add(prop.Name))
+                if (!taken.Add(prop.Name))
                 {
                     continue;
                 }
 
                 var typeFqn = prop.Type.ToDisplayString(TypeFormat);
 
-                // A templated parameter has no Rask equivalent yet. Skipping is better than emitting
-                // a step that compiles and cannot work.
+                // A fragment parameter — ChildContent, a named one, or a templated
+                // RenderFragment<T> — has no Rask equivalent: an island hosts markup, it does not
+                // compose with Rask children (RASK062). Skipping is better than emitting a step that
+                // compiles and cannot work.
                 if (typeFqn.StartsWith("global::" + RenderFragmentName, StringComparison.Ordinal))
                 {
                     continue;

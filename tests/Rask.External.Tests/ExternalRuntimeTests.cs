@@ -66,37 +66,6 @@ public sealed class ExternalRuntimeTests
     }
 
     [Fact]
-    public void Slot_content_reaches_the_adapter_by_name()
-    {
-        var doc = NodeFixture.Run("ExternalRuntimeFixture");
-        if (doc is null)
-        {
-            return;
-        }
-
-        var names = doc.Value.GetProperty("slotNames")
-            .EnumerateArray().Select(e => e.GetString()).ToArray();
-
-        Assert.Equal(new[] { "footer" }, names);
-    }
-
-    [Fact]
-    public void Lifting_a_slot_removes_its_template_from_the_dom()
-    {
-        // Left in place, the same content would appear twice the moment the framework rendered its own
-        // copy of the slot — and the morph would have a second thing to reconcile inside a subtree it
-        // is meant to leave alone.
-        var doc = NodeFixture.Run("ExternalRuntimeFixture");
-        if (doc is null)
-        {
-            return;
-        }
-
-        Assert.True(doc.Value.GetProperty("templateRemoved").GetBoolean(),
-            "the slot template was still in the DOM after mount");
-    }
-
-    [Fact]
     public void Hydration_none_never_requests_the_chunk()
     {
         // "Ships no JavaScript" has to mean the bytes are never fetched, not merely that mount is

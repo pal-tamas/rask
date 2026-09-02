@@ -3,7 +3,6 @@
 <div class="price-tag @Tone">
     <strong>@Symbol</strong>
     <span>@Price.ToString("0.00", CultureInfo.InvariantCulture)</span>
-    @ChildContent
 </div>
 
 @code {
@@ -15,7 +14,4 @@
 
     [Parameter]
     public string? Tone { get; set; }
-
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
 }

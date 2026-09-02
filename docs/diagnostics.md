@@ -96,6 +96,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK059](#rask059) | Error | Module override must be a constant string |
 | [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
 | [RASK061](#rask061) | Error | Blazor island must be partial |
+| [RASK062](#rask062) | Error | An island takes no children |
 | [RASK064](#rask064) | Error | Blazor island name collision |
 | [RASK066](#rask066) | Warning | Hosted Blazor component's parameters cannot be verified |
 
@@ -1337,6 +1338,35 @@ public sealed partial class Chart : BlazorComponent<MudChart> { }
 
 Reported against the declaration rather than left to the compiler, which would otherwise report a
 missing `WriteParameters` the author never wrote and should not have to know about.
+
+## RASK062
+
+**An island takes no children** · Error
+
+An island renders markup a foreign renderer owns — a hosted Blazor component, a React tree, a Lit
+element — and nothing else. It is a leaf.
+
+```csharp
+// ✗ RASK062 — the children would compile and never render
+Chart.Series(_series)[ H2["Revenue"] ]
+
+// ✓ compose the other way round
+Div.Class("rounded-xl border p-4")[ H2["Revenue"], Chart.Series(_series) ]
+```
+
+Rask children would have to cross the diff boundary, and no crossing is right for every component. A
+hosted Blazor component may have no `RenderFragment` parameter at all, one under a name only it knows
+(`Content`, `Body`), or several (`HeaderContent`, `RowTemplate`); a `.tsx` or Lit component takes the
+nodes and then owns them, so once its framework has moved them every DOM path Rask holds is wrong and
+the content goes dead after its first paint.
+
+This is an error rather than a convention because it cannot be one. The children indexer lives on
+`Component` and `Build<T>`, so it is available on every chain and cannot be withheld from a single
+type — without the diagnostic the children bind, compile, and silently render nothing.
+
+Applies to both island families: `BlazorComponent<T>` (see [Blazor
+components](blazor-components.md#an-island-takes-no-children)) and `ReactComponent`/`LitComponent`
+(see [islands](islands.md#an-island-takes-no-children)).
 
 ## RASK064
 

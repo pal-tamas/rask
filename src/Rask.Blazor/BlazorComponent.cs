@@ -121,10 +121,6 @@ public abstract partial class BlazorComponent<TComponent> : Component
     {
         var renderer = _renderer ??= CreateRenderer();
 
-        // Children are consumed as the hosted component's ChildContent, so they are read here —
-        // before the serialize walk — and never emitted by Rask itself.
-        var childMarkup = CaptureChildren();
-
         // Captured on THIS thread. The render below hops to the renderer's dispatcher, and the
         // ambient context is thread-static, so it would be gone by the time handlers are registered.
         var context = LiveRenderContext.Current ?? LiveRenderContext.CurrentSync;
@@ -137,7 +133,7 @@ public abstract partial class BlazorComponent<TComponent> : Component
                 _componentId = renderer.Attach(_instance);
             }
 
-            await renderer.RenderAsync(_componentId, BuildParameterView(childMarkup));
+            await renderer.RenderAsync(_componentId, BuildParameterView());
 
             // Handlers are NOT registered here. A handler id belongs to the render that minted it, and
             // this hook runs outside the render walk — on the renderer's own dispatcher, no less — so
@@ -334,59 +330,12 @@ public abstract partial class BlazorComponent<TComponent> : Component
         });
     }
 
-    private ParameterView BuildParameterView(RenderFragment? childContent)
+    private ParameterView BuildParameterView()
     {
         _parameters.Clear();
         WriteParameters(_parameters);
 
-        if (childContent is not null)
-        {
-            _parameters["ChildContent"] = childContent;
-        }
-
         return ParameterView.FromDictionary(_parameters);
-    }
-
-    /// <summary>
-    ///     Renders this island's Rask children to markup the hosted component can place.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         The children stay Rask's: their handlers are ordinary Rask handlers, delegated from
-    ///         <c>document</c> on <c>data-rask-on-*</c>, so they keep working inside a statically
-    ///         rendered island. That is strictly better than the islands feature, whose slot content
-    ///         is placed once at mount and then goes dead — here the island re-serializes on every
-    ///         change, so handler ids stay stable and live.
-    ///     </para>
-    ///     <para>
-    ///         <c>ToHtml()</c> is re-entrant against an in-progress render by design; it is already
-    ///         how every head-asset contribution is produced during the walk, and it saves and
-    ///         restores the head sentinel for exactly that reason (#627).
-    ///     </para>
-    /// </remarks>
-    private RenderFragment? CaptureChildren()
-    {
-        if (Children is null)
-        {
-            return null;
-        }
-
-        var html = new System.Text.StringBuilder();
-        foreach (var child in Children)
-        {
-            if (child is not null)
-            {
-                html.Append(child.ToHtml());
-            }
-        }
-
-        if (html.Length == 0)
-        {
-            return null;
-        }
-
-        var markup = html.ToString();
-        return builder => builder.AddMarkupContent(0, markup);
     }
 
     /// <summary>The hosted markup and the handlers its placeholders stand for, as one value.</summary>

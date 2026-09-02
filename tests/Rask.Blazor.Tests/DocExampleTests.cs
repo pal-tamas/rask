@@ -46,14 +46,13 @@ public partial class DocExampleTests : global::Rask.Core.RaskMarkup
     public void The_documented_example_renders_what_the_document_says_it_renders()
     {
         var page = RaskTest.Render(
-            Quote.Symbol("RASK").Price(12.5m).Tone("up")[Span["watching"]],
+            Quote.Symbol("RASK").Price(12.5m).Tone("up"),
             Services());
 
         // Exactly the markup the doc prints as the result.
         Assert.Contains("<div class=\"price-tag up\">", page.Html, StringComparison.Ordinal);
         Assert.Contains("<strong>RASK</strong>", page.Html, StringComparison.Ordinal);
         Assert.Contains("<span>12.50</span>", page.Html, StringComparison.Ordinal);
-        Assert.Contains("<span>watching</span>", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]

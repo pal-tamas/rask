@@ -7,6 +7,45 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+
+- **An island takes no children, in either island family — and saying so is now a compile error
+  ([RASK062](docs/diagnostics.md#rask062)).** Both kinds offered a way in and neither could keep its
+  promise past the first paint, which is the failure this repository treats as worse than the missing
+  feature: it looks like composition, and it silently stops tracking.
+
+  The hosted Blazor island wrote children to a parameter named literally `"ChildContent"`. A component
+  with no such parameter made `ParameterView.FromDictionary` throw at RENDER time, naming an identifier
+  the author never typed; a component naming its fragment `Content` or `Body` could never be given
+  children at all; and a component with several (`HeaderContent`, `ToolBarContent`, `RowTemplate` — most
+  of MudBlazor's and Radzen's compositional surface) had every one of them silently dropped by the
+  generator, with no step, no property and no diagnostic. There is no crossing that is right for all
+  four shapes, and guessing among them is how an island ends up looking composable while discarding
+  what it was handed.
+
+  The `.tsx`/Lit island's slots — `ExternalSlot.Named("footer")`, the inert `<template data-rask-slot>`
+  the client lifted at mount, React's ref-adoption container, Lit's native light-DOM projection — worked
+  exactly as designed and were still the same trap one layer down. Slot content was placed ONCE. When
+  the C# that produced it re-rendered, the component kept showing what it was given, because `EditOp`
+  paths are positional `childNodes` indices and the adapter had moved the nodes by then. Making it live
+  needs updates addressed by MARKER rather than by path, and that was never built.
+
+  So the rule is now one rule, stated once and enforced by the compiler: **an island is a leaf.** It
+  has to be a diagnostic rather than a convention — the children indexer lives on `Component` and
+  `Build<T>`, so it exists on every chain and cannot be withheld from a single type. Without it the
+  children bind, compile, and render nothing.
+
+  Compose the other way round, which costs nothing and keeps every Rask node live:
+  `Div[ H2["Revenue"], Chart.Series(_series) ]` rather than `Chart.Series(_series)[ H2["Revenue"] ]`.
+
+  **Removed:** `ExternalSlot`, `ExternalSlots`, `ExternalComponent.RenderChildren`, the `slots` argument
+  on the client adapter contract's `mount`, and the template lifting in `rask-external.js`. A
+  `RenderFragment` parameter on a hosted Blazor component is skipped whatever its name — kept on the
+  `Ticker` fixture deliberately, so a hosted component owning one is pinned to render rather than throw.
+  The analyzer is verified against the CHAIN spelling as well as the direct one: the receiver of a
+  children indexer is `Build<T>`, never the component, which is how seven analyzers in this repository
+  were once blind.
+
 ### Changed
 
 - **The operator console is rebuilt light, mobile-first, and on a component kit.** `/_rask` was a dark
