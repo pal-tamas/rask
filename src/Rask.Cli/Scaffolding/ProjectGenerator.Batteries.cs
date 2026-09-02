@@ -199,23 +199,17 @@ internal static partial class ProjectGenerator
                 builder.Services.AddRaskDashboard<AppDbContext>();
                 """);
 
-            Block(sb, batteries.Auth
-                ? """
-                    // WHO MAY OPERATE THE APP. The dashboard shows job payloads, stored email bodies and log
-                    // lines, so it is gated on this policy. Change the requirement to match your real user
-                    // store — the demo credential store has no roles, so this admits any signed-in user.
-                    builder.Services.AddAuthorization(o =>
-                        o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
-                    """
-                : """
-                    // WHO MAY OPERATE THE APP. No policy is defined here because this app has no
-                    // authentication yet, so /_rask is reachable in Development only — it denies everyone in
-                    // every other environment, and says so on the page. Before you deploy, add authentication
-                    // and define the policy:
-                    //
-                    //   builder.Services.AddAuthorization(o =>
-                    //       o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
-                    """);
+            // Not conditional on the database: ServerBatteries.Normalized() sets Data whenever Ops is
+            // on, because AddRaskDashboard<TContext> needs a context. So an app with the console always
+            // has accounts, and always has the role to require.
+            Block(sb, """
+                // WHO MAY OPERATE THE APP. The dashboard shows job payloads, stored email bodies and log
+                // lines, so it is gated on the ADMIN role — the one the first account to register holds.
+                // Requiring merely a signed-in user would open all of that to anyone who registered,
+                // which on an app with open registration is everyone.
+                builder.Services.AddAuthorization(o =>
+                    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin)));
+                """);
         }
     }
 

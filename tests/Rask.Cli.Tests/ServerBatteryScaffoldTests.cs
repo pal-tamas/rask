@@ -78,6 +78,22 @@ public sealed class ServerBatteryScaffoldTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_operator_console_is_gated_on_the_admin_role()
+    {
+        // /_rask shows job payloads, stored email bodies and log lines. Requiring merely a signed-in
+        // user would open all of that to anyone who registered — which, on an app with open
+        // registration, is everyone. The admin role is the one the FIRST account holds.
+        var program = Generate("ops", "data")["Program.cs"];
+
+        Assert.Contains(
+            "o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin))",
+            program,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain("RequireAuthenticatedUser()", program, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("outbox")]
     [InlineData("data")]

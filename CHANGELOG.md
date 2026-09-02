@@ -7,6 +7,25 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The operator console is gated on the `admin` role, not on being signed in.** `/_rask` shows job
+  payloads, stored email bodies, log lines and the database configuration. `RequireAuthenticatedUser`
+  was defensible while the scaffolded credential store had two hardcoded logins and no roles; it
+  stopped being so the moment every app got accounts with open registration, because "signed in" now
+  means "registered" and anyone can register. The policy requires the role the **first** account holds
+  and no later account gets.
+
+  The no-database arm went with it: `ServerBatteries.Normalized()` sets `Data` whenever `Ops` is on,
+  so it was unreachable.
+
+  Nothing asserted this policy before, so the regression it guards would have been silent. It is
+  pinned now — including the absence of `RequireAuthenticatedUser`, which is the line that would
+  come back.
+
+  **Breaking:** an app relying on any signed-in user reaching `/_rask` must grant that account the
+  `admin` role, or define its own `RaskDashboardPolicies.Access` policy.
+
 ### Fixed
 
 - **A scaffolded app had accounts mapped but never registered.** The battery slot alone reached no
