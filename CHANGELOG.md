@@ -28,6 +28,14 @@ them until tagged releases begin.
   now scans every `__raskApi.x` a C# wrapper names and fails if `globals.ts` does not register it,
   because that pairing is a string on one side and an object key on the other with no compiler between.
 
+  **A TypeScript front end receives them the way it receives the wire.** `Rask.Spa.Hosting` packs the
+  modules from `Rask.Core` — no `ProjectReference`, so it still depends on nothing else in Rask — and
+  the build copies them into the client's `src/rask/browser/` beside the generated contracts, refreshed
+  from the package every build like `client.ts`. So `import { getCurrentPosition } from
+  './rask/browser/geolocation'` is typed, tree-shaken, and locked to the host that shipped it.
+  `globals.ts` is excluded from that copy: it exists for .NET's dotted identifiers and a front end has
+  no use for it. See [TypeScript front ends → Browser APIs](docs/spa.md#browser-apis).
+
 ### Fixed
 
 - **Two build gates were green over code they never read.** The framework's own TypeScript is

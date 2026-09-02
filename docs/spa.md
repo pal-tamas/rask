@@ -379,6 +379,61 @@ the starter's markup carries no `class` attributes of its own. Move any rule int
 your own markup and delete it; that is the same page. Delete the layer entirely and the page renders
 as unstyled text, because Tailwind's preflight removes the browser's defaults on purpose.
 
+## Browser APIs
+
+Rask ships typed wrappers over the browser's Web APIs, and on a Rask component front end you inject
+them as C# services. Here you are writing TypeScript, so you get the layer underneath them instead:
+the same modules, imported directly.
+
+```ts
+import { getCurrentPosition } from './rask/browser/geolocation'
+import { prefersDark } from './rask/browser/mediaQuery'
+
+const fix = await getCurrentPosition({ enableHighAccuracy: true })
+```
+
+They arrive in `src/rask/browser/` the way `client.ts` does — copied out of the package on every
+build, so upgrading Rask upgrades them. Import a module directly, as above, and your bundler keeps
+only what you used; or take the namespace form, `import { geolocation } from './rask/browser'`.
+
+**This is the same code Rask's own Server and WASM clients run.** It is not a TypeScript port kept in
+step by hand: the C# `IGeolocation` reaches the browser by calling into these very modules. A quirk
+fixed for one caller is fixed for the other in the same commit.
+
+Available today — the layer is moving over one API at a time:
+
+| Module | What it wraps |
+| --- | --- |
+| `browser/cookies` | `document.cookie` — `get`, `getAll`, `set`, `remove` |
+| `browser/geolocation` | `getCurrentPosition`, and `watchPosition` returning its stop function |
+| `browser/mediaQuery` | `matches`, plus `prefersDark` / `prefersReducedMotion` and a `watch` |
+| `browser/networkInformation` | `navigator.connection`, through the vendor-prefixed fallback |
+| `browser/permissions` | `query` — a permission's state without prompting for it |
+| `browser/screen` | size, available size, colour depth, device pixel ratio |
+| `browser/speechSynthesis` | `speak` / `cancel` |
+| `browser/storageManager` | `estimate`, `persisted`, `persist` |
+| `browser/visualViewport` | the viewport you can actually see once a soft keyboard opens |
+
+Names are idiomatic TypeScript, and where the platform already has a name it keeps it —
+`getCurrentPosition`, not `GetCurrentPositionAsync`. Subscriptions hand back a stop function rather
+than a disposable:
+
+```ts
+const stop = watchPosition(fix => setPosition(fix))
+// later, in a cleanup
+stop()
+```
+
+**Everything the platform gives you already, you should keep taking from the platform.**
+`navigator.clipboard.writeText` needs no wrapper in TypeScript, and `lib.dom.d.ts` types it better
+than Rask could. These modules exist for the parts that are genuinely awkward — a callback API that
+should be a promise, a live object that has to be snapshotted, a vendor-prefixed fallback chain, a
+base64url ceremony — and for the parts with a server half, which is the next section.
+
+**They are safe to import in a server render.** Nothing in `src/rask/browser/` touches `window` or
+`document` at import time, so a module can be imported at the top of a file that also runs during
+SSR. Calling one still needs a browser, as it would anywhere.
+
 ## Installable, and push-capable
 
 `--pwa` makes the app installable; `--push` adds Web Push from the ASP.NET host.

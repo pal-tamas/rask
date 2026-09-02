@@ -203,6 +203,26 @@
       <_RaskSpaClientSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
     </ItemGroup>
     <Copy SourceFiles="@(_RaskSpaClientSource)" DestinationFolder="$(_RaskSpaGenerated)" SkipUnchangedFiles="true"/>
+
+    <!--
+      The browser layer, into src/rask/browser/. The same modules Rask's own Server and WASM clients
+      bundle, so a quirk fixed in one place is fixed for C# and TypeScript callers at once:
+
+          import { getCurrentPosition } from "./rask/browser/geolocation";
+
+      Refreshed from the package on every build for the same reason client.ts is — the alternative is
+      a file scaffolded once into a directory the scaffolder gitignores, which is how push.ts came to
+      vanish on a fresh clone (#957).
+
+      An empty glob makes the Copy a no-op, which is what happens when this target runs against the
+      repository layout rather than an installed package.
+    -->
+    <ItemGroup>
+      <_RaskSpaBrowserSource Include="$(MSBuildThisFileDirectory)../client/browser/*.ts"/>
+    </ItemGroup>
+    <Copy SourceFiles="@(_RaskSpaBrowserSource)"
+          DestinationFolder="$(_RaskSpaGenerated)/browser"
+          SkipUnchangedFiles="true"/>
   </Target>
 
   <!--
