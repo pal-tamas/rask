@@ -7,7 +7,40 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The browser layer is becoming ordinary TypeScript modules, shared by every front end.** The
+  helpers Rask's C# wrappers call through — `window.__raskApi`, `window.__raskGeoWatch` and the rest —
+  were framework-agnostic TypeScript already, but reachable only by shipping through Rask's own client
+  entry point. They are moving to `src/Rask.Core/Resources/browser/`, one module per API, so a
+  TypeScript front end (SPA, or a meta framework) can `import { getCurrentPosition } from
+  "./rask/browser/geolocation"` while Server and WASM keep resolving the same code by dotted
+  identifier through the one module that registers the globals, `browser/globals.ts`.
+
+  This lands API by API; `__raskApi` and `__raskGeoWatch` have moved. Two rules hold for every module:
+  the names are idiomatic TypeScript (`getCurrentPosition`, not `GetCurrentPositionAsync`, and the
+  platform's own name wins wherever it has one), and **side effects live in `globals.ts` alone** —
+  a module that touched `window` at import time would break a Next or Nuxt server render and would
+  defeat tree-shaking. A node fixture proves that by construction: it imports the modules in a process
+  with no `window` and no `document`, so an import-time DOM access fails the test.
+
+  Nothing about the C# surface changes, and the `__rask*` keys stay byte-identical — `GlobalsContractTests`
+  now scans every `__raskApi.x` a C# wrapper names and fails if `globals.ts` does not register it,
+  because that pairing is a string on one side and an object key on the other with no compiler between.
+
 ### Fixed
+
+- **Two build gates were green over code they never read.** The framework's own TypeScript is
+  type-checked from a list of files, guarded against going stale by an enumeration that used
+  `SearchOption.TopDirectoryOnly` — so a file in a SUBDIRECTORY was in neither the list nor the guard,
+  and went unchecked with the gate still passing. The gate now derives its inputs by enumerating the
+  runtime directories recursively, which makes the omission unrepresentable rather than merely
+  noticed. Verified by introducing a type error in a new subdirectory and watching the gate name it.
+
+  The esbuild bundle inputs had the same shape: `Resources\*.ts` is not recursive, so an edit to a
+  module in a subdirectory would not invalidate the target and the shipped bundle would silently be
+  the previous one. Both host projects and the node-fixture target now glob `**\*.ts`.
+
 
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,

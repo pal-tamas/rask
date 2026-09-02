@@ -133,56 +133,44 @@ public class ScopedTypeScriptTypeCheckTests
         var root = RepositoryRoot();
         var tsgo = ResolveTsgo();
 
-        string[] sources =
+        // The ambient declaration files, which are inputs to the check but never its subjects.
+        string[] declarations =
         [
             Path.Combine(root, "src", "Rask.Core", "build", "rask-globals.d.ts"),
             Path.Combine(root, "src", "Rask.Core", "Resources", "rask-window.d.ts"),
             Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask-wasm-window.d.ts"),
             Path.Combine(root, "src", "Rask.Wasm", "Browser", "rask.wasm.d.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-api.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-deverror.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-dom.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-events.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-files.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-host.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-hotreload.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-input.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-morph.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-pwa.ts"),
-            Path.Combine(root, "src", "Rask.Core", "Resources", "rask-scoped.ts"),
-            Path.Combine(root, "src", "Rask.Server", "Resources", "rask.ts"),
-            Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask-wasm-api.ts"),
-            Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask.wasm.ts"),
-            Path.Combine(root, "src", "Rask.Wasm", "Browser", "main.ts"),
         ];
 
-        foreach (var source in sources)
+        foreach (var declaration in declarations)
         {
-            Assert.True(File.Exists(source), $"'{source}' is missing — the list here has gone stale");
+            Assert.True(File.Exists(declaration), $"'{declaration}' is missing — the list here has gone stale");
         }
 
-        // Every framework runtime file, so a file added to Resources/ without being added here is
-        // caught rather than quietly going unchecked.
-        var declared = sources.Select(Path.GetFullPath).ToHashSet(StringComparer.Ordinal);
-        var onDisk = new[]
+        // DERIVED, not listed. This used to be a hand-written list of every runtime file, guarded by a
+        // staleness check that enumerated TopDirectoryOnly — so a file in a SUBDIRECTORY (Resources/
+        // browser/, once the browser layer was extracted into modules) was in neither the list nor the
+        // guard, and went unchecked with the gate still green. Enumerating is what makes that
+        // unrepresentable: a file cannot be added to these trees without this test compiling it.
+        var runtimes = new[]
             {
                 Path.Combine(root, "src", "Rask.Core", "Resources"),
                 Path.Combine(root, "src", "Rask.Server", "Resources"),
                 Path.Combine(root, "src", "Rask.Wasm", "Resources"),
                 Path.Combine(root, "src", "Rask.Wasm", "Browser"),
             }
-            .SelectMany(d => Directory.EnumerateFiles(d, "*.ts", SearchOption.TopDirectoryOnly))
-            .Select(Path.GetFullPath)
+            .SelectMany(d => Directory.EnumerateFiles(d, "*.ts", SearchOption.AllDirectories))
+            .Where(f => !f.EndsWith(".d.ts", StringComparison.Ordinal))
             // The service workers are checked by TheFrameworksServiceWorkers_TypeCheck, against the
             // webworker lib rather than dom.
             .Where(f => !Path.GetFileName(f).StartsWith("rask-sw", StringComparison.Ordinal))
+            .Select(Path.GetFullPath)
+            .OrderBy(f => f, StringComparer.Ordinal)
             .ToList();
 
-        var unchecked_ = onDisk.Where(f => !declared.Contains(f)).ToList();
-        Assert.True(
-            unchecked_.Count == 0,
-            "These framework runtime files are not in the list above, so nothing type-checks them:"
-            + Environment.NewLine + string.Join(Environment.NewLine, unchecked_));
+        Assert.NotEmpty(runtimes);
+
+        string[] sources = [.. declarations.Select(Path.GetFullPath), .. runtimes];
 
         var arguments = string.Join(" ", sources.Select(f => $"\"{f}\""))
                         + " --noEmit --strict --noUnusedLocals --target es2020 --module esnext"
