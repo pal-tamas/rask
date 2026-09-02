@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Blazor;
 using Rask.Core.Browser;
 using Rask.Example.Shared;
 using Rask.Wasm;
@@ -16,8 +17,12 @@ using Rask.Wasm;
 // (PwaDemo, WakeLockDemo, …) live in this app assembly, not Rask.Example.Shared, so register it with
 // EmbeddedSource — otherwise the lookup only sees the shared assembly and can't find them.
 EmbeddedSource.RegisterAssembly(System.Reflection.Assembly.GetExecutingAssembly());
+// The Blazor island page shows the hosted .razor beside the C# that hosts it, and that file lives in
+// the referenced Razor Class Library rather than here.
+EmbeddedSource.RegisterAssembly(typeof(Rask.Example.Razor.PriceTicker).Assembly);
 
 var host = WasmHostBuilder.CreateDefault();
+host.Services.AddRaskBlazor();
 // The HTTP demo's HttpClient fetches data/posts-1.json from the AppBundle served at
 // the page origin. WasmHostBuilder.BaseAddress carries any sub-path (e.g. the GitHub
 // Pages /Rask/ prefix); read it lazily inside the factory so it resolves after the
@@ -46,6 +51,7 @@ host.UsePwa(new WebAppManifest
 host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", IconName.Phone, "PWA"));
 // The islands showcase: the same .vue/.tsx/.svelte the Server host builds, mounted client-side.
 host.Services.AddSingleton(new ShowcaseNavEntry("/islands", "Islands", IconName.UiChecksGrid, "Islands"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/blazor-island", "Blazor island", IconName.Braces, "Islands"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/install", "Install prompt", IconName.Download, "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", IconName.Display, "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", IconName.PhoneLandscape, "PWA"));

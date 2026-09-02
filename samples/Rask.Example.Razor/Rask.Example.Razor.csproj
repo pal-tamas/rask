@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    A REAL Razor Class Library, so the WASM showcase hosts a Blazor component the way an app actually
+    would: the type comes from a REFERENCE, which is what lets Rask's generator read its [Parameter]s
+    out of metadata and turn them into chain steps.
+
+    It references no Rask package at all, and that is the point — a hosted Blazor component knows
+    nothing about Rask. (Directory.Build.props excludes this project by name from the in-repo implicit
+    usings for the same reason.)
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.Example.Razor</RootNamespace>
+
+    <!-- Rask's own conventions do not apply to a Blazor component: it is not a Rask component, has no
+         chain, and its .razor is compiled by the Razor SDK's generator rather than by ours. -->
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The package rather than a FrameworkReference: this library is consumed by a browser-WASM app,
+         where there is no Microsoft.AspNetCore.App shared framework to reference. The same rule
+         Rask.Blazor's own browser target follows. -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The showcase's CodeSample reads sources as raksrc/{leaf} manifest resources, so the page can
+         show the real .razor beside the C# island that hosts it. Program.cs registers this assembly
+         with EmbeddedSource. -->
+    <EmbeddedResource Include="PriceTicker.razor">
+      <LogicalName>raksrc/PriceTicker.razor</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

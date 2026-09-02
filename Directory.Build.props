@@ -112,8 +112,11 @@
          Bootstrap/validation (they link portable sources out of a browser-WASM sample and reference types
          by name), so the injected global usings would fail to resolve. Exclude them by name rather than
          all '.Tests' (Shared.Tests / Server.Tests do want the usings and reference the libs that back
-         them). -->
-    <_RaskInRepoImplicitUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.')) AND '$(MSBuildProjectName)' != 'Rask.Example.Playground.Tests' AND '$(MSBuildProjectName)' != 'Rask.Example.Site.Tests' ">true</_RaskInRepoImplicitUsings>
+         them). Rask.Example.Razor opts out for the same reason from the other side: it is a Razor
+         Class Library holding a plain .razor, references no Rask package at all — that is the point of
+         it, since a hosted Blazor component knows nothing about Rask — and the injected usings would
+         name assemblies it does not have. -->
+    <_RaskInRepoImplicitUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.')) AND '$(MSBuildProjectName)' != 'Rask.Example.Playground.Tests' AND '$(MSBuildProjectName)' != 'Rask.Example.Site.Tests' AND '$(MSBuildProjectName)' != 'Rask.Example.Razor' ">true</_RaskInRepoImplicitUsings>
     <!--
       The validation packages inject their own global usings (Rask.Validation.* below). Downstream
       consumers only get them by referencing the validation NuGet package; in-repo we'd otherwise force
