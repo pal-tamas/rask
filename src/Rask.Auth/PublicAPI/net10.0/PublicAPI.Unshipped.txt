@@ -37,8 +37,6 @@ Rask.Auth.AuthOptions.MaxFailedAccessAttempts.get -> int
 Rask.Auth.AuthOptions.MaxFailedAccessAttempts.set -> void
 Rask.Auth.AuthOptions.MinimumPasswordLength.get -> int
 Rask.Auth.AuthOptions.MinimumPasswordLength.set -> void
-Rask.Auth.AuthOptions.Pages.get -> bool
-Rask.Auth.AuthOptions.Pages.set -> void
 Rask.Auth.AuthOptions.RegisterPath.get -> string!
 Rask.Auth.AuthOptions.RegisterPath.set -> void
 Rask.Auth.AuthOptions.RequireFirstRunToken.get -> bool
@@ -52,6 +50,41 @@ Rask.Auth.FirstRunToken.FirstRunToken() -> void
 Rask.Auth.FirstRunToken.IsPending.get -> bool
 Rask.Auth.FirstRunToken.Matches(string? candidate) -> bool
 Rask.Auth.FirstRunToken.Value.get -> string?
+Rask.Auth.Pages.AuthPage
+Rask.Auth.Pages.AuthPage.AuthPage() -> void
+Rask.Auth.Pages.LoginPage
+Rask.Auth.Pages.LoginPage.LoginPage(Rask.Core.Authentication.IAuth! auth) -> void
+Rask.Auth.Pages.LoginPage.ReturnUrl.get -> string?
+Rask.Auth.Pages.LoginPage.ReturnUrl.set -> void
+Rask.Auth.Pages.LogoutPage
+Rask.Auth.Pages.LogoutPage.LogoutPage(Rask.Core.Authentication.IAuth! auth, Rask.Core.Authentication.IUserProvider! users) -> void
+Rask.Auth.Pages.LogoutPage.ReturnUrl.get -> string?
+Rask.Auth.Pages.LogoutPage.ReturnUrl.set -> void
+Rask.Auth.Pages.RegisterModel
+Rask.Auth.Pages.RegisterModel.Email.get -> string!
+Rask.Auth.Pages.RegisterModel.Email.set -> void
+Rask.Auth.Pages.RegisterModel.FirstRunToken.get -> string!
+Rask.Auth.Pages.RegisterModel.FirstRunToken.set -> void
+Rask.Auth.Pages.RegisterModel.Password.get -> string!
+Rask.Auth.Pages.RegisterModel.Password.set -> void
+Rask.Auth.Pages.RegisterModel.RegisterModel() -> void
+Rask.Auth.Pages.RegisterPage
+Rask.Auth.Pages.RegisterPage.RegisterPage(Rask.Core.Authentication.IAuth! auth, Rask.Auth.FirstRunToken! firstRun) -> void
+Rask.Auth.Pages.RegisterPage.ReturnUrl.get -> string?
+Rask.Auth.Pages.RegisterPage.ReturnUrl.set -> void
+Rask.Auth.Pages.Routes
+Rask.Auth.Pages.SignInModel
+Rask.Auth.Pages.SignInModel.Email.get -> string!
+Rask.Auth.Pages.SignInModel.Email.set -> void
+Rask.Auth.Pages.SignInModel.Password.get -> string!
+Rask.Auth.Pages.SignInModel.Password.set -> void
+Rask.Auth.Pages.SignInModel.SignInModel() -> void
+Rask.Auth.Pages.__RaskNav_LoginPage
+Rask.Auth.Pages.__RaskNav_LoginPage.extension(Rask.Auth.Pages.LoginPage!)
+Rask.Auth.Pages.__RaskNav_LogoutPage
+Rask.Auth.Pages.__RaskNav_LogoutPage.extension(Rask.Auth.Pages.LogoutPage!)
+Rask.Auth.Pages.__RaskNav_RegisterPage
+Rask.Auth.Pages.__RaskNav_RegisterPage.extension(Rask.Auth.Pages.RegisterPage!)
 Rask.Auth.RaskAuthDefaults
 Rask.Auth.RaskAuthEndpointExtensions
 Rask.Auth.RaskAuthEndpointExtensions.AuthFailure
@@ -102,10 +135,14 @@ Rask.Auth.RaskUser
 Rask.Auth.RaskUser.CreatedUtc.get -> System.DateTime
 Rask.Auth.RaskUser.CreatedUtc.set -> void
 Rask.Auth.RaskUser.RaskUser() -> void
+RaskBuilderSettersRask_Auth
+RaskEntriesRask_Auth
+abstract Rask.Auth.Pages.AuthPage.Content.get -> Rask.Core.Component?
 const Rask.Auth.AuthInstanceClaim.SingletonId = 1 -> int
 const Rask.Auth.RaskAuthDefaults.RequestHeader = "X-Rask-Auth" -> string!
 const Rask.Auth.RaskRoles.Admin = "admin" -> string!
 const Rask.Auth.RaskRoles.User = "user" -> string!
+override Rask.Auth.Pages.AuthPage.HeadAssets.get -> Rask.Core.Component?
 override Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.Equals(object? obj) -> bool
 override Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.GetHashCode() -> int
 override Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.ToString() -> string!
@@ -118,8 +155,25 @@ override Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.ToString() -> string!
 override Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.Equals(object? obj) -> bool
 override Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.GetHashCode() -> int
 override Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.ToString() -> string!
+override sealed Rask.Auth.Pages.AuthPage.Render() -> Rask.Core.Component?
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth<TUser>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Auth.Pages.AuthPage.Field(string! id, string! label, Rask.Core.Component! input) -> Rask.Core.Component!
+static Rask.Auth.Pages.Routes.LoginPage(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Auth.Pages.Routes.LogoutPage(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Auth.Pages.Routes.RegisterPage(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Auth.Pages.__RaskNav_LoginPage.Go(string? ReturnUrl = null, bool replace = false) -> void
+static Rask.Auth.Pages.__RaskNav_LoginPage.Url(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Auth.Pages.__RaskNav_LoginPage.extension(Rask.Auth.Pages.LoginPage!).Go(string? ReturnUrl = null, bool replace = false) -> void
+static Rask.Auth.Pages.__RaskNav_LoginPage.extension(Rask.Auth.Pages.LoginPage!).Url(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Auth.Pages.__RaskNav_LogoutPage.Go(string? ReturnUrl = null, bool replace = false) -> void
+static Rask.Auth.Pages.__RaskNav_LogoutPage.Url(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Auth.Pages.__RaskNav_LogoutPage.extension(Rask.Auth.Pages.LogoutPage!).Go(string? ReturnUrl = null, bool replace = false) -> void
+static Rask.Auth.Pages.__RaskNav_LogoutPage.extension(Rask.Auth.Pages.LogoutPage!).Url(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Auth.Pages.__RaskNav_RegisterPage.Go(string? ReturnUrl = null, bool replace = false) -> void
+static Rask.Auth.Pages.__RaskNav_RegisterPage.Url(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Auth.Pages.__RaskNav_RegisterPage.extension(Rask.Auth.Pages.RegisterPage!).Go(string? ReturnUrl = null, bool replace = false) -> void
+static Rask.Auth.Pages.__RaskNav_RegisterPage.extension(Rask.Auth.Pages.RegisterPage!).Url(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl
 static Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.operator !=(Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? left, Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? right) -> bool
 static Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.operator ==(Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? left, Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? right) -> bool
 static Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.operator !=(Rask.Auth.RaskAuthEndpointExtensions.CurrentUser? left, Rask.Auth.RaskAuthEndpointExtensions.CurrentUser? right) -> bool
@@ -132,3 +186,15 @@ static Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.operator ==(Rask.Aut
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext, TUser>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskRoles.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Core.Build<Rask.Auth.Pages.LoginPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.LoginPage!>
+static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Core.Build<Rask.Auth.Pages.LogoutPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.LogoutPage!>
+static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Core.Build<Rask.Auth.Pages.RegisterPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.RegisterPage!>
+static RaskBuilderSettersRask_Auth.__RaskResetEager_Rask_Auth_Pages_LoginPage(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Auth.__RaskResetEager_Rask_Auth_Pages_LogoutPage(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Auth.__RaskResetEager_Rask_Auth_Pages_RegisterPage(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Auth.__RaskResetPending_Rask_Auth_Pages_LoginPage(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Auth.__RaskResetPending_Rask_Auth_Pages_LogoutPage(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Auth.__RaskResetPending_Rask_Auth_Pages_RegisterPage(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskEntriesRask_Auth.LoginPage.get -> Rask.Core.Build<Rask.Auth.Pages.LoginPage!>
+static RaskEntriesRask_Auth.LogoutPage.get -> Rask.Core.Build<Rask.Auth.Pages.LogoutPage!>
+static RaskEntriesRask_Auth.RegisterPage.get -> Rask.Core.Build<Rask.Auth.Pages.RegisterPage!>

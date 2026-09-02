@@ -28,6 +28,11 @@ public sealed class AuthOptions
     /// Where an unauthenticated visitor is sent. Defaults to <c>/login</c>, which is also
     /// <c>RouteAuthorizationGuard.ChallengePath</c> — the path the route guard has always redirected to.
     /// </summary>
+    /// <remarks>
+    /// <b>This moves the redirect, not the page.</b> The built-in sign-in page is routed at <c>/login</c>
+    /// at compile time, so pointing this somewhere else means putting your own page there — which is the
+    /// ordinary way to replace it anyway: declare a component with <c>[Route("…")]</c> and it wins.
+    /// </remarks>
     public string LoginPath { get; set; } = "/login";
 
     /// <summary>Where a visitor creates an account.</summary>
@@ -44,16 +49,6 @@ public sealed class AuthOptions
 
     /// <summary>Whether activity extends the session. On by default.</summary>
     public bool SlidingExpiration { get; set; } = true;
-
-    /// <summary>
-    /// Whether the built-in <c>/login</c>, <c>/register</c> and <c>/logout</c> pages are served.
-    /// </summary>
-    /// <remarks>
-    /// On by default, which is what makes a freshly scaffolded app able to sign somebody in without a
-    /// line of auth code. Declaring your own page at one of those routes already takes precedence over
-    /// the built-in one, so this only needs turning off to remove a flow entirely.
-    /// </remarks>
-    public bool Pages { get; set; } = true;
 
     /// <summary>
     /// Whether <c>/api/auth/login</c> also answers with a bearer token. <b>Off by default.</b>

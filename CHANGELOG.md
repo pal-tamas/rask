@@ -52,6 +52,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **Built-in sign-in, registration and sign-out pages.** A default app has the three flows with no
+  files of its own. They ship inside `Rask.Auth` and register through the same generated routes
+  registry that puts the operator console at `/_rask`, so nothing has to be mapped. `/login` is
+  already `RouteAuthorizationGuard.ChallengePath`, so the challenge redirect lands on a real page for
+  the first time.
+
+  **An app replaces any of them by declaring its own component at the same route**, and that is a
+  tested fact rather than a claim: the registry does not dedupe a template, so order decides, and the
+  earlier registration wins. The ordering is structural — an app's generated registry initialises as
+  `Program.cs` starts, necessarily before the `AddRaskAuth` call inside it first touches this package.
+
+  Styling is a `<style>` block, not a scoped stylesheet or a Tailwind build: these pages ship in a
+  package and have to render on an app with no CSS of its own. `/logout` asks rather than acting, so a
+  cross-site `<img src="/logout">` cannot end a session.
+
+  `AuthOptions.Pages` is removed — it could never have worked, because the pages register from a
+  `[Route]` attribute at module-initialisation time, long before any options object exists.
+
 - **`Rask.Auth` — accounts, and the first two thirds of "auth is on by default".** Rask shipped the
   sign-in *plumbing* (`IUserProvider`, `IAuthSignIn`, the `Authorize` component, route guards) but no
   account store: `rask new --auth` scaffolded a demo credential store whose passwords were compared as
