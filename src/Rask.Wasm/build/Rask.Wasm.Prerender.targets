@@ -71,6 +71,17 @@
       <_RaskPrerenderLine Include="    &lt;EnableDefaultCompileItems&gt;false&lt;/EnableDefaultCompileItems&gt;"/>
       <!-- The app's own analyzers would re-report what the real build already reported. -->
       <_RaskPrerenderLine Include="    &lt;RunAnalyzers&gt;false&lt;/RunAnalyzers&gt;"/>
+      <!--
+        Nor may a warning fail this build, for the same reason and one stronger one: the companion's
+        reference closure is NOT the app's. It targets net10.0, so a multi-targeted dependency resolves
+        its non-browser face — and the Rask metapackage's net10.0 face carries the server-only pieces
+        the browser app never saw, Rask.Dashboard among them. Two components that never met in the app
+        meet here, and RASK040 (a warning) became an error under warnings-as-errors and failed the
+        whole publish. That diagnostic is about which chain entries the app gets; the companion only
+        renders, and the real build is what judges the app's own code.
+      -->
+      <_RaskPrerenderLine Include="    &lt;TreatWarningsAsErrors&gt;false&lt;/TreatWarningsAsErrors&gt;"/>
+      <_RaskPrerenderLine Include="    &lt;WarningsAsErrors&gt;&lt;/WarningsAsErrors&gt;"/>
       <_RaskPrerenderLine Include="  &lt;/PropertyGroup&gt;"/>
 
       <!--
@@ -126,24 +137,48 @@
     <Exec Command="dotnet build &quot;$(RaskPrerenderCompanionProject)&quot; -c $(Configuration) -o &quot;$(RaskPrerenderCompanionOutput)&quot; --nologo -v:minimal -nodeReuse:false"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
 
+    <!--
+      ConsoleToMSBuild so the summary line below can be read back. StandardOutputImportance keeps the
+      per-route log visible in a normal build, as it was before it was captured — a capture that also
+      silenced the skip list would trade one blind spot for another.
+    -->
     <Exec Command="dotnet &quot;$(RaskPrerenderCompanionOutput)$(RaskPrerenderCompanionName).dll&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
-          EnvironmentVariables="RASK_PRERENDER_OUT=$(PublishDir)wwwroot"/>
-
-    <ItemGroup>
-      <_RaskPrerenderedPage Include="$(PublishDir)wwwroot\**\index.html"/>
-    </ItemGroup>
+          EnvironmentVariables="RASK_PRERENDER_OUT=$(PublishDir)wwwroot"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="high">
+      <Output TaskParameter="ConsoleOutput" ItemName="_RaskPrerenderLog"/>
+    </Exec>
 
     <!--
-      Asked of the OUTPUT rather than of the exit code. The pass reports what it skipped and carries on,
-      so "it ran" and "it produced something" are different questions — and a publish that silently
-      prerendered nothing looks exactly like one that worked.
+      Asked of what the PASS REPORTED, not of the filesystem. The obvious check — glob the output for
+      an index.html — cannot work here, and quietly did not: the root route's own output is
+      wwwroot/index.html, which is the boot shell the SDK published moments earlier. That file is
+      there whether the pass wrote every page, one page, or none, so the glob was non-empty in all
+      three cases and the warning below could never fire. A publish that prerendered nothing looked
+      exactly like one that worked, which is the single thing this guard exists to tell apart.
+
+      So the pass prints a summary line and the build reads it back. `written=0` is an unambiguous
+      statement by the only component that knows.
     -->
-    <Warning Condition=" '@(_RaskPrerenderedPage)' == '' "
+    <PropertyGroup>
+      <_RaskPrerenderLogText>@(_RaskPrerenderLog, '%0A')</_RaskPrerenderLogText>
+      <_RaskPrerenderWroteNothing>false</_RaskPrerenderWroteNothing>
+      <_RaskPrerenderWroteNothing Condition="$(_RaskPrerenderLogText.Contains('result written=0'))">true</_RaskPrerenderWroteNothing>
+      <_RaskPrerenderReported>false</_RaskPrerenderReported>
+      <_RaskPrerenderReported Condition="$(_RaskPrerenderLogText.Contains('result written='))">true</_RaskPrerenderReported>
+    </PropertyGroup>
+
+    <Warning Condition=" '$(_RaskPrerenderWroteNothing)' == 'true' "
              Text="Rask: prerendering ran and wrote no pages. Every route was either parameterised, faulted, or did not settle within the budget — see the log above for which. The bundle still serves them at runtime, so this is a lost optimisation rather than a broken site."/>
 
-    <Message Importance="high" Condition=" '@(_RaskPrerenderedPage)' != '' "
-             Text="Rask: prerendered @(_RaskPrerenderedPage->Count()) page(s)"/>
+    <!--
+      The pass not reporting at all is a different failure from it reporting zero — an older
+      Rask.Wasm on the companion's reference graph, or a run that died before its summary. Saying
+      nothing here would restore exactly the silence this target was rewritten to remove.
+    -->
+    <Warning Condition=" '$(_RaskPrerenderReported)' != 'true' "
+             Text="Rask: prerendering ran but reported no summary line, so the build cannot tell how many pages it wrote. Treat the published bundle as un-prerendered until this is explained."/>
   </Target>
 
 </Project>

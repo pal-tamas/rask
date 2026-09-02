@@ -124,6 +124,114 @@ public class WasmPrerenderTests
         Assert.Null(WasmPrerender.RequestedOutput);
     }
 
+    [Fact]
+    public async Task APageWrittenBesideABootShellIsSplicedIntoItRatherThanOverIt()
+    {
+        // The gap every other test in this file walked past. They render into an EMPTY temp directory,
+        // which is the one arrangement where there is no shell to destroy — so a pass that overwrote
+        // the published boot shell, and shipped a page that could never become interactive, passed
+        // them all. Here the shell is on disk first, exactly as it is in a real published wwwroot.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+
+        RouteRegistry.Replace(nameof(APageWrittenBesideABootShellIsSplicedIntoItRatherThanOverIt), [
+            new RouteRegistration(typeof(Home), "/", null),
+            new RouteRegistration(typeof(Home), "/about", null),
+        ]);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(dir, "index.html"),
+            """
+            <!doctype html><html lang="en"><head><meta charset="utf-8"/><base href="/"/><title>Rask</title>
+            <script type="importmap">{"imports":{}}</script></head>
+            <body data-rask-root><div class="rask-boot">Loading…</div>
+            <script src="main.js" type="module"></script></body></html>
+            """);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var root = await File.ReadAllTextAsync(Path.Combine(dir, "index.html"));
+
+            Assert.Contains("home-page", root, StringComparison.Ordinal);
+            Assert.Contains("<script src=\"main.js\" type=\"module\">", root, StringComparison.Ordinal);
+            Assert.Contains("type=\"importmap\"", root, StringComparison.Ordinal);
+            Assert.Contains("<base href=\"/\"/>", root, StringComparison.Ordinal);
+
+            // Every route gets the shell, not just the root one — a sub-page without the boot script
+            // is a dead end, and it is the page a search result links to.
+            var about = await File.ReadAllTextAsync(Path.Combine(dir, "about", "index.html"));
+            Assert.Contains("home-page", about, StringComparison.Ordinal);
+            Assert.Contains("<script src=\"main.js\" type=\"module\">", about, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task TheShellIsReadOnceSoTheRootPageIsNotUsedAsTheNextPagesShell()
+    {
+        // The root route's output IS index.html — the same file the shell is read from. Reading it per
+        // page would hand page two a shell that already contains page one's markup, and every page
+        // after the first would accumulate the ones before it.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+
+        RouteRegistry.Replace(nameof(TheShellIsReadOnceSoTheRootPageIsNotUsedAsTheNextPagesShell), [
+            new RouteRegistration(typeof(Home), "/", null),
+            new RouteRegistration(typeof(Home), "/about", null),
+        ]);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(dir, "index.html"),
+            """
+            <!doctype html><html><head><title>Rask</title></head>
+            <body><div class="rask-boot">Loading…</div><script src="main.js" type="module"></script></body></html>
+            """);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var about = await File.ReadAllTextAsync(Path.Combine(dir, "about", "index.html"));
+
+            Assert.Equal(1, Occurrences(about, "home-page"));
+            Assert.Equal(1, Occurrences(about, "main.js"));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    private static int Occurrences(string haystack, string needle)
+    {
+        var count = 0;
+        var cursor = 0;
+        while (true)
+        {
+            var hit = haystack.IndexOf(needle, cursor, StringComparison.Ordinal);
+            if (hit < 0)
+            {
+                return count;
+            }
+
+            count++;
+            cursor = hit + needle.Length;
+        }
+    }
+
     private sealed class Home : Component
     {
         protected override Component? Render() => Div["home-page"];

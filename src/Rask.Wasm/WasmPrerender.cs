@@ -60,6 +60,17 @@ public static class WasmPrerender
             Console.WriteLine($"[Rask.Prerender]   skipped {skipped} — its path is not known without data");
         }
 
+        // Read ONCE, before the first page is written — the shell being read is index.html, and the
+        // root route's own output is index.html. Reading it per page would hand page two the merged
+        // page one as its shell.
+        var shell = await ReadShellAsync(outputDirectory).ConfigureAwait(false);
+        if (shell is null)
+        {
+            Console.WriteLine(
+                $"[Rask.Prerender] no boot shell at {Path.Combine(outputDirectory, ShellFileName)} — "
+                + "writing whole documents, which will NOT boot the bundle");
+        }
+
         var written = 0;
         foreach (var path in plan.Paths)
         {
@@ -89,14 +100,45 @@ public static class WasmPrerender
                 continue;
             }
 
+            // Spliced into the shell rather than written over it. The shell carries the fingerprinted
+            // import map, the SRI-pinned preload, the <base href> and the script that boots the bundle;
+            // replacing the file would publish real markup that can never become interactive.
+            var html = shell is null ? result.Html : PrerenderShell.Merge(shell, result.Html);
+
             var file = OutputPathFor(outputDirectory, path);
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-            await File.WriteAllTextAsync(file, result.Html).ConfigureAwait(false);
+            await File.WriteAllTextAsync(file, html).ConfigureAwait(false);
             written++;
         }
 
         Console.WriteLine($"[Rask.Prerender] wrote {written} page(s) to {outputDirectory}");
+
+        // A second line, for the build rather than for a reader. The build cannot ask the filesystem
+        // whether this pass produced anything: the root route's output IS index.html, which the boot
+        // shell already occupies, so "a page exists" is true before the pass runs and stays true when
+        // it writes nothing. Only the pass knows the count, so it says so in a form that survives a
+        // grep and carries no punctuation an MSBuild condition has to escape.
+        Console.WriteLine($"{SummaryPrefix}written={written} skipped={plan.Skipped.Count}");
+
         return written;
+    }
+
+    /// <summary>
+    ///     Marks the machine-readable summary line. Read by <c>RaskPrerenderPages</c>.
+    /// </summary>
+    internal const string SummaryPrefix = "[Rask.Prerender] result ";
+
+    /// <summary>
+    ///     The published boot shell, or <c>null</c> when there is none to splice into.
+    /// </summary>
+    internal const string ShellFileName = "index.html";
+
+    private static async Task<string?> ReadShellAsync(string outputDirectory)
+    {
+        var path = Path.Combine(outputDirectory, ShellFileName);
+        return File.Exists(path)
+            ? await File.ReadAllTextAsync(path).ConfigureAwait(false)
+            : null;
     }
 
     /// <summary>

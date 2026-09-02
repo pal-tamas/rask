@@ -9,6 +9,45 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A prerendered WebAssembly page could never boot, and every guard around it said the publish had
+  worked.** `<RaskPrerender>true</RaskPrerender>` writes a document per route into the published
+  `wwwroot` — where `index.html` is already the shell the WebAssembly SDK has just filled with the
+  fingerprinted import map, the integrity-pinned preload, the `<base href>` and
+  `<script src="main.js">`. The pass wrote over it. What shipped was a static page carrying real
+  markup and no way to become interactive, on every prerendered route.
+
+  The framework could not simply re-emit those tags. The boot script comes from an
+  `IRaskRuntimeScript` registration and the WASM host deliberately registers none — the runtime boots
+  from the page shell — while the import map's fingerprints and integrity hashes are minted by the SDK
+  per publish, so managed code has nothing to reproduce them from. **The shell is now kept and the
+  render spliced into it**: the shell keeps `<base>`, `<meta charset>`, the import map, the preload
+  and every body `<script>`; the page supplies its `<title>`, the rest of its head, and the whole
+  body. The singletons are resolved rather than concatenated, because a browser takes the *first*
+  `<title>` and appending would have left every page titled whatever the shell said — the search
+  result the feature exists to fix. With no shell present the whole document is still written, and the
+  pass says so.
+
+  Three things kept this invisible. Every test rendered into an empty temporary directory, which is
+  the one arrangement with no shell to destroy. No sample, template or CI job had ever set the
+  property, so it had not run end to end. And the "wrote no pages" warning globbed the output for an
+  `index.html` — which the boot shell *is*, so it was non-empty whether the pass wrote every page, one
+  page, or none, and could never fire. The pass now prints `result written=N skipped=N` and the build
+  reads that back; a run that reports no summary at all is warned about separately.
+
+- **`<base href>` was rewritten only on the root page of a sub-path publish.** Prerendering writes a
+  directory per route, and each page carries its own `<base href="/">`. Rewriting just
+  `wwwroot/index.html` left `/docs/about/` resolving `main.js` against its own directory — the exact
+  failure the tag exists to prevent, on the pages a search result links to first. Every published page
+  is rewritten now.
+
+- **Prerendering failed outright for any app referencing the `Rask` metapackage.** The companion
+  project compiles the app's sources for `net10.0`, so a multi-targeted dependency resolves its
+  non-browser face — and the metapackage's `net10.0` face carries the server-only pieces a browser app
+  never saw. Two components that never met in the app met in the companion, and RASK040 (a warning)
+  became an error under warnings-as-errors and failed the publish. The companion now builds with
+  warnings-as-errors off, alongside the analyzers it already disabled: it renders, and the real build
+  is what judges the app's code.
+
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,
   no publish, no browser. Hosting one in a real WASM app found three separate failures on the way to
