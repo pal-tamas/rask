@@ -127,8 +127,9 @@ WASM templates differ mainly in `Program.cs`):
   ```
 
   Nothing has to be turned off in order to configure it: you can also call a battery's own `AddRaskX`
-  directly and yours wins. And to map your own endpoints, use `app.MapEndpoints(e => …)` — Rask's
-  catch-all serves the app for anything unmatched, so an endpoint mapped after it would never be reached.
+  directly and yours wins. And to map your own endpoints, use `app.MapEndpoints(e => …)` — a named place
+  for them rather than an ordering rule, since routing matches on precedence and any route you write is
+  more specific than Rask's catch-all.
 
 - **`App.cs`** — two things live here. First, the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.

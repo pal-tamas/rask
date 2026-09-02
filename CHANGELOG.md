@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The docs said an endpoint mapped after `UseRask` "never runs". It runs.** The claim appeared in
+  `RaskApp.MapEndpoints`' own XML docs, in `Rask.Spa.Hosting`, in `docs/getting-started.md`, in a test
+  comment, and — worst — in the comment `rask new` scaffolds into every generated `Program.cs`, where it
+  told authors something false about their own file. Nothing pinned it, because both existing tests only
+  proved the seam *works*.
+
+  It is not true. Rask's catch-all is a plain `MapGet("/{**path}")` — an ordinary endpoint, not a
+  terminal middleware and not `MapFallback` — and endpoint routing matches on **precedence**, never on
+  registration order. Every route an app writes is more specific than a catch-all, so it wins from either
+  side of the call. `An_endpoint_mapped_after_UseRask_still_runs` now pins that with a literal route, a
+  parameterised one and a POST, all mapped after `UseRask`, so the false version cannot come back.
+
+  `MapEndpoints` keeps its place and its name — it is a readable spot for an app's endpoints, and it does
+  order against genuine *middleware* — but it is documented as a place rather than as a fix for a bug
+  that was never there.
+
+  What the catch-all really does swallow is a request matching **nothing**: an API path with a typo, or
+  one whose route was deleted, renders the app with a 200 where the caller expected JSON, and the failure
+  surfaces later as a parse error far from its cause. That is a genuine defect, it is not what the old
+  comments described, and this entry does not fix it.
+
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,
   no publish, no browser. Hosting one in a real WASM app found three separate failures on the way to

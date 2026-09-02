@@ -96,13 +96,21 @@ public sealed class RaskApp
     }
 
     /// <summary>
-    /// Maps your own endpoints, always <b>before</b> Rask's catch-all — the only position at which they
-    /// can be reached.
+    /// Maps your own endpoints — a named place for them, next to the rest of the app's composition.
     /// </summary>
     /// <remarks>
-    /// A named seam rather than a documented ordering rule. <c>UseRask</c> ends the pipeline with a
-    /// catch-all serving the app for anything unmatched, so a minimal API mapped after it never runs — and
-    /// does not error either: the request renders the app where the author expected JSON.
+    /// <para>
+    /// This is a place, not a fix. Endpoint routing matches on <em>precedence</em>, never on registration
+    /// order, and Rask's catch-all is the least specific pattern there is (<c>/{**path}</c>), so a route
+    /// mapped after <c>UseRask</c> still wins for the paths it names. Mapping through here rather than on
+    /// the built <see cref="WebApplication"/> buys ordering only against genuine <em>middleware</em>, and
+    /// keeps the app's endpoints in one readable spot.
+    /// </para>
+    /// <para>
+    /// What the catch-all does swallow is a request matching <b>nothing</b>: an API path with a typo, or
+    /// one whose route was deleted, renders the app with a 200 instead of answering 404. That is a real
+    /// failure and this seam does not prevent it — see <c>docs/api-endpoints.md</c>.
+    /// </para>
     /// </remarks>
     public RaskApp MapEndpoints(Action<IEndpointRouteBuilder> map)
     {

@@ -159,9 +159,8 @@ public sealed class RaskAppTests
     [Fact]
     public async Task An_endpoint_mapped_through_MapEndpoints_is_reachable()
     {
-        // The seam that exists because the bug is invisible. UseRask ends the pipeline with a catch-all
-        // that serves the app for anything unmatched, so an endpoint mapped after it never runs — and
-        // does not error either: the request renders the app where the author expected JSON.
+        // The seam works. What it is NOT is a fix for an ordering bug — see the test below, which maps
+        // the same endpoint on the other side of the catch-all and gets the same answer.
         var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<TestApp>();
         await app.StartAsync();
 
@@ -171,6 +170,49 @@ public sealed class RaskAppTests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("pong", await response.Content.ReadAsStringAsync());
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task An_endpoint_mapped_after_UseRask_still_runs()
+    {
+        // This repo told itself for a long time that an endpoint mapped after UseRask "never runs — and
+        // does not error either: the request renders the app where the author expected JSON", and said so
+        // in RaskApp.MapEndpoints' own docs, in Rask.Spa.Hosting, in the scaffolded Program.cs and in the
+        // comment that used to sit on the test above. Nothing pinned it, and it is not true.
+        //
+        // Rask's catch-all is a plain MapGet("/{**path}") — an ordinary endpoint, not a terminal
+        // middleware and not MapFallback. Endpoint routing matches on PRECEDENCE, never on registration
+        // order, and every route an app writes is more specific than a catch-all. So this test maps three
+        // endpoints AFTER Build<TApp>() has already run UseRask, and all three answer.
+        //
+        // It exists to keep the false version from coming back into the docs.
+        var app = NewApp().Build<TestApp>();
+
+        app.MapGet("/ping", () => "pong");
+        app.MapGet("/api/items/{id}", (int id) => Results.Json(new { id }));
+        app.MapPost("/api/items", () => Results.Json(new { created = true }));
+
+        await app.StartAsync();
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
+
+            var literal = await client.GetAsync("/ping");
+            Assert.Equal(HttpStatusCode.OK, literal.StatusCode);
+            Assert.Equal("pong", await literal.Content.ReadAsStringAsync());
+
+            var parameterised = await client.GetAsync("/api/items/7");
+            Assert.Equal("{\"id\":7}", await parameterised.Content.ReadAsStringAsync());
+
+            // The catch-all is MapGet, so a POST proves the verb is not what saves this either.
+            var posted = await client.PostAsync("/api/items", content: null);
+            Assert.Equal("{\"created\":true}", await posted.Content.ReadAsStringAsync());
         }
         finally
         {
