@@ -64,6 +64,7 @@
         <Project Path="src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj"/>
         <Project Path="src/Rask.Wasm.Tasks/Rask.Wasm.Tasks.csproj"/>
         <Project Path="src/Rask.Wasm/Rask.Wasm.csproj"/>
+        <Project Path="src/Rask.Wire/Rask.Wire.csproj"/>
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/Rask.Cache.Tests/Rask.Cache.Tests.csproj"/>
@@ -119,5 +120,6 @@
         <Project Path="tests/Rask.Wasm.Hosting.Tests/Rask.Wasm.Hosting.Tests.csproj"/>
         <Project Path="tests/Rask.Wasm.Tasks.Tests/Rask.Wasm.Tasks.Tests.csproj"/>
         <Project Path="tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj"/>
+        <Project Path="tests/Rask.Wire.Tests/Rask.Wire.Tests.csproj"/>
     </Folder>
 </Solution>

@@ -79,7 +79,7 @@ internal sealed class WireCodecEmitter
 
             case WireKind.Enum:
                 write.AppendLine("        writer.WriteNumberValue((long)value);");
-                read.AppendLine($"        return ({type.Fqn})global::Rask.Cqrs.WireJson.ReadInt64(ref reader, property);");
+                read.AppendLine($"        return ({type.Fqn})global::Rask.Wire.WireJson.ReadInt64(ref reader, property);");
                 break;
 
             case WireKind.Bytes:
@@ -87,7 +87,7 @@ internal sealed class WireCodecEmitter
                 // turn "absent" into "zero bytes" silently. The explicit branch keeps null meaning null.
                 write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
                 write.AppendLine("        writer.WriteBase64StringValue(value);");
-                read.AppendLine("        return global::Rask.Cqrs.WireJson.ReadBytes(ref reader, property);");
+                read.AppendLine("        return global::Rask.Wire.WireJson.ReadBytes(ref reader, property);");
                 break;
 
             case WireKind.File:
@@ -103,14 +103,14 @@ internal sealed class WireCodecEmitter
                 // anything larger.
                 write.AppendLine("        if (value is null) { writer.WriteNumberValue(-1); return; }");
                 write.AppendLine(
-                    "        files.Add(global::Rask.Cqrs.RemoteFile.FromStream("
+                    "        files.Add(global::Rask.Wire.RemoteFile.FromStream("
                     + "value.Name, value.ContentType, value.Size, "
                     + "__ct => value.OpenReadStream(value.Size, __ct), "
                     + "value.LastModified));");
                 write.AppendLine("        writer.WriteNumberValue(files.Count - 1);");
                 read.AppendLine(
-                    "        var __wire = global::Rask.Cqrs.WireJson.ResolveFile("
-                    + "files, global::Rask.Cqrs.WireJson.ReadInt32(ref reader, property), property);");
+                    "        var __wire = global::Rask.Wire.WireJson.ResolveFile("
+                    + "files, global::Rask.Wire.WireJson.ReadInt32(ref reader, property), property);");
                 read.AppendLine("        return __wire is null ? null : new __RaskCqrsUploadedFile(__wire);");
                 break;
 
@@ -137,7 +137,7 @@ internal sealed class WireCodecEmitter
                 write.AppendLine("        writer.WriteEndArray();");
 
                 read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
-                read.AppendLine("        global::Rask.Cqrs.WireJson.ExpectStartArray(ref reader, property);");
+                read.AppendLine("        global::Rask.Wire.WireJson.ExpectStartArray(ref reader, property);");
                 read.AppendLine($"        var items = new global::System.Collections.Generic.List<{type.Inner!.Fqn}>();");
                 read.AppendLine($"        while (reader.Read() && reader.TokenType != {TokenType}.EndArray)");
                 read.AppendLine("        {");
@@ -164,7 +164,7 @@ internal sealed class WireCodecEmitter
                 write.AppendLine("        writer.WriteEndObject();");
 
                 read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
-                read.AppendLine("        global::Rask.Cqrs.WireJson.ExpectStartObject(ref reader, property);");
+                read.AppendLine("        global::Rask.Wire.WireJson.ExpectStartObject(ref reader, property);");
                 read.AppendLine(
                     "        var map = new global::System.Collections.Generic.Dictionary<global::System.String, "
                     + $"{type.Inner!.Fqn}>();");
@@ -212,7 +212,7 @@ internal sealed class WireCodecEmitter
             read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
         }
 
-        read.AppendLine("        global::Rask.Cqrs.WireJson.ExpectStartObject(ref reader, property);");
+        read.AppendLine("        global::Rask.Wire.WireJson.ExpectStartObject(ref reader, property);");
         foreach (var (member, _) in members)
         {
             read.AppendLine($"        {member.Type.Fqn} v_{member.ClrName} = default;");
@@ -234,7 +234,7 @@ internal sealed class WireCodecEmitter
         // An unknown property is skipped rather than rejected: that is what lets a sender add a field
         // without breaking a receiver compiled before it existed.
         read.AppendLine("                default:");
-        read.AppendLine("                    global::Rask.Cqrs.WireJson.SkipValue(ref reader);");
+        read.AppendLine("                    global::Rask.Wire.WireJson.SkipValue(ref reader);");
         read.AppendLine("                    break;");
         read.AppendLine("            }");
         read.AppendLine("        }");
@@ -275,6 +275,6 @@ internal sealed class WireCodecEmitter
     private const string Writer = "global::System.Text.Json.Utf8JsonWriter";
     private const string Reader = "global::System.Text.Json.Utf8JsonReader";
     private const string TokenType = "global::System.Text.Json.JsonTokenType";
-    private const string FileList = "global::System.Collections.Generic.IList<global::Rask.Cqrs.RemoteFile>";
-    private const string FileListRead = "global::System.Collections.Generic.IReadOnlyList<global::Rask.Cqrs.RemoteFile>";
+    private const string FileList = "global::System.Collections.Generic.IList<global::Rask.Wire.RemoteFile>";
+    private const string FileListRead = "global::System.Collections.Generic.IReadOnlyList<global::Rask.Wire.RemoteFile>";
 }

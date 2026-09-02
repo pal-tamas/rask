@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Rask.Cqrs;
+namespace Rask.Wire;
 
 /// <summary>
 ///     The primitives generated wire codecs are built from. Public only so generated code can call

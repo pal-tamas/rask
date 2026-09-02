@@ -7,6 +7,21 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: `WireJson`, `RemoteFile` and `FileDownload` moved from `Rask.Cqrs` to a new `Rask.Wire`
+  package.** Same code, same behaviour, new namespace — an app that names one of these types adds
+  `using Rask.Wire;` (a package consumer gets it as a global using, so most apps change nothing).
+
+  These are the primitives Rask's generated wire codecs are written against, and CQRS is about to stop
+  being the only thing that generates them: the typed API client does too. Leaving them in `Rask.Cqrs`
+  left only bad options — have the REST client depend on a mediator it never uses, or duplicate the
+  three types and hand any app referencing both a CS0433 collision. A shared package they both depend
+  on is the version with no downside.
+
+  Done now because pre-1.0 every `PublicAPI.Shipped.txt` is empty, so moving a public type costs a
+  namespace and nothing else. It never gets cheaper than this.
+
 ### Fixed
 
 - **The docs said an endpoint mapped after `UseRask` "never runs". It runs.** The claim appeared in
