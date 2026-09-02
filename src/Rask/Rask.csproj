@@ -56,6 +56,7 @@
     <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
 
+    <ProjectReference Include="..\Rask.Auth\Rask.Auth.csproj"/>
     <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
     <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj"/>

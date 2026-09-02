@@ -17,6 +17,7 @@ Rask.RaskApp.Run<TApp>(string! pathBase = "") -> void
 Rask.RaskApp.RunAsync<TApp>(string! pathBase = "") -> System.Threading.Tasks.Task!
 Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.RaskAppOptions
+Rask.RaskAppOptions.Auth.get -> Rask.Battery<Rask.Auth.AuthOptions!>!
 Rask.RaskAppOptions.BehindProxy.get -> bool
 Rask.RaskAppOptions.BehindProxy.set -> void
 Rask.RaskAppOptions.Cache.get -> Rask.Battery<Rask.Cache.CacheOptions!>!

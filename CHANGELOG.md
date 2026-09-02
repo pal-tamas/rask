@@ -51,8 +51,21 @@ them until tagged releases begin.
   guarantee, and no battery may reference `Rask.Server` — that is what keeps the meta-package free of
   reference cycles.
 
-  Not yet wired: the built-in pages, the battery slot on `RaskAppOptions`, the browser half, and the
-  `--auth` flag removal.
+  Not yet wired: the built-in pages, the browser half, and the `--auth` flag removal.
+
+- **Auth is battery #12, and it is on.** `RaskAppOptions.Auth` joins the other eleven, so an app that
+  writes no `Configure` block gets register, sign in and sign out along with everything else, and
+  `app.Configure(c => c.Auth.Off())` is how one does without them. Wired in `WireFor<TContext>` beside
+  the other database-backed batteries, because Identity's stores live on the application context.
+
+  Turning it off leaves the account tables mapped, like every other database-backed battery, so
+  flipping the line back on does not produce a destructive migration.
+
+  Ordering comes out right on its own: `AddRaskAuth` registers the cookie scheme, and `RaskApp` already
+  calls `UseAuthentication`/`UseAuthorization` before `UseRask` whenever a scheme provider is present.
+  An app never orders that middleware itself — which matters, because getting it wrong is exactly what
+  RASK024 exists to catch, and turning auth on by default would otherwise have reintroduced the bug for
+  everybody at once.
 
 - **`/api/auth/register|login|logout|me` — the contract every host that is not C# speaks.**
   `MapRaskAuth()` maps four routes under `AuthOptions.ApiPrefix` (`/api/auth`). A TypeScript front

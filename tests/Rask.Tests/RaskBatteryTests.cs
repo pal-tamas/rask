@@ -26,6 +26,10 @@ public sealed class RaskBatteryTests
     private const string Cache = "CachePurger`1";
     private const string Outbox = "OutboxProcessor`1";
 
+    // Auth's is not a processor: it is the startup step that decides whether this app still needs a
+    // first-run token. It is the only hosted service the battery adds, so it reads the same way.
+    private const string Auth = "FirstRunTokenInitializer";
+
     private static HashSet<string> Workers(Action<RaskApp>? arrange = null, bool withDatabase = true)
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
@@ -44,6 +48,13 @@ public sealed class RaskBatteryTests
             .ToHashSet(StringComparer.Ordinal);
     }
 
+    private static Microsoft.AspNetCore.Builder.WebApplication Built()
+    {
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+        return app.Build<TestApp>();
+    }
+
     [Fact]
     public void An_app_that_says_nothing_gets_every_battery()
     {
@@ -55,6 +66,30 @@ public sealed class RaskBatteryTests
         Assert.Contains(Mail, workers);
         Assert.Contains(Cache, workers);
         Assert.Contains(Outbox, workers);
+        Assert.Contains(Auth, workers);
+    }
+
+    [Fact]
+    public void An_app_that_says_nothing_can_sign_somebody_in()
+    {
+        // The claim behind "auth is on by default": a Program.cs with no auth code has the three flows.
+        // Asserted on the surface an app actually calls, not on the battery's own on/off record.
+        using var scope = Built().Services.CreateScope();
+
+        Assert.NotNull(scope.ServiceProvider.GetService<Core.Authentication.IAuth>());
+        Assert.NotNull(scope.ServiceProvider.GetService<Core.Authentication.IUserProvider>());
+    }
+
+    [Fact]
+    public void Turning_auth_off_takes_the_flows_with_it()
+    {
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Configure(c => c.Auth.Off());
+        app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+
+        using var scope = app.Build<TestApp>().Services.CreateScope();
+
+        Assert.Null(scope.ServiceProvider.GetService<Core.Authentication.IAuth>());
     }
 
     [Fact]
@@ -66,6 +101,7 @@ public sealed class RaskBatteryTests
         Assert.Contains(Mail, workers);
         Assert.Contains(Cache, workers);
         Assert.Contains(Outbox, workers);
+        Assert.Contains(Auth, workers);
     }
 
     [Fact]
@@ -79,6 +115,9 @@ public sealed class RaskBatteryTests
         Assert.DoesNotContain(Mail, workers);
         Assert.DoesNotContain(Cache, workers);
         Assert.DoesNotContain(Outbox, workers);
+
+        // Accounts live on the application database like the rest of them.
+        Assert.DoesNotContain(Auth, workers);
     }
 
     [Fact]
