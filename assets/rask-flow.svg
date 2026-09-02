@@ -1,0 +1,403 @@
+<svg class="rf-svg rf-auto" role="img" viewBox="0 0 1240 800" xmlns="http://www.w3.org/2000/svg"><title>How a Rask app fits together, from a click in the browser down to SQLite and back</title><desc>An architecture map of a Rask application in eight horizontal bands. At the top, the front end: Rask components written in C#, islands of React, Preact, Lit, Vue, Svelte or Blazor embedded inside them, and a separate lane for a TypeScript SPA built with React, Preact, Vue, Solid, Svelte, Lit or Angular. Below it the transports: a WebSocket for a server-rendered page, JSImport and JSExport for the same components running on WebAssembly, and an HTTP endpoint the SPA lane uses. Then the render core, where one render walk produces both HTML and a frame stream that is diffed into edit operations, and the render ladder, which decides whether a page is served as a static document, kept live over a socket, or moved into the browser. Below those, application logic dispatches queries and commands; the durable batteries queue jobs, mail, cache entries and outbox messages on the application&#x27;s own database; and the data layer writes through EF Core and SQLite into a single file. To the left, a rail of compile-time generators and MSBuild tasks. To the right, the operator dashboard and the backup replicas. An animated packet traces one journey at a time across the map, and the browser window at the top left gains a new order row when the resulting diff arrives.</desc><style>.rf-svg {
+  --rf-ground: var(--color-ground, #14141b);
+  --rf-panel: var(--color-panel, #1b1b24);
+  --rf-panel2: var(--color-panel-2, #22222d);
+  --rf-line: var(--color-line, rgba(139, 92, 246, 0.28));
+  --rf-grid: var(--color-grid, rgba(139, 92, 246, 0.07));
+  --rf-ink: var(--color-ink, #e9e9f2);
+  --rf-inksoft: var(--color-ink-soft, #c3c2d6);
+  --rf-muted: var(--color-muted, #8a8aa4);
+  --rf-accent: var(--color-accent, #8b5cf6);
+  --rf-accentink: var(--color-accent-ink, #c4b5fd);
+  --rf-signal: var(--color-signal, #34d399);
+}
+
+/* Standalone only. Inline, every --color-* above is defined and wins, so redefining the ALIASES
+   here can never override the page's own theme -- it only changes which literal is used when
+   there is no theme to follow. */
+@media (prefers-color-scheme: light) {
+  .rf-svg {
+    --rf-ground: var(--color-ground, #f9f8fc);
+    --rf-panel: var(--color-panel, #f2f1f7);
+    --rf-panel2: var(--color-panel-2, #e7e6ef);
+    --rf-line: var(--color-line, rgba(124, 58, 237, 0.18));
+    --rf-grid: var(--color-grid, rgba(124, 58, 237, 0.06));
+    --rf-ink: var(--color-ink, #2b2b35);
+    --rf-inksoft: var(--color-ink-soft, #4b4a58);
+    --rf-muted: var(--color-muted, #77768a);
+    --rf-accent: var(--color-accent, #7c3aed);
+    --rf-accentink: var(--color-accent-ink, #6d28d9);
+    --rf-signal: var(--color-signal, #0f9d6e);
+  }
+}
+
+.rf-svg { max-width: 100%; height: auto; }
+.rf-ground { fill: var(--rf-ground); }
+.rf-band { fill: var(--rf-grid); stroke: var(--rf-line); stroke-width: 1; }
+.rf-trunk { stroke: var(--rf-line); stroke-width: 2; }
+.rf-hint-wire { stroke: var(--rf-line); stroke-width: 1; stroke-dasharray: 3 4; fill: none; }
+.rf-arrow { fill: var(--rf-muted); }
+
+.rf-t {
+  font-family: var(--sans, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  fill: var(--rf-ink);
+}
+.rf-lg { font-size: 19px; font-weight: 600; }
+.rf-sm { font-size: 14px; }
+.rf-xs { font-size: 12px; }
+.rf-xxs { font-size: 10.5px; }
+.rf-mut { fill: var(--rf-muted); }
+.rf-faint { fill: var(--rf-muted); opacity: 0.62; }
+.rf-signal { fill: var(--rf-signal); }
+
+.rf-box { stroke-width: 1; }
+.rf-core, .rf-app, .rf-data, .rf-wire { fill: var(--rf-panel2); stroke: var(--rf-line); }
+.rf-batt { fill: var(--rf-panel2); stroke: var(--rf-line); }
+.rf-batt-aside { fill: var(--rf-panel); stroke: var(--rf-line); stroke-dasharray: 4 3; }
+.rf-app-soft, .rf-data-soft, .rf-store-soft { fill: var(--rf-panel); stroke: var(--rf-line); }
+.rf-store { fill: var(--rf-panel2); stroke: var(--rf-accent); }
+.rf-rail, .rf-ops { fill: var(--rf-panel); stroke: var(--rf-line); }
+.rf-lane { fill: none; stroke: none; }
+.rf-chip, .rf-chip-wide { fill: var(--rf-panel2); stroke: var(--rf-line); }
+.rf-chip-note { fill: none; stroke: var(--rf-line); stroke-dasharray: 3 3; }
+/* Landing, not landed: dashed until the branch merges. */
+.rf-chip-soon { fill: none; stroke: var(--rf-accent); stroke-dasharray: 4 3; }
+/* A Blazor island is a different KIND -- Rask renders it, so its subtree is never opaque. */
+.rf-chip-blazor { fill: var(--rf-panel); stroke: var(--rf-signal); stroke-dasharray: 4 3; }
+/* Declared but not implemented: setting it throws at host build. */
+.rf-rung-off { fill: none; stroke: var(--rf-muted); stroke-dasharray: 2 4; }
+.rf-rung { fill: var(--rf-panel2); stroke: var(--rf-line); }
+
+.rf-screen { fill: var(--rf-panel); stroke: var(--rf-accent); }
+.rf-screenbar { fill: var(--rf-panel2); }
+.rf-dot { fill: var(--rf-muted); opacity: 0.5; }
+.rf-row { fill: var(--rf-muted); opacity: 0.22; }
+.rf-row-new { fill: var(--rf-signal); opacity: 0.3; }
+.rf-clickbtn { fill: var(--rf-panel2); stroke: var(--rf-accent); stroke-width: 1; }
+.rf-click { fill: none; stroke: var(--rf-accent); stroke-width: 1; opacity: 0; }
+
+.rf-sw-lit { fill: var(--rf-panel2); stroke: var(--rf-accent); }
+.rf-sw-blazor { fill: var(--rf-panel); stroke: var(--rf-signal); stroke-dasharray: 3 2; }
+.rf-sw-soon { fill: none; stroke: var(--rf-accent); stroke-dasharray: 3 2; }
+.rf-sw-off { fill: none; stroke: var(--rf-muted); stroke-dasharray: 2 3; }
+
+.rf-pk-core { fill: var(--rf-signal); }
+.rf-pk-halo { fill: var(--rf-signal); opacity: 0.22; }
+
+/* The highlight that marks the current path. Drawn as a ring around the box rather than a change
+   to it, so nothing about the box's own legibility depends on whether it is currently lit. */
+.rf-glow {
+  fill: none;
+  stroke: var(--rf-accent);
+  stroke-width: 2.5;
+  opacity: 0;
+  paint-order: stroke;
+}
+
+/* BASE STATE == THE FINAL FRAME: the whole map legible, the result landed, nothing in flight and
+   nothing highlighted. prefers-reduced-motion turns every animation off and lands exactly here,
+   which is a complete, readable architecture diagram. */
+.rf-n { opacity: 1; }
+.rf-pk { opacity: 0; }
+.rf-newrow { opacity: 1; }
+.rf-cap { opacity: 0; }
+.rf-cap0 { opacity: 1; }
+
+.rf-auto .rf-glow-browser { animation: rf-lit-browser 60s infinite; }
+@keyframes rf-lit-browser { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-lane-rask { animation: rf-lit-lane-rask 60s infinite; }
+@keyframes rf-lit-lane-rask { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-lane-island { animation: rf-lit-lane-island 60s infinite; }
+@keyframes rf-lit-lane-island { 0%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-lane-spa { animation: rf-lit-lane-spa 60s infinite; }
+@keyframes rf-lit-lane-spa { 0%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-chain { animation: rf-lit-chain 60s infinite; }
+@keyframes rf-lit-chain { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-validation { animation: rf-lit-validation 60s infinite; }
+@keyframes rf-lit-validation { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-ws { animation: rf-lit-ws 60s infinite; }
+@keyframes rf-lit-ws { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-jsi { animation: rf-lit-jsi 60s infinite; }
+@keyframes rf-lit-jsi { 0%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-http { animation: rf-lit-http 60s infinite; }
+@keyframes rf-lit-http { 0%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-serialize { animation: rf-lit-serialize 60s infinite; }
+@keyframes rf-lit-serialize { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-frames { animation: rf-lit-frames 60s infinite; }
+@keyframes rf-lit-frames { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-differ { animation: rf-lit-differ 60s infinite; }
+@keyframes rf-lit-differ { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-payload { animation: rf-lit-payload 60s infinite; }
+@keyframes rf-lit-payload { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-rung2 { animation: rf-lit-rung2 60s infinite; }
+@keyframes rf-lit-rung2 { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-rung3 { animation: rf-lit-rung3 60s infinite; }
+@keyframes rf-lit-rung3 { 0%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-query { animation: rf-lit-query 60s infinite; }
+@keyframes rf-lit-query { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-cqrs { animation: rf-lit-cqrs 60s infinite; }
+@keyframes rf-lit-cqrs { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-handlers { animation: rf-lit-handlers 60s infinite; }
+@keyframes rf-lit-handlers { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-jobs { animation: rf-lit-jobs 60s infinite; }
+@keyframes rf-lit-jobs { 0%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-mail { animation: rf-lit-mail 60s infinite; }
+@keyframes rf-lit-mail { 0%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-outbox { animation: rf-lit-outbox 60s infinite; }
+@keyframes rf-lit-outbox { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-data { animation: rf-lit-data 60s infinite; }
+@keyframes rf-lit-data { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-ef { animation: rf-lit-ef 60s infinite; }
+@keyframes rf-lit-ef { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-sqliteef { animation: rf-lit-sqliteef 60s infinite; }
+@keyframes rf-lit-sqliteef { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-sqlite { animation: rf-lit-sqlite 60s infinite; }
+@keyframes rf-lit-sqlite { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-browserdb { animation: rf-lit-browserdb 60s infinite; }
+@keyframes rf-lit-browserdb { 0%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-appdb { animation: rf-lit-appdb 60s infinite; }
+@keyframes rf-lit-appdb { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-gen { animation: rf-lit-gen 60s infinite; }
+@keyframes rf-lit-gen { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-battgen { animation: rf-lit-battgen 60s infinite; }
+@keyframes rf-lit-battgen { 0%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-wasmtasks { animation: rf-lit-wasmtasks 60s infinite; }
+@keyframes rf-lit-wasmtasks { 0%, 20% { opacity: 0; } 21%, 39% { opacity: 1; } 40%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-spatasks { animation: rf-lit-spatasks 60s infinite; }
+@keyframes rf-lit-spatasks { 0%, 60% { opacity: 0; } 61%, 79% { opacity: 1; } 80%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-exttasks { animation: rf-lit-exttasks 60s infinite; }
+@keyframes rf-lit-exttasks { 0%, 40% { opacity: 0; } 41%, 59% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-dashboard { animation: rf-lit-dashboard 60s infinite; }
+@keyframes rf-lit-dashboard { 0%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-litestream { animation: rf-lit-litestream 60s infinite; }
+@keyframes rf-lit-litestream { 0%, 0% { opacity: 0; } 1%, 19% { opacity: 1; } 20%, 100% { opacity: 0; } }
+.rf-auto .rf-glow-webpush { animation: rf-lit-webpush 60s infinite; }
+@keyframes rf-lit-webpush { 0%, 80% { opacity: 0; } 81%, 99% { opacity: 1; } 100%, 100% { opacity: 0; } }
+
+.rf-auto .rf-pk0 { animation: rf-pk0-a 60s linear infinite; }
+@keyframes rf-pk0-a {
+  0%, 0.6% { opacity: 0; transform: translate(453px, 122px); }
+  1% { opacity: 1; transform: translate(453px, 122px); }
+  1.789% { transform: translate(400px, 222px); }
+  2.579% { transform: translate(331px, 264px); }
+  3.368% { transform: translate(400px, 300px); }
+  4.158% { transform: translate(546px, 435px); }
+  4.947% { transform: translate(796px, 435px); }
+  5.737% { transform: translate(769px, 525px); }
+  6.526% { transform: translate(296px, 617px); }
+  7.316% { transform: translate(466px, 617px); }
+  8.105% { transform: translate(626px, 617px); }
+  8.895% { transform: translate(801px, 617px); }
+  9.684% { transform: translate(620px, 656px); }
+  10.474% { transform: translate(306px, 708px); }
+  11.263% { transform: translate(400px, 660px); }
+  12.053% { transform: translate(246px, 353px); }
+  12.842% { transform: translate(358px, 353px); }
+  13.632% { transform: translate(470px, 353px); }
+  14.421% { transform: translate(584px, 353px); }
+  15.211% { transform: translate(331px, 264px); }
+  16% { opacity: 1; transform: translate(346px, 199px); }
+  16.8%, 100% { opacity: 0; transform: translate(346px, 199px); }
+}
+.rf-only0 .rf-pk0 { animation: rf-pk0-p 13s linear infinite; }
+@keyframes rf-pk0-p {
+  0% { opacity: 0; transform: translate(453px, 122px); }
+  2% { opacity: 1; transform: translate(453px, 122px); }
+  6.526% { transform: translate(400px, 222px); }
+  11.053% { transform: translate(331px, 264px); }
+  15.579% { transform: translate(400px, 300px); }
+  20.105% { transform: translate(546px, 435px); }
+  24.632% { transform: translate(796px, 435px); }
+  29.158% { transform: translate(769px, 525px); }
+  33.684% { transform: translate(296px, 617px); }
+  38.211% { transform: translate(466px, 617px); }
+  42.737% { transform: translate(626px, 617px); }
+  47.263% { transform: translate(801px, 617px); }
+  51.789% { transform: translate(620px, 656px); }
+  56.316% { transform: translate(306px, 708px); }
+  60.842% { transform: translate(400px, 660px); }
+  65.368% { transform: translate(246px, 353px); }
+  69.895% { transform: translate(358px, 353px); }
+  74.421% { transform: translate(470px, 353px); }
+  78.947% { transform: translate(584px, 353px); }
+  83.474% { transform: translate(331px, 264px); }
+  88% { opacity: 1; transform: translate(346px, 199px); }
+  92%, 100% { opacity: 0; transform: translate(346px, 199px); }
+}
+.rf-auto .rf-pk1 { animation: rf-pk1-a 60s linear infinite; }
+@keyframes rf-pk1-a {
+  0%, 20.6% { opacity: 0; transform: translate(453px, 122px); }
+  21% { opacity: 1; transform: translate(453px, 122px); }
+  22.5% { transform: translate(616px, 264px); }
+  24% { transform: translate(546px, 435px); }
+  25.5% { transform: translate(965px, 617px); }
+  27% { transform: translate(546px, 435px); }
+  28.5% { transform: translate(246px, 353px); }
+  30% { transform: translate(358px, 353px); }
+  31.5% { transform: translate(470px, 353px); }
+  33% { transform: translate(584px, 353px); }
+  34.5% { transform: translate(616px, 264px); }
+  36% { opacity: 1; transform: translate(346px, 199px); }
+  36.8%, 100% { opacity: 0; transform: translate(346px, 199px); }
+}
+.rf-only1 .rf-pk1 { animation: rf-pk1-p 13s linear infinite; }
+@keyframes rf-pk1-p {
+  0% { opacity: 0; transform: translate(453px, 122px); }
+  2% { opacity: 1; transform: translate(453px, 122px); }
+  10.6% { transform: translate(616px, 264px); }
+  19.2% { transform: translate(546px, 435px); }
+  27.8% { transform: translate(965px, 617px); }
+  36.4% { transform: translate(546px, 435px); }
+  45% { transform: translate(246px, 353px); }
+  53.6% { transform: translate(358px, 353px); }
+  62.2% { transform: translate(470px, 353px); }
+  70.8% { transform: translate(584px, 353px); }
+  79.4% { transform: translate(616px, 264px); }
+  88% { opacity: 1; transform: translate(346px, 199px); }
+  92%, 100% { opacity: 0; transform: translate(346px, 199px); }
+}
+.rf-auto .rf-pk2 { animation: rf-pk2-a 60s linear infinite; }
+@keyframes rf-pk2-a {
+  0%, 40.6% { opacity: 0; transform: translate(670px, 138px); }
+  41% { opacity: 1; transform: translate(670px, 138px); }
+  43.143% { transform: translate(331px, 264px); }
+  45.286% { transform: translate(546px, 435px); }
+  47.429% { transform: translate(796px, 435px); }
+  49.571% { transform: translate(546px, 435px); }
+  51.714% { transform: translate(584px, 353px); }
+  53.857% { transform: translate(331px, 264px); }
+  56% { opacity: 1; transform: translate(670px, 138px); }
+  56.8%, 100% { opacity: 0; transform: translate(670px, 138px); }
+}
+.rf-only2 .rf-pk2 { animation: rf-pk2-p 13s linear infinite; }
+@keyframes rf-pk2-p {
+  0% { opacity: 0; transform: translate(670px, 138px); }
+  2% { opacity: 1; transform: translate(670px, 138px); }
+  14.286% { transform: translate(331px, 264px); }
+  26.571% { transform: translate(546px, 435px); }
+  38.857% { transform: translate(796px, 435px); }
+  51.143% { transform: translate(546px, 435px); }
+  63.429% { transform: translate(584px, 353px); }
+  75.714% { transform: translate(331px, 264px); }
+  88% { opacity: 1; transform: translate(670px, 138px); }
+  92%, 100% { opacity: 0; transform: translate(670px, 138px); }
+}
+.rf-auto .rf-pk2b { animation: rf-pk2b-a 60s linear infinite; }
+@keyframes rf-pk2b-a {
+  0%, 40.6% { opacity: 0; transform: translate(1000px, 138px); }
+  41% { opacity: 1; transform: translate(1000px, 138px); }
+  42.5% { transform: translate(331px, 264px); }
+  44% { transform: translate(546px, 435px); }
+  45.5% { transform: translate(796px, 435px); }
+  47% { transform: translate(546px, 435px); }
+  48.5% { transform: translate(246px, 353px); }
+  50% { transform: translate(358px, 353px); }
+  51.5% { transform: translate(470px, 353px); }
+  53% { transform: translate(584px, 353px); }
+  54.5% { transform: translate(331px, 264px); }
+  56% { opacity: 1; transform: translate(1000px, 138px); }
+  56.8%, 100% { opacity: 0; transform: translate(1000px, 138px); }
+}
+.rf-only2 .rf-pk2b { animation: rf-pk2b-p 13s linear infinite; }
+@keyframes rf-pk2b-p {
+  0% { opacity: 0; transform: translate(1000px, 138px); }
+  2% { opacity: 1; transform: translate(1000px, 138px); }
+  10.6% { transform: translate(331px, 264px); }
+  19.2% { transform: translate(546px, 435px); }
+  27.8% { transform: translate(796px, 435px); }
+  36.4% { transform: translate(546px, 435px); }
+  45% { transform: translate(246px, 353px); }
+  53.6% { transform: translate(358px, 353px); }
+  62.2% { transform: translate(470px, 353px); }
+  70.8% { transform: translate(584px, 353px); }
+  79.4% { transform: translate(331px, 264px); }
+  88% { opacity: 1; transform: translate(1000px, 138px); }
+  92%, 100% { opacity: 0; transform: translate(1000px, 138px); }
+}
+.rf-auto .rf-pk3 { animation: rf-pk3-a 60s linear infinite; }
+@keyframes rf-pk3-a {
+  0%, 60.6% { opacity: 0; transform: translate(670px, 174px); }
+  61% { opacity: 1; transform: translate(670px, 174px); }
+  62.25% { transform: translate(905px, 264px); }
+  63.5% { transform: translate(546px, 435px); }
+  64.75% { transform: translate(796px, 435px); }
+  66% { transform: translate(296px, 617px); }
+  67.25% { transform: translate(466px, 617px); }
+  68.5% { transform: translate(626px, 617px); }
+  69.75% { transform: translate(801px, 617px); }
+  71% { transform: translate(620px, 656px); }
+  72.25% { transform: translate(306px, 708px); }
+  73.5% { transform: translate(905px, 500px); }
+  74.75% { transform: translate(905px, 264px); }
+  76% { opacity: 1; transform: translate(670px, 174px); }
+  76.8%, 100% { opacity: 0; transform: translate(670px, 174px); }
+}
+.rf-only3 .rf-pk3 { animation: rf-pk3-p 13s linear infinite; }
+@keyframes rf-pk3-p {
+  0% { opacity: 0; transform: translate(670px, 174px); }
+  2% { opacity: 1; transform: translate(670px, 174px); }
+  9.167% { transform: translate(905px, 264px); }
+  16.333% { transform: translate(546px, 435px); }
+  23.5% { transform: translate(796px, 435px); }
+  30.667% { transform: translate(296px, 617px); }
+  37.833% { transform: translate(466px, 617px); }
+  45% { transform: translate(626px, 617px); }
+  52.167% { transform: translate(801px, 617px); }
+  59.333% { transform: translate(620px, 656px); }
+  66.5% { transform: translate(306px, 708px); }
+  73.667% { transform: translate(905px, 500px); }
+  80.833% { transform: translate(905px, 264px); }
+  88% { opacity: 1; transform: translate(670px, 174px); }
+  92%, 100% { opacity: 0; transform: translate(670px, 174px); }
+}
+.rf-auto .rf-pk4 { animation: rf-pk4-a 60s linear infinite; }
+@keyframes rf-pk4-a {
+  0%, 80.6% { opacity: 0; transform: translate(306px, 708px); }
+  81% { opacity: 1; transform: translate(306px, 708px); }
+  82.875% { transform: translate(769px, 525px); }
+  84.75% { transform: translate(546px, 435px); }
+  86.625% { transform: translate(796px, 435px); }
+  88.5% { transform: translate(437px, 525px); }
+  90.375% { transform: translate(271px, 525px); }
+  92.25% { transform: translate(306px, 708px); }
+  94.125% { transform: translate(1148px, 448px); }
+  96% { opacity: 1; transform: translate(1148px, 654px); }
+  96.8%, 100% { opacity: 0; transform: translate(1148px, 654px); }
+}
+.rf-only4 .rf-pk4 { animation: rf-pk4-p 13s linear infinite; }
+@keyframes rf-pk4-p {
+  0% { opacity: 0; transform: translate(306px, 708px); }
+  2% { opacity: 1; transform: translate(306px, 708px); }
+  12.75% { transform: translate(769px, 525px); }
+  23.5% { transform: translate(546px, 435px); }
+  34.25% { transform: translate(796px, 435px); }
+  45% { transform: translate(437px, 525px); }
+  55.75% { transform: translate(271px, 525px); }
+  66.5% { transform: translate(306px, 708px); }
+  77.25% { transform: translate(1148px, 448px); }
+  88% { opacity: 1; transform: translate(1148px, 654px); }
+  92%, 100% { opacity: 0; transform: translate(1148px, 654px); }
+}
+
+.rf-auto .rf-newrow { animation: rf-newrow 60s infinite; }
+@keyframes rf-newrow {
+  0%, 15% { opacity: 0; } 16%, 19.5% { opacity: 1; } 20%, 35% { opacity: 0; } 36%, 39.5% { opacity: 1; } 40%, 55% { opacity: 0; } 56%, 59.5% { opacity: 1; } 60%, 75% { opacity: 0; } 76%, 79.5% { opacity: 1; } 80%, 100% { opacity: 0; }
+}
+.rf-auto .rf-click { animation: rf-click 60s infinite; }
+@keyframes rf-click { 0%, 0% { opacity: 0; stroke-width: 1; } 1.2% { opacity: 1; stroke-width: 3; } 3%, 20% { opacity: 0; stroke-width: 1; } 21.2% { opacity: 1; stroke-width: 3; } 23%, 40% { opacity: 0; stroke-width: 1; } 41.2% { opacity: 1; stroke-width: 3; } 43%, 60% { opacity: 0; stroke-width: 1; } 61.2% { opacity: 1; stroke-width: 3; } 63%, 100% { opacity: 0; stroke-width: 1; } }
+
+.rf-auto .rf-cap0 { animation: rf-cap0 60s infinite; }
+@keyframes rf-cap0 { 0%, 19.5% { opacity: 1; } 20%, 100% { opacity: 0; } }
+.rf-auto .rf-cap1 { animation: rf-cap1 60s infinite; }
+@keyframes rf-cap1 { 0%, 19.5% { opacity: 0; } 20%, 39.5% { opacity: 1; } 40%, 100% { opacity: 0; } }
+.rf-auto .rf-cap2 { animation: rf-cap2 60s infinite; }
+@keyframes rf-cap2 { 0%, 39.5% { opacity: 0; } 40%, 59.5% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.rf-auto .rf-cap3 { animation: rf-cap3 60s infinite; }
+@keyframes rf-cap3 { 0%, 59.5% { opacity: 0; } 60%, 79.5% { opacity: 1; } 80%, 100% { opacity: 0; } }
+.rf-auto .rf-cap4 { animation: rf-cap4 60s infinite; }
+@keyframes rf-cap4 { 0%, 79.5% { opacity: 0; } 80%, 99.5% { opacity: 1; } 100%, 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rf-glow, .rf-pk, .rf-newrow, .rf-cap, .rf-click { animation: none; }
+  .rf-pk { opacity: 0; }
+}</style><g><rect class="rf-ground" x="0" y="0" width="1240" height="800"></rect><text class="rf-t rf-lg" x="16" y="30">One codebase, one server, one database</text><text class="rf-t rf-xs rf-mut" x="1224" y="30" text-anchor="end">build time &#x2192; left rail &#xB7; the request path &#x2192; the spine &#xB7; operations &#x2192; right rail</text></g><g data-rask-key="band0"><rect class="rf-band" x="184" y="56" width="872" height="158" rx="12"></rect><text class="rf-t rf-xxs rf-mut" x="188" y="50">the front end &#x2014; pick one, they share everything below</text></g><g data-rask-key="band1"><rect class="rf-band" x="184" y="232" width="872" height="62" rx="12"></rect><text class="rf-t rf-xxs rf-mut" x="188" y="226">transport</text></g><g data-rask-key="band2"><rect class="rf-band" x="184" y="312" width="872" height="74" rx="12"></rect><text class="rf-t rf-xxs rf-mut" x="188" y="306">render core (one walk, two outputs)   &#xB7;   the render ladder</text></g><g data-rask-key="band3"><rect class="rf-band" x="184" y="404" width="872" height="62" rx="12"></rect><text class="rf-t rf-xxs rf-mut" x="188" y="398">application logic</text></g><g data-rask-key="band4"><rect class="rf-band" x="184" y="484" width="872" height="84" rx="12"></rect><text class="rf-t rf-xxs rf-mut" x="188" y="478">durable batteries &#x2014; all on the app&#x27;s own database</text></g><g data-rask-key="band5"><rect class="rf-band" x="184" y="586" width="872" height="62" rx="12"></rect><text class="rf-t rf-xxs rf-mut" x="188" y="580">data access</text></g><g data-rask-key="band6"><rect class="rf-band" x="184" y="666" width="872" height="84" rx="12"></rect><text class="rf-t rf-xxs rf-mut" x="188" y="660">storage &amp; durability</text></g><line class="rf-trunk" data-rask-key="gap0" x1="400" y1="214" x2="400" y2="232"></line><line class="rf-trunk" data-rask-key="gap1" x1="620" y1="214" x2="620" y2="232"></line><line class="rf-trunk" data-rask-key="gap2" x1="840" y1="214" x2="840" y2="232"></line><line class="rf-trunk" data-rask-key="gap3" x1="400" y1="294" x2="400" y2="312"></line><line class="rf-trunk" data-rask-key="gap4" x1="620" y1="294" x2="620" y2="312"></line><line class="rf-trunk" data-rask-key="gap5" x1="840" y1="294" x2="840" y2="312"></line><line class="rf-trunk" data-rask-key="gap6" x1="400" y1="386" x2="400" y2="404"></line><line class="rf-trunk" data-rask-key="gap7" x1="620" y1="386" x2="620" y2="404"></line><line class="rf-trunk" data-rask-key="gap8" x1="840" y1="386" x2="840" y2="404"></line><line class="rf-trunk" data-rask-key="gap9" x1="400" y1="466" x2="400" y2="484"></line><line class="rf-trunk" data-rask-key="gap10" x1="620" y1="466" x2="620" y2="484"></line><line class="rf-trunk" data-rask-key="gap11" x1="840" y1="466" x2="840" y2="484"></line><line class="rf-trunk" data-rask-key="gap12" x1="400" y1="568" x2="400" y2="586"></line><line class="rf-trunk" data-rask-key="gap13" x1="620" y1="568" x2="620" y2="586"></line><line class="rf-trunk" data-rask-key="gap14" x1="840" y1="568" x2="840" y2="586"></line><line class="rf-trunk" data-rask-key="gap15" x1="400" y1="648" x2="400" y2="666"></line><line class="rf-trunk" data-rask-key="gap16" x1="620" y1="648" x2="620" y2="666"></line><line class="rf-trunk" data-rask-key="gap17" x1="840" y1="648" x2="840" y2="666"></line><g><text class="rf-t rf-xxs rf-mut" x="16" y="74">before it runs</text><text class="rf-t rf-xxs rf-faint" x="16" y="86">generators &amp; MSBuild</text><g class="rf-n rf-n-gen" data-rask-key="n-gen"><rect class="rf-box rf-rail" x="16" y="96" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="115" text-anchor="middle">Rask.Generators</text><text class="rf-t rf-xxs rf-mut" x="92" y="129" text-anchor="middle">factories &#xB7; Routes &#xB7; RASK0xx</text><rect class="rf-glow rf-glow-gen" x="15" y="95" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-genfix" data-rask-key="n-genfix"><rect class="rf-box rf-rail" x="16" y="144" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="163" text-anchor="middle">&#x2026;CodeFixes</text><text class="rf-t rf-xxs rf-mut" x="92" y="177" text-anchor="middle">IDE quick fixes</text><rect class="rf-glow rf-glow-genfix" x="15" y="143" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-battgen" data-rask-key="n-battgen"><rect class="rf-box rf-rail" x="16" y="192" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="211" text-anchor="middle">Rask.Batteries.Generators</text><text class="rf-t rf-xxs rf-mut" x="92" y="225" text-anchor="middle">CQRS codec &#xB7; registries</text><rect class="rf-glow rf-glow-battgen" x="15" y="191" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-tstasks" data-rask-key="n-tstasks"><rect class="rf-box rf-rail" x="16" y="240" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="259" text-anchor="middle">Rask.TypeScript.Tasks</text><text class="rf-t rf-xxs rf-mut" x="92" y="273" text-anchor="middle">scoped TS</text><rect class="rf-glow rf-glow-tstasks" x="15" y="239" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-wasmtasks" data-rask-key="n-wasmtasks"><rect class="rf-box rf-rail" x="16" y="288" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="307" text-anchor="middle">Rask.Wasm.Tasks</text><text class="rf-t rf-xxs rf-mut" x="92" y="321" text-anchor="middle">scoped-asset bake</text><rect class="rf-glow rf-glow-wasmtasks" x="15" y="287" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-spatasks" data-rask-key="n-spatasks"><rect class="rf-box rf-rail" x="16" y="336" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="355" text-anchor="middle">Rask.Spa.Tasks</text><text class="rf-t rf-xxs rf-mut" x="92" y="369" text-anchor="middle">TypeScript from C#</text><rect class="rf-glow rf-glow-spatasks" x="15" y="335" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-exttasks" data-rask-key="n-exttasks"><rect class="rf-box rf-rail" x="16" y="384" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="403" text-anchor="middle">Rask.External.Tasks</text><text class="rf-t rf-xxs rf-mut" x="92" y="417" text-anchor="middle">island bundles &#xB7; prop types</text><rect class="rf-glow rf-glow-exttasks" x="15" y="383" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-tw" data-rask-key="n-tw"><rect class="rf-box rf-rail" x="16" y="432" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="451" text-anchor="middle">Rask.Tailwind</text><text class="rf-t rf-xxs rf-mut" x="92" y="465" text-anchor="middle">no npm, no config</text><rect class="rf-glow rf-glow-tw" x="15" y="431" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-twtasks" data-rask-key="n-twtasks"><rect class="rf-box rf-rail" x="16" y="480" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="499" text-anchor="middle">Rask.Tailwind.Tasks</text><text class="rf-t rf-xxs rf-mut" x="92" y="513" text-anchor="middle">resolves the CLI</text><rect class="rf-glow rf-glow-twtasks" x="15" y="479" width="154" height="42" rx="8"></rect></g><g class="rf-n rf-n-cli" data-rask-key="n-cli"><rect class="rf-box rf-rail" x="16" y="528" width="152" height="40" rx="7"></rect><text class="rf-t rf-xs" x="92" y="547" text-anchor="middle">Rask.Cli</text><text class="rf-t rf-xxs rf-mut" x="92" y="561" text-anchor="middle">new &#xB7; db &#xB7; dev &#xB7; deploy</text><rect class="rf-glow rf-glow-cli" x="15" y="527" width="154" height="42" rx="8"></rect></g></g><g><text class="rf-t rf-xxs rf-mut" x="1072" y="398">operations</text><text class="rf-t rf-xxs rf-faint" x="1072" y="410">reads what the bands write</text><g class="rf-n rf-n-dashboard" data-rask-key="n-dashboard"><rect class="rf-box rf-ops" x="1072" y="420" width="152" height="56" rx="7"></rect><text class="rf-t rf-xs" x="1148" y="447" text-anchor="middle">Rask.Dashboard</text><text class="rf-t rf-xxs rf-mut" x="1148" y="461" text-anchor="middle">/_rask &#x2014; queues &amp; logs</text><rect class="rf-glow rf-glow-dashboard" x="1071" y="419" width="154" height="58" rx="8"></rect></g><g class="rf-n rf-n-litestream" data-rask-key="n-litestream"><rect class="rf-box rf-ops" x="1072" y="492" width="152" height="52" rx="7"></rect><text class="rf-t rf-xs" x="1148" y="517" text-anchor="middle">&#x2026;Litestream</text><text class="rf-t rf-xxs rf-mut" x="1148" y="531" text-anchor="middle">continuous WAL</text><rect class="rf-glow rf-glow-litestream" x="1071" y="491" width="154" height="54" rx="8"></rect></g><g class="rf-n rf-n-snapshots" data-rask-key="n-snapshots"><rect class="rf-box rf-ops" x="1072" y="560" width="152" height="52" rx="7"></rect><text class="rf-t rf-xs" x="1148" y="585" text-anchor="middle">&#x2026;Snapshots</text><text class="rf-t rf-xxs rf-mut" x="1148" y="599" text-anchor="middle">point in time</text><rect class="rf-glow rf-glow-snapshots" x="1071" y="559" width="154" height="54" rx="8"></rect></g><g class="rf-n rf-n-webpush" data-rask-key="n-webpush"><rect class="rf-box rf-ops" x="1072" y="628" width="152" height="52" rx="7"></rect><text class="rf-t rf-xs" x="1148" y="653" text-anchor="middle">Rask.WebPush</text><text class="rf-t rf-xxs rf-mut" x="1148" y="667" text-anchor="middle">VAPID, no service</text><rect class="rf-glow rf-glow-webpush" x="1071" y="627" width="154" height="54" rx="8"></rect></g><g class="rf-n rf-n-signaling" data-rask-key="n-signaling"><rect class="rf-box rf-ops" x="1072" y="692" width="152" height="52" rx="7"></rect><text class="rf-t rf-xs" x="1148" y="717" text-anchor="middle">Rask.Signaling</text><text class="rf-t rf-xxs rf-mut" x="1148" y="731" text-anchor="middle">WebRTC relay</text><rect class="rf-glow rf-glow-signaling" x="1071" y="691" width="154" height="54" rx="8"></rect></g></g><g class="rf-n rf-n-browser" data-rask-key="n-browser"><rect class="rf-screen" x="196" y="84" width="300" height="126" rx="8"></rect><rect class="rf-screenbar" x="196" y="84" width="300" height="22" rx="8"></rect><rect class="rf-screenbar" x="196" y="98" width="300" height="8"></rect><circle class="rf-dot" cx="210" cy="95" r="3"></circle><circle class="rf-dot" cx="222" cy="95" r="3"></circle><circle class="rf-dot" cx="234" cy="95" r="3"></circle><text class="rf-t rf-xxs rf-mut" x="248" y="99">localhost:5000/orders</text><text class="rf-t rf-sm" x="206" y="126">Orders</text><rect class="rf-clickbtn" x="420" y="114" width="66" height="16" rx="4"></rect><text class="rf-t rf-xxs" x="453" y="125" text-anchor="middle">&#x2B; New</text><rect class="rf-click" x="420" y="114" width="66" height="16" rx="4"></rect><rect class="rf-row" data-rask-key="row0" x="206" y="138" width="280" height="12" rx="3"></rect><rect class="rf-row" data-rask-key="row1" x="206" y="156" width="280" height="12" rx="3"></rect><rect class="rf-row" data-rask-key="row2" x="206" y="174" width="280" height="12" rx="3"></rect><g class="rf-newrow"><rect class="rf-row rf-row-new" x="206" y="192" width="280" height="14" rx="3"></rect><text class="rf-t rf-xxs rf-signal" x="212" y="202">&#x2B; new order</text></g><rect class="rf-glow rf-glow-browser" x="195" y="83" width="302" height="128" rx="8"></rect></g><g class="rf-n rf-n-lane-rask" data-rask-key="n-lane-rask"><rect class="rf-box rf-lane" x="516" y="88" width="118" height="28" rx="7"></rect><text class="rf-t rf-xs" x="575" y="106" text-anchor="middle">Rask &#x2014; C#</text><rect class="rf-glow rf-glow-lane-rask" x="515" y="87" width="120" height="30" rx="8"></rect></g><g class="rf-n rf-n-lane-island" data-rask-key="n-lane-island"><rect class="rf-box rf-lane" x="516" y="124" width="118" height="28" rx="7"></rect><text class="rf-t rf-xs" x="575" y="137" text-anchor="middle">Islands</text><text class="rf-t rf-xxs rf-mut" x="575" y="151" text-anchor="middle">Rask.External</text><rect class="rf-glow rf-glow-lane-island" x="515" y="123" width="120" height="30" rx="8"></rect></g><g class="rf-n rf-n-lane-spa" data-rask-key="n-lane-spa"><rect class="rf-box rf-lane" x="516" y="160" width="118" height="28" rx="7"></rect><text class="rf-t rf-xs" x="575" y="178" text-anchor="middle">SPA lane</text><rect class="rf-glow rf-glow-lane-spa" x="515" y="159" width="120" height="30" rx="8"></rect></g><g class="rf-n rf-n-chain" data-rask-key="n-chain"><rect class="rf-box rf-chip-wide" x="640" y="88" width="396" height="28" rx="7"></rect><text class="rf-t rf-xs" x="838" y="106" text-anchor="middle">Component chain &#x2014; Rask.Core &#xB7; Rask.Html</text><rect class="rf-glow rf-glow-chain" x="639" y="87" width="398" height="30" rx="8"></rect></g><g class="rf-n rf-n-validation" data-rask-key="n-validation"><rect class="rf-box rf-chip-note" x="640" y="192" width="196" height="20" rx="7"></rect><text class="rf-t rf-xs" x="738" y="206" text-anchor="middle">Rask.Validation.*</text><rect class="rf-glow rf-glow-validation" x="639" y="191" width="198" height="22" rx="8"></rect></g><g class="rf-n rf-n-testing" data-rask-key="n-testing"><rect class="rf-box rf-chip-note" x="844" y="192" width="192" height="20" rx="7"></rect><text class="rf-t rf-xs" x="940" y="206" text-anchor="middle">Rask.Testing</text><rect class="rf-glow rf-glow-testing" x="843" y="191" width="194" height="22" rx="8"></rect></g><g class="rf-n rf-n-ws" data-rask-key="n-ws"><rect class="rf-box rf-wire" x="196" y="246" width="270" height="36" rx="7"></rect><text class="rf-t rf-xs" x="331" y="263" text-anchor="middle">WebSocket  /rask/ws</text><text class="rf-t rf-xxs rf-mut" x="331" y="277" text-anchor="middle">Rask.Server</text><rect class="rf-glow rf-glow-ws" x="195" y="245" width="272" height="38" rx="8"></rect></g><g class="rf-n rf-n-jsi" data-rask-key="n-jsi"><rect class="rf-box rf-wire" x="486" y="246" width="260" height="36" rx="7"></rect><text class="rf-t rf-xs" x="616" y="263" text-anchor="middle">JSImport / JSExport</text><text class="rf-t rf-xxs rf-mut" x="616" y="277" text-anchor="middle">Rask.Wasm &#xB7; Rask.Wasm.Hosting</text><rect class="rf-glow rf-glow-jsi" x="485" y="245" width="262" height="38" rx="8"></rect></g><g class="rf-n rf-n-http" data-rask-key="n-http"><rect class="rf-box rf-wire" x="766" y="246" width="278" height="36" rx="7"></rect><text class="rf-t rf-xs" x="905" y="263" text-anchor="middle">HTTP  /_rask/cqrs/request/{name}</text><text class="rf-t rf-xxs rf-mut" x="905" y="277" text-anchor="middle">Rask.Cqrs.Client &#x2192; Rask.Cqrs.Server &#xB7; Rask.Spa.Hosting</text><rect class="rf-glow rf-glow-http" x="765" y="245" width="280" height="38" rx="8"></rect></g><g class="rf-n rf-n-serialize" data-rask-key="n-serialize"><rect class="rf-box rf-core" x="196" y="336" width="100" height="34" rx="7"></rect><text class="rf-t rf-xs" x="246" y="357" text-anchor="middle">HtmlSerializer</text><rect class="rf-glow rf-glow-serialize" x="195" y="335" width="102" height="36" rx="8"></rect></g><g class="rf-n rf-n-frames" data-rask-key="n-frames"><rect class="rf-box rf-core" x="308" y="336" width="100" height="34" rx="7"></rect><text class="rf-t rf-xs" x="358" y="357" text-anchor="middle">RenderFrame[]</text><rect class="rf-glow rf-glow-frames" x="307" y="335" width="102" height="36" rx="8"></rect></g><g class="rf-n rf-n-differ" data-rask-key="n-differ"><rect class="rf-box rf-core" x="420" y="336" width="100" height="34" rx="7"></rect><text class="rf-t rf-xs" x="470" y="357" text-anchor="middle">FrameDiffer</text><rect class="rf-glow rf-glow-differ" x="419" y="335" width="102" height="36" rx="8"></rect></g><g class="rf-n rf-n-payload" data-rask-key="n-payload"><rect class="rf-box rf-core" x="532" y="336" width="104" height="34" rx="7"></rect><text class="rf-t rf-xs" x="584" y="357" text-anchor="middle">EditOp[] &#x2192; payload</text><rect class="rf-glow rf-glow-payload" x="531" y="335" width="106" height="36" rx="8"></rect></g><g class="rf-n rf-n-rung0" data-rask-key="n-rung0"><rect class="rf-box rf-rung" x="660" y="336" width="90" height="34" rx="7"></rect><text class="rf-t rf-xs" x="705" y="357" text-anchor="middle">static doc</text><rect class="rf-glow rf-glow-rung0" x="659" y="335" width="92" height="36" rx="8"></rect></g><g class="rf-n rf-n-rung1" data-rask-key="n-rung1"><rect class="rf-box rf-rung-off" x="756" y="336" width="90" height="34" rx="7"></rect><text class="rf-t rf-xs" x="801" y="352" text-anchor="middle">streaming</text><text class="rf-t rf-xxs rf-mut" x="801" y="366" text-anchor="middle">not built</text><rect class="rf-glow rf-glow-rung1" x="755" y="335" width="92" height="36" rx="8"></rect></g><g class="rf-n rf-n-rung2" data-rask-key="n-rung2"><rect class="rf-box rf-rung" x="852" y="336" width="90" height="34" rx="7"></rect><text class="rf-t rf-xs" x="897" y="357" text-anchor="middle">live / WS</text><rect class="rf-glow rf-glow-rung2" x="851" y="335" width="92" height="36" rx="8"></rect></g><g class="rf-n rf-n-rung3" data-rask-key="n-rung3"><rect class="rf-box rf-rung" x="948" y="336" width="90" height="34" rx="7"></rect><text class="rf-t rf-xs" x="993" y="357" text-anchor="middle">WASM</text><rect class="rf-glow rf-glow-rung3" x="947" y="335" width="92" height="36" rx="8"></rect></g><g class="rf-n rf-n-query" data-rask-key="n-query"><rect class="rf-box rf-app" x="196" y="418" width="200" height="34" rx="7"></rect><text class="rf-t rf-xs" x="296" y="434" text-anchor="middle">Rask.Query</text><text class="rf-t rf-xxs rf-mut" x="296" y="448" text-anchor="middle">IQueryClient &#x2014; dedup, staleness</text><rect class="rf-glow rf-glow-query" x="195" y="417" width="202" height="36" rx="8"></rect></g><g class="rf-n rf-n-cqrs" data-rask-key="n-cqrs"><rect class="rf-box rf-app" x="416" y="418" width="260" height="34" rx="7"></rect><text class="rf-t rf-xs" x="546" y="434" text-anchor="middle">Rask.Cqrs &#x2014; IDispatcher</text><text class="rf-t rf-xxs rf-mut" x="546" y="448" text-anchor="middle">one mediator, reflection-free</text><rect class="rf-glow rf-glow-cqrs" x="415" y="417" width="262" height="36" rx="8"></rect></g><g class="rf-n rf-n-handlers" data-rask-key="n-handlers"><rect class="rf-box rf-app" x="696" y="418" width="200" height="34" rx="7"></rect><text class="rf-t rf-xs" x="796" y="434" text-anchor="middle">your handlers</text><text class="rf-t rf-xxs rf-mut" x="796" y="448" text-anchor="middle">ICommandHandler / IQueryHandler</text><rect class="rf-glow rf-glow-handlers" x="695" y="417" width="202" height="36" rx="8"></rect></g><g class="rf-n rf-n-meta" data-rask-key="n-meta"><rect class="rf-box rf-app-soft" x="916" y="418" width="128" height="34" rx="7"></rect><text class="rf-t rf-xs" x="980" y="434" text-anchor="middle">Rask</text><text class="rf-t rf-xxs rf-mut" x="980" y="448" text-anchor="middle">the one package</text><rect class="rf-glow rf-glow-meta" x="915" y="417" width="130" height="36" rx="8"></rect></g><g class="rf-n rf-n-jobs" data-rask-key="n-jobs"><rect class="rf-box rf-batt" x="196" y="502" width="150" height="46" rx="7"></rect><text class="rf-t rf-xs" x="271" y="524" text-anchor="middle">Rask.Jobs</text><text class="rf-t rf-xxs rf-mut" x="271" y="538" text-anchor="middle">IJob &#xB7; Job table</text><rect class="rf-glow rf-glow-jobs" x="195" y="501" width="152" height="48" rx="8"></rect></g><g class="rf-n rf-n-mail" data-rask-key="n-mail"><rect class="rf-box rf-batt" x="362" y="502" width="150" height="46" rx="7"></rect><text class="rf-t rf-xs" x="437" y="524" text-anchor="middle">Rask.Mail</text><text class="rf-t rf-xxs rf-mut" x="437" y="538" text-anchor="middle">IMail &#xB7; QueuedMail</text><rect class="rf-glow rf-glow-mail" x="361" y="501" width="152" height="48" rx="8"></rect></g><g class="rf-n rf-n-cache" data-rask-key="n-cache"><rect class="rf-box rf-batt" x="528" y="502" width="150" height="46" rx="7"></rect><text class="rf-t rf-xs" x="603" y="524" text-anchor="middle">Rask.Cache</text><text class="rf-t rf-xxs rf-mut" x="603" y="538" text-anchor="middle">ICache &#xB7; CacheEntry</text><rect class="rf-glow rf-glow-cache" x="527" y="501" width="152" height="48" rx="8"></rect></g><g class="rf-n rf-n-outbox" data-rask-key="n-outbox"><rect class="rf-box rf-batt" x="694" y="502" width="150" height="46" rx="7"></rect><text class="rf-t rf-xs" x="769" y="524" text-anchor="middle">Rask.Outbox</text><text class="rf-t rf-xxs rf-mut" x="769" y="538" text-anchor="middle">same transaction</text><rect class="rf-glow rf-glow-outbox" x="693" y="501" width="152" height="48" rx="8"></rect></g><g class="rf-n rf-n-logging" data-rask-key="n-logging"><rect class="rf-box rf-batt-aside" x="860" y="502" width="184" height="46" rx="7"></rect><text class="rf-t rf-xs" x="952" y="524" text-anchor="middle">Rask.Logging</text><text class="rf-t rf-xxs rf-mut" x="952" y="538" text-anchor="middle">its own SQLite file</text><rect class="rf-glow rf-glow-logging" x="859" y="501" width="186" height="48" rx="8"></rect></g><g class="rf-n rf-n-data" data-rask-key="n-data"><rect class="rf-box rf-data" x="196" y="600" width="200" height="34" rx="7"></rect><text class="rf-t rf-xs" x="296" y="616" text-anchor="middle">Rask.Data</text><text class="rf-t rf-xxs rf-mut" x="296" y="630" text-anchor="middle">audit &#xB7; soft delete &#xB7; events</text><rect class="rf-glow rf-glow-data" x="195" y="599" width="202" height="36" rx="8"></rect></g><g class="rf-n rf-n-ef" data-rask-key="n-ef"><rect class="rf-box rf-data" x="406" y="600" width="120" height="34" rx="7"></rect><text class="rf-t rf-xs" x="466" y="621" text-anchor="middle">EF Core</text><rect class="rf-glow rf-glow-ef" x="405" y="599" width="122" height="36" rx="8"></rect></g><g class="rf-n rf-n-sqliteef" data-rask-key="n-sqliteef"><rect class="rf-box rf-data" x="536" y="600" width="180" height="34" rx="7"></rect><text class="rf-t rf-xs" x="626" y="616" text-anchor="middle">UseRaskSqlite</text><text class="rf-t rf-xxs rf-mut" x="626" y="630" text-anchor="middle">Rask.SQLite.EntityFrameworkCore</text><rect class="rf-glow rf-glow-sqliteef" x="535" y="599" width="182" height="36" rx="8"></rect></g><g class="rf-n rf-n-sqlite" data-rask-key="n-sqlite"><rect class="rf-box rf-data" x="726" y="600" width="150" height="34" rx="7"></rect><text class="rf-t rf-xs" x="801" y="616" text-anchor="middle">Rask.SQLite</text><text class="rf-t rf-xxs rf-mut" x="801" y="630" text-anchor="middle">WAL &#xB7; busy_timeout</text><rect class="rf-glow rf-glow-sqlite" x="725" y="599" width="152" height="36" rx="8"></rect></g><g class="rf-n rf-n-browserdb" data-rask-key="n-browserdb"><rect class="rf-box rf-data-soft" x="886" y="600" width="158" height="34" rx="7"></rect><text class="rf-t rf-xs" x="965" y="616" text-anchor="middle">Rask.SQLite.Browser</text><text class="rf-t rf-xxs rf-mut" x="965" y="630" text-anchor="middle">SQLite in the tab</text><rect class="rf-glow rf-glow-browserdb" x="885" y="599" width="160" height="36" rx="8"></rect></g><g class="rf-n rf-n-appdb" data-rask-key="n-appdb"><rect class="rf-box rf-store" x="196" y="684" width="220" height="48" rx="7"></rect><text class="rf-t rf-xs" x="306" y="707" text-anchor="middle">app.db  &#x2B;  -wal</text><text class="rf-t rf-xxs rf-mut" x="306" y="721" text-anchor="middle">orders &#xB7; outbox &#xB7; jobs &#xB7; mail &#xB7; cache</text><rect class="rf-glow rf-glow-appdb" x="195" y="683" width="222" height="50" rx="8"></rect></g><g class="rf-n rf-n-logsdb" data-rask-key="n-logsdb"><rect class="rf-box rf-store-soft" x="436" y="684" width="160" height="48" rx="7"></rect><text class="rf-t rf-xs" x="516" y="707" text-anchor="middle">logs.db</text><text class="rf-t rf-xxs rf-mut" x="516" y="721" text-anchor="middle">not backed up</text><rect class="rf-glow rf-glow-logsdb" x="435" y="683" width="162" height="50" rx="8"></rect></g><g class="rf-n rf-n-snapdir" data-rask-key="n-snapdir"><rect class="rf-box rf-store-soft" x="616" y="684" width="160" height="48" rx="7"></rect><text class="rf-t rf-xs" x="696" y="707" text-anchor="middle">snapshots/</text><text class="rf-t rf-xxs rf-mut" x="696" y="721" text-anchor="middle">Online Backup API</text><rect class="rf-glow rf-glow-snapdir" x="615" y="683" width="162" height="50" rx="8"></rect></g><g class="rf-n rf-n-objstore" data-rask-key="n-objstore"><rect class="rf-box rf-store-soft" x="796" y="684" width="248" height="48" rx="7"></rect><text class="rf-t rf-xs" x="920" y="707" text-anchor="middle">object storage</text><text class="rf-t rf-xxs rf-mut" x="920" y="721" text-anchor="middle">S3 &#xB7; GCS &#xB7; Azure &#xB7; file</text><rect class="rf-glow rf-glow-objstore" x="795" y="683" width="250" height="50" rx="8"></rect></g><g><g class="rf-n rf-n-island-react" data-rask-key="isl0"><rect class="rf-box rf-chip" x="640" y="124" width="60" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="670" y="142" text-anchor="middle">React</text></g><g class="rf-n rf-n-island-preact" data-rask-key="isl1"><rect class="rf-box rf-chip" x="706" y="124" width="60" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="736" y="142" text-anchor="middle">Preact</text></g><g class="rf-n rf-n-island-lit" data-rask-key="isl2"><rect class="rf-box rf-chip" x="772" y="124" width="60" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="802" y="142" text-anchor="middle">Lit</text></g><g class="rf-n rf-n-island-vue" data-rask-key="isl3"><rect class="rf-box rf-chip-soon" x="838" y="124" width="60" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="868" y="142" text-anchor="middle">Vue</text></g><g class="rf-n rf-n-island-svelte" data-rask-key="isl4"><rect class="rf-box rf-chip-soon" x="904" y="124" width="60" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="934" y="142" text-anchor="middle">Svelte</text></g><g class="rf-n rf-n-island-blazor" data-rask-key="isl5"><rect class="rf-box rf-chip-blazor" x="970" y="124" width="60" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="1000" y="142" text-anchor="middle">Blazor</text></g><g class="rf-n rf-n-spa-react" data-rask-key="spa0"><rect class="rf-box rf-chip" x="640" y="160" width="50" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="665" y="178" text-anchor="middle">React</text></g><g class="rf-n rf-n-spa-preact" data-rask-key="spa1"><rect class="rf-box rf-chip" x="696" y="160" width="50" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="721" y="178" text-anchor="middle">Preact</text></g><g class="rf-n rf-n-spa-vue" data-rask-key="spa2"><rect class="rf-box rf-chip" x="752" y="160" width="50" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="777" y="178" text-anchor="middle">Vue</text></g><g class="rf-n rf-n-spa-solid" data-rask-key="spa3"><rect class="rf-box rf-chip" x="808" y="160" width="50" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="833" y="178" text-anchor="middle">Solid</text></g><g class="rf-n rf-n-spa-svelte" data-rask-key="spa4"><rect class="rf-box rf-chip" x="864" y="160" width="50" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="889" y="178" text-anchor="middle">Svelte</text></g><g class="rf-n rf-n-spa-lit" data-rask-key="spa5"><rect class="rf-box rf-chip" x="920" y="160" width="50" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="945" y="178" text-anchor="middle">Lit</text></g><g class="rf-n rf-n-spa-angular" data-rask-key="spa6"><rect class="rf-box rf-chip" x="976" y="160" width="50" height="28" rx="7"></rect><text class="rf-t rf-xxs" x="1001" y="178" text-anchor="middle">Angular</text></g></g><polygon class="rf-arrow" data-rask-key="ar-rc0" points="296,349 308,353 296,357"></polygon><polygon class="rf-arrow" data-rask-key="ar-rc1" points="408,349 420,353 408,357"></polygon><polygon class="rf-arrow" data-rask-key="ar-rc2" points="520,349 532,353 520,357"></polygon><polygon class="rf-arrow" data-rask-key="ar-da0" points="396,613 406,617 396,621"></polygon><polygon class="rf-arrow" data-rask-key="ar-da1" points="526,613 536,617 526,621"></polygon><polygon class="rf-arrow" data-rask-key="ar-da2" points="716,613 726,617 716,621"></polygon><path class="rf-hint-wire" d="M 168 300 H 176"></path><text class="rf-t rf-xxs rf-faint" x="16" y="590">compiles into everything</text><text class="rf-t rf-xxs rf-faint" x="16" y="604">on the right &#x2192;</text><path class="rf-hint-wire" data-rask-key="ops0" d="M 1056 525 H 1064"></path><path class="rf-hint-wire" data-rask-key="ops1" d="M 1056 617 H 1064"></path><path class="rf-hint-wire" data-rask-key="ops2" d="M 1056 708 H 1064"></path><g class="rf-pk rf-pk0" data-rask-key="pk-rf-pk0"><circle class="rf-pk-halo" cx="0" cy="0" r="11"></circle><circle class="rf-pk-core" cx="0" cy="0" r="5"></circle></g><g class="rf-pk rf-pk1" data-rask-key="pk-rf-pk1"><circle class="rf-pk-halo" cx="0" cy="0" r="11"></circle><circle class="rf-pk-core" cx="0" cy="0" r="5"></circle></g><g class="rf-pk rf-pk2" data-rask-key="pk-rf-pk2"><circle class="rf-pk-halo" cx="0" cy="0" r="11"></circle><circle class="rf-pk-core" cx="0" cy="0" r="5"></circle></g><g class="rf-pk rf-pk2b" data-rask-key="pk-rf-pk2b"><circle class="rf-pk-halo" cx="0" cy="0" r="11"></circle><circle class="rf-pk-core" cx="0" cy="0" r="5"></circle></g><g class="rf-pk rf-pk3" data-rask-key="pk-rf-pk3"><circle class="rf-pk-halo" cx="0" cy="0" r="11"></circle><circle class="rf-pk-core" cx="0" cy="0" r="5"></circle></g><g class="rf-pk rf-pk4" data-rask-key="pk-rf-pk4"><circle class="rf-pk-halo" cx="0" cy="0" r="11"></circle><circle class="rf-pk-core" cx="0" cy="0" r="5"></circle></g><g><g data-rask-key="sw-lit"><rect class="rf-box rf-sw-lit" x="16" y="755" width="12" height="12" rx="3"></rect><text class="rf-t rf-xxs rf-mut" x="36" y="765">on this journey</text></g><g data-rask-key="sw-soon"><rect class="rf-box rf-sw-soon" x="176" y="755" width="12" height="12" rx="3"></rect><text class="rf-t rf-xxs rf-mut" x="196" y="765">landing soon</text></g><g data-rask-key="sw-blazor"><rect class="rf-box rf-sw-blazor" x="326" y="755" width="12" height="12" rx="3"></rect><text class="rf-t rf-xxs rf-mut" x="346" y="765">Rask-rendered island (not opaque)</text></g><g data-rask-key="sw-off"><rect class="rf-box rf-sw-off" x="566" y="755" width="12" height="12" rx="3"></rect><text class="rf-t rf-xxs rf-mut" x="586" y="765">declared, not built</text></g><g class="rf-cap rf-cap0" data-rask-key="cap0"><text class="rf-t rf-sm" x="1224" y="768" text-anchor="end">A click reaches SQLite and comes back as a diff</text><text class="rf-t rf-xs rf-mut" x="1224" y="788" text-anchor="end">handler id &#x2192; /rask/ws &#x2192; IDispatcher &#x2192; EF &#x2192; app.db, then EditOp[] back over the same socket</text></g><g class="rf-cap rf-cap1" data-rask-key="cap1"><text class="rf-t rf-sm" x="1224" y="768" text-anchor="end">The same components move into the browser</text><text class="rf-t rf-xs rf-mut" x="1224" y="788" text-anchor="end">the bundle arrives at idle, the socket closes 1000 &quot;handoff&quot;, and the render happens in the tab</text></g><g class="rf-cap rf-cap2" data-rask-key="cap2"><text class="rf-t rf-sm" x="1224" y="768" text-anchor="end">Two kinds of island, opposite diff semantics</text><text class="rf-t rf-xs rf-mut" x="1224" y="788" text-anchor="end">React owns its DOM, so the subtree is opaque and one attribute op reaches adapter.update &#x2014; Blazor is rendered by Rask, so it is diffed like any other markup</text></g><g class="rf-cap rf-cap3" data-rask-key="cap3"><text class="rf-t rf-sm" x="1224" y="768" text-anchor="end">A TypeScript SPA reaches the same handler</text><text class="rf-t rf-xs rf-mut" x="1224" y="788" text-anchor="end">no Component, no session, no diff &#x2014; generated TypeScript straight to the CQRS endpoint</text></g><g class="rf-cap rf-cap4" data-rask-key="cap4"><text class="rf-t rf-sm" x="1224" y="768" text-anchor="end">The work that outlives the request</text><text class="rf-t rf-xs rf-mut" x="1224" y="788" text-anchor="end">the outbox row committed with the order is relayed after the response, queueing mail and a delayed job</text></g></g></svg>

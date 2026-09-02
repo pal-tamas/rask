@@ -40,7 +40,15 @@
        with no IJSRuntime or host dependency can be linked: they compile and render here unchanged, and
        the generator emits their factories into this compilation. -->
   <ItemGroup>
-    <Compile Include="..\..\samples\Rask.Example.Site\ChainAnimation.cs"
+    <Compile Include="..\..\samples\Rask.Example.Site\FlowAnimation.cs"
+             LinkBase="Site"/>
+    <Compile Include="..\..\samples\Rask.Example.Site\FlowAnimation.Nodes.cs"
+             LinkBase="Site"/>
+    <Compile Include="..\..\samples\Rask.Example.Site\FlowAnimation.Draw.cs"
+             LinkBase="Site"/>
+    <Compile Include="..\..\samples\Rask.Example.Site\FlowAnimation.Scenes.cs"
+             LinkBase="Site"/>
+    <Compile Include="..\..\samples\Rask.Example.Site\FlowAnimation.Styles.cs"
              LinkBase="Site"/>
     <Compile Include="..\..\samples\Rask.Example.Site\InstallTabs.cs"
              LinkBase="Site"/>

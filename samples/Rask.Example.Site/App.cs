@@ -112,13 +112,16 @@ public partial class App : Component
     private Component Hero() =>
         Section.Class("pt-16 pb-20 sm:pt-24 sm:pb-28")[
             Div.Class(Wrap)[
-                // The page opens on the chain itself, before it says a word about the framework — the same
-                // animation the README leads with, rendered INLINE (not through <img>) so it inherits the
-                // token palette below and follows the theme toggle. See ChainAnimation for why that works.
+                // The page opens on the whole product, before it says a word about the framework — the
+                // same animation the README leads with, rendered INLINE (not through <img>) so it
+                // inherits the token palette below and follows the theme toggle. See FlowAnimation for
+                // why that works. Unpinned here: the hero cycles every journey by itself, because a hero
+                // that needs to be operated is a hero nobody operates. The picker lives further down, in
+                // HowItFits, for a reader who has decided which journey they care about.
                 // hero-anim/hero-grid are hooks, not styling: SiteExampleTests asserts the adjacency
                 // ".hero-anim + .hero-grid h1", and a Playwright locator that resolves to nothing fails by
                 // timing out rather than by naming what went missing.
-                Div.Class("hero-anim mb-12 flex justify-center")[ChainAnimation],
+                Div.Class("hero-anim mb-12 flex justify-center")[FlowAnimation],
                 Div.Class("hero-grid grid items-center gap-12 lg:grid-cols-2")[
                     Div[
                         P.Class(Eyebrow)["The .NET One Person Framework"],
