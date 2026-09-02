@@ -35,6 +35,77 @@ public sealed class PackagingContractTests
     /// <summary>The packages that ship the generators, and so must also ship what feeds them.</summary>
     public static TheoryData<string> HostPackages() => new() { "Rask.Server", "Rask.Wasm" };
 
+    [Fact]
+    public void The_local_feed_carries_what_its_own_packages_depend_on()
+    {
+        // A packable ProjectReference becomes a real <dependency> in the nuspec, so a package in the
+        // feed whose dependency is NOT in the feed fails to restore with NU1101 — and takes every
+        // scaffolded build down with it, not just the feature that added the reference.
+        //
+        // That is worth catching in a second rather than in the build gate. Adding Rask.Wire as a
+        // dependency of Rask.Cqrs broke every ProjectGeneratorBuildE2E, TutorialChapterBuildE2E and
+        // SpaTailwindBuildE2E case at once, and only showed up on the far side of an opt-in gate that
+        // packs the feed, queues for a machine-wide lane and then builds real projects. This assertion
+        // reads the same list and answers the same question with no packing at all.
+        var projects = SourceProjects();
+        var feed = CliBuildE2E.FeedPackages.ToHashSet(StringComparer.Ordinal);
+        var missing = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (var package in CliBuildE2E.FeedPackages)
+        {
+            if (!projects.TryGetValue(package, out var path))
+            {
+                continue;
+            }
+
+            foreach (var reference in XDocument.Load(path).Descendants("ProjectReference"))
+            {
+                var include = reference.Attribute("Include")?.Value;
+
+                if (include is null)
+                {
+                    continue;
+                }
+
+                var target = Path.GetFileNameWithoutExtension(include.Replace('\\', '/'));
+
+                // A reference that contributes no nuspec dependency cannot break a restore: analyzers
+                // (ReferenceOutputAssembly="false") and PrivateAssets="all" are both invisible to
+                // consumers, and an unpackable target is already covered by PackageDependencyTests.
+                if (reference.Attribute("ReferenceOutputAssembly")?.Value
+                        .Equals("false", StringComparison.OrdinalIgnoreCase) == true ||
+                    reference.Attribute("PrivateAssets")?.Value
+                        .Equals("all", StringComparison.OrdinalIgnoreCase) == true ||
+                    reference.Element("PrivateAssets")?.Value
+                        .Equals("all", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    continue;
+                }
+
+                if (projects.TryGetValue(target, out var targetPath) &&
+                    IsPackableProject(targetPath) &&
+                    !feed.Contains(target))
+                {
+                    missing.Add($"{target} (depended on by {package})");
+                }
+            }
+        }
+
+        Assert.True(
+            missing.Count == 0,
+            "These packages are dependencies of something in CliBuildE2E.FeedPackages but are not in the "
+            + "feed themselves, so every scaffolded build restoring against it fails NU1101. Add them to "
+            + "FeedPackages:\n  " + string.Join("\n  ", missing));
+    }
+
+    private static Dictionary<string, string> SourceProjects() =>
+        Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories)
+            .ToDictionary(path => Path.GetFileNameWithoutExtension(path), path => path, StringComparer.Ordinal);
+
+    private static bool IsPackableProject(string csprojPath) =>
+        XDocument.Load(csprojPath).Descendants("IsPackable").LastOrDefault()?.Value
+            .Equals("false", StringComparison.OrdinalIgnoreCase) != true;
+
     [Theory]
     [MemberData(nameof(HostPackages))]
     public void Each_host_package_has_the_entry_point_NuGet_will_auto_import(string package)

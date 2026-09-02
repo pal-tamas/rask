@@ -82,6 +82,18 @@ them until tagged releases begin.
   Done now because pre-1.0 every `PublicAPI.Shipped.txt` is empty, so moving a public type costs a
   namespace and nothing else. It never gets cheaper than this.
 
+  **A packable dependency has a fourth registration point, and nothing policed it.** `Rask.Cqrs`
+  depending on `Rask.Wire` makes it a real `<dependency>` in the nuspec, so every scaffolded project
+  restoring against the CLI gate's local feed failed `NU1101` — all of `ProjectGeneratorBuildE2E`,
+  `TutorialChapterBuildE2E` and `SpaTailwindBuildE2E` at once, because the feed list in
+  `tests/Rask.Cli.Tests/CliBuildE2E.cs` is separate from `release.yml`, `nightly.yml` and the root
+  `NUGET.md` and no test compared them. It surfaced only on the far side of an opt-in gate that packs
+  a feed, waits for a machine-wide lane and then builds real projects.
+
+  `The_local_feed_carries_what_its_own_packages_depend_on` now answers the same question from the
+  csproj graph in milliseconds, naming the missing package and what depends on it. Verified by
+  deleting the entry and watching it go red — a guard that has never failed is not known to work.
+
 ### Fixed
 
 - **The docs said an endpoint mapped after `UseRask` "never runs". It runs.** The claim appeared in
