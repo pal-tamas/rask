@@ -86,6 +86,15 @@ them until tagged releases begin.
   `ElementReference` still does not work, and the capability table now says which half is which: the
   frame writer discards element-reference captures, so interop that needs one has nothing to pass.
 
+  **The Server host has a Blazor sample at last, and it is what gates this.** The lane had none — every
+  gate it owned ran against the WASM showcase or a unit test with a fake `IJSRuntime` — which is
+  precisely how a hosted component's `[Inject]` stayed null for a release without anyone noticing. The
+  showcase now hosts `ViewportProbe.razor` (a real `.razor` that still knows nothing about Rask: it
+  injects Microsoft's `IJSRuntime` and calls `__raskApi.matchMedia` from `OnAfterRenderAsync`), and an
+  E2E asserts the VALUE it renders rather than the element — its `…` placeholder is exactly what a
+  presence check would pass on. Verified by flipping the expected value and watching the run fail with
+  `44 × locator resolved to <span data-testid="probe-scheme">light</span>`.
+
 - **A `--push` client lost its push code on a fresh clone ([#957](https://github.com/pal-tamas/rask/issues/957)).**
   `rask new --push` wrote `push.ts` into the client's `src/rask/` — the directory the same scaffolder
   adds to `.gitignore`, because everything else in it is regenerated from the package on every build.
