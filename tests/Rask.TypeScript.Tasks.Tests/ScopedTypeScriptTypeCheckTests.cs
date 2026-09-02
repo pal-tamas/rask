@@ -144,9 +144,19 @@ public class ScopedTypeScriptTypeCheckTests
         Assert.True(modules.Count > 1, $"No browser modules under '{directory}' — this checks nothing.");
 
         // Deliberately NOT passing rask-window.d.ts. That absence is the whole assertion.
+        //
+        // Checked against the STRICTEST consumer rather than an average one. `ng new` writes
+        // noPropertyAccessFromIndexSignature, noImplicitOverride, noImplicitReturns and
+        // noFallthroughCasesInSwitch; every other scaffolded client is looser. A module that compiles
+        // under the loose set and not the strict one is not "mostly fine" — it is broken for one of the
+        // seven frameworks `rask new` offers, and it surfaces as `npm run build` exiting 1 with nothing
+        // pointing back at the line. That is exactly how deviceMotion.ts's dot-access into an index
+        // signature was found: by the CLI gate, on a third rejected push, minutes at a time.
         var arguments = string.Join(" ", modules.Select(m => $"\"{m}\""))
-                        + " --noEmit --strict --noUnusedLocals --target es2020 --module esnext"
-                        + " --moduleResolution bundler --lib es2020,dom";
+                        + " --noEmit --strict --noUnusedLocals --noPropertyAccessFromIndexSignature"
+                        + " --noImplicitOverride --noImplicitReturns --noFallthroughCasesInSwitch"
+                        + " --isolatedModules --target es2022 --module esnext"
+                        + " --moduleResolution bundler --lib es2022,dom";
 
         var (exitCode, output) = Run(tsgo, arguments);
 

@@ -31,9 +31,13 @@ export function isSupported(): boolean {
 
 /** Ask for permission. See ./deviceOrientation.ts — the iOS gesture requirement is the same. */
 export function requestPermission(): Promise<string> {
+    // Bracket access, not `.DeviceMotionEvent`. Angular's scaffolded tsconfig turns on
+    // noPropertyAccessFromIndexSignature, which rejects dot-access into an index signature — so the
+    // dotted form compiles everywhere except the one framework whose CLI writes the strictest config,
+    // and fails there as an npm build error nobody reads back to this line.
     const evt = typeof window === "undefined"
         ? undefined
-        : (window as unknown as Record<string, PermissionGatedEvent | undefined>).DeviceMotionEvent;
+        : (window as unknown as Record<string, PermissionGatedEvent | undefined>)["DeviceMotionEvent"];
     if (!evt) {
         return Promise.resolve("denied");
     }
