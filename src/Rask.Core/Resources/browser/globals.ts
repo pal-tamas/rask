@@ -27,6 +27,7 @@ import * as crypto from "./crypto.js";
 import * as deviceMotion from "./deviceMotion.js";
 import * as deviceOrientation from "./deviceOrientation.js";
 import * as eyeDropper from "./eyeDropper.js";
+import * as fileSystem from "./fileSystem.js";
 import * as fullscreen from "./fullscreen.js";
 import * as gamepad from "./gamepad.js";
 import * as installPrompt from "./installPrompt.js";
@@ -38,6 +39,7 @@ import * as mediaQuery from "./mediaQuery.js";
 import * as mediaSession from "./mediaSession.js";
 import * as mutationObserver from "./mutationObserver.js";
 import * as networkInformation from "./networkInformation.js";
+import * as opfs from "./originPrivateFileSystem.js";
 import * as performance from "./performance.js";
 import * as permissions from "./permissions.js";
 import * as pictureInPicture from "./pictureInPicture.js";
@@ -48,6 +50,7 @@ import * as speechRecognition from "./speechRecognition.js";
 import * as speechSynthesis from "./speechSynthesis.js";
 import * as storageManager from "./storageManager.js";
 import * as visualViewport from "./visualViewport.js";
+import * as webAuthn from "./webAuthn.js";
 import * as webLocks from "./webLocks.js";
 
 window.__raskApi = window.__raskApi || {
@@ -256,6 +259,132 @@ window.__raskBattery = window.__raskBattery || (() => {
         }
     };
 })();
+
+// IOriginPrivateFileSystem. Path-based on both sides, so this is only the base64 hop — and `delete`,
+// which C# calls it and TypeScript cannot export under that name.
+window.__raskOpfs = window.__raskOpfs || (() => {
+    const toBase64 = (bytes: Uint8Array) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+
+    const fromBase64 = (base64: string) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+
+    return {
+        isSupported: () => opfs.isSupported(),
+        exists: (path: string) => opfs.exists(path),
+        size: (path: string) => opfs.size(path),
+        read: async (path: string, offset: number, count: number) => {
+            const bytes = await opfs.read(path, offset, count);
+            return bytes === null ? null : toBase64(bytes);
+        },
+        readAll: async (path: string) => {
+            const bytes = await opfs.readAll(path);
+            return bytes === null ? null : toBase64(bytes);
+        },
+        write: (path: string, offset: number, base64: string) =>
+            opfs.write(path, offset, fromBase64(base64)),
+        writeAll: (path: string, base64: string) => opfs.writeAll(path, fromBase64(base64)),
+        truncate: (path: string, size: number) => opfs.truncate(path, size),
+        delete: (path: string, recursive: boolean) => opfs.remove(path, recursive),
+        list: (path: string) => opfs.list(path)
+    };
+})();
+
+// IFileSystemAccess. A FileSystemHandle cannot cross interop, so handles are held here under an id and
+// C# operates by id — the module hands back the handle itself, which is what a TypeScript caller wants
+// to keep. Bytes cross base64-encoded for the same reason as IndexedDB's.
+window.__raskFs = window.__raskFs || (() => {
+    const handles = new Map<number, FileSystemHandle>();
+    let nextId = 0;
+
+    const put = (handle: FileSystemHandle) => {
+        const id = ++nextId;
+        handles.set(id, handle);
+        return {id, name: handle.name};
+    };
+
+    const fileOf = (id: number): FileSystemFileHandle => {
+        const h = handles.get(id);
+        if (!h || h.kind !== "file") {
+            throw new Error("Rask file system: file handle " + id + " is closed.");
+        }
+        return h as FileSystemFileHandle;
+    };
+
+    const dirOf = (id: number): FileSystemDirectoryHandle => {
+        const h = handles.get(id);
+        if (!h || h.kind !== "directory") {
+            throw new Error("Rask file system: directory handle " + id + " is closed.");
+        }
+        return h as FileSystemDirectoryHandle;
+    };
+
+    const toBase64 = (bytes: Uint8Array) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+
+    const fromBase64 = (base64: string) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+
+    return {
+        isSupported: () => fileSystem.isSupported(),
+        openFile: async (opts: RaskFilePickerOptions | null) => {
+            const handle = await fileSystem.openFile(opts);
+            return handle ? put(handle) : null;
+        },
+        openFiles: async (opts: RaskFilePickerOptions | null) =>
+            (await fileSystem.openFiles(opts)).map(put),
+        saveFile: async (opts: RaskFilePickerOptions | null) => {
+            const handle = await fileSystem.saveFile(opts);
+            return handle ? put(handle) : null;
+        },
+        openDirectory: async () => {
+            const handle = await fileSystem.openDirectory();
+            return handle ? put(handle) : null;
+        },
+        readText: (id: number) => fileSystem.readText(fileOf(id)),
+        readBytes: async (id: number) => toBase64(await fileSystem.readBytes(fileOf(id))),
+        writeText: (id: number, text: string) => fileSystem.writeText(fileOf(id), text),
+        writeBytes: (id: number, base64: string) =>
+            fileSystem.writeBytes(fileOf(id), fromBase64(base64)),
+        list: (id: number) => fileSystem.list(dirOf(id)),
+        getFile: async (id: number, name: string, create: boolean) =>
+            put(await fileSystem.getFile(dirOf(id), name, create)),
+        release: (id: number) => {
+            handles.delete(id);
+        }
+    };
+})();
+
+// IWebAuthn. Almost a pass-through: the module already speaks base64url in both directions, because
+// that is what a relying party speaks, not merely what interop needs.
+window.__raskWebAuthn = window.__raskWebAuthn || {
+    isSupported: () => webAuthn.isSupported(),
+    platformAuthenticatorAvailable: () => webAuthn.isPlatformAuthenticatorAvailable(),
+    create: (o: RaskWebAuthnCreateOptions) => webAuthn.create(o),
+    get: (o: RaskWebAuthnGetOptions) => webAuthn.get(o)
+};
 
 // The activation-gated four, plus the install prompt. On the WASM host these back imperative services;
 // on Server they back declarative gesture components, which run the call inside the click's own stack

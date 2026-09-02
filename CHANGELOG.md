@@ -17,7 +17,8 @@ them until tagged releases begin.
   "./rask/browser/geolocation"` while Server and WASM keep resolving the same code by dotted
   identifier through the one module that registers the globals, `browser/globals.ts`.
 
-  This lands API by API; `__raskApi` and `__raskGeoWatch` have moved. Two rules hold for every module:
+  This lands API by API; 32 modules have moved so far, and `rask-api.ts` is down from 1,975 lines to
+  516. Two rules hold for every module:
   the names are idiomatic TypeScript (`getCurrentPosition`, not `GetCurrentPositionAsync`, and the
   platform's own name wins wherever it has one), and **side effects live in `globals.ts` alone** —
   a module that touched `window` at import time would break a Next or Nuxt server render and would

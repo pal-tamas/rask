@@ -402,17 +402,29 @@ fixed for one caller is fixed for the other in the same commit.
 
 Available today — the layer is moving over one API at a time:
 
-| Module | What it wraps |
+| | Modules |
 | --- | --- |
-| `browser/cookies` | `document.cookie` — `get`, `getAll`, `set`, `remove` |
-| `browser/geolocation` | `getCurrentPosition`, and `watchPosition` returning its stop function |
-| `browser/mediaQuery` | `matches`, plus `prefersDark` / `prefersReducedMotion` and a `watch` |
-| `browser/networkInformation` | `navigator.connection`, through the vendor-prefixed fallback |
-| `browser/permissions` | `query` — a permission's state without prompting for it |
-| `browser/screen` | size, available size, colour depth, device pixel ratio |
-| `browser/speechSynthesis` | `speak` / `cancel` |
-| `browser/storageManager` | `estimate`, `persisted`, `persist` |
-| `browser/visualViewport` | the viewport you can actually see once a soft keyboard opens |
+| **Storage** | `indexedDb` · `originPrivateFileSystem` · `fileSystem` · `storageManager` · `cookies` |
+| **Device** | `geolocation` · `deviceOrientation` · `deviceMotion` · `battery` · `gamepad` · `mediaDevices` |
+| **Page** | `mediaQuery` · `visualViewport` · `screen` · `screenOrientation` · `fullscreen` · `pictureInPicture` |
+| **Observers** | `intersectionObserver` · `resizeObserver` · `mutationObserver` |
+| **Identity & crypto** | `webAuthn` · `crypto` · `permissions` |
+| **Coordination** | `broadcastChannel` · `webLocks` |
+| **Media & speech** | `mediaSession` · `speechSynthesis` · `speechRecognition` |
+| **Other** | `networkInformation` · `performance` · `installPrompt` · `eyeDropper` |
+
+Still to come: signaling and WebRTC, and Web Push (which today has its own `rask/push.ts`).
+
+Some of these you would never write yourself and some you would never want to. `webAuthn` is the
+clearest of the first kind: the platform deals in `ArrayBuffer`s while every relying party speaks
+base64url, so the module takes and returns base64url on both sides and a passkey ceremony is two
+calls. `originPrivateFileSystem` is the other: ranged reads and writes into the origin's private tree,
+with `keepExistingData` set — without which a ranged write silently discards every byte outside the
+range it wrote.
+
+Note what is **not** here. `clipboard` is `navigator.clipboard.writeText`, `localStorage` is
+`localStorage`, and `element.animate()` is already a method on the element. Wrapping those would give
+you a worse version of what `lib.dom.d.ts` already types.
 
 Names are idiomatic TypeScript, and where the platform already has a name it keeps it —
 `getCurrentPosition`, not `GetCurrentPositionAsync`. Subscriptions hand back a stop function rather
