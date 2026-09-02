@@ -36,7 +36,12 @@ public static class RaskMetaEndpointExtensions
             ?? throw new InvalidOperationException(
                 "UseRaskMeta() requires AddRaskMeta() on the service collection.");
 
-        endpoints.MapFallback(forwarder.ForwardAsync);
+        // "{*path}" and NOT the handler-only MapFallback overload, which maps "{*path:nonfile}" and so
+        // matches nothing whose last segment contains a dot. Every hashed chunk, favicon and
+        // robots.txt would 404 and the page would load with no JS and no CSS. Rask.Spa.Hosting depends
+        // on that same constraint deliberately — there a static-file middleware serves the assets —
+        // but here the Node server is the origin for its own, so nothing else can.
+        endpoints.MapFallback("{*path}", forwarder.ForwardAsync);
 
         return endpoints;
     }

@@ -76,6 +76,36 @@ public class NodeForwarderTests
     }
 
     /// <summary>
+    ///     An asset URL — a path whose last segment has a dot — is forwarded like anything else.
+    /// </summary>
+    /// <remarks>
+    ///     The whole front end hangs on this. `MapFallback(RequestDelegate)` maps
+    ///     <c>{*path:nonfile}</c>, so with that overload every hashed chunk, favicon and
+    ///     <c>robots.txt</c> 404s and the page loads with no JS or CSS at all — while a suite that only
+    ///     ever forwards extensionless paths stays green. Rask.Spa.Hosting relies on that same
+    ///     constraint deliberately, because there a static-file middleware serves the assets; here the
+    ///     Node server is the origin for its own, so nothing else can.
+    /// </remarks>
+    [Theory]
+    [InlineData("/_nuxt/entry.C1a9f.js")]
+    [InlineData("/_next/static/chunks/main.abc123.js")]
+    [InlineData("/_app/immutable/entry/start.abc.js")]
+    [InlineData("/favicon.ico")]
+    [InlineData("/robots.txt")]
+    public async Task An_asset_url_is_forwarded(string path)
+    {
+        // "{*path}" on the stand-in too — the bare MapFallback overload this test exists to catch
+        // would have the BACKEND 404 the asset, and the test would fail for the wrong reason.
+        var (node, nodePort) = await StartAsync(null, app => app.MapFallback("{*path}", () => "asset"));
+        await using var _ = node;
+        var (rask, raskPort) = await StartRaskAsync(nodePort);
+        await using var __ = rask;
+
+        using var client = ClientFor(raskPort);
+        Assert.Equal("asset", await client.GetStringAsync(path, Timeout()));
+    }
+
+    /// <summary>
     ///     A mapped endpoint wins over the forwarder.
     /// </summary>
     /// <remarks>
@@ -170,6 +200,81 @@ public class NodeForwarderTests
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Equal("1", response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString("0"));
+    }
+
+    /// <summary>
+    ///     The Node server is told who the client is and what scheme it used.
+    /// </summary>
+    /// <remarks>
+    ///     YARP's default transformer copies headers but adds no <c>X-Forwarded-*</c> — those are an
+    ///     opt-in transform in the full proxy, and direct forwarding has to supply them. Without them
+    ///     every request reaches the framework looking like plain HTTP from localhost, so SSR builds
+    ///     absolute URLs with the wrong scheme behind TLS termination and sees no client address at
+    ///     all. Both matter to a framework that renders links and reads the request.
+    /// </remarks>
+    [Fact]
+    public async Task The_client_scheme_host_and_address_are_forwarded()
+    {
+        var seen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var (node, nodePort) = await StartAsync(null, app => app.MapGet("/echo", (HttpContext context) =>
+        {
+            foreach (var name in (string[])["X-Forwarded-Proto", "X-Forwarded-Host", "X-Forwarded-For"])
+            {
+                seen[name] = context.Request.Headers[name].ToString();
+            }
+
+            return "ok";
+        }));
+        await using var _ = node;
+        var (rask, raskPort) = await StartRaskAsync(nodePort);
+        await using var __ = rask;
+
+        using var client = ClientFor(raskPort);
+        await client.GetStringAsync("/echo", Timeout());
+
+        Assert.Equal("http", seen["X-Forwarded-Proto"]);
+        Assert.Equal($"127.0.0.1:{raskPort}", seen["X-Forwarded-Host"]);
+        Assert.Equal("127.0.0.1", seen["X-Forwarded-For"]);
+    }
+
+    /// <summary>
+    ///     A client cannot dictate the scheme or host the framework sees.
+    /// </summary>
+    /// <remarks>
+    ///     Rask is the edge here, so whatever a visitor sends in <c>X-Forwarded-Proto</c> or
+    ///     <c>X-Forwarded-Host</c> is a claim about itself, not information. If those passed through
+    ///     untouched, any framework that trusts them — to build absolute URLs, to decide it is on
+    ///     HTTPS, to generate a password-reset link — would be trusting the attacker.
+    /// </remarks>
+    [Fact]
+    public async Task A_client_cannot_spoof_the_forwarded_scheme_or_host()
+    {
+        var seen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var (node, nodePort) = await StartAsync(null, app => app.MapGet("/echo", (HttpContext context) =>
+        {
+            foreach (var name in (string[])["X-Forwarded-Proto", "X-Forwarded-Host"])
+            {
+                seen[name] = context.Request.Headers[name].ToString();
+            }
+
+            return "ok";
+        }));
+        await using var _ = node;
+        var (rask, raskPort) = await StartRaskAsync(nodePort);
+        await using var __ = rask;
+
+        using var client = ClientFor(raskPort);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/echo");
+        request.Headers.Add("X-Forwarded-Proto", "https");
+        request.Headers.Add("X-Forwarded-Host", "evil.example.com");
+
+        using var response = await client.SendAsync(request, Timeout());
+        response.EnsureSuccessStatusCode();
+
+        Assert.Equal("http", seen["X-Forwarded-Proto"]);
+        Assert.DoesNotContain("evil.example.com", seen["X-Forwarded-Host"], StringComparison.Ordinal);
     }
 
     /// <summary>Forwarding without the services that start the process is a startup error.</summary>

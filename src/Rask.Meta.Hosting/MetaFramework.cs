@@ -100,10 +100,15 @@ public sealed record MetaFramework
     /// <remarks>
     ///     <para>
     ///         Standalone deliberately omits <c>public</c> and <c>.next/static</c> — Next's own docs say
-    ///         those are "ideally served by a CDN". Under this package's topology Kestrel is already in
-    ///         front, so Rask can serve them directly and never forward those requests at all. What
-    ///         reads as Next's awkward case elsewhere is the one place this arrangement is strictly
-    ///         better than the CDN it assumes.
+    ///         those are "ideally served by a CDN". <b>This package does not serve them yet</b>, and
+    ///         nothing else will: the standalone server does not have those directories, so until the
+    ///         build targets land, a Next app needs them copied next to <c>server.js</c> (the <c>cp</c>
+    ///         Next's own Docker guidance gives) or its assets 404.
+    ///     </para>
+    ///     <para>
+    ///         Serving them from Kestrel is the plan rather than the state: this topology already puts
+    ///         Kestrel in front with the cache rules to do it well, which is the one place Next's
+    ///         CDN assumption suits this arrangement better than it suits a plain Node deployment.
     ///     </para>
     ///     <para><c>HOSTNAME</c> rather than <c>HOST</c>; see <see cref="HostVariable" />.</para>
     /// </remarks>

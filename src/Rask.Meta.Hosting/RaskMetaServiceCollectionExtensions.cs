@@ -34,7 +34,12 @@ public static class RaskMetaServiceCollectionExtensions
         services.TryAddSingleton<NodeReadiness>();
         services.AddHttpForwarder();
         services.TryAddSingleton<NodeForwarder>();
-        services.AddSingleton<IHostedService, NodeSupervisor>();
+
+        // AddHostedService, which is TryAddEnumerable underneath, rather than a plain AddSingleton —
+        // that appends unconditionally, so calling AddRaskMeta() twice (an app plus a library, or a
+        // duplicated line) would start TWO supervisors racing for the same port. The second loses with
+        // EADDRINUSE, restarts until its budget is spent, and takes the host down with it.
+        services.AddHostedService<NodeSupervisor>();
 
         return services;
     }

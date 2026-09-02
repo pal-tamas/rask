@@ -20,6 +20,8 @@ Rask.Meta.Hosting.MetaHostingOptions.BaseUrlVariable.get -> string!
 Rask.Meta.Hosting.MetaHostingOptions.BaseUrlVariable.set -> void
 Rask.Meta.Hosting.MetaHostingOptions.Environment.get -> System.Collections.Generic.IDictionary<string!, string!>!
 Rask.Meta.Hosting.MetaHostingOptions.Framework.get -> Rask.Meta.Hosting.MetaFramework!
+Rask.Meta.Hosting.MetaHostingOptions.HealthyRunThreshold.get -> System.TimeSpan
+Rask.Meta.Hosting.MetaHostingOptions.HealthyRunThreshold.set -> void
 Rask.Meta.Hosting.MetaHostingOptions.Framework.set -> void
 Rask.Meta.Hosting.MetaHostingOptions.MaxRestartAttempts.get -> int
 Rask.Meta.Hosting.MetaHostingOptions.MaxRestartAttempts.set -> void

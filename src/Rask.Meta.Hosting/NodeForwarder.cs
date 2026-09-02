@@ -34,6 +34,7 @@ internal sealed partial class NodeForwarder : IDisposable
     private readonly MetaHostingOptions _options;
     private readonly NodeReadiness _readiness;
     private readonly ForwarderRequestConfig _requestConfig;
+    private readonly ForwarderRequestConfig _upgradeConfig;
 
     // Public on an internal type: the container resolves only public constructors, and this one is
     // never visible outside the assembly because the type is not.
@@ -67,6 +68,13 @@ internal sealed partial class NodeForwarder : IDisposable
             // flushes; short enough that a wedged renderer does not hold the connection for ever.
             ActivityTimeout = TimeSpan.FromSeconds(100),
         };
+
+        // An upgraded connection gets no idle cap. ActivityTimeout is an IDLE timeout that applies to
+        // WebSockets too, so the ordinary one would tear down any socket quiet for 100 seconds — a
+        // chat with nobody typing, a notification channel between pings — and the client would see a
+        // disconnect with no cause. Liveness on an upgraded connection is the application's job, and
+        // it has the ping frames to do it with.
+        _upgradeConfig = new ForwarderRequestConfig { ActivityTimeout = null };
     }
 
     /// <inheritdoc />
@@ -81,11 +89,17 @@ internal sealed partial class NodeForwarder : IDisposable
             return;
         }
 
+        var config = context.WebSockets.IsWebSocketRequest ? _upgradeConfig : _requestConfig;
+
         var error = await _forwarder
-            .SendAsync(context, _destination, _invoker, _requestConfig)
+            .SendAsync(context, _destination, _invoker, config)
             .ConfigureAwait(false);
 
-        if (error != ForwarderError.None && !context.Response.HasStarted)
+        // No HasStarted guard on the LOGGING. A failure part-way through a streamed response — the
+        // Node process dying mid-render — is the one the visitor actually sees, as a page that stops
+        // half-written, and gating the log on "nothing was sent yet" is precisely what would leave
+        // that case recorded nowhere.
+        if (error != ForwarderError.None)
         {
             var reason = context.GetForwarderErrorFeature()?.Exception?.Message ?? error.ToString();
             LogForwardFailed(context.Request.Path.ToString(), _options.Framework.Name, reason);

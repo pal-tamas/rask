@@ -59,8 +59,32 @@ public class NodeSupervisorTests
     }
 
     /// <summary>
+    ///     A run that stayed up resets the budget; a short one spends it.
+    /// </summary>
+    /// <remarks>
+    ///     Without the reset the budget is a LIFETIME one, and a server crashing five times over five
+    ///     months takes the host down on the fifth — which is not what "will not stay running" means.
+    /// </remarks>
+    [Theory]
+    [InlineData(4, 90, 1)]   // lasted past the threshold: recovered, budget back to one strike
+    [InlineData(4, 5, 5)]    // died quickly again: another consecutive failure
+    [InlineData(0, 5, 1)]    // the very first crash
+    [InlineData(4, 60, 1)]   // exactly at the threshold counts as healthy
+    public void A_healthy_run_resets_the_restart_budget(int attempt, int lastedSeconds, int expected)
+    {
+        var next = NodeSupervisor.NextAttempt(
+            attempt, TimeSpan.FromSeconds(lastedSeconds), TimeSpan.FromMinutes(1));
+
+        Assert.Equal(expected, next);
+    }
+
+    /// <summary>
     ///     A missing server entry stops the application rather than starting a restart loop.
     /// </summary>
+    /// <remarks>
+    ///     The defensive path. Startup already refuses a missing entry — see
+    ///     <c>SupervisorSeamTests</c> — so this covers the file disappearing after the host came up.
+    /// </remarks>
     /// <remarks>
     ///     Retrying would be pure noise: the file is not going to appear, and five rounds of backoff
     ///     only delay the message that says what is actually wrong. This is the case where the front

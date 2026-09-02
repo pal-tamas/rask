@@ -48,6 +48,17 @@ public sealed class MetaHostingOptions
     public int MaxRestartAttempts { get; set; } = 5;
 
     /// <summary>
+    ///     How long a run must last to count as a recovery, resetting the restart budget.
+    /// </summary>
+    /// <remarks>
+    ///     Without this the budget would be a <em>lifetime</em> one, and a server that runs happily for
+    ///     weeks would still take the host down on its fifth crash however far apart those were. What
+    ///     <see cref="MaxRestartAttempts" /> is meant to catch is a process that will not stay running
+    ///     — consecutive failures — not the ordinary attrition of a long-lived one.
+    /// </remarks>
+    public TimeSpan HealthyRunThreshold { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
     ///     The base URL handed to the Node process so server-side rendering can call back into this
     ///     app, under the variable named by <see cref="BaseUrlVariable" />.
     /// </summary>

@@ -77,7 +77,14 @@ them until tagged releases begin.
   and genuinely temporary. A crash is retried with capped exponential backoff, and when the budget is
   spent the **host stops** rather than serving errors indefinitely: an orchestrator restarting the
   container is a better supervisor than this loop, and an exit is visible where a degraded process is
-  not. On shutdown the process gets `SIGTERM` and a grace period before its tree is killed.
+  not. That budget counts **consecutive** failures — a run that stayed up past
+  `HealthyRunThreshold` resets it, so a server that crashes once a month is never mistaken for one that
+  will not start. On shutdown the process gets `SIGTERM` and a grace period before its tree is killed.
+
+  **No built front end fails startup**, with a message naming the path it looked for and the option
+  that moves it. Detecting it in the supervision loop instead would also have ended the process, but by
+  cancelling Kestrel's own bind mid-startup — so the app died with `TaskCanceledException`, which says
+  nothing about the front end and buries the line that did.
 
   Forwarding is YARP's `IHttpForwarder` — the direct-forwarding API only, no route table or config
   model. That is the package's one external dependency and a deliberate one: it already gets right
@@ -85,7 +92,16 @@ them until tagged releases begin.
   property the whole lane rests on. React Server Components and streaming SSR send a page over many
   flushes, and a proxy that waits for the last byte turns a streaming page into a slow blank one while
   every other test still passes — so a test holds the backend open until the client has already read the
-  first chunk, and cannot pass if anything starts buffering.
+  first chunk, and cannot pass if anything starts buffering. An **upgraded connection gets no idle
+  cap**: the request timeout is an idle one and applies to WebSockets too, so leaving it on would drop
+  any socket quiet for 100 seconds and show the client a disconnect with no cause.
+
+  Asset URLs forward like everything else. That is worth stating because the obvious spelling of the
+  fallback — `MapFallback(handler)` — maps `{*path:nonfile}` and silently matches **nothing with a dot
+  in its last segment**, so every hashed chunk, `favicon.ico` and `robots.txt` would 404 and the page
+  would load with no JS and no CSS. `Rask.Spa.Hosting` leans on that same behaviour deliberately,
+  because there a static-file middleware serves the assets; here the Node server is the origin for its
+  own, so nothing else can.
 
   `UseRaskMeta()` registers a **fallback**, so mapped endpoints still win — but map your API first; the
   symptom of getting it wrong is an API call answered with a rendered page. `SuperviseNode = false`

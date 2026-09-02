@@ -53,6 +53,30 @@ internal sealed partial class NodeSupervisor : BackgroundService
     /// <summary>The absolute path of the server entry this supervisor runs.</summary>
     internal string ServerEntryPath => Path.Combine(_appDirectory, _options.Framework.ServerEntry);
 
+    /// <summary>
+    ///     Refuses to start at all when there is no built front end to run.
+    /// </summary>
+    /// <remarks>
+    ///     Checked here, in <see cref="IHostedService.StartAsync" />, rather than in the loop below,
+    ///     because the two produce very different failures. Throwing here aborts startup with the
+    ///     message naming the path that is missing. Calling <c>StopApplication()</c> from the loop
+    ///     instead cancels Kestrel's own <c>BindAsync</c> mid-startup, and the process then dies with
+    ///     <c>TaskCanceledException</c> — which says nothing about the front end and buries the
+    ///     Critical line that did. "You have not built the front end" is a configuration mistake, and a
+    ///     configuration mistake should fail fast and name itself.
+    /// </remarks>
+    public override async Task StartAsync(CancellationToken cancellationToken)
+    {
+        if (_options.SuperviseNode && !File.Exists(ServerEntryPath))
+        {
+            throw new InvalidOperationException(
+                $"Rask.Meta.Hosting: no {_options.Framework.Name} server entry at '{ServerEntryPath}'. "
+                + "Build the front end, or set MetaHostingOptions.AppDirectory to where it was built.");
+        }
+
+        await base.StartAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <inheritdoc />
     protected override Task ExecuteAsync(CancellationToken stoppingToken) => RunAsync(stoppingToken);
 
@@ -79,7 +103,8 @@ internal sealed partial class NodeSupervisor : BackgroundService
             return;
         }
 
-        for (var attempt = 0; !stoppingToken.IsCancellationRequested; attempt++)
+        var attempt = 0;
+        while (!stoppingToken.IsCancellationRequested)
         {
             if (attempt > 0)
             {
@@ -100,7 +125,11 @@ internal sealed partial class NodeSupervisor : BackgroundService
                 }
             }
 
+            var startedAt = TimeProvider.System.GetTimestamp();
             await RunOnceAsync(entry, stoppingToken).ConfigureAwait(false);
+            var lasted = TimeProvider.System.GetElapsedTime(startedAt);
+
+            attempt = NextAttempt(attempt, lasted, _options.HealthyRunThreshold);
         }
 
         if (stoppingToken.IsCancellationRequested)
@@ -114,6 +143,18 @@ internal sealed partial class NodeSupervisor : BackgroundService
         LogGivingUp(_options.Framework.Name, _options.MaxRestartAttempts);
         _lifetime.StopApplication();
     }
+
+    /// <summary>
+    ///     The restart budget after a run that lasted <paramref name="lasted" />.
+    /// </summary>
+    /// <remarks>
+    ///     A run that stayed up counts as recovery rather than as another strike. Without this the
+    ///     budget is a <em>lifetime</em> one: a server that runs happily for a week and crashes once a
+    ///     month still takes the host down on its fifth crash, months apart — which is not what "will
+    ///     not stay running" means. Consecutive failures are the signal; scattered ones are not.
+    /// </remarks>
+    internal static int NextAttempt(int attempt, TimeSpan lasted, TimeSpan healthyThreshold) =>
+        lasted >= healthyThreshold ? 1 : attempt + 1;
 
     /// <summary>
     ///     Exponential backoff, capped — 1s, 2s, 4s, 8s, 16s, then 30s for anything beyond.
@@ -152,6 +193,15 @@ internal sealed partial class NodeSupervisor : BackgroundService
             {
                 _readiness.MarkReady();
                 LogReady(_options.Framework.Name, _options.Port);
+            }
+            else if (!process.HasExited && !stoppingToken.IsCancellationRequested)
+            {
+                // The budget exists to end exactly this state. A process that is alive but has not
+                // bound its port never exits on its own, so waiting for it below would hold the app at
+                // 503 for ever without ever spending a restart attempt — the "degraded process that
+                // still answers" outcome this class refuses. Abandoning the attempt hands it to the
+                // backoff loop, which eventually gives up and stops the host.
+                return;
             }
 
             await process.WaitForExitAsync(stoppingToken).ConfigureAwait(false);
@@ -234,7 +284,11 @@ internal sealed partial class NodeSupervisor : BackgroundService
             {
                 using var probe = new TcpClient();
                 await probe.ConnectAsync("127.0.0.1", _options.Port, stoppingToken).ConfigureAwait(false);
-                return true;
+
+                // A connect proves something owns the port, not that OUR child does. If the child
+                // failed to bind because another process already had it, the probe would happily
+                // succeed against that stranger and we would forward this app's traffic to it.
+                return !process.HasExited;
             }
             catch (SocketException)
             {
@@ -307,6 +361,13 @@ internal sealed partial class NodeSupervisor : BackgroundService
         catch (NotSupportedException)
         {
             // No process tree to walk on this platform.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // The kill itself was refused — a partially exited tree, or no permission to signal one of
+            // its members. Caught because this runs inside RunOnceAsync's finally: letting it escape
+            // would leave the supervision loop through BackgroundServiceExceptionBehavior.StopHost and
+            // take the whole app down, when the process we were trying to end is already going away.
         }
     }
 
