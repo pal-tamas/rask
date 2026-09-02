@@ -89,6 +89,10 @@ public static class RaskAuthServiceCollectionExtensions
             .AddDefaultTokenProviders();
 
         services.AddScoped<AccountService<TUser>>();
+
+        // The endpoints resolve the store without naming the user type — MapRaskAuth() is a
+        // parameterless extension method, so it has no way to know which one this app configured.
+        services.TryAddScoped<IAccounts>(sp => sp.GetRequiredService<AccountService<TUser>>());
         services.TryAddScoped<IAuth, ServerAuth<TUser>>();
 
         services.AddHostedService<FirstRunTokenInitializer>();

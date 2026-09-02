@@ -52,6 +52,50 @@ Rask.Auth.FirstRunToken.FirstRunToken() -> void
 Rask.Auth.FirstRunToken.IsPending.get -> bool
 Rask.Auth.FirstRunToken.Matches(string? candidate) -> bool
 Rask.Auth.FirstRunToken.Value.get -> string?
+Rask.Auth.RaskAuthDefaults
+Rask.Auth.RaskAuthEndpointExtensions
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.<Clone>$() -> Rask.Auth.RaskAuthEndpointExtensions.AuthFailure!
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.AuthFailure(string! Error, string? Message) -> void
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.Deconstruct(out string! Error, out string? Message) -> void
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.Equals(Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? other) -> bool
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.Error.get -> string!
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.Error.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.Message.get -> string?
+Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.Message.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.<Clone>$() -> Rask.Auth.RaskAuthEndpointExtensions.CurrentUser!
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.CurrentUser(string? Id, string? Email, System.Collections.Generic.IReadOnlyList<string!>! Roles) -> void
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Deconstruct(out string? Id, out string? Email, out System.Collections.Generic.IReadOnlyList<string!>! Roles) -> void
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Email.get -> string?
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Email.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Equals(Rask.Auth.RaskAuthEndpointExtensions.CurrentUser? other) -> bool
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Id.get -> string?
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Id.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Roles.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.<Clone>$() -> Rask.Auth.RaskAuthEndpointExtensions.LoginRequest!
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Deconstruct(out string! Email, out string! Password, out bool Remember) -> void
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Email.get -> string!
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Email.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Equals(Rask.Auth.RaskAuthEndpointExtensions.LoginRequest? other) -> bool
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.LoginRequest(string! Email, string! Password, bool Remember = false) -> void
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Password.get -> string!
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Password.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Remember.get -> bool
+Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Remember.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.<Clone>$() -> Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest!
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.Deconstruct(out string! Email, out string! Password, out string? FirstRunToken) -> void
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.Email.get -> string!
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.Email.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.Equals(Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest? other) -> bool
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.FirstRunToken.get -> string?
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.FirstRunToken.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.Password.get -> string!
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.Password.init -> void
+Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.RegisterRequest(string! Email, string! Password, string? FirstRunToken = null) -> void
 Rask.Auth.RaskAuthServiceCollectionExtensions
 Rask.Auth.RaskRoles
 Rask.Auth.RaskUser
@@ -59,10 +103,32 @@ Rask.Auth.RaskUser.CreatedUtc.get -> System.DateTime
 Rask.Auth.RaskUser.CreatedUtc.set -> void
 Rask.Auth.RaskUser.RaskUser() -> void
 const Rask.Auth.AuthInstanceClaim.SingletonId = 1 -> int
+const Rask.Auth.RaskAuthDefaults.RequestHeader = "X-Rask-Auth" -> string!
 const Rask.Auth.RaskRoles.Admin = "admin" -> string!
 const Rask.Auth.RaskRoles.User = "user" -> string!
+override Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.Equals(object? obj) -> bool
+override Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.GetHashCode() -> int
+override Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.ToString() -> string!
+override Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.Equals(object? obj) -> bool
+override Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.GetHashCode() -> int
+override Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.ToString() -> string!
+override Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.Equals(object? obj) -> bool
+override Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.GetHashCode() -> int
+override Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.ToString() -> string!
+override Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.Equals(object? obj) -> bool
+override Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.GetHashCode() -> int
+override Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.ToString() -> string!
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth<TUser>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.operator !=(Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? left, Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? right) -> bool
+static Rask.Auth.RaskAuthEndpointExtensions.AuthFailure.operator ==(Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? left, Rask.Auth.RaskAuthEndpointExtensions.AuthFailure? right) -> bool
+static Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.operator !=(Rask.Auth.RaskAuthEndpointExtensions.CurrentUser? left, Rask.Auth.RaskAuthEndpointExtensions.CurrentUser? right) -> bool
+static Rask.Auth.RaskAuthEndpointExtensions.CurrentUser.operator ==(Rask.Auth.RaskAuthEndpointExtensions.CurrentUser? left, Rask.Auth.RaskAuthEndpointExtensions.CurrentUser? right) -> bool
+static Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.operator !=(Rask.Auth.RaskAuthEndpointExtensions.LoginRequest? left, Rask.Auth.RaskAuthEndpointExtensions.LoginRequest? right) -> bool
+static Rask.Auth.RaskAuthEndpointExtensions.LoginRequest.operator ==(Rask.Auth.RaskAuthEndpointExtensions.LoginRequest? left, Rask.Auth.RaskAuthEndpointExtensions.LoginRequest? right) -> bool
+static Rask.Auth.RaskAuthEndpointExtensions.MapRaskAuth(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.operator !=(Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest? left, Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest? right) -> bool
+static Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest.operator ==(Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest? left, Rask.Auth.RaskAuthEndpointExtensions.RegisterRequest? right) -> bool
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext, TUser>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskRoles.All.get -> System.Collections.Generic.IReadOnlyList<string!>!

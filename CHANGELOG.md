@@ -51,8 +51,39 @@ them until tagged releases begin.
   guarantee, and no battery may reference `Rask.Server` — that is what keeps the meta-package free of
   reference cycles.
 
-  Not yet wired: the `/api/auth` endpoints, the built-in pages, the battery slot on `RaskAppOptions`,
-  the browser half, and the `--auth` flag removal. The store and its guarantees land first.
+  Not yet wired: the built-in pages, the battery slot on `RaskAppOptions`, the browser half, and the
+  `--auth` flag removal.
+
+- **`/api/auth/register|login|logout|me` — the contract every host that is not C# speaks.**
+  `MapRaskAuth()` maps four routes under `AuthOptions.ApiPrefix` (`/api/auth`). A TypeScript front
+  end, a meta framework's Node process and a WebAssembly client all reach the three flows through
+  these, which is what makes "the same API in every host" one contract rather than one per host.
+
+  `me` answers `204` rather than `401` when nobody is signed in — "nobody" is a good answer to that
+  question, and a `401` would make every anonymous page load look like a failure in a client's logs.
+  It is also the endpoint a meta framework needs most: Node forwards the visitor's cookie opaquely and
+  cannot decrypt it, so server-side rendering calls back here over loopback and lets C# resolve the
+  identity.
+
+  Every state-changing request must carry `X-Rask-Auth`. Cross-site markup — a form, an `<img>`, a
+  `<script>` — cannot set a custom header, so only a same-origin `fetch` reaches these routes; it is a
+  CSRF defence with no token round-trip, layered over the `SameSite=Lax` cookie that already withholds
+  itself from a cross-site POST. A request without it is refused as `MissingRequestHeader` and says
+  which header, rather than being folded into a credentials failure that would send a caller with a
+  correct password hunting in the wrong place.
+
+  Two bugs the gates caught rather than the tests:
+
+  - `ASP0016`. `LogoutAsync(HttpContext)` is exactly `RequestDelegate`'s shape, so ASP.NET bound it as
+    one and **discarded the returned result** — the sign-out happened and the response never said so.
+    Fixed with an explicit `(Delegate)` cast.
+  - Describing the signed-in user from `context.User` after `SignInAsync` answers `204` to the caller
+    that just succeeded: the cookie is written for the *next* request, and this request's `User` is
+    untouched. The response is built from the principal instead.
+
+  Tested over real HTTP through `TestServer`, because the parts worth pinning here — the cookie, the
+  status codes, the header — only exist over the wire. That needed a cookie container of its own:
+  `TestServer`'s client keeps none, so a session issued by one request never reaches the next.
 
 ### Fixed
 

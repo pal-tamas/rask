@@ -8,6 +8,23 @@ namespace Rask.Auth;
 internal sealed record AccountOutcome(AuthResult Result, ClaimsPrincipal? Principal);
 
 /// <summary>
+/// The account store, without its user type.
+/// </summary>
+/// <remarks>
+/// The endpoints are mapped by <c>MapRaskAuth()</c>, which has no way to know which
+/// <see cref="RaskUser" /> an app configured — it is a parameterless extension method on the endpoint
+/// builder, chosen so an app writes one line. Registering this alongside the generic service gives the
+/// endpoints something to resolve that does not name the type.
+/// </remarks>
+internal interface IAccounts
+{
+    Task<AccountOutcome> RegisterAsync(
+        string email, string password, string? firstRunToken, CancellationToken cancellationToken = default);
+
+    Task<AccountOutcome> ValidateAsync(string email, string password);
+}
+
+/// <summary>
 /// Register and password-check against the account store, and nothing else.
 /// </summary>
 /// <remarks>
@@ -26,7 +43,7 @@ internal sealed class AccountService<TUser>(
     IInstanceClaimStore claims,
     FirstRunToken firstRun,
     AuthOptions options,
-    TimeProvider clock)
+    TimeProvider clock) : IAccounts
     where TUser : RaskUser, new()
 {
     public async Task<AccountOutcome> RegisterAsync(
