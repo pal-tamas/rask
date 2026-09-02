@@ -7,6 +7,53 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
+  SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
+  same seven — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`,
+  `SvelteComponent`, `AngularComponent`, `LitComponent`.
+
+  **The base class is now the build's authority on which runtime an island uses.** An extension used
+  to identify one — `.tsx` meant React, a `.cs`-paired `.ts` meant Lit — and it cannot any more: React,
+  Preact and Solid all write `.tsx`, and Angular writes the same `.ts` Lit does. So the generator
+  carries each island's declared runtime out of the compilation as a constant and the build reads it
+  back, rather than each half guessing from a filename and agreeing by luck. Guessing wrong was silent
+  all the way to the browser — a Solid island handed React's adapter compiles, bundles, ships, loads,
+  and mounts nothing.
+
+  **Two runtimes that compile the same extension are scoped to their own island directories**, and
+  overlapping trees are refused by name. Scoping has to be by directory rather than by file: a
+  file-level scope transforms the island and leaves every module it *imports* to the other plugin, so a
+  helper beside a Solid island came back compiled as Preact — a green build that shipped a foreign
+  vnode into Solid's renderer. React beside Preact is refused outright, and not by Rask's choice:
+  `@vitejs/plugin-react` resolves Babel 8 where `@preact/preset-vite` pins `@babel/core@"7.x"`, so npm
+  will not install both.
+
+  **The prop type-check splits by runtime too.** One `jsx` setting cannot serve three JSX runtimes, and
+  Angular's decorators need an `experimentalDecorators` that Lit 3's standard decorators need off.
+  Merged into one config the check did not get weaker — it reported errors that were not in the
+  author's code and failed builds whose TypeScript was fine.
+
+  **`rask dev` now serves islands from a Vite dev server** on port 5174, skipping only the production
+  bundle. Editing a `.tsx` hot-replaces in place: React and Preact through Fast Refresh, Solid through
+  `solid-refresh`, Vue and Svelte through their plugins, all keeping component state. Lit and Angular
+  have no refresh integration upstream and fall back to a page reload — still with no C# rebuild.
+  Resolution stays one path in dev and production; only the manifest's contents differ.
+
+  The island dev server answers **loopback origins only**. It serves `/@fs/<path>`, so an
+  allow-everything CORS policy — which is what `cors: true` is — would let any website open in the
+  developer's browser fetch files from under their workspace root while `rask dev` runs, the same
+  class of hole Vite itself has had to close more than once. An app served on a non-loopback address
+  in development will not load its islands.
+
+  Angular's plugin needs `@angular/compiler-cli` and `@angular/build` installed beside it — it imports
+  both and depends on neither — pins TypeScript below 6.1, and must be pointed at a tsconfig Rask
+  writes: the app's own sets `noEmit`, which leaves ngtsc emitting nothing and every `.ts` island
+  without a default export, reported against files that plainly have one.
+
+  The Server showcase now runs six runtimes on one page. See [docs/islands.md](docs/islands.md).
+
 ### Fixed
 
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
