@@ -10,19 +10,15 @@ using Rask.Core.Authentication;
 namespace Rask.Auth;
 
 /// <summary>Names shared by the auth endpoints and the clients that call them.</summary>
+/// <remarks>
+/// The contract itself lives in <see cref="AuthApi" />, in Core, because the browser half cannot
+/// reference this package — it carries Identity and Entity Framework, which must not reach a trimmed
+/// WebAssembly publish.
+/// </remarks>
 public static class RaskAuthDefaults
 {
-    /// <summary>
-    /// The header every state-changing auth request must carry.
-    /// </summary>
-    /// <remarks>
-    /// A custom header is a CSRF defence that needs no token round-trip: cross-site markup — a form,
-    /// an <c>&lt;img&gt;</c>, a <c>&lt;script&gt;</c> — cannot set one, so only a same-origin <c>fetch</c>
-    /// reaches these endpoints. It is belt-and-braces over the <c>SameSite=Lax</c> cookie, which already
-    /// withholds itself from a cross-site POST; two cheap defences are worth more here than one, because
-    /// this is the endpoint that mints a session.
-    /// </remarks>
-    public const string RequestHeader = "X-Rask-Auth";
+    /// <inheritdoc cref="AuthApi.RequestHeader" />
+    public const string RequestHeader = AuthApi.RequestHeader;
 }
 
 /// <summary>Maps the register, sign-in, sign-out and current-user endpoints.</summary>
@@ -56,13 +52,13 @@ public static class RaskAuthEndpointExtensions
             // fetch and echo. The required header below is the same defence without the round-trip.
             .DisableAntiforgery();
 
-        group.MapPost("/register", RegisterAsync);
-        group.MapPost("/login", LoginAsync);
+        group.MapPost(AuthApi.Register, RegisterAsync);
+        group.MapPost(AuthApi.Login, LoginAsync);
         // Cast to Delegate deliberately (ASP0016). LogoutAsync takes only an HttpContext, which is
         // exactly RequestDelegate's shape, so without the cast ASP.NET binds it as one and throws the
         // returned IResult away — the sign-out would happen and the response would not say so.
-        group.MapPost("/logout", (Delegate)LogoutAsync);
-        group.MapGet("/me", Me);
+        group.MapPost(AuthApi.Logout, (Delegate)LogoutAsync);
+        group.MapGet(AuthApi.Me, Me);
 
         return endpoints;
     }
@@ -169,27 +165,4 @@ public static class RaskAuthEndpointExtensions
                 + "header. A same-origin fetch can set it; cross-site markup cannot, which is what makes "
                 + "it a CSRF defence."),
             statusCode: StatusCodes.Status400BadRequest);
-
-    /// <summary>Credentials for a new account.</summary>
-    /// <param name="Email">The email address, which is also the user name.</param>
-    /// <param name="Password">The password.</param>
-    /// <param name="FirstRunToken">The first-run token, needed only while no account exists yet.</param>
-    public sealed record RegisterRequest(string Email, string Password, string? FirstRunToken = null);
-
-    /// <summary>Credentials for an existing account.</summary>
-    /// <param name="Email">The email address.</param>
-    /// <param name="Password">The password.</param>
-    /// <param name="Remember">Whether the session should outlive the browser session.</param>
-    public sealed record LoginRequest(string Email, string Password, bool Remember = false);
-
-    /// <summary>Who is signed in.</summary>
-    /// <param name="Id">The account's stable id.</param>
-    /// <param name="Email">The account's email address.</param>
-    /// <param name="Roles">The roles it holds.</param>
-    public sealed record CurrentUser(string? Id, string? Email, IReadOnlyList<string> Roles);
-
-    /// <summary>Why a request was refused.</summary>
-    /// <param name="Error">The <see cref="AuthError" /> name.</param>
-    /// <param name="Message">A human-readable detail, when there is one.</param>
-    public sealed record AuthFailure(string Error, string? Message);
 }

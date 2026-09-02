@@ -52,6 +52,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Auth.Client` — the browser half, so a WebAssembly app writes the same three calls.** Until
+  now a WASM app had `IAuth` and `IUserProvider` but no implementation of either; the documented answer
+  was to copy an `ApiUserProvider` out of a sample. `AddRaskAuthClient()` now supplies both, over the
+  app's own `/api/auth` endpoints, so a component cannot tell which host it is running on.
+
+  Identity travels as a same-origin cookie — no token is ever held in JavaScript.
+
+  It is a separate package because `Rask.Auth` carries ASP.NET Core Identity and Entity Framework, and
+  neither belongs in a trimmed browser publish. The two halves therefore cannot reference each other,
+  so the wire contract moved into `Rask.Core.Authentication` as **`AuthApi`** — written once rather
+  than duplicated and left to drift.
+
 - **Built-in sign-in, registration and sign-out pages.** A default app has the three flows with no
   files of its own. They ship inside `Rask.Auth` and register through the same generated routes
   registry that puts the operator console at `/_rask`, so nothing has to be mapped. `/login` is

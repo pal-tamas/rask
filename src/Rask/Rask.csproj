@@ -88,6 +88,7 @@
     <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
+    <ProjectReference Include="..\Rask.Auth.Client\Rask.Auth.Client.csproj"/>
     <ProjectReference Include="..\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
   </ItemGroup>
 
