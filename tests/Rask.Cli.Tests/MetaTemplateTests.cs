@@ -156,6 +156,34 @@ public sealed class MetaTemplateTests
     }
 
     [Fact]
+    public void Every_template_arranges_the_alias_exactly_once_and_by_a_mechanism_that_framework_honours()
+    {
+        // `@rask/*` is what the docs, the generated README and the next-steps text all tell the
+        // developer to write, and it has three possible homes — none of which works everywhere:
+        //
+        //   tsconfig paths   Next, TanStack, SolidStart, Analog
+        //   kit.alias        SvelteKit, which GENERATES the tsconfig and rejects a hand-written paths
+        //   nuxt.config      Nuxt, which also generates its tsconfig
+        //
+        // A template with none of them scaffolds an app whose every Rask import fails to resolve, and
+        // nothing in this repository would notice: the files are all well-formed. A template with two
+        // is worse than one, because the framework-generated half wins and the other is dead text.
+        foreach (var template in MetaTemplate.All)
+        {
+            var viaTsConfig = template.TsConfigFile is { Length: > 0 };
+            var viaKit = template.KitAlias;
+            var viaOwnConfig = template.ConfigFiles.Any(f =>
+                f.Content.Contains("'@rask'", StringComparison.Ordinal));
+
+            var mechanisms = (viaTsConfig ? 1 : 0) + (viaKit ? 1 : 0) + (viaOwnConfig ? 1 : 0);
+
+            Assert.True(
+                mechanisms == 1,
+                $"{template.Key} declares {mechanisms} ways to map @rask/*, and exactly one works.");
+        }
+    }
+
+    [Fact]
     public void Every_template_gets_Tailwind_one_way_or_the_other()
     {
         // Styling is not a decision Rask leaves to the template: `rask new --template react` ships
