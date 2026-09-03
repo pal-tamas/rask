@@ -3189,7 +3189,8 @@ static Rask.Core.Forms.ModelGraphWalker.Walk(object! root) -> System.Collections
 static Rask.Core.Forms.RaskBinding.RegisterParsable<T>() -> void
 static Rask.Core.Forms.RaskValidation.AutoValidate.get -> bool
 static Rask.Core.Forms.RaskValidation.AutoValidate.set -> void
-static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! source) -> void
+static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) -> bool
+static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.Resolve(System.Type! modelType, System.IServiceProvider? services) -> Rask.Core.Forms.IAsyncFieldValidator?
 static Rask.Core.Forms.ValidationEntry.operator !=(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool
 static Rask.Core.Forms.ValidationEntry.operator ==(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool

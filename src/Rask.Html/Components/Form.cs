@@ -240,22 +240,32 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
             return;
         }
 
-        // Ask before building. AddValidator would dedup either way, but only after this method had
-        // allocated a validator — and, for FluentValidation, gone to the registry and constructed one
-        // with its dependencies — on every render of every form. Both passes are registered together
-        // below, so the first one's presence answers for both.
-        if (ctx.HasValidator(typeof(DataAnnotationsFieldValidator)))
-        {
-            return;
-        }
-
         var services = LiveRenderContext.CurrentSync?.Services;
 
-        ctx.AddValidator(new DataAnnotationsFieldValidator(services));
-
-        if (RaskValidation.Resolve(typeof(TModel), services) is { } discovered)
+        // Ask before building. AddValidator would dedup either way, but only after this method had
+        // allocated on every render of every form, and a form re-renders on every keystroke.
+        //
+        // The two passes are checked SEPARATELY rather than letting the first answer for both: a
+        // validator can appear after the first render (hot reload, or a RaskValidators.Register at
+        // runtime), and a single combined check would leave an already-mounted form permanently
+        // without it.
+        if (!ctx.HasValidator(typeof(DataAnnotationsFieldValidator)))
         {
-            ctx.AddValidator(discovered);
+            ctx.AddValidator(new DataAnnotationsFieldValidator(services));
+        }
+
+        // Ask whether one EXISTS; do not build it. Building here threw out of Render() for a validator
+        // with constructor dependencies when the render had no scope, and it froze the rules at the
+        // first render — the registered instance survived every later render, so a hot-reloaded RuleFor
+        // repainted the page with the old rules while the pill said it applied.
+        //
+        // Registering only when one exists also matters: a DiscoveredFieldValidator is an
+        // IAsyncFieldValidator, and one of those on the context makes the synchronous
+        // EditContext.Validate() throw. Every form would have paid that for a validator it never had.
+        if (!ctx.HasAsyncValidator(typeof(DiscoveredFieldValidator))
+            && RaskValidation.HasValidatorFor(typeof(TModel)))
+        {
+            ctx.AddValidator(new DiscoveredFieldValidator(typeof(TModel), services));
         }
     }
 

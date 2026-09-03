@@ -1711,7 +1711,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .Append(opening[1].ParamName).AppendLine(", which fixes the rest of its type.</summary>");
             sb.Append(pad).AppendLine(hidden);
             sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StageName(c, opening[0]))
-                .Append(Append(stageParams, carriedMode)).AppendLine();
+                .Append(Append(AnnotateDecl(c, stageParams), carriedMode)).AppendLine();
             sb.Append(pad).AppendLine("{");
             sb.Append(pad).Append("    internal ").Append(StageName(c, opening[0])).Append('(')
                 .Append(StepParamType(opening[0])).Append(" value) => ")
@@ -1739,7 +1739,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .AppendLine(".</summary>");
             sb.Append(pad).AppendLine(hidden);
             sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StateName(c, state))
-                .Append(Append(c.TypeParameters, carriedMode)).AppendLine();
+                .Append(Append(AnnotateDecl(c, c.TypeParameters), carriedMode)).AppendLine();
             sb.Append(pad).AppendLine("{");
             sb.Append(pad).Append("    internal ").Append(StateName(c, state)).Append('(')
                 .Append(c.FullyQualifiedName).AppendLine(" component) => Component = component;");

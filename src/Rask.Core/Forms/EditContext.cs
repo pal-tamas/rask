@@ -234,6 +234,20 @@ public sealed class EditContext : IDisposable
         return false;
     }
 
+    /// <inheritdoc cref="HasValidator" />
+    internal bool HasAsyncValidator(Type validatorType)
+    {
+        foreach (var validator in _asyncValidators)
+        {
+            if (validator.GetType() == validatorType)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     ///     Registers an asynchronous validator for the whole form. De-duplicated by runtime type, exactly
     ///     as the synchronous overload is. Adding one makes <see cref="Validate()" /> throw — the form

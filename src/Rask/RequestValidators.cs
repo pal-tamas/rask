@@ -127,14 +127,20 @@ public sealed class FluentValidationRequestValidator<TRequest> : IRequestValidat
 /// </remarks>
 public sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
 {
-    private readonly IServiceProvider _services;
+    private readonly IServiceScopeFactory _scopes;
 
-    /// <summary>Creates the validator over the app's scope.</summary>
-    /// <param name="services">The scope validators resolve their own dependencies from.</param>
-    public RaskRemoteRequestValidator(IServiceProvider services)
+    /// <summary>Creates the validator.</summary>
+    /// <param name="scopes">
+    ///     Makes a scope per validation run. A scope factory rather than an <see cref="IServiceProvider" />
+    ///     because this is a singleton (<c>IRemoteDispatch</c>, which consumes it, is one): injecting the
+    ///     provider would hand it the ROOT container, and a validator or a custom
+    ///     <c>ValidationAttribute</c> asking for anything scoped — a <c>DbContext</c>, a repository —
+    ///     would fail resolution under the default scope validation.
+    /// </param>
+    public RaskRemoteRequestValidator(IServiceScopeFactory scopes)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        _services = services;
+        ArgumentNullException.ThrowIfNull(scopes);
+        _scopes = scopes;
     }
 
     /// <inheritdoc />
@@ -148,13 +154,16 @@ public sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
 
         var errors = new List<RequestValidationError>();
 
-        foreach (var entry in DataAnnotationsFieldValidator.Validate(request, _services))
+        using var scope = _scopes.CreateScope();
+        var services = scope.ServiceProvider;
+
+        foreach (var entry in DataAnnotationsFieldValidator.Validate(request, services))
         {
             errors.Add(new RequestValidationError(entry.Field, entry.Message));
         }
 
         if (RaskValidators.Find(request.GetType()) is { } factory
-            && factory(_services) is IValidator validator)
+            && factory(services) is IValidator validator)
         {
             var result = await validator
                 .ValidateAsync(new ValidationContext<object>(request), cancellationToken)

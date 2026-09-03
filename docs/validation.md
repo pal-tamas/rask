@@ -35,7 +35,26 @@ generator finds every `AbstractValidator<T>` at compile time and emits a `[Modul
 is no assembly scan, which is what lets a WebAssembly app use it and still publish trimmed.
 
 A validator with constructor dependencies is resolved from the scope, so the uniqueness-check
-validator — the usual reason to reach for FluentValidation — needs no extra wiring.
+validator — the usual reason to reach for FluentValidation — needs no extra wiring. It is built when
+validation runs, not when the form renders, so a rule edited and hot-reloaded takes effect on the next
+validation rather than the next page load.
+
+### Two things to know
+
+**Discovery is per assembly.** The generator sees the compilation it runs in, so a validator in a
+referenced class library is registered only if that library also has the Rask analyzer payload and a
+`Rask.Validation.FluentValidation` reference — which a plain class library does not. Keep validators
+beside the app, or register them explicitly:
+
+```csharp
+RaskValidators.Register(typeof(Order), _ => new OrderValidator());
+```
+
+**A discovered validator makes the form validate asynchronously.** FluentValidation runs async, so
+`EditContext.Validate()` — the synchronous overload — throws once a validator exists for the model, and
+`ValidateAsync()` must be used instead. This is not new behaviour for a context with async validators;
+what is new is that writing an `AbstractValidator<T>` is now enough to put one there. The exception
+names the validator that made the context async.
 
 ## Requests
 
@@ -98,6 +117,13 @@ request.
 On a WebAssembly client the request is validated **before** it is sent, so an invalid command costs a
 message rather than a round trip. The server runs the same rules again and remains the authority —
 the local check is a convenience, never a control, and a caller that skips it gains nothing.
+
+Catch **both**: a rejection caught in the browser is a `RaskValidationException`, and one the browser
+could not evaluate — a `MustAsync` that needs the database — comes back from the server as a
+`RemoteDispatchException` whose `Errors` carry the same field map.
+
+Notifications are not validated. `PublishAsync` does not go through the request pipeline, so a rule on
+a notification would be enforced nowhere; put it on the command that raises the notification instead.
 
 ## What is not covered yet
 

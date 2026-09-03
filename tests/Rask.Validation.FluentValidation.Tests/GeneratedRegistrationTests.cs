@@ -66,6 +66,34 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void AValidatorNeedingServices_DoesNotBreakARenderWithNoScope()
+    {
+        // The validator is only BUILT when validation runs, not when the form registers it. Building at
+        // registration meant this render threw InvalidOperationException out of Render() — from generated
+        // code the author never wrote — purely because a DI-constructed validator for this model exists
+        // somewhere in the assembly. RaskTest.Render with no provider is a supported shape.
+        var m = new NeedsServiceModel { Name = "" };
+
+        var ctx = Render(m);
+
+        Assert.NotNull(ctx);
+        Assert.Same(m, ctx.Model);
+    }
+
+    [Fact]
+    public async Task AModelWithNoValidator_LeavesValidateSynchronous()
+    {
+        // A DiscoveredFieldValidator is an IAsyncFieldValidator, and one of those on the context makes
+        // the synchronous EditContext.Validate() throw. Registering it unconditionally would have made
+        // every form in every app pay that for a validator it does not have.
+        var ctx = Render(new UnvalidatedModel { Anything = "" });
+
+        Assert.False(ctx.HasAsyncValidators);
+        Assert.True(ctx.Validate());
+        await Task.CompletedTask;
+    }
+
+    [Fact]
     public async Task AModelWithNoValidator_IsLeftAlone()
     {
         var m = new UnvalidatedModel { Anything = "" };
@@ -134,5 +162,21 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     internal sealed class UnvalidatedModel
     {
         public string Anything { get; set; } = "";
+    }
+
+    internal sealed class NeedsServiceModel
+    {
+        public string Name { get; set; } = "";
+    }
+
+    internal interface INameRule
+    {
+        bool Allows(string name);
+    }
+
+    internal sealed class NeedsServiceModelValidator : AbstractValidator<NeedsServiceModel>
+    {
+        public NeedsServiceModelValidator(INameRule rule) =>
+            RuleFor(x => x.Name).Must(rule.Allows).WithMessage("Not allowed.");
     }
 }

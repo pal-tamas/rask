@@ -146,6 +146,12 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Address = new Address { Street = "" } };
         EditContext? captured = null;
 
+        // Registered HERE rather than relied on from a sibling. RaskValidators is a process-wide table
+        // that nothing clears between tests, so without this line the test passes only when some other
+        // test has already pointed Person at a validator — and fails, or asserts against the wrong
+        // rules, depending on the order they run in.
+        RaskValidators.Register(typeof(Person), _ => new PersonValidator());
+
         var page = RaskTest.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address!.Street),
             RaskTest.EditContextProbe(ctx => captured = ctx)

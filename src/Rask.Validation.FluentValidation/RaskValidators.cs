@@ -145,8 +145,10 @@ public static class RaskValidators
 #pragma warning disable CA2255
     [ModuleInitializer]
 #pragma warning restore CA2255
-    internal static void Install() => RaskValidation.RegisterSource(static (modelType, services) =>
-        Find(modelType) is { } factory && factory(services) is IValidator validator
-            ? new FluentValidationFieldValidator(validator)
-            : null);
+    internal static void Install() => RaskValidation.RegisterSource(
+        static modelType => Find(modelType) is not null,
+        static (modelType, services) =>
+            Find(modelType) is { } factory && factory(services) is IValidator validator
+                ? new FluentValidationFieldValidator(validator)
+                : null);
 }

@@ -84,7 +84,10 @@ internal sealed class RemoteDispatch(
         // This is a convenience, never a control. The server runs the same rules again through
         // ValidationBehavior before any handler sees the request, so a caller that skips this (a
         // hand-written client, a replayed request) gains nothing by it.
-        if (validator is not null)
+        // Requests only. ValidationBehavior wraps the request pipeline, and PublishAsync does not go
+        // through it — so validating a notification here would reject in the browser something the
+        // server and every in-process publish accept, which is a worse failure than not checking.
+        if (validator is not null && contract.Kind != RemoteMessageKind.Notification)
         {
             var errors = await validator.ValidateAsync(message, cancellationToken).ConfigureAwait(false);
             if (errors is { Count: > 0 })
@@ -598,7 +601,14 @@ internal sealed class RemoteDispatch(
                 if (reader.TokenType == JsonTokenType.String && reader.GetString() is { } message)
                 {
                     messages.Add(message);
+                    continue;
                 }
+
+                // A nested array or object inside the messages list is not ours, but skipping the VALUE
+                // rather than the token is what keeps the reader aligned: without it the loop ends on
+                // the INNER array's EndArray and the outer loop then reads property names off value
+                // tokens, throwing out of the parse path instead of yielding a plain failure.
+                reader.Skip();
             }
 
             result[field] = messages.ToArray();

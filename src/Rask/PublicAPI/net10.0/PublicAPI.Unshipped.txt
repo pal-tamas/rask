@@ -23,9 +23,9 @@ Rask.RaskApp.Run<TApp>(string! pathBase = "") -> void
 Rask.RaskApp.RunAsync<TApp>(string! pathBase = "") -> System.Threading.Tasks.Task!
 Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.RaskAppOptions
+Rask.RaskAppOptions.Api.get -> Rask.Battery<Rask.Api.ApiOptions!>!
 Rask.RaskAppOptions.BehindProxy.get -> bool
 Rask.RaskAppOptions.BehindProxy.set -> void
-Rask.RaskAppOptions.Api.get -> Rask.Battery<Rask.Api.ApiOptions!>!
 Rask.RaskAppOptions.Cache.get -> Rask.Battery<Rask.Cache.CacheOptions!>!
 Rask.RaskAppOptions.ConnectionString.get -> string?
 Rask.RaskAppOptions.ConnectionString.set -> void
@@ -55,7 +55,7 @@ Rask.RaskAppOptions.Validation.get -> Rask.Battery!
 Rask.RaskAppOptions.Wasm.get -> bool
 Rask.RaskAppOptions.Wasm.set -> void
 Rask.RaskRemoteRequestValidator
-Rask.RaskRemoteRequestValidator.RaskRemoteRequestValidator(System.IServiceProvider! services) -> void
+Rask.RaskRemoteRequestValidator.RaskRemoteRequestValidator(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopes) -> void
 Rask.RaskRemoteRequestValidator.ValidateAsync(object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.RaskRequestValidation
 static Rask.RaskApp.Create(string![]! args, System.Action<Microsoft.AspNetCore.Builder.WebApplicationBuilder!>? configure = null) -> Rask.RaskApp!

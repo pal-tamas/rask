@@ -14,7 +14,7 @@ Rask.FluentValidationRequestValidator<TRequest>
 Rask.FluentValidationRequestValidator<TRequest>.FluentValidationRequestValidator(System.IServiceProvider! services) -> void
 Rask.FluentValidationRequestValidator<TRequest>.ValidateAsync(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.RaskRemoteRequestValidator
-Rask.RaskRemoteRequestValidator.RaskRemoteRequestValidator(System.IServiceProvider! services) -> void
+Rask.RaskRemoteRequestValidator.RaskRemoteRequestValidator(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopes) -> void
 Rask.RaskRemoteRequestValidator.ValidateAsync(object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.RaskRequestValidation
 Rask.RaskWasmOptions

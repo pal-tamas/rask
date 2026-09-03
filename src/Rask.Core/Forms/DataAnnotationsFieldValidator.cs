@@ -151,6 +151,11 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         // attribute-level error is found. ASP.NET Core MVC's DefaultObjectValidator does not
         // — attribute and IValidatableObject errors accumulate together. Invoke the interface
         // method ourselves to match that experience.
+        //
+        // Which means it can run TWICE: with no attribute errors, TryValidateObject already ran it and
+        // its results are in the list. The count cannot tell the two cases apart — the BCL puts
+        // attribute errors and IValidatableObject errors in the same list — so the duplicate is removed
+        // below instead of predicted here.
         if (node is IValidatableObject validatable)
         {
             foreach (var r in validatable.Validate(ctx))
@@ -159,19 +164,40 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
             }
         }
 
+        // Dedup by (field, message), which is what the form path always did: EditContext.AddValidationMessage
+        // drops a message already on the field, so the double run above was invisible there. The static
+        // pass has no EditContext behind it, and without this a dispatched request would put every
+        // object-level failure on the wire twice.
+        var seen = new HashSet<(string, string)>();
+
         foreach (var r in results)
         {
+            // ValidationResult.Success IS null, and an IValidatableObject is free to yield it — the BCL
+            // filters those out, so anything hand-rolling this loop has to as well or it dereferences
+            // null on a model that only said "this one is fine".
+            if (r is null)
+            {
+                continue;
+            }
+
             var message = r.ErrorMessage ?? "Invalid value.";
-            var members = r.MemberNames.ToList();
+            var members = r.MemberNames.Where(static m => m is not null).ToList();
             if (members.Count == 0)
             {
-                yield return (string.Empty, message);
+                if (seen.Add((string.Empty, message)))
+                {
+                    yield return (string.Empty, message);
+                }
+
                 continue;
             }
 
             foreach (var m in members)
             {
-                yield return (m, message);
+                if (seen.Add((m, message)))
+                {
+                    yield return (m, message);
+                }
             }
         }
     }
