@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Rask.Core.Tests.Conventions;
+namespace Rask.Ui.Tests;
 
 /// <summary>
 ///     `Rask.Bootstrap` is gone and styling is Tailwind, compiled from each project's own source. A
@@ -13,6 +13,13 @@ namespace Rask.Core.Tests.Conventions;
 ///         ~2,300 of these behind, and the ones on a <c>&lt;table&gt;</c> row survived a whole conversion
 ///         because a class name compiles no matter what it says. This test is what stops the next one
 ///         coming back.
+///     </para>
+///     <para>
+///         It lives in the KIT's test project rather than Rask.Core's, and that is not filing. It needs
+///         the kit's stylesheet to know which names are real, and referencing Rask.Ui from Rask.Core.Tests
+///         changed what the chain generator injects into that compilation — enough to move a pinned
+///         allocation measurement by 79 bytes. A convention test is not worth perturbing a performance
+///         pin, so the test moved to where the reference already exists.
 ///     </para>
 ///     <para>
 ///         It scans CLASS POSITIONS only — <c>.Class("…")</c>, <c>Class:</c>, <c>Class =</c>,
@@ -81,6 +88,39 @@ public sealed class NoBootstrapClassesTests
     private static readonly HashSet<string> ThemeGenerated =
         new(StringComparer.Ordinal) { "samples/Rask.Example.Site/App.cs:text-muted" };
 
+    /// <summary>
+    ///     The class names daisyUI actually defines, read from the stylesheet the kit ships.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This test's premise is that a Bootstrap class name in the tree STYLES NOTHING. That was true
+    ///         while Tailwind was the only styling system; it stopped being true when the kit took daisyUI,
+    ///         because the two libraries share a great deal of vocabulary — <c>btn</c>, <c>card</c>,
+    ///         <c>alert</c>, <c>badge</c>, <c>navbar</c>, <c>tabs</c>, <c>modal-*</c>, <c>dropdown-*</c>,
+    ///         <c>toast</c> and more are live daisyUI classes. Reporting those would fail the test on
+    ///         correct code, which the note above calls the fastest way to get a convention test switched
+    ///         off, and is exactly why the spellings Tailwind shares were left out of the pattern already.
+    ///     </para>
+    ///     <para>
+    ///         Read from the SHIPPED sheet rather than listed by hand, so it cannot drift as daisyUI grows
+    ///         or shrinks. The cost is honest and worth stating: on a surface that does not inline the
+    ///         kit's stylesheet, a genuine Bootstrap leftover spelled like a daisyUI class now goes
+    ///         unreported. The alternative was a list that silently rots.
+    ///     </para>
+    /// </remarks>
+    private static readonly HashSet<string> DaisyUi = DefinedClassNames(UiStylesheet.Css);
+
+    private static HashSet<string> DefinedClassNames(string css)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match m in Regex.Matches(css, @"\.(-?[_a-zA-Z][\w-]*)"))
+        {
+            names.Add(m.Groups[1].Value);
+        }
+
+        return names;
+    }
+
     [Fact]
     public void No_source_file_uses_a_Bootstrap_class_name()
     {
@@ -104,7 +144,9 @@ public sealed class NoBootstrapClassesTests
             {
                 foreach (var token in m.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 {
-                    if (!Bootstrap.IsMatch(token) || ThemeGenerated.Contains($"{relative}:{token}"))
+                    if (!Bootstrap.IsMatch(token)
+                        || DaisyUi.Contains(token)
+                        || ThemeGenerated.Contains($"{relative}:{token}"))
                     {
                         continue;
                     }

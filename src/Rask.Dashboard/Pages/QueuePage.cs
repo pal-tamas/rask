@@ -227,8 +227,11 @@ public sealed partial class QueuePage(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
 
+        // No Id, so this takes the modal's STATE-DRIVEN path: the page renders the sheet when a row is
+        // selected and Close flips that back. The native popover path cannot express it — nothing in C#
+        // can press the button that would open it.
         return UiModal
-            .Heading(row.Type)
+            .Title(row.Type)
             .Close(Close)
             .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
                 RowActionButtons(row, isDead),
