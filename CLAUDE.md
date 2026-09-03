@@ -13,7 +13,7 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 - **run-benchmarks** — before/after `Allocated` delta for render-hotpath changes (required evidence).
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
 - **open-pr** — branch off main, Conventional-Commit, **no AI-attribution footers**, delete branch after merge.
-- **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-nuget-updates** — dependency hygiene.
+- **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
 Standing rules: do your best every PR, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test every feature (E2E

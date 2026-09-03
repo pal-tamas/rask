@@ -1444,6 +1444,18 @@ public abstract partial class SharedSmokeTests
         // The [QueryParam]-driven data table that stood here was the BsDataGrid showcase at /table.
         // It went with Rask.Bootstrap, and the route is gone with it.
 
+        // The HTTP demo reached by a HARD navigation, on every host. This is what exercises the WASM
+        // base-address fix: the relative data/posts-1.json fetch must resolve against the app root from
+        // the two-segment /guides/http-and-files route, not against /guides/.
+        //
+        // It lives HERE rather than in WalkHttpAndFilesGuideAsync because that walk is asserted to stay
+        // inside the SPA — window.__raskSentinel must survive it — and a GotoAsync reboots the app and
+        // wipes the sentinel. It used to ride along inside the Slow3g step instead, which is where it
+        // became unrunnable on WASM; see the note there.
+        await Page.GotoAsync("/guides/http-and-files");
+        await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
         if (opts.DeepLink)
         {
             // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)
@@ -1497,9 +1509,16 @@ public abstract partial class SharedSmokeTests
 
         if (opts.Slow3g)
         {
-            // Emulate a slow link via Chromium CDP and confirm the HTTP demo on the HTTP & files guide
-            // still settles (a hard nav to the two-segment /guides/http-and-files route also exercises the
-            // WASM base-address fix under throttling). Then restore full speed so later steps aren't penalized.
+            // Emulate a slow link via Chromium CDP and confirm the HTTP demo still settles on it. Then
+            // restore full speed so later steps aren't penalized.
+            //
+            // NAVIGATED CLIENT-SIDE, deliberately. This step used to Page.GotoAsync the route while
+            // throttled, which on a WASM host means re-downloading the whole .NET runtime at
+            // 50 KB/s — 71 MB of _framework, about twenty-four minutes, against a sixty-second
+            // assertion. It could only ever pass when the browser happened to serve the boot from
+            // cache, which made the journey a coin flip rather than a test (#972). The hard-navigation
+            // half of what it covered — the base-address fix on a two-segment route — now lives
+            // unthrottled in WalkHttpAndFilesGuideAsync, where it holds on every host.
             var cdp = await Page.Context.NewCDPSessionAsync(Page);
             await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
             {
@@ -1508,7 +1527,7 @@ public abstract partial class SharedSmokeTests
                 ["downloadThroughput"] = 50 * 1024,
                 ["uploadThroughput"] = 50 * 1024,
             });
-            await Page.GotoAsync("/guides/http-and-files");
+            await SideAsync("HTTP & files", "HTTP & files", "main .markdown-body h1");
             await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(
                 new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
 
