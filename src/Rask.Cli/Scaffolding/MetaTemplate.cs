@@ -111,6 +111,17 @@ internal sealed record MetaTemplate(
     /// </remarks>
     public bool TailwindThroughPostcss { get; init; }
 
+    /// <summary>
+    ///     Whether the alias belongs in SvelteKit's own <c>kit.alias</c> rather than in a tsconfig.
+    /// </summary>
+    /// <remarks>
+    ///     SvelteKit alone. It generates the tsconfig the app type-checks against, so a <c>paths</c>
+    ///     written by hand is both ignored where it matters and destructive where it does not — it
+    ///     replaces the generated <c>$lib</c> mapping. <c>kit.alias</c> is the supported way in, and
+    ///     SvelteKit propagates it into the config it writes.
+    /// </remarks>
+    public bool KitAlias { get; init; }
+
     /// <summary>Where this framework's dev server listens, for the next-steps text.</summary>
     public string DevServerUrl { get; init; } = "http://localhost:3000";
 
@@ -245,6 +256,14 @@ internal sealed record MetaTemplate(
     public static MetaTemplate SvelteKit { get; } = new(
         "sveltekit", "SvelteKit", "sv", [])
     {
+        // SvelteKit GENERATES its tsconfig paths from kit.alias, and refuses to be told otherwise:
+        // `svelte-check` answers a hand-written paths entry with "You have specified a baseUrl and/or
+        // paths in your tsconfig.json which interferes with SvelteKit's auto-generated tsconfig.json …
+        // For path aliases, use `kit.alias` instead" — and, worse, the entry silently displaces the
+        // inherited $lib, so imports the developer never touched stop resolving. Measured, not assumed.
+        TsConfigFile = null,
+        KitAlias = true,
+
         Scaffolder = _ =>
         [
             "--yes", "sv@latest", "create", "client",
@@ -284,8 +303,9 @@ internal sealed record MetaTemplate(
     /// </summary>
     /// <remarks>
     ///     Its creator asks two questions before it will do anything, and both have to be answered on the
-    ///     command line: <c>--v2</c> for the major version and <c>-t basic</c> for the template. Miss
-    ///     either and it sits on a prompt, which inside <c>rask new</c> is a hang rather than an error.
+    ///     command line: <c>--v2</c> for the major version and <c>-t</c> for the template — here
+    ///     <c>with-tailwindcss</c>, which is also how this framework gets its Tailwind. Miss either and it
+    ///     sits on a prompt, which inside <c>rask new</c> is a hang rather than an error.
     /// </remarks>
     public static MetaTemplate SolidStart { get; } = new(
         "solidstart", "SolidStart", "create-solid", [])

@@ -97,8 +97,9 @@ adapter (modern SvelteKit configures kit through the Vite plugin and writes no `
 all) and TanStack's carries the Start plugin and Nitro — writing our own file over either would delete
 exactly the thing that makes the build produce a server.
 
-The creators are all run with installation skipped: your first `dotnet build` installs, so `rask new`
-does not do that work twice.
+No creator installs dependencies: four are told not to (`--no-install`, `--skip-install`) and the
+other two do not by default. Your first `dotnet build` installs, so `rask new` does not do that work
+twice.
 
 ## Six frameworks, three server shapes
 
@@ -251,12 +252,21 @@ They are copied into your app on every build — into `app/rask/browser/` for Nu
 framework keeps source. `RaskMetaGeneratedDir` moves them if your app is laid out differently.
 
 **`@rask/*` is what you write, whichever framework you picked.** The physical directory differs; the
-import should not. A `tsconfig.rask.json` is written beside the modules with the mapping, so one line
-in your own `tsconfig.json` turns it on:
+import should not. `rask new` wires the alias for you, through whichever mechanism that framework
+actually honours — which is not the same one twice:
 
-```json
-{ "extends": "./src/rask/tsconfig.rask.json" }
-```
+| | Where the alias goes |
+|---|---|
+| `nextjs`, `tanstack-start`, `solidstart`, `analog` | `compilerOptions.paths` in your own `tsconfig.json` |
+| `sveltekit` | `alias` in the `sveltekit()` plugin options, which is what generates its tsconfig |
+| `nuxt` | `alias` in `nuxt.config.ts`, which Nuxt propagates into the tsconfig it writes |
+| `solidstart` also | a Vite `resolve.alias`, because Vite does not read tsconfig paths on its own |
+
+Two of those are not preferences. A tsconfig `paths` entry does **not** merge across `extends` —
+TypeScript replaces the inherited one wholesale — so an `extends` would be silently overridden by the
+`paths` that Next, TanStack and Solid write into that same file, and `@rask/client` would resolve to
+nothing. And on SvelteKit a hand-written `paths` displaces the generated `$lib`, which `svelte-check`
+reports as an error in code you never touched.
 
 **This is the same code Rask's own Server and WASM clients run.** It is not a TypeScript port kept in
 step by hand: the C# `IGeolocation` reaches the browser by calling into these very modules, so a quirk

@@ -192,6 +192,19 @@ internal static partial class ProjectGenerator
         # Keep the build context small and reproducible — the image restores/publishes from source.
         bin/
         obj/
+
+        # The front-end templates' dependencies and build output. The image runs its own `npm ci`, and
+        # `COPY . .` happens AFTER it — so a developer's host node_modules would land on top of the
+        # container's, replacing linux binaries (esbuild, rollup, @tailwindcss/oxide) with darwin or
+        # windows ones. The publish then fails inside the image with a platform mismatch, or ships a
+        # tree that cannot run.
+        **/node_modules/
+        **/.output/
+        **/.next/
+        **/.nuxt/
+        **/.svelte-kit/
+        **/dist/
+
         .git/
         .gitignore
         .vs/

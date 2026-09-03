@@ -289,22 +289,25 @@ internal sealed record DevTarget(
     /// <summary>Where the meta framework's own dev server listens.</summary>
     /// <remarks>
     ///     <para>
+    ///         Asked of the same table <c>rask new</c> scaffolds from, rather than restated here. The
+    ///         scaffold's own next-steps text and the generated README print that value, so a second
+    ///         copy would let <c>--open</c> point at one port while the project's instructions name
+    ///         another — and nothing would fail.
+    ///     </para>
+    ///     <para>
     ///         Derived from the framework rather than read from a property, because unlike the SPA lane
-    ///         there is no scaffold baking an answer into the csproj — the app is created by the
-    ///         framework's own tool, which has a default and is the authority on it. The split is the
-    ///         bundler underneath: the three Nitro-based ones and Next serve on 3000, and the two plain
-    ///         Vite ones on 5173.
+    ///         there is no scaffold baking an answer into the csproj: the app is created by the
+    ///         framework's own tool, which has a default and is the authority on it.
     ///     </para>
     ///     <para>
     ///         This only decides where <c>--open</c> points; a front end told to listen elsewhere still
-    ///         runs, and <c>--urls</c> still wins outright.
+    ///         runs, and <c>--urls</c> still wins outright. A framework name this does not recognise —
+    ///         a typo in the csproj, which the build itself rejects — gets no answer rather than a
+    ///         plausible-looking wrong one.
     ///     </para>
     /// </remarks>
-    private static string MetaDevServerUrl(string framework) => framework switch
-    {
-        "sveltekit" or "analog" => "http://localhost:5173",
-        _ => "http://localhost:3000",
-    };
+    private static string? MetaDevServerUrl(string framework) =>
+        MetaTemplate.TryGet(framework, out var template) ? template.DevServerUrl : null;
 
     /// <summary>
     ///     The npm script that starts the client's dev server: <c>dev</c> where there is one, otherwise

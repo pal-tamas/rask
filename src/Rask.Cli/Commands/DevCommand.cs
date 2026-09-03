@@ -112,7 +112,11 @@ internal sealed class DevCommand(
             target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable,
             target.IslandDevServerUrl,
             once,
-            target.ClientDevServerUrl);
+            // Only when a front end was actually found, because this is what tells the host to STOP
+            // supervising. Without a client directory no dev server is started either, so handing the
+            // host a port would leave it forwarding into nothing — and would replace the supervisor's
+            // precise "no server entry at '…'" with a wall of connection failures.
+            target.ClientDirectory is null ? null : target.ClientDevServerUrl);
 
         // The environment overlay is not incidental here (see the remarks on this class): the MSBuild
         // property that stops a rude edit blocking on an interactive prompt travels through it, so a dry

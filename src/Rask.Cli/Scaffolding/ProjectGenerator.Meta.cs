@@ -54,8 +54,10 @@ internal static partial class ProjectGenerator
         // all. The other is the dev proxy that sends /_rask back to the host while the browser is talking
         // to the dev server.
         //
-        // A list because SvelteKit needs two: the adapter is declared in svelte.config.js and the proxy
-        // in vite.config.ts, and writing only the first leaves a dev session whose every dispatch 404s.
+        // A list rather than one file because nothing guarantees a framework needs exactly one — though
+        // as it stands only Nuxt and Next have anything overlaid at all. The four Vite-based ones have
+        // their own config PATCHED instead, since theirs already carries the node adapter or the Start
+        // plugin.
         foreach (var (path, content) in framework.ConfigFiles)
         {
             files.Add(($"{NameToken}/{framework.AppDir}/{path}", content));
@@ -84,7 +86,7 @@ internal static partial class ProjectGenerator
 
         if (batteries.Docker)
         {
-            files.Add(("Dockerfile", MetaDockerfile(framework)));
+            files.Add(("Dockerfile", MetaDockerfile(framework, batteries.Data)));
             files.Add((".dockerignore", DockerIgnore));
         }
 
@@ -147,7 +149,7 @@ internal static partial class ProjectGenerator
         {
             patches.Add(new ScaffoldPatch(
                 System.IO.Path.Combine(client, vite),
-                config => AddRaskDevProxy(config),
+                config => AddRaskViteConfig(config, framework),
                 "proxying /_rask to the host in development"));
         }
 
@@ -159,66 +161,64 @@ internal static partial class ProjectGenerator
         {
             patches.Add(new ScaffoldPatch(
                 System.IO.Path.Combine(client, tsConfig),
-                json => ExtendRaskTsConfig(json, framework.GeneratedDir),
-                "pointing tsconfig at the @rask/* aliases"));
+                json => AddRaskTsConfigPaths(json, framework.GeneratedDir),
+                "mapping @rask/* in tsconfig"));
         }
 
         return patches;
     }
 
     /// <summary>
-    ///     Points the front end's tsconfig at the <c>tsconfig.rask.json</c> the build writes.
+    ///     Maps <c>@rask/*</c> in the front end's own tsconfig, so the generated contracts and the
+    ///     browser layer are imported by the same specifier on every framework.
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         APPENDED to whatever the creator already extends, never assigned over it. Three of these
-    ///         frameworks extend a generated config that carries their whole type environment — SvelteKit's
-    ///         <c>./.svelte-kit/tsconfig.json</c>, Analog's Angular base — and replacing that line does not
-    ///         fail the build: it silently removes the framework's own types, and the first error the
-    ///         developer sees is about their own code.
+    ///         Written INTO the app's own <c>compilerOptions.paths</c>, and emphatically not as an
+    ///         <c>extends</c> of the <c>tsconfig.rask.json</c> the build writes. TypeScript merges
+    ///         <c>extends</c> per option and does NOT merge <c>paths</c>: an inherited <c>paths</c> is
+    ///         replaced wholesale by one in the inheriting file. Three of these creators
+    ///         (<c>create-next-app</c>, <c>@tanstack/cli</c>, <c>create-solid</c>) write their own
+    ///         <c>paths</c> — <c>@/*</c>, <c>#/*</c> — into the very file this patches, so an extends is
+    ///         silently overridden and <c>@rask/client</c> does not resolve at all.
     ///     </para>
     ///     <para>
-    ///         An array is legal from TypeScript 5.0 and resolves left to right, so Rask's aliases are
-    ///         added last and win no argument they should not.
+    ///         The reverse is just as bad. SvelteKit's tsconfig inherits <c>$lib</c> from the config kit
+    ///         generates; appending ours to that extends chain makes OUR paths win and deletes
+    ///         <c>$lib</c>, breaking imports the developer never touched.
     ///     </para>
     ///     <para>
-    ///         Idempotent, and a no-op on a file this does not recognise: failing a scaffold over an
-    ///         import alias would be worse than saying it did not happen.
+    ///         Edited as TEXT rather than parsed and re-serialised, because a tsconfig is JSONC:
+    ///         Angular's — and so Analog's — ships full of explanatory comments, and a JSON round-trip
+    ///         would delete every one of them while reformatting a file the developer owns. Idempotent,
+    ///         and a no-op on a shape this does not recognise: failing a scaffold over an import alias
+    ///         would be worse than saying it did not happen.
     ///     </para>
     /// </remarks>
-    internal static string ExtendRaskTsConfig(string tsConfig, string generatedDir)
+    internal static string AddRaskTsConfigPaths(string tsConfig, string generatedDir)
     {
-        var target = $"./{generatedDir}/tsconfig.rask.json";
-        if (tsConfig.Contains(target, StringComparison.Ordinal))
+        if (tsConfig.Contains("\"@rask/*\"", StringComparison.Ordinal))
         {
             return tsConfig;
         }
 
-        // Edited as TEXT rather than parsed and re-serialised, because a tsconfig is JSONC: Angular's —
-        // and so Analog's — ships full of explanatory comments and links, and a JSON round-trip would
-        // silently delete every one of them while reformatting a file the developer owns.
-        var single = Regex.Match(tsConfig, @"""extends""\s*:\s*""(?<base>[^""]*)""");
-        if (single.Success)
+        var entry = $"\"@rask/*\": [\"./{generatedDir}/*\"]";
+
+        // An existing paths object: our mapping joins it rather than replacing it.
+        var paths = Regex.Match(tsConfig, @"""paths""\s*:\s*\{");
+        if (paths.Success)
         {
-            return tsConfig
-                .Remove(single.Index, single.Length)
-                .Insert(single.Index, $"\"extends\": [\"{single.Groups["base"].Value}\", \"{target}\"]");
+            var insertAt = paths.Index + paths.Length;
+            var separator = tsConfig[insertAt..].TrimStart().StartsWith('}') ? string.Empty : ",";
+            return tsConfig.Insert(insertAt, $"\n      {entry}{separator}");
         }
 
-        var array = Regex.Match(tsConfig, @"""extends""\s*:\s*\[(?<items>[^\]]*)\]");
-        if (array.Success)
-        {
-            var items = array.Groups["items"].Value.TrimEnd();
-            var separator = items.Length == 0 ? string.Empty : ", ";
-            return tsConfig
-                .Remove(array.Index, array.Length)
-                .Insert(array.Index, $"\"extends\": [{items}{separator}\"{target}\"]");
-        }
-
-        // No extends at all: added as the first member, which is where a hand-written tsconfig puts it
-        // and where a reader looks for it.
-        var brace = tsConfig.IndexOf('{', StringComparison.Ordinal);
-        return brace < 0 ? tsConfig : tsConfig.Insert(brace + 1, $"\n  \"extends\": \"{target}\",");
+        // No paths at all: added inside compilerOptions, which is the only place TypeScript reads it
+        // from — a paths at the root of a tsconfig is ignored in silence.
+        var options = Regex.Match(tsConfig, @"""compilerOptions""\s*:\s*\{");
+        return options.Success
+            ? tsConfig.Insert(options.Index + options.Length, $"\n    \"paths\": {{ {entry} }},")
+            : tsConfig;
     }
 
     /// <summary>Adds Tailwind to a front end whose own creator would not.</summary>
@@ -268,7 +268,7 @@ internal static partial class ProjectGenerator
     ///         proxy was not added is better than handing back a front end that will not compile.
     ///     </para>
     /// </remarks>
-    internal static string AddRaskDevProxy(string viteConfig)
+    internal static string AddRaskViteConfig(string viteConfig, MetaTemplate framework)
     {
         if (viteConfig.Contains("/_rask", StringComparison.Ordinal)
             || Regex.IsMatch(viteConfig, @"(^|[\s{,])server\s*:"))
@@ -304,7 +304,57 @@ internal static partial class ProjectGenerator
           },
         """;
 
-        return viteConfig.Insert(brace + 1, Proxy);
+        // `@rask/*` for the BUNDLER. A tsconfig `paths` entry is a type-checking concept and Vite does
+        // not read one, so without this an import type-checks and then fails the build with "Failed to
+        // resolve import" — the worst order in which to find out.
+        //
+        // Skipped where the config already declares `resolve`: a second key is a duplicate rather than a
+        // merge, and those are exactly the two that already handle it — TanStack sets
+        // `resolve: { tsconfigPaths: true }` and Analog's platform plugin brings vite-tsconfig-paths.
+        // The trailing slash keeps the prefix match from also claiming `@raskfoo`.
+        //
+        // fileURLToPath rather than `import.meta.dirname`: the latter is untyped under a config whose
+        // `types` are vite/client only, and svelte-check reports it as an error in a file the developer
+        // did not write.
+        const string Alias = """
+
+          resolve: {
+            alias: { '@rask/': fileURLToPath(new URL('./src/rask/', import.meta.url)) }
+          },
+        """;
+
+        // SvelteKit's aliases go through kit, which generates the tsconfig from them. Written into the
+        // plugin's own options object rather than as a Vite alias, because only the kit one reaches the
+        // generated tsconfig — a Vite alias would bundle correctly and never type-check.
+        if (framework.KitAlias)
+        {
+            var kit = Regex.Match(viteConfig, @"sveltekit\s*\(\s*\{");
+            if (!kit.Success)
+            {
+                return viteConfig.Insert(brace + 1, Proxy);
+            }
+
+            // At the TOP LEVEL of the plugin's options, not nested under `kit`: the options type is
+            // `KitConfig & …`, so a `kit` key is rejected outright — "Object literal may only specify
+            // known properties, and 'kit' does not exist in type 'KitConfig & …'". Measured.
+            const string KitAlias = """
+
+        			alias: { '@rask': 'src/rask' },
+        """;
+
+            return viteConfig
+                .Insert(kit.Index + kit.Length, KitAlias)
+                .Insert(brace + 1, Proxy);
+        }
+
+        if (Regex.IsMatch(viteConfig, @"(^|[\s{,])resolve\s*:"))
+        {
+            return viteConfig.Insert(brace + 1, Proxy);
+        }
+
+        return viteConfig
+            .Insert(brace + 1, Alias + Proxy)
+            .Insert(0, "import { fileURLToPath } from 'node:url'\n");
     }
 
     /// <summary>
@@ -317,7 +367,7 @@ internal static partial class ProjectGenerator
     ///     alternative is a second container and a second port, which is the thing this lane exists to
     ///     avoid.
     /// </remarks>
-    private static string MetaDockerfile(MetaTemplate framework) =>
+    private static string MetaDockerfile(MetaTemplate framework, bool data) =>
         $"""
         # Two toolchains, two stages: node builds the front end, the .NET SDK builds the host. Unlike the
         # TypeScript-SPA template, the FINAL image keeps node — a {framework.DisplayName} app has a server
@@ -353,7 +403,7 @@ internal static partial class ProjectGenerator
          && rm -rf /var/lib/apt/lists/*
 
         COPY --from=build /app/publish .
-
+        {(data ? LitestreamLayer : string.Empty)}
         # 8080, matching the other templates so `rask deploy` maps the same port. The framework's own
         # server is NOT exposed: it listens on 127.0.0.1 and only Kestrel reaches it.
         ENV ASPNETCORE_URLS=http://+:8080

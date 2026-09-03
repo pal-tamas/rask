@@ -409,12 +409,17 @@ They arrive in `src/rask/browser/` the way `client.ts` does — copied out of th
 build, so upgrading Rask upgrades them. Import a module directly, as above, and your bundler keeps
 only what you used; or take the namespace form, `import { geolocation } from '@rask/browser'`.
 
-**`@rask/*` is a tsconfig path**, written for you as `src/rask/tsconfig.rask.json` on every build. One
-line in your own `tsconfig.json` turns it on:
+**`@rask/*` is a tsconfig path**, written for you as `src/rask/tsconfig.rask.json` on every build. Add
+the mapping to your own `tsconfig.json`:
 
 ```json
-{ "extends": "./src/rask/tsconfig.rask.json" }
+{ "compilerOptions": { "paths": { "@rask/*": ["./src/rask/*"] } } }
 ```
+
+Add it **to** whatever `paths` your template already has, rather than extending the generated file:
+TypeScript does not merge `paths` across an `extends`, so a `paths` of your own would replace the
+inherited mapping entirely and `@rask/client` would stop resolving. Vite reads these through
+`vite-tsconfig-paths` where your template includes it; otherwise add a matching `resolve.alias`.
 
 It is the same specifier [the meta lane](meta.md#browser-apis) uses, where the modules land in
 whichever source directory that framework prefers — so the import reads the same in both, and moving
