@@ -120,9 +120,10 @@ internal static class RouteTemplate
             ? controller.Name.Substring(0, controller.Name.Length - "Controller".Length)
             : controller.Name;
 
-        combined = combined
-            .Replace("[controller]", controllerName)
-            .Replace("[action]", action.Name);
+        // Case-insensitively, because ASP.NET's own token replacement is. `[Controller]` is as legal as
+        // `[controller]`, and leaving it verbatim would put a literal bracket in the URL.
+        combined = ReplaceToken(combined, "controller", controllerName);
+        combined = ReplaceToken(combined, "action", action.Name);
 
         if (!combined.StartsWith("/", StringComparison.Ordinal))
         {
@@ -130,6 +131,43 @@ internal static class RouteTemplate
         }
 
         return combined.Length > 1 ? combined.TrimEnd('/') : combined;
+    }
+
+    /// <summary>Replaces <c>[name]</c> case-insensitively, the way ASP.NET's own routing does.</summary>
+    private static string ReplaceToken(string route, string token, string value)
+    {
+        var needle = "[" + token + "]";
+
+        for (var at = route.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
+             at >= 0;
+             at = route.IndexOf(needle, StringComparison.OrdinalIgnoreCase))
+        {
+            route = route.Substring(0, at) + value + route.Substring(at + needle.Length);
+        }
+
+        return route;
+    }
+
+    /// <summary>
+    ///     A route token this generator does not substitute, or null when every one was resolved.
+    /// </summary>
+    /// <remarks>
+    ///     <c>[area]</c> is the live example. Left verbatim it becomes a literal <c>[area]</c> in the
+    ///     client's URL — escaped nowhere, matched by nothing, and a 404 at run time with no diagnostic
+    ///     to explain it. That is the "almost right URL" this class refuses everywhere else, so it is
+    ///     reported rather than emitted.
+    /// </remarks>
+    public static string? UnresolvedToken(string route)
+    {
+        var open = route.IndexOf('[');
+
+        if (open < 0)
+        {
+            return null;
+        }
+
+        var close = route.IndexOf(']', open);
+        return close < 0 ? null : route.Substring(open, close - open + 1);
     }
 
     /// <summary>

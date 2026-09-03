@@ -320,6 +320,15 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             return null;
         }
 
+        if (RouteTemplate.UnresolvedToken(route) is { } unresolved)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(
+                EndpointSkipped, site, declaredBy,
+                $"its route contains '{unresolved}', which this generator does not substitute. The client "
+                + "would call a URL with that text in it and 404. Write the segment literally"));
+            return null;
+        }
+
         var tokens = RouteTemplate.Tokens(route);
 
         if (!TryResult(spc, action, declaredBy, out var resultType, out var resultFqn))

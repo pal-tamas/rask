@@ -350,6 +350,47 @@ public sealed class ApiClientGeneratorTests
     }
 
     [Fact]
+    public void A_route_token_this_generator_does_not_substitute_is_refused()
+    {
+        // [area] used to survive into the emitted URL as literal text — matched by nothing, 404 at run
+        // time, no diagnostic. Same class as the MapGroup bug: an almost-right URL is worse than none.
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            [Route("[area]/api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """);
+
+        Assert.True(Reported(run, "RASK068"));
+        Assert.False(run.HasGeneratedSource("__RaskApiClients"));
+    }
+
+    [Fact]
+    public void A_controller_token_is_substituted_whatever_its_case()
+    {
+        // ASP.NET's own replacement is case-insensitive, so [Controller] is as legal as [controller].
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            [Route("api/[Controller]")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """);
+
+        var source = run.GeneratedSource("__RaskApiClients");
+
+        Assert.Contains("\"api/Posts/\"", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Controller]", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_class_that_only_looks_like_a_controller_is_ignored()
     {
         // [ApiController] without ControllerBase is not an MVC controller, and treating it as one would

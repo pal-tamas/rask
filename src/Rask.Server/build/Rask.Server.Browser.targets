@@ -71,14 +71,34 @@
     compiler will write the file itself, so the client needs no task assembly, no escaping, and — the
     part that matters at run time — no copy of itself embedded in every server assembly forever.
 
-    It also cannot go stale. The file is an output of CoreCompile, so it is rewritten whenever the
-    controllers are, and a build that skips CoreCompile skips it for the same reason the assembly is
-    already current.
+    Rewritten by every CoreCompile, so it tracks the controllers — but NOT deleted by one. When the
+    last controller goes, the generator simply emits nothing and the previous build's file stays on
+    disk, where the glob below would still find it and bake a client for endpoints that no longer
+    exist. RaskCleanApiClient removes it before the compile that decides whether to write it again.
   -->
   <PropertyGroup Condition=" '$(RaskBrowserRung)' == 'true' ">
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath Condition=" '$(CompilerGeneratedFilesOutputPath)' == '' ">$(IntermediateOutputPath)rask-generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
+
+  <!--
+    Delete the previous build's client before the compiler decides whether to write a new one. Without
+    this, removing the last controller leaves the file behind and the companion keeps compiling a client
+    for endpoints that no longer exist — which fails as an error inside generated code the author never
+    wrote, if the DTOs left with the controller.
+
+    BeforeTargets="CoreCompile" rather than a Clean target: it has to run on every build, because the
+    stale file is only wrong relative to the compile that is about to happen.
+  -->
+  <Target Name="RaskCleanApiClient"
+          Condition=" '$(RaskBrowserRung)' == 'true' "
+          BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_RaskStaleApiClient Include="$(CompilerGeneratedFilesOutputPath)\**\__RaskApiClients.g.cs"/>
+    </ItemGroup>
+
+    <Delete Files="@(_RaskStaleApiClient)"/>
+  </Target>
 
   <Target Name="RaskGenerateBrowserCompanion" Condition=" '$(RaskBrowserRung)' == 'true' ">
 

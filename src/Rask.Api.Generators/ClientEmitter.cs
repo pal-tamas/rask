@@ -105,7 +105,9 @@ internal static class ClientEmitter
 
         builder.AppendLine();
         builder.AppendLine(
-            $"        /// <summary>Calls <c>{endpoint.Method} {endpoint.Route}</c> ({endpoint.DeclaredBy}).</summary>");
+            "        /// <summary>Calls <c>"
+            + Comment(endpoint.Method + " " + endpoint.Route)
+            + "</c> (" + Comment(endpoint.DeclaredBy) + ").</summary>");
         builder.AppendLine(
             $"        public async {returns} {endpoint.MethodName}({string.Join(", ", signature)})");
         builder.AppendLine("        {");
@@ -284,8 +286,27 @@ internal static class ClientEmitter
         _ => "Get",
     };
 
+    /// <summary>Renders <paramref name="value" /> as a C# string literal.</summary>
+    /// <remarks>
+    ///     The newline escapes are not decoration. A route template reaches this from the developer's own
+    ///     source — and, through <c>RouteTemplate.OfController</c> walking the base chain, potentially
+    ///     from a <c>[Route]</c> on a base controller in a referenced package. A raw newline in one would
+    ///     end the literal, so the rest of the template would be emitted as code.
+    /// </remarks>
     private static string Quote(string value) =>
-        "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        "\"" + value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n") + "\"";
+
+    /// <summary>Flattens a value for a single-line <c>///</c> comment.</summary>
+    /// <remarks>
+    ///     A newline here does not end a literal, it ends the comment — and everything after it becomes
+    ///     code in the generated class.
+    /// </remarks>
+    private static string Comment(string value) =>
+        value.Replace('\r', ' ').Replace('\n', ' ');
 
     private static string Indent(string text, string indent)
     {
