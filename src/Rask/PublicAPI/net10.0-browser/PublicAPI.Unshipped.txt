@@ -7,9 +7,20 @@ Rask.Battery.On() -> void
 Rask.Battery<TOptions>
 Rask.Battery<TOptions>.Battery() -> void
 Rask.Battery<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Battery<TOptions!>!
+Rask.DataAnnotationsRequestValidator<TRequest>
+Rask.DataAnnotationsRequestValidator<TRequest>.DataAnnotationsRequestValidator(System.IServiceProvider! services) -> void
+Rask.DataAnnotationsRequestValidator<TRequest>.ValidateAsync(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
+Rask.FluentValidationRequestValidator<TRequest>
+Rask.FluentValidationRequestValidator<TRequest>.FluentValidationRequestValidator(System.IServiceProvider! services) -> void
+Rask.FluentValidationRequestValidator<TRequest>.ValidateAsync(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
+Rask.RaskRemoteRequestValidator
+Rask.RaskRemoteRequestValidator.RaskRemoteRequestValidator(System.IServiceProvider! services) -> void
+Rask.RaskRemoteRequestValidator.ValidateAsync(object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
+Rask.RaskRequestValidation
 Rask.RaskWasmOptions
 Rask.RaskWasmOptions.Cqrs.get -> Rask.Battery!
 Rask.RaskWasmOptions.Query.get -> Rask.Battery!
 Rask.RaskWasmOptions.RaskWasmOptions() -> void
 Rask.WasmHostBuilderExtensions
+static Rask.RaskRequestValidation.AddRaskRequestValidation(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.WasmHostBuilderExtensions.Configure(this Rask.Wasm.WasmHostBuilder! host, System.Action<Rask.RaskWasmOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!

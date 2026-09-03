@@ -125,7 +125,13 @@ public static class RaskValidators
         return service;
     }
 
-    internal static Func<IServiceProvider?, object>? Find(Type modelType) =>
+    /// <summary>
+    ///     The factory that builds the validator for <paramref name="modelType" />, or
+    ///     <see langword="null" /> when nothing validates it.
+    /// </summary>
+    /// <param name="modelType">The model or request type to look up.</param>
+    /// <returns>A factory taking the scope to resolve the validator's own dependencies from.</returns>
+    public static Func<IServiceProvider?, object>? Find(Type modelType) =>
         _table.TryGetValue(modelType, out var factory) ? factory : null;
 
     // The handshake. Rask.Core cannot reference this package — Core is bundled into every host and stays

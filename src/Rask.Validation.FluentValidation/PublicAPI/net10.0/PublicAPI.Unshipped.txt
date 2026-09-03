@@ -5,6 +5,7 @@ Rask.Validation.FluentValidation.FluentValidationFieldValidator.ValidateAsync(Ra
 Rask.Validation.FluentValidation.FluentValidationFieldValidator.ValidateFieldAsync(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Rask.Validation.FluentValidation.RaskValidators
 RaskBuilderSettersRask_Validation_FluentValidation
+static Rask.Validation.FluentValidation.RaskValidators.Find(System.Type! modelType) -> System.Func<System.IServiceProvider?, object!>?
 static Rask.Validation.FluentValidation.RaskValidators.Register(System.Type! modelType, System.Func<System.IServiceProvider?, object!>! factory) -> void
 static Rask.Validation.FluentValidation.RaskValidators.Replace(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Model, System.Func<System.IServiceProvider?, object!>! Factory)>! entries) -> void
 static Rask.Validation.FluentValidation.RaskValidators.Service<T>(System.IServiceProvider? services) -> T

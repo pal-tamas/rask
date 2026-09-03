@@ -38,6 +38,17 @@ public sealed class RaskAppOptions
     /// <summary>The source-generated CQRS mediator, and the query cache that rides with it.</summary>
     public Battery Cqrs { get; } = new();
 
+    /// <summary>
+    ///     Validation, in forms and on dispatched requests: a model's
+    ///     <c>System.ComponentModel.DataAnnotations</c> attributes and any
+    ///     <c>AbstractValidator&lt;T&gt;</c> you wrote, both applied with nothing declared.
+    ///     <para>
+    ///         Turning it off stops both. A single form opts out on its own with
+    ///         <c>Form.Model(m).AutoValidate(false)</c>.
+    ///     </para>
+    /// </summary>
+    public Battery Validation { get; } = new();
+
     /// <summary>Durable background jobs on the app's own database.</summary>
     public Battery<JobOptions> Jobs { get; } = new();
 

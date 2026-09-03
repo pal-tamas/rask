@@ -19,7 +19,10 @@ namespace Rask.Cqrs.Client;
 ///     a url ceiling differs per proxy and a query that only fails in production is the worst way to
 ///     find that out.
 /// </remarks>
-internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions options) : IRemoteDispatch
+internal sealed class RemoteDispatch(
+    HttpClient http,
+    RaskCqrsClientOptions options,
+    IRemoteRequestValidator? validator = null) : IRemoteDispatch
 {
     public async Task<TResult> SendAsync<TResult>(
         RemoteContract contract,
@@ -74,6 +77,22 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
         object message,
         CancellationToken cancellationToken)
     {
+        // Before anything is encoded, uploaded or sent. An invalid command should cost the user a
+        // message, not a round trip — and on a slow connection the round trip is the whole delay
+        // between pressing the button and being told which field is wrong.
+        //
+        // This is a convenience, never a control. The server runs the same rules again through
+        // ValidationBehavior before any handler sees the request, so a caller that skips this (a
+        // hand-written client, a replayed request) gains nothing by it.
+        if (validator is not null)
+        {
+            var errors = await validator.ValidateAsync(message, cancellationToken).ConfigureAwait(false);
+            if (errors is { Count: > 0 })
+            {
+                throw new RaskValidationException(errors);
+            }
+        }
+
         var files = new List<RemoteFile>();
         var json = Encode(contract, message, files);
 
@@ -484,13 +503,14 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
         string? type = null;
         string? title = null;
         string? detail = null;
+        Dictionary<string, string[]>? errors = null;
 
         if (response.Content.Headers.ContentType?.MediaType is "application/problem+json" or "application/json")
         {
             try
             {
                 var payload = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-                ReadProblem(payload, ref type, ref title, ref detail);
+                ReadProblem(payload, ref type, ref title, ref detail, ref errors);
             }
             catch (JsonException)
             {
@@ -505,12 +525,22 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
             StatusCode = (int)response.StatusCode,
             ProblemType = type,
             Detail = detail,
+            Errors = errors,
         };
     }
 
     // Hand-read rather than deserialized: this package does no reflection anywhere, and a problem
-    // document is three strings.
-    private static void ReadProblem(byte[] payload, ref string? type, ref string? title, ref string? detail)
+    // document is three strings and, for a rejected request, the field errors.
+    //
+    // Note that `errors` had to be added here explicitly. The default arm below skips unknown members,
+    // so a server that started sending field errors would have had them silently dropped — the caller
+    // would see a 400 with nothing to show the user, and nothing anywhere would say why.
+    private static void ReadProblem(
+        byte[] payload,
+        ref string? type,
+        ref string? title,
+        ref string? detail,
+        ref Dictionary<string, string[]>? errors)
     {
         var reader = new Utf8JsonReader(payload);
         if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
@@ -533,11 +563,48 @@ internal sealed class RemoteDispatch(HttpClient http, RaskCqrsClientOptions opti
                 case "detail":
                     detail = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
                     break;
+                case "errors":
+                    errors = ReadErrors(ref reader);
+                    break;
                 default:
                     reader.Skip();
                     break;
             }
         }
+    }
+
+    private static Dictionary<string, string[]>? ReadErrors(ref Utf8JsonReader reader)
+    {
+        if (reader.TokenType != JsonTokenType.StartObject)
+        {
+            reader.Skip();
+            return null;
+        }
+
+        var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            var field = reader.GetString() ?? string.Empty;
+            reader.Read();
+            if (reader.TokenType != JsonTokenType.StartArray)
+            {
+                reader.Skip();
+                continue;
+            }
+
+            var messages = new List<string>();
+            while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+            {
+                if (reader.TokenType == JsonTokenType.String && reader.GetString() is { } message)
+                {
+                    messages.Add(message);
+                }
+            }
+
+            result[field] = messages.ToArray();
+        }
+
+        return result.Count == 0 ? null : result;
     }
 
     // Keeps the response alive for as long as the body is being read. Disposing an HttpResponseMessage
