@@ -22,8 +22,11 @@ them until tagged releases begin.
   overrides it.
 
   **The import specifier does not vary with that.** A `tsconfig.rask.json` is written beside the
-  modules mapping `@rask/*`, so every app writes `@rask/browser/geolocation` whatever its layout, and
-  one `extends` line turns it on.
+  modules mapping `@rask/*`, so every app writes `@rask/browser/geolocation` whatever its layout,
+  and one `extends` line turns it on. **The SPA lane writes the same alias**, so the two
+  TypeScript lanes are imported identically — its generated directory never moves, so a relative
+  path would have worked there, but two conventions for one thing is worse than either. Relative
+  imports keep working on both.
 
   Two properties of this lane made the plumbing more than a copy. The destination is inside
   `_RaskMetaInput`'s own glob, so the copy and the alias file are both written only when they differ —
