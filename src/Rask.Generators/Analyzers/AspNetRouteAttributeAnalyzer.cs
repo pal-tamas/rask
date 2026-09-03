@@ -17,8 +17,12 @@ namespace Rask.Generators.Analyzers;
 ///     nothing to register. The build is green, the page simply does not exist, and the first sign of it
 ///     is a 404 — which is why this is an Error rather than a warning you could scroll past.
 ///     <para>
-///         A page carrying Rask's attribute as well is left alone: it registers correctly, so the
-///         ASP.NET one is inert rather than harmful and failing the build would break working code.
+///         A page that already registers is left alone, because failing a build that is producing the
+///         right route table is the worse outcome. That means BOTH ways a page can register: Rask's own
+///         <c>[Route]</c>, and <c>[NotFound]</c>, which <c>RoutesGenerator</c> registers with no
+///         <c>[Route]</c> at all. Missing the second one would not merely be a spurious error — the
+///         obvious fix for it produces <c>[NotFound]</c> beside a <c>[Route]</c>, which is RASK013 and
+///         drops the catch-all from the registry altogether.
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
@@ -26,13 +30,14 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
 {
     private const string ComponentFullName = "Rask.Core.Component";
     private const string RaskRouteAttribute = "Rask.Core.Routing.RouteAttribute";
+    private const string RaskNotFoundAttribute = "Rask.Core.Routing.NotFoundAttribute";
     private const string MvcRouteAttribute = "Microsoft.AspNetCore.Mvc.RouteAttribute";
     private const string BlazorRouteAttribute = "Microsoft.AspNetCore.Components.RouteAttribute";
 
     private static readonly DiagnosticDescriptor Rask067 = new(
         "RASK067",
         "ASP.NET route attribute on a Rask component",
-        "'{0}' carries '{1}', which Rask's router never reads, so this page is never registered and its "
+        "'{0}' carries {1}, which Rask's router never reads, so this page is never registered and its "
         + "URL 404s — apply Rask's own [Route] from Rask.Core.Routing instead",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
@@ -67,16 +72,17 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
 
         var attributes = type.GetAttributes();
 
-        // Both attributes present: the page registers through Rask's, so the ASP.NET one changes
-        // nothing. Reporting here would fail a build that is producing the right route table.
-        if (attributes.Any(a => DerivesFrom(a.AttributeClass, RaskRouteAttribute)))
+        // Already registered — through Rask's [Route], or as the [NotFound] catch-all, which needs no
+        // template. Either way the route table is correct and the ASP.NET attribute is inert.
+        if (attributes.Any(a => DerivesFrom(a.AttributeClass, RaskRouteAttribute)
+                                || DerivesFrom(a.AttributeClass, RaskNotFoundAttribute)))
         {
             return;
         }
 
         foreach (var attribute in attributes)
         {
-            if (ForeignRouteAttribute(attribute.AttributeClass) is not { } offending)
+            if (!IsForeignRoute(attribute.AttributeClass))
             {
                 continue;
             }
@@ -86,7 +92,7 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
                 attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
                 ?? type.Locations[0],
                 type.Name,
-                offending));
+                Describe(attribute.AttributeClass)));
         }
     }
 
@@ -103,14 +109,17 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static string? ForeignRouteAttribute(ITypeSymbol? attribute)
-    {
-        if (DerivesFrom(attribute, MvcRouteAttribute))
-        {
-            return MvcRouteAttribute;
-        }
+    private static bool IsForeignRoute(ITypeSymbol? attribute) =>
+        DerivesFrom(attribute, MvcRouteAttribute) || DerivesFrom(attribute, BlazorRouteAttribute);
 
-        return DerivesFrom(attribute, BlazorRouteAttribute) ? BlazorRouteAttribute : null;
+    // Names the attribute the developer actually WROTE, and only then what it derives from. Reporting
+    // the base alone put a symbol in the message that appears nowhere in the file being squiggled.
+    private static string Describe(ITypeSymbol? attribute)
+    {
+        var written = attribute?.ToDisplayString() ?? MvcRouteAttribute;
+        var root = DerivesFrom(attribute, MvcRouteAttribute) ? MvcRouteAttribute : BlazorRouteAttribute;
+
+        return written == root ? $"'{written}'" : $"'{written}', which derives from '{root}'";
     }
 
     // Matched through the base chain, not just by name: MVC's attribute is unsealed, so an alias

@@ -1435,13 +1435,22 @@ public sealed partial class Orders : Component
 ```
 
 **Fix:** apply `Rask.Core.Routing.RouteAttribute` instead (**quick-fix available** — "Use Rask's
-`[Route]`"). The quick-fix rewrites only the attribute's name, so the template and any other
-attributes survive untouched, and it writes the name qualified wherever the short form would bind
-back to ASP.NET's attribute or be ambiguous:
+`[Route]`").
+
+The quick-fix rewrites only the attribute's **name**. It adds no `using` and removes none, and it
+writes the name qualified wherever the short form would bind back to ASP.NET's attribute or be
+ambiguous — so on the file above, with `using Microsoft.AspNetCore.Mvc;` still present, the lightbulb
+produces:
+
+```csharp
+[Rask.Core.Routing.Route("/orders")]       // qualified: a bare `Route` would still be MVC's
+```
+
+Tidying the imports by hand gives the shorter spelling:
 
 ```csharp
 using Rask.Core;
-using Rask.Core.Routing;
+using Rask.Core.Routing;                   // MVC's import dropped
 
 [Route("/orders")]                         // Rask's — the page registers
 public sealed partial class Orders : Component
@@ -1449,6 +1458,11 @@ public sealed partial class Orders : Component
     protected override Component? Render() => Div["orders"];
 }
 ```
+
+The lightbulb is **withheld** where carrying the arguments over would not compile: MVC's attribute
+also has settable `Name` and `Order`, which Rask's does not, and an alias may bake its template in
+and take no arguments at all. Rewriting those would answer RASK067 with a CS0117 or CS7036, so the
+attribute is left for you to move over deliberately.
 
 A page carrying **both** attributes is left alone. It registers correctly through Rask's, so the
 ASP.NET one is inert rather than harmful, and failing a build that is producing the right route

@@ -135,6 +135,53 @@ public class AspNetRouteAttributeAnalyzerTests
         Assert.Empty(diagnostics);
     }
 
+
+    // [NotFound] registers the catch-all with NO [Route] at all, so "carries no Rask route attribute"
+    // is not the same question as "is not registered". Getting this wrong is worse than a spurious
+    // error: the obvious fix puts a [Route] beside the [NotFound], which is RASK013 and drops the
+    // catch-all from the registry entirely.
+    [Fact]
+    public async Task ANotFoundPageWithAStrayMvcRoute_ReportsNothing()
+    {
+        var diagnostics = await GetDiagnosticsAsync("""
+                                                    using Rask.Core;
+                                                    using Rask.Core.Routing;
+
+                                                    [NotFound]
+                                                    [Microsoft.AspNetCore.Mvc.Route("/oops")]
+                                                    public sealed class Missing : Component
+                                                    {
+                                                        protected override Component? Render() => null;
+                                                    }
+                                                    """);
+
+        Assert.Empty(diagnostics);
+    }
+
+    // The message has to name the attribute that is actually WRITTEN in the file being squiggled.
+    // Naming only the base put a symbol in the message that appears nowhere in the developer's source.
+    [Fact]
+    public async Task AnAliasIsNamedInTheMessage_AlongsideWhatItDerivesFrom()
+    {
+        var diagnostics = await GetDiagnosticsAsync("""
+                                                    using Rask.Core;
+
+                                                    public sealed class ApiRouteAttribute(string template)
+                                                        : Microsoft.AspNetCore.Mvc.RouteAttribute(template);
+
+                                                    [ApiRoute("/orders")]
+                                                    public sealed class Orders : Component
+                                                    {
+                                                        protected override Component? Render() => null;
+                                                    }
+                                                    """);
+
+        var message = Assert.Single(diagnostics).GetMessage();
+        Assert.Contains("ApiRouteAttribute", message, StringComparison.Ordinal);
+        Assert.Contains("derives from", message, StringComparison.Ordinal);
+        Assert.Contains("Microsoft.AspNetCore.Mvc.RouteAttribute", message, StringComparison.Ordinal);
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));

@@ -430,6 +430,47 @@ public class CodeFixProviderTests
         Assert.Contains("\"/orders/{id:int}\"", fixhed);
     }
 
+
+    // MVC's attribute carries settable Name and Order; Rask's has neither. The arguments are carried
+    // over verbatim, so offering the fix here would answer RASK067 with CS0117 on a property that does
+    // not exist — a worse diagnostic than the one being fixed, and on a line the developer did not touch.
+    [Fact]
+    public async Task Rask067_WithMvcOnlyProperties_FixIsWithheld() =>
+        Assert.False(await CodeFixHarness.IsAnalyzerFixOfferedAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK067",
+            Page("using Rask.Core.Routing;",
+                "[Microsoft.AspNetCore.Mvc.Route(\"/orders\", Name = \"orders\", Order = 2)]")));
+
+    // An alias that bakes its own template in takes no arguments at all, so the rewritten attribute
+    // would be missing the template Rask's constructor requires — CS7036.
+    [Fact]
+    public async Task Rask067_AliasWithNoArguments_FixIsWithheld() =>
+        Assert.False(await CodeFixHarness.IsAnalyzerFixOfferedAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK067", """
+                using Rask.Core;
+                namespace Demo;
+
+                public sealed class ApiRouteAttribute() : Microsoft.AspNetCore.Mvc.RouteAttribute("/orders");
+
+                [ApiRoute]
+                public sealed partial class Orders : Component
+                {
+                    protected override Component? Render() => null;
+                }
+                """));
+
+    // The parameter-naming form is not the property form: Rask's constructor parameter is also called
+    // `template`, so this one carries over intact and the fix stays on offer.
+    [Fact]
+    public async Task Rask067_WithTheTemplateNamedAsAParameter_IsStillFixed()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK067",
+            Page("using Rask.Core.Routing;", "[Microsoft.AspNetCore.Mvc.Route(template: \"/orders\")]"));
+
+        Assert.Contains("[Route(template: \"/orders\")]", fixhed);
+    }
+
     private static string Page(string usings, string attribute) => $$"""
         using Rask.Core;
         {{usings}}

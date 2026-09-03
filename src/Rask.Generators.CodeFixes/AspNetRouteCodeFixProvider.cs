@@ -33,6 +33,25 @@ public sealed class AspNetRouteCodeFixProvider : RaskCodeFixProvider<AttributeSy
 
     protected override string EquivalenceKey => "RASK067_UseRaskRoute";
 
+    // Rask's attribute is RouteAttribute(string template) with a get-only Template, so it accepts
+    // exactly one positional argument and no property initialisers. MVC's takes the same template PLUS
+    // settable Name and Order, and the arguments are carried over verbatim — so an untested
+    // `[Route("/orders", Name = "orders", Order = 2)]` would come back as CS0117 on a property Rask's
+    // attribute does not have, and an alias with a baked-in template and no arguments at all would come
+    // back as CS7036. Both are a worse diagnostic than the one being fixed, so the lightbulb is
+    // withheld instead and the developer moves the attribute over deliberately.
+    protected override Task<bool> CanFixAsync(CodeFixContext context, AttributeSyntax node)
+    {
+        var arguments = node.ArgumentList?.Arguments;
+
+        return Task.FromResult(
+            arguments is { Count: 1 }
+            // `NameEquals` is the `Name = "x"` property-initialiser form. `NameColon`
+            // (`template: "/x"`) names the constructor parameter, which Rask's attribute also calls
+            // `template`, so that one carries over intact.
+            && arguments.Value[0].NameEquals is null);
+    }
+
     protected override Task<Document> FixAsync(
         Document document, AttributeSyntax node, CancellationToken cancellationToken)
     {

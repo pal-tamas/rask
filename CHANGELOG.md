@@ -20,10 +20,18 @@ them until tagged releases begin.
 
   The lightbulb rewrites only the attribute's **name**, so the template and any sibling attributes
   survive, and it writes the name qualified wherever a bare `Route` would bind back to ASP.NET's
-  attribute or be ambiguous — the fix can never trade RASK067 for CS0104, which is asserted by
-  compiling the fixed file with a genuine MVC controller still in it. A page carrying **both**
-  attributes is left alone: it registers correctly through Rask's, so failing that build would be the
-  worse outcome. An alias deriving from MVC's (unsealed) attribute is matched through the base chain.
+  attribute or be ambiguous — never trading RASK067 for CS0104, which is asserted by compiling the
+  fixed file with a genuine MVC controller still in it. Where the arguments themselves would not fit
+  Rask's `RouteAttribute(string template)` the fix is **withheld** rather than offered: MVC's
+  attribute also has settable `Name` and `Order`, and an alias may bake its template in and take no
+  arguments at all, so rewriting those would answer RASK067 with a CS0117 or CS7036.
+
+  A page that already registers is left alone, both ways it can: Rask's own `[Route]`, and
+  `[NotFound]`, which registers the catch-all with no `[Route]` at all. The second one matters more
+  than a spurious error would suggest — the obvious fix for it puts a `[Route]` beside the
+  `[NotFound]`, which is RASK013 and drops the catch-all from the registry entirely. An alias
+  deriving from MVC's (unsealed) attribute is matched through the base chain, and the message names
+  the alias the developer actually wrote rather than only the base it derives from.
 
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
