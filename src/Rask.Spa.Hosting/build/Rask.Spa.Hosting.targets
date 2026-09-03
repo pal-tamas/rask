@@ -35,15 +35,20 @@
     >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskSpaClientDir)'))</_RaskSpaDir>
 
     <!--
-      Otherwise the convention: MyApp.Server looks for a sibling MyApp.Client. The package.json check
-      is what makes this safe to evaluate in every project of every solution — in this repo alone,
-      Rask.Cqrs.Server has a sibling Rask.Cqrs.Client, and without it every build of that project would
-      start looking for a bundler.
-    -->
-    <_RaskSpaConventionDir Condition="'$(_RaskSpaDir)' == '' AND $(MSBuildProjectName.EndsWith('.Server'))"
-    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../$(MSBuildProjectName.Replace(".Server",".Client"))'))</_RaskSpaConventionDir>
+      Otherwise the convention: a `Client` folder inside the host project. One project owns both
+      halves, which is also what the meta framework lane does — a front end is not a second .NET
+      project, and naming the host `.Server` only ever distinguished it from the sibling this replaces.
 
-    <_RaskSpaDir Condition="'$(_RaskSpaDir)' == '' AND '$(_RaskSpaConventionDir)' != '' AND Exists('$(_RaskSpaConventionDir)/package.json')"
+      The package.json check is what makes this safe to evaluate in every project of every solution,
+      and it carries more weight now than it did: the old rule looked only at projects named
+      `*.Server`, and this one considers every project. A directory called `Client` is not rare; a
+      directory called `Client` holding a package.json, inside a project that also references this
+      package, is. In this repo nothing matches, which is the property to preserve when editing here.
+    -->
+    <_RaskSpaConventionDir Condition="'$(_RaskSpaDir)' == ''"
+    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/Client'))</_RaskSpaConventionDir>
+
+    <_RaskSpaDir Condition="'$(_RaskSpaDir)' == '' AND Exists('$(_RaskSpaConventionDir)/package.json')"
     >$(_RaskSpaConventionDir)</_RaskSpaDir>
 
     <_RaskSpaDist Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaDistDir)</_RaskSpaDist>
@@ -203,6 +208,26 @@
       <_RaskSpaClientSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
     </ItemGroup>
     <Copy SourceFiles="@(_RaskSpaClientSource)" DestinationFolder="$(_RaskSpaGenerated)" SkipUnchangedFiles="true"/>
+
+    <!--
+      The browser layer, into src/rask/browser/. The same modules Rask's own Server and WASM clients
+      bundle, so a quirk fixed in one place is fixed for C# and TypeScript callers at once:
+
+          import { getCurrentPosition } from "./rask/browser/geolocation";
+
+      Refreshed from the package on every build for the same reason client.ts is — the alternative is
+      a file scaffolded once into a directory the scaffolder gitignores, which is how push.ts came to
+      vanish on a fresh clone (#957).
+
+      An empty glob makes the Copy a no-op, which is what happens when this target runs against the
+      repository layout rather than an installed package.
+    -->
+    <ItemGroup>
+      <_RaskSpaBrowserSource Include="$(MSBuildThisFileDirectory)../client/browser/*.ts"/>
+    </ItemGroup>
+    <Copy SourceFiles="@(_RaskSpaBrowserSource)"
+          DestinationFolder="$(_RaskSpaGenerated)/browser"
+          SkipUnchangedFiles="true"/>
   </Target>
 
   <!--
