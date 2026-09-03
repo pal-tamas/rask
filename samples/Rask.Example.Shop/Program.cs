@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -223,7 +224,15 @@ var app = builder.Build();
 // Create the schema and seed, BEFORE app.Run() starts the hosted processors. A real app runs
 // `rask db add Init` / `rask db update` instead; this sample uses EnsureCreated so it can be cloned
 // and run with no migration step. See DbInitializer for why the ordering matters.
-await DbInitializer.InitializeAsync(app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>());
+// UserManager and RoleManager are scoped, so the seeding borrows a scope of its own — this runs before
+// app.Run(), where there is no request to take one from.
+using (var seedScope = app.Services.CreateScope())
+{
+    await DbInitializer.InitializeAsync(
+        app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>(),
+        seedScope.ServiceProvider.GetRequiredService<UserManager<RaskUser>>(),
+        seedScope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
+}
 
 // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below
 // (HSTS, redirects, your own logging) sees the request the visitor actually made.

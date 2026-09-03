@@ -50,9 +50,10 @@ through the outbox; the cleanup is *scheduled*, so it goes to jobs.
 dotnet run --project samples/Rask.Example.Shop
 ```
 
-Then create an account at `/register` — the first one becomes the administrator, and the one-time
-token it asks for is in the startup log. Sign in at `/login`, and visit `/products`, `/orders`
-and `/ops` (the operator console is admin-only).
+Then sign in at `/login` as `ada@example.com` / `Password1` — a demo administrator this sample seeds
+so it runs the moment you clone it — and visit `/products`, `/orders` and `/ops` (the operator console
+is admin-only). A real app seeds nobody: the first person to register becomes the administrator, and
+while no account exists that registration wants the one-time token from the startup log.
 
 Configuration (all optional — the defaults keep it self-contained):
 

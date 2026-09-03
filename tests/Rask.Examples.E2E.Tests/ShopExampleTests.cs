@@ -309,9 +309,14 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
 
     private async Task SignInAsync()
     {
-        await _page.GotoAsync("/login");
-        await _page.FillAsync("#username", "alice");
-        await _page.FillAsync("#password", "password");
+        // The framework's own sign-in page, at the route the guard has always challenged to. The account
+        // is the one DbInitializer seeds, so this does not depend on registration order or on the
+        // first-run token a real deployment asks for.
+        // ?ReturnUrl= lands on the sample's own protected page. The built-in page returns to "/" when
+        // nothing asks otherwise, and the wait below needs the authorized content that lives on /members.
+        await _page.GotoAsync("/login?ReturnUrl=%2Fmembers");
+        await _page.FillAsync("#email", "ada@example.com");
+        await _page.FillAsync("#password", "Password1");
         await _page.ClickAsync("button[type=submit]");
         await Assertions.Expect(_page).Not.ToHaveURLAsync(new Regex("/login"));
 

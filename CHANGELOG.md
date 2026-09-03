@@ -15,6 +15,16 @@ them until tagged releases begin.
   and a login page committed in the sample, and the suite stayed green. The new check fails with the
   path and what to do about it, and was verified by planting an orphan and watching it name it.
 
+- **The Shop sample seeds a demo administrator, so it still runs the moment you clone it.** Moving
+  `/login` into the framework left the sample with no way in: its demo store was gone, and the built-in
+  registration wants the one-time first-run token from the startup log — right for a deployment, wrong
+  for a showcase. `DbInitializer` now seeds `ada@example.com` / `Password1` with the admin role, and the
+  README says so; a real app still seeds nobody.
+
+  The seven Shop E2E journeys that broke did so as **30-second timeouts** waiting for `#username`, never
+  as "the page changed" — the field is `#email` on the built-in page. Selectors are a test contract that
+  a unit suite and a golden render cannot see.
+
 - **The Shop sample is `rask new` output again, on the accounts battery.** Removing `--auth` made its
   provenance claim false in a way `ShopProvenanceTests` could not see — the test walks the CLI's output
   and checks each file is in the sample, so files the sample carries and the CLI no longer writes are

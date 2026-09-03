@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Rask.Auth;
 using Rask.Example.Shop.Features.Products;
 
 namespace Rask.Example.Shop.Features.Shared;
@@ -30,11 +32,27 @@ public static class DbInitializer
     private static readonly string[] ExpectedTables =
     [
         "Products", "Orders", "OutboxMessage", "Job", "RecurringJobState", "QueuedMail", "CacheEntry",
+        "AspNetUsers", "AspNetRoles", "AspNetUserRoles",
     ];
 
-    public static async Task InitializeAsync(IDbContextFactory<AppDbContext> factory)
+    /// <summary>The demo account this sample signs in with.</summary>
+    /// <remarks>
+    /// A real app has nobody seed it: the first person to register becomes the administrator, and while
+    /// no account exists that registration needs the one-time token from the startup log. That is right
+    /// for something you deploy and wrong for something you clone, run, and expect to be able to sign
+    /// into — and it is what the E2E journeys drive, so it has to be deterministic.
+    /// </remarks>
+    public const string DemoEmail = "ada@example.com";
+
+    /// <inheritdoc cref="DemoEmail" />
+    public const string DemoPassword = "Password1";
+
+    public static async Task InitializeAsync(
+        IDbContextFactory<AppDbContext> factory, UserManager<RaskUser> users, RoleManager<IdentityRole> roles)
     {
         ArgumentNullException.ThrowIfNull(factory);
+        ArgumentNullException.ThrowIfNull(users);
+        ArgumentNullException.ThrowIfNull(roles);
 
         await using var db = await factory.CreateDbContextAsync().ConfigureAwait(false);
         await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
@@ -44,6 +62,8 @@ public static class DbInitializer
             await db.Database.EnsureDeletedAsync().ConfigureAwait(false);
             await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
         }
+
+        await SeedDemoAdminAsync(users, roles).ConfigureAwait(false);
 
         if (await db.Products.AnyAsync().ConfigureAwait(false))
         {
@@ -56,6 +76,40 @@ public static class DbInitializer
             Product.Create("Cold brew kit", 29.95m, inStock: false));
 
         await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>Creates the demo administrator, once.</summary>
+    private static async Task SeedDemoAdminAsync(
+        UserManager<RaskUser> users, RoleManager<IdentityRole> roles)
+    {
+        foreach (var role in RaskRoles.All)
+        {
+            if (!await roles.RoleExistsAsync(role).ConfigureAwait(false))
+            {
+                await roles.CreateAsync(new IdentityRole(role)).ConfigureAwait(false);
+            }
+        }
+
+        if (await users.FindByEmailAsync(DemoEmail).ConfigureAwait(false) is not null)
+        {
+            return;
+        }
+
+        var user = new RaskUser
+        {
+            UserName = DemoEmail,
+            Email = DemoEmail,
+            EmailConfirmed = true,
+            CreatedUtc = DateTime.UtcNow,
+        };
+
+        var created = await users.CreateAsync(user, DemoPassword).ConfigureAwait(false);
+
+        if (created.Succeeded)
+        {
+            // Admin, because this account is the one that opens /_rask.
+            await users.AddToRoleAsync(user, RaskRoles.Admin).ConfigureAwait(false);
+        }
     }
 
     private static async Task<int> CountExpectedTablesAsync(AppDbContext db)
