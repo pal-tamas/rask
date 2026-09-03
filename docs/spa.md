@@ -87,7 +87,7 @@ the C# templates need neither.
 A client that generates no `tsconfig.json` fails the build:
 
 ```
-error RASKSPA004: Rask.Spa.Hosting: 'Shop.Client' has no tsconfig.json, and Rask generates
+error RASKSPA004: Rask.Spa.Hosting: 'Shop/Client' has no tsconfig.json, and Rask generates
 TypeScript contracts into it. Rask supports TypeScript single-page app clients: scaffold the
 client from its framework's TypeScript template (`npm create vite@latest -- --template react-ts`),
 or point RaskSpaTypeScriptConfig at the config it does have.
@@ -114,9 +114,22 @@ Two ways out, and both are honest ones:
 
 | | |
 |---|---|
-| `Shop.Server/` | The ASP.NET host: your message records, their handlers, and the JSON endpoint the client dispatches through. |
-| `Shop.Client/` | The client, as `create-vite` scaffolds it, plus Rask's overlay — at most four files: a Vite config for the dev proxy, an entry that installs the `QueryClient`, the component that dispatches, and (React and Solid) its routes. |
-| `Shop.Client/src/rask/` | Generated on every build. Gitignored. |
+| `Shop/` | The ASP.NET host: your message records, their handlers, and the JSON endpoint the client dispatches through. |
+| `Shop/Client/` | The client, as `create-vite` scaffolds it, plus Rask's overlay — at most four files: a Vite config for the dev proxy, an entry that installs the `QueryClient`, the component that dispatches, and (React and Solid) its routes. |
+| `Shop/Client/src/rask/` | Generated on every build. Gitignored. |
+
+**One project, with the front end as a folder inside it.** A C#-on-both-halves solution needs a
+`.Shared` project because both halves are C# and must compile the same record — but here the client's
+half of every contract is *generated TypeScript*, so the messages live in the host and there is
+nothing for a second .NET project to hold. The host is `Shop`, not `Shop.Server`: with no sibling to
+distinguish it from, that suffix named nothing.
+
+This is the same shape [the meta framework lane](meta.md) uses, so `rask new` produces one
+recognisable layout whichever front end you pick.
+
+> **Moving an existing app.** Rename `Shop.Server/` to `Shop/`, move `Shop.Client/` to `Shop/Client/`,
+> rename the `.csproj`, and drop `.Server` from the root namespace. The build finds the client by
+> convention again after that; `RaskSpaClientDir` is only needed if you keep it somewhere else.
 
 ## The call site
 
@@ -312,7 +325,7 @@ app.UseRaskSpa(configure: options =>
 
 | Property | Default | |
 |---|---|---|
-| `RaskSpaClientDir` | the `.Server` → `.Client` convention | Where the front end lives. |
+| `RaskSpaClientDir` | a `Client` folder in the host project | Where the front end lives. |
 | `RaskSpaDistDir` | `dist` | The bundler's output. Angular nests it: `dist/<app>/browser`. |
 | `RaskSpaGeneratedDir` | `src/rask` | Where the generated contracts land, inside the client. |
 | `RaskSpaBuild` | `true` | `false` skips node entirely. |

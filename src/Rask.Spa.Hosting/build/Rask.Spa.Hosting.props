@@ -6,11 +6,15 @@
 
     Point the host at its client one of two ways:
 
-        <RaskSpaClientDir>..\MyApp.Client</RaskSpaClientDir>
+        <RaskSpaClientDir>..\web</RaskSpaClientDir>
 
-    or rely on the convention — a project named MyApp.Server looks for a sibling MyApp.Client holding a
-    package.json, and does nothing at all when there isn't one. That is why this file is harmless to
-    import into a project with no front end.
+    or rely on the convention — a `Client` folder inside the host project holding a package.json. One
+    project owns both halves, the same shape the meta framework lane uses; a front end is not a second
+    .NET project, and the `.Server` suffix this replaces only ever distinguished the host from the
+    sibling it no longer has.
+
+    The convention does nothing at all when there is no such package.json, which is why this file is
+    harmless to import into a project with no front end.
   -->
   <PropertyGroup>
     <!--

@@ -10,13 +10,15 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>
-    ///     Generates a TypeScript-front-end solution: <c>{name}.Server</c> (ASP.NET + CQRS), and
-    ///     <c>{name}.Client</c> scaffolded by the framework's own tool and then overlaid.
+    ///     Generates a TypeScript-front-end app: <c>{name}</c> (ASP.NET + CQRS) with a <c>Client</c>
+    ///     folder inside it, scaffolded by the framework's own tool and then overlaid.
     /// </summary>
     /// <remarks>
-    ///     Two projects, not three. A C#-on-both-halves solution needs a <c>.Shared</c> because both halves are
-    ///     C# and must compile the same record; here the client's half of every contract is generated
-    ///     TypeScript, so the messages live in the Server and there is nothing for a third project to hold.
+    ///     ONE project, not two or three. A C#-on-both-halves solution needs a <c>.Shared</c> because both
+    ///     halves are C# and must compile the same record; here the client's half of every contract is
+    ///     generated TypeScript, so the messages live in the host and there is nothing for a second .NET
+    ///     project to hold — which is why the front end is a folder rather than a sibling, and why the
+    ///     host is no longer called <c>.Server</c>: with no sibling, that suffix named nothing.
     /// </remarks>
     public static ScaffoldResult GenerateSpa(
         string targetDirectory,
@@ -29,13 +31,13 @@ internal static partial class ProjectGenerator
 
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.Server/{NameToken}.Server.csproj", SpaServerCsproj(batteries, framework, name, version)),
-            ($"{NameToken}.Server/Program.cs", SpaServerProgram(batteries)),
-            ($"{NameToken}.Server/Features/Hello/Messages.cs", SpaMessages),
-            ($"{NameToken}.Server/Features/Hello/HelloHandlers.cs", SpaHandlers),
-            ($"{NameToken}.Server/Properties/launchSettings.json", SpaLaunchSettings),
-            ($"{NameToken}.Server/appsettings.json", AppSettings),
-            ($"{NameToken}.Server/appsettings.Production.json", AppSettingsProduction),
+            ($"{NameToken}/{NameToken}.csproj", SpaServerCsproj(batteries, framework, name, version)),
+            ($"{NameToken}/Program.cs", SpaServerProgram(batteries)),
+            ($"{NameToken}/Features/Hello/Messages.cs", SpaMessages),
+            ($"{NameToken}/Features/Hello/HelloHandlers.cs", SpaHandlers),
+            ($"{NameToken}/Properties/launchSettings.json", SpaLaunchSettings),
+            ($"{NameToken}/appsettings.json", AppSettings),
+            ($"{NameToken}/appsettings.Production.json", AppSettingsProduction),
 
             ("README.md", SpaReadme(framework)),
         };
@@ -45,12 +47,12 @@ internal static partial class ProjectGenerator
         // nothing reads.
         if (framework.WritesViteConfig)
         {
-            files.Add(($"{NameToken}.Client/vite.config.ts", SpaViteConfig(framework, tailwind: true)));
+            files.Add(($"{NameToken}/Client/vite.config.ts", SpaViteConfig(framework, tailwind: true)));
         }
 
         foreach (var (path, content) in framework.ClientFiles)
         {
-            files.Add(($"{NameToken}.Client/{path}", content));
+            files.Add(($"{NameToken}/Client/{path}", content));
         }
 
         // Replaces the scaffolder's demo stylesheet rather than sitting beside it: leaving it in
@@ -59,7 +61,7 @@ internal static partial class ProjectGenerator
         // exactly what the starter still renders. So the replacement has to put that styling back
         // (SpaTailwindCss does, in its base layer) or --tailwind ships a worse-looking page than
         // no flag at all.
-        files.Add(($"{NameToken}.Client/{framework.GlobalStylesheet}", SpaTailwindCss));
+        files.Add(($"{NameToken}/Client/{framework.GlobalStylesheet}", SpaTailwindCss));
 
         // Angular has no vite.config.ts to register a plugin in — its Vite config belongs to
         // @angular/build, not to you — so it takes Tailwind through PostCSS, which the Angular
@@ -67,7 +69,7 @@ internal static partial class ProjectGenerator
         // the stylesheet: the app builds, and every utility class is missing.
         if (!framework.WritesViteConfig)
         {
-            files.Add(($"{NameToken}.Client/.postcssrc.json", SpaTailwindPostcssRc));
+            files.Add(($"{NameToken}/Client/.postcssrc.json", SpaTailwindPostcssRc));
         }
         if (batteries.Pwa)
         {
@@ -75,29 +77,28 @@ internal static partial class ProjectGenerator
             // verbatim, so these are reachable at / in a production build AND under the dev server. A
             // host-served service worker would 404 during `rask dev`, where the browser talks to Vite and
             // only /_rask is proxied — and a service worker that 404s once is not retried.
-            files.Add(($"{NameToken}.Client/public/manifest.webmanifest", SpaManifest));
-            files.Add(($"{NameToken}.Client/public/icon.svg", IconSvg));
-            files.Add(($"{NameToken}.Client/public/rask-sw.js", SpaServiceWorker));
+            files.Add(($"{NameToken}/Client/public/manifest.webmanifest", SpaManifest));
+            files.Add(($"{NameToken}/Client/public/icon.svg", IconSvg));
+            files.Add(($"{NameToken}/Client/public/rask-sw.js", SpaServiceWorker));
         }
 
         if (batteries.Push)
         {
-            files.Add(($"{NameToken}.Client/src/rask/push.ts", SpaPushClient));
+            files.Add(($"{NameToken}/Client/src/rask/push.ts", SpaPushClient));
 
-            // The same store and endpoints the server template scaffolds, re-namespaced into the .Server
-            // project. Shared rather than copied: /_push/subscribe binding a flat PushSubscription is the
-            // contract push.ts is written against, and two copies of it would be two places to drift.
-            files.Add((
-                $"{NameToken}.Server/Features/Push/PushSubscriptions.cs",
-                PushSubscriptionsCs.Replace(
-                    $"namespace {NameToken}.Features.Push;",
-                    $"namespace {NameToken}.Server.Features.Push;",
-                    StringComparison.Ordinal)));
+            // The same store and endpoints the server template scaffolds, verbatim. Shared rather than
+            // copied: /_push/subscribe binding a flat PushSubscription is the contract push.ts is
+            // written against, and two copies of it would be two places to drift.
+            //
+            // It used to be re-namespaced on the way in, because the SPA host was a separate `.Server`
+            // project whose namespace differed. With one project owning both halves the namespaces are
+            // the same, so the rewrite is gone rather than left in as a no-op.
+            files.Add(($"{NameToken}/Features/Push/PushSubscriptions.cs", PushSubscriptionsCs));
         }
 
         if (batteries.Data)
         {
-            files.Add(($"{NameToken}.Server/Features/Shared/AppDbContext.cs", ServerProjectDbContext(batteries)));
+            files.Add(($"{NameToken}/Features/Shared/AppDbContext.cs", AppDbContextCs(batteries)));
         }
 
         if (batteries.Docker)
@@ -106,10 +107,10 @@ internal static partial class ProjectGenerator
             files.Add((".dockerignore", DockerIgnore));
         }
 
-        files.AddRange(ProjectHygiene($"{NameToken}.Server/{NameToken}.Server.csproj"));
+        files.AddRange(ProjectHygiene($"{NameToken}/{NameToken}.csproj"));
 
         var scaffoldFiles = Materialize(targetDirectory, name, files);
-        var client = System.IO.Path.Combine(targetDirectory, name + ".Client");
+        var client = System.IO.Path.Combine(targetDirectory, name, "Client");
 
         return new ScaffoldResult(scaffoldFiles, SpaNextSteps(name, framework, batteries.Docker))
         {
@@ -700,8 +701,8 @@ internal static partial class ProjectGenerator
             <PackageReference Include="Rask.Cqrs" Version="{version}"/>
             <PackageReference Include="Rask.Cqrs.Server" Version="{version}"/>
             <!--
-              Finds the sibling Company.RaskServer.Client by convention (a .Server project looks for a
-              .Client holding a package.json), runs its install and build, writes the generated TypeScript
+              Finds the Client folder in this project by convention (a `Client` directory holding a
+              package.json), runs its install and build, writes the generated TypeScript
               contracts into its src/rask/, and copies the bundle into wwwroot on publish. Set
               RaskSpaClientDir to point somewhere else, or -p:RaskSpaBuild=false to skip node entirely —
               the API still works, and the site serves a page saying there is nothing built yet.
@@ -740,12 +741,12 @@ internal static partial class ProjectGenerator
             // AppDbContext. It lands in the .Server project's own namespace, the way a client-plus-host
             // template's does, because that is the only project in the solution with a disk to put a
             // database on.
-            sb.Append($"using {NameToken}.Server.Features.Shared;\n");
+            sb.Append($"using {NameToken}.Features.Shared;\n");
         }
 
         if (batteries.Push)
         {
-            sb.Append($"using {NameToken}.Server.Features.Push;\n");
+            sb.Append($"using {NameToken}.Features.Push;\n");
             sb.Append("using Rask.WebPush;\n");
         }
 
@@ -774,7 +775,7 @@ internal static partial class ProjectGenerator
             // is a decision worth making per app.
             builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
 
-            builder.Services.AddSingleton<Company.RaskServer.Server.Features.Hello.VisitCounter>();
+            builder.Services.AddSingleton<Company.RaskServer.Features.Hello.VisitCounter>();
 
             // A liveness/readiness endpoint (mapped below). `rask deploy` probes it to gate the blue-green
             // swap; also useful for any load balancer or orchestrator.
@@ -831,7 +832,7 @@ internal static partial class ProjectGenerator
         """
         using Rask.Cqrs;
 
-        namespace Company.RaskServer.Server.Features.Hello;
+        namespace Company.RaskServer.Features.Hello;
 
         /// <summary>The greeting the front end asks for on load.</summary>
         /// <remarks>
@@ -852,7 +853,7 @@ internal static partial class ProjectGenerator
         """
         using Rask.Cqrs;
 
-        namespace Company.RaskServer.Server.Features.Hello;
+        namespace Company.RaskServer.Features.Hello;
 
         // In-memory, because a starter should run before it has a database. Swap it for a real store —
         // `rask new --template react --data` scaffolds one.
@@ -933,14 +934,14 @@ internal static partial class ProjectGenerator
          && rm -rf /var/lib/apt/lists/*
 
         # Restore against the manifests alone, so a source-only change does not invalidate this layer.
-        COPY ["Company.RaskServer.Server/Company.RaskServer.Server.csproj", "Company.RaskServer.Server/"]
-        RUN dotnet restore "Company.RaskServer.Server/Company.RaskServer.Server.csproj"
+        COPY ["Company.RaskServer/Company.RaskServer.csproj", "Company.RaskServer/"]
+        RUN dotnet restore "Company.RaskServer/Company.RaskServer.csproj"
 
-        COPY ["Company.RaskServer.Client/package.json", "Company.RaskServer.Client/package-lock.json*", "Company.RaskServer.Client/"]
-        RUN cd Company.RaskServer.Client && npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+        COPY ["Company.RaskServer/Client/package.json", "Company.RaskServer/Client/package-lock.json*", "Company.RaskServer/Client/"]
+        RUN cd Company.RaskServer/Client && npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
         COPY . .
-        RUN dotnet publish "Company.RaskServer.Server/Company.RaskServer.Server.csproj" -c Release -o /app/publish
+        RUN dotnet publish "Company.RaskServer/Company.RaskServer.csproj" -c Release -o /app/publish
 
         FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
         WORKDIR /app
@@ -949,7 +950,7 @@ internal static partial class ProjectGenerator
         # 8080, matching the other templates so `rask deploy` maps the same port.
         ENV ASPNETCORE_URLS=http://+:8080
         EXPOSE 8080
-        ENTRYPOINT ["dotnet", "Company.RaskServer.Server.dll"]
+        ENTRYPOINT ["dotnet", "Company.RaskServer.dll"]
 
         """;
 
@@ -957,7 +958,7 @@ internal static partial class ProjectGenerator
         """
         {
           "profiles": {
-            "Company.RaskServer.Server": {
+            "Company.RaskServer": {
               "commandName": "Project",
               "launchBrowser": false,
               "applicationUrl": "http://localhost:5000",
@@ -980,9 +981,9 @@ internal static partial class ProjectGenerator
 
         | | |
         |---|---|
-        | `Company.RaskServer.Server/` | The ASP.NET host: the message records, their handlers, and the JSON endpoint the client dispatches through. |
-        | `Company.RaskServer.Client/` | The {{framework.DisplayName}} app, as `create-vite` scaffolds it, plus four files Rask overlays. |
-        | `Company.RaskServer.Client/src/rask/` | Generated on every build from the server's contracts. Gitignored — do not edit. |
+        | `Company.RaskServer/` | The ASP.NET host: the message records, their handlers, and the JSON endpoint the client dispatches through. |
+        | `Company.RaskServer/Client/` | The {{framework.DisplayName}} app, as `create-vite` scaffolds it, plus four files Rask overlays. |
+        | `Company.RaskServer/Client/src/rask/` | Generated on every build from the server's contracts. Gitignored — do not edit. |
 
         ## Running it
 
@@ -1038,18 +1039,6 @@ internal static partial class ProjectGenerator
         return steps.ToString();
     }
 
-    /// <summary>
-    ///     The app's <c>DbContext</c>, re-homed into the <c>.Server</c> project's namespace.
-    /// </summary>
-    /// <remarks>
-    ///     Every template that splits a client from an ASP.NET host needs this, which is why it sits
-    ///     beside the front-end generators rather than with any one of them.
-    /// </remarks>
-    private static string ServerProjectDbContext(ServerBatteries batteries) =>
-        AppDbContextCs(batteries).Replace(
-            $"namespace {NameToken}.Features.Shared;",
-            $"namespace {NameToken}.Server.Features.Shared;",
-            StringComparison.Ordinal);
 }
 
 /// <summary>
@@ -1160,7 +1149,7 @@ internal sealed record SpaFramework(
 
     /// <summary>The default: ask create-vite for a framework's TypeScript template.</summary>
     private static Func<string, IReadOnlyList<string>> Vite(string template) =>
-        name => ["--yes", "create-vite@latest", name + ".Client", "--template", template];
+        name => ["--yes", "create-vite@latest", $"{name}/Client", "--template", template];
 
     public static readonly SpaFramework React = new(
         "react", "React", "react-ts",
@@ -1278,7 +1267,7 @@ internal sealed record SpaFramework(
         Scaffolder = name =>
         [
             "--yes", "@angular/cli@latest", "new", ClientPackageName(name),
-            "--directory", name + ".Client",
+            "--directory", $"{name}/Client",
             "--style", "css", "--ssr", "false",
             "--skip-git", "--skip-install", "--defaults",
         ],
