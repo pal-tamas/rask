@@ -9,6 +9,36 @@ them until tagged releases begin.
 
 ### Added
 
+- **The kit is built on daisyUI, and its theme cannot escape onto a page that did not ask for it.**
+  `Rask.Ui` now compiles daisyUI into its embedded stylesheet, so the components stop carrying
+  hand-rolled component CSS and the kit supplies what daisyUI does not have: a typed C# API over it.
+  Themes are daisyUI's own — light by default, dark following `prefers-color-scheme` — and switch with
+  **no JavaScript**, because daisyUI matches `input.theme-controller[value=dark]:checked` and an explicit
+  `data-theme` in CSS alone.
+
+  **The theme is scoped to a new opt-in attribute, `UiStylesheet.ThemeScopeAttribute`
+  (`data-rask-ui`).** daisyUI defines its palette at the document root, which would have meant that
+  merely referencing this package repaints the background and text colour of an application that only
+  wanted a button — the same blast radius this kit already refuses a preflight over. Put the attribute on
+  `<html>` to theme a page or on any container to theme a subtree. Nothing in the kit has a colour
+  without it, so a surface that forgets it renders correct structure with every colour resolving to
+  nothing; `tests/Rask.Ui.Tests` pins both halves — that the sheet defines no base colour outside the
+  scope, and that it still carries no preflight and no `html`/`body` rules.
+
+  **daisyUI 5 emits a component only where Tailwind can SEE its class name**, which makes one rule
+  load-bearing for everything built on this: a class must appear as a COMPLETE literal in C#, never
+  composed (`"btn-" + tone`). A composed name is invisible to the scan, and the component then renders
+  with no styling at all while the build stays green. Measured: naming one extra component grew the
+  sheet by ~4 KB, and the full set is ~150 KB raw, ~23 KB gzipped.
+
+  Two consequences for the build. The kit is pinned to the **npm** Tailwind engine, because plugins
+  resolve the way Node does and the standalone binary carries no package tree (`Can't resolve 'daisyui'`);
+  a committed `package.json` names the versions. This costs a Node install at the kit's own build and
+  nothing at a consumer's — the compiled sheet is embedded, so an app referencing the kit receives plain
+  CSS and never runs Tailwind. The kit's `--color-ui-*` tokens are, for now, aliases onto daisyUI's
+  semantic variables so both vocabularies resolve to the same colour while call sites migrate.
+
+
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
   same seven — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`,

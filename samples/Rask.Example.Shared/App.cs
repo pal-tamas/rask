@@ -68,6 +68,22 @@ public partial class App : Component
 
     protected override string? BodyClass => "bg-ui-well";
 
+    /// <summary>
+    ///     Turns the kit's theme on for the whole document.
+    /// </summary>
+    /// <remarks>
+    ///     Load-bearing, not decorative. The kit scopes daisyUI's theme to this attribute so that
+    ///     referencing the package cannot repaint an application that only wanted a button — which means
+    ///     every colour in this app, including the ones its own stylesheet defines in terms of
+    ///     <c>--color-base-*</c>, resolves to nothing without it. The failure is silent: structure and
+    ///     layout survive, colour does not, and no build or test that only reads class names notices.
+    /// </remarks>
+    protected override Component Shell(Component head, Component body) =>
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+            head,
+            Body.Class(BodyClass)[body]
+        ];
+
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
     protected override Component? Render() => Router;
 }

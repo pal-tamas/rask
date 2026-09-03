@@ -28,6 +28,31 @@ namespace Rask.Ui;
 public static class UiStylesheet
 {
     /// <summary>
+    /// The attribute that turns the kit's theme on for a subtree: <c>data-rask-ui</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Put it on <c>&lt;html&gt;</c> (via the root component's <c>Shell</c> override) to theme the whole
+    /// page, or on any container to theme just that subtree. <b>Nothing in the kit has a colour until
+    /// something in its ancestry carries this</b>, so a surface that forgets it renders structurally
+    /// correct components with every colour computing to nothing.
+    /// </para>
+    /// <para>
+    /// It exists because daisyUI's themes are defined at the document root by default, which would mean a
+    /// referenced library repainting the background and text colour of an application that only wanted a
+    /// button. Scoping the theme to this attribute keeps that an opt-in: the palette, and the
+    /// <c>color-scheme</c> that comes with it, apply exactly where a surface asks for them.
+    /// </para>
+    /// <para>
+    /// Switching themes needs no JavaScript. Inside the scope, daisyUI matches
+    /// <c>input.theme-controller[value=dark]:checked</c> and an explicit <c>data-theme</c>, so a checkbox
+    /// or a radio group changes the palette through CSS alone; with neither, the theme follows the
+    /// operating system's <c>prefers-color-scheme</c>.
+    /// </para>
+    /// </remarks>
+    public const string ThemeScopeAttribute = "data-rask-ui";
+
+    /// <summary>
     /// The compiled CSS. Empty if the sheet did not ship, which leaves a surface unstyled rather than
     /// unstartable.
     /// </summary>

@@ -30,36 +30,58 @@
 @import "tailwindcss/theme.css";
 @import "tailwindcss/utilities.css";
 
-@theme {
-  /* Neutrals — a near-white ladder, not a grey one. The steps are deliberately close together: depth
-     comes from hairlines, not from contrast between surfaces. */
-  --color-ui-bg: oklch(1 0 0);
-  --color-ui-panel: oklch(0.993 0 0);
-  --color-ui-well: oklch(0.979 0 0);
-  --color-ui-line: oklch(0.909 0 0);
-  --color-ui-ink: oklch(0.22 0 0);
-  /* 0.52, not lighter: this is body text on white and has to clear 4.5:1, which a true grey-500 does
-     not. Secondary does not mean unreadable. */
-  --color-ui-muted: oklch(0.52 0 0);
+/*
+  daisyUI supplies the component vocabulary; this kit supplies the typed C# API over it.
 
-  /* Accent — links, focus rings, the active tab. */
-  --color-ui-brand: oklch(0.55 0.2 265);
-  /* The accent as TEXT on a light ground, for the same reason ok-ink and warn-ink exist below: the fill
-     above is chosen to read as a fill, and body text has to clear 4.5:1. */
-  --color-ui-brand-ink: oklch(0.48 0.2 265);
+  themes: light is the default and dark follows the OS. Both are daisyUI's own, which is what makes the
+  theme switch work with NO JavaScript — daisyUI matches `input.theme-controller[value=x]:checked` and
+  `[data-theme=x]`, so a checkbox or a radio flips the whole palette through CSS alone.
 
-  /* Status FILLS — dots, tinted badge grounds, and text on the dark toast. Green is teal-leaning on
-     purpose: a pure green reads as decorative beside the amber and the rose, and these three have to stay
-     distinguishable at the size of a 6px status dot. */
-  --color-ui-ok: oklch(0.6 0.11 175);
-  --color-ui-warn: oklch(0.77 0.16 70);
-  --color-ui-danger: oklch(0.55 0.2 20);
+  exclude rootscrollgutter, and this one is not optional. That component paints the DOCUMENT:
 
-  /* Status TEXT on a light ground. Separate tokens rather than darker ones, because the same two colours
-     are read on two different grounds: the fills above are correct on the near-black toast and fail as
-     text on white (amber measures 2.13:1, teal 3.73:1 — nowhere near the 4.5:1 this file demands two
-     comments up), while these clear it and would in turn be too dark on the toast. Rose already passes
-     at 5.39:1 and needs no twin. Verified by computing the ratios, not by eye. */
-  --color-ui-ok-ink: oklch(0.55 0.1 175);
-  --color-ui-warn-ink: oklch(0.57 0.13 70);
+      :root { background-color: var(--page-scroll-bg, var(--root-bg)) }
+
+  This kit deliberately ships no preflight and no html/body rules, because an app owns its own document
+  and a library that repaints it restyles pages that never asked for it. A `:root` background is that
+  same bug wearing a different selector.
+
+  NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
+  scanned source. So every class a component writes must appear as a COMPLETE literal in C# — build a
+  variant with a switch returning whole strings, never by concatenating ("btn-" + tone). Composed names
+  are invisible to the scan, and the failure is silent: the component renders with no styling at all and
+  the build stays green. Measured: adding one file naming `drawer` grew this sheet by 4 KB; the full
+  component set is ~150 KB raw, ~23 KB gzipped.
+*/
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+  root: "[data-rask-ui]";
+  exclude: rootscrollgutter;
 }
+
+@theme {
+  /*
+    TRANSITIONAL. These are the kit's original token names, now expressed in daisyUI's semantic
+    variables so that both vocabularies resolve to the same colour while call sites migrate off them.
+    They are not a second palette: every one is an alias, and they go away once nothing names them.
+
+    They resolve only inside the theme scope — daisyUI defines --color-base-* under [data-rask-ui], so
+    outside it these are invalid and compute to nothing, exactly like every other kit colour.
+  */
+  --color-ui-bg: var(--color-base-100);
+  --color-ui-panel: var(--color-base-100);
+  --color-ui-well: var(--color-base-200);
+  --color-ui-line: var(--color-base-300);
+  --color-ui-ink: var(--color-base-content);
+  --color-ui-muted: var(--color-neutral);
+
+  --color-ui-brand: var(--color-primary);
+  --color-ui-brand-ink: var(--color-primary);
+
+  --color-ui-ok: var(--color-success);
+  --color-ui-warn: var(--color-warning);
+  --color-ui-danger: var(--color-error);
+
+  --color-ui-ok-ink: var(--color-success);
+  --color-ui-warn-ink: var(--color-warning);
+}
+

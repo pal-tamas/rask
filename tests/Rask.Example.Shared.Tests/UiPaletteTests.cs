@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests;
 
@@ -87,4 +88,17 @@ public sealed class UiPaletteTests
 
         throw new InvalidOperationException("could not find the repository root.");
     }
+
+    [Fact]
+    public void The_document_opts_into_the_kits_theme_scope()
+    {
+        // Load-bearing, and silent when missing. The kit scopes daisyUI's theme to this attribute so that
+        // referencing the package cannot repaint an application that only wanted a button — which means
+        // every token above resolves to nothing until something in the ancestry carries it. Structure and
+        // layout survive without it, colour does not, and nothing that reads class names can tell.
+        var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
+
+        Assert.Matches(new Regex(@"<html[^>]*\sdata-rask-ui\b"), html);
+    }
+
 }

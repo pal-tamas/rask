@@ -610,3 +610,4 @@ static RaskEntriesRask_Ui.UiTabs.get -> Rask.Core.Build<Rask.Ui.UiTabs!>
 static RaskEntriesRask_Ui.UiToast.get -> Rask.Ui.RaskSeed_UiToast
 static RaskEntriesRask_Ui.UiTopBar.get -> Rask.Core.Build<Rask.Ui.UiTopBar!>
 static RaskEntriesRask_Ui.UiTopLink.get -> Rask.Ui.RaskSeed_UiTopLink
+const Rask.Ui.UiStylesheet.ThemeScopeAttribute = "data-rask-ui" -> string!

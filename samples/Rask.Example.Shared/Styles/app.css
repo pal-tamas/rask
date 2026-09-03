@@ -21,19 +21,19 @@
   drift.
 */
 @theme {
-  --color-ui-bg: oklch(1 0 0);
-  --color-ui-panel: oklch(0.993 0 0);
-  --color-ui-well: oklch(0.979 0 0);
-  --color-ui-line: oklch(0.909 0 0);
-  --color-ui-ink: oklch(0.22 0 0);
-  --color-ui-muted: oklch(0.52 0 0);
-  --color-ui-brand: oklch(0.55 0.2 265);
-  --color-ui-brand-ink: oklch(0.48 0.2 265);
-  --color-ui-ok: oklch(0.6 0.11 175);
-  --color-ui-warn: oklch(0.77 0.16 70);
-  --color-ui-danger: oklch(0.55 0.2 20);
-  --color-ui-ok-ink: oklch(0.55 0.1 175);
-  --color-ui-warn-ink: oklch(0.57 0.13 70);
+  --color-ui-bg: var(--color-base-100);
+  --color-ui-panel: var(--color-base-100);
+  --color-ui-well: var(--color-base-200);
+  --color-ui-line: var(--color-base-300);
+  --color-ui-ink: var(--color-base-content);
+  --color-ui-muted: var(--color-neutral);
+  --color-ui-brand: var(--color-primary);
+  --color-ui-brand-ink: var(--color-primary);
+  --color-ui-ok: var(--color-success);
+  --color-ui-warn: var(--color-warning);
+  --color-ui-danger: var(--color-error);
+  --color-ui-ok-ink: var(--color-success);
+  --color-ui-warn-ink: var(--color-warning);
 }
 
 /*
