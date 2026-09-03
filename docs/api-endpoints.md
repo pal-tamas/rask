@@ -150,6 +150,43 @@ renders on both.
 > CQRS message record: the **handler** is server-only, the **shape** is shared. In practice: keep
 > `Post`, `NewPost` and friends beside your components, and only `PostsController` under `Server/`.
 
+### Securing an endpoint
+
+`[Authorize]` works the way it does in any ASP.NET app — on the controller, on the action, with a policy
+or roles, and `[AllowAnonymous]` to open one route on an otherwise protected controller:
+
+```csharp
+[ApiController]
+[Route("api/orders")]
+[Authorize]
+public sealed class OrdersController(AppDb db) : ControllerBase
+{
+    [HttpGet("{id:int}")]
+    public Task<ActionResult<Order>> Get(int id) => ...;
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "admin")]
+    public Task Cancel(int id) => ...;
+}
+```
+
+Nothing about it is Rask-specific, and the lean registration does not weaken it: enforcement is asserted
+over real HTTP in `AuthorizeTests` — 401 anonymous, 403 for a role the caller lacks, 200 for one they
+hold — because an `[Authorize]` that silently stopped being enforced would still *look* like protection
+in the source.
+
+Your app still calls `AddAuthentication`/`AddAuthorization` and `UseAuthentication`/`UseAuthorization`;
+`rask new --auth` scaffolds them. Their absence fails loudly at startup rather than quietly per request.
+
+On the client side, attach the token with `ApiClientOptions.ConfigureRequestAsync` — it receives the
+request rather than the `HttpClient`, so a token is scoped to the call instead of becoming ambient state
+shared by everything that resolves the same client.
+
+Unlike CQRS remote dispatch, none of this is re-implemented: there, two shared endpoints cannot carry
+per-message metadata, so `Rask.Cqrs.Server` reads `[Authorize]` off the handler at compile time and
+enforces it imperatively. An API controller *is* its own endpoint, so ASP.NET's own authorization
+applies and Rask stays out of the way.
+
 ### Failures
 
 A call that does not succeed throws `ApiException`. `StatusCode` is `null` when the request never

@@ -73,6 +73,21 @@ them until tagged releases begin.
   were free on `main` and already taken on this branch's base — the collision CLAUDE.md warns about,
   hit again. Its note now says **four** assemblies allocate in that space.
 
+- **`[Authorize]` on an API endpoint is enforced, and now proven so.** Nothing was added for it — an API
+  controller is its own endpoint, so ASP.NET's own authorization applies and Rask stays out of the way.
+  What was missing was evidence, and the lean `AddMvcCore()` registration is exactly the kind of edit
+  that could have taken enforcement away.
+
+  `AuthorizeTests` asks a running server: 401 for an anonymous caller, 403 for a role the caller lacks,
+  200 for one they hold, and `[AllowAnonymous]` still opening one route on an otherwise protected
+  controller. The failure it guards against is the reason it exists over HTTP rather than over the
+  service collection — an `[Authorize]` that quietly stopped being enforced would still *read* as
+  protection in the source, and the endpoint would answer 200 to anyone.
+
+  Deliberately unlike CQRS remote dispatch: there, two shared endpoints cannot carry per-message
+  metadata, so `Rask.Cqrs.Server` reads `[Authorize]` off the handler at compile time and enforces it
+  imperatively. None of that machinery is repeated here, because none of it is needed.
+
 - **HTTP endpoints are a battery, so there is nothing to wire.** `Rask.Api` and `Rask.Api.Client` are
   in the `Rask` meta-package like every other battery — referencing the framework is what turns them on.
   Write a controller and it answers; no `AddRaskApi()`, no `MapRaskApi()`, no `AddControllers()`. An app
