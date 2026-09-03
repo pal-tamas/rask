@@ -203,13 +203,35 @@ public sealed class EditContext : IDisposable
             throw new ArgumentNullException(nameof(validator));
         }
 
+        // foreach rather than LINQ Any: the built-in passes are registered from a form's render path, so
+        // this runs where a closure and an enumerator per call are worth not allocating.
         var t = validator.GetType();
-        if (_validators.Any(v => v.GetType() == t))
+        foreach (var existing in _validators)
         {
-            return;
+            if (existing.GetType() == t)
+            {
+                return;
+            }
         }
 
         _validators.Add(validator);
+    }
+
+    // Lets a caller skip BUILDING a validator it would only have handed to AddValidator to discard.
+    // The built-in passes are registered from Form.ResolveContext, which runs on every render — and a
+    // form re-renders on every keystroke — so "allocate, then dedup" would be per-keystroke garbage in
+    // a render hot path.
+    internal bool HasValidator(Type validatorType)
+    {
+        foreach (var validator in _validators)
+        {
+            if (validator.GetType() == validatorType)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -227,9 +249,12 @@ public sealed class EditContext : IDisposable
         }
 
         var t = validator.GetType();
-        if (_asyncValidators.Any(v => v.GetType() == t))
+        foreach (var existing in _asyncValidators)
         {
-            return;
+            if (existing.GetType() == t)
+            {
+                return;
+            }
         }
 
         _asyncValidators.Add(validator);

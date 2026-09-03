@@ -240,6 +240,15 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
             return;
         }
 
+        // Ask before building. AddValidator would dedup either way, but only after this method had
+        // allocated a validator — and, for FluentValidation, gone to the registry and constructed one
+        // with its dependencies — on every render of every form. Both passes are registered together
+        // below, so the first one's presence answers for both.
+        if (ctx.HasValidator(typeof(DataAnnotationsFieldValidator)))
+        {
+            return;
+        }
+
         var services = LiveRenderContext.CurrentSync?.Services;
 
         ctx.AddValidator(new DataAnnotationsFieldValidator(services));
