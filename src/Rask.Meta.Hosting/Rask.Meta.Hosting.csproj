@@ -43,6 +43,25 @@
       on disk (#852).
     -->
     <None Include="build\**" Pack="true" PackagePath="build\"/>
+
+    <!--
+      Rask's browser layer, packed FROM Rask.Core rather than copied into this project, exactly as
+      Rask.Spa.Hosting packs it. One source of truth for code three very different consumers run: the
+      Server client and the WASM client bundle it through Resources/browser/globals.ts, and a meta
+      framework's front end imports these same files as `@rask/browser/…`.
+
+      Packing across a directory boundary rather than taking a ProjectReference keeps this package's
+      dependency surface at one entry (Yarp.ReverseProxy) — the same reach the SPA package makes, and
+      safe under the rule above because every file matched is committed source.
+
+      globals.ts is excluded: it publishes the window.__rask* namespaces .NET resolves dotted
+      identifiers against, and a front end has no use for it. It is also the one module in that
+      directory with an import-time side effect, which would be a ReferenceError in a Node SSR pass.
+    -->
+    <None Include="..\Rask.Core\Resources\browser\*.ts"
+          Exclude="..\Rask.Core\Resources\browser\globals.ts"
+          Pack="true"
+          PackagePath="client\browser"/>
   </ItemGroup>
 
 </Project>

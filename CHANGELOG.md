@@ -9,6 +9,37 @@ them until tagged releases begin.
 
 ### Added
 
+- **A meta framework front end gets Rask's browser layer, imported as `@rask/browser/…`.** The lane
+  had no C#-to-TypeScript delivery of any kind — `Rask.Meta.Hosting` packed `build/**` and nothing
+  else — so a Nuxt or Next app hosted by Rask could reach none of the browser APIs the Server, WASM
+  and SPA front ends share. It now packs the same modules from `Rask.Core` and copies them into the
+  app on every build.
+
+  Into the source directory that framework actually uses: `app/rask/browser/` for Nuxt 4 and Next's
+  App Router, `src/rask/browser/` for SvelteKit, SolidStart, TanStack Start and Analog. That is the
+  lane's own argument — the framework's conventions win — and the framework table in the targets was
+  already the place where six frameworks differ by data rather than by code. `RaskMetaGeneratedDir`
+  overrides it.
+
+  **The import specifier does not vary with that.** A `tsconfig.rask.json` is written beside the
+  modules mapping `@rask/*`, so every app writes `@rask/browser/geolocation` whatever its layout, and
+  one `extends` line turns it on.
+
+  Two properties of this lane made the plumbing more than a copy. The destination is inside
+  `_RaskMetaInput`'s own glob, so the copy and the alias file are both written only when they differ —
+  otherwise every build leaves the next one looking dirty and re-runs a full production build of the
+  front end. And `_RaskMetaCopyBrowserModules` and `_RaskMetaBuildApp` both hang off `CoreCompile`, so
+  the ordering is an explicit `DependsOnTargets`: without it the first build of a fresh checkout
+  compiles an app whose imports are not there yet.
+
+  `globals.ts` is excluded, as on the SPA lane. It publishes the `window.__rask*` namespaces .NET
+  resolves dotted identifiers against, and it is the one module with an import-time side effect —
+  which on this lane is not academic, since every route module is loaded by Node before any browser
+  sees it.
+
+
+### Added
+
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
   same seven — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`,

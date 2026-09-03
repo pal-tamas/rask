@@ -77,7 +77,10 @@ better than a wrapper would. See [TypeScript front ends → Browser APIs](spa.md
   [`MediaCaptureTrigger`](apis/media-devices.md), and [`PictureInPictureTrigger`](apis/picture-in-picture.md)
   (plus the generic `GestureTrigger`). The last two target a `<video>` via its `ElementRef`.
 - **PWA / WASM** is the in-browser WebAssembly host, which registers the full set.
-- **TypeScript front end** is an SPA or a meta framework. Read the 🟡 and ⬜ rows there carefully: those
+- **TypeScript front end** is an SPA or a meta framework. On the SPA lane the modules arrive in
+  `src/rask/browser/`; on the meta lane they arrive in whichever source directory that framework
+  uses and are imported as `@rask/browser/…` through a tsconfig path — see
+  [meta.md](meta.md#browser-apis). Read the 🟡 and ⬜ rows there carefully: those
   restrictions are properties of the SERVER TRANSPORT, not of the API. Fullscreen, the eye dropper,
   screen orientation, picture-in-picture, the install prompt, media capture and the device APIs are
   limited on Server because they need *transient user activation*, which a WebSocket round trip loses.

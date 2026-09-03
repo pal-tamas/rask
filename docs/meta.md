@@ -126,6 +126,44 @@ The rule is **a file on disk**, not the shape of the URL. A generated `/sitemap.
 ending in `.json` still reaches the framework, because nothing that is not on disk is treated as
 static.
 
+## Browser APIs
+
+Rask ships typed wrappers over the browser's Web APIs, and on a Rask component front end you inject
+them as C# services. Here the front end is TypeScript, so you get the layer underneath them instead:
+the same modules, imported directly.
+
+```ts
+import { getCurrentPosition } from '@rask/browser/geolocation'
+import { prefersDark } from '@rask/browser/mediaQuery'
+
+const fix = await getCurrentPosition({ enableHighAccuracy: true })
+```
+
+They are copied into your app on every build — into `app/rask/browser/` for Nuxt and Next, and
+`src/rask/browser/` for SvelteKit, SolidStart, TanStack Start and Analog, because those are where each
+framework keeps source. `RaskMetaGeneratedDir` moves them if your app is laid out differently.
+
+**`@rask/*` is what you write, whichever framework you picked.** The physical directory differs; the
+import should not. A `tsconfig.rask.json` is written beside the modules with the mapping, so one line
+in your own `tsconfig.json` turns it on:
+
+```json
+{ "extends": "./src/rask/tsconfig.rask.json" }
+```
+
+**This is the same code Rask's own Server and WASM clients run.** It is not a TypeScript port kept in
+step by hand: the C# `IGeolocation` reaches the browser by calling into these very modules, so a quirk
+fixed for one caller is fixed for the other in the same commit.
+
+**They are safe to import in a server render**, which on this lane is not a footnote — every route
+module in `Client/` is loaded by Node before it is ever loaded by a browser. Nothing in the layer
+touches `window` or `document` at import time, and a test asserts it by importing every module in a
+process that has neither. Calling one still needs a browser, as it would anywhere.
+
+For which APIs ship a module and which you should simply call on the platform — `navigator.clipboard`
+and `localStorage` need no wrapper — see the third column of the
+[capability matrix](browser-capabilities.md).
+
 ## Development
 
 `rask dev` runs `dotnet watch` alongside the framework's own dev server, and **the browser talks to
