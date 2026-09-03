@@ -27,6 +27,16 @@
   </ItemGroup>
 
   <!--
+    The JSON primitives the generated codecs call, and the two file carriers. They live in their own
+    package because Rask.Api generates codecs against the same primitives: duplicating them would put
+    two of each type on the path of an app using both, and having Rask.Api depend on this package
+    would drag a mediator into an app that only wanted REST.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
+  </ItemGroup>
+
+  <!--
     The batteries source generator is referenced as an analyzer (no runtime assembly reference),
     keeping Rask.Cqrs self-contained: consumers get the generator without pulling in the Rask
     component/routes generators. See src/Rask.Batteries.Generators.

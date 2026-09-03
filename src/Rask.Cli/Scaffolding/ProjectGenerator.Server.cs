@@ -533,8 +533,8 @@ internal static partial class ProjectGenerator
 
         if (batteries.Push)
         {
-            sb.Append("// Mapped before UseRask: its catch-all serves the SPA for anything unmatched, so a minimal API\n");
-            sb.Append("// registered after it would never be reached.\n");
+            sb.Append("// Endpoints go here, before UseRask, so they read in one place. Order is not what makes them work:\n");
+            sb.Append("// routing matches on precedence, and any route is more specific than the catch-all.\n");
             sb.Append("app.MapPushSubscriptions();\n\n");
         }
 

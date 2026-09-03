@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace Rask.Cqrs.Tests;
+namespace Rask.Wire.Tests;
 
 // WireJson is what every generated codec is built from, so a mistake here is a mistake in every message
 // at once. The round-trips below pin the wire format itself: changing one of them changes what a

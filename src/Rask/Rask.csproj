@@ -57,6 +57,15 @@
     <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
 
     <ProjectReference Include="..\Rask.Auth\Rask.Auth.csproj"/>
+
+    <!--
+      HTTP endpoints. Rask.Api carries the hosting and the client generator; Rask.Api.Client carries the
+      runtime the generated client calls, and belongs in BOTH halves — a component that calls its own
+      API renders on the server as well as in the browser.
+    -->
+    <ProjectReference Include="..\Rask.Api\Rask.Api.csproj"/>
+    <ProjectReference Include="..\Rask.Api.Client\Rask.Api.Client.csproj"/>
+
     <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
     <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj"/>
@@ -90,6 +99,12 @@
     <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
     <ProjectReference Include="..\Rask.Auth.Client\Rask.Auth.Client.csproj"/>
     <ProjectReference Include="..\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
+    <!--
+      The client runtime, but NOT Rask.Api: that one carries MVC and the generator, which belong to the
+      half that answers endpoints rather than the half that calls them. The generated client itself
+      arrives as a baked file, not from a package.
+    -->
+    <ProjectReference Include="..\Rask.Api.Client\Rask.Api.Client.csproj"/>
   </ItemGroup>
 
   <!-- RaskApp needs WebApplicationBuilder, so the server files compile into the server half only. -->

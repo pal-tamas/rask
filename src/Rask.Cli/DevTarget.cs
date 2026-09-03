@@ -267,31 +267,24 @@ internal sealed record DevTarget(
     }
 
     /// <summary>
-    ///     The TypeScript client beside a SPA host, by the same convention the build uses: a project named
-    ///     <c>MyApp.Server</c> looks for a sibling <c>MyApp.Client</c> holding a <c>package.json</c>.
+    ///     The TypeScript client inside a SPA host, by the same convention the build uses: a
+    ///     <c>Client</c> folder in the project directory holding a <c>package.json</c>.
     /// </summary>
     /// <remarks>
-    ///     The <c>package.json</c> check is what makes this safe, not decoration. In this repo alone
-    ///     <c>Rask.Cqrs.Server</c> has a sibling <c>Rask.Cqrs.Client</c> — a C# project — and without it
-    ///     <c>rask dev</c> would try to start a bundler in it.
+    ///     The <c>package.json</c> check is what makes this safe, not decoration — and it carries more
+    ///     weight than it did when the rule looked at siblings named <c>*.Client</c>, because a folder
+    ///     called <c>Client</c> is a far more ordinary thing for a project to contain than a sibling
+    ///     project was. A folder called <c>Client</c> that also holds a <c>package.json</c> is not.
     /// </remarks>
     private static string? SpaClientDirectory(IFileSystem fileSystem, string csproj)
     {
-        var name = Path.GetFileNameWithoutExtension(csproj);
-        if (!name.EndsWith(".Server", StringComparison.Ordinal))
+        var projectDirectory = Path.GetDirectoryName(Path.GetFullPath(csproj));
+        if (projectDirectory is null)
         {
             return null;
         }
 
-        var solutionRoot = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(csproj)));
-        if (solutionRoot is null)
-        {
-            return null;
-        }
-
-        var client = Path.Combine(
-            solutionRoot,
-            name[..^".Server".Length] + ".Client");
+        var client = Path.Combine(projectDirectory, "Client");
 
         return fileSystem.FileExists(Path.Combine(client, "package.json")) ? client : null;
     }

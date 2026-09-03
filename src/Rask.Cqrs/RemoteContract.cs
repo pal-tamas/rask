@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rask.Wire;
 
 namespace Rask.Cqrs;
 

@@ -258,7 +258,7 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// <remarks>
     ///     <para>
     ///         A stand-in <c>package.json</c> is written where <c>create-vite</c> would have put one. That is
-    ///         what makes the <c>.Server</c>/<c>.Client</c> convention resolve, which is what turns the
+    ///         what makes the <c>Client</c> folder convention resolve, which is what turns the
     ///         TypeScript emit on — so this gate covers the generator writing its constants into the assembly
     ///         AND the MSBuild task reading them back out and landing the files in the client's sources. The
     ///         real scaffolder is not run: it needs node and a network, and what it produces is not what
@@ -273,7 +273,7 @@ public sealed class ProjectGeneratorBuildE2ETests
     [SkippableTheory]
     [InlineData(false, false)]
     [InlineData(true, false)]
-    // --push reaches the .Server half: the Rask.WebPush reference, the VAPID block, a re-namespaced
+    // --push reaches the host half: the Rask.WebPush reference, the VAPID block, a re-namespaced
     // PushSubscriptions.cs and app.MapPushSubscriptions(). All four are C#, and a namespace rewritten
     // into the wrong project is a compile error nothing else in the suite would see.
     [InlineData(false, true)]
@@ -299,10 +299,10 @@ public sealed class ProjectGeneratorBuildE2ETests
                 fs.WriteAllText(file.Path, file.Content);
             }
 
-            // Both files, because both are load-bearing: package.json is what makes the .Server/.Client
+            // Both files, because both are load-bearing: package.json is what makes the Client folder
             // convention resolve, and tsconfig.json is what satisfies RASKSPA004 — the build's refusal to
             // generate TypeScript contracts into a client that is not a TypeScript project.
-            var client = Path.Combine(projectDir, name + ".Client");
+            var client = Path.Combine(projectDir, name, "Client");
             fs.CreateDirectory(client);
             fs.WriteAllText(Path.Combine(client, "package.json"), """{ "name": "stand-in", "private": true }""");
 
@@ -314,7 +314,7 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
+            var server = Path.Combine(projectDir, name, name + ".csproj");
             var (exit, output) = await CliBuildE2E.RunDotnet(
                 $"build \"{server}\" -warnaserror -m:1 -p:RaskSpaBuild=false");
             Assert.True(exit == 0, $"[data={data}] generated react solution failed to build.{CliBuildE2E.Diagnostics(output)}");
@@ -380,13 +380,13 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             // package.json and no tsconfig.json: the convention resolves the client, the contract emit turns
             // itself on, and there is nothing on the other side able to check what it writes.
-            var client = Path.Combine(projectDir, name + ".Client");
+            var client = Path.Combine(projectDir, name, "Client");
             fs.CreateDirectory(client);
             fs.WriteAllText(Path.Combine(client, "package.json"), """{ "name": "stand-in", "private": true }""");
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
+            var server = Path.Combine(projectDir, name, name + ".csproj");
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -m:1 -p:RaskSpaBuild=false");
 
             Assert.True(exit != 0, $"a JavaScript client built anyway.{CliBuildE2E.Diagnostics(output)}");

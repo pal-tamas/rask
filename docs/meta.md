@@ -189,12 +189,18 @@ own cookie — and lets the side that can decrypt it answer:
 
 ```ts
 // A server-side load function, in whichever framework's spelling.
-const me = await fetch(`${process.env.RASK_BASE_URL}/api/auth/me`, {
+import { auth } from './rask/browser'
+
+const user = await auth.me({
+  baseUrl: process.env.RASK_BASE_URL,
   headers: { cookie: request.headers.get('cookie') ?? '' },
 })
-
-const user = me.status === 204 ? null : await me.json()
+// CurrentUser, or null when nobody is signed in.
 ```
+
+The module runs here for the same reason it runs in the browser: nothing in Rask's browser layer
+touches `window` at import time, so a server render can import it. `baseUrl` and `headers` exist for
+exactly this call — node has no page origin and no cookie jar, so both are yours to supply.
 
 `RASK_BASE_URL` is injected by the host (`MetaHostingOptions.BaseUrl`) and points at Kestrel on
 loopback. Two properties of it are deliberate:
