@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.HtmlRendering.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -36,6 +37,26 @@ internal sealed class BlazorIslandRenderer : StaticHtmlRenderer
 
     /// <summary>Adopts a component instance and returns the id every later call addresses it by.</summary>
     public int Attach(IComponent component) => AssignRootComponentId(component);
+
+    /// <summary>
+    ///     Builds a component through Blazor's own activator, which is what runs <c>[Inject]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A one-line forward to the protected <c>InstantiateComponent</c>, existing only because that
+    ///     method is protected and the island needs to reach it. It also honours an
+    ///     <c>IComponentActivator</c> registered in the app's container, which is the supported way to
+    ///     control how a hosted component is constructed.
+    ///
+    ///     <para>
+    ///         The annotation repeats what <c>InstantiateComponent</c> declares —
+    ///         <c>LinkerFlags.Component</c>, which is <c>All</c>. It has to: an override or a forward
+    ///         that promises less than the member it calls is IL2067 under the trim analyser, and a
+    ///         WASM app publishes trimmed under warnings-as-errors.
+    ///     </para>
+    /// </remarks>
+    public IComponent Build(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type componentType) =>
+        InstantiateComponent(componentType);
 
     /// <summary>Mounts or updates the root with a new parameter set.</summary>
     /// <remarks>

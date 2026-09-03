@@ -1,0 +1,52 @@
+@* A real Blazor component that reads a BROWSER API — and still knows nothing about Rask.
+
+   This is the half of Rask.Blazor that did not work before #956. The component injects
+   Microsoft's own IJSRuntime, which on a Rask host resolves to Rask's implementation, and calls it
+   from OnAfterRenderAsync — a hook StaticHtmlRenderer never fires and Rask now drives.
+
+   Two things are being proved at once, which is why this component exists rather than a unit test:
+   [Inject] actually delivers a service (it silently delivered null before), and the identifier it
+   calls — __raskApi.matchMedia — is Rask's shared browser layer, the same TypeScript module a
+   TypeScript front end imports as browser/mediaQuery.
+
+   Styled inline for the same reason as PriceTicker.razor: Tailwind scans the app's directory, not
+   this library's. *@
+
+@using Microsoft.JSInterop
+@inject IJSRuntime Js
+
+<div data-testid="viewport-probe"
+     style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;padding:.75rem 1rem;
+            border:1px solid #cbd5e1;border-radius:.5rem;font-family:system-ui,sans-serif">
+
+    <strong>Colour scheme</strong>
+
+    @* "…" until the hook has run, so the E2E can tell "never ran" from "ran and said light". *@
+    <span data-testid="probe-scheme" style="font-variant-numeric:tabular-nums">@_scheme</span>
+</div>
+
+@code {
+    private string _scheme = "…";
+
+    /// <summary>
+    ///     Runs once, after the island's first paint. On the Server host the call escalates the page to
+    ///     a live session through Rask's ordinary path, so the answer arrives over the socket that is
+    ///     already open — no circuit, no blazor.web.js.
+    /// </summary>
+    /// <remarks>
+    ///     Do NOT call StateHasChanged from here unconditionally. It is Blazor's own documented trap —
+    ///     the hook feeds the render that fires it — and hosted in an island it recurses through the
+    ///     renderer. Guarding on firstRender, as here, is the shape that is safe.
+    /// </remarks>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        var dark = await Js.InvokeAsync<bool>("__raskApi.matchMedia", "(prefers-color-scheme: dark)");
+        _scheme = dark ? "dark" : "light";
+        StateHasChanged();
+    }
+}

@@ -231,6 +231,116 @@ them until tagged releases begin.
   each worktree's suite is its own process. The path now carries a hash of the checkout's absolute
   path as well, since the lock cannot be made to reach and the path can.
 
+### Changed
+
+- **The browser layer is becoming ordinary TypeScript modules, shared by every front end.** The
+  helpers Rask's C# wrappers call through — `window.__raskApi`, `window.__raskGeoWatch` and the rest —
+  were framework-agnostic TypeScript already, but reachable only by shipping through Rask's own client
+  entry point. They are moving to `src/Rask.Core/Resources/browser/`, one module per API, so a
+  TypeScript front end (SPA, or a meta framework) can `import { getCurrentPosition } from
+  "./rask/browser/geolocation"` while Server and WASM keep resolving the same code by dotted
+  identifier through the one module that registers the globals, `browser/globals.ts`.
+
+  This lands API by API; 37 modules have moved so far. `rask-api.ts` is down from 1,975 lines to 443
+  and `rask-pwa.ts` is gone entirely, its four APIs (Web Push, notifications, badging, wake lock)
+  now ordinary modules like the rest.
+
+  What is deliberately NOT moving is as much of the design as what is. `RTCPeerConnection`, the
+  device APIs (serial, USB, HID, Bluetooth), `element.animate()`, `navigator.clipboard` and
+  `localStorage` stay where they are: they are native, well typed, and a wrapper would hand a
+  TypeScript caller something worse than `lib.dom.d.ts` already gives them. What survives the cut
+  either has a server half that is ours (`signaling`, `webPush`) or is ceremony nobody should write
+  twice (`webAuthn`'s base64url dance, OPFS's ranged writes, the wake lock's re-acquire). Two rules hold for every module:
+  the names are idiomatic TypeScript (`getCurrentPosition`, not `GetCurrentPositionAsync`, and the
+  platform's own name wins wherever it has one), and **side effects live in `globals.ts` alone** —
+  a module that touched `window` at import time would break a Next or Nuxt server render and would
+  defeat tree-shaking. A node fixture proves that by construction: it imports the modules in a process
+  with no `window` and no `document`, so an import-time DOM access fails the test.
+
+  Nothing about the C# surface changes, and the `__rask*` keys stay byte-identical — `GlobalsContractTests`
+  now scans every `__raskApi.x` a C# wrapper names and fails if `globals.ts` does not register it,
+  because that pairing is a string on one side and an object key on the other with no compiler between.
+
+  **A TypeScript front end receives them the way it receives the wire.** `Rask.Spa.Hosting` packs the
+  modules from `Rask.Core` — no `ProjectReference`, so it still depends on nothing else in Rask — and
+  the build copies them into the client's `src/rask/browser/` beside the generated contracts, refreshed
+  from the package every build like `client.ts`. So `import { getCurrentPosition } from
+  './rask/browser/geolocation'` is typed, tree-shaken, and locked to the host that shipped it.
+  `globals.ts` is excluded from that copy: it exists for .NET's dotted identifiers and a front end has
+  no use for it. See [TypeScript front ends → Browser APIs](docs/spa.md#browser-apis).
+
+  The [capability matrix](docs/browser-capabilities.md) gains a third column, because a React developer
+  reading two columns of C# interfaces would reasonably conclude none of it was theirs. Each row now
+  says either the module to import or "the platform" — and the notes say why the 🟡 and ⬜ rows are not
+  restrictions there: those are properties of the SERVER transport, which loses transient user
+  activation over a round trip, so a TypeScript front end calling inside the click's own stack has the
+  complete surface.
+
+### Fixed
+
+- **A hosted Blazor component's `[Inject]` never ran, so every injected service was silently null
+  ([#956](https://github.com/pal-tamas/rask/issues/956)).** `BlazorComponent` constructed the hosted
+  component with `new()` and handed the finished instance to `AssignRootComponentId`, which skips
+  `ComponentFactory` — the only place Blazor performs property injection. Constructor injection was
+  never available either (the `new()` constraint rules it out), so a hosted component had no way to
+  reach a service at all. It surfaced as an `ArgumentNullException` or an NRE from inside the
+  component, naming nothing that pointed at the cause.
+
+  The whole service story was inert as a result, including what this package deliberately registers:
+  `NavigationManager` is registered precisely because MudBlazor and Radzen inject it, and it could
+  never be delivered. So could nothing else — `IJSRuntime`, or any of Rask's typed browser APIs.
+
+  Built through the renderer's own `InstantiateComponent` now, which runs injection and honours a
+  registered `IComponentActivator`. The `Create()` hook is gone with it: a hook there would have had
+  to re-implement injection to be useful, and Blazor's activator is the seam that already exists.
+
+  `BlazorComponent<TComponent>`'s annotation widens from `PublicProperties` to `All`, and not by
+  preference — `InstantiateComponent` declares `LinkerFlags.Component`, which IS `All`, so anything
+  narrower is IL2087 in every consuming WASM app. Injection also reflects over NON-public `[Inject]`
+  properties, so a narrower annotation would reproduce #945 with a second face: an island that
+  renders perfectly with every injected service null. Gated the way #945 was — the trimmed WASM
+  showcase publishes clean, and `TrimmingContractTests` fails in milliseconds if the annotation moves.
+
+- **A `--push` client lost its push code on a fresh clone ([#957](https://github.com/pal-tamas/rask/issues/957)).**
+  `rask new --push` wrote `push.ts` into the client's `src/rask/` — the directory the same scaffolder
+  adds to `.gitignore`, because everything else in it is regenerated from the package on every build.
+  `push.ts` was not: it was written once, by the CLI, and by nothing afterwards. So it was never
+  committed, a fresh clone did not have it, and the client failed to build on an unresolved import in a
+  project whose `--push` flag was the entire reason the file existed.
+
+  Split rather than moved, because the file was doing two jobs. The browser ceremony — the base64url
+  VAPID key, and flattening a `PushSubscription` into the shape the host binds — is
+  `rask/browser/webPush`, copied from the package like the rest of the layer. What is left is the app's
+  own wiring (which endpoints, and when to ask for permission), scaffolded to `src/push.ts` as an
+  ordinary committed file the developer owns and edits.
+
+  The test is the general form rather than this instance: no scaffolded file may land under any
+  directory the scaffold itself gitignores. Verified by putting the path back and watching it fail,
+  naming the file.
+
+- **The shipped browser modules did not compile in a consumer's project.** Eight of them leaned on
+  ambient declarations from `rask-window.d.ts` — `BatteryManagerLike`, `EyeDropper`,
+  `SpeechRecognitionLike`, `navigator.getBattery`, `window.showOpenFilePicker`, the vendor-prefixed
+  `connection` spellings, iOS's `requestPermission` statics — and that file never leaves the framework.
+  They compiled here, the packaging test passed, and the failure surfaced only when a scaffolded React
+  and Angular client ran `npm run build`, as an MSBuild error carrying an npm exit code.
+
+  Each module declares the vendor shape it needs now, so it is droppable into any TypeScript project.
+  And the missing gate exists: the shipped modules are type-checked against `lib.dom` and nothing else,
+  with the framework's declarations deliberately withheld — verified by deleting one local interface
+  and watching the consumer check fail while the framework's own stayed green.
+
+- **Two build gates were green over code they never read.** The framework's own TypeScript is
+  type-checked from a list of files, guarded against going stale by an enumeration that used
+  `SearchOption.TopDirectoryOnly` — so a file in a SUBDIRECTORY was in neither the list nor the guard,
+  and went unchecked with the gate still passing. The gate now derives its inputs by enumerating the
+  runtime directories recursively, which makes the omission unrepresentable rather than merely
+  noticed. Verified by introducing a type error in a new subdirectory and watching the gate name it.
+
+  The esbuild bundle inputs had the same shape: `Resources\*.ts` is not recursive, so an edit to a
+  module in a subdirectory would not invalidate the target and the shipped bundle would silently be
+  the previous one. Both host projects and the node-fixture target now glob `**\*.ts`.
+
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,
   no publish, no browser. Hosting one in a real WASM app found three separate failures on the way to
@@ -266,6 +376,52 @@ them until tagged releases begin.
 - **`Rask.Blazor`'s package description promised children.** It said Rask children placed inside a
   hosted component keep working handlers, which the same release made a compile error
   ([RASK062](docs/diagnostics.md#rask062)).
+
+### Added
+
+- **The client runtimes are size-gated at last.** `rask.js` and `rask.wasm.js` are what every visitor
+  downloads, and nothing measured them: `BundleSizeReport` prints a table of a published WASM
+  `_framework/` and has no committed numbers, so the runtime script could have doubled with every check
+  in the repository still green. `client-bundle-size --check` compares both against
+  `Baselines/client-bundle-size.csv` and runs from `scripts/run-benchmarks-local.sh`, which the
+  pre-push hook already enforces.
+
+  It exists because of this release's own change: splitting the browser layer out of `rask-api.ts` into
+  37 modules is exactly the edit that moves a bundle — in either direction, since tree-shaking now has
+  boundaries to work with — and "about the same, surely" is not a measurement. The numbers today are
+  85,073 and 86,042 bytes.
+
+  Release only: a Debug bundle is unminified, so a comment would move the number. Getting that
+  right took two attempts and both are now part of the gate. `rask.wasm.js` is written into a
+  *source* directory both configurations share, while MSBuild's up-to-date stamp is
+  per-configuration — so a Release build after a Debug one is SKIPPED and the file measured is the
+  Debug one. The script deletes the stamp before rebuilding, and the report refuses to measure a
+  bundle that is not minified rather than reporting the 74 KB regression that is not real. Tolerance is ±2% rather
+  than byte-exact, because esbuild's output shifts a little on a minifier bump nobody here chose, while
+  the regression worth catching is far larger. Verified by moving the baseline and watching it exit 1.
+
+- **A hosted Blazor component can now run `OnAfterRenderAsync`.** `StaticHtmlRenderer` never fires it,
+  so before this a component could only reach a browser API from its own event handler — which ruled
+  out the ordinary case of reading one when the island appears. Rask drives it, once, after the
+  island's first paint.
+
+  Once rather than after every render, deliberately. A Rask render walk is not a Blazor render: the
+  island is walked whenever anything on the page changes. Firing per walk would surprise a `.razor`
+  author, and it loops — a component calling `StateHasChanged` from the hook feeds the render that
+  fires it, which took the renderer into unbounded `ProcessRenderQueue` recursion while this was being
+  built. `docs/blazor-components.md` says so, next to Blazor's own warning about the same trap.
+
+  `ElementReference` still does not work, and the capability table now says which half is which: the
+  frame writer discards element-reference captures, so interop that needs one has nothing to pass.
+
+  **The Server host has a Blazor sample at last, and it is what gates this.** The lane had none — every
+  gate it owned ran against the WASM showcase or a unit test with a fake `IJSRuntime` — which is
+  precisely how a hosted component's `[Inject]` stayed null for a release without anyone noticing. The
+  showcase now hosts `ViewportProbe.razor` (a real `.razor` that still knows nothing about Rask: it
+  injects Microsoft's `IJSRuntime` and calls `__raskApi.matchMedia` from `OnAfterRenderAsync`), and an
+  E2E asserts the VALUE it renders rather than the element — its `…` placeholder is exactly what a
+  presence check would pass on. Verified by flipping the expected value and watching the run fail with
+  `44 × locator resolved to <span data-testid="probe-scheme">light</span>`.
 
 ### Removed
 
@@ -422,7 +578,6 @@ them until tagged releases begin.
   exactly how the showcase was left when this was first written, and what the fix now covers. The
   showcase needs both, because its islands live in the host apps while its stylesheet lives in the
   shared library.
-
 
 - **Vue and Svelte join React and Lit as island runtimes.** An island is an ordinary Rask component
   whose markup a front-end framework produces, and it now covers four of them: derive from
@@ -1834,7 +1989,6 @@ them until tagged releases begin.
 
   Supersedes the earlier fix for the same symptom, which skipped *disposed* foreign scopes. That was
   necessary and not sufficient — it covered the dead case, this covers the live one.
-
 
 ### Fixed
 ### Added
