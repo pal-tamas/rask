@@ -7,6 +7,18 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`rask new --template react` pointed its closing instructions at a directory that no longer
+  exists.** The next-steps text still said the generated contracts land in `{name}.Client/src/rask/`
+  after [#970](https://github.com/pal-tamas/rask/pull/970) moved the client to `{name}/Client/`. It is
+  the last thing the command prints and the first thing anyone follows.
+
+  It survived the rename sweep, 1071 CLI unit tests, the CLI build gate and CI for one reason: nothing
+  asserted on that string. A grep finds `Shop.Client` as a literal; this one lived inside an
+  interpolated string in output no test read. There is now a guard that the next-steps text names only
+  directories the scaffold actually produced, and it was checked by putting the bug back.
+
 ### Added
 
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
