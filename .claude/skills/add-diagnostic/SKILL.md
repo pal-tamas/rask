@@ -6,11 +6,12 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 # add-diagnostic
 
 ## 1. Pick the next ID
-RASK001–RASK042 are in use (028/029/053 in Rask.Batteries.Generators, 035 in Rask.Generators.Shared,
-036 and 040–042 in the builder surface) → **next free is RASK043**. Confirm with:
+**Never trust a number written down here — including this one.** Four assemblies allocate in this
+space, this file lags behind them, and reading a stale number is how RASK056 was claimed twice. As of
+RASK067 the next free id is **RASK068**, and 030/032/034/042/047/048/049/050 are retired and never
+recycled while 063/065 are reserved. Derive it rather than believe it:
 ```bash
-grep -rhoE 'RASK[0-9]{3}' src/Rask.Generators src/Rask.Batteries.Generators src/Rask.Generators.Shared \
-  | sort -u | tail
+grep -rhoE 'RASK[0-9]{3}' src/ | sort -u | tail    # ALL of src/, not a hand-listed set of projects
 ```
 Grep **both** analyzer assemblies plus the shared sources. RS1019 only sees duplicate descriptor ids
 *within* one assembly, so an id reused across them compiles clean and ships twice.

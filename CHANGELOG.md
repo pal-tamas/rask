@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Added
 
+- **RASK067 catches ASP.NET's `[Route]` on a Rask component, with a quick-fix that swaps it.** Rask's
+  route attribute and ASP.NET's share the short name `Route` and differ only by namespace, so a server
+  file that already imports `Microsoft.AspNetCore.Mvc` — or one written by someone arriving from Blazor,
+  where the attribute is `Microsoft.AspNetCore.Components.RouteAttribute` — can bind the wrong one from a
+  completion list. Nothing downstream noticed: MVC reads its attribute only while scanning controllers
+  and a component is never scanned, Blazor's is read by a renderer Rask does not run, and
+  `RoutesGenerator` matches on the full name. The build stayed green and the page was simply absent from
+  the route table, so the first sign of it was a 404 in a browser. It is an Error for that reason.
+
+  The lightbulb rewrites only the attribute's **name**, so the template and any sibling attributes
+  survive, and it writes the name qualified wherever a bare `Route` would bind back to ASP.NET's
+  attribute or be ambiguous — the fix can never trade RASK067 for CS0104, which is asserted by
+  compiling the fixed file with a genuine MVC controller still in it. A page carrying **both**
+  attributes is left alone: it registers correctly through Rask's, so failing that build would be the
+  worse outcome. An alias deriving from MVC's (unsealed) attribute is matched through the base chain.
+
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
   same seven — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`,

@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK066)
+# Rask diagnostics (RASK001–RASK067)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -16,6 +16,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
+| **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
 | **CS0108** | adds `new` to a member that [hides a builder entry](#cs0108-a-member-hides-a-builder-entry) |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
@@ -99,6 +100,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK062](#rask062) | Error | An island takes no children |
 | [RASK064](#rask064) | Error | Blazor island name collision |
 | [RASK066](#rask066) | Warning | Hosted Blazor component's parameters cannot be verified |
+| [RASK067](#rask067) | Error | ASP.NET route attribute on a Rask component |
 
 ---
 
@@ -1402,3 +1404,55 @@ public sealed partial class WidgetIsland : BlazorComponent<Widget> { }
 **Fix:** move the `.razor` into a Razor Class Library and reference it. That is also where a Blazor
 component belongs if anything else will ever use it — and it is why hosting MudBlazor or Radzen,
 which are referenced packages, is fully checked with no warning at all.
+
+## RASK067
+
+**ASP.NET route attribute on a Rask component** · Error
+
+Rask's route attribute and ASP.NET's share the short name `Route` and differ only by namespace. In a
+server project that already has `using Microsoft.AspNetCore.Mvc;` — or in a file written by someone
+arriving from Blazor, where the attribute is `Microsoft.AspNetCore.Components.RouteAttribute` — the
+wrong one is one completion away, and nothing downstream notices:
+
+- MVC reads its attribute only while building the controller application model, and a `Component` is
+  never scanned.
+- Blazor's is read by a renderer this framework does not run.
+- Rask's `RoutesGenerator` matches on the full name, so it sees nothing to register.
+
+The build is green and the page is simply absent from the route table. The first sign of it is a 404
+in a browser, which is why this is an Error rather than a warning you could scroll past.
+
+```csharp
+using Rask.Core;
+using Microsoft.AspNetCore.Mvc;
+
+// ✗ RASK067 — binds to MVC's attribute; this page is never registered
+[Route("/orders")]
+public sealed partial class Orders : Component
+{
+    protected override Component? Render() => Div["orders"];
+}
+```
+
+**Fix:** apply `Rask.Core.Routing.RouteAttribute` instead (**quick-fix available** — "Use Rask's
+`[Route]`"). The quick-fix rewrites only the attribute's name, so the template and any other
+attributes survive untouched, and it writes the name qualified wherever the short form would bind
+back to ASP.NET's attribute or be ambiguous:
+
+```csharp
+using Rask.Core;
+using Rask.Core.Routing;
+
+[Route("/orders")]                         // Rask's — the page registers
+public sealed partial class Orders : Component
+{
+    protected override Component? Render() => Div["orders"];
+}
+```
+
+A page carrying **both** attributes is left alone. It registers correctly through Rask's, so the
+ASP.NET one is inert rather than harmful, and failing a build that is producing the right route
+table would be the worse outcome.
+
+This does not fire on ordinary classes. A Rask server project is an ASP.NET project and may hold
+genuine controllers; `[Route]` on one of those is correct and is never reported.
