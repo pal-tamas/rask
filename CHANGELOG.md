@@ -126,6 +126,36 @@ them until tagged releases begin.
   replaced by the budget's ordering — two copies of an ordering rule that must agree is a bug waiting
   for the day they stop agreeing.
 
+- **BREAKING: a TypeScript front end is now a `Client` folder inside one host project.**
+  `rask new --template react` used to write `Shop.Server/` beside `Shop.Client/`; it now writes `Shop/`
+  with `Shop/Client/` in it, and the root namespace loses its `.Server` suffix.
+
+  Two .NET projects were one too many. A C#-on-both-halves solution needs a `.Shared` because both
+  halves compile the same record — but the client's half of every contract here is *generated
+  TypeScript*, so the messages live in the host and there was never anything for a second project to
+  hold. And with no sibling to distinguish it from, `.Server` named nothing.
+
+  It also makes both front-end lanes one shape: [the meta framework lane](docs/meta.md) already puts
+  its app in `Client/`, so `rask new` now produces a layout you recognise whichever front end you pick.
+
+  The build convention follows: `Rask.Spa.Hosting` looks for a `Client` folder in the project directory
+  rather than a sibling `*.Client`, and `rask dev` resolves it the same way. **The `package.json` check
+  carries more weight than it used to** — a folder called `Client` is a far more ordinary thing for a
+  project to contain than a sibling project was, so what makes it a front end is the `package.json` and
+  nothing else. There is a test for a `Client` folder holding C# instead.
+
+  Two rewrites the split had forced disappear rather than lingering as no-ops: the scaffolded
+  `PushSubscriptions.cs` and `AppDbContext.cs` were each re-namespaced on the way into the `.Server`
+  project, and with one project the namespaces already match.
+
+  **Moving an existing app:** rename `Shop.Server/` to `Shop/`, move `Shop.Client/` to `Shop/Client/`,
+  rename the `.csproj`, and drop `.Server` from the root namespace. `RaskSpaClientDir` is only needed
+  if you keep the client somewhere else. See [`docs/spa.md`](docs/spa.md).
+
+  The WASM-hosted templates still scaffold `{name}.Client/`, `.Server/` and `.Shared/` as sibling
+  projects; those are real .NET projects, and nesting one inside the host needs the host to exclude it
+  from its own compile globs. That lands separately.
+
 ### Fixed
 
 - **A version pinned in two places was held together by a comment, and one of the comments was
