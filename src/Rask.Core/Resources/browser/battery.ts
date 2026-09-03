@@ -71,32 +71,47 @@ export function getStatus(): Promise<BatteryStatus | null> {
     return nav?.getBattery ? nav.getBattery().then(read) : Promise.resolve(null);
 }
 
+/** A live battery subscription. */
+export interface BatteryWatch {
+    /**
+     * Resolves once the listeners are attached, and REJECTS if the manager could not be obtained —
+     * which Chromium does in a cross-origin iframe without the `battery` permission policy.
+     *
+     * Separate from `stop` on purpose. A caller that ignores this still gets a working subscription
+     * where one is possible; a caller that awaits it learns that it never started, instead of holding
+     * a handle to a subscription that will never fire.
+     */
+    readonly attached: Promise<void>;
+
+    stop(): void;
+}
+
 /**
- * Watch the battery, calling back on every change. Returns the stop function SYNCHRONOUSLY, even
- * though the manager arrives asynchronously.
+ * Watch the battery, calling back on every change. `stop` is available SYNCHRONOUSLY, even though the
+ * manager arrives asynchronously.
  *
  * That shape is deliberate. `getBattery()` is a promise, so a stop that had to be awaited would leave
  * a window in which a caller has already torn down but the listeners have not been attached yet — and
  * attaching them afterwards leaks a subscription nobody holds a handle to. Resolving into a `stopped`
  * flag makes that interleaving unrepresentable instead of merely unlikely.
  */
-export function watch(onChange: (status: BatteryStatus) => void): () => void {
+export function watch(onChange: (status: BatteryStatus) => void): BatteryWatch {
     let stopped = false;
     let detach: (() => void) | null = null;
 
     const nav = battery();
-    if (nav?.getBattery) {
-        nav.getBattery().then((b: BatteryManagerLike) => {
+    const attached = nav?.getBattery
+        ? nav.getBattery().then((b: BatteryManagerLike) => {
             if (stopped) {
                 return;
             }
             const handler = () => onChange(read(b));
             EVENTS.forEach((e: string) => b.addEventListener(e, handler));
             detach = () => EVENTS.forEach((e: string) => b.removeEventListener(e, handler));
-        });
-    }
+        })
+        : Promise.resolve();
 
-    return () => {
+    const stop = () => {
         if (stopped) {
             return;
         }
@@ -106,4 +121,6 @@ export function watch(onChange: (status: BatteryStatus) => void): () => void {
             detach = null;
         }
     };
+
+    return {attached, stop};
 }

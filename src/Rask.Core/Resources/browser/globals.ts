@@ -250,9 +250,19 @@ window.__raskBattery = window.__raskBattery || (() => {
         isSupported: () => battery.isSupported(),
         getStatus: () => battery.getStatus(),
         watch: (id: number) => {
-            stops.set(id, battery.watch((status) =>
-                window.DotNet.invokeMethodAsync("Rask.Core", "RaskBatteryChanged", id, status)));
-            return Promise.resolve();
+            const watching = battery.watch((status) =>
+                window.DotNet.invokeMethodAsync("Rask.Core", "RaskBatteryChanged", id, status));
+            stops.set(id, watching.stop);
+
+            // The rejection is RETURNED, not swallowed. getBattery() rejects in a cross-origin iframe
+            // without the battery permission policy, and the shape this replaced resolved immediately
+            // either way — so C# got a live IAsyncDisposable for a subscription that would never fire,
+            // with an unhandled promise rejection in the console as the only trace. IBattery.WatchAsync
+            // unregisters and rethrows on a rejection, which is the behaviour before the extraction.
+            return watching.attached.catch((e: unknown) => {
+                stops.delete(id);
+                throw e;
+            });
         },
         clear: (id: number) => {
             const stop = stops.get(id);
@@ -519,13 +529,18 @@ window.__raskPip = window.__raskPip || {
 // IInstallPrompt. listen() runs at registration rather than at module import, which is what keeps the
 // module itself side-effect free — the browser fires beforeinstallprompt once, early, so something has
 // to be listening before the app's own code runs.
-installPrompt.listen();
-
-window.__raskInstall = window.__raskInstall || {
-    canInstall: () => installPrompt.canInstall(),
-    isInstalled: () => installPrompt.isInstalled(),
-    prompt: () => installPrompt.prompt()
-};
+//
+// INSIDE the `||` guard, where the old rask-api.ts attached these listeners too. Outside it, a page
+// that evaluates this bundle twice — a front end importing it alongside the framework's own — attaches
+// them twice, which the window guard is there to prevent.
+window.__raskInstall = window.__raskInstall || (() => {
+    installPrompt.listen();
+    return {
+        canInstall: () => installPrompt.canInstall(),
+        isInstalled: () => installPrompt.isInstalled(),
+        prompt: () => installPrompt.prompt()
+    };
+})();
 
 // IMediaDevices. A MediaStream cannot cross interop, so streams are held here under a JS-minted id.
 // `get` and `adopt` are not part of the C# surface: they are how other framework helpers — __raskRtc

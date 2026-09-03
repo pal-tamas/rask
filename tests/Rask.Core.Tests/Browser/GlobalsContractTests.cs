@@ -80,10 +80,29 @@ public class GlobalsContractTests
         var globals = File.ReadAllText(GlobalsPath);
 
         Assert.Contains(ns + " = ", globals, StringComparison.Ordinal);
+
+        // Scoped to the namespace's OWN block, which the first version of this test was not — it
+        // searched the whole file, and thirteen namespaces define `isSupported:`. Deleting that key
+        // from __raskWakeLock left the __raskWakeLock.isSupported case passing on __raskBattery's copy.
+        // A gate written to catch a literal dropped during a move has to know which literal it wants.
+        var block = NamespaceBlock(globals, ns);
+
         Assert.True(
-            Regex.IsMatch(globals, @"(?m)^\s+" + Regex.Escape(member) + @"\s*:"),
-            $"C# calls '{ns}.{member}', but globals.ts registers no such key — the call would fail in "
-            + "the browser with \"Could not find\", and nothing before run time would say so.");
+            Regex.IsMatch(block, @"(?m)^\s+" + Regex.Escape(member) + @"\s*:"),
+            $"C# calls '{ns}.{member}', but globals.ts registers no such key on {ns} — the call would "
+            + "fail in the browser with \"Could not find\", and nothing before run time would say so.");
+    }
+
+    /// <summary>
+    ///     The source of one <c>window.__raskX = …</c> registration, up to the next one.
+    /// </summary>
+    private static string NamespaceBlock(string globals, string ns)
+    {
+        var start = globals.IndexOf("window." + ns + " = ", StringComparison.Ordinal);
+        Assert.True(start >= 0, $"globals.ts does not register {ns} at all.");
+
+        var next = globals.IndexOf("\nwindow.__rask", start + 1, StringComparison.Ordinal);
+        return next < 0 ? globals[start..] : globals[start..next];
     }
 
     [Fact]

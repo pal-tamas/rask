@@ -95,6 +95,9 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
 
     /// <summary>Whether that hook is on the stack right now — see the self-render callback.</summary>
     private bool _inAfterRender;
+
+    /// <summary>Whether a repaint was suppressed while it was, and still owes the page its markup.</summary>
+    private bool _repaintAfterHook;
     // The hosted markup and the handlers its placeholders stand for, as ONE value.
     //
     // Two fields would be a data race rather than a tidiness question: RewriteHtml runs on the
@@ -278,6 +281,14 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         finally
         {
             _inAfterRender = false;
+        }
+
+        // Publish what the hook changed, exactly once. Re-entry is not a risk: the after-render claim
+        // above is already taken, so the render this asks for runs the hook no further.
+        if (_repaintAfterHook)
+        {
+            _repaintAfterHook = false;
+            StateHasChanged();
         }
     }
 
@@ -517,6 +528,12 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             // the markup written just above still reaches the page, once, without re-entering anything.
             if (_inAfterRender)
             {
+                // Remembered, not dropped. The hook itself publishes this once it returns — relying on
+                // Rask's post-hook auto-rerender would lose it whenever OnRenderedAsync completes
+                // SYNCHRONOUSLY, which it does when the walk was entered from this very callback:
+                // Component.RaiseOnRendered returns without requesting anything when the task is
+                // already complete, so the markup written above would never reach the page.
+                _repaintAfterHook = true;
                 return;
             }
 
