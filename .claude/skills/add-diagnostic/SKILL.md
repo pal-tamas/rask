@@ -10,13 +10,12 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 already taken on a branch base that was ahead of the checkout it was picked against. Run the grep, and
 run it again before you merge.
 
-At the last edit the highest allocated was RASK070, so the next free is **RASK071**; RASK063/065 are
+At the last edit the highest allocated was RASK071, so the next free is **RASK072**; RASK063/065 are
 RESERVED for Rask.Blazor and unimplemented, and RASK030/032/034/042/047/048/049/050 are retired and
 never recycled. **FOUR** assemblies allocate in this space, and RS1019 only checks one compilation:
 
 ```bash
-grep -rhoE '"RASK[0-9]{3}"' src/Rask.Generators src/Rask.Batteries.Generators \
-  src/Rask.Api.Generators src/Rask.Generators.Shared | sort -u | tail
+grep -rhoE '"RASK[0-9]{3}"' src/ | sort -u | tail   # ALL of src/ — the list of projects grows
 ```
 Grep **both** analyzer assemblies plus the shared sources. RS1019 only sees duplicate descriptor ids
 *within* one assembly, so an id reused across them compiles clean and ships twice.

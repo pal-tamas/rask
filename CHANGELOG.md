@@ -9,6 +9,33 @@ them until tagged releases begin.
 
 ### Added
 
+- **RASK071 catches ASP.NET's `[Route]` on a Rask component, with a quick-fix that swaps it.** Rask's
+  route attribute and ASP.NET's share the short name `Route` and differ only by namespace, so a server
+  file that already imports `Microsoft.AspNetCore.Mvc` — or one written by someone arriving from Blazor,
+  where the attribute is `Microsoft.AspNetCore.Components.RouteAttribute` — can bind the wrong one from a
+  completion list. Nothing downstream noticed: MVC reads its attribute only while scanning controllers
+  and a component is never scanned, Blazor's is read by a renderer Rask does not run, and
+  `RoutesGenerator` matches on the full name. The build stayed green and the page was simply absent from
+  the route table, so the first sign of it was a 404 in a browser. It is an Error for that reason.
+
+  The lightbulb rewrites only the attribute's **name**, so the template and any sibling attributes
+  survive, and it writes the name qualified wherever a bare `Route` would bind back to ASP.NET's
+  attribute or be ambiguous — never trading RASK071 for CS0104, which is asserted by compiling the
+  fixed file with a genuine MVC controller still in it. Where the arguments themselves would not fit
+  Rask's `RouteAttribute(string template)` the fix is **withheld** rather than offered: MVC's
+  attribute also has settable `Name` and `Order`, and an alias may bake its template in and take no
+  arguments at all, so rewriting those would answer RASK071 with a CS0117 or CS7036.
+
+  A page that already registers is left alone, both ways it can: Rask's own `[Route]`, and
+  `[NotFound]`, which registers the catch-all with no `[Route]` at all. The second one matters more
+  than a spurious error would suggest — the obvious fix for it puts a `[Route]` beside the
+  `[NotFound]`, which is RASK013 and drops the catch-all from the registry entirely. An alias
+  deriving from MVC's (unsealed) attribute is matched through the base chain, and the message names
+  the alias the developer actually wrote rather than only the base it derives from.
+
+  Note that this is deliberately silent on the API controllers `Rask.Api` introduces: those are real
+  MVC controllers, not components, and `[Route]` on one of them is correct.
+
 - **`Rask.Api.Client` — a typed client generated from your own controllers, so a call site carries no
   URL.** The server declaration is the source of truth: an ordinary `[ApiController]` is read for its
   routes, verbs, parameters and response types, and one client class per controller is generated from
