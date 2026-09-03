@@ -85,14 +85,14 @@ public sealed partial class SystemPage(
                     // WAL is the mode every Rask deployment expects; anything else is worth noticing.
                     .Tone(db.JournalMode is not null
                           && !db.JournalMode.Equals("wal", StringComparison.OrdinalIgnoreCase)
-                        ? UiTone.Warn
+                        ? UiTone.Warning
                         : null),
                 UiDetailRow
                     .Key("fks")
                     .Label("Foreign keys")
                     .Value(db.ForeignKeys switch { true => "on", false => "off", null => "n/a" })
                     .Mono(true)
-                    .Tone(db.ForeignKeys is false ? UiTone.Warn : null),
+                    .Tone(db.ForeignKeys is false ? UiTone.Warning : null),
                 UiDetailRow
                     .Key("provider")
                     .Label("Provider")

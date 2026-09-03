@@ -1,19 +1,23 @@
 namespace Rask.Ui;
 
 /// <summary>
-/// What a piece of the kit is saying about the thing it shows.
+/// What a piece of the kit is saying about the thing it shows: its COLOUR.
 /// </summary>
 /// <remarks>
 /// <para>
-/// An enum rather than the string this was while the kit had one caller inside the operator console.
-/// A string tone has no discoverable set of values and no wrong value — every misspelling silently
-/// selects the neutral branch, which reads on screen as "that component ignored me". As public API
-/// that is a trap; the compiler should be the thing that knows the vocabulary.
+/// These are daisyUI's semantic colours, named as daisyUI names them. Translating them into a private
+/// vocabulary was the first thing this kit did and the first thing it stopped doing: a caller reading
+/// daisyUI's documentation, which is the documentation for everything the components render, would have
+/// had to map every example back through a second set of words for no gain.
 /// </para>
 /// <para>
-/// Not every component honours every member — a status dot has no <see cref="Primary" />, a button no
-/// <see cref="Busy" />. Each one documents what it does with the rest, and treats anything it has no
-/// meaning for as <see cref="Neutral" />, which is the same thing it did before.
+/// Colour is one axis of three, and they compose. <see cref="UiVariant" /> chooses how a component is
+/// drawn — filled, outlined, ghosted — and <see cref="UiSize" /> how big. What used to be
+/// <c>Quiet</c> is <see cref="UiVariant.Ghost" />, because it was never a colour.
+/// </para>
+/// <para>
+/// Not every component honours every member, and each documents what it does with the rest; anything a
+/// component has no meaning for is treated as <see cref="Neutral" />.
 /// </para>
 /// </remarks>
 public enum UiTone
@@ -24,18 +28,21 @@ public enum UiTone
     /// <summary>The one action a surface most expects to be taken.</summary>
     Primary,
 
-    /// <summary>Present, but not competing for attention.</summary>
-    Quiet,
+    /// <summary>The supporting action beside it.</summary>
+    Secondary,
+
+    /// <summary>A third emphasis, for surfaces that need one.</summary>
+    Accent,
+
+    /// <summary>Worth reading, and not a problem. Also what "working right now" reads as.</summary>
+    Info,
 
     /// <summary>Healthy, finished, succeeded.</summary>
-    Ok,
+    Success,
 
     /// <summary>Not wrong yet — unproven, stale, or approaching a limit.</summary>
-    Warn,
+    Warning,
 
     /// <summary>Failed, or about to destroy something.</summary>
-    Danger,
-
-    /// <summary>Working right now.</summary>
-    Busy,
+    Error,
 }

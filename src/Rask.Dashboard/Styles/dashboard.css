@@ -31,7 +31,6 @@
   /* Neutrals — a near-white ladder, not a grey one. The steps are deliberately close together: the
      console's depth comes from hairlines, not from contrast between surfaces. */
   --color-ui-bg: oklch(1 0 0);
-  --color-ui-panel: oklch(0.993 0 0);
   --color-ui-well: oklch(0.979 0 0);
   --color-ui-line: oklch(0.909 0 0);
   --color-ui-ink: oklch(0.22 0 0);
@@ -42,19 +41,21 @@
   /* Accent — links, focus rings, the active tab. */
   --color-ui-brand: oklch(0.55 0.2 265);
 
-  /* Status FILLS — dots, tinted badge grounds, and text on the dark toast. Green is teal-leaning on
-     purpose: a pure green reads as decorative beside the amber and the rose, and these three have to stay
-     distinguishable at the size of a 6px status dot. */
-  --color-ui-ok: oklch(0.6 0.11 175);
+  /* Status FILLS — dots, tinted badge grounds, and text on the dark toast. Amber is teal-leaning's
+     opposite number here: the two have to stay distinguishable at the size of a 6px status dot.
+
+     The success pair (--color-ui-ok, --color-ui-ok-ink) and --color-ui-panel used to sit here and are
+     gone: nothing references them since the kit's components moved onto daisyUI's own colour utilities,
+     and this block is pinned by a test that fails on a token no utility reaches. Success now arrives as
+     daisyUI's `text-success`, from the kit's sheet. */
   --color-ui-warn: oklch(0.77 0.16 70);
   --color-ui-danger: oklch(0.55 0.2 20);
 
-  /* Status TEXT on a light ground. Separate tokens rather than darker ones, because the same two colours
-     are read on two different grounds: the fills above are correct on the near-black toast and fail as
-     text on white (amber measures 2.13:1, teal 3.73:1 — nowhere near the 4.5:1 this file demands two
-     comments up), while these clear it and would in turn be too dark on the toast. Rose already passes
-     at 5.39:1 and needs no twin. Verified by computing the ratios, not by eye. */
-  --color-ui-ok-ink: oklch(0.55 0.1 175);
+  /* Status TEXT on a light ground. A separate token rather than a darker one, because the same colour is
+     read on two different grounds: the fill above is correct on the near-black toast and fails as text on
+     white (amber measures 2.13:1 — nowhere near the 4.5:1 this file demands two comments up), while this
+     clears it and would in turn be too dark on the toast. Rose already passes at 5.39:1 and needs no
+     twin. Verified by computing the ratios, not by eye. */
   --color-ui-warn-ink: oklch(0.57 0.13 70);
 }
 

@@ -33,26 +33,36 @@
 /*
   daisyUI supplies the component vocabulary; this kit supplies the typed C# API over it.
 
+  VENDORED, and referenced by relative path. daisyUI publishes a standalone bundle for exactly this
+  case, which matters because Tailwind resolves `@plugin "daisyui"` the way Node does — by walking up
+  from this file looking for node_modules — and the standalone binary Rask.Tailwind prefers bundles
+  Tailwind inside itself and carries no package tree to find anything in:
+
+      Error: Can't resolve 'daisyui' in .../src/Rask.Ui/Styles
+
+  A relative path sidesteps the resolution entirely, so this project keeps the standalone engine and
+  needs no npm install, no node_modules and no package.json of its own. vendor/daisyui.mjs is
+  daisyUI 5.7.27 verbatim (MIT), taken from its pinned GitHub release, which is byte-identical to the
+  `latest` download at that version. It is build-time input only and ships in nothing.
+
   themes: light is the default and dark follows the OS. Both are daisyUI's own, which is what makes the
   theme switch work with NO JavaScript — daisyUI matches `input.theme-controller[value=x]:checked` and
   `[data-theme=x]`, so a checkbox or a radio flips the whole palette through CSS alone.
 
-  exclude rootscrollgutter, and this one is not optional. That component paints the DOCUMENT:
+  root: the theme is confined to [data-rask-ui] rather than the document. By default daisyUI paints
+  `:root`, so merely REFERENCING this package would repaint the background and text colour of an app
+  that only wanted a button. This kit already refuses to ship a preflight for that reason, and a `:root`
+  background is the same bug wearing a different selector. See UiStylesheet.ThemeScopeAttribute.
 
-      :root { background-color: var(--page-scroll-bg, var(--root-bg)) }
-
-  This kit deliberately ships no preflight and no html/body rules, because an app owns its own document
-  and a library that repaints it restyles pages that never asked for it. A `:root` background is that
-  same bug wearing a different selector.
+  exclude rootscrollgutter, which paints the document for its own reasons.
 
   NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
-  scanned source. So every class a component writes must appear as a COMPLETE literal in C# — build a
-  variant with a switch returning whole strings, never by concatenating ("btn-" + tone). Composed names
-  are invisible to the scan, and the failure is silent: the component renders with no styling at all and
-  the build stays green. Measured: adding one file naming `drawer` grew this sheet by 4 KB; the full
-  component set is ~150 KB raw, ~23 KB gzipped.
+  scanned source. So every class a component writes must appear as a COMPLETE literal in C# — which is
+  what UiClassNames.cs is for — never built by concatenating ("btn-" + tone). A composed name is
+  invisible to the scan, and the failure is silent: the component renders with no styling at all and the
+  build stays green. Measured: adding one file naming `drawer` grew this sheet by 4 KB.
 */
-@plugin "daisyui" {
+@plugin "./vendor/daisyui.mjs" {
   themes: light --default, dark --prefersdark;
   root: "[data-rask-ui]";
   exclude: rootscrollgutter;

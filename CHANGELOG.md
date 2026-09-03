@@ -149,6 +149,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The kit's colour vocabulary is daisyUI's, and it is three axes rather than one.** `UiTone` was a
+  private set of words that had to be mapped back onto daisyUI's every time anyone read its
+  documentation, so it is now daisyUI's own: `Neutral, Primary, Secondary, Accent, Info, Success,
+  Warning, Error`. Two new enums carry what was tangled into it — `UiVariant` (solid, outline, soft,
+  dash, ghost, link) for how a component is filled, and `UiSize` for how big. They compose, so an
+  outlined error button needs no member of its own. `Quiet` turned out never to have been a colour and
+  is `UiVariant.Ghost`; `Danger`/`Warn`/`Ok`/`Busy` are `Error`/`Warning`/`Success`/`Info`.
+
+  `UiButton`, `UiSearch` and `UiStatusDot` are rebuilt on `btn`, `input` and `status`, which deletes the
+  hand-rolled base strings and palette switches they carried — including the touch target, focus ring
+  and disabled treatment daisyUI already has. `UiSearch.Label` is now `AccessibleLabel`: a property of
+  the old name shadowed the chain entry for the `<label>` element the component renders, so it could not
+  reference its own tag.
+
+  **`UiShell` now carries the theme scope itself.** Without it the operator console's kit components
+  wrote daisyUI colour classes whose variables are confined to `data-rask-ui`, and every one of them
+  would have rendered structurally perfect and completely colourless — visible in a browser and in
+  nothing else. A surface that does not use the shell still opts in on `<html>`, as the showcase does.
+
+  Every class name the kit can write is now a literal in `UiClassNames`, checked against the compiled
+  sheet by `UiClassNamesTests`. That guard found six fabricated names on its first run: `tab-xs`
+  through `tab-xl` (daisyUI sizes tabs on the CONTAINER, `tabs-*`) and `tooltip-neutral`, which daisyUI
+  does not define. Five components would have rendered unsized and one uncoloured, silently.
+
+
 - **The gates now share this machine by a slot budget instead of one all-or-nothing lane, so several
   worktrees can test at once without lying to each other.** Eight worktrees run on one box here, and
   the old arrangement went wrong in both directions at the same time.

@@ -53,9 +53,9 @@ public sealed class SystemPageBackupTests
         // The tone, not the word: "failed" also appears in the error text below the tile, so asserting on
         // it alone would pass even if the tile itself never rendered. RestartCount is 0 here, so nothing
         // else on the card is red.
-        Assert.Contains("text-ui-danger", html, StringComparison.Ordinal);
+        Assert.Contains("text-error", html, StringComparison.Ordinal);
         // And red ONLY — an amber tile here would mean the level collapsed to a single "something is off".
-        Assert.DoesNotContain("text-ui-warn", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("text-warning", html, StringComparison.Ordinal);
         Assert.Contains("exit code 1", html, StringComparison.Ordinal);
     }
 
@@ -70,8 +70,8 @@ public sealed class SystemPageBackupTests
         Assert.Contains("inconclusive", html, StringComparison.Ordinal);
         // Warning, never danger: a tile that goes red every time the check races replication is a tile
         // operators learn to ignore.
-        Assert.Contains("text-ui-warn", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("text-ui-danger", html, StringComparison.Ordinal);
+        Assert.Contains("text-warning", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("text-error", html, StringComparison.Ordinal);
     }
 
     private static DashboardHarness Harness(FakeBackupProbe probe) =>

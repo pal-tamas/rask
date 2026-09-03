@@ -22,7 +22,7 @@ public sealed partial class LiveCounter : Component
             Div.Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2.5")[
                 // The kit's status dot, unchanged from the console — where it reports whether a queue is
                 // healthy. Here it reports that this component is the running one.
-                UiStatusDot.Label("running · /counter").Tone(UiTone.Ok)
+                UiStatusDot.Label("running · /counter").Tone(UiTone.Success)
             ],
             Div.Class("flex flex-col items-center gap-3 px-6 py-8")[
                 H3.Class("text-sm font-medium text-ui-muted")["Current count"],

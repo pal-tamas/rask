@@ -114,7 +114,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
                 Div.Class("ml-auto shrink-0")[
                     UiStatusDot
                         .Label(failing ? $"{counts.Failed} failed" : "healthy")
-                        .Tone(failing ? UiTone.Danger : UiTone.Ok)
+                        .Tone(failing ? UiTone.Error : UiTone.Success)
                 ]
             ],
             Div.Class("mt-4 flex items-baseline gap-6")[

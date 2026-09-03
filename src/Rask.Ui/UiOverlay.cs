@@ -35,13 +35,13 @@ public sealed partial class UiModal : Component
             Div.Role("dialog")
                 .Aria(new Dictionary<string, string?> { ["modal"] = "true", ["label"] = Heading })
                 .Class(
-                    "relative flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-ui-line bg-ui-bg "
+                    "relative flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-base-300 bg-base-100 "
                     + "shadow-xl sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl")[
-                Div.Class("flex items-start gap-3 border-b border-ui-line px-4 py-3 sm:px-5")[
-                    H2.Class("min-w-0 grow break-words text-base font-semibold tracking-tight text-ui-ink")[Heading],
+                Div.Class("flex items-start gap-3 border-b border-base-300 px-4 py-3 sm:px-5")[
+                    H2.Class("min-w-0 grow break-words text-base font-semibold tracking-tight text-base-content")[Heading],
                     UiButton
                         .Label("Close")
-                        .Tone(UiTone.Quiet)
+                        .Variant(UiVariant.Ghost)
                         .Icon(UiIconName.Close)
                         .Class("!px-2")
                         .OnClick(Dismiss)
@@ -51,7 +51,7 @@ public sealed partial class UiModal : Component
                 Footer is null
                     ? null
                     : Div.Class(
-                        "flex flex-col-reverse gap-2 border-t border-ui-line px-4 py-3 sm:flex-row "
+                        "flex flex-col-reverse gap-2 border-t border-base-300 px-4 py-3 sm:flex-row "
                         + "sm:justify-end sm:px-5")[
                         Footer
                     ]
@@ -80,7 +80,7 @@ public sealed partial class UiToast : Component
 {
     public required string Message { get; set; }
 
-    /// <summary><see cref="UiTone.Danger" /> when the action failed. Anything else reads as done.</summary>
+    /// <summary><see cref="UiTone.Error" /> when the action failed. Anything else reads as done.</summary>
     public UiTone? Tone { get; set; }
 
     public Action? Dismiss { get; set; }
@@ -96,8 +96,8 @@ public sealed partial class UiToast : Component
             // ui-danger on this ground is the low-contrast one. The icon shape (Warning vs Check) is what
             // actually carries the outcome; the colour only reinforces it.
             UiIcon
-                .Name(Tone == UiTone.Danger ? UiIconName.Warning : UiIconName.Check)
-                .Class($"size-5 shrink-0 {(Tone == UiTone.Danger ? "text-ui-warn" : "text-ui-ok")}"),
+                .Name(Tone == UiTone.Error ? UiIconName.Warning : UiIconName.Check)
+                .Class($"size-5 shrink-0 {(Tone == UiTone.Error ? "text-warning" : "text-success")}"),
             Span.Class("min-w-0 grow break-words")[Message],
             Dismiss is null
                 ? null
@@ -105,7 +105,7 @@ public sealed partial class UiToast : Component
                     .Type("button")
                     .Class(
                         "-mr-1 shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium text-ui-bg/70 "
-                        + "hover:bg-ui-bg/10 hover:text-ui-bg")
+                        + "hover:bg-base-100/10 hover:text-ui-bg")
                     .Aria(new Dictionary<string, string?> { ["label"] = "Dismiss" })
                     .OnClick(Dismiss)["Dismiss"]
         ];

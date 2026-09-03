@@ -82,7 +82,7 @@ public sealed partial class CachePage(
             Div.Class("mb-4")[
                 UiSearch
                     .Placeholder("Search keys")
-                    .Label("Search cache keys")
+                    .AccessibleLabel("Search cache keys")
                     .Value(Search)
                     .OnSearch(SearchAsync)
             ],
@@ -184,7 +184,7 @@ public sealed partial class CachePage(
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? UiButton.Label("Flush cache").Tone(UiTone.Danger).Icon(UiIconName.Trash).OnClick(() => Confirm(true))
+            ? UiButton.Label("Flush cache").Tone(UiTone.Error).Icon(UiIconName.Trash).OnClick(() => Confirm(true))
             : null;
 
     private Component? ConfirmPrompt() =>
@@ -193,7 +193,7 @@ public sealed partial class CachePage(
                 Span.Class("min-w-0 grow break-words")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Danger).OnClickAsync(FlushAsync),
+                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error).OnClickAsync(FlushAsync),
                 UiButton.Key("cancel").Label("Cancel").OnClick(() => Confirm(false))
             ]
             : null;

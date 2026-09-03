@@ -109,7 +109,7 @@ public sealed partial class QueuePage(
                 Tile(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, tone: null),
                 Tile(QueueFilter.Due, "Due", _counts.Due, tone: null),
                 Tile(QueueFilter.Delayed, "Delayed", _counts.Delayed, tone: null),
-                Tile(QueueFilter.Failed, "Failed", _counts.Failed, tone: _counts.Failed > 0 ? UiTone.Danger : null),
+                Tile(QueueFilter.Failed, "Failed", _counts.Failed, tone: _counts.Failed > 0 ? UiTone.Error : null),
                 Tile(QueueFilter.Processed, "Processed", _counts.Processed, tone: null)
             ]
         ];
@@ -254,7 +254,7 @@ public sealed partial class QueuePage(
             row.Error is { } error
                 ? Div.Class("mt-4")[
                     Div.Class("mb-1.5 text-xs font-medium text-ui-danger")["Last error"],
-                    UiCode.Content(error).Tone(UiTone.Danger)
+                    UiCode.Content(error).Tone(UiTone.Error)
                 ]
                 : null,
             Div.Class("mt-4")[
@@ -390,7 +390,7 @@ public sealed partial class QueuePage(
         _pending is { } pending
             ? UiNotice.Tone("warn")[
                 Span.Class("min-w-0 grow break-words")[pending.Prompt],
-                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Danger)
+                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error)
                     .OnClickAsync(() => ExecuteAsync(pending.Action)),
                 UiButton.Key("cancel").Label("Cancel").OnClick(Cancel)
             ]
@@ -403,7 +403,7 @@ public sealed partial class QueuePage(
         _message is { } message
             ? UiToast
                 .Message(message)
-                .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? UiTone.Danger : null)
+                .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? UiTone.Error : null)
                 .Dismiss(Dismiss)
             : null;
 

@@ -95,23 +95,6 @@
     project is called finished.
   -->
   <PropertyGroup Condition=" '$(TargetFramework)' != '' ">
-    <!--
-      The npm engine, forced rather than left on `auto`. This project's stylesheet loads daisyUI through
-      `@plugin`, and Tailwind resolves a plugin the way Node does: by walking up from the STYLESHEET's
-      own directory looking for node_modules. The standalone binary bundles Tailwind inside itself but
-      carries no package tree to find anything else in, so on `auto` it fails outright with
-
-          Error: Can't resolve 'daisyui' in .../src/Rask.Ui/Styles
-
-      package.json beside this file is committed on purpose. The npm target writes a default one only
-      when none exists, so ours wins and names daisyUI alongside the same Tailwind version the
-      standalone path would have used.
-
-      This costs a Node install at THIS project's build and nothing at a consumer's: the compiled sheet
-      is embedded into the assembly, so an app referencing the kit receives plain CSS and never resolves
-      a plugin, runs Tailwind, or gains a node_modules of its own.
-    -->
-    <RaskTailwindEngine>npm</RaskTailwindEngine>
     <RaskTailwindInput>Styles/ui.css</RaskTailwindInput>
     <RaskTailwindOutput>obj/$(TargetFramework)/ui.generated.css</RaskTailwindOutput>
     <RaskTailwindMinify>true</RaskTailwindMinify>

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Rask.Dashboard.Pages;
 using Rask.Ui;
 
@@ -48,7 +49,19 @@ public class DashboardStylesheetTests
         // preflight arriving from a library restyles pages that never asked for it — which is exactly
         // what happened to host applications while the console rendered inside their document. The
         // console's own sheet carries the reset (asserted below); the kit's must not.
-        Assert.DoesNotContain("box-sizing:border-box", UiStylesheet.Css, StringComparison.Ordinal);
+        // Asserted on the SELECTOR, not on a declaration. A reset is `box-sizing` applied to everything —
+        // `*`, `html`, `body`, `::before`/`::after` — and daisyUI legitimately sets the same property inside
+        // ordinary class rules, so matching the declaration text alone reports those as a preflight.
+        foreach (Match rule in Regex.Matches(UiStylesheet.Css, @"(?:^|[}\s;])([^{}@]+)\{([^{}]*)\}"))
+        {
+            var selector = rule.Groups[1].Value.Trim();
+            var universal = Regex.IsMatch(selector, @"(^|,)\s*(\*|html|body)\b")
+                            || selector.Contains("*,", StringComparison.Ordinal);
+
+            Assert.False(
+                universal && rule.Groups[2].Value.Contains("box-sizing", StringComparison.Ordinal),
+                $"The kit's sheet resets box-sizing on '{selector}'.");
+        }
     }
 
     // Tailwind emits only the utilities it finds in the sources it scans, so a rule that scans nothing
@@ -60,18 +73,15 @@ public class DashboardStylesheetTests
     // it, so this doubles as the check that each one is actually referenced by a utility somewhere.
     [Theory]
     [InlineData("--color-ui-bg")]       // the @theme block reached the output
-    [InlineData("--color-ui-panel")]
     [InlineData("--color-ui-well")]
     [InlineData("--color-ui-line")]
     [InlineData("--color-ui-ink")]
     [InlineData("--color-ui-muted")]
     [InlineData("--color-ui-brand")]
-    [InlineData("--color-ui-ok")]
     [InlineData("--color-ui-warn")]
     [InlineData("--color-ui-danger")]
-    [InlineData("--color-ui-ok-ink")]   // the text-on-light twins; the fills above fail 4.5:1 as text
-    [InlineData("--color-ui-warn-ink")]
-    [InlineData("bg-ui-panel")]         // a themed utility, so the theme is wired to utilities
+    [InlineData("--color-ui-warn-ink")] // the text-on-light twin; the fill above fails 4.5:1 as text
+    [InlineData("bg-ui-well")]          // a themed utility, so the theme is wired to utilities
     [InlineData("text-ui-muted")]
     [InlineData("tabular-nums")]         // used by every counter on the console
     [InlineData("animate-spin")]         // the loading spinner, which ships no asset of its own

@@ -20,9 +20,17 @@ public sealed partial class UiShell : Component
         // .rask-ops is a hook, not a fence. It was a fence while these pages rendered inside the host
         // application's document and every rule had to be scoped under it; the console is now a mounted
         // application with its own document (RaskMountedApp), so the stylesheet is free to be ordinary.
-        Div.Class("rask-ops min-h-screen bg-ui-well text-ui-ink")[
+        // The shell carries the kit's theme scope so that a surface built on it does not have to remember
+        // to. Without the attribute the palette is not defined at all — daisyUI's colours are confined to
+        // it precisely so that referencing this package cannot repaint an application that only wanted a
+        // button — and every component inside would render structurally correct with no colour, which no
+        // markup assertion can see. A surface that does NOT use this shell opts in itself, on <html> or on
+        // a container; see UiStylesheet.ThemeScopeAttribute.
+        Div
+            .Class("rask-ops min-h-screen bg-base-200 text-base-content")
+            .Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
             Div.Class("mx-auto w-full max-w-[110rem] sm:p-4 lg:p-6")[
-                Div.Class("bg-ui-bg sm:overflow-hidden sm:rounded-2xl sm:border sm:border-ui-line")[
+                Div.Class("bg-base-100 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-base-300")[
                     Children ?? []
                 ]
             ]
@@ -37,7 +45,7 @@ public sealed partial class UiTopBar : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Header.Class("flex items-center gap-1 border-b border-ui-line px-2 py-2 sm:gap-2 sm:px-4 sm:py-2.5")[
+        Header.Class("flex items-center gap-1 border-b border-base-300 px-2 py-2 sm:gap-2 sm:px-4 sm:py-2.5")[
             Children ?? [],
             Trailing is null ? null : Div.Class("ml-auto flex items-center gap-1 pl-2 sm:gap-3")[Trailing]
         ];
@@ -66,7 +74,7 @@ public sealed partial class UiBrand : Component
             .Href(Href)
             .Class(
                 "flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-1.5 text-sm font-semibold tracking-tight "
-                + "text-ui-ink no-underline hover:bg-ui-well sm:min-h-0 sm:py-1.5")[
+                + "text-base-content no-underline hover:bg-base-200 sm:min-h-0 sm:py-1.5")[
             UiIcon.Name(Icon ?? UiIconName.Overview).Class("size-5 shrink-0"),
             // The wordmark is the first thing to go: on a phone the crumb beside it says where you are,
             // which is the part someone actually needs.
@@ -95,7 +103,7 @@ public sealed partial class UiNav : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Nav.Class(
-            "flex items-stretch gap-4 overflow-x-auto border-b border-ui-line px-3 sm:gap-6 sm:px-5 "
+            "flex items-stretch gap-4 overflow-x-auto border-b border-base-300 px-3 sm:gap-6 sm:px-5 "
             + "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden")[
             Children ?? []
         ];
@@ -122,8 +130,8 @@ public sealed partial class UiNavTab : Component
             .Class(
                 "-mb-px flex min-h-11 shrink-0 items-center whitespace-nowrap border-b-2 pb-2.5 pt-2.5 text-sm "
                 + "no-underline " + (active
-                    ? "border-ui-ink font-medium text-ui-ink"
-                    : "border-transparent text-ui-muted hover:border-ui-line hover:text-ui-ink"));
+                    ? "border-ui-ink font-medium text-base-content"
+                    : "border-transparent opacity-60 hover:border-base-300 hover:text-base-content"));
 
         // Added only when it is true, rather than as one half of a ternary that has to yield a tuple either
         // way. The else branch of that shape ships a meaningless data-inactive on every inactive tab of
@@ -186,8 +194,8 @@ public sealed partial class UiCrumbSwitcher : Component
             // reference puts it; the select underneath is otherwise completely ordinary.
             .Class(
                 "min-h-11 w-full cursor-pointer appearance-none truncate rounded-lg border border-transparent "
-                + "bg-transparent py-1.5 pr-7 text-sm text-ui-ink hover:bg-ui-well focus-visible:outline-2 "
-                + "focus-visible:outline-offset-2 focus-visible:outline-ui-brand sm:min-h-0 "
+                + "bg-transparent py-1.5 pr-7 text-sm text-base-content hover:bg-base-200 focus-visible:outline-2 "
+                + "focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-0 "
                 + (Icon is null ? "pl-2" : "pl-8"));
 
         if (OnSelect is { } select_)
@@ -197,12 +205,12 @@ public sealed partial class UiCrumbSwitcher : Component
 
         return Div.Class("relative flex min-w-0 max-w-[9rem] items-center sm:max-w-[16rem]")[
             Icon is { } icon
-                ? UiIcon.Name(icon).Class("pointer-events-none absolute left-2 size-4 shrink-0 text-ui-muted")
+                ? UiIcon.Name(icon).Class("pointer-events-none absolute left-2 size-4 shrink-0 opacity-60")
                 : null,
             select[options],
             UiIcon
                 .Name(UiIconName.ChevronUpDown)
-                .Class("pointer-events-none absolute right-2 size-4 shrink-0 text-ui-muted")
+                .Class("pointer-events-none absolute right-2 size-4 shrink-0 opacity-60")
         ];
     }
 }
@@ -222,8 +230,8 @@ public sealed partial class UiTopLink : Component
             .Target("_blank")
             .Rel("noopener noreferrer")
             .Class(
-                "flex min-h-11 items-center rounded-lg px-2 text-sm text-ui-muted no-underline "
-                + "hover:bg-ui-well hover:text-ui-ink sm:min-h-0 sm:py-1.5")[
+                "flex min-h-11 items-center rounded-lg px-2 text-sm opacity-60 no-underline "
+                + "hover:bg-base-200 hover:text-base-content sm:min-h-0 sm:py-1.5")[
             Label
         ];
 }
@@ -233,5 +241,5 @@ public sealed partial class UiMain : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Main.Class("bg-ui-well px-3 py-4 sm:px-5 sm:py-6")[Children ?? []];
+        Main.Class("bg-base-200 px-3 py-4 sm:px-5 sm:py-6")[Children ?? []];
 }
