@@ -407,6 +407,12 @@ client, and paying for a full bundle on every save would make watch unusable. Th
 contracts are still written**, because a dev server compiling the previous build's contracts is exactly
 the failure that pipeline exists to prevent.
 
+A [**meta framework**](meta.md) solution — Nuxt, Next, SvelteKit and the rest — runs the same two
+processes, with the framework's own dev server in the bundler's place and its own port (3000, or 5173
+for SvelteKit and Analog). `-p:RaskMetaBuild=false` there skips a full *production* front-end build on
+every save, and because that leaves no server entry to supervise, the host is told where the dev server
+is instead and forwards to it — so both its port and the dev server's answer for the session.
+
 It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
 set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the
 app instead of stopping at an interactive prompt. Pass `--no-restart` to be asked instead.

@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask dev` knows the meta framework lane (#983).** It classified a meta host as a plain server
+  app, which failed in the quiet direction: nothing broke, and every save ran a full **production**
+  build of Nuxt, Next or SvelteKit through the framework's own toolchain, whose output the session
+  then never read.
+
+  It is now its own template kind, with the same two-process shape the SPA lane has: `dotnet watch`
+  for the host, the framework's own dev server for the front end, `-p:RaskMetaBuild=false` to skip
+  that production build, and `--open` pointed at the dev server rather than at ASP.NET. The port comes
+  from the framework (3000 for Nuxt, Next, TanStack Start and SolidStart; 5173 for SvelteKit and
+  Analog), and `RaskMetaAppDir` is honoured, so an app that was moved still gets a dev server instead
+  of silently getting none. The banner names the framework, because on this lane six of them share one
+  kind.
+
+  **The host had to be told too.** Skipping the build leaves no server entry, and the supervisor
+  refuses to start rather than forward into nothing — so the session would have died before its first
+  page. `rask dev` now hands the host the dev server's address in `RASK_META_DEV`, which is the
+  documented `SuperviseNode = false` case with the port filled in: the host stops supervising and
+  forwards to the process the CLI started beside it. Both addresses work for the session — `:3000` is
+  where HMR is native, and the host's own port still renders rather than being a dead end.
+  [docs/meta.md](docs/meta.md#development).
+
 - **A meta framework front end gets the typed wire — generated contracts and the dispatcher.** It had
   neither, and the reason was one line's absence: `RaskEmitTypeScript` was defaulted and made visible
   to the compiler only by `Rask.Spa.Hosting`. The CQRS generator reads that flag through Roslyn's

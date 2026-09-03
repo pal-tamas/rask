@@ -233,8 +233,25 @@ browser → :3000 (nuxt dev, native HMR)
             └── /_rask/* → :5000 (dotnet watch)
 ```
 
+Two things follow from the dev server owning the front end, and `rask dev` arranges both:
+
+- **`RaskMetaBuild=false` for the session.** `npm run build` here is a full *production* build of Nuxt,
+  Next or SvelteKit; running it on every save would make watch unusable, and nothing in the session
+  would ever read the output. Your C# contracts are still projected into TypeScript on every build —
+  that is deliberately independent of this flag, because a dev server compiling last build's messages
+  is exactly the failure the generated wire exists to prevent.
+- **The host stops supervising and forwards to the dev server instead.** With no built front end there
+  would be no server entry to run, and the supervisor's refusal to start would take the session down
+  before its first page. So `rask dev` hands the host the dev server's address in `RASK_META_DEV`,
+  which is the `SuperviseNode = false` case with the port filled in. Both addresses then work: `:3000`
+  is where HMR is native, and `:5000` still renders, so a link to the host is not a dead end.
+
+The port is derived from the framework — 3000 for Nuxt, Next, TanStack Start and SolidStart, 5173 for
+SvelteKit and Analog. A front end told to listen elsewhere still runs; `rask dev` will point the
+browser at the default, and `--urls` overrides outright.
+
 In production neither half of that exists: Kestrel owns the port and forwards to the supervised
-process on loopback.
+process on loopback, and `RASK_META_DEV` is unset.
 
 ## When the front end will not start
 
