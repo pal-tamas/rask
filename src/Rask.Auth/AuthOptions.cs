@@ -51,20 +51,6 @@ public sealed class AuthOptions
     public bool SlidingExpiration { get; set; } = true;
 
     /// <summary>
-    /// Whether <c>/api/auth/login</c> also answers with a bearer token. <b>Off by default.</b>
-    /// </summary>
-    /// <remarks>
-    /// The cookie is the default on every host because it is the only mechanism all of them share: a
-    /// meta-framework's Node process forwards it opaquely and calls back for identity, a TypeScript
-    /// front end sends it same-origin, and the WebAssembly host's <c>HttpClient</c> is already page-origin.
-    /// Turn this on for the cases a same-origin cookie genuinely cannot serve — a cross-origin front
-    /// end, a mobile client, a partner API. Attach the token per call through
-    /// <c>ConfigureRequestAsync</c>. A token held in browser storage is readable by any script on the
-    /// page; prefer the cookie wherever it can work.
-    /// </remarks>
-    public bool Bearer { get; set; }
-
-    /// <summary>
     /// Whether the first account to register becomes an administrator. On by default.
     /// </summary>
     /// <remarks>

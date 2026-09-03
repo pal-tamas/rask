@@ -76,6 +76,17 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`AuthOptions.Bearer` did nothing, so it is gone.** The option was added for the bearer-token
+  deviation and never wired — `/api/auth/login` never issued a token. A setting that is accepted and
+  disregarded is the most expensive kind to discover, so it is removed rather than left to be found.
+
+  Issuance is deferred, not abandoned: it needs a signing-key decision (config-supplied, because a
+  generated key breaks across restarts and instances), a failure mode when that key is absent outside
+  Development, and a token lifetime — a second hardening story beside the cookie one. Until then the
+  cookie is the shipped default on every host, `docs/authentication-jwt.md` documents the hand-rolled
+  bearer path, and the two JWT samples demonstrate it.
+
+
 - **The browser half did not survive the trimmer.** `Rask.Auth.Client` serialised with
   `ReadFromJsonAsync<T>` and `JsonContent.Create` — reflection-based JSON, which a trimmed WebAssembly
   publish cannot keep. Three `IL2026` and a **failed publish** for any app that used it, while its unit

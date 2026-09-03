@@ -17,8 +17,6 @@ Rask.Auth.AuthOptions.AccessDeniedPath.set -> void
 Rask.Auth.AuthOptions.ApiPrefix.get -> string!
 Rask.Auth.AuthOptions.ApiPrefix.set -> void
 Rask.Auth.AuthOptions.AuthOptions() -> void
-Rask.Auth.AuthOptions.Bearer.get -> bool
-Rask.Auth.AuthOptions.Bearer.set -> void
 Rask.Auth.AuthOptions.CookieName.get -> string!
 Rask.Auth.AuthOptions.CookieName.set -> void
 Rask.Auth.AuthOptions.ExpireTimeSpan.get -> System.TimeSpan
